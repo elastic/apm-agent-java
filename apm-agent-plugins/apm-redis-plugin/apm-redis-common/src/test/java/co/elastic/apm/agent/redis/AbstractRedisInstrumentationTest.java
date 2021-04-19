@@ -28,7 +28,7 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import org.assertj.core.api.Java6Assertions;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
@@ -78,7 +78,10 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
     @After
     @AfterEach
     public final void stopRedis() {
-        tracer.currentTransaction().deactivate().end();
+        Transaction transaction = tracer.currentTransaction();
+        if (transaction != null) {
+            transaction.deactivate().end();
+        }
         server.stop();
     }
 
@@ -101,9 +104,9 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
                 assertThat(destination.getPort()).isEqualTo(redisPort);
             }
             Destination.Service service = destination.getService();
-            Java6Assertions.assertThat(service.getName().toString()).isEqualTo("redis");
-            Java6Assertions.assertThat(service.getResource().toString()).isEqualTo("redis");
-            Java6Assertions.assertThat(service.getType()).isEqualTo("db");
+            assertThat(service.getName().toString()).isEqualTo("redis");
+            assertThat(service.getResource().toString()).isEqualTo("redis");
+            assertThat(service.getType()).isEqualTo("db");
         }
     }
 
