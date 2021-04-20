@@ -207,11 +207,11 @@ public class Transaction extends AbstractSpan<Transaction> {
         return this;
     }
 
-    public void setUser(String id, String email, String username) {
+    public void setUser(String id, String email, String username, String domain) {
         if (!isSampled()) {
             return;
         }
-        getContext().getUser().withId(id).withEmail(email).withUsername(username);
+        getContext().getUser().withDomain(domain).withId(id).withEmail(email).withUsername(username);
     }
 
     @Override
