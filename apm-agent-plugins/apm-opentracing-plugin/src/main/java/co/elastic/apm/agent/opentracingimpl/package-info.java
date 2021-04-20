@@ -27,6 +27,6 @@
  * Injects the actual implementation of the OpenTracing API at runtime.
  */
 @NonnullApi
-package co.elastic.apm.agent.opentracing.impl;
+package co.elastic.apm.agent.opentracingimpl;
 
 import co.elastic.apm.agent.sdk.NonnullApi;

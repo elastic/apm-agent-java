@@ -108,16 +108,16 @@
         <version.log4j2-ecs-layout>1.0.1</version.log4j2-ecs-layout>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.0.51</version.json-schema-validator>
+        <version.json-schema-validator>1.0.52</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.10.22</version.byte-buddy>
+        <version.byte-buddy>1.11.0</version.byte-buddy>
         <version.asm>9.1</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
 
-        <version.testcontainers>1.15.1</version.testcontainers>
+        <version.testcontainers>1.15.2</version.testcontainers>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -576,7 +576,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>3.8.0</version>
+            <version>3.9.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
