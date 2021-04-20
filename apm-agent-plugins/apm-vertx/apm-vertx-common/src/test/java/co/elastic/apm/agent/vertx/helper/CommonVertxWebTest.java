@@ -296,7 +296,7 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
     @Override
     protected void initRoutes(Router router) {
         router.get("/test").handler(getDefaultHandlerImpl());
-        router.post("/post").handler(BodyHandler.create()).handler(getDefaultHandlerImpl());
+        router.post("/post").handler(BodyHandler.create().setHandleFileUploads(false)).handler(getDefaultHandlerImpl());
 
         router.get("/test/:param").handler(getDefaultHandlerImpl());
 
