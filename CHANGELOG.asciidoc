@@ -64,6 +64,7 @@ Even when matching on the main class name or on system properties,
 * Update Byte-buddy to `1.11.0` - {pull}1769[#1769]
 * Support for user.domain {pull}1756[#1756]
 * JAX-RS supports javax.ws.rs.PATCH
+* Optimize instrumentaion by avoiding stack-frame computation for Java7+ bytecode - {pull}1758[#1758]
 
 [float]
 ===== Bug fixes
