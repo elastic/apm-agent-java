@@ -135,6 +135,12 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     }
 
     @Override
+    public Transaction setUser(String id, String email, String username, String domain) {
+        // co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetUserInstrumentation.setUser
+        return this;
+    }
+
+    @Override
     public Transaction setResult(String result) {
         // co.elastic.apm.agent.pluginapi.TransactionInstrumentation.SetResultInstrumentation
         return this;

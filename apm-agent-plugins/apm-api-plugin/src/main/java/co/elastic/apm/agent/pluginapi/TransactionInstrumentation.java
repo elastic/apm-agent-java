@@ -66,9 +66,9 @@ public class TransactionInstrumentation extends ApiInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void setUser(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
-                                   @Advice.Argument(0) String id, @Advice.Argument(1) String email, @Advice.Argument(2) String username) {
+                                   @Advice.Argument(0) String id, @Advice.Argument(1) String email, @Advice.Argument(2) String username, @Advice.Argument(value = 3, optional = true) String domain) {
             if (transaction instanceof Transaction) {
-                ((Transaction) transaction).setUser(id, email, username);
+                ((Transaction) transaction).setUser(id, email, username, domain);
             }
         }
     }

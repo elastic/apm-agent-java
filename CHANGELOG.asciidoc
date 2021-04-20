@@ -62,6 +62,8 @@ Even when matching on the main class name or on system properties,
 * Cassandra instrumentation - {pull}1712[#1712]
 * Log correlation supports JBoss Logging - {pull}1737[#1737]
 * Update Byte-buddy to `1.11.0` - {pull}1769[#1769]
+* Support for user.domain {pull}1756[#1756]
+* JAX-RS supports javax.ws.rs.PATCH
 
 [float]
 ===== Bug fixes
