@@ -117,6 +117,12 @@ enum NoopTransaction implements Transaction {
     }
 
     @Override
+    public Transaction setUser(String id, String email, String username, String domain) {
+        // noop
+        return this;
+    }
+
+    @Override
     public Transaction setResult(String result) {
         // noop
         return this;

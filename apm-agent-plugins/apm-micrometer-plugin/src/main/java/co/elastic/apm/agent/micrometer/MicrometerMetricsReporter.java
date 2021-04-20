@@ -131,4 +131,8 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
     WeakConcurrentSet<MeterRegistry> getMeterRegistries() {
         return meterRegistries;
     }
+
+    Iterable<Meter> getFailedMeters() {
+        return serializer.getFailedMeters();
+    }
 }

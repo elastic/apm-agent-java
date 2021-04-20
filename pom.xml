@@ -108,9 +108,9 @@
         <version.log4j2-ecs-layout>1.0.1</version.log4j2-ecs-layout>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.0.51</version.json-schema-validator>
+        <version.json-schema-validator>1.0.52</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.10.22</version.byte-buddy>
+        <version.byte-buddy>1.11.0</version.byte-buddy>
         <version.asm>9.1</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
