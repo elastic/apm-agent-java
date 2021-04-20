@@ -83,9 +83,9 @@ public class UtilsTest extends AbstractInstrumentationTest {
 
     @Test
     void testFileExtensionReplacement() {
-        assertThat(Utils.replaceFileExtensionToEcsJson("app.log")).isEqualTo(replaceFileSeparator("app.ecs.json"));
-        assertThat(Utils.replaceFileExtensionToEcsJson("app")).isEqualTo(replaceFileSeparator("app.ecs.json"));
-        assertThat(Utils.replaceFileExtensionToEcsJson("app.some.log")).isEqualTo(replaceFileSeparator("app.some.ecs.json"));
+        assertThat(Utils.replaceFileExtensionToEcsJson("app.log")).isEqualTo("app.ecs.json");
+        assertThat(Utils.replaceFileExtensionToEcsJson("app")).isEqualTo("app.ecs.json");
+        assertThat(Utils.replaceFileExtensionToEcsJson("app.some.log")).isEqualTo("app.some.ecs.json");
     }
 
     private String replaceFileSeparator(String input) {
