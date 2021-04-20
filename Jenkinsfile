@@ -315,7 +315,11 @@ pipeline {
         dir("${BASE_DIR}"){
           setupAPMGitEmail(global: false)
           sh(label: "checkout ${BRANCH_NAME} branch", script: "git checkout -f '${BRANCH_NAME}'")
-          gitCreateTag(tag: 'stable', tagArgs: '--force', pushArgs: '--force')
+          sh(label: 'rebase stable', script: """
+            git rev-parse --quiet --verify stable && git checkout stable || git checkout -b stable
+            git rebase '${BRANCH_NAME}'
+          """)
+          gitPush()
         }
       }
     }

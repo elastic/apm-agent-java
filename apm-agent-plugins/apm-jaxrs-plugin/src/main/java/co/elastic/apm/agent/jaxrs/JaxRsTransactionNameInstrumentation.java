@@ -108,6 +108,7 @@ public class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentat
                     .or(named("javax.ws.rs.POST"))
                     .or(named("javax.ws.rs.PUT"))
                     .or(named("javax.ws.rs.DELETE"))
+                    .or(named("javax.ws.rs.PATCH"))
                     .or(named("javax.ws.rs.HEAD"))
                     .or(named("javax.ws.rs.OPTIONS"))))
             .onSuperClassesThat(isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any()));

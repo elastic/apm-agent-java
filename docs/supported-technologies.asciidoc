@@ -58,6 +58,10 @@ the agent does not capture transactions.
 |HP-UX JVM
 | 7.0.10+, 8.0.02+
 |
+
+|SAP JVM
+| 8.1.065+
+|
 |===
 
 NOTE: Early Java 8 versions before update 40 are *not supported* because they have
