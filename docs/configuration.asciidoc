@@ -6,7 +6,8 @@ Please only make changes in configuration.asciidoc.ftl
 [[configuration]]
 == Configuration
 
-Configure one of the following methods (listed in descending order of precedence) to adapt the Elastic APM Java agent to your needs.
+To adapt the Elastic APM Java agent to your needs,
+configure it using one of the methods below–listed in descending order of precedence:
 
 [horizontal]
 1) {apm-app-ref}/agent-configuration.html[Central configuration]::
@@ -54,8 +55,8 @@ Only the external file can be used for dynamic configuration.
 === Minimal configuration
 
 The most important configuration options are <<config-service-name>>,
-<<config-server-url>> and <<config-application-packages>> for Elastic APM.
-A minimal version of a configuration might look like this:
+<<config-server-url>> and <<config-application-packages>>.
+A minimal configuration might look like this:
 
 [source,bash]
 .System properties
