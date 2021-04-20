@@ -236,16 +236,16 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         long timeout = 5000; // use a longer timeout as this test includes explicit delayed async processing
         int expectedTransactionCount = 5;
         reporter.awaitUntilAsserted(timeout, () -> assertThat(reporter.getNumReportedTransactions())
-                .describedAs("expecting %d transactions, transactions = %s", expectedTransactionCount, reporter.getTransactions())
-                .isEqualTo(expectedTransactionCount));
+            .describedAs("expecting %d transactions, transactions = %s", expectedTransactionCount, reporter.getTransactions())
+            .isEqualTo(expectedTransactionCount));
 
         int expectedSpanCount = expectedTransactionCount * 3;
         reporter.awaitUntilAsserted(timeout, () -> assertThat(reporter.getNumReportedSpans())
-                .describedAs("expecting %d spans, spans = %s", expectedSpanCount, reporter.getSpans())
-                .isEqualTo(expectedSpanCount));
+            .describedAs("expecting %d spans, spans = %s", expectedSpanCount, reporter.getSpans())
+            .isEqualTo(expectedSpanCount));
 
         assertThat(reporter.getTransactions().stream().map(transaction -> transaction.getContext().getRequest().getUrl().getPathname()))
-                .containsExactlyInAnyOrder("/parallel/1", "/parallel/2", "/parallel/3", "/parallel/4", "/parallel/5");
+            .containsExactlyInAnyOrder("/parallel/1", "/parallel/2", "/parallel/3", "/parallel/4", "/parallel/5");
         assertThat(reporter.getTransactions().stream().map(AbstractSpan::getNameAsString).distinct()).containsExactlyInAnyOrder("GET /parallel/:param");
         assertThat(reporter.getFirstTransaction().getSpanCount().getTotal().get()).isEqualTo(3);
 
@@ -305,28 +305,26 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         router.get("/exception/without/handler").handler(getDefaultHandlerImpl());
 
         router.get("/" + CALL_BLOCKING).handler(routingContext -> routingContext.vertx()
-                .executeBlocking(tid -> new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_BLOCKING).handle(null), result -> {
-                }));
+            .executeBlocking(tid -> new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_BLOCKING).handle(null), result -> {}));
         router.get("/" + CALL_BLOCKING + "_context").handler(routingContext -> routingContext.vertx().getOrCreateContext()
-                .executeBlocking(tid -> new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_BLOCKING).handle(null), result -> {
-                }));
+            .executeBlocking(tid -> new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_BLOCKING).handle(null), result -> {}));
 
         router.get("/" + CALL_SCHEDULED).handler(routingContext -> routingContext.vertx()
-                .setTimer(1, tid -> new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_SCHEDULED).handle(null)));
+            .setTimer(1, tid -> new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_SCHEDULED).handle(null)));
         router.get("/" + CALL_SCHEDULED_SHIFTED).handler(routingContext -> {
             routingContext.vertx()
-                    .setTimer(500, tid -> {
-                        co.elastic.apm.api.Span child = ElasticApm.currentSpan().startSpan();
-                        child.setName(CALL_SCHEDULED_SHIFTED + "-child-span");
-                        child.end();
-                    });
+                .setTimer(500, tid -> {
+                    co.elastic.apm.api.Span child = ElasticApm.currentSpan().startSpan();
+                    child.setName(CALL_SCHEDULED_SHIFTED + "-child-span");
+                    child.end();
+                });
             getDefaultHandlerImpl().handle(routingContext);
         });
 
         router.get("/" + CALL_ON_CONTEXT).handler(routingContext -> routingContext.vertx()
-                .runOnContext(new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_ON_CONTEXT)));
+            .runOnContext(new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_ON_CONTEXT)));
         router.get("/" + CALL_ON_CONTEXT + "_context").handler(routingContext -> routingContext.vertx().getOrCreateContext()
-                .runOnContext(new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_ON_CONTEXT)));
+            .runOnContext(new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_ON_CONTEXT)));
 
         router.get("/parallel/:param").handler(routingContext -> routingContext.vertx().setTimer(1, tid_1 -> {
             co.elastic.apm.api.Span asyncChild = ElasticApm.currentSpan().startSpan();
@@ -349,21 +347,19 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
                     thirdChild.end();
                 });
                 blockingChild.end();
-            }, r -> {
-            });
+            }, r -> { });
             asyncChild.end();
         }));
 
         router.get("/multi-handler")
-                .handler(routingContext -> routingContext.vertx().executeBlocking(tid -> routingContext.next(), result -> {
-                }))
-                .handler(routingContext -> routingContext.vertx().setTimer(5, tid -> routingContext.next()))
-                .handler(getDefaultHandlerImpl());
+            .handler(routingContext -> routingContext.vertx().executeBlocking(tid -> routingContext.next(), result -> {}))
+            .handler(routingContext -> routingContext.vertx().setTimer(5, tid -> routingContext.next()))
+            .handler(getDefaultHandlerImpl());
 
         router.route("/exception")
-                .handler(routingContext -> {
-                    throw new RuntimeException(EXCEPTION_MESSAGE);
-                });
+            .handler(routingContext -> {
+                throw new RuntimeException(EXCEPTION_MESSAGE);
+            });
     }
 
     protected abstract Handler<RoutingContext> getDefaultHandlerImpl();

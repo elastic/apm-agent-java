@@ -64,12 +64,6 @@
             <version>4.0.2</version>
             <scope>test</scope>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.springframework</groupId>-->
-<!--            <artifactId>spring-test</artifactId>-->
-<!--            <version>${version.spring}</version>-->
-<!--            <scope>test</scope>-->
-<!--        </dependency>-->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-api</artifactId>

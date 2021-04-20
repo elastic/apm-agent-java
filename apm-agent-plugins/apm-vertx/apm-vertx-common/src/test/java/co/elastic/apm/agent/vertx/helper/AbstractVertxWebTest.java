@@ -28,13 +28,11 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxTestContext;
 import okhttp3.Response;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -121,11 +119,11 @@ public abstract class AbstractVertxWebTest extends AbstractInstrumentationTest {
 
         reporter.getFirstTransaction(500);
         assertThat(reporter.getTransactions()
-                .stream()
-                .map(AbstractSpan::getNameAsString)
-                .distinct())
-                .describedAs("transaction service name should be inherited from test class name")
-                .containsExactly(expectedTransactionName);
+            .stream()
+            .map(AbstractSpan::getNameAsString)
+            .distinct())
+            .describedAs("transaction service name should be inherited from test class name")
+            .containsExactly(expectedTransactionName);
         assertThat(reporter.getFirstTransaction().getContext().getResponse().getStatusCode()).isEqualTo(expectedStatusCode);
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPathname()).isEqualTo(path);
     }

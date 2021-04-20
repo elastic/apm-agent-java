@@ -99,7 +99,7 @@ public abstract class VertxEventLoopInstrumentation extends VertxWebInstrumentat
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("executeBlocking").and(takesArgument(0, named("io.vertx.core.Handler")))
-                    .and(takesArgument(1, named("io.vertx.core.Handler"))).and(isPackagePrivate());
+                .and(takesArgument(1, named("io.vertx.core.Handler"))).and(isPackagePrivate());
         }
 
         @Override

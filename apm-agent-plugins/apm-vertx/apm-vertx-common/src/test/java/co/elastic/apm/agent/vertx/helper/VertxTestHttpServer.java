@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.vertx.helper;
 
+import co.elastic.apm.agent.testutils.TestPort;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpServer;
@@ -44,8 +45,7 @@ public class VertxTestHttpServer {
     @Nullable
     private HttpServer server;
 
-    //private final int port = SocketUtils.findAvailableTcpPort(8000);
-    private final int port = 9876;
+    private final int port = TestPort.getAvailableRandomPort();
     private final Router router = Router.router(vertx);
 
 
@@ -54,8 +54,8 @@ public class VertxTestHttpServer {
 
         if (useSSL) {
             serverOptions.setSsl(true)
-                    .setKeyCertOptions(new PemKeyCertOptions().setCertPath("tls/server-cert.pem").setKeyPath("tls/server-key.pem"))
-                    .setUseAlpn(true);
+                .setKeyCertOptions(new PemKeyCertOptions().setCertPath("tls/server-cert.pem").setKeyPath("tls/server-key.pem"))
+                .setUseAlpn(true);
         }
 
         server = vertx.createHttpServer(serverOptions);

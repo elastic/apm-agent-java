@@ -72,11 +72,11 @@ public abstract class AbstractHttpTransactionHelper {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
             if (coreConfiguration.getCaptureBody() != OFF
-                    && contentTypeHeader != null
-                    // form parameters are recorded via ServletRequest.getParameterMap
-                    // as the container might not call ServletRequest.getInputStream
-                    && !contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
-                    && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader)) {
+                && contentTypeHeader != null
+                // form parameters are recorded via ServletRequest.getParameterMap
+                // as the container might not call ServletRequest.getInputStream
+                && !contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
+                && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader)) {
                 request.withBodyBuffer();
             } else {
                 request.redactBody();
@@ -87,7 +87,7 @@ public abstract class AbstractHttpTransactionHelper {
                     logger.debug("Not capturing request body because couldn't find Content-Type header");
                 } else if (!contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)) {
                     logger.debug("Not capturing body for content type \"{}\". Consider updating the capture_body_content_types " +
-                            "configuration option.", contentTypeHeader);
+                        "configuration option.", contentTypeHeader);
                 }
             }
         }
@@ -147,10 +147,10 @@ public abstract class AbstractHttpTransactionHelper {
 
     public boolean captureParameters(String method, @Nullable String contentTypeHeader) {
         return contentTypeHeader != null
-                && contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
-                && hasBody(contentTypeHeader, method)
-                && coreConfiguration.getCaptureBody() != OFF
-                && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader);
+            && contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
+            && hasBody(contentTypeHeader, method)
+            && coreConfiguration.getCaptureBody() != OFF
+            && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader);
     }
 
     protected void fillResponse(Response response, @Nullable Boolean committed, int status) {
@@ -173,18 +173,18 @@ public abstract class AbstractHttpTransactionHelper {
         request.withMethod(method);
 
         request.getSocket()
-                .withEncrypted(secure)
-                .withRemoteAddress(remoteAddr);
+            .withEncrypted(secure)
+            .withRemoteAddress(remoteAddr);
     }
 
     protected void fillUrlRelatedFields(Request request, @Nullable String scheme, @Nullable String serverName, int serverPort, String requestURI, @Nullable String queryString) {
         request.getUrl().resetState();
         request.getUrl()
-                .withProtocol(scheme)
-                .withHostname(serverName)
-                .withPort(serverPort)
-                .withPathname(requestURI)
-                .withSearch(queryString);
+            .withProtocol(scheme)
+            .withHostname(serverName)
+            .withPort(serverPort)
+            .withPathname(requestURI)
+            .withSearch(queryString);
 
         fillFullUrl(request.getUrl(), scheme, serverPort, serverName, requestURI, queryString);
     }
@@ -206,7 +206,7 @@ public abstract class AbstractHttpTransactionHelper {
         }
         if (port > 0) {
             if (scheme == null || (scheme.equals("http") && (port != 80)) ||
-                    (scheme.equals("https") && (port != 443))) {
+                (scheme.equals("https") && (port != 443))) {
                 fullUrl.append(':');
                 fullUrl.append(port);
             }
@@ -243,17 +243,17 @@ public abstract class AbstractHttpTransactionHelper {
         final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), servletPath, pathInfo);
         if (excludeUrlMatcher != null && logger.isDebugEnabled()) {
             logger.debug("Not tracing this request as the URL {}{} is ignored by the matcher {}",
-                    servletPath, Objects.toString(pathInfo, ""), excludeUrlMatcher);
+                servletPath, Objects.toString(pathInfo, ""), excludeUrlMatcher);
         }
         final WildcardMatcher excludeAgentMatcher = userAgentHeader != null ? WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgentHeader) : null;
         if (excludeAgentMatcher != null) {
             logger.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}",
-                    userAgentHeader, excludeAgentMatcher);
+                userAgentHeader, excludeAgentMatcher);
         }
         boolean isExcluded = excludeUrlMatcher != null || excludeAgentMatcher != null;
         if (!isExcluded && logger.isTraceEnabled()) {
             logger.trace("No matcher found for excluding this request with servlet-path: {}, path-info: {} and User-Agent: {}",
-                    servletPath, pathInfo, userAgentHeader);
+                servletPath, pathInfo, userAgentHeader);
         }
         return isExcluded;
     }

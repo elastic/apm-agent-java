@@ -53,7 +53,7 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         // ensure only Vertx versions >= 3.6 and < 4.0 are instrumented
         return classLoaderCanLoadClass("io.vertx.core.http.impl.HttpServerRequestImpl")
-                .and(not(classLoaderCanLoadClass("io.vertx.core.impl.Action")));
+            .and(not(classLoaderCanLoadClass("io.vertx.core.impl.Action")));
     }
 
     /**

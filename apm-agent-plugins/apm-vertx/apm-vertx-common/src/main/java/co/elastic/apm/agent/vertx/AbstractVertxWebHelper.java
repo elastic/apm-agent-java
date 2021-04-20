@@ -84,7 +84,7 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
             StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
             if (transactionName != null) {
                 transactionName.append(routingContext.request().method().name())
-                        .append(" ").append(routingContext.currentRoute().getPath());
+                    .append(" ").append(routingContext.currentRoute().getPath());
             }
         }
     }
@@ -137,8 +137,8 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
         String contentType = httpServerRequest.headers().get(CONTENT_TYPE_HEADER);
 
         fillRequest(request, httpServerRequest.version().toString(), method, httpServerRequest.isSSL(),
-                httpServerRequest.scheme(), host,
-                httpServerRequest.connection().localAddress().port(), httpServerRequest.path(), httpServerRequest.query(), httpServerRequest.remoteAddress().toString());
+            httpServerRequest.scheme(), host,
+            httpServerRequest.connection().localAddress().port(), httpServerRequest.path(), httpServerRequest.query(), httpServerRequest.remoteAddress().toString());
 
         applyDefaultTransactionName(httpServerRequest.method().name(), httpServerRequest.path(), null, transaction, 10);
 
