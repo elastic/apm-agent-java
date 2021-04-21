@@ -56,14 +56,14 @@ import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation {
 
     @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        // ensure only Vertx versions >= 4.0 are instrumented
-        return classLoaderCanLoadClass("io.vertx.core.http.impl.Http1xServerRequest");
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList("vertx", "vertx-web");
     }
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("vertx", "vertx-web");
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        // ensure only Vertx versions >= 4.0 are instrumented
+        return classLoaderCanLoadClass("io.vertx.core.http.impl.Http1xServerRequest");
     }
 
     /**

@@ -60,7 +60,7 @@ public class Http2Instrumentation extends VertxWebInstrumentation {
     public static class Http2ServerRequestAdvice {
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void requestConstructor(@Advice.This Http2ServerRequestImpl request) {
+        public static void enter(@Advice.This Http2ServerRequestImpl request) {
             Transaction transaction = VertxWebHelper.getInstance().startOrGetTransaction(request);
 
             if (transaction != null && request.response() != null) {

@@ -113,7 +113,9 @@ public abstract class VertxEventLoopInstrumentation extends VertxWebInstrumentat
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("executeBlocking").and(takesArgument(1, named("io.vertx.core.Handler"))).and(isStatic());
+            return named("executeBlocking")
+                .and(takesArgument(1, named("io.vertx.core.Handler")))
+                .and(isStatic());
         }
 
         @Override

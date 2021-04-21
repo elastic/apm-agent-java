@@ -31,11 +31,15 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxTestContext;
 import okhttp3.Response;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -52,6 +56,12 @@ public abstract class AbstractVertxWebTest extends AbstractInstrumentationTest {
 
     protected WebConfiguration webConfiguration;
     protected CoreConfiguration coreConfiguration;
+
+    @BeforeAll
+    static void setCache() throws IOException {
+        Path cache = Files.createTempDirectory("vertx.cache");
+        System.setProperty("vertx.cacheDirBase", cache.toAbsolutePath().toString());
+    }
 
     @BeforeEach
     void setUp() {

@@ -4,8 +4,8 @@ co.elastic.apm.agent.vertx_3_6.VertxEventLoopInstrumentation$SetTimerInstrumenta
 co.elastic.apm.agent.vertx_3_6.VertxEventLoopInstrumentation$OnContextInstrumentation
 co.elastic.apm.agent.vertx_3_6.VertxEventLoopInstrumentation$ExecuteBlockingInstrumentation
 co.elastic.apm.agent.vertx_3_6.VertxWebInstrumentation$RequestBufferInstrumentation
-co.elastic.apm.agent.vertx_3_6.Http1Instrumentation$HttpServerRequestImplInstrumentation
-co.elastic.apm.agent.vertx_3_6.Http1Instrumentation$HttpServerRequestEndInstrumentation
+co.elastic.apm.agent.vertx_3_6.Http1Instrumentation$HttpServerRequestImplStartInstrumentation
+co.elastic.apm.agent.vertx_3_6.Http1Instrumentation$HttpServerRequestImplEndInstrumentation
 co.elastic.apm.agent.vertx_3_6.Http1Instrumentation$HttpServerResponseImplInstrumentation
 co.elastic.apm.agent.vertx_3_6.Http1Instrumentation$HttpServerRequestWrapperInstrumentation
 co.elastic.apm.agent.vertx_3_6.Http2Instrumentation

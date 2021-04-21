@@ -26,15 +26,19 @@ package co.elastic.apm.agent.vertx_3_6;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.vertx_3_6.helper.VertxWebHelper;
 import co.elastic.apm.agent.vertx_3_6.wrapper.ResponseEndHandlerWrapper;
+import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.web.RoutingContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -78,7 +82,31 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.RouteImplAdvice";
+            return "co.elastic.apm.agent.vertx_3_6.VertxWebInstrumentation$RouteInstrumentation$RouteImplAdvice";
+        }
+
+        public static class RouteImplAdvice {
+
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object nextEnter(@Advice.Argument(value = 0) RoutingContext routingContext) {
+                Transaction transaction = VertxWebHelper.getInstance().setRouteBasedNameForCurrentTransaction(routingContext);
+
+                if (transaction != null) {
+                    transaction.activate();
+                }
+
+                return transaction;
+            }
+
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
+            public static void nextExit(@Advice.Argument(value = 0) RoutingContext routingContext,
+                                        @Nullable @Advice.Enter Object transactionObj, @Nullable @Advice.Thrown Throwable thrown) {
+                if (transactionObj instanceof Transaction) {
+                    Transaction transaction = (Transaction) transactionObj;
+                    transaction.captureException(thrown).deactivate();
+                }
+            }
         }
     }
 
@@ -99,8 +127,37 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.ResponseEndHandlerAdvice";
+            return "co.elastic.apm.agent.vertx_3_6.VertxWebInstrumentation$ResponseEndHandlerInstrumentation$ResponseEndHandlerAdvice";
         }
+
+        public static class ResponseEndHandlerAdvice {
+
+            @Nullable
+            @AssignTo.Field(value = "endHandler")
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Handler<Void> wrapHandler(@Advice.Argument(value = 0) Handler<Void> handler,
+                                                    @Advice.FieldValue(value = "endHandler") @Nullable Handler<Void> internalHandler) {
+                if (internalHandler instanceof ResponseEndHandlerWrapper && handler instanceof ResponseEndHandlerWrapper) {
+                    // avoid setting our wrapper multiple times
+                    return internalHandler;
+                }
+
+                if (handler instanceof ResponseEndHandlerWrapper) {
+                    if (internalHandler != null) {
+                        // wrap the existing internal handler into our added wrapper
+                        ((ResponseEndHandlerWrapper) handler).setActualHandler(internalHandler);
+                    }
+                    return handler;
+                } else if (internalHandler instanceof ResponseEndHandlerWrapper) {
+                    // wrap new added handler into our wrapper that already is the internal one
+                    ((ResponseEndHandlerWrapper) internalHandler).setActualHandler(handler);
+                    return internalHandler;
+                }
+
+                return internalHandler;
+            }
+        }
+
     }
 
     /**
