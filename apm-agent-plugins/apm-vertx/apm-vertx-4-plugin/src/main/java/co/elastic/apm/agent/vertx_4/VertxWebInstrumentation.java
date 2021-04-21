@@ -106,7 +106,8 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
     public static class VertxTracerReceiveRequestInstrumentation extends VertxWebInstrumentation {
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return hasSuperType(named("io.vertx.core.spi.tracing.VertxTracer")).and(not(isInterface()));
+            return hasSuperType(named("io.vertx.core.spi.tracing.VertxTracer"))
+                .and(not(isInterface()));
         }
 
         @Override
@@ -137,7 +138,8 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
     public static class VertxTracerSendResponseInstrumentation extends VertxWebInstrumentation {
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return hasSuperType(named("io.vertx.core.spi.tracing.VertxTracer")).and(not(isInterface()));
+            return hasSuperType(named("io.vertx.core.spi.tracing.VertxTracer"))
+                .and(not(isInterface()));
         }
 
         @Override
@@ -183,7 +185,8 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("handleContext").and(takesArgument(0, named("io.vertx.ext.web.impl.RoutingContextImplBase")));
+            return named("handleContext")
+                .and(takesArgument(0, named("io.vertx.ext.web.impl.RoutingContextImplBase")));
         }
 
         @Override
