@@ -36,6 +36,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 
+@SuppressWarnings("JavadocReference")
 public abstract class Http1Instrumentation extends VertxWebInstrumentation {
 
     /**
@@ -73,7 +74,9 @@ public abstract class Http1Instrumentation extends VertxWebInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("endHandler").and(takesArgument(0, named("io.vertx.core.Handler"))).and(returns(named("io.vertx.core.http.HttpServerRequest")));
+            return named("endHandler")
+                .and(takesArgument(0, named("io.vertx.core.Handler")))
+                .and(returns(named("io.vertx.core.http.HttpServerRequest")));
         }
 
         @Override

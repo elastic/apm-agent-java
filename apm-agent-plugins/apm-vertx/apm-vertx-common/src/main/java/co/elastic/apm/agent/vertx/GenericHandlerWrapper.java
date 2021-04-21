@@ -24,15 +24,16 @@
  */
 package co.elastic.apm.agent.vertx;
 
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import io.vertx.core.Handler;
 
 public class GenericHandlerWrapper<T> implements Handler<T> {
 
     private final Handler<T> actualHandler;
-    private final AbstractSpan parentSpan;
+    private final AbstractSpan<?> parentSpan;
 
-    public GenericHandlerWrapper(AbstractSpan parentSpan, Handler<T> actualHandler) {
+    public GenericHandlerWrapper(AbstractSpan<?> parentSpan, Handler<T> actualHandler) {
         this.parentSpan = parentSpan;
         this.actualHandler = actualHandler;
         parentSpan.incrementReferences();
@@ -50,5 +51,15 @@ public class GenericHandlerWrapper<T> implements Handler<T> {
         } finally {
             parentSpan.deactivate();
         }
+    }
+
+    public static <T> Handler<T> wrapIfActiveSpan(Handler<T> handler) {
+        AbstractSpan<?> currentSpan = GlobalTracer.get().getActive();
+
+        if (currentSpan != null) {
+            handler = new GenericHandlerWrapper<>(currentSpan, handler);
+        }
+
+        return handler;
     }
 }

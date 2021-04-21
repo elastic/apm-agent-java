@@ -34,7 +34,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class VertxWebHelper extends AbstractVertxWebHelper {
@@ -54,7 +53,8 @@ public class VertxWebHelper extends AbstractVertxWebHelper {
         super(tracer);
     }
 
-    public Transaction startOrGetTransaction(@Nonnull HttpServerRequest httpServerRequest) {
+    @Nullable
+    public Transaction startOrGetTransaction(HttpServerRequest httpServerRequest) {
         Transaction transaction = super.startOrGetTransaction(httpServerRequest);
 
         if (transaction != null) {

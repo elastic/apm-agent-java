@@ -58,8 +58,8 @@ public class VertxWebHelper extends AbstractVertxWebHelper {
         return transaction;
     }
 
-    @Override
     @Nullable
+    @Override
     public Transaction setRouteBasedNameForCurrentTransaction(RoutingContext routingContext) {
         Context context = routingContext.vertx().getOrCreateContext();
         Transaction transaction = context.getLocal(CONTEXT_TRANSACTION_KEY);

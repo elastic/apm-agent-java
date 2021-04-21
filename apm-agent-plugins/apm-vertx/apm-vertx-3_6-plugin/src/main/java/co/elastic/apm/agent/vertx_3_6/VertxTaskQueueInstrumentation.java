@@ -51,13 +51,23 @@ public class VertxTaskQueueInstrumentation extends VertxWebInstrumentation {
         return named("execute").and(takesArguments(Runnable.class, Executor.class));
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void onEnter() {
-        JavaConcurrent.avoidPropagationOnCurrentThread();
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.vertx_3_6.VertxTaskQueueInstrumentation$ExecuteAdvice";
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExit(@Advice.Thrown @Nullable Throwable thrown) {
-        JavaConcurrent.allowContextPropagationOnCurrentThread();
+    public static class ExecuteAdvice {
+
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onEnter() {
+            JavaConcurrent.avoidPropagationOnCurrentThread();
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Thrown @Nullable Throwable thrown) {
+            JavaConcurrent.allowContextPropagationOnCurrentThread();
+        }
+
     }
+
 }

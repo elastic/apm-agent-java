@@ -25,7 +25,12 @@
 package co.elastic.apm.agent.vertx_3_6;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.vertx_3_6.helper.VertxWebHelper;
 import co.elastic.apm.agent.vertx_3_6.wrapper.ResponseEndHandlerWrapper;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServerRequest;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -42,6 +47,7 @@ import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+@SuppressWarnings("JavadocReference")
 public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation {
 
     @Override
@@ -119,8 +125,18 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.HandleDataAdvice";
+            return "co.elastic.apm.agent.vertx_3_6.VertxWebInstrumentation$RequestBufferInstrumentation$HandleDataAdvice";
         }
+
+        public static class HandleDataAdvice {
+
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void wrapHandler(@Advice.This HttpServerRequest request, @Advice.Argument(value = 0) Buffer requestDataBuffer) {
+                Transaction transaction = VertxWebHelper.getInstance().getTransactionForRequest(request);
+                VertxWebHelper.getInstance().captureBody(transaction, requestDataBuffer);
+            }
+        }
+
     }
 
 }

@@ -30,7 +30,7 @@ import io.vertx.core.spi.tracing.TagExtractor;
 import io.vertx.core.spi.tracing.VertxTracer;
 import io.vertx.core.tracing.TracingPolicy;
 
-public class NoopVertxTracer implements VertxTracer {
+public class NoopVertxTracer implements VertxTracer<Object, Object> {
     public static final NoopVertxTracer INSTANCE = new NoopVertxTracer();
 
     private final Object noopTrace = new Object();

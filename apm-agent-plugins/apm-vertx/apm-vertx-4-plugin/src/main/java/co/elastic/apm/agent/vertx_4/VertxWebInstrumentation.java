@@ -25,10 +25,21 @@
 package co.elastic.apm.agent.vertx_4;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
+import co.elastic.apm.agent.vertx_4.tracer.NoopVertxTracer;
+import io.vertx.core.Context;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.spi.tracing.VertxTracer;
+import io.vertx.ext.web.RoutingContext;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -41,6 +52,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 
+@SuppressWarnings("JavadocReference")
 public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation {
 
     @Override
@@ -70,7 +82,20 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_4.ContextImplTracerAdvice";
+            return "co.elastic.apm.agent.vertx_4.VertxWebInstrumentation$ContextImplTracerInstrumentation$ContextImplTracerAdvice";
+        }
+
+        public static class ContextImplTracerAdvice {
+
+            @AssignTo.Return
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static VertxTracer<?, ?> receiveRequest(@Advice.Return @Nullable VertxTracer<?, ?> currentTracer) {
+                if (currentTracer == null) {
+                    return NoopVertxTracer.INSTANCE;
+                } else {
+                    return currentTracer;
+                }
+            }
         }
 
     }
@@ -91,7 +116,18 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_4.TracerReceiveRequestAdvice";
+            return "co.elastic.apm.agent.vertx_4.VertxWebInstrumentation$VertxTracerReceiveRequestInstrumentation$TracerReceiveRequestAdvice";
+        }
+
+        public static class TracerReceiveRequestAdvice {
+
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void receiveRequest(@Advice.Argument(value = 0) Context context, @Advice.Argument(value = 3) Object request) {
+                if (request instanceof HttpServerRequest) {
+                    HttpServerRequest httpServerRequest = (HttpServerRequest) request;
+                    VertxWebHelper.getInstance().startOrGetTransaction(context, httpServerRequest);
+                }
+            }
         }
     }
 
@@ -111,7 +147,28 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_4.TracerSendResponseAdvice";
+            return "co.elastic.apm.agent.vertx_4.VertxWebInstrumentation$VertxTracerSendResponseInstrumentation$TracerSendResponseAdvice";
+        }
+
+        public static class TracerSendResponseAdvice {
+
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void receiveRequest(@Advice.Argument(value = 0) Context context, @Advice.Argument(value = 1) Object response,
+                                              @Nullable @Advice.Argument(value = 3) Throwable failure) {
+
+                Object transactionObj = context.getLocal(VertxWebHelper.CONTEXT_TRANSACTION_KEY);
+                if (transactionObj instanceof Transaction) {
+                    Transaction transaction = (Transaction) transactionObj;
+                    if (failure != null) {
+                        transaction.captureException(failure);
+                    }
+                    if (response instanceof HttpServerResponse) {
+                        VertxWebHelper.getInstance().finalizeTransaction((HttpServerResponse) response, transaction);
+                    } else {
+                        transaction.end();
+                    }
+                }
+            }
         }
     }
 
@@ -131,8 +188,33 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_4.RouteImplAdvice";
+            return "co.elastic.apm.agent.vertx_4.VertxWebInstrumentation$RouteInstrumentation$RouteImplAdvice";
         }
+
+        public static class RouteImplAdvice {
+
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object nextEnter(@Advice.Argument(value = 0) RoutingContext routingContext) {
+                Transaction transaction = VertxWebHelper.getInstance().setRouteBasedNameForCurrentTransaction(routingContext);
+
+                if (transaction != null) {
+                    transaction.activate();
+                }
+
+                return transaction;
+            }
+
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
+            public static void nextExit(@Advice.Argument(value = 0) RoutingContext routingContext,
+                                        @Nullable @Advice.Enter Object transactionObj, @Nullable @Advice.Thrown Throwable thrown) {
+                if (transactionObj instanceof Transaction) {
+                    Transaction transaction = (Transaction) transactionObj;
+                    transaction.captureException(thrown).deactivate();
+                }
+            }
+        }
+
 
     }
 
@@ -158,8 +240,18 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_4.HandleDataAdvice";
+            return "co.elastic.apm.agent.vertx_4.VertxWebInstrumentation$RequestBufferInstrumentation$HandleDataAdvice";
         }
+
+        public static class HandleDataAdvice {
+
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void wrapHandler(@Advice.Argument(value = 0) Buffer requestDataBuffer, @Advice.FieldValue(value = "context") Context context) {
+                Transaction transaction = context.getLocal(VertxWebHelper.CONTEXT_TRANSACTION_KEY);
+                VertxWebHelper.getInstance().captureBody(transaction, requestDataBuffer);
+            }
+        }
+
 
     }
 

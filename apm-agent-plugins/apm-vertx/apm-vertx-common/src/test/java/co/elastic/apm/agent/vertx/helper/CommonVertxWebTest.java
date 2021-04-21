@@ -305,9 +305,11 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         router.get("/exception/without/handler").handler(getDefaultHandlerImpl());
 
         router.get("/" + CALL_BLOCKING).handler(routingContext -> routingContext.vertx()
-            .executeBlocking(tid -> new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_BLOCKING).handle(null), result -> {}));
+            .executeBlocking(tid -> new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_BLOCKING).handle(null), result -> {
+            }));
         router.get("/" + CALL_BLOCKING + "_context").handler(routingContext -> routingContext.vertx().getOrCreateContext()
-            .executeBlocking(tid -> new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_BLOCKING).handle(null), result -> {}));
+            .executeBlocking(tid -> new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_BLOCKING).handle(null), result -> {
+            }));
 
         router.get("/" + CALL_SCHEDULED).handler(routingContext -> routingContext.vertx()
             .setTimer(1, tid -> new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_SCHEDULED).handle(null)));
@@ -347,12 +349,14 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
                     thirdChild.end();
                 });
                 blockingChild.end();
-            }, r -> { });
+            }, r -> {
+            });
             asyncChild.end();
         }));
 
         router.get("/multi-handler")
-            .handler(routingContext -> routingContext.vertx().executeBlocking(tid -> routingContext.next(), result -> {}))
+            .handler(routingContext -> routingContext.vertx().executeBlocking(tid -> routingContext.next(), result -> {
+            }))
             .handler(routingContext -> routingContext.vertx().setTimer(5, tid -> routingContext.next()))
             .handler(getDefaultHandlerImpl());
 

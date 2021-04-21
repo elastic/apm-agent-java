@@ -24,7 +24,10 @@
  */
 package co.elastic.apm.agent.vertx_3_6;
 
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.vertx.GenericHandlerWrapper;
+import io.vertx.core.Handler;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -38,11 +41,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public abstract class VertxEventLoopInstrumentation extends VertxWebInstrumentation {
 
-    public static final String VERTX_EVENTS_INSTRUMENTATION_GROUP = "vertx-events";
-
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("vertx", VERTX_EVENTS_INSTRUMENTATION_GROUP);
+        return Arrays.asList("vertx", "vertx-events");
     }
 
     /**
@@ -61,8 +62,18 @@ public abstract class VertxEventLoopInstrumentation extends VertxWebInstrumentat
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.SetTimerAdvice";
+            return "co.elastic.apm.agent.vertx_3_6.VertxEventLoopInstrumentation$SetTimerInstrumentation$SetTimerAdvice";
         }
+
+        public static class SetTimerAdvice {
+
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            @AssignTo.Argument(value = 1)
+            public static Handler<Long> setTimerEnter(@Advice.Argument(value = 1) Handler<Long> handler) {
+                return GenericHandlerWrapper.wrapIfActiveSpan(handler);
+            }
+        }
+
     }
 
     /**
@@ -82,8 +93,9 @@ public abstract class VertxEventLoopInstrumentation extends VertxWebInstrumentat
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.ExecuteOnContextAdvice";
+            return "co.elastic.apm.agent.vertx_3_6.VertxEventLoopInstrumentation$ExecuteOnContextAdvice";
         }
+
     }
 
     /**
@@ -104,7 +116,16 @@ public abstract class VertxEventLoopInstrumentation extends VertxWebInstrumentat
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.ExecuteOnContextAdvice";
+            return "co.elastic.apm.agent.vertx_3_6.VertxEventLoopInstrumentation$ExecuteOnContextAdvice";
+        }
+    }
+
+    public static class ExecuteOnContextAdvice {
+
+        @AssignTo.Argument(value = 0)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Handler<?> executeBlockingEnter(@Advice.Argument(value = 0) Handler<?> handler) {
+            return GenericHandlerWrapper.wrapIfActiveSpan(handler);
         }
     }
 }
