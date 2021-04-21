@@ -49,7 +49,7 @@ public class Http2Instrumentation extends VertxWebInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return Http2ServerRequestAdvice.class;
+    public String getAdviceClassName(){
+        return "co.elastic.apm.agent.vertx_3_6.Http2ServerRequestAdvice";
     }
 }

@@ -46,8 +46,8 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumentation {
 
     @Override
-    public Class<?> getAdviceClass() {
-        return OkHttpClientExecuteAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.okhttp.OkHttpClientInstrumentation$OkHttpClientExecuteAdvice";
     }
 
     public static class OkHttpClientExecuteAdvice {

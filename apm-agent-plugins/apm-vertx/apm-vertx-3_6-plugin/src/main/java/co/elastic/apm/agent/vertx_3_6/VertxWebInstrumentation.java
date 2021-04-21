@@ -71,8 +71,8 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return RouteImplAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_3_6.RouteImplAdvice";
         }
     }
 
@@ -92,8 +92,8 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return ResponseEndHandlerAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_3_6.ResponseEndHandlerAdvice";
         }
     }
 
@@ -118,8 +118,8 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return HandleDataAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_3_6.HandleDataAdvice";
         }
     }
 

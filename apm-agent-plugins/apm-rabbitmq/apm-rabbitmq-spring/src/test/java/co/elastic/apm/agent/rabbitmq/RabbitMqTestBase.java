@@ -26,6 +26,7 @@ package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.junit.AfterClass;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,16 +37,18 @@ import org.testcontainers.containers.RabbitMQContainer;
 
 public class RabbitMqTestBase extends AbstractInstrumentationTest {
 
+    public static final String LOCALHOST_ADDRESS = "127.0.0.1";
     protected static RabbitMQContainer container = new RabbitMQContainer(TestConstants.DOCKER_TESTCONTAINER_RABBITMQ_IMAGE);
 
     static class Initializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
         @Override
         public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
-            container.withExtraHost("localhost", "127.0.0.1");
+            container.withExtraHost("localhost", LOCALHOST_ADDRESS);
+            container.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048));
             container.start();
 
             TestPropertyValues.of(
-                "spring.rabbitmq.host=" + container.getHost(),
+                "spring.rabbitmq.host=" + LOCALHOST_ADDRESS,
                 "spring.rabbitmq.port=" + container.getAmqpPort(),
                 "spring.rabbitmq.username=" + container.getAdminUsername(),
                 "spring.rabbitmq.password=" + container.getAdminPassword())

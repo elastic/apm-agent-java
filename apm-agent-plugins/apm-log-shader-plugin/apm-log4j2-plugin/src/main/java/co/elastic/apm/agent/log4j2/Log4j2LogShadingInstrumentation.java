@@ -68,8 +68,8 @@ public abstract class Log4j2LogShadingInstrumentation extends AbstractLogShading
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return Log4j2AppenderAppendAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.log4j2.Log4j2AppenderAppendAdvice";
         }
 
     }
@@ -85,8 +85,8 @@ public abstract class Log4j2LogShadingInstrumentation extends AbstractLogShading
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return Log4j2AppenderStopAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.log4j2.Log4j2AppenderStopAdvice";
         }
 
     }

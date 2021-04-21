@@ -69,9 +69,10 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return ContextImplTracerAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_4.ContextImplTracerAdvice";
         }
+
     }
 
     /**
@@ -89,8 +90,8 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return TracerReceiveRequestAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_4.TracerReceiveRequestAdvice";
         }
     }
 
@@ -109,8 +110,8 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return TracerSendResponseAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_4.TracerSendResponseAdvice";
         }
     }
 
@@ -129,9 +130,10 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return RouteImplAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_4.RouteImplAdvice";
         }
+
     }
 
     /**
@@ -155,9 +157,10 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return HandleDataAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_4.HandleDataAdvice";
         }
+
     }
 
 }

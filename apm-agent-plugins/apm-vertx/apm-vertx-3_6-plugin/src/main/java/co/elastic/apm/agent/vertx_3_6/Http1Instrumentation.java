@@ -53,8 +53,8 @@ public abstract class Http1Instrumentation extends VertxWebInstrumentation {
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return Http1RequestBeginAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_3_6.Http1RequestBeginAdvice";
         }
     }
 
@@ -77,8 +77,8 @@ public abstract class Http1Instrumentation extends VertxWebInstrumentation {
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return HttpServerRequestWrapperAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_3_6.HttpServerRequestWrapperAdvice";
         }
     }
 
@@ -97,8 +97,8 @@ public abstract class Http1Instrumentation extends VertxWebInstrumentation {
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return Http1RequestEndAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_3_6.Http1RequestEndAdvice";
         }
     }
 
@@ -118,8 +118,8 @@ public abstract class Http1Instrumentation extends VertxWebInstrumentation {
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return Http1ResponseConstructorAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_3_6.Http1ResponseConstructorAdvice";
         }
     }
 }

@@ -63,8 +63,8 @@ public abstract class VertxEventLoopInstrumentation extends VertxWebInstrumentat
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return SetTimerAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_4.SetTimerAdvice";
         }
     }
 
@@ -84,8 +84,8 @@ public abstract class VertxEventLoopInstrumentation extends VertxWebInstrumentat
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return ExecuteOnContextAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_4.ExecuteOnContextAdvice";
         }
     }
 
@@ -105,8 +105,8 @@ public abstract class VertxEventLoopInstrumentation extends VertxWebInstrumentat
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return ExecuteOnContextAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx_4.ExecuteOnContextAdvice";
         }
     }
 }

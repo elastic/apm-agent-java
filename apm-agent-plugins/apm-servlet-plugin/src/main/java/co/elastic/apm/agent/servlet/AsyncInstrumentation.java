@@ -90,7 +90,7 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return isPublic()
                 .and(named("startAsync"))
-                .and(returns(named("javax.servlet.AsyncContext")))
+                .and(returns(hasSuperType(named("javax.servlet.AsyncContext"))))
                 .and(takesArguments(0)
                     .or(
                         takesArgument(0, named("javax.servlet.ServletRequest"))
@@ -100,8 +100,8 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return StartAsyncAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.servlet.AsyncInstrumentation$StartAsyncInstrumentation$StartAsyncAdvice";
         }
 
         public static class StartAsyncAdvice {
@@ -138,8 +138,8 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return AsyncContextStartAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice";
         }
 
         public static class AsyncContextStartAdvice {

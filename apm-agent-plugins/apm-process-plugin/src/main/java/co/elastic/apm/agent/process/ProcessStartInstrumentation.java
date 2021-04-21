@@ -52,8 +52,8 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ProcessBuilderStartAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.process.ProcessStartInstrumentation$ProcessBuilderStartAdvice";
     }
 
     public static class ProcessBuilderStartAdvice {
