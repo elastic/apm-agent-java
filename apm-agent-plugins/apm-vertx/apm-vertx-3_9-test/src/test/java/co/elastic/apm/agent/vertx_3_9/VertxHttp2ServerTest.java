@@ -30,14 +30,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(VertxExtension.class)
 public class VertxHttp2ServerTest extends VertxServerTest {
+
     @Override
     public OkHttpTestClient http() {
         return super.https();
-    }
-
-    @Override
-    protected String schema() {
-        return "https";
     }
 
     @Override

@@ -27,12 +27,10 @@ package co.elastic.apm.agent.vertx_3_6;
 import co.elastic.apm.agent.vertx.helper.CommonVertxWebTest;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.junit5.VertxExtension;
 import okhttp3.Response;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
-@ExtendWith(VertxExtension.class)
+
 public class VertxServerTest extends CommonVertxWebTest {
 
     @Test

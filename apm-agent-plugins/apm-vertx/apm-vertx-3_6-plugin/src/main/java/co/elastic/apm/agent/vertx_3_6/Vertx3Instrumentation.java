@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,20 +24,27 @@
  */
 package co.elastic.apm.agent.vertx_3_6;
 
-import co.elastic.apm.agent.vertx.helper.OkHttpTestClient;
-import io.vertx.junit5.VertxExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import net.bytebuddy.matcher.ElementMatcher;
 
-@ExtendWith(VertxExtension.class)
-public class VertxHttp2ServerTest extends VertxServerTest {
+import java.util.Collection;
+import java.util.Collections;
+
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.matcher.ElementMatchers.not;
+
+public abstract class Vertx3Instrumentation extends TracerAwareInstrumentation {
 
     @Override
-    public OkHttpTestClient http() {
-        return super.https();
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singletonList("vertx");
     }
 
     @Override
-    protected boolean useSSL() {
-        return true;
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        // ensure only Vertx versions >= 3.6 and < 4.0 are instrumented
+        // for now, everything is in vertx-core jar
+        return classLoaderCanLoadClass("io.vertx.core.http.impl.HttpServerRequestImpl")
+            .and(not(classLoaderCanLoadClass("io.vertx.core.impl.Action")));
     }
 }

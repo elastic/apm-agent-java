@@ -24,16 +24,14 @@
  */
 package co.elastic.apm.agent.vertx_3_6;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
-import co.elastic.apm.agent.vertx_3_6.helper.VertxWebHelper;
-import co.elastic.apm.agent.vertx_3_6.wrapper.ResponseEndHandlerWrapper;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -42,37 +40,31 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.declaresField;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 @SuppressWarnings("JavadocReference")
-public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation {
+public abstract class Vertx3WebInstrumentation extends Vertx3Instrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("vertx", "vertx-web");
     }
 
-    @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        // ensure only Vertx versions >= 3.6 and < 4.0 are instrumented
-        return classLoaderCanLoadClass("io.vertx.core.http.impl.HttpServerRequestImpl")
-            .and(not(classLoaderCanLoadClass("io.vertx.core.impl.Action")));
-    }
-
     /**
      * Instruments {@link io.vertx.ext.web.Route#handler(io.vertx.core.Handler)} to update transaction names based on routing information.
      */
-    public static class RouteInstrumentation extends VertxWebInstrumentation {
+    public static class RouteInstrumentation extends Vertx3WebInstrumentation {
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return not(isInterface()).and(named("io.vertx.ext.web.impl.RouteImpl").or(named("io.vertx.ext.web.impl.RouteState")));
+            return not(isInterface()).and(named("io.vertx.ext.web.impl.RouteImpl")
+                .or(named("io.vertx.ext.web.impl.RouteState")));
         }
 
         @Override
@@ -82,7 +74,7 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.VertxWebInstrumentation$RouteInstrumentation$RouteImplAdvice";
+            return "co.elastic.apm.agent.vertx_3_6.Vertx3WebInstrumentation$RouteInstrumentation$RouteImplAdvice";
         }
 
         public static class RouteImplAdvice {
@@ -90,7 +82,7 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
             @Nullable
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object nextEnter(@Advice.Argument(value = 0) RoutingContext routingContext) {
-                Transaction transaction = VertxWebHelper.getInstance().setRouteBasedNameForCurrentTransaction(routingContext);
+                Transaction transaction = Vertx3WebHelper.getInstance().setRouteBasedNameForCurrentTransaction(routingContext);
 
                 if (transaction != null) {
                     transaction.activate();
@@ -112,22 +104,31 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
 
     /**
      * Instruments {@link io.vertx.core.http.HttpServerResponse#endHandler(io.vertx.core.Handler)} to handle proper wrapping of existing end
-     * handlers when adding our {@link ResponseEndHandlerWrapper} for transaction finalization.
+     * handlers when adding our {@link Vertx3ResponseEndHandlerWrapper} for transaction finalization.
      */
-    public static class ResponseEndHandlerInstrumentation extends VertxWebInstrumentation {
+    public static class ResponseEndHandlerInstrumentation extends Vertx3WebInstrumentation {
+
+        @Override
+        public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+            return nameStartsWith("io.vertx.core.http.impl");
+        }
+
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return not(isInterface()).and(hasSuperType(named("io.vertx.core.http.HttpServerResponse"))).and(declaresField(named("endHandler")));
+            return not(isInterface())
+                .and(hasSuperType(named("io.vertx.core.http.HttpServerResponse")))
+                .and(declaresField(named("endHandler")));
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("endHandler").and(takesArgument(0, named("io.vertx.core.Handler")));
+            return named("endHandler")
+                .and(takesArgument(0, named("io.vertx.core.Handler")));
         }
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.VertxWebInstrumentation$ResponseEndHandlerInstrumentation$ResponseEndHandlerAdvice";
+            return "co.elastic.apm.agent.vertx_3_6.Vertx3WebInstrumentation$ResponseEndHandlerInstrumentation$ResponseEndHandlerAdvice";
         }
 
         public static class ResponseEndHandlerAdvice {
@@ -137,20 +138,20 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Handler<Void> wrapHandler(@Advice.Argument(value = 0) Handler<Void> handler,
                                                     @Advice.FieldValue(value = "endHandler") @Nullable Handler<Void> internalHandler) {
-                if (internalHandler instanceof ResponseEndHandlerWrapper && handler instanceof ResponseEndHandlerWrapper) {
+                if (internalHandler instanceof Vertx3ResponseEndHandlerWrapper && handler instanceof Vertx3ResponseEndHandlerWrapper) {
                     // avoid setting our wrapper multiple times
                     return internalHandler;
                 }
 
-                if (handler instanceof ResponseEndHandlerWrapper) {
+                if (handler instanceof Vertx3ResponseEndHandlerWrapper) {
                     if (internalHandler != null) {
                         // wrap the existing internal handler into our added wrapper
-                        ((ResponseEndHandlerWrapper) handler).setActualHandler(internalHandler);
+                        ((Vertx3ResponseEndHandlerWrapper) handler).setActualHandler(internalHandler);
                     }
                     return handler;
-                } else if (internalHandler instanceof ResponseEndHandlerWrapper) {
+                } else if (internalHandler instanceof Vertx3ResponseEndHandlerWrapper) {
                     // wrap new added handler into our wrapper that already is the internal one
-                    ((ResponseEndHandlerWrapper) internalHandler).setActualHandler(handler);
+                    ((Vertx3ResponseEndHandlerWrapper) internalHandler).setActualHandler(handler);
                     return internalHandler;
                 }
 
@@ -169,28 +170,36 @@ public abstract class VertxWebInstrumentation extends TracerAwareInstrumentation
      * </ul>
      * to handle request body capturing.
      */
-    public static class RequestBufferInstrumentation extends VertxWebInstrumentation {
+    public static class RequestBufferInstrumentation extends Vertx3WebInstrumentation {
+
+        @Override
+        public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+            return nameStartsWith("io.vertx.core.http.impl");
+        }
+
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return not(isInterface()).and(hasSuperType(named("io.vertx.core.http.HttpServerRequest")));
+            return not(isInterface())
+                .and(hasSuperType(named("io.vertx.core.http.HttpServerRequest")));
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return namedOneOf("handleData", "onData").and(takesArgument(0, named("io.vertx.core.buffer.Buffer")));
+            return namedOneOf("handleData", "onData")
+                .and(takesArgument(0, named("io.vertx.core.buffer.Buffer")));
         }
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.VertxWebInstrumentation$RequestBufferInstrumentation$HandleDataAdvice";
+            return "co.elastic.apm.agent.vertx_3_6.Vertx3WebInstrumentation$RequestBufferInstrumentation$HandleDataAdvice";
         }
 
         public static class HandleDataAdvice {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void wrapHandler(@Advice.This HttpServerRequest request, @Advice.Argument(value = 0) Buffer requestDataBuffer) {
-                Transaction transaction = VertxWebHelper.getInstance().getTransactionForRequest(request);
-                VertxWebHelper.getInstance().captureBody(transaction, requestDataBuffer);
+                Transaction transaction = Vertx3WebHelper.getInstance().getTransactionForRequest(request);
+                Vertx3WebHelper.getInstance().captureBody(transaction, requestDataBuffer);
             }
         }
 

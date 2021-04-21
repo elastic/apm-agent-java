@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.vertx_3_6.helper;
+package co.elastic.apm.agent.vertx_3_6;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
@@ -36,12 +36,12 @@ import io.vertx.ext.web.RoutingContext;
 
 import javax.annotation.Nullable;
 
-public class VertxWebHelper extends AbstractVertxWebHelper {
-    private static final VertxWebHelper INSTANCE = new VertxWebHelper(GlobalTracer.requireTracerImpl());
+public class Vertx3WebHelper extends AbstractVertxWebHelper {
+    private static final Vertx3WebHelper INSTANCE = new Vertx3WebHelper(GlobalTracer.requireTracerImpl());
 
     static final WeakConcurrentMap<HttpServerRequest, Transaction> requestTransactionMap = WeakMapSupplier.createMap();
 
-    public static VertxWebHelper getInstance() {
+    public static Vertx3WebHelper getInstance() {
         return INSTANCE;
     }
 
@@ -49,7 +49,7 @@ public class VertxWebHelper extends AbstractVertxWebHelper {
     // that should do nothing than returning the wrapped delegate instance of type HttpServerRequestImpl.
     private final NoopHandler noopHandler = new NoopHandler();
 
-    public VertxWebHelper(ElasticApmTracer tracer) {
+    public Vertx3WebHelper(ElasticApmTracer tracer) {
         super(tracer);
     }
 

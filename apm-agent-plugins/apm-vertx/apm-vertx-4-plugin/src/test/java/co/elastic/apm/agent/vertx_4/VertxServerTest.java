@@ -32,13 +32,13 @@ import io.vertx.ext.web.RoutingContext;
 public class VertxServerTest extends CommonVertxWebTest {
 
     @Override
-    protected boolean useSSL() {
-        return false;
+    protected Handler<RoutingContext> getDefaultHandlerImpl() {
+        return routingContext -> routingContext.response().end(DEFAULT_RESPONSE_BODY);
     }
 
     @Override
-    protected Handler<RoutingContext> getDefaultHandlerImpl() {
-        return routingContext -> routingContext.response().end(DEFAULT_RESPONSE_BODY);
+    protected boolean useSSL() {
+        return false;
     }
 
     @Override

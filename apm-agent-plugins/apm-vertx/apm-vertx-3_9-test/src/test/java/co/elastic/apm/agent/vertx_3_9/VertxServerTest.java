@@ -33,11 +33,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(VertxExtension.class)
 public class VertxServerTest extends CommonVertxWebTest {
 
-    @Override
-    protected String expectedVertxVersion() {
-        return "3.9";
-    }
-
     protected Handler<RoutingContext> getDefaultHandlerImpl() {
         return routingContext -> routingContext.response().end(DEFAULT_RESPONSE_BODY);
     }
@@ -46,4 +41,10 @@ public class VertxServerTest extends CommonVertxWebTest {
     protected boolean useSSL() {
         return false;
     }
+
+    @Override
+    protected String expectedVertxVersion() {
+        return "3.9";
+    }
+
 }

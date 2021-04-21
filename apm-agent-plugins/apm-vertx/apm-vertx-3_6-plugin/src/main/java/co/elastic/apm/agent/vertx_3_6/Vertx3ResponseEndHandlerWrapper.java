@@ -22,17 +22,16 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.vertx_3_6.wrapper;
+package co.elastic.apm.agent.vertx_3_6;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.vertx_3_6.helper.VertxWebHelper;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 
 import javax.annotation.Nullable;
 
-public class ResponseEndHandlerWrapper implements Handler<Void> {
+public class Vertx3ResponseEndHandlerWrapper implements Handler<Void> {
 
     @Nullable
     private Handler<Void> actualHandler;
@@ -41,13 +40,13 @@ public class ResponseEndHandlerWrapper implements Handler<Void> {
     @Nullable
     private final HttpServerRequest request;
 
-    public ResponseEndHandlerWrapper(Transaction transaction, HttpServerResponse response, @Nullable HttpServerRequest request) {
+    public Vertx3ResponseEndHandlerWrapper(Transaction transaction, HttpServerResponse response, @Nullable HttpServerRequest request) {
         this.transaction = transaction;
         this.response = response;
         this.request = request;
     }
 
-    public ResponseEndHandlerWrapper(Transaction transaction, HttpServerResponse response) {
+    public Vertx3ResponseEndHandlerWrapper(Transaction transaction, HttpServerResponse response) {
         this(transaction, response, null);
     }
 
@@ -62,9 +61,9 @@ public class ResponseEndHandlerWrapper implements Handler<Void> {
                 actualHandler.handle(event);
             }
         } finally {
-            VertxWebHelper.getInstance().finalizeTransaction(response, transaction);
+            Vertx3WebHelper.getInstance().finalizeTransaction(response, transaction);
             if (request != null) {
-                VertxWebHelper.getInstance().removeTransactionFromContext(request);
+                Vertx3WebHelper.getInstance().removeTransactionFromContext(request);
             }
         }
     }

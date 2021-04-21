@@ -27,8 +27,6 @@ package co.elastic.apm.agent.vertx_3_6;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
-import co.elastic.apm.agent.vertx_3_6.helper.VertxWebHelper;
-import co.elastic.apm.agent.vertx_3_6.wrapper.ResponseEndHandlerWrapper;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -47,12 +45,12 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 
 @SuppressWarnings("JavadocReference")
-public abstract class Http1Instrumentation extends VertxWebInstrumentation {
+public abstract class Vertx3Http1Instrumentation extends Vertx3WebInstrumentation {
 
     /**
      * Instruments {@link io.vertx.core.http.impl.HttpServerRequestImpl#handleBegin()} to start transaction from.
      */
-    public static class HttpServerRequestImplStartInstrumentation extends Http1Instrumentation {
+    public static class HttpServerRequestImplStartInstrumentation extends Vertx3Http1Instrumentation {
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return named("io.vertx.core.http.impl.HttpServerRequestImpl");
@@ -65,7 +63,7 @@ public abstract class Http1Instrumentation extends VertxWebInstrumentation {
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.Http1Instrumentation$HttpServerRequestImplStartInstrumentation$Http1RequestBeginAdvice";
+            return "co.elastic.apm.agent.vertx_3_6.Vertx3Http1Instrumentation$HttpServerRequestImplStartInstrumentation$Http1RequestBeginAdvice";
         }
 
         public static class Http1RequestBeginAdvice {
@@ -73,7 +71,7 @@ public abstract class Http1Instrumentation extends VertxWebInstrumentation {
             @Nullable
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object enter(@Advice.This HttpServerRequestImpl request) {
-                Transaction transaction = VertxWebHelper.getInstance().startOrGetTransaction(request);
+                Transaction transaction = Vertx3WebHelper.getInstance().startOrGetTransaction(request);
                 if (transaction != null) {
                     transaction.activate();
                 }
@@ -95,7 +93,7 @@ public abstract class Http1Instrumentation extends VertxWebInstrumentation {
     /**
      * Instruments {@link io.vertx.core.http.impl.HttpServerRequestImpl#doEnd()} to remove the context from the context map again.
      */
-    public static class HttpServerRequestImplEndInstrumentation extends Http1Instrumentation {
+    public static class HttpServerRequestImplEndInstrumentation extends Vertx3Http1Instrumentation {
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return named("io.vertx.core.http.impl.HttpServerRequestImpl");
@@ -108,25 +106,25 @@ public abstract class Http1Instrumentation extends VertxWebInstrumentation {
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.Http1Instrumentation$HttpServerRequestImplEndInstrumentation$Http1RequestEndAdvice";
+            return "co.elastic.apm.agent.vertx_3_6.Vertx3Http1Instrumentation$HttpServerRequestImplEndInstrumentation$Http1RequestEndAdvice";
         }
 
         public static class Http1RequestEndAdvice {
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void exit(@Advice.This HttpServerRequestImpl request) {
-                VertxWebHelper.getInstance().removeTransactionFromContext(request);
+                Vertx3WebHelper.getInstance().removeTransactionFromContext(request);
             }
         }
     }
 
     /**
      * Instruments {@link io.vertx.ext.web.impl.HttpServerRequestWrapper#endHandler(io.vertx.core.Handler)} to use this method with a marker-argument
-     * of type {@link VertxWebHelper.NoopHandler} to unwrap the original {@link io.vertx.core.http.impl.HttpServerRequestImpl} object.
+     * of type {@link Vertx3WebHelper.NoopHandler} to unwrap the original {@link io.vertx.core.http.impl.HttpServerRequestImpl} object.
      * <p>
-     * See {@link VertxWebHelper#setRouteBasedNameForCurrentTransaction(io.vertx.ext.web.RoutingContext)}.
+     * See {@link Vertx3WebHelper#setRouteBasedNameForCurrentTransaction(io.vertx.ext.web.RoutingContext)}.
      */
-    public static class HttpServerRequestWrapperInstrumentation extends Http1Instrumentation {
+    public static class HttpServerRequestWrapperInstrumentation extends Vertx3Http1Instrumentation {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -142,14 +140,14 @@ public abstract class Http1Instrumentation extends VertxWebInstrumentation {
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.Http1Instrumentation$HttpServerRequestWrapperInstrumentation$HttpServerRequestWrapperAdvice";
+            return "co.elastic.apm.agent.vertx_3_6.Vertx3Http1Instrumentation$HttpServerRequestWrapperInstrumentation$HttpServerRequestWrapperAdvice";
         }
 
         public static class HttpServerRequestWrapperAdvice {
 
             @Advice.OnMethodEnter(skipOn = Advice.OnNonDefaultValue.class, suppress = Throwable.class, inline = false)
             public static boolean enter(@Advice.Argument(0) Handler<Void> handler) {
-                return handler instanceof VertxWebHelper.NoopHandler;
+                return handler instanceof Vertx3WebHelper.NoopHandler;
             }
 
             @AssignTo.Return
@@ -161,10 +159,10 @@ public abstract class Http1Instrumentation extends VertxWebInstrumentation {
     }
 
     /**
-     * Instruments {@link io.vertx.core.http.impl.HttpServerResponseImpl} constructor to create and append {@link ResponseEndHandlerWrapper}
+     * Instruments {@link io.vertx.core.http.impl.HttpServerResponseImpl} constructor to create and append {@link Vertx3ResponseEndHandlerWrapper}
      * for transaction finalization.
      */
-    public static class HttpServerResponseImplInstrumentation extends Http1Instrumentation {
+    public static class HttpServerResponseImplInstrumentation extends Vertx3Http1Instrumentation {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -178,7 +176,7 @@ public abstract class Http1Instrumentation extends VertxWebInstrumentation {
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.Http1Instrumentation$HttpServerResponseImplInstrumentation$Http1ResponseConstructorAdvice";
+            return "co.elastic.apm.agent.vertx_3_6.Vertx3Http1Instrumentation$HttpServerResponseImplInstrumentation$Http1ResponseConstructorAdvice";
         }
 
         public static class Http1ResponseConstructorAdvice {
@@ -187,7 +185,7 @@ public abstract class Http1Instrumentation extends VertxWebInstrumentation {
             public static void enter(@Advice.This HttpServerResponse response) {
                 Transaction transaction = GlobalTracer.get().currentTransaction();
                 if (transaction != null) {
-                    response.endHandler(new ResponseEndHandlerWrapper(transaction, response));
+                    response.endHandler(new Vertx3ResponseEndHandlerWrapper(transaction, response));
                 }
             }
         }
