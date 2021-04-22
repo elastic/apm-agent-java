@@ -92,7 +92,7 @@ public class BodyInsertersInstrumentation extends WebFluxInstrumentation {
                 return;
             }
 
-            if (type.getType().getTypeName().equals(SSE_EVENT_CLASS)) {
+            if (type.getType().getTypeName().equals(WebfluxHelper.SSE_EVENT_CLASS)) {
                 Transaction transaction = GlobalTracer.get().currentTransaction();
                 if (transaction != null) {
                     // mark the transaction to be ignored and later discarded

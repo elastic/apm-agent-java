@@ -57,7 +57,6 @@ import java.util.List;
 import java.util.Map;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
-import static co.elastic.apm.agent.springwebflux.WebFluxInstrumentation.isServletTransaction;
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
 /**
@@ -242,7 +241,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
             return;
         }
 
-        Object attribute = exchange.getAttributes().remove(WebFluxInstrumentation.TRANSACTION_ATTRIBUTE);
+        Object attribute = exchange.getAttributes().remove(WebfluxHelper.TRANSACTION_ATTRIBUTE);
         if (attribute != transaction) {
             // transaction might be already terminated due to instrumentation of more than one
             // dispatcher/handler/invocation-handler class
@@ -260,8 +259,8 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
             String httpMethod = exchange.getRequest().getMethodValue();
 
             // bean name & method should be set for annotated methods
-            String beanName = exchange.getAttribute(WebFluxInstrumentation.ANNOTATED_BEAN_NAME_ATTRIBUTE);
-            String methodName = exchange.getAttribute(WebFluxInstrumentation.ANNOTATED_METHOD_NAME_ATTRIBUTE);
+            String beanName = exchange.getAttribute(WebfluxHelper.ANNOTATED_BEAN_NAME_ATTRIBUTE);
+            String methodName = exchange.getAttribute(WebfluxHelper.ANNOTATED_METHOD_NAME_ATTRIBUTE);
 
             PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
 
@@ -289,7 +288,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
         // In case transaction has been created by Servlet, we should not terminate it as the Servlet instrumentation
         // will take care of this.
-        if (!isServletTransaction(exchange)) {
+        if (!WebfluxHelper.isServletTransaction(exchange)) {
             transaction.end();
         }
 
@@ -318,7 +317,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
         Type[] genReturnTypes = ((ParameterizedType) returnType).getActualTypeArguments();
         //noinspection ForLoopReplaceableByForEach
         for (int i = 0; i < genReturnTypes.length; i++) {
-            if (genReturnTypes[i].getTypeName().startsWith(WebFluxInstrumentation.SSE_EVENT_CLASS)) {
+            if (genReturnTypes[i].getTypeName().startsWith(WebfluxHelper.SSE_EVENT_CLASS)) {
                 ignoredHandlerMethods.put(handlerMethod, true);
                 return true;
             }

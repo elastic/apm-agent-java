@@ -74,7 +74,7 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
                 // just ignore upgrade WS upgrade requests for now
                 return null;
             }
-            return getOrCreateTransaction(clazz, exchange);
+            return WebfluxHelper.getOrCreateTransaction(tracer, clazz, exchange);
         }
 
         @Nullable
@@ -96,7 +96,7 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
                 return returnValue;
             }
 
-            return wrapDispatcher(returnValue, transaction, exchange);
+            return WebfluxHelper.wrapDispatcher(tracer, returnValue, transaction, exchange);
         }
     }
 

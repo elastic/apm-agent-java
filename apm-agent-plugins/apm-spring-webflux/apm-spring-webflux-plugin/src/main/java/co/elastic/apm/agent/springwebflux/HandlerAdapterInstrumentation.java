@@ -79,14 +79,14 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
         public static Object onEnter(@Advice.Argument(0) ServerWebExchange exchange,
                                      @Advice.Argument(1) Object handler) {
 
-            Object attribute = exchange.getAttribute(TRANSACTION_ATTRIBUTE);
+            Object attribute = exchange.getAttribute(WebfluxHelper.TRANSACTION_ATTRIBUTE);
             if (attribute instanceof Transaction) {
 
                 if (handler instanceof HandlerMethod) {
                     // store name for annotated controllers
                     HandlerMethod handlerMethod = (HandlerMethod) handler;
-                    exchange.getAttributes().put(ANNOTATED_BEAN_NAME_ATTRIBUTE, handlerMethod.getBeanType().getSimpleName());
-                    exchange.getAttributes().put(ANNOTATED_METHOD_NAME_ATTRIBUTE, handlerMethod.getMethod().getName());
+                    exchange.getAttributes().put(WebfluxHelper.ANNOTATED_BEAN_NAME_ATTRIBUTE, handlerMethod.getBeanType().getSimpleName());
+                    exchange.getAttributes().put(WebfluxHelper.ANNOTATED_METHOD_NAME_ATTRIBUTE, handlerMethod.getMethod().getName());
                 }
             }
 
@@ -122,7 +122,7 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
             // in case an exception it thrown, it's too early to end transaction
             // otherwise the status code returned isn't the expected one
 
-            return wrapHandlerAdapter(resultMono, transaction, exchange);
+            return WebfluxHelper.wrapHandlerAdapter(tracer, resultMono, transaction, exchange);
 
         }
     }
