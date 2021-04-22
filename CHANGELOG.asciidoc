@@ -64,6 +64,7 @@ Even when matching on the main class name or on system properties,
 * Update Byte-buddy to `1.11.0` - {pull}1769[#1769]
 * Support for user.domain {pull}1756[#1756]
 * JAX-RS supports javax.ws.rs.PATCH
+* Enabling build and unit tests on Windows - {pull}1671[#1671]
 
 [float]
 ===== Bug fixes
@@ -75,6 +76,7 @@ Even when matching on the main class name or on system properties,
 * Apply consistent proxy class exclusion heuristic - {pull}1738[#1738]
 * Fix micrometer serialization error - {pull}1741[#1741]
 * Optimize & avoid `ensureInstrumented` deadlock by skipping stack-frame computation for Java7+ bytecode - {pull}1758[#1758]
+* Fix instrumentation plugins loading on Windows - {pull}1671[#1671]
 
 [float]
 ===== Refactors
