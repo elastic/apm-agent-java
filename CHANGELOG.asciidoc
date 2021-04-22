@@ -20,8 +20,20 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.22.1]]
-==== 1.22.1 - YYYY/MM/DD
+[[release-notes-1.23.1]]
+==== 1.23.1 - YYYY/MM/DD
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.23.0]]
+==== 1.23.0 - 2021/04/22
 
 [float]
 ===== Breaking changes
@@ -81,9 +93,6 @@ Even when matching on the main class name or on system properties,
 [float]
 ===== Refactors
 * Migrate some plugins to indy dispatcher {pull}1369[#1369] {pull}1410[#1410] {pull}1374[#1374]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.22.0]]
 ==== 1.22.0 - 2021/03/24
