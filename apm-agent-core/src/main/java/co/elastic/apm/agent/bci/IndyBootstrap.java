@@ -196,6 +196,11 @@ public class IndyBootstrap {
     public static final String LOOKUP_EXPOSER_CLASS_NAME = "co.elastic.apm.agent.bci.classloading.LookupExposer";
 
     /**
+     * The root package name prefix that all embedded plugins classes should start with
+     */
+    private static final String EMBEDDED_PLUGINS_PACKAGE_PREFIX = "co.elastic.apm.agent.";
+
+    /**
      * Caches the names of classes that are defined within a package and it's subpackages
      */
     private static final ConcurrentMap<String, List<String>> classesByPackage = new ConcurrentHashMap<>();
@@ -370,21 +375,12 @@ public class IndyBootstrap {
         }
     }
 
-    private static final String PLUGINS_PACKAGE_PREFIX = "co.elastic.apm.agent.";
-
     private static List<String> getClassNamesFromBundledPlugin(String adviceClassName, ClassLoader adviceClassLoader) throws IOException, URISyntaxException {
-        List<String> pluginClasses;
-
-        String pluginPackage;
-        if (adviceClassName.startsWith(PLUGINS_PACKAGE_PREFIX)) {
-            pluginPackage = adviceClassName.substring(0, adviceClassName.indexOf('.', PLUGINS_PACKAGE_PREFIX.length()));
-        } else {
-            // external test plugin require to keep previous behavior
-            // co.elastic.apm.plugin.test.PluginInstrumentationTest
-            pluginPackage = adviceClassName.substring(0, adviceClassName.lastIndexOf('.'));
+        if (!adviceClassName.startsWith(EMBEDDED_PLUGINS_PACKAGE_PREFIX)) {
+            throw new IllegalArgumentException("invalid advice class location : " + adviceClassName);
         }
-
-        pluginClasses = classesByPackage.get(pluginPackage);
+        String pluginPackage = adviceClassName.substring(0, adviceClassName.indexOf('.', EMBEDDED_PLUGINS_PACKAGE_PREFIX.length()));
+        List<String> pluginClasses = classesByPackage.get(pluginPackage);
         if (pluginClasses == null) {
             classesByPackage.putIfAbsent(pluginPackage, PackageScanner.getClassNames(pluginPackage, adviceClassLoader));
             pluginClasses = classesByPackage.get(pluginPackage);
