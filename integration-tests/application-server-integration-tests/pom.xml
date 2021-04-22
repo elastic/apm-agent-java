@@ -5,7 +5,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.22.1-SNAPSHOT</version>
+        <version>1.23.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>application-server-integration-tests</artifactId>
@@ -73,7 +73,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-attach</artifactId>
+            <artifactId>apm-agent-attach-cli</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

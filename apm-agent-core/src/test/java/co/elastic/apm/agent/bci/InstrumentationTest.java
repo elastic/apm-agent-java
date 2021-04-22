@@ -425,33 +425,25 @@ class InstrumentationTest {
 
     @Test
     void testInlinedIndyAdvice() {
-        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new InlinedIndyAdviceInstrumentation())))
+        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(InlinedIndyAdviceInstrumentation.class))
             .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void testAdviceInSubpackage() {
-        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new AdviceInSubpackageInstrumentation())))
+        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(AdviceInSubpackageInstrumentation.class))
             .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void testAdviceWithAgentReturnType() {
-        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new AgentTypeReturnInstrumentation())))
+        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(AgentTypeReturnInstrumentation.class))
             .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void testAdviceWithAgentParameterType() {
-        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new AgentTypeParameterInstrumentation())))
+        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(AgentTypeParameterInstrumentation.class))
             .isInstanceOf(IllegalStateException.class);
     }
 

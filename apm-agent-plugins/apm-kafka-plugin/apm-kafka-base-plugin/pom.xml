@@ -3,13 +3,12 @@
     <parent>
         <artifactId>apm-kafka-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.22.1-SNAPSHOT</version>
+        <version>1.23.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
-        <version.testcontainers>1.12.4</version.testcontainers>
     </properties>
 
     <artifactId>apm-kafka-base-plugin</artifactId>

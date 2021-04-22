@@ -102,8 +102,8 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ApacheHttpClientAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.httpclient.ApacheHttpClientInstrumentation$ApacheHttpClientAdvice";
     }
 
     @Override

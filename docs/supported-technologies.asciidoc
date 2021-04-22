@@ -58,6 +58,10 @@ the agent does not capture transactions.
 |HP-UX JVM
 | 7.0.10+, 8.0.02+
 |
+
+|SAP JVM
+| 8.1.065+
+|
 |===
 
 NOTE: Early Java 8 versions before update 40 are *not supported* because they have
@@ -227,6 +231,11 @@ Other Servlet 3+ compliant servers will most likely work as well.
  The name of the span is `<db>.<collection>.<command>`.
  The actual query will not be recorded.
 |1.12.0
+
+|Cassandra
+|2.x+
+|
+|1.23.0
 
 |===
 
@@ -468,6 +477,13 @@ ECS Reformatting - 1.22.0
 |When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
 ECS-compatible format (since 1.22.0, experimental)
 |1.22.0
+
+|JBoss Logging
+|3.0.0+
+|When <<config-enable-log-correlation>> is set to `true`,
+the agent will add a http://javadox.com/org.jboss.logging/jboss-logging/3.3.0.Final/org/jboss/logging/MDC.html[MDC]
+entry for `trace.id` and `transaction.id`. See the <<config-enable-log-correlation>> configuration option for more details.
+|1.23.0
 
 |===
 

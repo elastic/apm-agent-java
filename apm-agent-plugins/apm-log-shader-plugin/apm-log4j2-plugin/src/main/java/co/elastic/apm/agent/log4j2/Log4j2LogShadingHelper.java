@@ -34,16 +34,12 @@ import org.apache.logging.log4j.core.appender.rolling.RolloverStrategy;
 import org.apache.logging.log4j.core.appender.rolling.SizeBasedTriggeringPolicy;
 import org.apache.logging.log4j.core.appender.rolling.TriggeringPolicy;
 import org.apache.logging.log4j.core.config.DefaultConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 
 
 class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStreamAppender<?>> {
-
-    private static final Logger logger = LoggerFactory.getLogger(Log4j2LogShadingHelper.class);
 
     private static final Log4j2LogShadingHelper INSTANCE = new Log4j2LogShadingHelper();
 
@@ -81,7 +77,7 @@ class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStre
                 Method getFileNameMethod = originalAppender.getClass().getDeclaredMethod("getFileName");
                 logFile = (String) getFileNameMethod.invoke(originalAppender);
             } catch (Exception e) {
-                logger.error("Failed to obtain log file name from file appender", e);
+                logError("Failed to obtain log file name from file appender", e);
             }
         }
 

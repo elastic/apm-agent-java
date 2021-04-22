@@ -40,6 +40,7 @@ import okhttp3.Request;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -48,8 +49,8 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumentation {
 
     @Override
-    public Class<?> getAdviceClass() {
-        return OkHttpClient3ExecuteAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.okhttp.OkHttp3ClientInstrumentation$OkHttpClient3ExecuteAdvice";
     }
 
     public static class OkHttpClient3ExecuteAdvice {
@@ -108,6 +109,6 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("execute").and(returns(named("okhttp3.Response")));
+        return named("execute").and(returns(hasSuperType(named("okhttp3.Response"))));
     }
 }

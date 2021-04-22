@@ -81,8 +81,8 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ElasticsearchRestClientAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchClientSyncInstrumentation$ElasticsearchRestClientAdvice";
     }
 
     @Override

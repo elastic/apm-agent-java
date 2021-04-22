@@ -25,6 +25,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.servlet.tests.TestApp;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -114,7 +115,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     private final MockReporter mockReporter = new MockReporter();
-    private final GenericContainer servletContainer;
+    private final GenericContainer<?> servletContainer;
     private final int webPort;
     private final String expectedDefaultServiceName;
     private final String containerName;
@@ -177,6 +178,7 @@ public abstract class AbstractServletContainerIntegrationTest {
                 servletContainer.withFileSystemBind(pathToAppFile, deploymentPath + "/" + testApp.getAppFileName());
             }
         }
+        this.servletContainer.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
         this.servletContainer.start();
         if (runtimeAttachSupported() && ENABLE_RUNTIME_ATTACH) {
             try {
