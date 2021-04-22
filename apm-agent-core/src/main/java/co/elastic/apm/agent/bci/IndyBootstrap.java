@@ -373,15 +373,21 @@ public class IndyBootstrap {
     private static final String PLUGINS_PACKAGE_PREFIX = "co.elastic.apm.agent.";
 
     private static List<String> getClassNamesFromBundledPlugin(String adviceClassName, ClassLoader adviceClassLoader) throws IOException, URISyntaxException {
-        if (!adviceClassName.startsWith(PLUGINS_PACKAGE_PREFIX)) {
-            throw new IllegalArgumentException("invalid advice class location : " + adviceClassName);
-        }
         List<String> pluginClasses;
-        String pluginRootPackage = adviceClassName.substring(0, adviceClassName.indexOf('.', PLUGINS_PACKAGE_PREFIX.length()));
-        pluginClasses = classesByPackage.get(pluginRootPackage);
+
+        String pluginPackage;
+        if (adviceClassName.startsWith(PLUGINS_PACKAGE_PREFIX)) {
+            pluginPackage = adviceClassName.substring(0, adviceClassName.indexOf('.', PLUGINS_PACKAGE_PREFIX.length()));
+        } else {
+            // external test plugin require to keep previous behavior
+            // co.elastic.apm.plugin.test.PluginInstrumentationTest
+            pluginPackage = adviceClassName.substring(0, adviceClassName.lastIndexOf('.'));
+        }
+
+        pluginClasses = classesByPackage.get(pluginPackage);
         if (pluginClasses == null) {
-            classesByPackage.putIfAbsent(pluginRootPackage, PackageScanner.getClassNames(pluginRootPackage, adviceClassLoader));
-            pluginClasses = classesByPackage.get(pluginRootPackage);
+            classesByPackage.putIfAbsent(pluginPackage, PackageScanner.getClassNames(pluginPackage, adviceClassLoader));
+            pluginClasses = classesByPackage.get(pluginPackage);
         }
         return pluginClasses;
     }
