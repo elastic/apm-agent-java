@@ -43,7 +43,7 @@ public class PluginInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named(System.getProperty("elastic.apm.plugin.instrumented_class", "co.elastic.apm.agent.plugin.test.TestClass"));
+        return named(System.getProperty("elastic.apm.plugin.instrumented_class", "co.elastic.apm.plugin.test.TestClass"));
     }
 
     @Override
