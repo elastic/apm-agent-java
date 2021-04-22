@@ -170,6 +170,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * </ul>
  * @see TracerAwareInstrumentation#indyPlugin()
  */
+@SuppressWarnings("JavadocReference")
 public class IndyBootstrap {
 
     /**
@@ -369,13 +370,18 @@ public class IndyBootstrap {
         }
     }
 
+    private static final String PLUGINS_PACKAGE_PREFIX = "co.elastic.apm.agent.";
+
     private static List<String> getClassNamesFromBundledPlugin(String adviceClassName, ClassLoader adviceClassLoader) throws IOException, URISyntaxException {
+        if (!adviceClassName.startsWith(PLUGINS_PACKAGE_PREFIX)) {
+            throw new IllegalArgumentException("invalid advice class location : " + adviceClassName);
+        }
         List<String> pluginClasses;
-        String packageName = adviceClassName.substring(0, adviceClassName.lastIndexOf('.'));
-        pluginClasses = classesByPackage.get(packageName);
+        String pluginRootPackage = adviceClassName.substring(0, adviceClassName.indexOf('.', PLUGINS_PACKAGE_PREFIX.length()));
+        pluginClasses = classesByPackage.get(pluginRootPackage);
         if (pluginClasses == null) {
-            classesByPackage.putIfAbsent(packageName, PackageScanner.getClassNames(packageName, adviceClassLoader));
-            pluginClasses = classesByPackage.get(packageName);
+            classesByPackage.putIfAbsent(pluginRootPackage, PackageScanner.getClassNames(pluginRootPackage, adviceClassLoader));
+            pluginClasses = classesByPackage.get(pluginRootPackage);
         }
         return pluginClasses;
     }

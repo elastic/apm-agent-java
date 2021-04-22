@@ -430,12 +430,6 @@ class InstrumentationTest {
     }
 
     @Test
-    void testAdviceInSubpackage() {
-        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(AdviceInSubpackageInstrumentation.class))
-            .isInstanceOf(IllegalStateException.class);
-    }
-
-    @Test
     void testAdviceWithAgentReturnType() {
         assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(AgentTypeReturnInstrumentation.class))
             .isInstanceOf(IllegalStateException.class);
