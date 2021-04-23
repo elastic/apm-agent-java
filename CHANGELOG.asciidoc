@@ -29,6 +29,10 @@ endif::[]
 [float]
 ===== Bug fixes
 
+[float]
+===== Refactors
+* Remove single-package limitation for embedded plugins - {pull}1780[#1780]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
