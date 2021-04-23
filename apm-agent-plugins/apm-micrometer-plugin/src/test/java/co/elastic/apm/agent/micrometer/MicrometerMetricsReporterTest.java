@@ -51,6 +51,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -144,6 +145,7 @@ class MicrometerMetricsReporterTest {
         meterRegistry.counter("网络").increment(42);
 
         JsonNode metricSet = getSingleMetricSet();
+        System.out.println("JsonNode metric = " + metricSet.toPrettyString());
         assertThat(metricSet.get("metricset").get("samples").get("网络").get("value").doubleValue()).isEqualTo(42);
     }
 
@@ -465,7 +467,7 @@ class MicrometerMetricsReporterTest {
         metricsReporter.run();
         List<JsonNode> metricSets = reporter.getBytes()
             .stream()
-            .map(String::new)
+            .map(k -> new String(k, StandardCharsets.UTF_8))
             .flatMap(s -> Arrays.stream(s.split("\n")))
             .map(this::deserialize)
             .collect(Collectors.toList());

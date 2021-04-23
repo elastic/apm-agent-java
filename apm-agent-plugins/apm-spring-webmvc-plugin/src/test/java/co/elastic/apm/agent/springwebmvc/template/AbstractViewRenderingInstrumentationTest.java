@@ -95,7 +95,7 @@ abstract class AbstractViewRenderingInstrumentationTest {
     void verifySpanCapture(String spanSubType, String spanSuffix, MockHttpServletResponse response, @Nullable String messageContent) throws UnsupportedEncodingException {
         assertEquals(200, response.getStatus());
         String responseString = response.getContentAsString();
-        assertEquals(messageContent, responseString.trim());
+        assertEquals(messageContent, responseString.trim().replaceAll("\r\n", "\n"));
         assertEquals(1, reporter.getSpans().size());
         Span firstSpan = reporter.getSpans().get(0);
         assertEquals("template", firstSpan.getType());

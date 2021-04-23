@@ -20,8 +20,24 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.22.1]]
-==== 1.22.1 - YYYY/MM/DD
+[[release-notes-1.23.1]]
+==== 1.23.1 - YYYY/MM/DD
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+
+[float]
+===== Refactors
+* Remove single-package limitation for embedded plugins - {pull}1780[#1780]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.23.0]]
+==== 1.23.0 - 2021/04/22
 
 [float]
 ===== Breaking changes
@@ -64,6 +80,7 @@ Even when matching on the main class name or on system properties,
 * Update Byte-buddy to `1.11.0` - {pull}1769[#1769]
 * Support for user.domain {pull}1756[#1756]
 * JAX-RS supports javax.ws.rs.PATCH
+* Enabling build and unit tests on Windows - {pull}1671[#1671]
 
 [float]
 ===== Bug fixes
@@ -74,13 +91,12 @@ Even when matching on the main class name or on system properties,
 * Fix `NullPointerException` on legacy Apache client instrumentation when host is `null` - {pull}1746[#1746]
 * Apply consistent proxy class exclusion heuristic - {pull}1738[#1738]
 * Fix micrometer serialization error - {pull}1741[#1741]
+* Optimize & avoid `ensureInstrumented` deadlock by skipping stack-frame computation for Java7+ bytecode - {pull}1758[#1758]
+* Fix instrumentation plugins loading on Windows - {pull}1671[#1671]
 
 [float]
 ===== Refactors
 * Migrate some plugins to indy dispatcher {pull}1369[#1369] {pull}1410[#1410] {pull}1374[#1374]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.22.0]]
 ==== 1.22.0 - 2021/03/24
