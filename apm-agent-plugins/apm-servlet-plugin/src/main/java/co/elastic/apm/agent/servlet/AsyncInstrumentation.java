@@ -105,7 +105,7 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         }
 
         public static class StartAsyncAdvice {
-            private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper = new AsyncContextAdviceHelperImpl(GlobalTracer.requireTracerImpl());
+            private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper = new AsyncContextAdviceHelperImpl(GlobalTracer.requireTracerImpl());;
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void onExitStartAsync(@Advice.Return @Nullable AsyncContext asyncContext) {
