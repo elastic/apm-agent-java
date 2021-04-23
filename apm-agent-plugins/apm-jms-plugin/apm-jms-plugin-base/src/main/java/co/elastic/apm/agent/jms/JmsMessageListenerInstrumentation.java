@@ -63,8 +63,8 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return MessageListenerAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.jms.JmsMessageListenerInstrumentation$MessageListenerAdvice";
     }
 
     public static class MessageListenerAdvice extends BaseAdvice {
@@ -103,7 +103,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
                     .withName(RECEIVE_NAME_PREFIX);
 
                 if (destinationName != null) {
-                    helper.addDestinationDetails(message, destination, destinationName, transaction.appendToName(" from "));
+                    helper.addDestinationDetails(destination, destinationName, transaction.appendToName(" from "));
                 }
                 helper.addMessageDetails(message, transaction);
                 helper.setMessageAge(message, transaction);

@@ -61,8 +61,8 @@ public class AlibabaResponseFutureInstrumentation extends AbstractAlibabaDubboIn
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return AlibabaResponseFutureAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.dubbo.AlibabaResponseFutureInstrumentation$AlibabaResponseFutureAdvice";
     }
 
     public static class AlibabaResponseFutureAdvice {

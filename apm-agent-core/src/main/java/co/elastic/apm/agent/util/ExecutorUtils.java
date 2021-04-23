@@ -197,15 +197,19 @@ public final class ExecutorUtils {
      * Implementation adapted form the {@link ExecutorService} Javadoc
      */
     public static void shutdownAndWaitTermination(ExecutorService executor) {
+        shutdownAndWaitTermination(executor, 1, TimeUnit.SECONDS);
+    }
+
+    public static void shutdownAndWaitTermination(ExecutorService executor, long timeout, TimeUnit unit){
         // Disable new tasks from being submitted
         executor.shutdown();
         try {
             // Wait a while for existing tasks to terminate
-            if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(timeout, unit)) {
                 // Cancel currently executing tasks
                 executor.shutdownNow();
                 // Wait a while for tasks to respond to being cancelled
-                if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
+                if (!executor.awaitTermination(timeout, unit)) {
                     logger.warn("Thread pool did not terminate in time " + executor);
                 }
             }

@@ -60,8 +60,8 @@ public class ConsumerRecordsIteratorInstrumentation extends KafkaConsumerRecords
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ConsumerRecordsAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.kafka.ConsumerRecordsIteratorInstrumentation$ConsumerRecordsAdvice";
     }
 
     @SuppressWarnings("rawtypes")

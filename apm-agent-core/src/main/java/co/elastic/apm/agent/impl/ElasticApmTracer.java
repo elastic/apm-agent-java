@@ -645,6 +645,16 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @Override
+    @Nullable
+    public Span createExitChildSpan() {
+        AbstractSpan<?> active = getActive();
+        if (active == null) {
+            return null;
+        }
+        return active.createExitSpan();
+    }
+
+    @Override
     public TracerState getState() {
         return tracerState;
     }

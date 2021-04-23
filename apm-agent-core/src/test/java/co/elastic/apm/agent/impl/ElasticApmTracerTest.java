@@ -343,7 +343,7 @@ class ElasticApmTracerTest {
         Transaction transaction = startTestRootTransaction().withType("request");
 
         try (Scope scope = transaction.activateInScope()) {
-            transaction.setUser("1", "jon.doe@example.com", "jondoe");
+            transaction.setUser("1", "jon.doe@example.com", "jondoe", "domain");
             Span span = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span.activateInScope()) {
                 span.end();

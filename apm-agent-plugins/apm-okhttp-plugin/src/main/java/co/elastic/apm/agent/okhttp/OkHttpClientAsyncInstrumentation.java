@@ -52,8 +52,8 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
     public static final Logger logger = LoggerFactory.getLogger(OkHttpClientAsyncInstrumentation.class);
 
     @Override
-    public Class<?> getAdviceClass() {
-        return OkHttpClient3ExecuteAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.okhttp.OkHttpClientAsyncInstrumentation$OkHttpClient3ExecuteAdvice";
     }
 
     public static class OkHttpClient3ExecuteAdvice {

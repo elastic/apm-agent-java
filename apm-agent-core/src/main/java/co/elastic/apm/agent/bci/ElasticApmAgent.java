@@ -125,7 +125,13 @@ public class ElasticApmAgent {
     private static final WeakConcurrentMap<Class<?>, Set<Collection<Class<? extends ElasticApmInstrumentation>>>> dynamicallyInstrumentedClasses = WeakMapSupplier.createMap();
     @Nullable
     private static File agentJarFile;
-    private static final Map<String, ClassLoader> pluginClassLoaderByAdviceClass = new ConcurrentHashMap<>();
+
+    /**
+     * A mapping from advice class name to the class loader that loaded the corresponding instrumentation.
+     * We need this in order to locate the advice class file. This implies that the advice class needs to be collocated
+     * with the corresponding instrumentation class.
+     */
+    private static final Map<String, ClassLoader> adviceClassName2instrumentationClassLoader = new ConcurrentHashMap<>();
 
     /**
      * Called reflectively by {@link AgentMain} to initialize the agent
@@ -240,8 +246,8 @@ public class ElasticApmAgent {
             }
         }
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
-            pluginClassLoaderByAdviceClass.put(
-                apmInstrumentation.getAdviceClass().getName(),
+            adviceClassName2instrumentationClassLoader.put(
+                apmInstrumentation.getAdviceClassName(),
                 ObjectUtils.systemClassLoaderIfNull(apmInstrumentation.getClass().getClassLoader()));
         }
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
@@ -427,7 +433,6 @@ public class ElasticApmAgent {
         // external plugins are always indy plugins
         if (!(instrumentation instanceof TracerAwareInstrumentation)
             || ((TracerAwareInstrumentation) instrumentation).indyPlugin()) {
-            validateAdvice(instrumentation.getAdviceClass());
             withCustomMapping = withCustomMapping.bootstrap(IndyBootstrap.getIndyBootstrapMethod(logger));
         }
         return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
@@ -452,7 +457,7 @@ public class ElasticApmAgent {
                         getOrCreateTimer(instrumentation.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
                     }
                 }
-            }, instrumentation.getAdviceClass().getName())
+            }, instrumentation.getAdviceClassName())
             .include(ClassLoader.getSystemClassLoader(), instrumentation.getClass().getClassLoader())
             .withExceptionHandler(PRINTING);
     }
@@ -462,7 +467,7 @@ public class ElasticApmAgent {
      *
      * @param adviceClass the advice class
      */
-    private static void validateAdvice(Class<?> adviceClass) {
+    static void validateAdvice(Class<?> adviceClass) {
         String adviceClassName = adviceClass.getName();
         ClassLoader classLoader = adviceClass.getClassLoader();
         if (classLoader == null) {
@@ -715,12 +720,12 @@ public class ElasticApmAgent {
                         .with(TypeValidation.of(logger.isDebugEnabled()))
                         .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
                     AgentBuilder agentBuilder = getAgentBuilder(
-                        byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.HYBRID, false, false
+                        byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false, false
                     );
                     for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
                         ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
-                        pluginClassLoaderByAdviceClass.put(
-                            apmInstrumentation.getAdviceClass().getName(),
+                        adviceClassName2instrumentationClassLoader.put(
+                            apmInstrumentation.getAdviceClassName(),
                             ObjectUtils.systemClassLoaderIfNull(instrumentationClass.getClassLoader()));
                         ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
                         if (typeMatcher != null && isIncluded(apmInstrumentation, config)) {
@@ -815,8 +820,14 @@ public class ElasticApmAgent {
         return ObjectUtils.systemClassLoaderIfNull(ElasticApmAgent.class.getClassLoader());
     }
 
-    public static ClassLoader getClassLoader(String adviceClass) {
-        ClassLoader classLoader = pluginClassLoaderByAdviceClass.get(adviceClass);
+    /**
+     * Returns the class loader that loaded the instrumentation class corresponding the given advice class.
+     * We expect to be able to find the advice class file through this class loader.
+     * @param adviceClass name of the advice class
+     * @return class loader that can be used for the advice class file lookup
+     */
+    public static ClassLoader getInstrumentationClassLoader(String adviceClass) {
+        ClassLoader classLoader = adviceClassName2instrumentationClassLoader.get(adviceClass);
         if (classLoader == null) {
             throw new IllegalStateException("There's no mapping for key " + adviceClass);
         }
