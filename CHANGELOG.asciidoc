@@ -28,6 +28,7 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* Load Spring AMQP plugin- {pull}1784[#1784]
 
 [float]
 ===== Refactors
