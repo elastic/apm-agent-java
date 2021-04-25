@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.plugin;
+package co.elastic.apm.agent.plugin;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.api.ElasticApm;

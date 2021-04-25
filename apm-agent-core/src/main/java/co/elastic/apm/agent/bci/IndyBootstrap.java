@@ -170,6 +170,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * </ul>
  * @see TracerAwareInstrumentation#indyPlugin()
  */
+@SuppressWarnings("JavadocReference")
 public class IndyBootstrap {
 
     /**
@@ -193,6 +194,11 @@ public class IndyBootstrap {
      * to link the instrumented call site to the advice method.
      */
     public static final String LOOKUP_EXPOSER_CLASS_NAME = "co.elastic.apm.agent.bci.classloading.LookupExposer";
+
+    /**
+     * The root package name prefix that all embedded plugins classes should start with
+     */
+    private static final String EMBEDDED_PLUGINS_PACKAGE_PREFIX = "co.elastic.apm.agent.";
 
     /**
      * Caches the names of classes that are defined within a package and it's subpackages
@@ -370,12 +376,14 @@ public class IndyBootstrap {
     }
 
     private static List<String> getClassNamesFromBundledPlugin(String adviceClassName, ClassLoader adviceClassLoader) throws IOException, URISyntaxException {
-        List<String> pluginClasses;
-        String packageName = adviceClassName.substring(0, adviceClassName.lastIndexOf('.'));
-        pluginClasses = classesByPackage.get(packageName);
+        if (!adviceClassName.startsWith(EMBEDDED_PLUGINS_PACKAGE_PREFIX)) {
+            throw new IllegalArgumentException("invalid advice class location : " + adviceClassName);
+        }
+        String pluginPackage = adviceClassName.substring(0, adviceClassName.indexOf('.', EMBEDDED_PLUGINS_PACKAGE_PREFIX.length()));
+        List<String> pluginClasses = classesByPackage.get(pluginPackage);
         if (pluginClasses == null) {
-            classesByPackage.putIfAbsent(packageName, PackageScanner.getClassNames(packageName, adviceClassLoader));
-            pluginClasses = classesByPackage.get(packageName);
+            classesByPackage.putIfAbsent(pluginPackage, PackageScanner.getClassNames(pluginPackage, adviceClassLoader));
+            pluginClasses = classesByPackage.get(pluginPackage);
         }
         return pluginClasses;
     }
