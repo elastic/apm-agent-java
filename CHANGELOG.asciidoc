@@ -93,6 +93,7 @@ Even when matching on the main class name or on system properties,
 * Fix micrometer serialization error - {pull}1741[#1741]
 * Optimize & avoid `ensureInstrumented` deadlock by skipping stack-frame computation for Java7+ bytecode - {pull}1758[#1758]
 * Fix instrumentation plugins loading on Windows - {pull}1671[#1671]
+* Fix replacing '/' to '.' in `PackageScanner#listClassNames` related to the `relativize` method of `com.sun.nio.zipfs.ZipPath` implementation of `java.nio.file.Path` - {pull}1785[#1785]
 
 [float]
 ===== Refactors
