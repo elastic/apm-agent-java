@@ -91,7 +91,9 @@ public class PackageScanner {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                 if (file.toString().endsWith(".class")) {
-                    classNames.add(basePackage + "." + basePath.relativize(file).toString().replace(File.separatorChar, '.').replace('/', '.').replace(".class", ""));
+                    // We need to escape both the filesystem-specific separator and the explicit `/` separator that may be added by the relativize() implementation
+                    String classNameSuffix = basePath.relativize(file).toString().replace(File.separatorChar, '.').replace('/', '.').replace(".class", "");
+                    classNames.add(basePackage + "." + classNameSuffix);
                 }
                 return FileVisitResult.CONTINUE;
             }
