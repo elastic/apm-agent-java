@@ -202,6 +202,9 @@ public class Destination implements Recyclable {
         private String type;
 
         public Service withResource(String resource) {
+            if (this.resource.length() > 0) {
+                this.resource.setLength(0);
+            }
             this.resource.append(resource);
             return this;
         }
