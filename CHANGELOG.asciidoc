@@ -28,6 +28,7 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* Fix another error related to instrumentation plugins loading on Windows - {pull}1785[#1785]
 
 [float]
 ===== Refactors
