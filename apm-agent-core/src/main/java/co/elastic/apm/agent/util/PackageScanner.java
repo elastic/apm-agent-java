@@ -91,7 +91,7 @@ public class PackageScanner {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                 if (file.toString().endsWith(".class")) {
-                    classNames.add(basePackage + "." + basePath.relativize(file).toString().replace(File.separatorChar, '.').replace(".class", ""));
+                    classNames.add(basePackage + "." + basePath.relativize(file).toString().replace(File.separatorChar, '.').replace('/', '.').replace(".class", ""));
                 }
                 return FileVisitResult.CONTINUE;
             }
