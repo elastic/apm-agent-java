@@ -22,9 +22,11 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.hibernatesearch;
+package co.elastic.apm.agent.hibernatesearch.v5;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.hibernatesearch.HibernateSearchConstants;
+import co.elastic.apm.agent.hibernatesearch.HibernateSearchHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -49,7 +51,7 @@ public class HibernateSearch5Instrumentation extends TracerAwareInstrumentation 
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.hibernatesearch.HibernateSearch5Instrumentation$HibernateSearch5ExecuteAdvice";
+        return "co.elastic.apm.agent.hibernatesearch.v5.HibernateSearch5Instrumentation$HibernateSearch5ExecuteAdvice";
     }
 
     @Override
