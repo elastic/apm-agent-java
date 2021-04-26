@@ -25,6 +25,7 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * If the agent is active, it injects the implementation from
@@ -162,6 +163,18 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     @Override
     public Transaction setOutcome(Outcome outcome) {
         doSetOutcome(outcome);
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction setDestinationAddress(@Nullable String address, int port) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction setDestinationService(@Nullable String name, @Nullable String type, @Nullable String resource) {
         return this;
     }
 }

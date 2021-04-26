@@ -24,6 +24,9 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
+import co.elastic.apm.agent.impl.context.AbstractContext;
+import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -366,6 +369,59 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
                                               @Advice.Argument(1) @Nullable Object headerInjector) {
             if (headerInjector != null && context instanceof AbstractSpan) {
                 ((AbstractSpan<?>) context).propagateTraceContext(headerInjector, HeaderInjectorBridge.get(addHeaderMethodHandle));
+            }
+        }
+    }
+
+    public static class SetDestinationAddressInstrumentation extends AbstractSpanInstrumentation {
+
+        public SetDestinationAddressInstrumentation() {
+            super(named("doSetDestinationAddress"));
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void setDestinationAddress(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                                 @Advice.Argument(0) @Nullable String address,
+                                                 @Advice.Argument(1) int port) {
+            if (context instanceof Span) {
+                SpanContext spanContext = ((Span) context).getContext();
+                if (address != null && port > 0 && !address.isBlank()) {
+                    spanContext.getDestination().withAddress(address).withPort(port);
+                }
+            }
+        }
+    }
+
+    public static class SetDestinationServiceInstrumentation extends AbstractSpanInstrumentation {
+
+        public SetDestinationServiceInstrumentation() {
+            super(named("doSetDestinationService"));
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void setDestinationAddress(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                                 @Advice.Argument(0) @Nullable String name,
+                                                 @Advice.Argument(1) @Nullable String type,
+                                                 @Advice.Argument(2) @Nullable String resource) {
+            if (context instanceof Span) {
+                SpanContext spanContext = ((Span) context).getContext();
+                boolean isEmptyName = name == null || name.isEmpty();
+                boolean isEmptyType = type == null || type.isEmpty();
+                boolean isEmptyResource = resource == null || resource.isEmpty();
+
+                boolean isEmpty = isEmptyName || isEmptyType || isEmptyResource;
+                if (isEmpty) {
+                    name = "";
+                    type = null;
+                    resource = "";
+                }
+                Destination.Service service = spanContext.getDestination().getService();
+                // in case when is already auto detected, and with non-empty values - we override
+                if (!service.hasContent() || service.hasContent() && !isEmpty) {
+                    service.withName(name);
+                    service.withType(type);
+                    service.withResource(resource);
+                }
             }
         }
     }

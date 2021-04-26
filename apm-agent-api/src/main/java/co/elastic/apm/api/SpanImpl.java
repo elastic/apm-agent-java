@@ -25,6 +25,7 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * If the agent is active, it injects the implementation into this class.
@@ -114,6 +115,20 @@ class SpanImpl extends AbstractSpanImpl {
     @Override
     public Span setOutcome(Outcome outcome) {
         doSetOutcome(outcome);
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Span setDestinationAddress(@Nullable String address, int port) {
+        doSetDestinationAddress(address, port);
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Span setDestinationService(@Nullable String name, @Nullable String type, @Nullable String resource) {
+        doSetDestinationService(name, type, resource);
         return this;
     }
 }

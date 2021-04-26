@@ -26,6 +26,7 @@ package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Scope;
@@ -154,6 +155,133 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         assertContainsTracingHeaders(span);
         assertContainsTracingHeaders(transaction);
         span.end();
+    }
+
+    @Test
+    void testSetDestinationAddressWithNonNullValues() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationAddress("address", 80);
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertDestination("address", 80);
+    }
+
+    @Test
+    void testSetDestinationAddressWithNegativePort() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationAddress("address", -1);
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertDestination("", 0);
+    }
+
+    @Test
+    void testSetDestinationAddressWithNullAddress() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationAddress(null, 80);
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertDestination("", 0);
+    }
+
+    @Test
+    void testSetDestinationAddressWithBlank() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationAddress(" ", 80);
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertDestination("", 0);
+    }
+
+    @Test
+    void testSetDestinationServiceWithNonEmptyValues() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationService("service-name", "service-type", "service-resource");
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertService("service-name", "service-type", "service-resource");
+    }
+
+    @Test
+    void testSetDestinationServiceWithNullServiceName() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationService(null, "service-type", "service-resource");
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertService("", null, "");
+    }
+
+    @Test
+    void testSetDestinationServiceWithNullServiceType() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationService("service-name", null, "service-resource");
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertService("", null, "");
+    }
+
+    @Test
+    void testSetDestinationServiceWithNullServiceResource() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationService("service-name", "service-type", null);
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertService("", null, "");
+    }
+
+    @Test
+    void testSetDestinationServiceWithAllNullValues() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationService(null, null, null);
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertService("", null, "");
+    }
+
+    @Test
+    void testSetDestinationAddressAndService() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationAddress("localhost", 80)
+            .setDestinationService("service-name", "service-type", "service-resource");
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertDestination("localhost", 80);
+        assertService("service-name", "service-type", "service-resource");
+    }
+
+    @Test
+    void testSetDestinationAddressAndServiceWithNullValues() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationAddress(null, -5)
+            .setDestinationService(null, null, null);
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertDestination("", 0);
+        assertService("", null, "");
+    }
+
+    private void assertDestination(String expectedAddress, int expectedPort) {
+        Destination destination = reporter.getFirstSpan().getContext().getDestination();
+        assertThat(destination.getAddress().toString()).isEqualTo(expectedAddress);
+        assertThat(destination.getPort()).isEqualTo(expectedPort);
+    }
+
+    private void assertService(String expectedName, String expectedType, String expectedResource) {
+        Destination.Service service = reporter.getFirstSpan().getContext().getDestination().getService();
+        assertThat(service.getName().toString()).isEqualTo(expectedName);
+        assertThat(service.getType()).isEqualTo(expectedType);
+        assertThat(service.getResource().toString()).isEqualTo(expectedResource);
     }
 
     private void assertContainsNoTracingHeaders(Span span) {
