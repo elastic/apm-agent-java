@@ -271,6 +271,61 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         assertService("", null, "");
     }
 
+    @Test
+    void testSetDestinationAddressTwiceWithLastNonNullValues() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationAddress(null, -5)
+            .setDestinationAddress("localhost", 80);
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertDestination("localhost", 80);
+    }
+
+    @Test
+    void testSetDestinationAddressTwiceWithLastNullValues() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationAddress("localhost", 80)
+            .setDestinationAddress(null, -1);
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertDestination("localhost", 80);
+    }
+
+    @Test
+    void testSetDestinationAddressTwiceWithLastNullAddressAndPositivePort() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationAddress("localhost", 80)
+            .setDestinationAddress(null, 443);
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertDestination("localhost", 80);
+    }
+
+    @Test
+    void testSetDestinationServiceTwiceWithLastNullValues() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationService("service-name", "service-type", "service-resource")
+            .setDestinationService(null, null, null);
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertService("service-name", "service-type", "service-resource");
+    }
+
+    @Test
+    void testSetDestinationServiceTwiceWithLastNonNullValues() {
+        Span span = transaction.startSpan("foo", "subtype", "action")
+            .setDestinationService(null, null, null)
+            .setDestinationService("service-name", "service-type", "service-resource");
+        endSpan(span);
+
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertService("service-name", "service-type", "service-resource");
+    }
+
     private void assertDestination(String expectedAddress, int expectedPort) {
         Destination destination = reporter.getFirstSpan().getContext().getDestination();
         assertThat(destination.getAddress().toString()).isEqualTo(expectedAddress);

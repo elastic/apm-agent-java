@@ -214,6 +214,9 @@ public class Destination implements Recyclable {
         }
 
         public Service withName(String name) {
+            if (this.name.length() > 0) {
+                this.name.setLength(0);
+            }
             this.name.append(name);
             return this;
         }
