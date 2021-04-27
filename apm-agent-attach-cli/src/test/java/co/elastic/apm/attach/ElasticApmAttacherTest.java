@@ -78,7 +78,9 @@ class ElasticApmAttacherTest {
 
         File externalConfigFile = File.createTempFile("external-config", ".tmp");
         toClean.add(externalConfigFile);
-        externalConfig.store(new FileOutputStream(externalConfigFile), null);
+        try(FileOutputStream fos = new FileOutputStream(externalConfigFile)) {
+            externalConfig.store(fos, null);
+        }
 
         Map<String, String> config = Map.of(
             "foo", "bär",
@@ -98,7 +100,9 @@ class ElasticApmAttacherTest {
 
     private Properties readProperties(File propertyFile) throws IOException {
         Properties properties = new Properties();
-        properties.load(new FileReader(propertyFile));
+        try (FileReader fileReader = new FileReader(propertyFile)) {
+            properties.load(fileReader);
+        }
         return properties;
     }
 

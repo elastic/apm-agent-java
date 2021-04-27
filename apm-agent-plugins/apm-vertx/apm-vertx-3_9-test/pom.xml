@@ -7,7 +7,7 @@
     <parent>
         <artifactId>apm-vertx</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.22.1-SNAPSHOT</version>
+        <version>1.23.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-vertx-3_9-test</artifactId>
