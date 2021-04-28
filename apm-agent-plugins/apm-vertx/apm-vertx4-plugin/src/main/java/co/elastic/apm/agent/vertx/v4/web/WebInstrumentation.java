@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.vertx.v4.web;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.vertx.v4.Vertx4Instrumentation;
@@ -43,7 +42,6 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -57,7 +55,7 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("vertx", "vertx-web");
+        return Arrays.asList("vertx", "vertx-web", "experimental");
     }
 
     /**

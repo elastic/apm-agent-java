@@ -55,7 +55,7 @@ public abstract class WebInstrumentation extends Vertx3Instrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("vertx", "vertx-web");
+        return Arrays.asList("vertx", "vertx-web", "experimental");
     }
 
     /**

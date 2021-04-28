@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.vertx.v3;
 
 import co.elastic.apm.agent.vertx.helper.OkHttpTestClient;
-import co.elastic.apm.agent.vertx.v3.VertxServerTest;
 import io.vertx.junit5.VertxExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 

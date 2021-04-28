@@ -12,4 +12,3 @@ co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestImplEndInstrumentation
 co.elastic.apm.agent.vertx.v3.web.http1.HttpServerResponseImplInstrumentation
 co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestWrapperInstrumentation
 co.elastic.apm.agent.vertx.v3.web.http2.Http2Instrumentation
-
