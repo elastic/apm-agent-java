@@ -69,6 +69,15 @@ public abstract class AbstractLogShadingHelper<A> {
         configuredServiceName = new ServiceFactory().createService(tracer.getConfig(CoreConfiguration.class), "").getName();
     }
 
+    /**
+     * A mapping between original appender and the corresponding custom ECS appender.
+     * The custom appender could either be a shade/replace file appender, or it could be a holder for the original
+     * formatter.
+     * <p>
+     * todo - it make sense to change that - one mapping from original appender to shade appender and one mapping between
+     * custom formatter and the original formatter. Will be decided together with the handling of dynamic config handling -
+     * if we create an appender always, we can use two maps from the start
+     */
     private static final WeakConcurrentMap<Object, Object> appenderToShadeAppender = WeakMapSupplier.createMap();
 
     @Nullable
@@ -128,6 +137,7 @@ public abstract class AbstractLogShadingHelper<A> {
             return false;
         }
 
+        // todo - decide how to implement dynamic config - do we always create or only with proper configuration? If so - to we start lazily?
         A shadeAppender = getOrCreateShadeAppenderFor(appender);
         // if ECS-reformatting is configured to REPLACE the original file, and there is a valid shade appender, then
         // it is safe enough to skip execution. And since we skip, no need to worry about nested calls.

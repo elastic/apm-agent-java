@@ -27,6 +27,7 @@ package co.elastic.apm.agent.logback;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.FileAppender;
+import ch.qos.logback.core.OutputStreamAppender;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
@@ -34,7 +35,10 @@ import co.elastic.apm.agent.log.shader.AbstractLogShadingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
 import co.elastic.logging.logback.EcsEncoder;
 
-class LogbackLogShadingHelper extends AbstractLogShadingHelper<FileAppender<ILoggingEvent>> {
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+class LogbackLogShadingHelper extends AbstractLogShadingHelper<OutputStreamAppender<ILoggingEvent>> {
 
     private static final LoggerContext defaultLoggerContext = new LoggerContext();
 
@@ -48,20 +52,18 @@ class LogbackLogShadingHelper extends AbstractLogShadingHelper<FileAppender<ILog
     }
 
     @Override
-    protected String getFormatterClassName(FileAppender<ILoggingEvent> appender) {
+    protected String getFormatterClassName(OutputStreamAppender<ILoggingEvent> appender) {
         return appender.getEncoder().getClass().getName();
     }
 
     @Override
-    protected String getAppenderName(FileAppender<ILoggingEvent> appender) {
+    protected String getAppenderName(OutputStreamAppender<ILoggingEvent> appender) {
         return appender.getName();
     }
 
     @Override
-    protected FileAppender<ILoggingEvent> createAndConfigureAppender(FileAppender<ILoggingEvent> originalAppender, String appenderName) {
-        RollingFileAppender<ILoggingEvent> shadeAppender = new RollingFileAppender<>();
-        String shadeFile = Utils.computeShadeLogFilePath(originalAppender.getFile(), getConfiguredShadeDir());
-        shadeAppender.setFile(shadeFile);
+    @Nullable
+    protected OutputStreamAppender<ILoggingEvent> createAndConfigureAppender(OutputStreamAppender<ILoggingEvent> originalAppender, String appenderName) {
 
         EcsEncoder ecsEncoder = new EcsEncoder();
         ecsEncoder.setServiceName(getServiceName());
@@ -69,7 +71,30 @@ class LogbackLogShadingHelper extends AbstractLogShadingHelper<FileAppender<ILog
         ecsEncoder.setIncludeMarkers(false);
         ecsEncoder.setIncludeOrigin(false);
         ecsEncoder.setStackTraceAsArray(false);
+
+        OutputStreamAppender<ILoggingEvent> customEcsAppender = null;
+        if (isOverrideConfigured()) {
+            customEcsAppender = new OriginalEncoderHolder();
+            customEcsAppender.setEncoder(originalAppender.getEncoder());
+            // Required for versions up to 1.2
+            ecsEncoder.init(originalAppender.getOutputStream());
+            originalAppender.setEncoder(ecsEncoder);
+        } else if (originalAppender instanceof FileAppender) {
+            // Either SHADE or REPLACE configured, attempting to create an appender
+            customEcsAppender = createAndStartEcsReformattingAppender((FileAppender<?>) originalAppender, appenderName, ecsEncoder);
+        }
+
+        return customEcsAppender;
+    }
+
+    @Nonnull
+    private RollingFileAppender<ILoggingEvent> createAndStartEcsReformattingAppender(FileAppender<?> originalAppender,
+                                                                                     String appenderName, EcsEncoder ecsEncoder) {
+        RollingFileAppender<ILoggingEvent> shadeAppender = new RollingFileAppender<>();
         shadeAppender.setEncoder(ecsEncoder);
+
+        String shadeFile = Utils.computeShadeLogFilePath(originalAppender.getFile(), getConfiguredShadeDir());
+        shadeAppender.setFile(shadeFile);
 
         FixedWindowRollingPolicy rollingPolicy = new FixedWindowRollingPolicy();
         rollingPolicy.setMinIndex(1);
@@ -102,13 +127,12 @@ class LogbackLogShadingHelper extends AbstractLogShadingHelper<FileAppender<ILog
         }
         shadeAppender.setAppend(true);
         shadeAppender.setName(appenderName);
-
         shadeAppender.start();
         return shadeAppender;
     }
 
     @Override
-    protected void closeShadeAppender(FileAppender<ILoggingEvent> shadeAppender) {
+    protected void closeShadeAppender(OutputStreamAppender<ILoggingEvent> shadeAppender) {
         shadeAppender.stop();
     }
 }

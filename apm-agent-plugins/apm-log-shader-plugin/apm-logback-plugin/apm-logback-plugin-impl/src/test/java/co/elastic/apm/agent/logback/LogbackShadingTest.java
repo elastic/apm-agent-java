@@ -32,10 +32,8 @@ import ch.qos.logback.core.FileAppender;
 import ch.qos.logback.core.joran.spi.JoranException;
 import co.elastic.apm.agent.log.shader.LogShadingInstrumentationTest;
 import co.elastic.apm.agent.log.shader.LoggerFacade;
-import org.junit.jupiter.api.Disabled;
 import org.slf4j.MDC;
 
-import java.io.IOException;
 import java.net.URL;
 
 public class LogbackShadingTest extends LogShadingInstrumentationTest {
@@ -121,12 +119,5 @@ public class LogbackShadingTest extends LogShadingInstrumentationTest {
         public void removeTraceIdFromMdc() {
             MDC.remove("trace.id");
         }
-    }
-
-    // todo - remove once override implemented
-    @Override
-    @Disabled
-    public void testLogOverride() throws IOException {
-        super.testLogOverride();
     }
 }
