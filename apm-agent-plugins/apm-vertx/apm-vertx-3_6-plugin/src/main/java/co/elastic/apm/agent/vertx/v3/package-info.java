@@ -23,6 +23,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.agent.vertx_3_6;
+package co.elastic.apm.agent.vertx.v3;
 
 import co.elastic.apm.agent.sdk.NonnullApi;

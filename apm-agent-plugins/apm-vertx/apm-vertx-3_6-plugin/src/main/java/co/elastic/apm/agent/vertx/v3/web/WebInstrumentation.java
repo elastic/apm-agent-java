@@ -22,10 +22,11 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.vertx_3_6;
+package co.elastic.apm.agent.vertx.v3.web;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
+import co.elastic.apm.agent.vertx.v3.Vertx3Instrumentation;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
@@ -50,7 +51,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 @SuppressWarnings("JavadocReference")
-public abstract class Vertx3WebInstrumentation extends Vertx3Instrumentation {
+public abstract class WebInstrumentation extends Vertx3Instrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -60,7 +61,7 @@ public abstract class Vertx3WebInstrumentation extends Vertx3Instrumentation {
     /**
      * Instruments {@link io.vertx.ext.web.Route#handler(io.vertx.core.Handler)} to update transaction names based on routing information.
      */
-    public static class RouteInstrumentation extends Vertx3WebInstrumentation {
+    public static class RouteInstrumentation extends WebInstrumentation {
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return not(isInterface()).and(named("io.vertx.ext.web.impl.RouteImpl")
@@ -74,7 +75,7 @@ public abstract class Vertx3WebInstrumentation extends Vertx3Instrumentation {
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.Vertx3WebInstrumentation$RouteInstrumentation$RouteImplAdvice";
+            return "co.elastic.apm.agent.vertx.v3.web.WebInstrumentation$RouteInstrumentation$RouteImplAdvice";
         }
 
         public static class RouteImplAdvice {
@@ -82,7 +83,7 @@ public abstract class Vertx3WebInstrumentation extends Vertx3Instrumentation {
             @Nullable
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object nextEnter(@Advice.Argument(value = 0) RoutingContext routingContext) {
-                Transaction transaction = Vertx3WebHelper.getInstance().setRouteBasedNameForCurrentTransaction(routingContext);
+                Transaction transaction = WebHelper.getInstance().setRouteBasedNameForCurrentTransaction(routingContext);
 
                 if (transaction != null) {
                     transaction.activate();
@@ -104,9 +105,9 @@ public abstract class Vertx3WebInstrumentation extends Vertx3Instrumentation {
 
     /**
      * Instruments {@link io.vertx.core.http.HttpServerResponse#endHandler(io.vertx.core.Handler)} to handle proper wrapping of existing end
-     * handlers when adding our {@link Vertx3ResponseEndHandlerWrapper} for transaction finalization.
+     * handlers when adding our {@link ResponseEndHandlerWrapper} for transaction finalization.
      */
-    public static class ResponseEndHandlerInstrumentation extends Vertx3WebInstrumentation {
+    public static class ResponseEndHandlerInstrumentation extends WebInstrumentation {
 
         @Override
         public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -128,7 +129,7 @@ public abstract class Vertx3WebInstrumentation extends Vertx3Instrumentation {
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.Vertx3WebInstrumentation$ResponseEndHandlerInstrumentation$ResponseEndHandlerAdvice";
+            return "co.elastic.apm.agent.vertx.v3.web.WebInstrumentation$ResponseEndHandlerInstrumentation$ResponseEndHandlerAdvice";
         }
 
         public static class ResponseEndHandlerAdvice {
@@ -138,20 +139,20 @@ public abstract class Vertx3WebInstrumentation extends Vertx3Instrumentation {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Handler<Void> wrapHandler(@Advice.Argument(value = 0) Handler<Void> handler,
                                                     @Advice.FieldValue(value = "endHandler") @Nullable Handler<Void> internalHandler) {
-                if (internalHandler instanceof Vertx3ResponseEndHandlerWrapper && handler instanceof Vertx3ResponseEndHandlerWrapper) {
+                if (internalHandler instanceof ResponseEndHandlerWrapper && handler instanceof ResponseEndHandlerWrapper) {
                     // avoid setting our wrapper multiple times
                     return internalHandler;
                 }
 
-                if (handler instanceof Vertx3ResponseEndHandlerWrapper) {
+                if (handler instanceof ResponseEndHandlerWrapper) {
                     if (internalHandler != null) {
                         // wrap the existing internal handler into our added wrapper
-                        ((Vertx3ResponseEndHandlerWrapper) handler).setActualHandler(internalHandler);
+                        ((ResponseEndHandlerWrapper) handler).setActualHandler(internalHandler);
                     }
                     return handler;
-                } else if (internalHandler instanceof Vertx3ResponseEndHandlerWrapper) {
+                } else if (internalHandler instanceof ResponseEndHandlerWrapper) {
                     // wrap new added handler into our wrapper that already is the internal one
-                    ((Vertx3ResponseEndHandlerWrapper) internalHandler).setActualHandler(handler);
+                    ((ResponseEndHandlerWrapper) internalHandler).setActualHandler(handler);
                     return internalHandler;
                 }
 
@@ -170,7 +171,7 @@ public abstract class Vertx3WebInstrumentation extends Vertx3Instrumentation {
      * </ul>
      * to handle request body capturing.
      */
-    public static class RequestBufferInstrumentation extends Vertx3WebInstrumentation {
+    public static class RequestBufferInstrumentation extends WebInstrumentation {
 
         @Override
         public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -191,15 +192,17 @@ public abstract class Vertx3WebInstrumentation extends Vertx3Instrumentation {
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.Vertx3WebInstrumentation$RequestBufferInstrumentation$HandleDataAdvice";
+            return "co.elastic.apm.agent.vertx.v3.web.WebInstrumentation$RequestBufferInstrumentation$HandleDataAdvice";
         }
 
         public static class HandleDataAdvice {
 
+            private static final WebHelper helper = WebHelper.getInstance();
+
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void wrapHandler(@Advice.This HttpServerRequest request, @Advice.Argument(value = 0) Buffer requestDataBuffer) {
-                Transaction transaction = Vertx3WebHelper.getInstance().getTransactionForRequest(request);
-                Vertx3WebHelper.getInstance().captureBody(transaction, requestDataBuffer);
+                Transaction transaction = WebHelper.getInstance().getTransactionForRequest(request);
+                helper.captureBody(transaction, requestDataBuffer);
             }
         }
 

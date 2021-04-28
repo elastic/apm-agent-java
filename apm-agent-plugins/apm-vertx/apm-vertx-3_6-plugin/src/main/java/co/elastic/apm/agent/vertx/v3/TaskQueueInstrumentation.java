@@ -22,48 +22,52 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.vertx_3_6;
+package co.elastic.apm.agent.vertx.v3;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import io.vertx.core.http.impl.Http2ServerRequestImpl;
+import co.elastic.apm.agent.concurrent.JavaConcurrent;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
+import javax.annotation.Nullable;
+import java.util.concurrent.Executor;
+
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-/**
- * Instruments {@link io.vertx.core.http.impl.Http2ServerRequestImpl} to start transaction and append {@link Vertx3ResponseEndHandlerWrapper}
- * for later transaction finalization.
- */
-public class Vertx3Http2Instrumentation extends Vertx3WebInstrumentation {
-
+public class TaskQueueInstrumentation extends Vertx3Instrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("io.vertx.core.http.impl.Http2ServerRequestImpl");
+        return named("io.vertx.core.impl.TaskQueue");
     }
 
+    /**
+     * Instruments {@link io.vertx.core.impl.TaskQueue#execute(Runnable, Executor)} to avoid context propagation
+     * through the java concurrent plugin for the task queue.
+     */
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isConstructor();
+        return named("execute").and(takesArguments(Runnable.class, Executor.class));
     }
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.vertx_3_6.Vertx3Http2Instrumentation$Http2ServerRequestAdvice";
+        return "co.elastic.apm.agent.vertx.v3.TaskQueueInstrumentation$ExecuteAdvice";
     }
 
-    public static class Http2ServerRequestAdvice {
+    public static class ExecuteAdvice {
 
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void enter(@Advice.This Http2ServerRequestImpl request) {
-            Transaction transaction = Vertx3WebHelper.getInstance().startOrGetTransaction(request);
-
-            if (transaction != null && request.response() != null) {
-                request.response().endHandler(new Vertx3ResponseEndHandlerWrapper(transaction, request.response(), request));
-            }
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onEnter() {
+            JavaConcurrent.avoidPropagationOnCurrentThread();
         }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Thrown @Nullable Throwable thrown) {
+            JavaConcurrent.allowContextPropagationOnCurrentThread();
+        }
+
     }
+
 }

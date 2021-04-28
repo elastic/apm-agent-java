@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,29 +22,35 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.vertx_3_6;
+package co.elastic.apm.agent.vertx.v3;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import net.bytebuddy.matcher.ElementMatcher;
+import co.elastic.apm.agent.vertx.helper.CommonVertxWebTest;
+import io.vertx.core.Handler;
+import io.vertx.ext.web.RoutingContext;
+import okhttp3.Response;
+import org.junit.jupiter.api.Test;
 
-import java.util.Collection;
-import java.util.Collections;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static net.bytebuddy.matcher.ElementMatchers.not;
+public class VertxServerTest extends CommonVertxWebTest {
 
-public abstract class Vertx3Instrumentation extends TracerAwareInstrumentation {
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("vertx");
+    @Test
+    void testWrongMethod() throws Exception {
+        Response response = http().get("/post");
+        expectTransaction(response, "/post", NOT_FOUND_RESPONSE_BODY, "GET unknown route", 404);
     }
 
     @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        // ensure only Vertx versions >= 3.6 and < 4.0 are instrumented
-        // for now, everything is in vertx-core jar
-        return classLoaderCanLoadClass("io.vertx.core.http.impl.HttpServerRequestImpl")
-            .and(not(classLoaderCanLoadClass("io.vertx.core.impl.Action")));
+    protected Handler<RoutingContext> getDefaultHandlerImpl() {
+        return routingContext -> routingContext.response().end(DEFAULT_RESPONSE_BODY);
+    }
+
+    @Override
+    protected boolean useSSL() {
+        return false;
+    }
+
+    @Override
+    protected String expectedVertxVersion() {
+        return "3.6";
     }
 }

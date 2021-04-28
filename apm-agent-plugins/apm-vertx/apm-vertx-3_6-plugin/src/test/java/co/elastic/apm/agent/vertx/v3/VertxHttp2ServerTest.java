@@ -22,35 +22,23 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.vertx_3_6;
+package co.elastic.apm.agent.vertx.v3;
 
-import co.elastic.apm.agent.vertx.helper.CommonVertxWebTest;
-import io.vertx.core.Handler;
-import io.vertx.ext.web.RoutingContext;
-import okhttp3.Response;
-import org.junit.jupiter.api.Test;
+import co.elastic.apm.agent.vertx.helper.OkHttpTestClient;
+import co.elastic.apm.agent.vertx.v3.VertxServerTest;
+import io.vertx.junit5.VertxExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-
-public class VertxServerTest extends CommonVertxWebTest {
-
-    @Test
-    void testWrongMethod() throws Exception {
-        Response response = http().get("/post");
-        expectTransaction(response, "/post", NOT_FOUND_RESPONSE_BODY, "GET unknown route", 404);
-    }
+@ExtendWith(VertxExtension.class)
+public class VertxHttp2ServerTest extends VertxServerTest {
 
     @Override
-    protected Handler<RoutingContext> getDefaultHandlerImpl() {
-        return routingContext -> routingContext.response().end(DEFAULT_RESPONSE_BODY);
+    public OkHttpTestClient http() {
+        return super.https();
     }
 
     @Override
     protected boolean useSSL() {
-        return false;
-    }
-
-    @Override
-    protected String expectedVertxVersion() {
-        return "3.6";
+        return true;
     }
 }

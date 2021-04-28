@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.vertx_3_6;
+package co.elastic.apm.agent.vertx.v3;
 
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.vertx.GenericHandlerWrapper;
@@ -36,12 +36,12 @@ import static net.bytebuddy.matcher.ElementMatchers.isPackagePrivate;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public abstract class Vertx3EventLoopInstrumentation extends Vertx3Instrumentation {
+public abstract class EventLoopInstrumentation extends Vertx3Instrumentation {
 
     /**
      * Instruments {@link io.vertx.core.impl.VertxImpl#setTimer} to propagate context through {@link GenericHandlerWrapper} into async Vert.X tasks.
      */
-    public static class SetTimerInstrumentation extends Vertx3EventLoopInstrumentation {
+    public static class SetTimerInstrumentation extends EventLoopInstrumentation {
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return named("io.vertx.core.impl.VertxImpl");
@@ -55,7 +55,7 @@ public abstract class Vertx3EventLoopInstrumentation extends Vertx3Instrumentati
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.Vertx3EventLoopInstrumentation$SetTimerInstrumentation$SetTimerAdvice";
+            return "co.elastic.apm.agent.vertx.v3.EventLoopInstrumentation$SetTimerInstrumentation$SetTimerAdvice";
         }
 
         public static class SetTimerAdvice {
@@ -73,7 +73,7 @@ public abstract class Vertx3EventLoopInstrumentation extends Vertx3Instrumentati
      * Instruments {@link io.vertx.core.impl.VertxImpl#runOnContext}  to propagate context through {@link GenericHandlerWrapper}
      * into onContext execution of Vert.X tasks.
      */
-    public static class OnContextInstrumentation extends Vertx3EventLoopInstrumentation {
+    public static class OnContextInstrumentation extends EventLoopInstrumentation {
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return named("io.vertx.core.impl.ContextImpl");
@@ -87,7 +87,7 @@ public abstract class Vertx3EventLoopInstrumentation extends Vertx3Instrumentati
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.Vertx3EventLoopInstrumentation$ExecuteOnContextAdvice";
+            return "co.elastic.apm.agent.vertx.v3.EventLoopInstrumentation$ExecuteOnContextAdvice";
         }
 
     }
@@ -96,7 +96,7 @@ public abstract class Vertx3EventLoopInstrumentation extends Vertx3Instrumentati
      * Instruments {@link io.vertx.core.impl.VertxImpl#executeBlocking} to propagate context through {@link GenericHandlerWrapper}
      * into blocking Vert.X tasks.
      */
-    public static class ExecuteBlockingInstrumentation extends Vertx3EventLoopInstrumentation {
+    public static class ExecuteBlockingInstrumentation extends EventLoopInstrumentation {
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return named("io.vertx.core.impl.ContextImpl");
@@ -111,7 +111,7 @@ public abstract class Vertx3EventLoopInstrumentation extends Vertx3Instrumentati
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx_3_6.Vertx3EventLoopInstrumentation$ExecuteOnContextAdvice";
+            return "co.elastic.apm.agent.vertx.v3.EventLoopInstrumentation$ExecuteOnContextAdvice";
         }
     }
 

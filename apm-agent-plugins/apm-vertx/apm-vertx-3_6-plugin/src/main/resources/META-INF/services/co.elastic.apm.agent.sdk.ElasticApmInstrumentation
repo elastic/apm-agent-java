@@ -1,12 +1,15 @@
-co.elastic.apm.agent.vertx_3_6.Vertx3WebInstrumentation$RouteInstrumentation
-co.elastic.apm.agent.vertx_3_6.Vertx3WebInstrumentation$ResponseEndHandlerInstrumentation
-co.elastic.apm.agent.vertx_3_6.Vertx3EventLoopInstrumentation$SetTimerInstrumentation
-co.elastic.apm.agent.vertx_3_6.Vertx3EventLoopInstrumentation$OnContextInstrumentation
-co.elastic.apm.agent.vertx_3_6.Vertx3EventLoopInstrumentation$ExecuteBlockingInstrumentation
-co.elastic.apm.agent.vertx_3_6.Vertx3WebInstrumentation$RequestBufferInstrumentation
-co.elastic.apm.agent.vertx_3_6.Vertx3Http1Instrumentation$HttpServerRequestImplStartInstrumentation
-co.elastic.apm.agent.vertx_3_6.Vertx3Http1Instrumentation$HttpServerRequestImplEndInstrumentation
-co.elastic.apm.agent.vertx_3_6.Vertx3Http1Instrumentation$HttpServerResponseImplInstrumentation
-co.elastic.apm.agent.vertx_3_6.Vertx3Http1Instrumentation$HttpServerRequestWrapperInstrumentation
-co.elastic.apm.agent.vertx_3_6.Vertx3Http2Instrumentation
-co.elastic.apm.agent.vertx_3_6.Vertx3TaskQueueInstrumentation
+# vertx core
+co.elastic.apm.agent.vertx.v3.EventLoopInstrumentation$SetTimerInstrumentation
+co.elastic.apm.agent.vertx.v3.EventLoopInstrumentation$OnContextInstrumentation
+co.elastic.apm.agent.vertx.v3.EventLoopInstrumentation$ExecuteBlockingInstrumentation
+co.elastic.apm.agent.vertx.v3.TaskQueueInstrumentation
+# vertx web
+co.elastic.apm.agent.vertx.v3.web.WebInstrumentation$ResponseEndHandlerInstrumentation
+co.elastic.apm.agent.vertx.v3.web.WebInstrumentation$RouteInstrumentation
+co.elastic.apm.agent.vertx.v3.web.WebInstrumentation$RequestBufferInstrumentation
+co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestImplStartInstrumentation
+co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestImplEndInstrumentation
+co.elastic.apm.agent.vertx.v3.web.http1.HttpServerResponseImplInstrumentation
+co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestWrapperInstrumentation
+co.elastic.apm.agent.vertx.v3.web.http2.Http2Instrumentation
+

@@ -22,52 +22,50 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.vertx_3_6;
+package co.elastic.apm.agent.vertx.v3.web.http1;
 
-import co.elastic.apm.agent.concurrent.JavaConcurrent;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.vertx.v3.web.ResponseEndHandlerWrapper;
+import co.elastic.apm.agent.vertx.v3.web.WebInstrumentation;
+import io.vertx.core.http.HttpServerResponse;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
-import java.util.concurrent.Executor;
-
+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class Vertx3TaskQueueInstrumentation extends Vertx3Instrumentation {
+/**
+ * Instruments {@link io.vertx.core.http.impl.HttpServerResponseImpl} constructor to create and append {@link ResponseEndHandlerWrapper}
+ * for transaction finalization.
+ */
+public class HttpServerResponseImplInstrumentation extends WebInstrumentation {
+
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("io.vertx.core.impl.TaskQueue");
+        return named("io.vertx.core.http.impl.HttpServerResponseImpl");
     }
 
-    /**
-     * Instruments {@link io.vertx.core.impl.TaskQueue#execute(Runnable, Executor)} to avoid context propagation
-     * through the java concurrent plugin for the task queue.
-     */
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("execute").and(takesArguments(Runnable.class, Executor.class));
+        return isConstructor();
     }
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.vertx_3_6.Vertx3TaskQueueInstrumentation$ExecuteAdvice";
+        return "co.elastic.apm.agent.vertx.v3.web.http1.HttpServerResponseImplInstrumentation$HttpResponseConstructorAdvice";
     }
 
-    public static class ExecuteAdvice {
+    public static class HttpResponseConstructorAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void onEnter() {
-            JavaConcurrent.avoidPropagationOnCurrentThread();
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void enter(@Advice.This HttpServerResponse response) {
+            Transaction transaction = GlobalTracer.get().currentTransaction();
+            if (transaction != null) {
+                response.endHandler(new ResponseEndHandlerWrapper(transaction, response));
+            }
         }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Advice.Thrown @Nullable Throwable thrown) {
-            JavaConcurrent.allowContextPropagationOnCurrentThread();
-        }
-
     }
-
 }

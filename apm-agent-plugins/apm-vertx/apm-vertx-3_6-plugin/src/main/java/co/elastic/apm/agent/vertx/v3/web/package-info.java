@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -22,22 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.vertx_3_6;
+@NonnullApi
+package co.elastic.apm.agent.vertx.v3.web;
 
-import co.elastic.apm.agent.vertx.helper.OkHttpTestClient;
-import io.vertx.junit5.VertxExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
-
-@ExtendWith(VertxExtension.class)
-public class VertxHttp2ServerTest extends VertxServerTest {
-
-    @Override
-    public OkHttpTestClient http() {
-        return super.https();
-    }
-
-    @Override
-    protected boolean useSSL() {
-        return true;
-    }
-}
+import co.elastic.apm.agent.sdk.NonnullApi;
