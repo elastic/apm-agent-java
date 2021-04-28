@@ -32,8 +32,10 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.WriterAppender;
+import org.junit.jupiter.api.Disabled;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -111,5 +113,12 @@ public class Log4j1ShadingTest extends LogShadingInstrumentationTest {
         public void removeTraceIdFromMdc() {
             MDC.remove("trace.id");
         }
+    }
+
+    // todo - remove once override implemented
+    @Override
+    @Disabled
+    public void testLogOverride() throws IOException {
+        super.testLogOverride();
     }
 }

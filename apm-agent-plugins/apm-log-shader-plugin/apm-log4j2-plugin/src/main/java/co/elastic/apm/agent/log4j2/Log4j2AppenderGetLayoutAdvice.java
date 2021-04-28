@@ -24,31 +24,32 @@
  */
 package co.elastic.apm.agent.log4j2;
 
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import org.apache.logging.log4j.core.Appender;
-import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Layout;
 
-public class Log4j2AppenderAppendAdvice {
+import javax.annotation.Nullable;
 
-    @SuppressWarnings("unused")
-    @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
-    public static boolean shadeAndSkipIfReplaceEnabled(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogEvent eventObject,
-                                                       @Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender) {
-        return Log4j2LogShadingHelper.instance().onAppendEnter(thisAppender);
-    }
+public class Log4j2AppenderGetLayoutAdvice {
 
     @SuppressWarnings({"unused"})
+    @Nullable
+    @AssignTo.Return
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-    public static void shadeLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogEvent eventObject,
-                                         @Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender) {
+    public static Layout<?> shadeLoggingEvent(@Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender,
+                                              @Advice.Return @Nullable Layout<?> originalLayout) {
 
-        if (!Log4j2LogShadingHelper.instance().onAppendExit()) {
-            return;
+        Log4j2LogShadingHelper helper = Log4j2LogShadingHelper.instance();
+        if (originalLayout == null) {
+            // Effectively disables instrumentation to all database appenders
+            return null;
         }
-        Appender shadeAppender = Log4j2LogShadingHelper.instance().getShadeAppenderFor(thisAppender);
-        if (shadeAppender != null) {
-            shadeAppender.append(eventObject);
+        Appender shadeAppender = helper.getShadeAppenderFor(thisAppender);
+        if (shadeAppender != null && helper.isOverrideConfigured()) {
+            return shadeAppender.getLayout();
         }
+        return originalLayout;
     }
 }

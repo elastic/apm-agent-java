@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.payload.ServiceFactory;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
@@ -56,13 +57,14 @@ public abstract class AbstractLogShadingHelper<A> {
 
     private static final Object NULL_APPENDER = new Object();
 
-    private final ElasticApmTracer tracer;
+    private static final CallDepth callDepth = CallDepth.get(AbstractLogShadingHelper.class);
+
     private final LoggingConfiguration loggingConfiguration;
     @Nullable
     private final String configuredServiceName;
 
     public AbstractLogShadingHelper() {
-        this.tracer = GlobalTracer.requireTracerImpl();
+        ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
         loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
         configuredServiceName = new ServiceFactory().createService(tracer.getConfig(CoreConfiguration.class), "").getName();
     }
@@ -75,7 +77,7 @@ public abstract class AbstractLogShadingHelper<A> {
     }
 
     @Nullable
-    public A getOrCreateShadeAppenderFor(A originalAppender) {
+    private A getOrCreateShadeAppenderFor(A originalAppender) {
         if (isShadingAppender(originalAppender) || isUsingEcsLogging(originalAppender)) {
             return null;
         }
@@ -93,6 +95,12 @@ public abstract class AbstractLogShadingHelper<A> {
         return shadeAppender != NULL_APPENDER ? (A) shadeAppender : null;
     }
 
+    @Nullable
+    public A getShadeAppenderFor(A originalAppender) {
+        Object shadeAppender = appenderToShadeAppender.get(originalAppender);
+        return shadeAppender != NULL_APPENDER ? (A) shadeAppender : null;
+    }
+
     public void stopShading(A originalAppender) {
         synchronized (appenderToShadeAppender) {
             Object shadeAppender = appenderToShadeAppender.remove(originalAppender);
@@ -103,7 +111,9 @@ public abstract class AbstractLogShadingHelper<A> {
     }
 
     /**
-     * Checks whether we should skip {@code append()} invocations for log events for the given appender.
+     * Must be called exactly once at the enter to each {@code append()} method (or equivalent) invocation in order to properly
+     * detect nested invocations.
+     * This method checks whether we should skip {@code append()} invocations for log events for the given appender.
      * Log event appends should be skipped if they are replaced by ECS-formatted events, meaning if:
      *  - shading is enabled by configuration AND
      *  - replace is enabled by configuration AND
@@ -111,13 +121,36 @@ public abstract class AbstractLogShadingHelper<A> {
      * @param appender the appender
      * @return true if log events should be ignored for the given appender; false otherwise
      */
-    public boolean shouldSkipAppend(A appender) {
-        return loggingConfiguration.getLogEcsReformatting() == LogEcsReformatting.REPLACE && getOrCreateShadeAppenderFor(appender) != null;
+    public boolean onAppendEnter(A appender) {
+        if (callDepth.isNestedCallAndIncrement()) {
+            // If this is a nested call, never skip, as it means that the skipping decision was already made in the
+            // outermost invocation
+            return false;
+        }
+
+        A shadeAppender = getOrCreateShadeAppenderFor(appender);
+        // if ECS-reformatting is configured to REPLACE the original file, and there is a valid shade appender, then
+        // it is safe enough to skip execution. And since we skip, no need to worry about nested calls.
+        return loggingConfiguration.getLogEcsReformatting() == LogEcsReformatting.REPLACE && shadeAppender != null;
     }
 
-    public boolean isShadingEnabled() {
+    /**
+     * Must be called exactly once at the exit from each {@code append()} method (or equivalent) invocation. This method checks
+     * whether the current {@code append()} execution should result with an appended shaded event based on the configuration
+     * AND whether this is the outermost execution in nested {@code append()} calls.
+     * @return whether the current execution of {@code append()} should result with an ECS shaded append
+     */
+    public boolean onAppendExit() {
+        // If this is a nested append() invocation, do not shade now, only at the outermost invocation
+        if (callDepth.isNestedCallAndDecrement()) {
+            return false;
+        }
         LogEcsReformatting logEcsReformatting = loggingConfiguration.getLogEcsReformatting();
-        return logEcsReformatting == LogEcsReformatting.SHADE || logEcsReformatting== LogEcsReformatting.REPLACE;
+        return logEcsReformatting == LogEcsReformatting.SHADE || logEcsReformatting == LogEcsReformatting.REPLACE;
+    }
+
+    public boolean isOverrideConfigured() {
+        return loggingConfiguration.getLogEcsReformatting() == LogEcsReformatting.OVERRIDE;
     }
 
     /**

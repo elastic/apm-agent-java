@@ -37,17 +37,17 @@ public class LogbackAppenderAppendAdvice {
     public static boolean shadeAndSkipIfOverrideEnabled(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final Object eventObject,
                                                         @Advice.This(typing = Assigner.Typing.DYNAMIC) OutputStreamAppender<ILoggingEvent> thisAppender) {
         return thisAppender instanceof FileAppender && eventObject instanceof ILoggingEvent &&
-            LogbackLogShadingHelper.instance().shouldSkipAppend((FileAppender<ILoggingEvent>) thisAppender);
+            LogbackLogShadingHelper.instance().onAppendEnter((FileAppender<ILoggingEvent>) thisAppender);
     }
 
     @SuppressWarnings({"unused"})
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
     public static void shadeLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final Object eventObject,
                                          @Advice.This(typing = Assigner.Typing.DYNAMIC) OutputStreamAppender<ILoggingEvent> thisAppender) {
-        if (!LogbackLogShadingHelper.instance().isShadingEnabled() || !(thisAppender instanceof FileAppender) || !(eventObject instanceof ILoggingEvent)) {
+        if (!LogbackLogShadingHelper.instance().onAppendExit() || !(thisAppender instanceof FileAppender) || !(eventObject instanceof ILoggingEvent)) {
             return;
         }
-        FileAppender<ILoggingEvent> shadeAppender = LogbackLogShadingHelper.instance().getOrCreateShadeAppenderFor((FileAppender<ILoggingEvent>) thisAppender);
+        FileAppender<ILoggingEvent> shadeAppender = LogbackLogShadingHelper.instance().getShadeAppenderFor((FileAppender<ILoggingEvent>) thisAppender);
 
         if (shadeAppender != null) {
             // We do not invoke the exact same method we instrument, but a public API that calls it

@@ -162,13 +162,31 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         }
     }
 
-    @Nonnull
-    private ArrayList<JsonNode> readShadeLogFile() throws IOException {
-        return readShadeLogFile(getShadeLogFilePath());
+    @Test
+    public void testLogOverride() throws IOException {
+        when(loggingConfig.getLogEcsReformatting()).thenReturn(LogEcsReformatting.OVERRIDE);
+        logger.trace(TRACE_MESSAGE);
+        logger.debug(DEBUG_MESSAGE);
+        logger.warn(WARN_MESSAGE);
+        logger.error(ERROR_MESSAGE);
+
+        ArrayList<JsonNode> overriddenLogEvents = readEcsLogFile(getOriginalLogFilePath().toString());
+        assertThat(overriddenLogEvents).hasSize(4);
+        for (JsonNode ecsLogLineTree : overriddenLogEvents) {
+            assertThat(ecsLogLineTree.get("process.thread.name")).isNotNull();
+            assertThat(ecsLogLineTree.get("log.level")).isNotNull();
+            assertThat(ecsLogLineTree.get("log.logger")).isNotNull();
+            assertThat(ecsLogLineTree.get("message")).isNotNull();
+        }
     }
 
     @Nonnull
-    private ArrayList<JsonNode> readShadeLogFile(String shadeLogFilePath) throws IOException {
+    private ArrayList<JsonNode> readShadeLogFile() throws IOException {
+        return readEcsLogFile(getShadeLogFilePath());
+    }
+
+    @Nonnull
+    private ArrayList<JsonNode> readEcsLogFile(String shadeLogFilePath) throws IOException {
         ArrayList<JsonNode> ecsLogLines = new ArrayList<>();
         try (Stream<String> stream = Files.lines(Paths.get(shadeLogFilePath))) {
             stream.forEach(line -> {
@@ -248,7 +266,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         // log4j1 this happens AFTER the event is logged. This means we can only count on the non-active file to
         // contain a single line
         String shadeLogFilePath = getShadeLogFilePath();
-        ArrayList<JsonNode> jsonNodes = readShadeLogFile(shadeLogFilePath + ".1");
+        ArrayList<JsonNode> jsonNodes = readEcsLogFile(shadeLogFilePath + ".1");
         assertThat(jsonNodes).hasSize(1);
     }
 

@@ -1686,11 +1686,14 @@ Available options:
  - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if 
    you wish to maintain similar logging-related overhead, but write logs to a different location and/or 
    with a different file extension.
+ - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. 
 
+NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option 
+is also valid for other appenders, like System out and console
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
-Valid options: `OFF`, `SHADE`, `REPLACE`
+Valid options: `OFF`, `SHADE`, `REPLACE`, `OVERRIDE`
 
 [options="header"]
 |============
@@ -3365,9 +3368,12 @@ The default unit for this option is `ms`.
 #  - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if 
 #    you wish to maintain similar logging-related overhead, but write logs to a different location and/or 
 #    with a different file extension.
+#  - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. 
 # 
+# NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option 
+# is also valid for other appenders, like System out and console
 #
-# Valid options: OFF, SHADE, REPLACE
+# Valid options: OFF, SHADE, REPLACE, OVERRIDE
 # This setting can be changed at runtime
 # Type: LogEcsReformatting
 # Default value: OFF

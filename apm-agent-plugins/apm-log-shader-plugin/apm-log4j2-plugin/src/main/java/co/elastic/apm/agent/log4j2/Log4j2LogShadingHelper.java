@@ -27,6 +27,7 @@ package co.elastic.apm.agent.log4j2;
 import co.elastic.apm.agent.log.shader.AbstractLogShadingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
 import co.elastic.logging.log4j2.EcsLayout;
+import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender;
 import org.apache.logging.log4j.core.appender.RollingRandomAccessFileAppender;
 import org.apache.logging.log4j.core.appender.rolling.DefaultRolloverStrategy;
@@ -39,7 +40,7 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 
 
-class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStreamAppender<?>> {
+class Log4j2LogShadingHelper extends AbstractLogShadingHelper<Appender> {
 
     private static final Log4j2LogShadingHelper INSTANCE = new Log4j2LogShadingHelper();
 
@@ -51,41 +52,18 @@ class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStre
     }
 
     @Override
-    protected String getFormatterClassName(AbstractOutputStreamAppender<?> appender) {
+    protected String getFormatterClassName(Appender appender) {
         return appender.getLayout().getClass().getName();
     }
 
     @Override
-    protected String getAppenderName(AbstractOutputStreamAppender<?> appender) {
+    protected String getAppenderName(Appender appender) {
         return appender.getName();
     }
 
     @Override
     @Nullable
-    protected AbstractOutputStreamAppender<?> createAndConfigureAppender(AbstractOutputStreamAppender<?> originalAppender, String appenderName) {
-
-        String logFile = null;
-
-        // Using class names and reflection in order to avoid version sensitivity
-        String appenderClassName = originalAppender.getClass().getName();
-        if (appenderClassName.equals("org.apache.logging.log4j.core.appender.FileAppender") ||
-            appenderClassName.equals("org.apache.logging.log4j.core.appender.RollingFileAppender") ||
-            appenderClassName.equals("org.apache.logging.log4j.core.appender.RandomAccessFileAppender") ||
-            appenderClassName.equals("org.apache.logging.log4j.core.appender.RollingRandomAccessFileAppender") ||
-            appenderClassName.equals("org.apache.logging.log4j.core.appender.MemoryMappedFileAppender")) {
-            try {
-                Method getFileNameMethod = originalAppender.getClass().getDeclaredMethod("getFileName");
-                logFile = (String) getFileNameMethod.invoke(originalAppender);
-            } catch (Exception e) {
-                logError("Failed to obtain log file name from file appender", e);
-            }
-        }
-
-        if (logFile == null) {
-            return null;
-        }
-
-        String shadeFile = Utils.computeShadeLogFilePath(logFile, getConfiguredShadeDir());
+    protected Appender createAndConfigureAppender(Appender originalAppender, String appenderName) {
 
         EcsLayout ecsLayout = EcsLayout.newBuilder()
             .setServiceName(getServiceName())
@@ -94,6 +72,41 @@ class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStre
             .setIncludeOrigin(false)
             .setStackTraceAsArray(false)
             .build();
+
+        Appender ret = null;
+
+        if (isOverrideConfigured()) {
+            ret = new EcsLayoutHolder(appenderName, ecsLayout);
+        } else if (originalAppender instanceof AbstractOutputStreamAppender<?>) {
+            // Either SHADE or REPLACE configured, attempting to create an appender
+            String logFile = null;
+
+            // Using class names and reflection in order to avoid version sensitivity
+            String appenderClassName = originalAppender.getClass().getName();
+            if (appenderClassName.equals("org.apache.logging.log4j.core.appender.FileAppender") ||
+                appenderClassName.equals("org.apache.logging.log4j.core.appender.RollingFileAppender") ||
+                appenderClassName.equals("org.apache.logging.log4j.core.appender.RandomAccessFileAppender") ||
+                appenderClassName.equals("org.apache.logging.log4j.core.appender.RollingRandomAccessFileAppender") ||
+                appenderClassName.equals("org.apache.logging.log4j.core.appender.MemoryMappedFileAppender")) {
+                try {
+                    Method getFileNameMethod = originalAppender.getClass().getDeclaredMethod("getFileName");
+                    logFile = (String) getFileNameMethod.invoke(originalAppender);
+                } catch (Exception e) {
+                    logError("Failed to obtain log file name from file appender", e);
+                }
+            }
+
+            if (logFile != null) {
+                ret = createAndStartEcsShadeFileAppender((AbstractOutputStreamAppender<?>) originalAppender, appenderName, logFile, ecsLayout);
+            }
+        }
+
+        return ret;
+    }
+
+    private Appender createAndStartEcsShadeFileAppender(AbstractOutputStreamAppender<?> originalAppender, String appenderName,
+                                                        String logFile, EcsLayout ecsLayout) {
+        String shadeFile = Utils.computeShadeLogFilePath(logFile, getConfiguredShadeDir());
 
         // The deprecated configuration API is used in order to support older versions where the Builder API is not yet available
         RolloverStrategy rolloverStrategy = DefaultRolloverStrategy.createStrategy("1", "1", null,
@@ -111,7 +124,7 @@ class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStre
     }
 
     @Override
-    protected void closeShadeAppender(AbstractOutputStreamAppender<?> shadeAppender) {
+    protected void closeShadeAppender(Appender shadeAppender) {
         shadeAppender.stop();
     }
 }
