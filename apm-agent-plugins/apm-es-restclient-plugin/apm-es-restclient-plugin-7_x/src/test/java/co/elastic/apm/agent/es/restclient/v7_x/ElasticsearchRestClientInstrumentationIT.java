@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.es.restclient.v7_x;
 
-import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl;
 import co.elastic.apm.agent.es.restclient.v6_4.AbstractEs6_4ClientInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.apache.http.HttpHost;
@@ -46,7 +45,6 @@ import org.elasticsearch.action.search.MultiSearchRequest;
 import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -57,13 +55,11 @@ import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.core.CountRequest;
 import org.elasticsearch.client.core.CountResponse;
-import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.script.mustache.MultiSearchTemplateRequest;
 import org.elasticsearch.script.mustache.MultiSearchTemplateResponse;
 import org.elasticsearch.script.mustache.SearchTemplateRequest;
 import org.elasticsearch.script.mustache.SearchTemplateResponse;
 import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -78,7 +74,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 @RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4ClientInstrumentationTest {
