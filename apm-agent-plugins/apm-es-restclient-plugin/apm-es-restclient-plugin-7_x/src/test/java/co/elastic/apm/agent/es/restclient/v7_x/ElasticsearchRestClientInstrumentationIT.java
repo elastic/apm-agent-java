@@ -24,10 +24,15 @@
  */
 package co.elastic.apm.agent.es.restclient.v7_x;
 
+import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl;
 import co.elastic.apm.agent.es.restclient.v6_4.AbstractEs6_4ClientInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -41,36 +46,43 @@ import org.elasticsearch.action.search.MultiSearchRequest;
 import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.client.Cancellable;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.core.CountRequest;
 import org.elasticsearch.client.core.CountResponse;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.script.mustache.MultiSearchTemplateRequest;
 import org.elasticsearch.script.mustache.MultiSearchTemplateResponse;
 import org.elasticsearch.script.mustache.SearchTemplateRequest;
 import org.elasticsearch.script.mustache.SearchTemplateResponse;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.testcontainers.elasticsearch.ElasticsearchContainer;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 @RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4ClientInstrumentationTest {
+    private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationIT.class);
 
     private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.11.0";
 
@@ -99,6 +111,29 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
             client.indices().delete(new DeleteIndexRequest(INDEX), RequestOptions.DEFAULT);
             client.close();
         }
+    }
+
+    @Test
+    public void cancelScenario() throws InterruptedException, ExecutionException, IOException {
+        reporter.disableDestinationAddressCheck();
+        super.disableHttpUrlCheck();
+        createDocument();
+        reporter.reset();
+
+        SearchRequest searchRequest = defaultSearchRequest();
+
+        CancellableClientMethod<SearchRequest, SearchResponse> method = (request, options, listener) -> client.searchAsync(request, options, listener);
+        Cancellable cancellable = invokeAsyncWithCancel(searchRequest, method);
+        cancellable.cancel();
+
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        Span searchSpan = spans.get(0);
+        validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), -1, "POST");
+
+        deleteDocument();
+        reporter.enableDestinationAddressCheck();
+        super.enableHttpUrlCheck();
     }
 
     @Override
@@ -237,5 +272,26 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
             return invokeAsync(bulkRequest, method);
         }
         return client.bulk(bulkRequest, RequestOptions.DEFAULT);
+    }
+
+    protected interface CancellableClientMethod<Req, Res> {
+        Cancellable invoke(Req request, RequestOptions options, ActionListener<Res> listener);
+    }
+
+    protected  <Req, Res> Cancellable invokeAsyncWithCancel(Req request, CancellableClientMethod<Req, Res> method) throws InterruptedException, ExecutionException {
+        final CompletableFuture<Res> resultFuture = new CompletableFuture<>();
+        return method.invoke(request, RequestOptions.DEFAULT, new ActionListener<>() {
+            @Override
+            public void onResponse(Res response) {
+                logger.info("cancellable onResponse [{}]", response);
+                resultFuture.complete(response);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                logger.error("cancellable onFailure with msg [{}]", e.getMessage(), e);
+                resultFuture.completeExceptionally(e);
+            }
+        });
     }
 }

@@ -64,6 +64,16 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     protected boolean async;
 
+    private boolean disableHttpUrlCheck = false;
+
+    public void disableHttpUrlCheck() {
+        disableHttpUrlCheck = true;
+    }
+
+    public void enableHttpUrlCheck() {
+        disableHttpUrlCheck = false;
+    }
+
     @Parameterized.Parameters(name = "Async={0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{{Boolean.FALSE}, {Boolean.TRUE}});
@@ -139,8 +149,10 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     private void validateDestinationContextContent(Destination destination) {
         assertThat(destination).isNotNull();
-        assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
-        assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
+        if (!reporter.isDisableDestinationAddressCheck()) {
+            assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
+            assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
+        }
         assertThat(destination.getService().getName().toString()).isEqualTo(ELASTICSEARCH);
         assertThat(destination.getService().getResource().toString()).isEqualTo(ELASTICSEARCH);
         assertThat(destination.getService().getType()).isEqualTo(SPAN_TYPE);
@@ -150,7 +162,9 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(http).isNotNull();
         assertThat(http.getMethod()).isEqualTo(method);
         assertThat(http.getStatusCode()).isEqualTo(statusCode);
-        assertThat(http.getUrl()).isEqualTo("http://" + container.getHttpHostAddress());
+        if (!disableHttpUrlCheck) {
+            assertThat(http.getUrl()).isEqualTo("http://" + container.getHttpHostAddress());
+        }
     }
 
     protected void validateSpanContentAfterIndexCreateRequest() {

@@ -129,6 +129,14 @@ public class MockReporter implements Reporter {
         disableDestinationAddressCheck = true;
     }
 
+    public void enableDestinationAddressCheck() {
+        disableDestinationAddressCheck = false;
+    }
+
+    public boolean isDisableDestinationAddressCheck() {
+        return disableDestinationAddressCheck;
+    }
+
     @Override
     public void start() {}
 
