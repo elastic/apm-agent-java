@@ -62,15 +62,17 @@ public abstract class WebInstrumentation extends Vertx3Instrumentation {
      * Instruments {@link io.vertx.ext.web.Route#handler(io.vertx.core.Handler)} to update transaction names based on routing information.
      */
     public static class RouteInstrumentation extends WebInstrumentation {
+
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return not(isInterface()).and(named("io.vertx.ext.web.impl.RouteImpl")
-                .or(named("io.vertx.ext.web.impl.RouteState")));
+            return named("io.vertx.ext.web.impl.RouteImpl")
+                .or(named("io.vertx.ext.web.impl.RouteState"));
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("handleContext").and(takesArgument(0, named("io.vertx.ext.web.impl.RoutingContextImplBase")));
+            return named("handleContext")
+                .and(takesArgument(0, named("io.vertx.ext.web.impl.RoutingContextImplBase")));
         }
 
         @Override

@@ -34,6 +34,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.spi.tracing.VertxTracer;
 import io.vertx.ext.web.RoutingContext;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -44,6 +45,7 @@ import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -132,7 +134,7 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return hasSuperType(named("io.vertx.core.spi.tracing.VertxTracer"))
+            return hasSuperType(named("io.vertx.core.spi.tracing.VertxTracer")) // TODO : apply pre-filter for match performance
                 .and(not(isInterface()));
         }
 
@@ -222,15 +224,22 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
     }
 
     /**
-     * Instruments
+     * Instruments subclasses of {@link io.vertx.core.http.HttpServerRequest} that have an {@code onData} or
+     * {@code handleData} method, for example:
      * <ul>
-     *     <li>{@link io.vertx.core.http.impl.Http1xServerRequest#onData}</li>
-     *     <li>{@link io.vertx.core.http.impl.VertxHttp2Stream#handleData}</li>
+     *     <li>{@link io.vertx.core.http.impl.Http1xServerRequest#onData} for HTTP1</li>
+     *     <li>{@link io.vertx.core.http.impl.Http2ServerRequest#handleData} for HTTP2</li>
      * </ul>
      * <p>
      * to enable request body capturing.
      */
     public static class RequestBufferInstrumentation extends WebInstrumentation {
+
+        @Override
+        public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+            return nameStartsWith("io.vertx.core.http.impl")
+                .or(nameStartsWith("io.vertx.ext.web.impl"));
+        }
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
