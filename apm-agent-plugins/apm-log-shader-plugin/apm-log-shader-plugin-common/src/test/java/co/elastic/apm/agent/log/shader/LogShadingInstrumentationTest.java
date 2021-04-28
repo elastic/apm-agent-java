@@ -43,6 +43,7 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Objects;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -62,6 +63,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     private final LoggerFacade logger;
     private final ObjectMapper objectMapper;
     private LoggingConfiguration loggingConfig;
+    private String serviceName;
 
     public LogShadingInstrumentationTest() {
         logger = createLoggerFacade();
@@ -69,10 +71,11 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     }
 
     @BeforeEach
-    public void setup() {
+    public void setup() throws Exception {
         logger.open();
         loggingConfig = config.getConfig(LoggingConfiguration.class);
         when(loggingConfig.getLogEcsReformatting()).thenReturn(LogEcsReformatting.SHADE);
+        serviceName = Objects.requireNonNull(tracer.getMetaData().get(2000, TimeUnit.MILLISECONDS).getService().getName());
     }
 
     private void initiateShadeDir(String dirName) throws IOException {
@@ -155,10 +158,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         ArrayList<JsonNode> shadeLogEvents = readShadeLogFile();
         assertThat(shadeLogEvents).hasSize(4);
         for (JsonNode ecsLogLineTree : shadeLogEvents) {
-            assertThat(ecsLogLineTree.get("process.thread.name")).isNotNull();
-            assertThat(ecsLogLineTree.get("log.level")).isNotNull();
-            assertThat(ecsLogLineTree.get("log.logger")).isNotNull();
-            assertThat(ecsLogLineTree.get("message")).isNotNull();
+            verifyEcsLogLine(ecsLogLineTree);
         }
     }
 
@@ -173,11 +173,18 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         ArrayList<JsonNode> overriddenLogEvents = readEcsLogFile(getOriginalLogFilePath().toString());
         assertThat(overriddenLogEvents).hasSize(4);
         for (JsonNode ecsLogLineTree : overriddenLogEvents) {
-            assertThat(ecsLogLineTree.get("process.thread.name")).isNotNull();
-            assertThat(ecsLogLineTree.get("log.level")).isNotNull();
-            assertThat(ecsLogLineTree.get("log.logger")).isNotNull();
-            assertThat(ecsLogLineTree.get("message")).isNotNull();
+            verifyEcsLogLine(ecsLogLineTree);
         }
+    }
+
+    private void verifyEcsLogLine(JsonNode ecsLogLineTree) {
+        assertThat(ecsLogLineTree.get("@timestamp")).isNotNull();
+        assertThat(ecsLogLineTree.get("process.thread.name").textValue()).isEqualTo("main");
+        assertThat(ecsLogLineTree.get("log.level")).isNotNull();
+        assertThat(ecsLogLineTree.get("log.logger").textValue()).isEqualTo("Test-File-Logger");
+        assertThat(ecsLogLineTree.get("message")).isNotNull();
+        assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
+        assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
     }
 
     @Nonnull
@@ -229,7 +236,6 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(splitRawLogLine[2]).isEqualTo(ecsLogLineTree.get("log.level").textValue());
         assertThat(splitRawLogLine[3]).isEqualTo(ecsLogLineTree.get("log.logger").textValue());
         assertThat(splitRawLogLine[4]).isEqualTo(ecsLogLineTree.get("message").textValue());
-        String serviceName = tracer.getMetaData().get(2000, TimeUnit.MILLISECONDS).getService().getName();
         assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
         assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
         if (traceId != null) {

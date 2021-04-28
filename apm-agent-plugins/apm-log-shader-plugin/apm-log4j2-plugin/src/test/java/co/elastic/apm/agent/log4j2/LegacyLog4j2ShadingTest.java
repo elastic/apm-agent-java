@@ -43,7 +43,7 @@ public class LegacyLog4j2ShadingTest extends Log4j2ShadingTest {
 
     @Before
     @Override
-    public void setup() {
+    public void setup() throws Exception {
         super.setup();
     }
 
