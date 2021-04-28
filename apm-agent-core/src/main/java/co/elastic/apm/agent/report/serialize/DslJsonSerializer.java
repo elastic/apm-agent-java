@@ -879,9 +879,7 @@ public class DslJsonSerializer implements PayloadSerializer {
             }
             writeFieldName("service");
             jw.writeByte(OBJECT_START);
-            writeField("name", service.getName());
-            writeField("resource", service.getResource());
-            writeLastField("type", service.getType());
+            writeLastField("resource", service.getResource());
             jw.writeByte(OBJECT_END);
         }
     }

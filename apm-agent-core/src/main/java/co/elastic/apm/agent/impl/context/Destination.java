@@ -192,11 +192,15 @@ public class Destination implements Recyclable {
          * Eventually, we may decide to actively fetch a cluster name or similar and we could use that to detect "sameness".
          * For now, for HTTP we use scheme, host, and non-default port. For anything else, we use {@code span.subtype}
          * (for example- postgresql, elasticsearch).
+         *
+         * @deprecated will be removed
          */
         private final StringBuilder name = new StringBuilder();
 
         /**
          * For displaying icons or similar. Currently, this should be equal to the {@code span.type}.
+         *
+         * @deprecated will be removed
          */
         @Nullable
         private String type;
@@ -213,30 +217,29 @@ public class Destination implements Recyclable {
             return resource;
         }
 
+        @Deprecated
         public Service withName(String name) {
-            if (this.name.length() > 0) {
-                this.name.setLength(0);
-            }
-            this.name.append(name);
             return this;
         }
 
+        @Deprecated
         public StringBuilder getName() {
             return name;
         }
 
+        @Deprecated
         public Service withType(@Nullable String type) {
-            this.type = type;
             return this;
         }
 
         @Nullable
+        @Deprecated
         public String getType() {
             return type;
         }
 
         public boolean hasContent() {
-            return resource.length() > 0 || name.length() > 0 || type != null;
+            return resource.length() > 0;
         }
 
         @Override

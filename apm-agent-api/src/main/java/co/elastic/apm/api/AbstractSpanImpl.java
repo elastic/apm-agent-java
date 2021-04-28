@@ -160,7 +160,7 @@ abstract class AbstractSpanImpl implements Span {
 
     }
 
-    public void doSetDestinationService(@Nullable String name, @Nullable String type, @Nullable String resource) {
+    public void doSetDestinationService(@Nullable String resource) {
 
     }
 }

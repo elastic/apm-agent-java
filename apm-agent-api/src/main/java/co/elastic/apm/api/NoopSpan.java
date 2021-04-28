@@ -174,7 +174,7 @@ enum NoopSpan implements Span {
 
     @Nonnull
     @Override
-    public Span setDestinationService(@Nullable String name, @Nullable String type, @Nullable String resource) {
+    public Span setDestinationService(@Nullable String resource) {
         return this;
     }
 }

@@ -174,7 +174,7 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
 
     @Nonnull
     @Override
-    public Transaction setDestinationService(@Nullable String name, @Nullable String type, @Nullable String resource) {
+    public Transaction setDestinationService(@Nullable String resource) {
         return this;
     }
 }

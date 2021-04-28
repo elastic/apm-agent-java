@@ -399,27 +399,17 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void setDestinationAddress(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                                 @Advice.Argument(0) @Nullable String name,
-                                                 @Advice.Argument(1) @Nullable String type,
-                                                 @Advice.Argument(2) @Nullable String resource) {
+        public static void setDestinationService(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                                 @Advice.Argument(0) @Nullable String resource) {
             if (context instanceof Span) {
                 SpanContext spanContext = ((Span) context).getContext();
-                boolean isEmptyName = name == null || name.isEmpty();
-                boolean isEmptyType = type == null || type.isEmpty();
                 boolean isEmptyResource = resource == null || resource.isEmpty();
-
-                boolean isEmpty = isEmptyName || isEmptyType || isEmptyResource;
-                if (isEmpty) {
-                    name = "";
-                    type = null;
+                if (isEmptyResource) {
                     resource = "";
                 }
                 Destination.Service service = spanContext.getDestination().getService();
                 // in case when is already auto detected, and with non-empty values - we override
-                if (!service.hasContent() || service.hasContent() && !isEmpty) {
-                    service.withName(name);
-                    service.withType(type);
+                if (!service.hasContent() || service.hasContent() && !isEmptyResource) {
                     service.withResource(resource);
                 }
             }

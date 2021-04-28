@@ -428,5 +428,5 @@ public interface Span {
     Span setDestinationAddress(@Nullable String address, int port);
 
     @Nonnull
-    Span setDestinationService(@Nullable String name, @Nullable String type, @Nullable String resource);
+    Span setDestinationService(@Nullable String resource);
 }
