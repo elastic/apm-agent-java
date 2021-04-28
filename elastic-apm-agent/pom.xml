@@ -286,12 +286,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-vertx-3_6-plugin</artifactId>
+            <artifactId>apm-vertx3-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-vertx-4-plugin</artifactId>
+            <artifactId>apm-vertx4-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 

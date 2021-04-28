@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Set;
 
 public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelper {
+
     private final Logger logger = LoggerFactory.getLogger(AbstractVertxWebHelper.class);
     public static final String CONTEXT_TRANSACTION_KEY = AbstractVertxWebHelper.class.getName() + ".transaction";
     public static final String FRAMEWORK_NAME = "Vert.x-Web";

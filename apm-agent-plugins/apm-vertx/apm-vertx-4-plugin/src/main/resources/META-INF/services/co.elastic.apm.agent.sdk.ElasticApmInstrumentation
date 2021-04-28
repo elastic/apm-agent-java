@@ -1,9 +1,0 @@
-co.elastic.apm.agent.vertx_4.VertxWebInstrumentation$RouteInstrumentation
-co.elastic.apm.agent.vertx_4.VertxWebInstrumentation$VertxTracerReceiveRequestInstrumentation
-co.elastic.apm.agent.vertx_4.VertxWebInstrumentation$VertxTracerSendResponseInstrumentation
-co.elastic.apm.agent.vertx_4.VertxWebInstrumentation$ContextImplTracerInstrumentation
-co.elastic.apm.agent.vertx_4.VertxWebInstrumentation$RequestBufferInstrumentation
-co.elastic.apm.agent.vertx_4.VertxTaskQueueInstrumentation
-co.elastic.apm.agent.vertx_4.VertxEventLoopInstrumentation$ExecuteBlockingInstrumentation
-co.elastic.apm.agent.vertx_4.VertxEventLoopInstrumentation$OnContextInstrumentation
-co.elastic.apm.agent.vertx_4.VertxEventLoopInstrumentation$SetTimerInstrumentation
