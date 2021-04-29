@@ -34,19 +34,27 @@ import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxTestContext;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class VertxTestHttpServer {
-    @Nullable
-    protected Vertx vertx = Vertx.vertx(new VertxOptions().setEventLoopPoolSize(5));
+
+    protected Vertx vertx;
 
     @Nullable
     private HttpServer server;
 
-    private final int port = TestPort.getAvailableRandomPort();
-    private final Router router = Router.router(vertx);
+    private final int port;
+    private final Router router;
+
+
+    VertxTestHttpServer() {
+        vertx = Vertx.vertx(new VertxOptions().setEventLoopPoolSize(5));
+        router = Router.router(vertx);
+        port = TestPort.getAvailableRandomPort();
+    }
 
 
     public void setup(VertxTestContext testContext, boolean useSSL) throws Throwable {
@@ -64,10 +72,13 @@ public class VertxTestHttpServer {
         if (testContext.failed()) {
             throw testContext.causeOfFailure();
         }
+
     }
 
     public void tearDown(VertxTestContext testContext) throws Throwable {
-        server.close(testContext.succeedingThenComplete());
+        Objects.requireNonNull(server)
+            .close(testContext.succeedingThenComplete());
+
         assertThat(testContext.awaitCompletion(2, TimeUnit.SECONDS)).isTrue();
         if (testContext.failed()) {
             throw testContext.causeOfFailure();
