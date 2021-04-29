@@ -28,6 +28,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.FileAppender;
 import ch.qos.logback.core.OutputStreamAppender;
+import ch.qos.logback.core.encoder.Encoder;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
@@ -35,10 +36,9 @@ import co.elastic.apm.agent.log.shader.AbstractLogShadingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
 import co.elastic.logging.logback.EcsEncoder;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-class LogbackLogShadingHelper extends AbstractLogShadingHelper<OutputStreamAppender<ILoggingEvent>> {
+class LogbackLogShadingHelper extends AbstractLogShadingHelper<OutputStreamAppender<ILoggingEvent>, Encoder<ILoggingEvent>> {
 
     private static final LoggerContext defaultLoggerContext = new LoggerContext();
 
@@ -52,8 +52,17 @@ class LogbackLogShadingHelper extends AbstractLogShadingHelper<OutputStreamAppen
     }
 
     @Override
-    protected String getFormatterClassName(OutputStreamAppender<ILoggingEvent> appender) {
-        return appender.getEncoder().getClass().getName();
+    protected Encoder<ILoggingEvent> getFormatterFrom(OutputStreamAppender<ILoggingEvent> appender) {
+        return appender.getEncoder();
+    }
+
+    @Override
+    protected void setFormatter(OutputStreamAppender<ILoggingEvent> appender, Encoder<ILoggingEvent> encoder) {
+        // Required for versions up to 1.2. No need to init the original encoder, as it is initialized by the framework
+        if (encoder instanceof EcsEncoder) {
+            ((EcsEncoder) encoder).init(appender.getOutputStream());
+        }
+        appender.setEncoder(encoder);
     }
 
     @Override
@@ -62,73 +71,63 @@ class LogbackLogShadingHelper extends AbstractLogShadingHelper<OutputStreamAppen
     }
 
     @Override
-    @Nullable
-    protected OutputStreamAppender<ILoggingEvent> createAndConfigureAppender(OutputStreamAppender<ILoggingEvent> originalAppender, String appenderName) {
-
+    protected Encoder<ILoggingEvent> createEcsFormatter(String eventDataset, @Nullable String serviceName) {
         EcsEncoder ecsEncoder = new EcsEncoder();
-        ecsEncoder.setServiceName(getServiceName());
-        ecsEncoder.setEventDataset(getEventDataset(originalAppender));
+        ecsEncoder.setServiceName(serviceName);
+        ecsEncoder.setEventDataset(eventDataset);
         ecsEncoder.setIncludeMarkers(false);
         ecsEncoder.setIncludeOrigin(false);
         ecsEncoder.setStackTraceAsArray(false);
-
-        OutputStreamAppender<ILoggingEvent> customEcsAppender = null;
-        if (isOverrideConfigured()) {
-            customEcsAppender = new OriginalEncoderHolder();
-            customEcsAppender.setEncoder(originalAppender.getEncoder());
-            // Required for versions up to 1.2
-            ecsEncoder.init(originalAppender.getOutputStream());
-            originalAppender.setEncoder(ecsEncoder);
-        } else if (originalAppender instanceof FileAppender) {
-            // Either SHADE or REPLACE configured, attempting to create an appender
-            customEcsAppender = createAndStartEcsReformattingAppender((FileAppender<?>) originalAppender, appenderName, ecsEncoder);
-        }
-
-        return customEcsAppender;
+        return ecsEncoder;
     }
 
-    @Nonnull
-    private RollingFileAppender<ILoggingEvent> createAndStartEcsReformattingAppender(FileAppender<?> originalAppender,
-                                                                                     String appenderName, EcsEncoder ecsEncoder) {
-        RollingFileAppender<ILoggingEvent> shadeAppender = new RollingFileAppender<>();
-        shadeAppender.setEncoder(ecsEncoder);
+    @Nullable
+    @Override
+    protected OutputStreamAppender<ILoggingEvent> createAndStartEcsAppender(OutputStreamAppender<ILoggingEvent> originalAppender,
+                                                                            String ecsAppenderName, Encoder<ILoggingEvent> ecsEncoder) {
+        RollingFileAppender<ILoggingEvent> ecsAppender = null;
+        if (originalAppender instanceof FileAppender) {
+            FileAppender<ILoggingEvent> fileAppender = (FileAppender<ILoggingEvent>) originalAppender;
+            ecsAppender = new RollingFileAppender<>();
+            ecsAppender.setEncoder(ecsEncoder);
 
-        String shadeFile = Utils.computeShadeLogFilePath(originalAppender.getFile(), getConfiguredShadeDir());
-        shadeAppender.setFile(shadeFile);
+            String shadeFile = Utils.computeShadeLogFilePath(fileAppender.getFile(), getConfiguredShadeDir());
+            ecsAppender.setFile(shadeFile);
 
-        FixedWindowRollingPolicy rollingPolicy = new FixedWindowRollingPolicy();
-        rollingPolicy.setMinIndex(1);
-        rollingPolicy.setMaxIndex(1);
-        rollingPolicy.setFileNamePattern(shadeFile + ".%i");
-        rollingPolicy.setParent(shadeAppender);
-        rollingPolicy.setContext(defaultLoggerContext);
-        rollingPolicy.start();
-        shadeAppender.setRollingPolicy(rollingPolicy);
+            FixedWindowRollingPolicy rollingPolicy = new FixedWindowRollingPolicy();
+            rollingPolicy.setMinIndex(1);
+            rollingPolicy.setMaxIndex(1);
+            rollingPolicy.setFileNamePattern(shadeFile + ".%i");
+            rollingPolicy.setParent(ecsAppender);
+            rollingPolicy.setContext(defaultLoggerContext);
+            rollingPolicy.start();
+            ecsAppender.setRollingPolicy(rollingPolicy);
 
-        SizeBasedTriggeringPolicy<ILoggingEvent> triggeringPolicy = new SizeBasedTriggeringPolicy<>();
-        try {
-            VersionUtils.setMaxFileSize(triggeringPolicy, getMaxLogFileSize());
-        } catch (Throwable throwable) {
-            // We cannot log here because this plugin escapes slf4j package reallocation.
-            logInfo("Failed to set max file size for log shader file-rolling strategy. Using the default " +
-                "Logback setting instead - " + SizeBasedTriggeringPolicy.DEFAULT_MAX_FILE_SIZE + ". Error message: " +
-                throwable.getMessage());
+            SizeBasedTriggeringPolicy<ILoggingEvent> triggeringPolicy = new SizeBasedTriggeringPolicy<>();
+            try {
+                VersionUtils.setMaxFileSize(triggeringPolicy, getMaxLogFileSize());
+            } catch (Throwable throwable) {
+                // We cannot log here because this plugin escapes slf4j package reallocation.
+                logInfo("Failed to set max file size for log shader file-rolling strategy. Using the default " +
+                    "Logback setting instead - " + SizeBasedTriggeringPolicy.DEFAULT_MAX_FILE_SIZE + ". Error message: " +
+                    throwable.getMessage());
+            }
+            triggeringPolicy.setContext(defaultLoggerContext);
+            triggeringPolicy.start();
+            ecsAppender.setTriggeringPolicy(triggeringPolicy);
+
+            ecsAppender.setContext(defaultLoggerContext);
+            try {
+                VersionUtils.copyImmediateFlushSetting(originalAppender);
+            } catch (Throwable throwable) {
+                // We cannot log here because this plugin escapes slf4j package reallocation.
+                // Writing to System out may be too much for this.
+            }
+            ecsAppender.setAppend(true);
+            ecsAppender.setName(ecsAppenderName);
+            ecsAppender.start();
         }
-        triggeringPolicy.setContext(defaultLoggerContext);
-        triggeringPolicy.start();
-        shadeAppender.setTriggeringPolicy(triggeringPolicy);
-
-        shadeAppender.setContext(defaultLoggerContext);
-        try {
-            VersionUtils.copyImmediateFlushSetting(originalAppender);
-        } catch (Throwable throwable) {
-            // We cannot log here because this plugin escapes slf4j package reallocation.
-            // Writing to System out may be too much for this.
-        }
-        shadeAppender.setAppend(true);
-        shadeAppender.setName(appenderName);
-        shadeAppender.start();
-        return shadeAppender;
+        return ecsAppender;
     }
 
     @Override

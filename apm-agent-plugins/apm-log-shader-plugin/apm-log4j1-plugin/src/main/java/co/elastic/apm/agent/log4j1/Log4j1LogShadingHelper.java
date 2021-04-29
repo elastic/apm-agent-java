@@ -29,13 +29,14 @@ import co.elastic.apm.agent.log.shader.Utils;
 
 import co.elastic.logging.log4j.EcsLayout;
 import org.apache.log4j.FileAppender;
+import org.apache.log4j.Layout;
 import org.apache.log4j.RollingFileAppender;
 import org.apache.log4j.WriterAppender;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 
-class Log4j1LogShadingHelper extends AbstractLogShadingHelper<WriterAppender> {
+class Log4j1LogShadingHelper extends AbstractLogShadingHelper<WriterAppender, Layout> {
 
     private static final Log4j1LogShadingHelper INSTANCE = new Log4j1LogShadingHelper();
 
@@ -47,8 +48,13 @@ class Log4j1LogShadingHelper extends AbstractLogShadingHelper<WriterAppender> {
     }
 
     @Override
-    protected String getFormatterClassName(WriterAppender appender) {
-        return appender.getLayout().getClass().getName();
+    protected Layout getFormatterFrom(WriterAppender appender) {
+        return appender.getLayout();
+    }
+
+    @Override
+    protected void setFormatter(WriterAppender appender, Layout layout) {
+        appender.setLayout(layout);
     }
 
     @Override
@@ -57,29 +63,30 @@ class Log4j1LogShadingHelper extends AbstractLogShadingHelper<WriterAppender> {
     }
 
     @Override
-    @Nullable
-    protected WriterAppender createAndConfigureAppender(WriterAppender originalAppender, String appenderName) {
+    protected Layout createEcsFormatter(String eventDataset, @Nullable String serviceName) {
+        EcsLayout ecsLayout = new EcsLayout();
+        ecsLayout.setServiceName(serviceName);
+        ecsLayout.setEventDataset(eventDataset);
+        ecsLayout.setIncludeOrigin(false);
+        ecsLayout.setStackTraceAsArray(false);
+        return ecsLayout;
+    }
 
+    @Nullable
+    @Override
+    protected WriterAppender createAndStartEcsAppender(WriterAppender originalAppender, String ecsAppenderName, Layout ecsLayout) {
         RollingFileAppender shadeAppender = null;
         if (originalAppender instanceof FileAppender) {
             try {
                 FileAppender fileAppender = (FileAppender) originalAppender;
                 String shadeFile = Utils.computeShadeLogFilePath(fileAppender.getFile(), getConfiguredShadeDir());
 
-                EcsLayout ecsLayout = new EcsLayout();
-                ecsLayout.setServiceName(getServiceName());
-                ecsLayout.setEventDataset(getEventDataset(originalAppender));
-                ecsLayout.setIncludeOrigin(false);
-                ecsLayout.setStackTraceAsArray(false);
-
                 shadeAppender = new RollingFileAppender(ecsLayout, shadeFile, true);
                 shadeAppender.setMaxBackupIndex(1);
                 shadeAppender.setMaximumFileSize(getMaxLogFileSize());
                 shadeAppender.setImmediateFlush(originalAppender.getImmediateFlush());
-                shadeAppender.setName(appenderName);
+                shadeAppender.setName(ecsAppenderName);
                 shadeAppender.setLayout(ecsLayout);
-
-                // todo - set rolling file pattern
             } catch (IOException e) {
                 logError("Failed to create Log shading FileAppender. Auto ECS reformatting will not work.", e);
             }

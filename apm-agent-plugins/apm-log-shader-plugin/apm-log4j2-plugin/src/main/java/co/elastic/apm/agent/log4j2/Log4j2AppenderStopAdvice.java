@@ -37,6 +37,6 @@ public class Log4j2AppenderStopAdvice {
         if (!(thisAppender instanceof FileAppender)) {
             return;
         }
-        Log4j2LogShadingHelper.instance().stopShading(thisAppender);
+        Log4j2LogShadingHelper.instance().closeShadeAppenderFor(thisAppender);
     }
 }

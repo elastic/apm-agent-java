@@ -31,6 +31,7 @@ import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Layout;
 
 import javax.annotation.Nullable;
+import java.io.Serializable;
 
 public class Log4j2AppenderGetLayoutAdvice {
 
@@ -41,14 +42,13 @@ public class Log4j2AppenderGetLayoutAdvice {
     public static Layout<?> shadeLoggingEvent(@Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender,
                                               @Advice.Return @Nullable Layout<?> originalLayout) {
 
-        Log4j2LogShadingHelper helper = Log4j2LogShadingHelper.instance();
         if (originalLayout == null) {
             // Effectively disables instrumentation to all database appenders
             return null;
         }
-        Appender shadeAppender = helper.getShadeAppenderFor(thisAppender);
-        if (shadeAppender != null && helper.isOverrideConfigured()) {
-            return shadeAppender.getLayout();
+        Layout<? extends Serializable> ecsLayout = Log4j2LogShadingHelper.instance().getEcsOverridingFormatterFor(thisAppender);
+        if (ecsLayout != null) {
+            return ecsLayout;
         }
         return originalLayout;
     }

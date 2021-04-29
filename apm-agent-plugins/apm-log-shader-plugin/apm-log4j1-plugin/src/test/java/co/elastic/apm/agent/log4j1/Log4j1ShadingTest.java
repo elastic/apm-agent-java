@@ -114,11 +114,4 @@ public class Log4j1ShadingTest extends LogShadingInstrumentationTest {
             MDC.remove("trace.id");
         }
     }
-
-    // todo - remove once override implemented
-    @Override
-    @Disabled
-    public void testLogOverride() throws IOException {
-        super.testLogOverride();
-    }
 }
