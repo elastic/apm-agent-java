@@ -366,6 +366,8 @@ class DslJsonSerializerTest {
         JsonNode service = destination.get("service");
         assertThat(service).isNotNull();
         assertThat("whatever.com:80").isEqualTo(service.get("resource").textValue());
+        assertThat(service.get("name").textValue()).isEqualTo("");
+        assertThat(service.get("type").textValue()).isEqualTo("");
     }
 
     @Test

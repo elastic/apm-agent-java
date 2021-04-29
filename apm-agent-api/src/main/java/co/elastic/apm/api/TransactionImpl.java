@@ -166,14 +166,22 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
         return this;
     }
 
+    /**
+     * @deprecated - used only for {@link co.elastic.apm.api.Span}
+     */
     @Nonnull
     @Override
+    @Deprecated
     public Transaction setDestinationAddress(@Nullable String address, int port) {
         return this;
     }
 
+    /**
+     * @deprecated - used only for {@link co.elastic.apm.api.Span}
+     */
     @Nonnull
     @Override
+    @Deprecated
     public Transaction setDestinationService(@Nullable String resource) {
         return this;
     }

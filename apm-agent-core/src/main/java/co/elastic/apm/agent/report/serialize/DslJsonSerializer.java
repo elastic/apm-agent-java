@@ -879,7 +879,9 @@ public class DslJsonSerializer implements PayloadSerializer {
             }
             writeFieldName("service");
             jw.writeByte(OBJECT_START);
-            writeLastField("resource", service.getResource());
+            writeEmptyField("name");
+            writeField("resource", service.getResource());
+            writeLastEmptyField("type");
             jw.writeByte(OBJECT_END);
         }
     }
@@ -1240,6 +1242,17 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("email", user.getEmail());
         writeLastField("username", user.getUsername());
         jw.writeByte(OBJECT_END);
+    }
+
+    void writeEmptyField(final String fieldName) {
+        writeFieldName(fieldName);
+        writeStringValue("");
+        jw.writeByte(COMMA);
+    }
+
+    void writeLastEmptyField(final String fieldName) {
+        writeFieldName(fieldName);
+        writeStringValue("");
     }
 
     void writeField(final String fieldName, final StringBuilder value) {
