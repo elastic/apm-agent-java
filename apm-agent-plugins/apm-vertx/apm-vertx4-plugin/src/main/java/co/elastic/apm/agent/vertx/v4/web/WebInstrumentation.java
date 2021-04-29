@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.vertx.v4.web;
 
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.vertx.v4.Vertx4Instrumentation;
@@ -38,11 +40,13 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -91,16 +95,30 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
 
     }
 
-    /**
-     * Instruments {@link io.vertx.core.spi.tracing.VertxTracer#receiveRequest}} to intercept tracer calls.
-     */
-    public static class VertxTracerReceiveRequestInstrumentation extends WebInstrumentation {
+    public static abstract class VertxTracerInstrumentation extends WebInstrumentation {
+        private final Collection<String> applicationPackages;
+
+        VertxTracerInstrumentation() {
+            applicationPackages = GlobalTracer.requireTracerImpl().getConfig(StacktraceConfiguration.class).getApplicationPackages();
+        }
 
         @Override
-        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        public final ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+            // application packages make this more performant, but not required
+            return isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any());
+        }
+
+        @Override
+        public final ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return hasSuperType(named("io.vertx.core.spi.tracing.VertxTracer"))
                 .and(not(isInterface()));
         }
+    }
+
+    /**
+     * Instruments {@link io.vertx.core.spi.tracing.VertxTracer#receiveRequest}} to intercept tracer calls.
+     */
+    public static class VertxTracerReceiveRequestInstrumentation extends VertxTracerInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -130,13 +148,7 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
     /**
      * Instruments {@link io.vertx.core.spi.tracing.VertxTracer#sendResponse}} to intercept tracer calls.
      */
-    public static class VertxTracerSendResponseInstrumentation extends WebInstrumentation {
-
-        @Override
-        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return hasSuperType(named("io.vertx.core.spi.tracing.VertxTracer")) // TODO : apply pre-filter for match performance
-                .and(not(isInterface()));
-        }
+    public static class VertxTracerSendResponseInstrumentation extends VertxTracerInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
