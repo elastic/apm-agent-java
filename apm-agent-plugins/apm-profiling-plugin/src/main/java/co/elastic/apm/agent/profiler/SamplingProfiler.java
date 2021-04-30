@@ -379,7 +379,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         boolean continueProfilingSession = config.isNonStopProfiling() && !interrupted && config.isProfilingEnabled() && postProcessingEnabled;
         setProfilingSessionOngoing(continueProfilingSession);
 
-        if (!interrupted) {
+        if (!interrupted && !scheduler.isShutdown()) {
             long delay = config.getProfilingInterval().getMillis() - profilingDuration.getMillis();
             scheduler.schedule(this, delay, TimeUnit.MILLISECONDS);
         }
