@@ -140,7 +140,7 @@ rendering
 |Apache Struts
 |2.x
 |The transactions are named based on your action (`ActionClass#actionMethod`).
-|1.23.0
+|1.24.0
 
 |===
 
