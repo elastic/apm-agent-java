@@ -93,7 +93,7 @@ pipeline {
               stash allowEmpty: true, name: 'build', useDefaultExcludes: false
               archiveArtifacts allowEmptyArchive: true,
                 artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
-                      ${BASE_DIR}/target/site/aggregate-third-party-report.html",
+                      ${BASE_DIR}/apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar,${BASE_DIR}/target/site/aggregate-third-party-report.html",
                 onlyIfSuccessful: true
             }
           }
@@ -316,7 +316,7 @@ pipeline {
           setupAPMGitEmail(global: false)
           sh(label: "checkout ${BRANCH_NAME} branch", script: "git checkout -f '${BRANCH_NAME}'")
           sh(label: 'rebase stable', script: """
-            git checkout -b stable --force
+            git rev-parse --quiet --verify stable && git checkout stable || git checkout -b stable
             git rebase '${BRANCH_NAME}'
           """)
           gitPush()
