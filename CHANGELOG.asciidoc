@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Basic support for Apache Struts 2 {pull}1763[#1763]
 
 [float]
 ===== Bug fixes
