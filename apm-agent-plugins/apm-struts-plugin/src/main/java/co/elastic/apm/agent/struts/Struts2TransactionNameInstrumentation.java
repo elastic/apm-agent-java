@@ -24,24 +24,34 @@
  */
 package co.elastic.apm.agent.struts;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.matcher.ElementMatchers;
 
 import java.util.Collection;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static java.util.Collections.singletonList;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class Struts2TransactionNameInstrumentation extends ElasticApmInstrumentation {
 
+    private final StacktraceConfiguration config;
+
+    public Struts2TransactionNameInstrumentation(ElasticApmTracer tracer) {
+        config = tracer.getConfig(StacktraceConfiguration.class);
+    }
+
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("org.apache.struts2.factory");
+        return named("org.apache.struts2.factory.StrutsActionProxy")
+            .or(isInAnyPackage(config.getApplicationPackages(), ElementMatchers.<NamedElement>any()));
     }
 
     @Override

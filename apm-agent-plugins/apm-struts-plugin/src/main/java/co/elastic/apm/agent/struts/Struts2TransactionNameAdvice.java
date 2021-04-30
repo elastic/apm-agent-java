@@ -34,7 +34,7 @@ import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL
 
 public class Struts2TransactionNameAdvice {
 
-    private static final String FRAMEWORK_NAME = "Struts 2";
+    private static final String FRAMEWORK_NAME = "Struts";
 
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static void setTransactionName(@Advice.This ActionProxy actionProxy) {
