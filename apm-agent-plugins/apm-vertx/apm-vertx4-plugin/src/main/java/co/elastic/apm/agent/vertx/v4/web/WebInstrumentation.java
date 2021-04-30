@@ -24,8 +24,6 @@
  */
 package co.elastic.apm.agent.vertx.v4.web;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.vertx.v4.Vertx4Instrumentation;
@@ -40,15 +38,14 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
@@ -96,16 +93,10 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
     }
 
     public static abstract class VertxTracerInstrumentation extends WebInstrumentation {
-        private final Collection<String> applicationPackages;
-
-        VertxTracerInstrumentation() {
-            applicationPackages = GlobalTracer.requireTracerImpl().getConfig(StacktraceConfiguration.class).getApplicationPackages();
-        }
 
         @Override
         public final ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-            // application packages make this more performant, but not required
-            return isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any());
+            return nameContains("Tracer");
         }
 
         @Override
