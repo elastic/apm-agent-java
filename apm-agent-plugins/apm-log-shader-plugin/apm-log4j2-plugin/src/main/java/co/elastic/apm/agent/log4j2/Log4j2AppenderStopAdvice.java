@@ -27,16 +27,12 @@ package co.elastic.apm.agent.log4j2;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import org.apache.logging.log4j.core.Appender;
-import org.apache.logging.log4j.core.appender.FileAppender;
 
 public class Log4j2AppenderStopAdvice {
 
     @SuppressWarnings({"unused"})
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
     public static void shadeLoggingEvent(@Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender) {
-        if (!(thisAppender instanceof FileAppender)) {
-            return;
-        }
         Log4j2LogShadingHelper.instance().closeShadeAppenderFor(thisAppender);
     }
 }

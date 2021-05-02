@@ -35,19 +35,19 @@ public class LogbackAppenderAppendAdvice {
     @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
     public static boolean shadeAndSkipIfOverrideEnabled(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final Object eventObject,
                                                         @Advice.This(typing = Assigner.Typing.DYNAMIC) OutputStreamAppender<ILoggingEvent> thisAppender) {
-        return eventObject instanceof ILoggingEvent &&
-            LogbackLogShadingHelper.instance().onAppendEnter(thisAppender);
+
+        return eventObject instanceof ILoggingEvent && LogbackLogShadingHelper.instance().onAppendEnter(thisAppender);
     }
 
     @SuppressWarnings({"unused"})
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
     public static void shadeLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final Object eventObject,
                                          @Advice.This(typing = Assigner.Typing.DYNAMIC) OutputStreamAppender<ILoggingEvent> thisAppender) {
-        if (!LogbackLogShadingHelper.instance().onAppendExit() || !(eventObject instanceof ILoggingEvent)) {
+
+        if (!(eventObject instanceof ILoggingEvent)) {
             return;
         }
-
-        OutputStreamAppender<ILoggingEvent> shadeAppender = LogbackLogShadingHelper.instance().getShadeAppenderFor(thisAppender);
+        OutputStreamAppender<ILoggingEvent> shadeAppender = LogbackLogShadingHelper.instance().onAppendExit(thisAppender);
         if (shadeAppender != null) {
             // We do not invoke the exact same method we instrument, but a public API that calls it
             shadeAppender.doAppend((ILoggingEvent) eventObject);

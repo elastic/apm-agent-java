@@ -60,36 +60,39 @@ import javax.annotation.Nullable;
  * <p>Following is the general algorithm that:</p>
  * <ul>
  *     <li>enables dynamic configuration of {@link LogEcsReformatting}</li>
- *     <li>
- *         (almost) guarantees that each log event is logged exactly once (more details {@link #configForCurrentLogEvent below})
- *     </li>
+ *     <li>guarantees that each log event is logged exactly once</li>
  *     <li>
  *         ensures lazy creation of ECS log files only if and when {@link LogEcsReformatting#SHADE SHADE} or
  *         {@link LogEcsReformatting#REPLACE REPLACE} are set
  *     </li>
  * </ul>
  * <pre>
- *      {@link #onAppendEnter(Object) on append() enter}
+ *      {@link #onAppendEnter(Object) on append() enter}:
  *          get log_ecs_reformatting config and set as thread local
- *          if OVERRIDE
- *              if the current appender already uses an ECS-formatter - nothing to do
- *              else
- *                  look for ECS-appender mapped to current appender
- *                      if there is no such - create an EcsFormatterHolder and map it to original appender
- *                  map original formatter to ECS-formatter
+ *          if OVERRIDE:
+ *              if there is no entry in the originalAppender2originalFormatter map, then (thread safely):
+ *                  create an ECS-formatter
+ *                  add an entry to originalAppender2originalFormatter map
+ *                  add an entry to originalAppender2ecsFormatter map
  *                  replace original formatter with ECS-formatter in current appender
  *          else
- *              if the current appender already uses an ECS-formatter - restore original appender
- *              if SHADE or REPLACE
- *                  look for ECS-appender mapped to current appender
- *                      if there is no such - create one and add to map
- *                      else if it is an EcsFormatterHolder
- *                          create a real ECS-appender and replace mapping
- *                  if REPLACE and there is a valid ECS-appender - skip append() execution on original appender
- *      on getLayout() exit (only relevant to log4j2 where the appender is not exposing setLayout())
- *          if OVERRIDE - return the ECS-formatter instead of the original
- *      {@link #onAppendExit() on append() exit}
- *          if SHADE or REPLACE - invoke append() on ECS-appender
+ *              if the current appender uses an ECS-formatter (thread safely):
+ *                  restore original formatter in current appender
+ *                  remove entry from originalAppender2originalFormatter map
+ *                  remove entry from originalAppender2ecsFormatter map
+ *              if SHADE or REPLACE:
+ *                  if there is no entry in the originalAppender2ecsAppender mpa, then (thread safely):
+ *                      create an ECS-appender
+ *                      add entry to originalAppender2ecsAppender map
+ *                  if REPLACE and there is a valid ECS-appender:
+ *                      skip append() execution on original appender
+ *      on getLayout() exit:
+ *          * only relevant to log4j2, see {@code co.elastic.apm.agent.log4j2.Log4j2AppenderGetLayoutAdvice} for details
+ *          if OVERRIDE:
+ *              return the ECS-formatter instead of the original formatter
+ *      {@link #onAppendExit(Object) on append() exit}:
+ *          if SHADE or REPLACE:
+ *              invoke append() on ECS-appender
  *          clear log_ecs_reformatting config from thread local
  * </pre>
  * <br>
@@ -103,29 +106,41 @@ public abstract class AbstractLogShadingHelper<A, F> {
     // Escape shading
     private static final String ECS_LOGGING_PACKAGE_NAME = "co!elastic!logging".replace('!', '.');
 
+    // We can use regular shaded logging here as this class is loaded from the agent CL
     private static final Logger logger = LoggerFactory.getLogger(AbstractLogShadingHelper.class);
     public static final String ECS_SHADE_APPENDER_NAME = "EcsShadeAppender";
 
+    // Used to cache the fact that ECS-formatter or ECS-appender are not created for a given appender
     private static final Object NULL_APPENDER = new Object();
+    private static final Object NULL_FORMATTER = new Object();
 
     private static final CallDepth callDepth = CallDepth.get(AbstractLogShadingHelper.class);
 
     /**
-     * A mapping between original appender and the corresponding custom ECS-appender.
-     * The custom appender could either be a real ECS file appender, or it could be an {@code EcsFormatterHolder}.
+     * A mapping between original appender and the corresponding ECS-appender.
+     * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
+     * {@link LogEcsReformatting#SHADE SHADE} or {@link LogEcsReformatting#REPLACE REPLACE}.
      */
-    private static final WeakConcurrentMap<Object, Object> originalAppenderToEcsAppender = WeakMapSupplier.createMap();
+    private static final WeakConcurrentMap<Object, Object> originalAppender2ecsAppender = WeakMapSupplier.createMap();
 
     /**
-     * A mapping between the ECS-formatter the corresponding original appender.
+     * A mapping between original appender and the formatter that it had originally.
+     * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
+     * {@link LogEcsReformatting#OVERRIDE OVERRIDE}.
      */
-    private static final WeakConcurrentMap<Object, Object> ecsFormatterToOriginalFormatter = WeakMapSupplier.createMap();
+    private static final WeakConcurrentMap<Object, Object> originalAppender2originalFormatter = WeakMapSupplier.createMap();
 
     /**
-     * This state is set at the beginning of {@link #onAppendEnter(Object)} cleared at the end of {@link #onAppendExit()}.
-     * This ensures consistency during the entire handling of each log events and (almost) guarantees that each log
-     * event is being logged exactly once. In very rare case, where the config changes from REPLACE to other during
-     * concurrent logging events, a logging event may be missed. No duplicated logging for single event is guaranteed.
+     * A mapping between original appender and the corresponding ECS-formatter.
+     * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
+     * {@link LogEcsReformatting#OVERRIDE OVERRIDE}, currently only for the log4j2 instrumentation.
+     */
+    private static final WeakConcurrentMap<Object, Object> originalAppender2ecsFormatter = WeakMapSupplier.createMap();
+
+    /**
+     * This state is set at the beginning of {@link #onAppendEnter(Object)} and cleared at the end of {@link #onAppendExit(Object)}.
+     * This ensures consistency during the entire handling of each log events and guarantees that each log event is being
+     * logged exactly once.
      * No need to use {@link co.elastic.apm.agent.sdk.state.GlobalThreadLocal} because we already annotate the class
      * with {@link GlobalState}.
      */
@@ -143,32 +158,12 @@ public abstract class AbstractLogShadingHelper<A, F> {
     }
 
     /**
-     * Must be called exactly once at the enter to each {@code append()} method (or equivalent) invocation in order to properly
-     * detect nested invocations.
-     * <p>Algorithm:</p>
-     * <pre>
-     *  if this is a nested append() call - do nothing
-     *  get log_ecs_reformatting config and set as thread local
-     *      if OVERRIDE
-     *          if the current appender already uses an ECS-formatter - nothing to do
-     *          else
-     *              look for ECS-appender mapped to current appender
-     *                  if there is no such - create an EcsFormatterHolder and map it to original appender
-     *              map original formatter to ECS-formatter
-     *              replace original formatter with ECS-formatter in current appender
-     *      else
-     *          if the current appender already uses an ECS-formatter - restore original appender
-     *          if SHADE or REPLACE
-     *              look for ECS-appender mapped to current appender
-     *                  if there is no such - create one and add to map
-     *                  else if it is an EcsFormatterHolder
-     *                      create a real ECS-appender and replace mapping
-     *              if REPLACE and there is a valid ECS-appender - skip append() execution on original appender
-     * </pre>
-     * @param originalAppender the original appender
+     * Must be called exactly once at the enter to each {@code append()} method (or equivalent) invocation in order to
+     * properly detect nested invocations.
+     * @param appender the instrumented appender
      * @return true if log events should be ignored for the given appender; false otherwise
      */
-    public boolean onAppendEnter(final A originalAppender) {
+    public boolean onAppendEnter(final A appender) {
         if (callDepth.isNestedCallAndIncrement()) {
             // If this is a nested call, never skip, as it means that the decision not to skip was already made in the
             // outermost invocation
@@ -178,21 +173,19 @@ public abstract class AbstractLogShadingHelper<A, F> {
         LogEcsReformatting reformattingConfig = loggingConfiguration.getLogEcsReformatting();
         configForCurrentLogEvent.set(reformattingConfig);
 
-        F originalFormatter = getFormatterFrom(originalAppender);
-        boolean isUsingEcsFormatter = isEcsFormatter(originalFormatter);
+        boolean currentlyOverriding = originalAppender2originalFormatter.containsKey(appender);
         if (reformattingConfig == LogEcsReformatting.OVERRIDE) {
-            if (!isUsingEcsFormatter) {
-                startOverriding(originalAppender, originalFormatter);
+            if (!currentlyOverriding) {
+                startOverriding(appender);
             }
         } else {
-            if (isUsingEcsFormatter) {
-                stopOverriding(originalAppender);
+            if (currentlyOverriding) {
+                stopOverriding(appender);
             }
             if (reformattingConfig == LogEcsReformatting.SHADE || reformattingConfig == LogEcsReformatting.REPLACE) {
-                Object ecsAppender = originalAppenderToEcsAppender.get(originalAppender);
-                if (ecsAppender == null || isMockAppender(ecsAppender)) {
-                    createAndMapShadeAppenderFor(originalAppender);
-                    ecsAppender = originalAppenderToEcsAppender.get(originalAppender);
+                Object ecsAppender = originalAppender2ecsAppender.get(appender);
+                if (ecsAppender == null) {
+                    ecsAppender = createAndMapShadeAppenderFor(appender);
                 }
                 // if ECS-reformatting is configured to REPLACE the original file, and there is a valid shade appender, then
                 // it is safe enough to skip execution. And since we skip, no need to worry about nested calls.
@@ -205,29 +198,30 @@ public abstract class AbstractLogShadingHelper<A, F> {
     /**
      * Starts overriding the given appender - replaces formatter in original appender and handles mapping
      * @param originalAppender the framework appender for the original log
-     * @param originalFormatter the original formatter
      */
-    private void startOverriding(A originalAppender, F originalFormatter) {
-        F ecsFormatter;
-        synchronized (originalAppenderToEcsAppender) {
-            Object ecsAppender = originalAppenderToEcsAppender.get(originalAppender);
-            if (ecsAppender == null || ecsAppender == NULL_APPENDER) {
-                String serviceName = getServiceName();
-                ecsFormatter = createEcsFormatter(getEventDataset(originalAppender, serviceName), serviceName);
-                originalAppenderToEcsAppender.put(originalAppender, new EcsFormatterHolder(ecsFormatter));
-            } else if (ecsAppender.getClass().getName().equals(EcsFormatterHolder.class.getName())) {
-                // race condition - another thread already mapped EcsFormatterHolder for this appender
-                //noinspection unchecked
-                ecsFormatter = ((EcsFormatterHolder) ecsAppender).getEcsFormatter();
-            } else {
-                // already mapped to an ECS appender
-                ecsFormatter = getFormatterFrom((A) ecsAppender);
+    private void startOverriding(A originalAppender) {
+        synchronized (originalAppender2originalFormatter) {
+            if (originalAppender2originalFormatter.containsKey(originalAppender)) {
+                return;
             }
-        }
-        synchronized (ecsFormatterToOriginalFormatter) {
-            if (!ecsFormatterToOriginalFormatter.containsKey(ecsFormatter)) {
-                setFormatter(originalAppender, ecsFormatter);
-                ecsFormatterToOriginalFormatter.put(ecsFormatter, originalFormatter);
+
+            Object originalFormatter = NULL_FORMATTER;
+            Object ecsFormatter = NULL_FORMATTER;
+            try {
+                if (!isShadingAppender(originalAppender) && !isUsingEcsFormatter(originalAppender)) {
+                    originalFormatter = getFormatterFrom(originalAppender);
+                    String serviceName = getServiceName();
+                    F createdEcsFormatter = createEcsFormatter(getEventDataset(originalAppender, serviceName), serviceName);
+                    setFormatter(originalAppender, createdEcsFormatter);
+                    ecsFormatter = createdEcsFormatter;
+                }
+            } catch (Throwable throwable) {
+                logger.warn(String.format("Failed to replace formatter for log appender %s.%s. " +
+                        "Log events for this appender will not be overridden.",
+                    originalAppender.getClass().getName(), getAppenderName(originalAppender)), throwable);
+            } finally {
+                originalAppender2ecsFormatter.put(originalAppender, ecsFormatter);
+                originalAppender2originalFormatter.put(originalAppender, originalFormatter);
             }
         }
     }
@@ -237,14 +231,18 @@ public abstract class AbstractLogShadingHelper<A, F> {
      * @param appender appender to stop overriding
      */
     private void stopOverriding(A appender) {
-        synchronized (ecsFormatterToOriginalFormatter) {
-            F ecsFormatter = getFormatterFrom(appender);
-            if (isEcsFormatter(ecsFormatter)) {
-                F originalAppender = (F) ecsFormatterToOriginalFormatter.remove(ecsFormatter);
-                if (originalAppender != null) {
-                    setFormatter(appender, originalAppender);
+        synchronized (originalAppender2originalFormatter) {
+            Object originalFormatter = originalAppender2originalFormatter.remove(appender);
+            if (originalFormatter != null && originalFormatter != NULL_FORMATTER) {
+                try {
+                    setFormatter(appender, (F) originalFormatter);
+                } catch (Throwable throwable) {
+                    logger.warn(String.format("Failed to replace formatter for log appender %s.%s. " +
+                            "Log events for this appender are overridden with ECS-formatted events.",
+                        appender.getClass().getName(), getAppenderName(appender)), throwable);
                 }
             }
+            originalAppender2ecsFormatter.remove(appender);
         }
     }
 
@@ -252,19 +250,29 @@ public abstract class AbstractLogShadingHelper<A, F> {
      * Must be called exactly once at the exit from each {@code append()} method (or equivalent) invocation. This method checks
      * whether the current {@code append()} execution should result with an appended shaded event based on the configuration
      * AND whether this is the outermost execution in nested {@code append()} calls.
-     * @return whether the current execution of {@code append()} should result with an ECS shaded append
+     * @param appender the instrumented appender
+     * @return an ECS-appender to append the current event if required and such exists; {@code null} otherwise
      */
-    public boolean onAppendExit() {
+    @Nullable
+    public A onAppendExit(A appender) {
         // If this is a nested append() invocation, do not shade now, only at the outermost invocation
         if (callDepth.isNestedCallAndDecrement()) {
-            return false;
+            return null;
         }
+
+        A ecsAppender = null;
         try {
             LogEcsReformatting logEcsReformatting = configForCurrentLogEvent.get();
-            return logEcsReformatting == LogEcsReformatting.SHADE || logEcsReformatting == LogEcsReformatting.REPLACE;
+            if (logEcsReformatting == LogEcsReformatting.SHADE || logEcsReformatting == LogEcsReformatting.REPLACE) {
+                Object mappedAppender = originalAppender2ecsAppender.get(appender);
+                if (mappedAppender != null && mappedAppender != NULL_APPENDER) {
+                    ecsAppender = (A) mappedAppender;
+                }
+            }
         } finally {
             configForCurrentLogEvent.remove();
         }
+        return ecsAppender;
     }
 
     @Nullable
@@ -272,29 +280,36 @@ public abstract class AbstractLogShadingHelper<A, F> {
         return loggingConfiguration.getLogEcsFormattingDestinationDir();
     }
 
-    private void createAndMapShadeAppenderFor(final A originalAppender) {
-        synchronized (originalAppenderToEcsAppender) {
-            Object ecsAppender = originalAppenderToEcsAppender.get(originalAppender);
-            if (ecsAppender == NULL_APPENDER) {
-                return;
+    private Object createAndMapShadeAppenderFor(final A originalAppender) {
+        synchronized (originalAppender2ecsAppender) {
+            Object ecsAppender = originalAppender2ecsAppender.get(originalAppender);
+            if (ecsAppender != null) {
+                return ecsAppender;
             }
 
-            if (isShadingAppender(originalAppender) || isEcsFormatter(getFormatterFrom(originalAppender))) {
-                originalAppenderToEcsAppender.put(originalAppender, NULL_APPENDER);
-                return;
+            ecsAppender = NULL_APPENDER;
+
+            if (isShadingAppender(originalAppender) || isUsingEcsFormatter(originalAppender)) {
+                originalAppender2ecsAppender.put(originalAppender, ecsAppender);
+                return ecsAppender;
             }
 
-            if (ecsAppender == null || isMockAppender(ecsAppender)) {
+            try {
                 String serviceName = getServiceName();
                 F ecsFormatter = createEcsFormatter(getEventDataset(originalAppender, serviceName), serviceName);
-                A createdAppender = createAndStartEcsAppender(originalAppender, ECS_SHADE_APPENDER_NAME, ecsFormatter);
-                originalAppenderToEcsAppender.put(originalAppender, createdAppender != null ? createdAppender : NULL_APPENDER);
+                ecsAppender = createAndStartEcsAppender(originalAppender, ECS_SHADE_APPENDER_NAME, ecsFormatter);
+                if (ecsAppender == null) {
+                    ecsAppender = NULL_APPENDER;
+                }
+            } catch (Throwable throwable) {
+                logger.warn(String.format("Failed to create ECS shade appender for log appender %s.%s. " +
+                        "Log events for this appender will not be shaded.",
+                    originalAppender.getClass().getName(), getAppenderName(originalAppender)), throwable);
+            } finally {
+                originalAppender2ecsAppender.put(originalAppender, ecsAppender);
             }
+            return ecsAppender;
         }
-    }
-
-    private boolean isMockAppender(Object ecsAppender) {
-        return ecsAppender.getClass().getName().startsWith("co.elastic.apm.agent");
     }
 
     /**
@@ -306,39 +321,23 @@ public abstract class AbstractLogShadingHelper<A, F> {
     public F getEcsOverridingFormatterFor(A originalAppender) {
         F ecsFormatter = null;
         if (configForCurrentLogEvent.get() == LogEcsReformatting.OVERRIDE) {
-            Object ecsAppender = originalAppenderToEcsAppender.get(originalAppender);
-            if (ecsAppender != null && ecsAppender.getClass().getName().equals(EcsFormatterHolder.class.getName())) {
-                ecsFormatter = ((EcsFormatterHolder) ecsAppender).getEcsFormatter();
+            Object mappedFormatter = originalAppender2ecsFormatter.get(originalAppender);
+            if (mappedFormatter != null && mappedFormatter != NULL_FORMATTER) {
+                ecsFormatter = (F) mappedFormatter;
             }
         }
         return ecsFormatter;
     }
 
     /**
-     * Returns either a valid ECS file appender that corresponds the given appender, or {@code null} if such does not exist
-     * @param originalAppender the original log appender to base the lookup on
-     * @return a valid ECS file appender or {@code null} if such does not available
-     */
-    @Nullable
-    public A getShadeAppenderFor(A originalAppender) {
-        Object ecsAppender = originalAppenderToEcsAppender.get(originalAppender);
-        if (ecsAppender != null) {
-            if (ecsAppender == NULL_APPENDER || isMockAppender(ecsAppender)) {
-                ecsAppender = null;
-            }
-        }
-        return (A) ecsAppender;
-    }
-
-    /**
-     * Close the ECS shade appender that corresponds the given appender. Normally called when the original appender
+     * Closes the ECS shade appender that corresponds the given appender. Normally called when the original appender
      * gets closed.
      * @param originalAppender original appender for which shade appender should be closed
      */
     public void closeShadeAppenderFor(A originalAppender) {
-        synchronized (originalAppenderToEcsAppender) {
-            Object shadeAppender = originalAppenderToEcsAppender.remove(originalAppender);
-            if (shadeAppender != null && shadeAppender != NULL_APPENDER && !isMockAppender(shadeAppender)) {
+        synchronized (originalAppender2ecsAppender) {
+            Object shadeAppender = originalAppender2ecsAppender.remove(originalAppender);
+            if (shadeAppender != null && shadeAppender != NULL_APPENDER) {
                 closeShadeAppender((A) shadeAppender);
             }
         }
@@ -354,15 +353,16 @@ public abstract class AbstractLogShadingHelper<A, F> {
     }
 
     /**
-     * Checks if the user has set up ECS-logging separately as well. We cannot use rely on the actual class (e.g.
-     * through {@code instanceof}) because the ECS-logging dependency used by this plugin is shaded and because we
-     * are looking for ECS encoder/layout from an arbitrary version that could be loaded by any class loader.
+     * Checks if the given appender uses ECS-logging that was configured independently of the Java agent.
+     * We cannot rely on the actual class (e.g. through {@code instanceof}) because the ECS-logging dependency used by
+     * this plugin is shaded and because we are looking for ECS encoder/layout from an arbitrary version that could be
+     * loaded by any class loader.
      *
-     * @param formatter formatter
+     * @param appender appender
      * @return true if the provided formatter an ECS-formatter; false otherwise
      */
-    private boolean isEcsFormatter(F formatter) {
-        return formatter.getClass().getName().startsWith(ECS_LOGGING_PACKAGE_NAME);
+    private boolean isUsingEcsFormatter(A appender) {
+        return appender.getClass().getName().startsWith(ECS_LOGGING_PACKAGE_NAME);
     }
 
     /**
@@ -439,22 +439,5 @@ public abstract class AbstractLogShadingHelper<A, F> {
 
     protected void logError(String message, Throwable throwable) {
         logger.error(message, throwable);
-    }
-
-    /*********************************************************************************************************************
-
-     /**
-     * A mock {@code Appender} used for holding a reference to the original formatter.
-     */
-    private class EcsFormatterHolder {
-        private final F ecsFormatter;
-
-        EcsFormatterHolder(F ecsFormatter) {
-            this.ecsFormatter = ecsFormatter;
-        }
-
-        public F getEcsFormatter() {
-            return ecsFormatter;
-        }
     }
 }

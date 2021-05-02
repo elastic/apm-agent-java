@@ -43,10 +43,7 @@ public class Log4j2AppenderAppendAdvice {
     public static void shadeLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogEvent eventObject,
                                          @Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender) {
 
-        if (!Log4j2LogShadingHelper.instance().onAppendExit()) {
-            return;
-        }
-        Appender shadeAppender = Log4j2LogShadingHelper.instance().getShadeAppenderFor(thisAppender);
+        Appender shadeAppender = Log4j2LogShadingHelper.instance().onAppendExit(thisAppender);
         if (shadeAppender != null) {
             shadeAppender.append(eventObject);
         }
