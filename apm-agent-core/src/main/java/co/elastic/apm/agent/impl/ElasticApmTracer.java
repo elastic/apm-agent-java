@@ -216,7 +216,7 @@ public class ElasticApmTracer implements Tracer {
 
     private void afterTransactionStart(@Nullable ClassLoader initiatingClassLoader, Transaction transaction) {
         if (logger.isDebugEnabled()) {
-            logger.debug("startTransaction {}", transaction);
+            logger.debug("startTransaction: {}, initiating class loader: {}", transaction, initiatingClassLoader);
             if (logger.isTraceEnabled()) {
                 logger.trace("starting transaction at",
                     new RuntimeException("this exception is just used to record where the transaction has been started from"));
