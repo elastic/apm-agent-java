@@ -34,6 +34,6 @@ public class LogbackAppenderStopAdvice {
     @SuppressWarnings({"unused"})
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
     public static void shadeLoggingEvent(@Advice.This(typing = Assigner.Typing.DYNAMIC) OutputStreamAppender<ILoggingEvent> thisAppender) {
-        LogbackLogShadingHelper.instance().closeShadeAppenderFor(thisAppender);
+        LogbackEcsReformattingHelper.instance().closeShadeAppenderFor(thisAppender);
     }
 }

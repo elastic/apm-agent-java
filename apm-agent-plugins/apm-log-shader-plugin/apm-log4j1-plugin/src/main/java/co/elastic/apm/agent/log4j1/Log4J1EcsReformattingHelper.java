@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.log4j1;
 
-import co.elastic.apm.agent.log.shader.AbstractLogShadingHelper;
+import co.elastic.apm.agent.log.shader.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
 
 import co.elastic.logging.log4j.EcsLayout;
@@ -36,15 +36,15 @@ import org.apache.log4j.WriterAppender;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
-class Log4j1LogShadingHelper extends AbstractLogShadingHelper<WriterAppender, Layout> {
+class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAppender, Layout> {
 
-    private static final Log4j1LogShadingHelper INSTANCE = new Log4j1LogShadingHelper();
+    private static final Log4J1EcsReformattingHelper INSTANCE = new Log4J1EcsReformattingHelper();
 
-    static Log4j1LogShadingHelper instance() {
+    static Log4J1EcsReformattingHelper instance() {
         return INSTANCE;
     }
 
-    Log4j1LogShadingHelper() {
+    Log4J1EcsReformattingHelper() {
     }
 
     @Override

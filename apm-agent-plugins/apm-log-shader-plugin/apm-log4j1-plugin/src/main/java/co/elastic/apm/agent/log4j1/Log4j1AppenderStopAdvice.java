@@ -33,6 +33,6 @@ public class Log4j1AppenderStopAdvice {
     @SuppressWarnings({"unused"})
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
     public static void shadeLoggingEvent(@Advice.This(typing = Assigner.Typing.DYNAMIC) WriterAppender thisAppender) {
-        Log4j1LogShadingHelper.instance().closeShadeAppenderFor(thisAppender);
+        Log4J1EcsReformattingHelper.instance().closeShadeAppenderFor(thisAppender);
     }
 }

@@ -32,10 +32,8 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.WriterAppender;
-import org.junit.jupiter.api.Disabled;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,7 +68,7 @@ public class Log4j1ShadingTest extends LogShadingInstrumentationTest {
 
         @Override
         public void close() {
-            Log4j1LogShadingHelper.instance().closeShadeAppender((WriterAppender) log4j1Logger.getAppender("FILE"));
+            Log4J1EcsReformattingHelper.instance().closeShadeAppender((WriterAppender) log4j1Logger.getAppender("FILE"));
             LogManager.shutdown();
         }
 

@@ -52,7 +52,7 @@ public class Log4j2AppenderGetLayoutAdvice {
             // Effectively disables instrumentation to all database appenders
             return null;
         }
-        Layout<? extends Serializable> ecsLayout = Log4j2LogShadingHelper.instance().getEcsOverridingFormatterFor(thisAppender);
+        Layout<? extends Serializable> ecsLayout = Log4J2EcsReformattingHelper.instance().getEcsOverridingFormatterFor(thisAppender);
         if (ecsLayout != null) {
             return ecsLayout;
         }

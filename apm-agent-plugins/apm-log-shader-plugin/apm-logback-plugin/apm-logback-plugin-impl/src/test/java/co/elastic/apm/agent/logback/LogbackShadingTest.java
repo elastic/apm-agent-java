@@ -76,7 +76,7 @@ public class LogbackShadingTest extends LogShadingInstrumentationTest {
 
         @Override
         public void close() {
-            LogbackLogShadingHelper.instance().closeShadeAppender((FileAppender<ILoggingEvent>) logbackLogger.getAppender("FILE"));
+            LogbackEcsReformattingHelper.instance().closeShadeAppender((FileAppender<ILoggingEvent>) logbackLogger.getAppender("FILE"));
             logbackLogger.detachAndStopAllAppenders();
         }
 

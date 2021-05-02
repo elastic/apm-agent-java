@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.payload.ServiceFactory;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
@@ -101,20 +102,20 @@ import javax.annotation.Nullable;
  * @param <F> logging-framework-specific formatter type ({@code Layout} in Log4j, {@code Encoder} in Logback)
  */
 @GlobalState
-public abstract class AbstractLogShadingHelper<A, F> {
+public abstract class AbstractEcsReformattingHelper<A, F> {
 
     // Escape shading
     private static final String ECS_LOGGING_PACKAGE_NAME = "co!elastic!logging".replace('!', '.');
 
     // We can use regular shaded logging here as this class is loaded from the agent CL
-    private static final Logger logger = LoggerFactory.getLogger(AbstractLogShadingHelper.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractEcsReformattingHelper.class);
     public static final String ECS_SHADE_APPENDER_NAME = "EcsShadeAppender";
 
     // Used to cache the fact that ECS-formatter or ECS-appender are not created for a given appender
     private static final Object NULL_APPENDER = new Object();
     private static final Object NULL_FORMATTER = new Object();
 
-    private static final CallDepth callDepth = CallDepth.get(AbstractLogShadingHelper.class);
+    private static final CallDepth callDepth = CallDepth.get(AbstractEcsReformattingHelper.class);
 
     /**
      * A mapping between original appender and the corresponding ECS-appender.
@@ -147,11 +148,11 @@ public abstract class AbstractLogShadingHelper<A, F> {
     private static final ThreadLocal<LogEcsReformatting> configForCurrentLogEvent = new ThreadLocal<>();
 
     private final LoggingConfiguration loggingConfiguration;
-    @Nullable
 
+    @Nullable
     private final String configuredServiceName;
 
-    public AbstractLogShadingHelper() {
+    public AbstractEcsReformattingHelper() {
         ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
         loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
         configuredServiceName = new ServiceFactory().createService(tracer.getConfig(CoreConfiguration.class), "").getName();
@@ -208,7 +209,7 @@ public abstract class AbstractLogShadingHelper<A, F> {
             Object originalFormatter = NULL_FORMATTER;
             Object ecsFormatter = NULL_FORMATTER;
             try {
-                if (!isShadingAppender(originalAppender) && !isUsingEcsFormatter(originalAppender)) {
+                if (shouldApplyEcsReformatting(originalAppender)) {
                     originalFormatter = getFormatterFrom(originalAppender);
                     String serviceName = getServiceName();
                     F createdEcsFormatter = createEcsFormatter(getEventDataset(originalAppender, serviceName), serviceName);
@@ -288,18 +289,14 @@ public abstract class AbstractLogShadingHelper<A, F> {
             }
 
             ecsAppender = NULL_APPENDER;
-
-            if (isShadingAppender(originalAppender) || isUsingEcsFormatter(originalAppender)) {
-                originalAppender2ecsAppender.put(originalAppender, ecsAppender);
-                return ecsAppender;
-            }
-
             try {
-                String serviceName = getServiceName();
-                F ecsFormatter = createEcsFormatter(getEventDataset(originalAppender, serviceName), serviceName);
-                ecsAppender = createAndStartEcsAppender(originalAppender, ECS_SHADE_APPENDER_NAME, ecsFormatter);
-                if (ecsAppender == null) {
-                    ecsAppender = NULL_APPENDER;
+                if (shouldApplyEcsReformatting(originalAppender)) {
+                    String serviceName = getServiceName();
+                    F ecsFormatter = createEcsFormatter(getEventDataset(originalAppender, serviceName), serviceName);
+                    ecsAppender = createAndStartEcsAppender(originalAppender, ECS_SHADE_APPENDER_NAME, ecsFormatter);
+                    if (ecsAppender == null) {
+                        ecsAppender = NULL_APPENDER;
+                    }
                 }
             } catch (Throwable throwable) {
                 logger.warn(String.format("Failed to create ECS shade appender for log appender %s.%s. " +
@@ -310,6 +307,13 @@ public abstract class AbstractLogShadingHelper<A, F> {
             }
             return ecsAppender;
         }
+    }
+
+    private boolean shouldApplyEcsReformatting(A originalAppender) {
+        F formatter = getFormatterFrom(originalAppender);
+        return !isShadingAppender(originalAppender) &&
+            !isEcsFormatter(formatter) &&
+            WildcardMatcher.anyMatch(loggingConfiguration.getLogEcsFormatterAllowList(), formatter.getClass().getName()) != null;
     }
 
     /**
@@ -353,16 +357,16 @@ public abstract class AbstractLogShadingHelper<A, F> {
     }
 
     /**
-     * Checks if the given appender uses ECS-logging that was configured independently of the Java agent.
+     * Checks if the given formatter comes from the usage of ECS-logging that was configured independently of the Java agent.
      * We cannot rely on the actual class (e.g. through {@code instanceof}) because the ECS-logging dependency used by
      * this plugin is shaded and because we are looking for ECS encoder/layout from an arbitrary version that could be
      * loaded by any class loader.
      *
-     * @param appender appender
-     * @return true if the provided formatter an ECS-formatter; false otherwise
+     * @param formatter formatter
+     * @return true if the provided formatter is an ECS-formatter; false otherwise
      */
-    private boolean isUsingEcsFormatter(A appender) {
-        return appender.getClass().getName().startsWith(ECS_LOGGING_PACKAGE_NAME);
+    private boolean isEcsFormatter(F formatter) {
+        return formatter.getClass().getName().startsWith(ECS_LOGGING_PACKAGE_NAME);
     }
 
     /**

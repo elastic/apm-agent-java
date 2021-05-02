@@ -35,7 +35,7 @@ public class Log4j2AppenderAppendAdvice {
     @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
     public static boolean shadeAndSkipIfReplaceEnabled(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogEvent eventObject,
                                                        @Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender) {
-        return Log4j2LogShadingHelper.instance().onAppendEnter(thisAppender);
+        return Log4J2EcsReformattingHelper.instance().onAppendEnter(thisAppender);
     }
 
     @SuppressWarnings({"unused"})
@@ -43,7 +43,7 @@ public class Log4j2AppenderAppendAdvice {
     public static void shadeLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogEvent eventObject,
                                          @Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender) {
 
-        Appender shadeAppender = Log4j2LogShadingHelper.instance().onAppendExit(thisAppender);
+        Appender shadeAppender = Log4J2EcsReformattingHelper.instance().onAppendExit(thisAppender);
         if (shadeAppender != null) {
             shadeAppender.append(eventObject);
         }

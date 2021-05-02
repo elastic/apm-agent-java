@@ -75,7 +75,7 @@ public class Log4j2ShadingTest extends LogShadingInstrumentationTest {
         @Override
         public void close() {
             Appender fileAppender = ((org.apache.logging.log4j.core.Logger) log4j2Logger).getAppenders().get("FILE");
-            Log4j2LogShadingHelper.instance().closeShadeAppenderFor(fileAppender);
+            Log4J2EcsReformattingHelper.instance().closeShadeAppenderFor(fileAppender);
             LogManager.shutdown();
         }
 

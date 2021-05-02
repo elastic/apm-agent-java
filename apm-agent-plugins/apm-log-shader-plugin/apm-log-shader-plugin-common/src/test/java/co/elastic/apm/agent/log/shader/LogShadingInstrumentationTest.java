@@ -42,6 +42,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Objects;
 import java.util.TimeZone;
@@ -182,6 +183,19 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         for (JsonNode ecsLogLineTree : overriddenLogEvents) {
             verifyEcsLogLine(ecsLogLineTree);
         }
+    }
+
+    @Test
+    public void testEmptyFormatterAllowList() throws Exception {
+        initializeShadeDir("disabled");
+        setEcsReformattingConfig(LogEcsReformatting.SHADE);
+        doReturn(Collections.EMPTY_LIST).when(loggingConfig).getLogEcsFormatterAllowList();
+        logger.trace(TRACE_MESSAGE);
+        logger.debug(DEBUG_MESSAGE);
+        logger.warn(WARN_MESSAGE);
+        logger.error(ERROR_MESSAGE);
+        assertThat(readRawLogLines()).hasSize(4);
+        assertThat(Files.exists(Paths.get(getShadeLogFilePath()))).isFalse();
     }
 
     @Test

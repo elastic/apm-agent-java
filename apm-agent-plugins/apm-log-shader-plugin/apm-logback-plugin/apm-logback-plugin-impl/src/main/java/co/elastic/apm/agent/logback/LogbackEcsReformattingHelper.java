@@ -32,23 +32,23 @@ import ch.qos.logback.core.encoder.Encoder;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
-import co.elastic.apm.agent.log.shader.AbstractLogShadingHelper;
+import co.elastic.apm.agent.log.shader.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
 import co.elastic.logging.logback.EcsEncoder;
 
 import javax.annotation.Nullable;
 
-class LogbackLogShadingHelper extends AbstractLogShadingHelper<OutputStreamAppender<ILoggingEvent>, Encoder<ILoggingEvent>> {
+class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputStreamAppender<ILoggingEvent>, Encoder<ILoggingEvent>> {
 
     private static final LoggerContext defaultLoggerContext = new LoggerContext();
 
-    private static final LogbackLogShadingHelper INSTANCE = new LogbackLogShadingHelper();
+    private static final LogbackEcsReformattingHelper INSTANCE = new LogbackEcsReformattingHelper();
 
-    static LogbackLogShadingHelper instance() {
+    static LogbackEcsReformattingHelper instance() {
         return INSTANCE;
     }
 
-    private LogbackLogShadingHelper() {
+    private LogbackEcsReformattingHelper() {
     }
 
     @Override

@@ -91,6 +91,12 @@ public class LegacyLog4j2ShadingTest extends Log4j2ShadingTest {
 
     @Test
     @Override
+    public void testEmptyFormatterAllowList() throws Exception {
+        super.testEmptyFormatterAllowList();
+    }
+
+    @Test
+    @Override
     public void testShadeLogRolling() throws IOException {
         super.testShadeLogRolling();
     }
