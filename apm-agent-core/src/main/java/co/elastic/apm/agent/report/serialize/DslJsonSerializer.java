@@ -1236,6 +1236,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeUser(final User user) {
         writeFieldName("user");
         jw.writeByte(OBJECT_START);
+        writeField("domain", user.getDomain());
         writeField("id", user.getId());
         writeField("email", user.getEmail());
         writeLastField("username", user.getUsername());

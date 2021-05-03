@@ -22,10 +22,11 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.plugin.test;
+package co.elastic.apm.agent.plugin;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.test.TestClass;
 import org.junit.jupiter.api.Test;
 
 import java.util.Objects;
@@ -39,6 +40,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  * from the system classpath and the instrumentation class is loaded as an internal plugin. In order to fully test
  * the external plugin, see `integration-tests/external-plugin-app`, which creates a webapp that is tested on all
  * Servlet containers in `integration-tests/application-server-integration-tests`.
+ * <br/>
+ * Implementation note: within this test, due to not testing a packaged external plugin, the
+ * {@code co.elastic.apm.agent.} package prefix is required for the instrumentation class. When plugin is loaded
+ * from a real external plugin this constraint does not apply.
  */
 class PluginInstrumentationTest extends AbstractInstrumentationTest {
 

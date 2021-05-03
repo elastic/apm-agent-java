@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
+ * Copyright (C) 2021 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -22,37 +22,45 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.bci.subpackage;
+package co.elastic.apm.agent.struts;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import net.bytebuddy.asm.Advice;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
-import java.util.Collections;
 
-import static net.bytebuddy.matcher.ElementMatchers.none;
+import static java.util.Collections.singletonList;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class AdviceInSubpackageInstrumentation extends TracerAwareInstrumentation {
+public class Struts2TransactionNameInstrumentation extends ElasticApmInstrumentation {
 
-    @Advice.OnMethodEnter(inline = false)
-    private static void onEnter() {
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("ActionProxy");
     }
 
     @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return none();
+    public final ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return hasSuperType(named("com.opensymphony.xwork2.ActionProxy"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return none();
+        return named("execute");
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("test");
+        return singletonList("struts");
+    }
+
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.struts.Struts2TransactionNameAdvice";
     }
 }

@@ -1,1 +1,1 @@
-co.elastic.apm.agent.hibernatesearch.HibernateSearch5Instrumentation
+co.elastic.apm.agent.hibernatesearch.v5.HibernateSearch5Instrumentation
