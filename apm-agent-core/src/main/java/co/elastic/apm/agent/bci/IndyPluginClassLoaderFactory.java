@@ -54,7 +54,8 @@ public class IndyPluginClassLoaderFactory {
      * The agent class loader is currently the bootstrap CL but in the future it will be an isolated CL that is a child of the bootstrap CL.
      */
     public synchronized static ClassLoader getOrCreatePluginClassLoader(@Nullable ClassLoader targetClassLoader,
-                                                                        List<String> classesToInject, ClassLoader agentClassLoader,
+                                                                        List<String> classesToInject,
+                                                                        ClassLoader agentClassLoader,
                                                                         ClassFileLocator classFileLocator,
                                                                         ElementMatcher<? super TypeDescription> exclusionMatcher) throws Exception {
         classesToInject = new ArrayList<>(classesToInject);

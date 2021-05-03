@@ -57,10 +57,10 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnter(@Advice.Origin Class<?> clazz,
-                                  @Advice.Argument(0) ServerCall<?, ?> serverCall,
-                                  @Advice.Argument(1) Metadata headers) {
+                                 @Advice.Argument(0) ServerCall<?, ?> serverCall,
+                                 @Advice.Argument(1) Metadata headers) {
 
-        return helper.startTransaction(tracer, clazz.getClassLoader(), serverCall, headers);
+        return GrpcHelper.getInstance().startTransaction(tracer, clazz.getClassLoader(), serverCall, headers);
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -80,7 +80,7 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
         }
 
         if (listener != null) {
-            helper.registerTransaction(serverCall, listener, transaction);
+            GrpcHelper.getInstance().registerTransaction(serverCall, listener, transaction);
         }
 
 
