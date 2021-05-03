@@ -35,6 +35,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -111,6 +112,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
         // confluent versions 3.2.x correspond Kafka versions 0.10.2.2 -
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
         kafka = new KafkaContainer("3.2.2");
+        kafka.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
         kafka.start();
         bootstrapServers = kafka.getBootstrapServers();
         consumerThread = new Consumer();

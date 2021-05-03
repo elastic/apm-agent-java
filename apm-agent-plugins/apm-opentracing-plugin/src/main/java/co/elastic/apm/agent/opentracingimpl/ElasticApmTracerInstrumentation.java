@@ -22,37 +22,29 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.bci.subpackage;
+package co.elastic.apm.agent.opentracingimpl;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Collection;
-import java.util.Collections;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 
-import static net.bytebuddy.matcher.ElementMatchers.none;
+public class ElasticApmTracerInstrumentation extends OpenTracingBridgeInstrumentation {
 
-public class AdviceInSubpackageInstrumentation extends TracerAwareInstrumentation {
-
-    @Advice.OnMethodEnter(inline = false)
-    private static void onEnter() {
+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+    public static void close() {
+        tracer.stop();
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return none();
+        return named("co.elastic.apm.opentracing.ElasticApmTracer");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return none();
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("test");
+        return named("close");
     }
 }

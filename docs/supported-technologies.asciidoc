@@ -58,6 +58,10 @@ the agent does not capture transactions.
 |HP-UX JVM
 | 7.0.10+, 8.0.02+
 |
+
+|SAP JVM
+| 8.1.065+
+|
 |===
 
 NOTE: Early Java 8 versions before update 40 are *not supported* because they have
@@ -132,6 +136,11 @@ rendering
 |3+
 |
 |1.17.0
+
+|Apache Struts
+|2.x
+|The transactions are named based on your action (`ActionClass#actionMethod`).
+|1.24.0
 
 |===
 

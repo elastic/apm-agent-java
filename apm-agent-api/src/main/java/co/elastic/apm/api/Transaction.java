@@ -182,6 +182,23 @@ public interface Transaction extends Span {
     Transaction setUser(String id, String email, String username);
 
     /**
+     * Call this to enrich collected performance data and errors with information about the user/client.
+     * <p>
+     * This method can be called at any point during the request/response life cycle (i.e. while a transaction is active).
+     * The given context will be added to the active transaction.
+     * </p>
+     * <p>
+     * If an error is captured, the context from the active transaction is used as context for the captured error.
+     * </p>
+     *
+     * @param id       The user's id or {@code null}, if not applicable.
+     * @param email    The user's email address or {@code null}, if not applicable.
+     * @param username The user's name or {@code null}, if not applicable.
+     * @param domain   The user's domain or {@code null}, if not applicable.
+     */
+    Transaction setUser(String id, String email, String username, String domain);
+
+    /**
      * A string describing the result of the transaction.
      * This is typically the HTTP status code, or e.g. "success" for a background task
      *

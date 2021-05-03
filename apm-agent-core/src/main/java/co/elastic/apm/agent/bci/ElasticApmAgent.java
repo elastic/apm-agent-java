@@ -501,9 +501,9 @@ public class ElasticApmAgent {
                 }
             }
         }
-        if (!(classLoader instanceof ExternalPluginClassLoader) && adviceClassName.startsWith("co.elastic.apm.agent.") && adviceClassName.split("\\.").length > 6) {
+        if (!(classLoader instanceof ExternalPluginClassLoader) && !adviceClassName.startsWith("co.elastic.apm.agent.")) {
             throw new IllegalStateException(String.format(
-                "Invalid Advice class - %s - Indy-dispatched advice class must be at the root of the instrumentation plugin.",
+                "Invalid Advice class - %s - Indy-dispatched advice class must be in a sub-package of 'co.elastic.apm.agent'.",
                 adviceClassName)
             );
         }
@@ -720,7 +720,7 @@ public class ElasticApmAgent {
                         .with(TypeValidation.of(logger.isDebugEnabled()))
                         .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
                     AgentBuilder agentBuilder = getAgentBuilder(
-                        byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.HYBRID, false, false
+                        byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false, false
                     );
                     for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
                         ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);

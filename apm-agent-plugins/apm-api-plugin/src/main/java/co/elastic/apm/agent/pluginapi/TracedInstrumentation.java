@@ -45,6 +45,7 @@ import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_METHOD_SIGNATURE;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
@@ -52,6 +53,7 @@ import static co.elastic.apm.agent.pluginapi.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class TracedInstrumentation extends TracerAwareInstrumentation {
 
@@ -121,6 +123,7 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(config.getApplicationPackages(), ElementMatchers.<NamedElement>none())
+            .and(not(isProxy()))
             .and(declaresMethod(getMethodMatcher()));
     }
 

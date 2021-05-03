@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
+ * Copyright (C) 2021 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -22,29 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.opentracing.impl;
+@NonnullApi
+package co.elastic.apm.agent.struts;
 
-import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.matcher.ElementMatcher;
-
-import static net.bytebuddy.matcher.ElementMatchers.named;
-
-public class ElasticApmTracerInstrumentation extends OpenTracingBridgeInstrumentation {
-
-    @Advice.OnMethodExit(suppress = Throwable.class)
-    public static void close() {
-        tracer.stop();
-    }
-
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.apm.opentracing.ElasticApmTracer");
-    }
-
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("close");
-    }
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

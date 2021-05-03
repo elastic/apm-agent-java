@@ -26,6 +26,7 @@ package co.elastic.apm.agent.cassandra;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import org.junit.jupiter.api.AfterEach;
@@ -40,6 +41,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -54,7 +56,10 @@ class Cassandra3InstrumentationIT extends AbstractInstrumentationTest {
     public static GenericContainer<?> cassandra = new GenericContainer<>("cassandra:3.11")
         .withExposedPorts(9042)
         .withLogConsumer(new Slf4jLogConsumer(logger))
-        .withStartupTimeout(Duration.ofSeconds(120));
+        .withStartupTimeout(Duration.ofSeconds(120))
+        .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048))
+        .withEnv("HEAP_NEWSIZE", "700m")
+        .withEnv("MAX_HEAP_SIZE", "1024m");
     private static Session session;
     private static Cluster cluster;
     private Transaction transaction;

@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
+ * Copyright (C) 2021 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -22,37 +22,45 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.opentracing.impl;
+package co.elastic.apm.agent.struts;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import net.bytebuddy.asm.Advice;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
+import java.util.Collection;
 
+import static java.util.Collections.singletonList;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class ApmScopeInstrumentation extends OpenTracingBridgeInstrumentation {
+public class Struts2TransactionNameInstrumentation extends ElasticApmInstrumentation {
 
-    @VisibleForAdvice
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> dispatcher) {
-        if (dispatcher != null) {
-            dispatcher.deactivate();
-        }
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("ActionProxy");
     }
 
     @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.apm.opentracing.ApmScope");
+    public final ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return hasSuperType(named("com.opensymphony.xwork2.ActionProxy"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("release");
+        return named("execute");
+    }
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return singletonList("struts");
+    }
+
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.struts.Struts2TransactionNameAdvice";
     }
 }
