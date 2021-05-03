@@ -26,6 +26,7 @@ endif::[]
 [float]
 ===== Features
 * Basic support for Apache Struts 2 {pull}1763[#1763]
+* Added support to capture `context.message.routing-key` in rabbitmq, spring amqp instrumentations - {pull}1767[#1767]
 
 [float]
 ===== Bug fixes

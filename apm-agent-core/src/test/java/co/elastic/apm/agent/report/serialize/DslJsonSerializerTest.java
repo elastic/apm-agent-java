@@ -376,6 +376,7 @@ class DslJsonSerializerTest {
     void testSpanMessageContextSerialization() {
         Span span = new Span(MockTracer.create());
         span.getContext().getMessage()
+            .withRoutingKey("routing-key")
             .withQueue("test-queue")
             .withBody("test-body")
             .addHeader("text-header", "text-value")
@@ -400,6 +401,8 @@ class DslJsonSerializerTest {
         JsonNode ms = age.get("ms");
         assertThat(ms).isNotNull();
         assertThat(ms.longValue()).isEqualTo(20);
+        JsonNode routingKey = message.get("routing_key");
+        assertThat(routingKey.textValue()).isEqualTo("routing-key");
     }
 
     @Test
