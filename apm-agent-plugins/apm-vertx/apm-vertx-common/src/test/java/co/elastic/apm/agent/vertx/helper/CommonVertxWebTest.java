@@ -26,10 +26,13 @@ package co.elastic.apm.agent.vertx.helper;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.agent.impl.context.Request;
+import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import co.elastic.apm.api.ElasticApm;
 import io.vertx.core.Handler;
@@ -62,11 +65,12 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
     void testBasicVertxWebCall() throws Exception {
         Response response = http().get("/test");
         expectTransaction(response, "/test", DEFAULT_RESPONSE_BODY, "GET /test", 200);
-        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo(AbstractVertxWebHelper.FRAMEWORK_NAME);
-        assertThat(reporter.getFirstTransaction().getFrameworkVersion()).startsWith(expectedVertxVersion());
-        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("HTTP 2xx");
-        assertThat(reporter.getFirstTransaction().getType()).isEqualTo("request");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo(schema() + "://localhost:" + port() + "/test");
+        Transaction transaction = reporter.getFirstTransaction();
+        assertThat(transaction.getFrameworkName()).isEqualTo(AbstractVertxWebHelper.FRAMEWORK_NAME);
+        assertThat(transaction.getFrameworkVersion()).startsWith(expectedVertxVersion());
+        assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
+        assertThat(transaction.getType()).isEqualTo("request");
+        assertThat(transaction.getContext().getRequest().getUrl().getFull().toString()).isEqualTo(schema() + "://localhost:" + port() + "/test");
         assertThat(reporter.getSpans().size()).isEqualTo(0);
     }
 
@@ -87,9 +91,10 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         Response response = http().get("/test", headers);
         expectTransaction(response, "/test", DEFAULT_RESPONSE_BODY, "GET /test", 200);
 
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getHeaders().size()).isEqualTo(0);
-        assertThat(reporter.getFirstTransaction().getContext().getResponse().getHeaders().size()).isEqualTo(0);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getFormUrlEncodedParameters().size()).isEqualTo(0);
+        TransactionContext context = reporter.getFirstTransaction().getContext();
+        assertThat(context.getRequest().getHeaders().size()).isEqualTo(0);
+        assertThat(context.getResponse().getHeaders().size()).isEqualTo(0);
+        assertThat(context.getRequest().getFormUrlEncodedParameters().size()).isEqualTo(0);
     }
 
     @Test
@@ -99,10 +104,11 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         Response response = http().get("/test", headers);
         expectTransaction(response, "/test", DEFAULT_RESPONSE_BODY, "GET /test", 200);
 
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getHeaders().containsIgnoreCase("Key1")).isEqualTo(true);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getHeaders().getFirst("Key1")).isEqualTo("Value1");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getHeaders().containsIgnoreCase("Key2")).isEqualTo(true);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getHeaders().getFirst("Key2")).isEqualTo("Value2");
+        PotentiallyMultiValuedMap requestHeaders = reporter.getFirstTransaction().getContext().getRequest().getHeaders();
+        assertThat(requestHeaders.containsIgnoreCase("Key1")).isEqualTo(true);
+        assertThat(requestHeaders.getFirst("Key1")).isEqualTo("Value1");
+        assertThat(requestHeaders.containsIgnoreCase("Key2")).isEqualTo(true);
+        assertThat(requestHeaders.getFirst("Key2")).isEqualTo("Value2");
     }
 
     @Test
@@ -131,14 +137,15 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         Response response = http().post("/post?par1=abc&par2=xyz", "Some Body", MediaType.get("application/x-www-form-urlencoded"));
         expectTransaction(response, "/post", DEFAULT_RESPONSE_BODY, "POST /post", 200);
 
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getMethod()).isEqualTo("POST");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getFormUrlEncodedParameters().size()).isEqualTo(2);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getFormUrlEncodedParameters().containsIgnoreCase("par1")).isEqualTo(true);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getFormUrlEncodedParameters().getFirst("par1")).isEqualTo("abc");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getFormUrlEncodedParameters().containsIgnoreCase("par2")).isEqualTo(true);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getFormUrlEncodedParameters().getFirst("par2")).isEqualTo("xyz");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getSearch()).isEqualTo("par1=abc&par2=xyz");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody()).isEqualTo(reporter.getFirstTransaction().getContext().getRequest().getFormUrlEncodedParameters());
+        Request request = reporter.getFirstTransaction().getContext().getRequest();
+        assertThat(request.getMethod()).isEqualTo("POST");
+        assertThat(request.getFormUrlEncodedParameters().size()).isEqualTo(2);
+        assertThat(request.getFormUrlEncodedParameters().containsIgnoreCase("par1")).isEqualTo(true);
+        assertThat(request.getFormUrlEncodedParameters().getFirst("par1")).isEqualTo("abc");
+        assertThat(request.getFormUrlEncodedParameters().containsIgnoreCase("par2")).isEqualTo(true);
+        assertThat(request.getFormUrlEncodedParameters().getFirst("par2")).isEqualTo("xyz");
+        assertThat(request.getUrl().getSearch()).isEqualTo("par1=abc&par2=xyz");
+        assertThat(request.getBody()).isEqualTo(request.getFormUrlEncodedParameters());
     }
 
     @Test
@@ -151,10 +158,11 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         Response response = http().post("/post?par1=abc&par2=xyz", jsonBody, MediaType.get("application/json"));
         expectTransaction(response, "/post", DEFAULT_RESPONSE_BODY, "POST /post", 200);
 
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getFormUrlEncodedParameters().size()).isEqualTo(0);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getSearch()).isEqualTo("par1=abc&par2=xyz");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody()).isInstanceOf(CharBuffer.class);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody().toString()).isEqualTo(jsonBody);
+        Request request = reporter.getFirstTransaction().getContext().getRequest();
+        assertThat(request.getFormUrlEncodedParameters().size()).isEqualTo(0);
+        assertThat(request.getUrl().getSearch()).isEqualTo("par1=abc&par2=xyz");
+        assertThat(request.getBody()).isInstanceOf(CharBuffer.class);
+        assertThat(request.getBody().toString()).isEqualTo(jsonBody);
     }
 
     @Test
@@ -187,9 +195,10 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         Response response = http().get(path);
         expectTransaction(response, path, DEFAULT_RESPONSE_BODY, "GET " + path, 200);
         reporter.awaitSpanCount(1);
-        assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo(callType + "-child-span");
-        assertThat(reporter.getFirstSpan().getParent()).isEqualTo(reporter.getFirstTransaction());
+        assertThat(reporter.getSpans()).hasSize(1);
+        Span span = reporter.getFirstSpan();
+        assertThat(span.getNameAsString()).isEqualTo(callType + "-child-span");
+        assertThat(span.getParent()).isEqualTo(reporter.getFirstTransaction());
     }
 
     @ParameterizedTest
@@ -199,9 +208,10 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         Response response = http().get(path);
         expectTransaction(response, path, DEFAULT_RESPONSE_BODY, "GET " + path, 200);
         reporter.awaitSpanCount(1);
-        assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo(callType + "-child-span");
-        assertThat(reporter.getFirstSpan().getParent()).isEqualTo(reporter.getFirstTransaction());
+        assertThat(reporter.getSpans()).hasSize(1);
+        Span span = reporter.getFirstSpan();
+        assertThat(span.getNameAsString()).isEqualTo(callType + "-child-span");
+        assertThat(span.getParent()).isEqualTo(reporter.getFirstTransaction());
     }
 
     @Test

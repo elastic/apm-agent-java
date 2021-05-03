@@ -26,6 +26,7 @@ package co.elastic.apm.agent.vertx.helper;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import io.vertx.ext.web.Router;
@@ -133,7 +134,8 @@ public abstract class AbstractVertxWebTest extends AbstractInstrumentationTest {
             .distinct())
             .describedAs("transaction service name should be inherited from test class name")
             .containsExactly(expectedTransactionName);
-        assertThat(reporter.getFirstTransaction().getContext().getResponse().getStatusCode()).isEqualTo(expectedStatusCode);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPathname()).isEqualTo(path);
+        TransactionContext context = reporter.getFirstTransaction().getContext();
+        assertThat(context.getResponse().getStatusCode()).isEqualTo(expectedStatusCode);
+        assertThat(context.getRequest().getUrl().getPathname()).isEqualTo(path);
     }
 }
