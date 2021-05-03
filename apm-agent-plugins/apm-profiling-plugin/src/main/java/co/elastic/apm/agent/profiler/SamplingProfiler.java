@@ -181,6 +181,8 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     private final ObjectPool<CallTree> callTreePool;
     private final TraceContext contextForLogging;
 
+    private boolean previouslyEnabled = false;
+
     /**
      * Creates a sampling profiler using temporary files
      *
@@ -332,20 +334,31 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
 
     @Override
     public void run() {
-        if (!config.isProfilingEnabled() || !tracer.isRunning()) {
+
+        boolean enabled = config.isProfilingEnabled() && tracer.isRunning();
+        boolean hasBeenDisabled = previouslyEnabled && !enabled;
+        previouslyEnabled = enabled;
+
+        if (!enabled) {
             if (jfrParser != null) {
                 jfrParser = null;
             }
             if (!scheduler.isShutdown()) {
                 scheduler.schedule(this, config.getProfilingInterval().getMillis(), TimeUnit.MILLISECONDS);
             }
-            try {
-                clear();
-            } catch (Throwable throwable) {
-                logger.error("Error while trying to clear profiler constructs", throwable);
+
+            if (hasBeenDisabled) {
+                // only clear when going from enabled -> disabled state
+                try {
+                    clear();
+                } catch (Throwable throwable) {
+                    logger.error("Error while trying to clear profiler constructs", throwable);
+                }
             }
+
             return;
         }
+
 
         // lazily create temporary files
         try {
