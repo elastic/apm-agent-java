@@ -31,7 +31,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 import org.apache.log4j.PropertyConfigurator;
-import org.apache.log4j.WriterAppender;
 
 import java.io.File;
 import java.util.Objects;
@@ -68,7 +67,6 @@ public class Log4j1ShadingTest extends LogShadingInstrumentationTest {
 
         @Override
         public void close() {
-            Log4J1EcsReformattingHelper.instance().closeShadeAppender((WriterAppender) log4j1Logger.getAppender("FILE"));
             LogManager.shutdown();
         }
 

@@ -26,7 +26,6 @@ package co.elastic.apm.agent.logback;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.util.ContextInitializer;
 import ch.qos.logback.core.FileAppender;
 import ch.qos.logback.core.joran.spi.JoranException;
@@ -76,7 +75,6 @@ public class LogbackShadingTest extends LogShadingInstrumentationTest {
 
         @Override
         public void close() {
-            LogbackEcsReformattingHelper.instance().closeShadeAppender((FileAppender<ILoggingEvent>) logbackLogger.getAppender("FILE"));
             logbackLogger.detachAndStopAllAppenders();
         }
 

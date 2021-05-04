@@ -30,9 +30,11 @@ import org.apache.log4j.WriterAppender;
 
 public class Log4j1AppenderStopAdvice {
 
+    private static final Log4J1EcsReformattingHelper helper = new Log4J1EcsReformattingHelper();
+
     @SuppressWarnings({"unused"})
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-    public static void shadeLoggingEvent(@Advice.This(typing = Assigner.Typing.DYNAMIC) WriterAppender thisAppender) {
-        Log4J1EcsReformattingHelper.instance().closeShadeAppenderFor(thisAppender);
+    public static void stopAppender(@Advice.This(typing = Assigner.Typing.DYNAMIC) WriterAppender thisAppender) {
+        helper.closeShadeAppenderFor(thisAppender);
     }
 }

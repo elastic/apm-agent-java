@@ -41,6 +41,8 @@ import java.io.Serializable;
  */
 public class Log4j2AppenderGetLayoutAdvice {
 
+    private static final Log4J2EcsReformattingHelper helper = new Log4J2EcsReformattingHelper();
+
     @SuppressWarnings({"unused"})
     @Nullable
     @AssignTo.Return
@@ -52,7 +54,7 @@ public class Log4j2AppenderGetLayoutAdvice {
             // Effectively disables instrumentation to all database appenders
             return null;
         }
-        Layout<? extends Serializable> ecsLayout = Log4J2EcsReformattingHelper.instance().getEcsOverridingFormatterFor(thisAppender);
+        Layout<? extends Serializable> ecsLayout = helper.getEcsOverridingFormatterFor(thisAppender);
         if (ecsLayout != null) {
             return ecsLayout;
         }

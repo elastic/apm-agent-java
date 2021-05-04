@@ -31,12 +31,14 @@ import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
 public class LogbackAppenderAppendAdvice {
 
+    private static final LogbackEcsReformattingHelper helper = new LogbackEcsReformattingHelper();
+
     @SuppressWarnings("unused")
     @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
     public static boolean shadeAndSkipIfOverrideEnabled(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final Object eventObject,
                                                         @Advice.This(typing = Assigner.Typing.DYNAMIC) OutputStreamAppender<ILoggingEvent> thisAppender) {
 
-        return eventObject instanceof ILoggingEvent && LogbackEcsReformattingHelper.instance().onAppendEnter(thisAppender);
+        return eventObject instanceof ILoggingEvent && helper.onAppendEnter(thisAppender);
     }
 
     @SuppressWarnings({"unused"})
@@ -47,7 +49,7 @@ public class LogbackAppenderAppendAdvice {
         if (!(eventObject instanceof ILoggingEvent)) {
             return;
         }
-        OutputStreamAppender<ILoggingEvent> shadeAppender = LogbackEcsReformattingHelper.instance().onAppendExit(thisAppender);
+        OutputStreamAppender<ILoggingEvent> shadeAppender = helper.onAppendExit(thisAppender);
         if (shadeAppender != null) {
             // We do not invoke the exact same method we instrument, but a public API that calls it
             shadeAppender.doAppend((ILoggingEvent) eventObject);

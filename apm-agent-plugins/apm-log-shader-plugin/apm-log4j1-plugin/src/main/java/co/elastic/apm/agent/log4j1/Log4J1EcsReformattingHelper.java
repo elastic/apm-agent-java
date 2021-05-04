@@ -38,14 +38,7 @@ import java.io.IOException;
 
 class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAppender, Layout> {
 
-    private static final Log4J1EcsReformattingHelper INSTANCE = new Log4J1EcsReformattingHelper();
-
-    static Log4J1EcsReformattingHelper instance() {
-        return INSTANCE;
-    }
-
-    Log4J1EcsReformattingHelper() {
-    }
+    Log4J1EcsReformattingHelper() {}
 
     @Override
     protected Layout getFormatterFrom(WriterAppender appender) {

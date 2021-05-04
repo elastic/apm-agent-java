@@ -31,9 +31,11 @@ import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
 public class LogbackAppenderStopAdvice {
 
+    private static final LogbackEcsReformattingHelper helper = new LogbackEcsReformattingHelper();
+
     @SuppressWarnings({"unused"})
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-    public static void shadeLoggingEvent(@Advice.This(typing = Assigner.Typing.DYNAMIC) OutputStreamAppender<ILoggingEvent> thisAppender) {
-        LogbackEcsReformattingHelper.instance().closeShadeAppenderFor(thisAppender);
+    public static void stopAppender(@Advice.This(typing = Assigner.Typing.DYNAMIC) OutputStreamAppender<ILoggingEvent> thisAppender) {
+        helper.closeShadeAppenderFor(thisAppender);
     }
 }

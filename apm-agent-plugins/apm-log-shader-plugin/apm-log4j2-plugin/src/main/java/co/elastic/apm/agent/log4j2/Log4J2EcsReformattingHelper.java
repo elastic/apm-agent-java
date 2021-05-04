@@ -44,14 +44,7 @@ import java.lang.reflect.Method;
 
 class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender, Layout<? extends Serializable>> {
 
-    private static final Log4J2EcsReformattingHelper INSTANCE = new Log4J2EcsReformattingHelper();
-
-    static Log4J2EcsReformattingHelper instance() {
-        return INSTANCE;
-    }
-
-    private Log4J2EcsReformattingHelper() {
-    }
+    Log4J2EcsReformattingHelper() {}
 
     @Override
     protected Layout<? extends Serializable> getFormatterFrom(Appender appender) {

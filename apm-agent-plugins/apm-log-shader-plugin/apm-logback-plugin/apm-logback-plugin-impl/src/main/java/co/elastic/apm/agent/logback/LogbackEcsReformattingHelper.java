@@ -42,14 +42,7 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
 
     private static final LoggerContext defaultLoggerContext = new LoggerContext();
 
-    private static final LogbackEcsReformattingHelper INSTANCE = new LogbackEcsReformattingHelper();
-
-    static LogbackEcsReformattingHelper instance() {
-        return INSTANCE;
-    }
-
-    private LogbackEcsReformattingHelper() {
-    }
+    LogbackEcsReformattingHelper() {}
 
     @Override
     protected Encoder<ILoggingEvent> getFormatterFrom(OutputStreamAppender<ILoggingEvent> appender) {

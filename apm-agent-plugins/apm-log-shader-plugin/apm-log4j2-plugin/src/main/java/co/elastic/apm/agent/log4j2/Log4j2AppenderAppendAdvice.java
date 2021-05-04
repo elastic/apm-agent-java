@@ -31,11 +31,13 @@ import org.apache.logging.log4j.core.LogEvent;
 
 public class Log4j2AppenderAppendAdvice {
 
+    private static final Log4J2EcsReformattingHelper helper = new Log4J2EcsReformattingHelper();
+
     @SuppressWarnings("unused")
     @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
     public static boolean shadeAndSkipIfReplaceEnabled(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogEvent eventObject,
                                                        @Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender) {
-        return Log4J2EcsReformattingHelper.instance().onAppendEnter(thisAppender);
+        return helper.onAppendEnter(thisAppender);
     }
 
     @SuppressWarnings({"unused"})
@@ -43,7 +45,7 @@ public class Log4j2AppenderAppendAdvice {
     public static void shadeLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogEvent eventObject,
                                          @Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender) {
 
-        Appender shadeAppender = Log4J2EcsReformattingHelper.instance().onAppendExit(thisAppender);
+        Appender shadeAppender = helper.onAppendExit(thisAppender);
         if (shadeAppender != null) {
             shadeAppender.append(eventObject);
         }
