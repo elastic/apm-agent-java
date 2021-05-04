@@ -342,13 +342,13 @@ The labels you set on non-sampled transactions will be lost.
 To fix some of the caveats listed here, we may have to introduce breaking changes.
 Please look for Micrometer-related release notes before updating.
 
-* Metrics with dots in their name can result in mapping conflicts.
-See https://github.com/elastic/apm/issues/347[elastic/apm#347]
+* Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts.
+De-dotting can be disabled via <<config-dedot-custom-metrics, `dedot_custom_metrics`>>.
 * Histograms(https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/DistributionSummary.html[DistributionSummary],
 https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/Timer.html[Timer],
 and https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/LongTaskTimer.html[LongTaskTimer])
 are partially supported converting the histogram metric into two derived metric: a counter of the values and the sum of the values.
-For example, `DistributionSummary.builder("order").register(...).record(orderPrice)`` will create two metrics: `order.sum` and `order.count`.
+For example, `DistributionSummary.builder("order").register(...).record(orderPrice)` will create two metrics: `order.sum` and `order.count`.
 * When multiple `MeterRegistry` s are used, the metrics are de-duplicated based on their meter id.
   However, it is non-deterministic which metrics are favored if multiple meter registries are used within a compound meter registry.
 See https://github.com/elastic/apm-agent-java/issues/1476[#1476]
@@ -359,8 +359,8 @@ See https://github.com/elastic/apm-agent-java/issues/1476[#1476]
   This may be a combination of `host.name` and `service.name`, or the `kubernetes.pod.id`.
 
 [float]
-[[micrometer-get-started]]
-==== Get started with Micrometer
+[[metrics-micrometer-get-started-existing]]
+==== Get started with existing Micrometer setup
 
 Attach the agent and you’re done!
 The agent automatically detects all `MeterRegistry` instances and reports all metrics to APM Server (in addition to where they originally report).
@@ -381,7 +381,7 @@ Use Discover to validate that metrics are successfully reported to Kibana.
 
 You should now see documents containing both metrics collected by the APM agent and custom metrics from micrometer.
 Narrow your search with a known micrometer metric field.
-For example, if you know `cache.puts` is a micrometer field, add `cache.puts: *` to your search to return only micrometer metrics documents:
+For example, if you know you have registered the metric name `cache.puts` in the micrometer `MeterRegistry`, add `cache_puts: *` (dots are replaced with underscores) to your search to return only micrometer metrics documents:
 
 [float]
 [[visualize-micrometer-data]]
@@ -395,7 +395,7 @@ First, make sure to select right aggregation. The most common options are:
 * Sum: Useful for business metrics
 * Average: Usually used for performance related metrics
 
-It's a common task to group metrics by attributes, including micrometer labels or attributes already collected by APM agents. This could be service versions, runtime versions, or even cloud metadata.
+It's common to group metrics by attributes, including micrometer labels or attributes already collected by APM agents. This could be service versions, runtime versions, or even cloud metadata.
 
 TIP: See the https://www.elastic.co/blog/visualizing-observability-with-kibana-event-rates-and-rate-of-change-in-tsvb[Event rates and rate of change in TSVB] blog post for more information.
 
@@ -449,7 +449,11 @@ MeterRegistry registry = new SimpleMeterRegistry(new SimpleConfig() {
     }, Clock.SYSTEM);
 ----
 
-When using Spring Boot, you can use the `management.metrics.export.simple` prefix to configure via `application.properties`
+==== Get started with Spring Boot
+
+The easiest way to get started with Spring Boot is to add a dependency to [Spring Boot Actuator](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html) if you haven't already. Spring Boot Actuator provides dependency management and auto-configuration for Micrometer.
+
+Use the `management.metrics.export.simple` prefix to configure via `application.properties`
 
 [source,properties]
 ----
