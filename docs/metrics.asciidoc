@@ -24,8 +24,8 @@ When multiple JVMs are running on the same host and report data for the same ser
 * <<metrics-cgroup, cgroup metrics>>
 * <<metrics-jvm>>
 * <<metrics-application>>
-* <<metrics-micrometer>>
 * <<metrics-only-mode>>
+* <<metrics-micrometer>>
 
 [float]
 [[metrics-system]]
@@ -347,7 +347,6 @@ The labels you set on non-sampled transactions will be lost.
 * <<metrics-micrometer-get-started-from-scratch>>
 * <<metrics-micrometer-spring-boot>>
 * <<metrics-micrometer-fields>>
-* <<metrics-only-mode>>
 
 [float]
 [[metrics-micrometer-beta-caveats]]
