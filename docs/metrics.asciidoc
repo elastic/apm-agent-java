@@ -402,7 +402,7 @@ For example, if you know you have registered the metric name `cache.puts` in the
 
 NOTE: Monotonically increased counters and Positive rate aggregations are not fully supported in the current version.
 
-{kib-ref}/tsvb.html[TSVB] is the recommended visualization for Micrometer metrics.
+{kibana-ref}/tsvb.html[TSVB] is the recommended visualization for Micrometer metrics.
 First, make sure to select the right aggregation. The most common options are:
 
 * Sum: Useful for business metrics
