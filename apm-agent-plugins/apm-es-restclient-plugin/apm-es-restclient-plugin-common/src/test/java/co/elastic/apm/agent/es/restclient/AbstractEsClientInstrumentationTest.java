@@ -29,7 +29,6 @@ import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
@@ -99,14 +98,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     @After
     public void endTransaction() {
-        int spanCount = reporter.getNumReportedSpans();
-        if (spanCount > 0) {
-            reporter.getSpans().forEach(s -> assertThat(s.getOutcome())
-                .describedAs("span outcome should be either failure or success")
-                .isNotEqualTo(Outcome.UNKNOWN));
-        }
-
-
         Transaction currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
             currentTransaction.deactivate().end();
@@ -144,7 +135,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         validateSpanContentWithoutContext(span, expectedName, statusCode, method);
         validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
         validateDestinationContextContent(span.getContext().getDestination());
-        assertThat(span.getOutcome()).isNotEqualTo(Outcome.UNKNOWN);
     }
 
     private void validateDestinationContextContent(Destination destination) {

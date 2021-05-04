@@ -109,16 +109,29 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
     }
 
     @Test
-    public void cancelScenario() throws InterruptedException, ExecutionException, IOException {
+    public void testCancelScenario() throws InterruptedException, ExecutionException, IOException {
+        // When spans are cancelled, we can't know the actual address, because there is no response, and we set the outcome as UNKNOWN
         reporter.disableDestinationAddressCheck();
+        reporter.checkUnknownOutcome(false);
         super.disableHttpUrlCheck();
+
         createDocument();
         reporter.reset();
 
         SearchRequest searchRequest = defaultSearchRequest();
 
-        CancellableClientMethod<SearchRequest, SearchResponse> method = (request, options, listener) -> client.searchAsync(request, options, listener);
-        Cancellable cancellable = invokeAsyncWithCancel(searchRequest, method);
+        Cancellable cancellable = client.searchAsync(searchRequest, RequestOptions.DEFAULT, new ActionListener<SearchResponse>() {
+            @Override
+            public void onResponse(SearchResponse searchResponse) {
+                throw new IllegalStateException("This should not be called, ofFailure should be called by cancel first");
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                // nothing to do - we wrap this listener and synchronously end the span
+            }
+        });
+        // This ends the span synchronously
         cancellable.cancel();
 
         List<Span> spans = reporter.getSpans();
@@ -127,7 +140,9 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
         validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), -1, "POST");
 
         deleteDocument();
+
         reporter.enableDestinationAddressCheck();
+        reporter.checkUnknownOutcome(true);
         super.enableHttpUrlCheck();
     }
 
@@ -267,26 +282,5 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
             return invokeAsync(bulkRequest, method);
         }
         return client.bulk(bulkRequest, RequestOptions.DEFAULT);
-    }
-
-    protected interface CancellableClientMethod<Req, Res> {
-        Cancellable invoke(Req request, RequestOptions options, ActionListener<Res> listener);
-    }
-
-    protected  <Req, Res> Cancellable invokeAsyncWithCancel(Req request, CancellableClientMethod<Req, Res> method) throws InterruptedException, ExecutionException {
-        final CompletableFuture<Res> resultFuture = new CompletableFuture<>();
-        return method.invoke(request, RequestOptions.DEFAULT, new ActionListener<>() {
-            @Override
-            public void onResponse(Res response) {
-                logger.info("cancellable onResponse [{}]", response);
-                resultFuture.complete(response);
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                logger.error("cancellable onFailure with msg [{}]", e.getMessage(), e);
-                resultFuture.completeExceptionally(e);
-            }
-        });
     }
 }
