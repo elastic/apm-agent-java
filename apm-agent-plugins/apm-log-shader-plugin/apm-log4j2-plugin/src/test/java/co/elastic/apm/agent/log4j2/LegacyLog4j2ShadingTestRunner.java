@@ -39,7 +39,7 @@ public class LegacyLog4j2ShadingTestRunner {
             "co.elastic.logging:log4j2-ecs-layout:1.0.1"
         );
         runner = new TestClassWithDependencyRunner(dependencies, LegacyLog4j2ShadingTest.class, Log4j2ShadingTest.class,
-            Log4j2LogShadingHelper.class, Log4j2ShadingTest.Log4j2LoggerFacade.class);
+            Log4J2EcsReformattingHelper.class, Log4j2ShadingTest.Log4j2LoggerFacade.class);
     }
 
     @Test

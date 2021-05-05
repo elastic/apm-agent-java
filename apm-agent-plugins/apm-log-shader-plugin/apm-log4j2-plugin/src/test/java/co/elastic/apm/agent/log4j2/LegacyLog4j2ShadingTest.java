@@ -43,7 +43,7 @@ public class LegacyLog4j2ShadingTest extends Log4j2ShadingTest {
 
     @Before
     @Override
-    public void setup() {
+    public void setup() throws Exception {
         super.setup();
     }
 
@@ -67,14 +67,32 @@ public class LegacyLog4j2ShadingTest extends Log4j2ShadingTest {
 
     @Test
     @Override
-    public void testLogShadingDisabled() throws Exception {
-        super.testLogShadingDisabled();
+    public void testLazyShadeFileCreation() throws Exception {
+        super.testLazyShadeFileCreation();
     }
 
     @Test
     @Override
     public void testLogShadingReplaceOriginal() throws IOException {
         super.testLogShadingReplaceOriginal();
+    }
+
+    @Test
+    @Override
+    public void testDynamicConfiguration() throws Exception {
+        super.testDynamicConfiguration();
+    }
+
+    @Test
+    @Override
+    public void testLogOverride() throws IOException {
+        super.testLogOverride();
+    }
+
+    @Test
+    @Override
+    public void testEmptyFormatterAllowList() throws Exception {
+        super.testEmptyFormatterAllowList();
     }
 
     @Test

@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.log4j2;
 
 import co.elastic.apm.agent.log.shader.AbstractLogShadingInstrumentation;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -32,12 +33,15 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public abstract class Log4j2LogShadingInstrumentation extends AbstractLogShadingInstrumentation {
+public abstract class Log4j2EcsReformattingInstrumentation extends AbstractLogShadingInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -49,18 +53,23 @@ public abstract class Log4j2LogShadingInstrumentation extends AbstractLogShading
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender"));
+            .and(classLoaderCanLoadClass("org.apache.logging.log4j.core.Appender"));
+    }
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("Appender");
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender");
+        return hasSuperType(named("org.apache.logging.log4j.core.Appender"));
     }
 
-    public static class ShadingInstrumentation extends Log4j2LogShadingInstrumentation {
+    public static class ShadingInstrumentation extends Log4j2EcsReformattingInstrumentation {
 
         /**
-         * Instrumenting {@link org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender#append(org.apache.logging.log4j.core.LogEvent)}
+         * Instrumenting {@link org.apache.logging.log4j.core.Appender#append(org.apache.logging.log4j.core.LogEvent)} implementations
          */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -74,10 +83,10 @@ public abstract class Log4j2LogShadingInstrumentation extends AbstractLogShading
 
     }
 
-    public static class StopAppenderInstrumentation extends Log4j2LogShadingInstrumentation {
+    public static class StopAppenderInstrumentation extends Log4j2EcsReformattingInstrumentation {
 
         /**
-         * Instrumenting {@link org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender#stop()}
+         * Instrumenting {@link org.apache.logging.log4j.core.Appender#stop()} implementations
          */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -89,5 +98,21 @@ public abstract class Log4j2LogShadingInstrumentation extends AbstractLogShading
             return "co.elastic.apm.agent.log4j2.Log4j2AppenderStopAdvice";
         }
 
+    }
+
+    public static class OverridingInstrumentation extends Log4j2EcsReformattingInstrumentation {
+
+        /**
+         * Instrumenting {@link org.apache.logging.log4j.core.appender.AbstractAppender#getLayout()}
+         */
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("getLayout").and(returns(hasSuperType(named("org.apache.logging.log4j.core.Layout"))));
+        }
+
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.log4j2.Log4j2AppenderGetLayoutAdvice";
+        }
     }
 }

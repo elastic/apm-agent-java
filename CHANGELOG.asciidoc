@@ -26,7 +26,10 @@ endif::[]
 [float]
 ===== Features
 * Basic support for Apache Struts 2 {pull}1763[#1763]
+* Extending the <<config-log-ecs-reformatting>> config option to enable the overriding of logs with ECS-reformatted
+events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted automatically as well - {pull}1793[#1793]
 * Instrumentation for Vert.x Web {pull}1697[#1697]
+
 
 [float]
 ===== Bug fixes
