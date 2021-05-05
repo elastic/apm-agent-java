@@ -366,7 +366,7 @@ For example, `DistributionSummary.builder("order").register(...).record(orderPri
   However, it is non-deterministic which metrics are favored if multiple meter registries are used within a compound meter registry.
 See https://github.com/elastic/apm-agent-java/issues/1476[#1476]
 * When using `CountingMode.STEP`, the step duration has to be aligned with <<config-metrics-interval, `metrics_interval`>>.
-  But even if doing that there can be missing values. - see https://github.com/elastic/apm-agent-java/issues/1476[#1476]
+  But even if doing that there can be missing values. See https://github.com/elastic/apm-agent-java/issues/1476[#1476]
 * When using `CountingMode.CUMULATIVE`, you can use TSVB's "Positive Rate" aggregation to convert the counter to a rate.
   But you have to remember to group by a combination of dimensions that uniquely identify the time series.
   This may be a combination of `host.name` and `service.name`, or the `kubernetes.pod.id`.
@@ -394,7 +394,7 @@ Use Discover to validate that metrics are successfully reported to Kibana.
 
 You should now see documents containing both metrics collected by the APM agent and custom metrics from Micrometer.
 Narrow your search with a known Micrometer metric field.
-For example, if you know you have registered the metric name `cache.puts` in the Micrometer `MeterRegistry`, add `cache_puts: *` (dots are replaced with underscores) to your search to return only Micrometer metrics documents:
+For example, if you know you have registered the metric name `cache.puts` in the Micrometer `MeterRegistry`, add `cache_puts: *` (dots are replaced with underscores) to your search to return only Micrometer metrics documents.
 
 [float]
 [[visualize-micrometer-data]]
