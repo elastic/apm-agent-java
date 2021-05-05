@@ -58,6 +58,8 @@
         <module>apm-rabbitmq</module>
         <module>apm-okhttp-test</module>
         <module>apm-cassandra</module>
+        <module>apm-struts-plugin</module>
+        <module>apm-vertx</module>
     </modules>
 
     <dependencies>

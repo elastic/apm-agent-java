@@ -52,8 +52,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class ApmServerReporterIntegrationTest {
 
@@ -94,7 +94,7 @@ class ApmServerReporterIntegrationTest {
         receivedIntakeApiCalls.set(0);
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
-        when(reporterConfiguration.getServerUrls()).thenReturn(Collections.singletonList(new URL("http://localhost:" + port)));
+        doReturn(Collections.singletonList(new URL("http://localhost:" + port))).when(reporterConfiguration).getServerUrls();
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         final Service service = new Service();
         final ProcessInfo title = new ProcessInfo("title");
@@ -132,7 +132,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testSecretToken() throws ExecutionException, InterruptedException {
-        when(reporterConfiguration.getSecretToken()).thenReturn("token");
+        doReturn("token").when(reporterConfiguration).getSecretToken();
         handler = exchange -> {
             if (exchange.getRequestPath().equals("/intake/v2/events")) {
                 assertThat(exchange.getRequestHeaders().get("Authorization").getFirst()).isEqualTo("Bearer token");

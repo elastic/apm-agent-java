@@ -24,9 +24,11 @@
  */
 package co.elastic.apm.agent.log4j2;
 
-import co.elastic.apm.agent.log.shader.AbstractLogShadingHelper;
+import co.elastic.apm.agent.log.shader.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
 import co.elastic.logging.log4j2.EcsLayout;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender;
 import org.apache.logging.log4j.core.appender.RollingRandomAccessFileAppender;
 import org.apache.logging.log4j.core.appender.rolling.DefaultRolloverStrategy;
@@ -36,34 +38,40 @@ import org.apache.logging.log4j.core.appender.rolling.TriggeringPolicy;
 import org.apache.logging.log4j.core.config.DefaultConfiguration;
 
 import javax.annotation.Nullable;
+import java.io.Serializable;
 import java.lang.reflect.Method;
 
 
-class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStreamAppender<?>> {
+class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender, Layout<? extends Serializable>> {
 
-    private static final Log4j2LogShadingHelper INSTANCE = new Log4j2LogShadingHelper();
+    Log4J2EcsReformattingHelper() {}
 
-    static Log4j2LogShadingHelper instance() {
-        return INSTANCE;
-    }
-
-    private Log4j2LogShadingHelper() {
+    @Override
+    protected Layout<? extends Serializable> getFormatterFrom(Appender appender) {
+        return appender.getLayout();
     }
 
     @Override
-    protected String getFormatterClassName(AbstractOutputStreamAppender<?> appender) {
-        return appender.getLayout().getClass().getName();
-    }
-
-    @Override
-    protected String getAppenderName(AbstractOutputStreamAppender<?> appender) {
+    protected String getAppenderName(Appender appender) {
         return appender.getName();
     }
 
     @Override
-    @Nullable
-    protected AbstractOutputStreamAppender<?> createAndConfigureAppender(AbstractOutputStreamAppender<?> originalAppender, String appenderName) {
+    protected Layout<? extends Serializable> createEcsFormatter(String eventDataset, @Nullable String serviceName) {
+        return EcsLayout.newBuilder()
+            .setServiceName(serviceName)
+            .setEventDataset(eventDataset)
+            .setIncludeMarkers(false)
+            .setIncludeOrigin(false)
+            .setStackTraceAsArray(false)
+            .build();
+    }
 
+    @Override
+    @Nullable
+    protected Appender createAndStartEcsAppender(Appender originalAppender, String ecsAppenderName, Layout<? extends Serializable> ecsFormatter) {
+
+        Appender ecsAppender = null;
         String logFile = null;
 
         // Using class names and reflection in order to avoid version sensitivity
@@ -81,37 +89,35 @@ class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStre
             }
         }
 
-        if (logFile == null) {
-            return null;
+        if (logFile != null) {
+            String shadeFile = Utils.computeShadeLogFilePath(logFile, getConfiguredShadeDir());
+
+            // The deprecated configuration API is used in order to support older versions where the Builder API is not yet available
+            //noinspection deprecation
+            RolloverStrategy rolloverStrategy = DefaultRolloverStrategy.createStrategy("1", "1", null,
+                null, null, true, new DefaultConfiguration());
+
+            TriggeringPolicy triggeringPolicy = SizeBasedTriggeringPolicy.createPolicy(String.valueOf(getMaxLogFileSize()));
+
+            // The deprecated configuration API is used in order to support older versions where the Builder API is not yet available
+            //noinspection deprecation
+            ecsAppender = RollingRandomAccessFileAppender.createAppender(shadeFile, shadeFile + ".%i", "true",
+                ecsAppenderName, String.valueOf(((AbstractOutputStreamAppender<?>) originalAppender).getImmediateFlush()),
+                null, triggeringPolicy, rolloverStrategy, ecsFormatter, null, null, null, null, null);
+
+            ecsAppender.start();
         }
-
-        String shadeFile = Utils.computeShadeLogFilePath(logFile, getConfiguredShadeDir());
-
-        EcsLayout ecsLayout = EcsLayout.newBuilder()
-            .setServiceName(getServiceName())
-            .setEventDataset(getEventDataset(originalAppender))
-            .setIncludeMarkers(false)
-            .setIncludeOrigin(false)
-            .setStackTraceAsArray(false)
-            .build();
-
-        // The deprecated configuration API is used in order to support older versions where the Builder API is not yet available
-        RolloverStrategy rolloverStrategy = DefaultRolloverStrategy.createStrategy("1", "1", null,
-            null, null,true, new DefaultConfiguration());
-
-        TriggeringPolicy triggeringPolicy = SizeBasedTriggeringPolicy.createPolicy(String.valueOf(getMaxLogFileSize()));
-
-        // The deprecated configuration API is used in order to support older versions where the Builder API is not yet available
-        RollingRandomAccessFileAppender appender = RollingRandomAccessFileAppender.createAppender(shadeFile, shadeFile + ".%i",
-            "true", appenderName, String.valueOf(originalAppender.getImmediateFlush()), null, triggeringPolicy,
-            rolloverStrategy, ecsLayout, null, null, null, null, null);
-
-        appender.start();
-        return appender;
+        return ecsAppender;
     }
 
     @Override
-    protected void closeShadeAppender(AbstractOutputStreamAppender<?> shadeAppender) {
+    protected void setFormatter(Appender appender, Layout<? extends Serializable> layout) {
+        // do nothing - log4j2 appenders do not provide an API to set the Layout. Instead, we override the original
+        // layout though the instrumentation of getLayout() - see Log4j2AppenderGetLayoutAdvice
+    }
+
+    @Override
+    protected void closeShadeAppender(Appender shadeAppender) {
         shadeAppender.stop();
     }
 }
