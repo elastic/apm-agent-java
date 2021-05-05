@@ -26,6 +26,7 @@ endif::[]
 [float]
 ===== Features
 * Basic support for Apache Struts 2 {pull}1763[#1763]
+* Instrumentation for Vert.x Web {pull}1697[#1697]
 
 [float]
 ===== Bug fixes
