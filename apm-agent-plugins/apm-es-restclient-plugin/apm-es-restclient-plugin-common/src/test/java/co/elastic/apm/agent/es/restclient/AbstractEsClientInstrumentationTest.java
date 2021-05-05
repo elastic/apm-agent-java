@@ -29,7 +29,6 @@ import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
@@ -64,6 +63,16 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     protected boolean async;
 
+    private boolean disableHttpUrlCheck = false;
+
+    public void disableHttpUrlCheck() {
+        disableHttpUrlCheck = true;
+    }
+
+    public void enableHttpUrlCheck() {
+        disableHttpUrlCheck = false;
+    }
+
     @Parameterized.Parameters(name = "Async={0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{{Boolean.FALSE}, {Boolean.TRUE}});
@@ -89,14 +98,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     @After
     public void endTransaction() {
-        int spanCount = reporter.getNumReportedSpans();
-        if (spanCount > 0) {
-            reporter.getSpans().forEach(s -> assertThat(s.getOutcome())
-                .describedAs("span outcome should be either failure or success")
-                .isNotEqualTo(Outcome.UNKNOWN));
-        }
-
-
         Transaction currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
             currentTransaction.deactivate().end();
@@ -134,13 +135,14 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         validateSpanContentWithoutContext(span, expectedName, statusCode, method);
         validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
         validateDestinationContextContent(span.getContext().getDestination());
-        assertThat(span.getOutcome()).isNotEqualTo(Outcome.UNKNOWN);
     }
 
     private void validateDestinationContextContent(Destination destination) {
         assertThat(destination).isNotNull();
-        assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
-        assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
+        if (!reporter.isDisableDestinationAddressCheck()) {
+            assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
+            assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
+        }
         assertThat(destination.getService().getName().toString()).isEqualTo(ELASTICSEARCH);
         assertThat(destination.getService().getResource().toString()).isEqualTo(ELASTICSEARCH);
         assertThat(destination.getService().getType()).isEqualTo(SPAN_TYPE);
@@ -150,7 +152,9 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(http).isNotNull();
         assertThat(http.getMethod()).isEqualTo(method);
         assertThat(http.getStatusCode()).isEqualTo(statusCode);
-        assertThat(http.getUrl()).isEqualTo("http://" + container.getHttpHostAddress());
+        if (!disableHttpUrlCheck) {
+            assertThat(http.getUrl()).isEqualTo("http://" + container.getHttpHostAddress());
+        }
     }
 
     protected void validateSpanContentAfterIndexCreateRequest() {

@@ -12,7 +12,7 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <version.elasticsearch>7.11.1</version.elasticsearch>
+        <version.elasticsearch>7.12.1</version.elasticsearch>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
     </properties>
 

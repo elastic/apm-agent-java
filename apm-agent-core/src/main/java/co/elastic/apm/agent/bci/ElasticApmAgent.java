@@ -467,7 +467,7 @@ public class ElasticApmAgent {
      *
      * @param adviceClass the advice class
      */
-    static void validateAdvice(Class<?> adviceClass) {
+    public static void validateAdvice(Class<?> adviceClass) {
         String adviceClassName = adviceClass.getName();
         ClassLoader classLoader = adviceClass.getClassLoader();
         if (classLoader == null) {
