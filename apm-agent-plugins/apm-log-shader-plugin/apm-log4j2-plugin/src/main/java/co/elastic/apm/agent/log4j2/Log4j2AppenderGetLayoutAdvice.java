@@ -24,17 +24,40 @@
  */
 package co.elastic.apm.agent.log4j2;
 
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.Layout;
 
-public class Log4j2AppenderStopAdvice {
+import javax.annotation.Nullable;
+import java.io.Serializable;
+
+/**
+ * The Log4j2 {@link Appender} does not expose a {@code setLayout()} API that allows us to override logging events.
+ * However, it exposes an {@link Appender#getLayout()} API <b>that is always used when events are logged</b>.
+ * Therefore, by instrumenting this method and replacing the returned {@link Layout}, we can implement the
+ * {@link co.elastic.apm.agent.logging.LogEcsReformatting#OVERRIDE OVERRIDE} use case.
+ */
+public class Log4j2AppenderGetLayoutAdvice {
 
     private static final Log4J2EcsReformattingHelper helper = new Log4J2EcsReformattingHelper();
 
     @SuppressWarnings({"unused"})
+    @Nullable
+    @AssignTo.Return
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-    public static void stopAppender(@Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender) {
-        helper.closeShadeAppenderFor(thisAppender);
+    public static Layout<?> shadeLoggingEvent(@Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender,
+                                              @Advice.Return @Nullable Layout<?> originalLayout) {
+
+        if (originalLayout == null) {
+            // Effectively disables instrumentation to all database appenders
+            return null;
+        }
+        Layout<? extends Serializable> ecsLayout = helper.getEcsOverridingFormatterFor(thisAppender);
+        if (ecsLayout != null) {
+            return ecsLayout;
+        }
+        return originalLayout;
     }
 }
