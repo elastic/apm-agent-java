@@ -36,12 +36,8 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.util.Collection;
 import java.util.Collections;
 
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.isPublic;
-import static net.bytebuddy.matcher.ElementMatchers.isStatic;
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class MicrometerInstrumentation extends TracerAwareInstrumentation {
 
@@ -49,17 +45,17 @@ public class MicrometerInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Meter").or(nameContains("Registry"));
+        return named("io.micrometer.core.instrument.MeterRegistry");
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("io.micrometer.core.instrument.MeterRegistry"));
+        return named("io.micrometer.core.instrument.MeterRegistry");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isPublic().and(not(isStatic()));
+        return isConstructor();
     }
 
     @Override
