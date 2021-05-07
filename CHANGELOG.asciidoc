@@ -29,6 +29,7 @@ endif::[]
 * Extending the <<config-log-ecs-reformatting>> config option to enable the overriding of logs with ECS-reformatted
 events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted automatically as well - {pull}1793[#1793]
 * Instrumentation for Vert.x Web {pull}1697[#1697]
+* Support for inheriting public api annotations {pull}1697[#1697]
 
 
 [float]
