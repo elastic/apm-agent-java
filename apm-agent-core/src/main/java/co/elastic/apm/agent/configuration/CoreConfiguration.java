@@ -601,6 +601,17 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "services. We use this config option to determine the timeout for this purpose. Increase if timed out when shouldn't.")
         .buildWithDefault(TimeDuration.of("1000ms"));
 
+    private final ConfigurationOption<Boolean> enablePublicapiAnnotationInheritance = ConfigurationOption.booleanOption()
+        .key("enable_publicapi_annotation_inheritance")
+        .tags("added[1.24.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("performance")
+        .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).\n" +
+            "When set to `false` a method is instrumented if it is annotated with a public api annotation. " +
+            "When set to `true` a method is also instrumented when a method of a super class with the same signature is annotated with a public api annotation.")
+        .dynamic(false)
+        .buildWithDefault(false);
+
     public boolean isEnabled() {
         return enabled.get();
     }
@@ -786,6 +797,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public CloudProvider getCloudProvider() {
         return cloudProvider.get();
+    }
+
+    public boolean isEnablePublicapiAnnotationInheritance() {
+        return enablePublicapiAnnotationInheritance.get();
     }
 
     public enum EventType {

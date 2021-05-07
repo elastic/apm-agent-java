@@ -60,12 +60,30 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
 
     @Nullable
     private Object getAnnotationValue(MethodDescription instrumentedMethod, AnnotationValueExtractor annotationValueExtractor) {
-        for (TypeDescription typeDescription : instrumentedMethod.getDeclaredAnnotations().asTypeList()) {
-            if (named(annotationValueExtractor.annotationClassName()).matches(typeDescription)) {
-                for (MethodDescription.InDefinedShape annotationMethod : typeDescription.getDeclaredMethods()) {
-                    if (annotationMethod.getName().equals(annotationValueExtractor.method())) {
-                        return instrumentedMethod.getDeclaredAnnotations().ofType(typeDescription).getValue(annotationMethod).resolve();
+        MethodDescription methodDescription = instrumentedMethod;
+        do {
+            for (TypeDescription typeDescription : methodDescription.getDeclaredAnnotations().asTypeList()) {
+                if (named(annotationValueExtractor.annotationClassName()).matches(typeDescription)) {
+                    for (MethodDescription.InDefinedShape annotationMethod : typeDescription.getDeclaredMethods()) {
+                        if (annotationMethod.getName().equals(annotationValueExtractor.method())) {
+                            return methodDescription.getDeclaredAnnotations().ofType(typeDescription).getValue(annotationMethod).resolve();
+                        }
                     }
+                }
+            }
+
+            methodDescription = findInstrumentedMethodInSuperClass(methodDescription.getDeclaringType().getSuperClass(), instrumentedMethod);
+        } while (methodDescription != null);
+        return null;
+    }
+
+    @Nullable
+    private MethodDescription findInstrumentedMethodInSuperClass(TypeDescription.Generic superClass, MethodDescription instrumentedMethod) {
+        if (superClass != null) {
+            for (MethodDescription declaredMethod : superClass.getDeclaredMethods()) {
+                if (instrumentedMethod.getInternalName().equals(declaredMethod.getInternalName())
+                    && instrumentedMethod.getParameters().asTypeList().asErasures().equals(declaredMethod.getParameters().asTypeList().asErasures())) {
+                    return declaredMethod;
                 }
             }
         }

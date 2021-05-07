@@ -125,6 +125,7 @@ Click on a key to get more information.
 ** <<config-use-elastic-traceparent-header>>
 ** <<config-span-min-duration>>
 ** <<config-cloud-provider>>
+** <<config-enable-publicapi-annotation-inheritance>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
 ** <<config-transaction-ignore-urls>>
@@ -1238,6 +1239,30 @@ Valid options: `AUTO`, `AWS`, `GCP`, `AZURE`, `NONE`
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.cloud_provider` | `cloud_provider` | `ELASTIC_APM_CLOUD_PROVIDER`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-enable-publicapi-annotation-inheritance]]
+==== `enable_publicapi_annotation_inheritance` (performance)
+
+A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).
+When set to `false` a method is instrumented if it is annotated with a public api annotation. When set to `true` a method is also instrumented when a method of a super class with the same signature is annotated with a public api annotation.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enable_publicapi_annotation_inheritance` | `enable_publicapi_annotation_inheritance` | `ELASTIC_APM_ENABLE_PUBLICAPI_ANNOTATION_INHERITANCE`
 |============
 
 [[config-http]]
@@ -3119,6 +3144,15 @@ The default unit for this option is `ms`.
 # Default value: AUTO
 #
 # cloud_provider=AUTO
+
+# A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).
+# When set to `false` a method is instrumented if it is annotated with a public api annotation. When set to `true` a method is also instrumented when a method of a super class with the same signature is annotated with a public api annotation.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# enable_publicapi_annotation_inheritance=false
 
 ############################################
 # HTTP                                     #
