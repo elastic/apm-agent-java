@@ -33,6 +33,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.util.VersionUtils;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import co.elastic.apm.api.ElasticApm;
 import io.vertx.core.Handler;
@@ -67,12 +68,18 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         expectTransaction(response, "/test", DEFAULT_RESPONSE_BODY, "GET /test", 200);
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getFrameworkName()).isEqualTo(AbstractVertxWebHelper.FRAMEWORK_NAME);
-        assertThat(transaction.getFrameworkVersion()).startsWith(expectedVertxVersion());
+
+        String vertxVersion = VersionUtils.getVersion(RoutingContext.class, "io.vertx", "vertx-web");
+        assertThat(vertxVersion).startsWith(String.format("%d.", getMajorVersion()));
+
+        assertThat(transaction.getFrameworkVersion()).isEqualTo(vertxVersion);
         assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getContext().getRequest().getUrl().getFull().toString()).isEqualTo(schema() + "://localhost:" + port() + "/test");
         assertThat(reporter.getSpans().size()).isEqualTo(0);
     }
+
+    protected abstract int getMajorVersion();
 
     @Test
     void testWebCallWithParameter() throws Exception {
@@ -378,5 +385,4 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
 
     protected abstract Handler<RoutingContext> getDefaultHandlerImpl();
 
-    protected abstract String expectedVertxVersion();
 }
