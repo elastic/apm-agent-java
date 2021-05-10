@@ -109,7 +109,7 @@ public class TraceState implements Recyclable {
                             // we don't minimize allocation as re-writing should be an exception
                             headerValue = rewriteBuffer.toString();
                         }
-                        if (checkSampleRate(rounded)) {
+                        if (updateSampleRateCheck(rounded)) {
                             sampleRate = rounded;
                         }
                     }
@@ -130,7 +130,7 @@ public class TraceState implements Recyclable {
      * @throws IllegalStateException if sample rate has already been set to a different value
      */
     public void set(double rate, String headerValue) {
-        if (!checkSampleRate(rate)) {
+        if (!updateSampleRateCheck(rate)) {
             // rate already set, but with identical value, thus nothing to update and we can silently ignore
             return;
         }
@@ -140,19 +140,17 @@ public class TraceState implements Recyclable {
     }
 
     /**
-     *
      * @param newRate new rater
      * @return true if sample rate needs to be updated, false if already set to identical value
      * @throws IllegalStateException if sample rate is already set with a different value
      */
-    private boolean checkSampleRate(double newRate) {
+    private boolean updateSampleRateCheck(double newRate) {
         if (Double.isNaN(sampleRate)) {
             return true;
         }
         if (newRate == sampleRate) {
             return false;
         }
-
         throw new IllegalStateException(String.format("sample rate has already been set from headers to %f, trying to set it to %f", sampleRate, newRate));
     }
 
