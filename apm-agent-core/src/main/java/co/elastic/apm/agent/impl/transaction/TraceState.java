@@ -26,12 +26,16 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.converter.RoundedDoubleConverter;
 import co.elastic.apm.agent.objectpool.Recyclable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
 public class TraceState implements Recyclable {
+
+    private static final Logger log = LoggerFactory.getLogger(TraceState.class);
 
     private static final int DEFAULT_SIZE_LIMIT = 4096;
 
@@ -72,54 +76,55 @@ public class TraceState implements Recyclable {
         rewriteBuffer.setLength(0);
     }
 
-
     public void addTextHeader(String headerValue) {
         int elasticEntryStartIndex = headerValue.indexOf(VENDOR_PREFIX);
 
-        if (elasticEntryStartIndex >= 0) {
-            // parsing (and maybe fixing) current tracestate required
-            int entriesStart = headerValue.indexOf(SAMPLE_RATE_PREFIX, elasticEntryStartIndex);
-            if (entriesStart >= 0) {
-                int valueStart = entriesStart + 2;
-                int valueEnd = valueStart;
-                if (valueEnd < headerValue.length()) {
-                    char c = headerValue.charAt(valueEnd);
-                    while (valueEnd < headerValue.length() && c != VENDOR_SEPARATOR && c != ENTRY_SEPARATOR) {
-                        c = headerValue.charAt(valueEnd++);
-                    }
-                    if (valueEnd < headerValue.length()) {
-                        // end due to separator char that needs to be trimmed
-                        valueEnd--;
-                    }
-                }
-                double value;
-                try {
-                    value = Double.parseDouble(headerValue.substring(valueStart, valueEnd));
-                    if (0 <= value && value <= 1.0) {
-                        // ensure proper rounding of sample rate to minimize storage
-                        // even if configuration should not allow this, any upstream value might require rounding
-                        double rounded = DOUBLE_CONVERTER.round(value);
-                        if (rounded != value) {
-                            // value needs to be re-written due to rounding
-
-                            rewriteBuffer.setLength(0);
-                            rewriteBuffer.append(headerValue, 0, valueStart);
-                            rewriteBuffer.append(rounded);
-                            rewriteBuffer.append(headerValue, valueEnd, headerValue.length());
-                            // we don't minimize allocation as re-writing should be an exception
-                            headerValue = rewriteBuffer.toString();
-                        }
-                        if (updateSampleRateCheck(rounded)) {
-                            sampleRate = rounded;
-                        }
-                    }
-                } catch (NumberFormatException e) {
-                    // silently ignored
-                }
-            }
+        if (elasticEntryStartIndex < 0) {
+            tracestate.add(headerValue);
+            return;
         }
 
-        tracestate.add(headerValue);
+        // parsing (and maybe fixing) current tracestate required
+        int entriesStart = headerValue.indexOf(SAMPLE_RATE_PREFIX, elasticEntryStartIndex);
+        if (entriesStart >= 0) {
+            int valueStart = entriesStart + 2;
+            int valueEnd = valueStart;
+            if (valueEnd < headerValue.length()) {
+                char c = headerValue.charAt(valueEnd);
+                while (valueEnd < headerValue.length() && c != VENDOR_SEPARATOR && c != ENTRY_SEPARATOR) {
+                    c = headerValue.charAt(valueEnd++);
+                }
+                if (valueEnd < headerValue.length()) {
+                    // end due to separator char that needs to be trimmed
+                    valueEnd--;
+                }
+            }
+
+            double value = -1d;
+            try {
+                value = Double.parseDouble(headerValue.substring(valueStart, valueEnd));
+            } catch (NumberFormatException e) {
+                // silently ignored
+            }
+            if (0 <= value && value <= 1.0) {
+                // ensure proper rounding of sample rate to minimize storage
+                // even if configuration should not allow this, any upstream value might require rounding
+                double rounded = DOUBLE_CONVERTER.round(value);
+                if (rounded != value) {
+                    // value needs to be re-written due to rounding
+
+                    rewriteBuffer.setLength(0);
+                    rewriteBuffer.append(headerValue, 0, valueStart);
+                    rewriteBuffer.append(rounded);
+                    rewriteBuffer.append(headerValue, valueEnd, headerValue.length());
+                    // we don't minimize allocation as re-writing should be an exception
+                    headerValue = rewriteBuffer.toString();
+                }
+                set(rounded, headerValue);
+            }
+
+        }
+
     }
 
     /**
@@ -127,31 +132,14 @@ public class TraceState implements Recyclable {
      *
      * @param rate        sample rate
      * @param headerValue header value, as provided by a call to {@link #getHeaderValue(double)}
-     * @throws IllegalStateException if sample rate has already been set to a different value
      */
     public void set(double rate, String headerValue) {
-        if (!updateSampleRateCheck(rate)) {
-            // rate already set, but with identical value, thus nothing to update and we can silently ignore
-            return;
-        }
-
-        sampleRate = rate;
-        tracestate.add(headerValue);
-    }
-
-    /**
-     * @param newRate new rater
-     * @return true if sample rate needs to be updated, false if already set to identical value
-     * @throws IllegalStateException if sample rate is already set with a different value
-     */
-    private boolean updateSampleRateCheck(double newRate) {
         if (Double.isNaN(sampleRate)) {
-            return true;
+            sampleRate = rate;
+            tracestate.add(headerValue);
+        } else if (sampleRate != rate) {
+            log.debug("sample rate already set to {}, trying to set to {} will be ignored", sampleRate, rate);
         }
-        if (newRate == sampleRate) {
-            return false;
-        }
-        throw new IllegalStateException(String.format("sample rate has already been set from headers to %f, trying to set it to %f", sampleRate, newRate));
     }
 
     /**

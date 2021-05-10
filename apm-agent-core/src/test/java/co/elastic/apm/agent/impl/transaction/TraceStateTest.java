@@ -34,7 +34,6 @@ import javax.annotation.Nullable;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TraceStateTest {
 
@@ -117,10 +116,10 @@ class TraceStateTest {
         assertThat(traceState.getSampleRate()).isNaN();
 
         setSampleRateFromHeader(0.42d);
-        assertThatThrownBy(() -> setSampleRateValue(0.5d));
+        setSampleRateValue(0.5d);
         checkSampleRateSingleHeader(0.42d);
 
-        assertThatThrownBy(() -> setSampleRateFromHeader(0.7d));
+        setSampleRateFromHeader(0.7d);
         checkSampleRateSingleHeader(0.42d);
     }
 
@@ -136,8 +135,6 @@ class TraceStateTest {
     private void setSampleRateFromHeader(double rate) {
         traceState.addTextHeader(TraceState.getHeaderValue(rate));
     }
-
-
 
     @Test
     void multipleVendorsInSameHeader() {
@@ -188,11 +185,22 @@ class TraceStateTest {
         assertThat(traceState.toTextHeader()).isEqualTo("es=s:0.2,aa=1_2");
     }
 
+    @Test
+    void sampleRateHeaderDuplicationShouldIgnore() {
+
+        double value1 = 0.5d;
+        traceState.addTextHeader(TraceState.getHeaderValue(value1));
+        checkSampleRateSingleHeader(value1);
+        double value2 = 0.7d;
+        traceState.addTextHeader(TraceState.getHeaderValue(value2));
+        checkSampleRateSingleHeader(value1);
+    }
+
     @ParameterizedTest
-    @CsvSource(value = {
+    @CsvSource(delimiterString = "|", value = {
         "es=k:0;s:0.555555,aa=123|es=k:0;s:0.5556,aa=123",
-        "es=s:0.555555;k:0,aa=123|es=s:0.5556;k:0,aa=123"},
-        delimiterString = "|")
+        "es=s:0.555555;k:0,aa=123|es=s:0.5556;k:0,aa=123"
+    })
     void unknownKeysAreIgnored(String header, String rewrittenHeader) {
         traceState.addTextHeader(header);
         assertThat(traceState.getSampleRate()).isEqualTo(0.5556d);
