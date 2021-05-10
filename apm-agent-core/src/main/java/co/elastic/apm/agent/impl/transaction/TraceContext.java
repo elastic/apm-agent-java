@@ -427,7 +427,12 @@ public class TraceContext implements Recyclable {
         transactionId.copyFrom(id);
         if (sampler.isSampled(traceId)) {
             flags = FLAG_RECORDED;
-            traceState.set(sampler.getSampleRate(), sampler.getTraceStateHeader());
+
+            if (Double.isNaN(traceState.getSampleRate())) {
+                // sample rate could already have been set through headers
+                // we have to make sure to only use sampler rate as fallback only.
+                traceState.set(sampler.getSampleRate(), sampler.getTraceStateHeader());
+            }
         }
         clock.init();
         onMutation();

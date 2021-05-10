@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TraceStateTest {
 
@@ -98,6 +99,45 @@ class TraceStateTest {
             .describedAs("should reuse the same string without allocating a new one")
             .isSameAs(headerValue);
     }
+
+    @Test
+    void canSetIdenticalSampleRateManyTimes() {
+
+        assertThat(traceState.getSampleRate()).isNaN();
+        setSampleRateValue(0.5d);
+        setSampleRateValue(0.5d);
+        assertThat(traceState.getSampleRate()).isEqualTo(0.5d);
+        setSampleRateFromHeader(0.5d);
+        setSampleRateFromHeader(0.5d);
+        assertThat(traceState.getSampleRate()).isEqualTo(0.5d);
+    }
+
+    @Test
+    void trySetSampleRateWhenAlreadySet() {
+        assertThat(traceState.getSampleRate()).isNaN();
+
+        setSampleRateFromHeader(0.42d);
+        assertThatThrownBy(() -> setSampleRateValue(0.5d));
+        checkSampleRateSingleHeader(0.42d);
+
+        assertThatThrownBy(() -> setSampleRateFromHeader(0.7d));
+        checkSampleRateSingleHeader(0.42d);
+    }
+
+    private void checkSampleRateSingleHeader(double rate) {
+        assertThat(traceState.getSampleRate()).isEqualTo(rate);
+        assertThat(traceState.toTextHeader()).isEqualTo(TraceState.getHeaderValue(rate));
+    }
+
+    private void setSampleRateValue(double rate) {
+        traceState.set(rate, TraceState.getHeaderValue(rate));
+    }
+
+    private void setSampleRateFromHeader(double rate) {
+        traceState.addTextHeader(TraceState.getHeaderValue(rate));
+    }
+
+
 
     @Test
     void multipleVendorsInSameHeader() {
