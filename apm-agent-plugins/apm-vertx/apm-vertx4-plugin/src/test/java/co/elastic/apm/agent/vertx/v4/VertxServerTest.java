@@ -42,7 +42,7 @@ public class VertxServerTest extends CommonVertxWebTest {
     }
 
     @Override
-    protected String expectedVertxVersion() {
-        return "4.0";
+    protected int getMajorVersion() {
+        return 4;
     }
 }
