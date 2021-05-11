@@ -31,9 +31,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import javax.annotation.Nullable;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TraceStateTest {
 
@@ -100,74 +102,80 @@ class TraceStateTest {
     }
 
     @Test
-    void canSetIdenticalSampleRateManyTimes() {
-
-        assertThat(traceState.getSampleRate()).isNaN();
-        setSampleRateValue(0.5d);
-        setSampleRateValue(0.5d);
-        assertThat(traceState.getSampleRate()).isEqualTo(0.5d);
-        setSampleRateFromHeader(0.5d);
-        setSampleRateFromHeader(0.5d);
-        assertThat(traceState.getSampleRate()).isEqualTo(0.5d);
+    void trySetMultipleTimes_set_first() {
+        trySetMultipleTimes((s, h) -> traceState.set(s, h));
     }
 
     @Test
-    void trySetSampleRateWhenAlreadySet() {
-        assertThat(traceState.getSampleRate()).isNaN();
-
-        setSampleRateFromHeader(0.42d);
-        setSampleRateValue(0.5d);
-        checkSampleRateSingleHeader(0.42d);
-
-        setSampleRateFromHeader(0.7d);
-        checkSampleRateSingleHeader(0.42d);
+    void trySetMultipleTimes_header_first() {
+        trySetMultipleTimes((s, h) -> traceState.addTextHeader(h));
     }
 
-    private void checkSampleRateSingleHeader(double rate) {
-        assertThat(traceState.getSampleRate()).isEqualTo(rate);
-        assertThat(traceState.toTextHeader()).isEqualTo(TraceState.getHeaderValue(rate));
+    private void trySetMultipleTimes(BiConsumer<Double, String> firstSet){
+        double sampleRate = 0.5d;
+        String header = TraceState.getHeaderValue(sampleRate);
+        firstSet.accept(sampleRate, header);
+        checkHeader(0.5d, header);
+
+        // calling set more than once is a but within agent, thus we fail with exception
+        assertThatThrownBy(() -> traceState.set(0.5d, header));
+
+        // while setting with header is also an error, we just ignore it
+        traceState.addTextHeader(TraceState.getHeaderValue(0.7d));
+        checkHeader(0.5d, header);
     }
 
-    private void setSampleRateValue(double rate) {
-        traceState.set(rate, TraceState.getHeaderValue(rate));
-    }
-
-    private void setSampleRateFromHeader(double rate) {
-        traceState.addTextHeader(TraceState.getHeaderValue(rate));
+    @Test
+    void getHeaderValue() {
+        assertThatThrownBy(()-> TraceState.getHeaderValue(Double.NaN));
+        assertThatThrownBy(()-> TraceState.getHeaderValue(-1d));
+        assertThatThrownBy(()-> TraceState.getHeaderValue(1.1d));
+        assertThat(TraceState.getHeaderValue(0d)).isEqualTo("es=s:0");
+        assertThat(TraceState.getHeaderValue(1d)).isEqualTo("es=s:1");
+        assertThat(TraceState.getHeaderValue(0.5d)).isEqualTo("es=s:0.5");
+        assertThat(TraceState.getHeaderValue(0.55555d)).isEqualTo("es=s:0.5556");
+        assertThat(TraceState.getHeaderValue(0.0000001d)).isEqualTo("es=s:0.0001");
     }
 
     @Test
     void multipleVendorsInSameHeader() {
         traceState.addTextHeader("aa=1|2|3,es=s:0.5,bb=4|5|6");
-        assertThat(traceState.getSampleRate()).isEqualTo(0.5d);
-        assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,es=s:0.5,bb=4|5|6");
+
+        checkHeader(0.5d, "aa=1|2|3,es=s:0.5,bb=4|5|6");
     }
 
     @Test
     void otherVendorsOnly() {
         traceState.addTextHeader("aa=1|2|3");
         traceState.addTextHeader("bb=4|5|6");
-        assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,bb=4|5|6");
-        assertThat(traceState.getSampleRate()).isNaN();
+
+        checkHeader(Double.NaN, "aa=1|2|3,bb=4|5|6");
     }
 
     @Test
     void sampleRateFromHeaders() {
         traceState.addTextHeader("aa=1|2|3");
         traceState.addTextHeader("es=s:0.5");
-        assertThat(traceState.getSampleRate()).isEqualTo(0.5d);
         traceState.addTextHeader("bb=4|5|6");
-        assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,es=s:0.5,bb=4|5|6");
+        checkHeader(0.5d, "aa=1|2|3,es=s:0.5,bb=4|5|6");
     }
 
     @Test
     void sampleRateAddedToHeaders() {
         traceState.addTextHeader("aa=1|2|3");
         traceState.addTextHeader("bb=4|5|6");
-
         traceState.set(0.444d, TraceState.getHeaderValue(0.444d));
-        assertThat(traceState.getSampleRate()).isEqualTo(0.444d);
-        assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,bb=4|5|6,es=s:0.444");
+
+        checkHeader(0.444d, "aa=1|2|3,bb=4|5|6,es=s:0.444");
+    }
+
+    @Test
+    void multipleSampleRateHeaders_multiple_headers() {
+        traceState.addTextHeader("es=s:0.444");
+        traceState.addTextHeader("es=s:0.333");
+        traceState.addTextHeader("aa=1|2|3,es=s:0.555,bb=4|5|6");
+
+        checkHeader(0.444d, "es=s:0.444,aa=1|2|3,bb=4|5|6");
     }
 
     @Test
@@ -181,30 +189,19 @@ class TraceStateTest {
 
         other.resetState();
 
-        assertThat(traceState.getSampleRate()).isEqualTo(0.2d);
-        assertThat(traceState.toTextHeader()).isEqualTo("es=s:0.2,aa=1_2");
-    }
-
-    @Test
-    void sampleRateHeaderDuplicationShouldIgnore() {
-
-        double value1 = 0.5d;
-        traceState.addTextHeader(TraceState.getHeaderValue(value1));
-        checkSampleRateSingleHeader(value1);
-        double value2 = 0.7d;
-        traceState.addTextHeader(TraceState.getHeaderValue(value2));
-        checkSampleRateSingleHeader(value1);
+        checkHeader(0.2d, "es=s:0.2,aa=1_2");
     }
 
     @ParameterizedTest
     @CsvSource(delimiterString = "|", value = {
         "es=k:0;s:0.555555,aa=123|es=k:0;s:0.5556,aa=123",
-        "es=s:0.555555;k:0,aa=123|es=s:0.5556;k:0,aa=123"
+        "es=s:0.555555;k:0,aa=123|es=s:0.5556;k:0,aa=123",
+        "es=k:0,aa=123|aa=123"
     })
     void unknownKeysAreIgnored(String header, String rewrittenHeader) {
         traceState.addTextHeader(header);
-        assertThat(traceState.getSampleRate()).isEqualTo(0.5556d);
-        assertThat(traceState.toTextHeader()).isEqualTo(rewrittenHeader);
+
+        checkHeader(header.contains("s:") ? 0.5556d : Double.NaN, rewrittenHeader);
     }
 
     @ParameterizedTest
@@ -217,7 +214,8 @@ class TraceStateTest {
     })
     void invalidValuesIgnored(String header) {
         traceState.addTextHeader(header);
-        assertThat(traceState.getSampleRate()).isNaN();
+
+        checkHeader(Double.NaN, null);
     }
 
     @ParameterizedTest
@@ -226,12 +224,26 @@ class TraceStateTest {
         "0.55554,0.5555",
         "0.55555,0.5556",
         "0.55556,0.5556"})
-    void appliesRoundingOnUpstreamHeader(String headerRate, Double expectedRate) {
+    void appliesRoundingOnUpstreamHeader(String headerRate, String expectedRate) {
         traceState.addTextHeader("es=s:" + headerRate);
-        assertThat(traceState.getSampleRate()).isEqualTo(expectedRate);
+        assertThat(traceState.getSampleRate()).isEqualTo(Double.parseDouble(expectedRate));
         String header = "es=s:" + expectedRate;
         assertThat(traceState.toTextHeader()).isEqualTo(header);
-        assertThat(TraceState.getHeaderValue(expectedRate)).isEqualTo(header);
+        assertThat(TraceState.getHeaderValue(traceState.getSampleRate())).isEqualTo(header);
     }
 
+    private void checkHeader(double expectedSampleRate, @Nullable String expectedHeader){
+        double sampleRate = traceState.getSampleRate();
+        if (Double.isNaN(expectedSampleRate)) {
+            assertThat(sampleRate).isNaN();
+        } else {
+            assertThat(sampleRate).isEqualTo(expectedSampleRate);
+        }
+
+        assertThat(traceState.toTextHeader()).isEqualTo(expectedHeader);
+    }
+
+    private void checkSingleHeader(double rate) {
+        checkHeader(rate, TraceState.getHeaderValue(rate));
+    }
 }
