@@ -126,18 +126,20 @@ public class TraceState implements Recyclable {
             log.warn("invalid sample rate header {}", headerValueString);
             headerValue = rewriteRemoveInvalidHeader(headerValue, vendorStart, vendorEnd);
         } else {
-            // ensure proper rounding of sample rate to minimize storage
-            // even if configuration should not allow this, any upstream value might require rounding
-            double rounded = DOUBLE_CONVERTER.round(value);
-            if (rounded != value) {
-                // value needs to be re-written due to rounding
-                headerValue = rewriteRoundedHeader(headerValue, valueStart, valueEnd, rounded);
-                sampleRate = rounded;
-            } else if (!Double.isNaN(sampleRate)) {
+            if (!Double.isNaN(sampleRate)) {
                 log.warn("sample rate already set to {}, trying to set it to {} through header will be ignored", sampleRate, value);
                 headerValue = rewriteRemoveInvalidHeader(headerValue, vendorStart, vendorEnd);
             } else {
-                sampleRate = value;
+                // ensure proper rounding of sample rate to minimize storage
+                // even if configuration should not allow this, any upstream value might require rounding
+                double rounded = DOUBLE_CONVERTER.round(value);
+                if (rounded != value) {
+                    // value needs to be re-written due to rounding
+                    headerValue = rewriteRoundedHeader(headerValue, valueStart, valueEnd, rounded);
+                    sampleRate = rounded;
+                } else {
+                    sampleRate = value;
+                }
             }
         }
 
