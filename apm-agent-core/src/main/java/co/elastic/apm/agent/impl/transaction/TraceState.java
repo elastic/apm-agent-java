@@ -174,6 +174,7 @@ public class TraceState implements Recyclable {
      *
      * @param rate        sample rate
      * @param headerValue header value, as provided by a call to {@link #getHeaderValue(double)}
+     * @throws IllegalStateException if sample rate has already been set
      */
     public void set(double rate, String headerValue) {
         if (!Double.isNaN(sampleRate)) {
