@@ -199,7 +199,7 @@ public class MockReporter implements Reporter {
 
         String subtype = Objects.toString(span.getSubtype());
 
-        JsonNode typeJson = getMandatoryObject(SPAN_TYPES_SPEC, type, String.format("span type %s", type));
+        JsonNode typeJson = getMandatoryObject(SPAN_TYPES_SPEC, type, String.format("span type '%s'", type));
 
         String typeComment = getOptionalComment(typeJson);
 
