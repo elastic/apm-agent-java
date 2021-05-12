@@ -165,7 +165,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    public void startSpan() throws Exception {
+    public void startSpan() {
         Span span = transaction.startSpan("foo", null, null);
         span.setName("bar");
         Span child = span.startSpan("foo2", null, null);

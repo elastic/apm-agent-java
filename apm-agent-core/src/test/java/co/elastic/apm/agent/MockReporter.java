@@ -45,6 +45,7 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import org.awaitility.core.ThrowingRunnable;
 import org.stagemonitor.configuration.ConfigurationRegistry;
+import specs.TestJsonSpec;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -52,6 +53,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -88,6 +90,8 @@ public class MockReporter implements Reporter {
     private final boolean verifyJsonSchema;
     private boolean checkUnknownOutcomes = true;
     private boolean closed;
+
+    private static final JsonNode SPAN_TYPES_SPEC = TestJsonSpec.getJson("span_types.json");
 
     static {
         transactionSchema = getSchema("/schema/transactions/transaction.json");
@@ -164,19 +168,60 @@ public class MockReporter implements Reporter {
         if (closed) {
             return;
         }
-        verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
-        verifyDestinationFields(span);
 
-        String type = span.getType();
-        assertThat(type).isNotNull();
+        try {
+            verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
+            verifySpanType(span);
+            verifyDestinationFields(span);
 
-        if (checkUnknownOutcomes) {
-            assertThat(span.getOutcome())
-                .describedAs("span outcome should be either success or failure for type = %s", type)
-                .isNotEqualTo(Outcome.UNKNOWN);
+            String type = span.getType();
+            assertThat(type).isNotNull();
+
+            if (checkUnknownOutcomes) {
+                assertThat(span.getOutcome())
+                    .describedAs("span outcome should be either success or failure for type = %s", type)
+                    .isNotEqualTo(Outcome.UNKNOWN);
+            }
+        } catch (Exception e) {
+            // in case a validation error occurs, ensure that it's properly logged for easier debugging
+            e.printStackTrace(System.err);
+            throw e;
         }
 
         spans.add(span);
+    }
+
+    private void verifySpanType(Span span) {
+        String type = span.getType();
+        assertThat(type)
+            .describedAs("span type is mandatory")
+            .isNotNull();
+
+        String subtype = Objects.toString(span.getSubtype());
+
+        JsonNode typeJson = getMandatoryObject(SPAN_TYPES_SPEC, type, String.format("span type %s", type));
+
+        String typeComment = getOptionalComment(typeJson);
+
+        JsonNode subTypesJson = getMandatoryObject(typeJson, "subtypes", String.format("subtypes for type '%s'", type));
+
+        JsonNode subTypeJson = getMandatoryObject(subTypesJson, subtype, String.format("span subtype '%s' for type '%s' (%s)", subtype, type, typeComment));
+    }
+
+    private JsonNode getMandatoryObject(JsonNode json, String name, String desc) {
+        JsonNode jsonNode = json.get(name);
+        assertThat(jsonNode)
+            .describedAs(desc)
+            .isNotNull();
+        assertThat(jsonNode.isObject())
+            .isTrue();
+        return jsonNode;
+    }
+
+    private String getOptionalComment(JsonNode json) {
+        return Optional.ofNullable(json.get("comment"))
+            .map(JsonNode::asText)
+            .orElse("");
     }
 
     private void verifyDestinationFields(Span span) {
