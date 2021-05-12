@@ -162,8 +162,10 @@
     }
   },
   "servlet": {
-    "request-dispatcher": {
-      "comment": "Java Servlet request dispatcher"
+    "subtypes": {
+      "request-dispatcher": {
+        "comment": "Java Servlet request dispatcher"
+      }
     }
   },
   "template": {
