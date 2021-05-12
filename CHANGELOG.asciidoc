@@ -35,6 +35,7 @@ events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted aut
 ===== Bug fixes
 * Fix another error related to instrumentation plugins loading on Windows - {pull}1785[#1785]
 * Load Spring AMQP plugin- {pull}1784[#1784]
+* Avoid `IllegalStateException` when multiple `tracestate` headers are used - {pull}1808[#1808]
 
 [float]
 ===== Refactors
