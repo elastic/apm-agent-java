@@ -29,6 +29,13 @@
       }
     }
   },
+  "cache": {
+    "subtypes": {
+      "redis": {
+        "comment": "TODO : should we make OpenTracing use 'db.redis' instead ?"
+      }
+    }
+  },
   "custom": {
     "comment": "API custom instrumentation",
     "subtypes": {
@@ -48,6 +55,9 @@
       },
       "elasticsearch": {
         "comment": "Elasticsearch"
+      },
+      "foo": {
+        "comment": "TODO remove this (test)"
       },
       "h2": {
         "comment": "H2"
@@ -83,6 +93,9 @@
   },
   "ext": {
     "subtypes": {
+      "null": {
+        "comment": "TODO find where it's being used in OpenTracing"
+      },
       "http": {
         "comment": "TODO remove this, 'external/http' should be used instead"
       }
@@ -195,6 +208,9 @@
       },
       "Thymeleaf": {
         "comment": ""
+      },
+      "jsf": {
+        "comment": "Java Server Faces"
       }
     }
   },
