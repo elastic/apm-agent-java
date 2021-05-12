@@ -74,7 +74,7 @@ class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
     }
 
     private static CqlSession getSession(String keyspace) {
-        DriverConfigLoader configLoader = DefaultDriverConfigLoader.builder()
+        DriverConfigLoader configLoader = DriverConfigLoader.programmaticBuilder()
             .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(0))
             .build();
         return CqlSession.builder()

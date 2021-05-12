@@ -35,8 +35,6 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 
 public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
 
-    protected static final GrpcHelper helper = new GrpcHelper();
-
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameStartsWith("io.grpc");

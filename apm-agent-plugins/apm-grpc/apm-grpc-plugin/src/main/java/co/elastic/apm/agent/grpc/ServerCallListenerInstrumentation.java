@@ -77,7 +77,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This ServerCall.Listener<?> listener) {
-            return helper.enterServerListenerMethod(listener);
+            return GrpcHelper.getInstance().enterServerListenerMethod(listener);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -86,7 +86,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
                                   @Advice.Enter @Nullable Object transaction) {
 
             if (transaction instanceof Transaction) {
-                helper.exitServerListenerMethod(thrown, listener, (Transaction) transaction, null);
+                GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction) transaction, null);
             }
         }
     }
@@ -108,7 +108,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This ServerCall.Listener<?> listener) {
-            return helper.enterServerListenerMethod(listener);
+            return GrpcHelper.getInstance().enterServerListenerMethod(listener);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -117,7 +117,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
                                   @Advice.Enter @Nullable Object transaction) {
 
             if (transaction instanceof Transaction) {
-                helper.exitServerListenerMethod(thrown, listener, (Transaction) transaction, Status.CANCELLED);
+                GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction) transaction, Status.CANCELLED);
             }
         }
     }
@@ -139,7 +139,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This ServerCall.Listener<?> listener) {
-            return helper.enterServerListenerMethod(listener);
+            return GrpcHelper.getInstance().enterServerListenerMethod(listener);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -148,7 +148,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
                                   @Advice.Enter @Nullable Object transaction) {
 
             if (transaction instanceof Transaction) {
-                helper.exitServerListenerMethod(thrown, listener, (Transaction) transaction, Status.OK);
+                GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction) transaction, Status.OK);
             }
         }
     }
