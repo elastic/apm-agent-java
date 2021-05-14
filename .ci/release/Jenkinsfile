@@ -14,7 +14,7 @@ pipeline {
     JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
     PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
     SLACK_CHANNEL = '#apm-agent-java'
-    NOTIFY_TO = 'TBD'
+    NOTIFY_TO = 'build-apm+apm-agent-java@elastic.co'
   }
   options {
     timeout(time: 3, unit: 'HOURS')
