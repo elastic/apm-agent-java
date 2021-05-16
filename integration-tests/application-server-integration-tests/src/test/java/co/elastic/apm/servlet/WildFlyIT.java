@@ -30,6 +30,7 @@ import co.elastic.apm.servlet.tests.JBossServletApiTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.SoapTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
+import co.elastic.apm.servlet.tests.WildFlyRemoteEJBTestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
@@ -78,7 +79,8 @@ public class WildFlyIT extends AbstractServletContainerIntegrationTest {
             JsfApplicationServerTestApp.class,
             SoapTestApp.class,
             CdiApplicationServerTestApp.class,
-            ExternalPluginTestApp.class
+            ExternalPluginTestApp.class,
+            WildFlyRemoteEJBTestApp.class
         );
     }
 }

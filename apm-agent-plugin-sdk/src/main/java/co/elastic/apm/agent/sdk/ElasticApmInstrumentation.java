@@ -38,6 +38,7 @@ import java.security.ProtectionDomain;
 import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
+import static net.bytebuddy.matcher.ElementMatchers.none;
 
 /**
  * An advice is responsible for instrumenting methods (see {@link #getMethodMatcher()}) in particular classes
@@ -97,6 +98,14 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  *
  */
 public abstract class ElasticApmInstrumentation {
+    /**
+     * The type matcher selects types which should be considered for instrumentation although they are excluded by the
+     * configuration classes_excluded_from_instrumentation_default.
+     */
+    public ElementMatcher<? super NamedElement> getTypeMatcherIncludeDefaultExcludedClasses() {
+        return none();
+    }
+
     /**
      * Pre-select candidates solely based on the class name for the slower {@link #getTypeMatcher()},
      * at the expense of potential false negative matches.

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>apm-agent-plugins</artifactId>
+        <groupId>co.elastic.apm</groupId>
+        <version>1.23.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>apm-wildfly-remote-ejb-plugin</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.wildfly</groupId>
+            <artifactId>wildfly-ejb3</artifactId>
+            <version>15.0.0.Final</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wildfly</groupId>
+            <artifactId>wildfly-ejb-client-bom</artifactId>
+            <type>pom</type>
+            <version>15.0.0.Final</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

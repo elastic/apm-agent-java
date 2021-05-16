@@ -524,6 +524,11 @@ entry for `trace.id` and `transaction.id`. See the <<config-enable-log-correlati
   Streaming calls are currently not instrumented.
 | 1.16.0
 
+| Remote EJB on WildFly
+| 11+
+| Client & Server instrumentation.
+| 1.24.0
+
 |===
 
 [float]

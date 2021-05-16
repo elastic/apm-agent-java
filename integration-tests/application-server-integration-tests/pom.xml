@@ -16,6 +16,21 @@
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
     </properties>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <classpathDependencyExcludes>
+                        <classpathDependencyExclude>${project.groupId}:apm-agent-attach-cli</classpathDependencyExclude>
+                        <classpathDependencyExclude>${project.groupId}:external-plugin</classpathDependencyExclude>
+                    </classpathDependencyExcludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -58,6 +73,23 @@
             <artifactId>external-plugin-app</artifactId>
             <version>${project.version}</version>
             <type>war</type>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>remote-ejb-app</artifactId>
+            <version>${project.version}</version>
+            <classifier>classes</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.wildfly</groupId>
+            <artifactId>wildfly-ejb-client-bom</artifactId>
+            <version>23.0.0.Final</version>
+            <type>pom</type>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-wildfly-remote-ejb-plugin</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <!-- this dependency is only important in order to make sure the external plugin jar exists -->

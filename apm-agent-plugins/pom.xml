@@ -60,6 +60,7 @@
         <module>apm-cassandra</module>
         <module>apm-struts-plugin</module>
         <module>apm-vertx</module>
+        <module>apm-wildfly-remote-ejb-plugin</module>
     </modules>
 
     <dependencies>

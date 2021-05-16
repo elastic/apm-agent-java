@@ -21,6 +21,7 @@
         <module>soap-test</module>
         <module>cdi-app</module>
         <module>external-plugin-test</module>
+        <module>remote-ejb-app</module>
     </modules>
 
     <properties>

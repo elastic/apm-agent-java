@@ -63,6 +63,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
+import net.bytebuddy.matcher.BooleanMatcher;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.pool.TypePool;
@@ -98,6 +99,7 @@ import java.util.concurrent.TimeUnit;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.anyMatch;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.anyMatchExcept;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.is;
@@ -312,7 +314,7 @@ public class ElasticApmAgent {
             .with(TypeValidation.of(logger.isDebugEnabled()))
             .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
         AgentBuilder agentBuilder = getAgentBuilder(
-            byteBuddy, coreConfiguration, logger, descriptionStrategy, premain, coreConfiguration.isTypePoolCacheEnabled()
+            byteBuddy, coreConfiguration, logger, instrumentations, descriptionStrategy, premain, coreConfiguration.isTypePoolCacheEnabled()
         );
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
@@ -600,8 +602,16 @@ public class ElasticApmAgent {
     }
 
     private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, final Logger logger,
-                                                final AgentBuilder.DescriptionStrategy descriptionStrategy, final boolean premain,
-                                                final boolean useTypePoolCache) {
+                                                final Iterable<ElasticApmInstrumentation> instrumentations, final AgentBuilder.DescriptionStrategy descriptionStrategy,
+                                                final boolean premain, final boolean useTypePoolCache) {
+        ArrayList<ElementMatcher<? super NamedElement>> includeDefaultExcludedClassesMatchers = new ArrayList<>();
+        for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
+            ElementMatcher<? super NamedElement> matcher = apmInstrumentation.getTypeMatcherIncludeDefaultExcludedClasses();
+            if (matcher instanceof BooleanMatcher) {
+                continue;
+            }
+            includeDefaultExcludedClassesMatchers.add(matcher);
+        }
         AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.WEAK;
         if (agentJarFile != null) {
             try {
@@ -660,7 +670,7 @@ public class ElasticApmAgent {
             .or(nameStartsWith("com.contrastsecurity."))
             .or(nameContains("javassist"))
             .or(nameContains(".asm."))
-            .or(anyMatch(coreConfiguration.getDefaultClassesExcludedFromInstrumentation()))
+            .or(anyMatchExcept(coreConfiguration.getDefaultClassesExcludedFromInstrumentation(), includeDefaultExcludedClassesMatchers))
             .or(anyMatch(coreConfiguration.getClassesExcludedFromInstrumentation()))
             .disableClassFormatChanges();
     }
@@ -714,19 +724,24 @@ public class ElasticApmAgent {
                     appliedInstrumentations = Collections.unmodifiableSet(appliedInstrumentations);
                     dynamicallyInstrumentedClasses.put(classToInstrument, appliedInstrumentations);
 
+                    List<ElasticApmInstrumentation> instrumentations = new ArrayList<>(instrumentationClasses.size());
+                    for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
+                        ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
+                        adviceClassName2instrumentationClassLoader.put(
+                            apmInstrumentation.getAdviceClassName(),
+                            ObjectUtils.systemClassLoaderIfNull(instrumentationClass.getClassLoader()));
+                        instrumentations.add(apmInstrumentation);
+                    }
+
                     CoreConfiguration config = tracer.getConfig(CoreConfiguration.class);
                     final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
                     final ByteBuddy byteBuddy = new ByteBuddy()
                         .with(TypeValidation.of(logger.isDebugEnabled()))
                         .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
                     AgentBuilder agentBuilder = getAgentBuilder(
-                        byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false, false
+                        byteBuddy, config, logger, instrumentations, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false, false
                     );
-                    for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
-                        ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
-                        adviceClassName2instrumentationClassLoader.put(
-                            apmInstrumentation.getAdviceClassName(),
-                            ObjectUtils.systemClassLoaderIfNull(instrumentationClass.getClassLoader()));
+                    for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
                         ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
                         if (typeMatcher != null && isIncluded(apmInstrumentation, config)) {
                             agentBuilder = applyAdvice(tracer, agentBuilder, apmInstrumentation, typeMatcher.and(apmInstrumentation.getTypeMatcher()));
