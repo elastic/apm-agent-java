@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.21.1-SNAPSHOT</version>
+    <version>1.23.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -65,6 +65,7 @@
         <module>apm-agent-plugin-sdk</module>
         <module>apm-indy-bootstrap-module</module>
         <module>apm-agent-premain</module>
+        <module>apm-agent-attach-cli</module>
     </modules>
 
     <properties>
@@ -104,18 +105,19 @@
         <version.slf4j>1.7.30</version.slf4j>
         <!-- this is the last version of log4j that is compatible with Java 7 -->
         <version.log4j>2.12.1</version.log4j>
+        <version.log4j2-ecs-layout>1.0.1</version.log4j2-ecs-layout>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.0.49</version.json-schema-validator>
+        <version.json-schema-validator>1.0.52</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.10.22</version.byte-buddy>
+        <version.byte-buddy>1.11.0</version.byte-buddy>
         <version.asm>9.1</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
 
-        <version.testcontainers>1.15.1</version.testcontainers>
+        <version.testcontainers>1.15.2</version.testcontainers>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -574,7 +576,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>3.8.0</version>
+            <version>3.9.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -604,7 +606,7 @@
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
-            <version>4.0.3</version>
+            <version>4.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

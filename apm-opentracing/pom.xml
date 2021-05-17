@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.21.1-SNAPSHOT</version>
+        <version>1.23.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-opentracing</artifactId>
@@ -44,6 +44,14 @@
             <artifactId>apm-agent-core</artifactId>
             <type>test-jar</type>
             <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- https://github.com/opentracing-contrib/java-tracerresolver -->
+        <dependency>
+            <groupId>io.opentracing.contrib</groupId>
+            <artifactId>opentracing-tracerresolver</artifactId>
+            <version>0.1.8</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

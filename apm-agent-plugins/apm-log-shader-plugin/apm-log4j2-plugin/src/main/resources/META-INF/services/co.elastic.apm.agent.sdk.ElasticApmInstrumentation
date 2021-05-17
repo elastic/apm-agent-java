@@ -1,0 +1,3 @@
+co.elastic.apm.agent.log4j2.Log4j2EcsReformattingInstrumentation$ShadingInstrumentation
+co.elastic.apm.agent.log4j2.Log4j2EcsReformattingInstrumentation$StopAppenderInstrumentation
+co.elastic.apm.agent.log4j2.Log4j2EcsReformattingInstrumentation$OverridingInstrumentation

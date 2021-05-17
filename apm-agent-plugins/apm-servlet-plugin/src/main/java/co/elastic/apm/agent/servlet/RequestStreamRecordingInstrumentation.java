@@ -61,7 +61,8 @@ public class RequestStreamRecordingInstrumentation extends AbstractServletInstru
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("getInputStream").and(returns(named("javax.servlet.ServletInputStream")));
+        return named("getInputStream")
+            .and(returns(hasSuperType(named("javax.servlet.ServletInputStream"))));
     }
 
     @Override
@@ -70,8 +71,8 @@ public class RequestStreamRecordingInstrumentation extends AbstractServletInstru
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return GetInputStreamAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.servlet.RequestStreamRecordingInstrumentation$GetInputStreamAdvice";
     }
 
     public static class GetInputStreamAdvice {

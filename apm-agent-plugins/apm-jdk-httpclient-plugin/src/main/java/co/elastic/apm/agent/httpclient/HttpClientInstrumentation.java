@@ -46,7 +46,7 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return new BooleanMatcher<>(JvmRuntimeInfo.getMajorVersion() >= 11).and(nameContains("HttpClient"));
+        return new BooleanMatcher<>(JvmRuntimeInfo.ofCurrentVM().getMajorVersion() >= 11).and(nameContains("HttpClient"));
     }
 
     @Override
@@ -56,7 +56,7 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("send").and(returns(named("java.net.http.HttpResponse")));
+        return named("send").and(returns(hasSuperType(named("java.net.http.HttpResponse"))));
     }
 
     @Nullable

@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -66,8 +65,8 @@ public abstract class ProcessExitInstrumentation extends BaseProcessInstrumentat
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return WaitForAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.process.ProcessExitInstrumentation$WaitFor$WaitForAdvice";
         }
 
         public static class WaitForAdvice {
@@ -104,8 +103,8 @@ public abstract class ProcessExitInstrumentation extends BaseProcessInstrumentat
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return DestroyAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.process.ProcessExitInstrumentation$Destroy$DestroyAdvice";
         }
 
         public static class DestroyAdvice {

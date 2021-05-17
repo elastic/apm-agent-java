@@ -26,15 +26,19 @@ package co.elastic.apm.agent.logging;
 
 import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.status.StatusLogger;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.converter.ListValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -64,7 +68,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     public static final String AGENT_HOME_PLACEHOLDER = "_AGENT_HOME_";
     static final String DEPRECATED_LOG_LEVEL_KEY = "logging.log_level";
     static final String DEPRECATED_LOG_FILE_KEY = "logging.log_file";
-    static final String DEFAULT_MAX_SIZE = "50mb";
+    public static final String DEFAULT_MAX_SIZE = "50mb";
     static final String SHIP_AGENT_LOGS = "ship_agent_logs";
     static final String LOG_FORMAT_SOUT_KEY = "log_format_sout";
     public static final String LOG_FORMAT_FILE_KEY = "log_format_file";
@@ -152,7 +156,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .addValidator(new ConfigurationOption.Validator<Boolean>() {
             @Override
             public void assertValid(Boolean value) {
-                if (logCorrelationEnabled != null && isLogCorrelationEnabled() && Boolean.FALSE.equals(value)) {
+                if (logCorrelationEnabled != null && logCorrelationEnabled.get() && Boolean.FALSE.equals(value)) {
                     // the reason is that otherwise the MDC will not be cleared when disabling while a span is currently active
                     throw new IllegalArgumentException("Disabling the log correlation at runtime is not possible.");
                 }
@@ -160,8 +164,68 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         })
         .buildWithDefault(false);
 
+    private final ConfigurationOption<LogEcsReformatting> logEcsReformatting = ConfigurationOption.enumOption(LogEcsReformatting.class)
+        .key("log_ecs_reformatting")
+        .configurationCategory(LOGGING_CATEGORY)
+        .tags("added[1.22.0]", "experimental")
+        .description("Specifying whether and how the agent should automatically reformat application logs \n" +
+            "into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for \n" +
+            "further Log analysis. This functionality is available for log4j1, log4j2 and Logback. \n" +
+            "Once this option is enabled with any valid option, log correlation will be activated as well, " +
+            "regardless of the <<config-enable-log-correlation,`enable_log_correlation`>> configuration. \n" +
+            "\n" +
+            "Available options:\n" +
+            "\n" +
+            " - OFF - application logs are not reformatted. \n" +
+            " - SHADE - agent logs are reformatted and \"shade\" ECS-JSON-formatted logs are automatically created in \n" +
+            "   addition to the original application logs. Shade logs will have the same name as the original logs, \n" +
+            "   but with the \".ecs.json\" extension instead of the original extension. Destination directory for the \n" +
+            "   shade logs can be configured through the <<config-log-ecs-reformatting-dir,`log_ecs_reformatting_dir`>> \n" +
+            "   configuration. Shade logs do not inherit file-rollover strategy from the original logs. Instead, they \n" +
+            "   use their own size-based rollover strategy according to the <<config-log-file-size, `log_file_size`>> \n" +
+            "   configuration and while allowing maximum of two shade log files.\n" +
+            " - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if \n" +
+            "   you wish to maintain similar logging-related overhead, but write logs to a different location and/or \n" +
+            "   with a different file extension.\n" +
+            " - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. \n" +
+            "\n" +
+            "NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option \n" +
+            "is also valid for other appenders, like System out and console")
+        .dynamic(true)
+        .buildWithDefault(LogEcsReformatting.OFF);
+
+    private final ConfigurationOption<List<WildcardMatcher>> logEcsFormatterAllowList = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("log_ecs_formatter_allow_list")
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("Only formatters that match an item on this list will be automatically reformatted to ECS when \n" +
+            "<<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to any option other than `OFF`. \n" +
+            "A formatter is the logging-framework-specific entity that is responsible for the formatting \n" +
+            "of log events. For example, in log4j it would be a `Layout` implementation, whereas in Logback it would \n" +
+            "be an `Encoder` implementation. \n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION
+        )
+        .dynamic(false)
+        .buildWithDefault(Arrays.asList(
+            WildcardMatcher.valueOf("*PatternLayout*"),
+            WildcardMatcher.valueOf("org.apache.log4j.SimpleLayout"),
+            WildcardMatcher.valueOf("ch.qos.logback.core.encoder.EchoEncoder")
+        ));
+
+    private final ConfigurationOption<String> logEcsFormattingDestinationDir = ConfigurationOption.stringOption()
+        .key("log_ecs_reformatting_dir")
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("If <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to `SHADE` or `REPLACE`, \n" +
+            "the shade log files will be written alongside the original logs in the same directory by default. \n" +
+            "Use this configuration in order to write the shade logs into an alternative destination. Omitting this \n" +
+            "config or setting it to an empty string will restore the default behavior. If relative path is used, \n" +
+            "this path will be used relative to the original logs directory.")
+        .dynamic(false)
+        .buildWithDefault("");
+
     @SuppressWarnings("unused")
-    public ConfigurationOption<ByteValue> logFileMaxSize = ByteValueConverter.byteOption()
+    public ConfigurationOption<ByteValue> logFileSize = ByteValueConverter.byteOption()
         .key(LOG_FILE_SIZE_KEY)
         .configurationCategory(LOGGING_CATEGORY)
         .description("The size of the log file.\n" +
@@ -267,7 +331,26 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     }
 
     public boolean isLogCorrelationEnabled() {
-        return logCorrelationEnabled.get();
+        // Enabling automatic ECS-reformatting implicitly enables log correlation
+        return logCorrelationEnabled.get() || getLogEcsReformatting() != LogEcsReformatting.OFF;
+    }
+
+    public LogEcsReformatting getLogEcsReformatting() {
+        return logEcsReformatting.get();
+    }
+
+    public List<WildcardMatcher> getLogEcsFormatterAllowList() {
+        return logEcsFormatterAllowList.get();
+    }
+
+    @Nullable
+    public String getLogEcsFormattingDestinationDir() {
+        String logShadingDestDir = logEcsFormattingDestinationDir.get().trim();
+        return (logShadingDestDir.isEmpty()) ? null : logShadingDestDir;
+    }
+
+    public long getLogFileSize() {
+        return logFileSize.get().getBytes();
     }
 
     public boolean isShipAgentLogs() {
