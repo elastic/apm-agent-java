@@ -13,6 +13,8 @@ pipeline {
     HOME = "${env.WORKSPACE}"
     JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
     PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+    SLACK_CHANNEL = '#apm-agent-java'
+    NOTIFY_TO = 'build-apm+apm-agent-java@elastic.co'
   }
   options {
     timeout(time: 3, unit: 'HOURS')
@@ -141,6 +143,8 @@ pipeline {
         }
         stage('Wait on internal CI') {
           steps {
+            notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
+                          body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.\n Changes: ${releaseVersions}")
             input(message: "Start the release job on the internal CI. Click 'Proceed' once the job has succeeded or click 'Abort' if the release has failed and then manually undo the release.")
           }
         }
@@ -238,8 +242,27 @@ pipeline {
               sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
             }
           }
+          post {
+            success {
+              notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
+            }
+          }
+        }
+      }
+      post {
+        failure {
+          notifyStatus(slackStatus: 'danger', subject: "[${env.REPO}] Release failed", body: "(<${env.RUN_DISPLAY_URL}|Open>)")
         }
       }
     }
   }
+}
+
+def notifyStatus(def args = [:]) {
+  releaseNotification(slackChannel: "${env.SLACK_CHANNEL}",
+                      slackColor: args.slackStatus,
+                      slackCredentialsId: 'jenkins-slack-integration-token',
+                      to: "${env.NOTIFY_TO}",
+                      subject: args.subject,
+                      body: args.body)
 }
