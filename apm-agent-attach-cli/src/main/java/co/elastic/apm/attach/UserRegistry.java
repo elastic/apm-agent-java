@@ -138,10 +138,12 @@ public class UserRegistry {
 
         private static User of(String username) {
             try {
+                // should always able to switch your yourself
+                boolean canSwitch = getCurrentUserName().equals(username);
                 if (Platform.isWindows()) {
-                    return new User(username, false);
+                    return new User(username, canSwitch);
                 } else {
-                    return new User(username, canSwitchToUser(username));
+                    return new User(username, canSwitch || canSwitchToUser(username));
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
