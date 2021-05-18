@@ -406,6 +406,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         Db db = span.getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(rawSql);
         DatabaseMetaData metaData = connection.getMetaData();
+        assertThat(db.getInstance()).isEqualToIgnoringCase(connection.getCatalog());
         assertThat(db.getUser()).isEqualToIgnoringCase(metaData.getUserName());
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 
@@ -447,6 +448,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
 
         Db db = jdbcSpan.getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(rawSql);
+        assertThat(db.getInstance()).isNull();
         assertThat(db.getUser()).isNull();
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 

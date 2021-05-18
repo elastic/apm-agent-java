@@ -121,6 +121,7 @@ public class JdbcHelper {
             span.withSubtype(connectionMetaData.getDbVendor())
                 .withAction(DB_SPAN_ACTION);
             span.getContext().getDb()
+                .withInstance(connectionMetaData.getCatalog())
                 .withUser(connectionMetaData.getUser());
             Destination destination = span.getContext().getDestination()
                 .withAddress(connectionMetaData.getHost())
@@ -163,7 +164,7 @@ public class JdbcHelper {
 
         try {
             DatabaseMetaData metaData = connection.getMetaData();
-            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), metaData.getUserName());
+            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), connection.getCatalog(), metaData.getUserName());
             if (supported == null) {
                 markSupported(metadataSupported, type);
             }

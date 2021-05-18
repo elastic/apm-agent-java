@@ -318,7 +318,7 @@ class ConnectionMetaDataTest {
     }
 
     private void testUrl(String url, String expectedVendor, @Nullable String expectedHost, int expectedPort) {
-        ConnectionMetaData metadata = ConnectionMetaData.create(url, "TEST_USER");
+        ConnectionMetaData metadata = ConnectionMetaData.create(url, null, "TEST_USER");
         assertEquals(metadata.getDbVendor(), expectedVendor);
         assertEquals(metadata.getHost(), expectedHost);
         assertEquals(metadata.getPort(), expectedPort);
