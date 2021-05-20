@@ -155,7 +155,8 @@ public class UserRegistry {
             }
 
             try {
-                return processBuilder(sudoCmd(user, Arrays.asList("echo", "ok")))
+                return new ProcessBuilder(sudoCmd(user, Arrays.asList("echo", "ok")))
+                    .inheritIO() // ensures that we get some hint if sudo prompts/prints something
                     .start()
                     .waitFor() == 0;
             } catch (Exception ignore) {
@@ -196,7 +197,7 @@ public class UserRegistry {
                 // sudo only when required
                 cmd = sudoCmd(username, cmd);
             }
-            return processBuilder(cmd);
+            return new ProcessBuilder(cmd);
         }
 
         /**
@@ -214,12 +215,6 @@ public class UserRegistry {
             fullCmd.add(user);
             fullCmd.addAll(cmd);
             return fullCmd;
-        }
-
-        private static ProcessBuilder processBuilder(List<String> cmd) {
-            return new ProcessBuilder(cmd)
-                // if there is some IO, ensure we at least get an opportunity to see it (like an interactive prompt)
-                .inheritIO();
         }
 
         public boolean canSwitchToUser() {
