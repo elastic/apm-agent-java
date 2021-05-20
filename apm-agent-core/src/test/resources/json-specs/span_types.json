@@ -15,13 +15,6 @@
       }
     }
   },
-  "unknown": {
-    "subtypes": {
-      "null": {
-        "comment": "TODO : find if relevant"
-      }
-    }
-  },
   "async": {
     "subtypes": {
       "blocking-queue": {
@@ -170,6 +163,14 @@
       }
     }
   },
+  "plugin": {
+    "comment": "TODO : only for testing ?",
+    "subtypes": {
+      "external": {
+        "comment": "TODO : only for testing ?"
+      }
+    }
+  },
   "process": {
     "comment": "External process TODO find way to allow for wildcard (or not use binary name as subtype)",
     "subtypes": {
@@ -218,6 +219,13 @@
     "subtypes": {
       "null": {
         "comment": "TODO remove this (test)"
+      }
+    }
+  },
+  "unknown": {
+    "subtypes": {
+      "null": {
+        "comment": "TODO : find if relevant"
       }
     }
   }

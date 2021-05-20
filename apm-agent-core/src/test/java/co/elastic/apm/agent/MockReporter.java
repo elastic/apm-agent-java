@@ -206,12 +206,15 @@ public class MockReporter implements Reporter {
         JsonNode subTypesJson = getMandatoryObject(typeJson, "subtypes", String.format("subtypes for type '%s'", type));
 
         JsonNode subTypeJson = getMandatoryObject(subTypesJson, subtype, String.format("span subtype '%s' for type '%s' (%s)", subtype, type, typeComment));
+
+        // TODO : check for sub-type span actions also ?
     }
 
     private JsonNode getMandatoryObject(JsonNode json, String name, String desc) {
         JsonNode jsonNode = json.get(name);
         assertThat(jsonNode)
             .describedAs(desc)
+            .describedAs("unknown span type '%s'", name)
             .isNotNull();
         assertThat(jsonNode.isObject())
             .isTrue();
