@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -138,12 +139,10 @@ public class UserRegistry {
 
         private static User of(String username) {
             try {
-                // should always able to switch your yourself
-                boolean canSwitch = getCurrentUserName().equals(username);
                 if (Platform.isWindows()) {
-                    return new User(username, canSwitch);
+                    return new User(username, false);
                 } else {
-                    return new User(username, canSwitch || canSwitchToUser(username));
+                    return new User(username, canSwitchToUser(username));
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -151,8 +150,14 @@ public class UserRegistry {
         }
 
         private static boolean canSwitchToUser(String user) {
+            if (getCurrentUserName().equals(user)) {
+                return true;
+            }
+
             try {
-                return new ProcessBuilder("sudo", "--non-interactive", "-u", user, "echo", "ok").start().waitFor() == 0;
+                return processBuilder(sudoCmd(user, Arrays.asList("echo", "ok")))
+                    .start()
+                    .waitFor() == 0;
             } catch (Exception ignore) {
                 return false;
             }
@@ -187,13 +192,34 @@ public class UserRegistry {
             if (!canSwitchToUser) {
                 throw new IllegalStateException(String.format("Cannot run as user %s", username));
             }
+            if (!username.equals(getCurrentUserName())) {
+                // sudo only when required
+                cmd = sudoCmd(username, cmd);
+            }
+            return processBuilder(cmd);
+        }
+
+        /**
+         * Builds a sudo command from a regular command
+         *
+         * @param user user to run cmd as
+         * @param cmd  original command
+         * @return original command wrapped in a sudo command
+         */
+        private static List<String> sudoCmd(String user, List<String> cmd) {
             List<String> fullCmd = new ArrayList<>();
             fullCmd.add("sudo");
-            fullCmd.add("--non-interactive");
+            fullCmd.add("-n"); // --non-interactive long option might not be always supported
             fullCmd.add("-u");
-            fullCmd.add(username);
+            fullCmd.add(user);
             fullCmd.addAll(cmd);
-            return new ProcessBuilder(fullCmd);
+            return fullCmd;
+        }
+
+        private static ProcessBuilder processBuilder(List<String> cmd) {
+            return new ProcessBuilder(cmd)
+                // if there is some IO, ensure we at least get an opportunity to see it (like an interactive prompt)
+                .inheritIO();
         }
 
         public boolean canSwitchToUser() {
