@@ -1,0 +1,190 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 - 2021 Elastic and contributors
+ * %%
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ * #L%
+ */
+package co.elastic.apm.agent.vertx.v4.webclient;
+
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.vertx.AbstractVertxWebClientHelper;
+import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
+import co.elastic.apm.agent.vertx.v4.Vertx4Instrumentation;
+import io.vertx.core.Context;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
+import io.vertx.ext.web.client.impl.HttpContext;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.matcher.ElementMatcher;
+
+import java.util.Arrays;
+import java.util.Collection;
+
+import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
+
+public abstract class WebClientInstrumentation extends Vertx4Instrumentation {
+
+    private final static AbstractVertxWebClientHelper webClientHelper = new AbstractVertxWebClientHelper() {
+        @Override
+        protected String getMethod(HttpClientRequest request) {
+            return request.getMethod().name();
+        }
+    };
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList("vertx", "vertx-webclient", "http-client", "experimental");
+    }
+
+    /**
+     * Instruments TODO
+     */
+    public abstract static class HttpContextInstrumentation extends WebClientInstrumentation {
+
+        protected static final String WEB_CLIENT_PARENT_SPAN_KEY = AbstractVertxWebClientHelper.class.getName() + ".parent";
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return named("io.vertx.ext.web.client.impl.HttpContext");
+        }
+
+    }
+
+    /**
+     * Instruments TODO
+     */
+    public static class HttpContextPrepareRequestInstrumentation extends HttpContextInstrumentation {
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("prepareRequest");
+        }
+
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx.v4.webclient.WebClientInstrumentation$HttpContextPrepareRequestInstrumentation$HttpContextPrepareRequestAdvice";
+        }
+
+        public static class HttpContextPrepareRequestAdvice {
+
+
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void prepareRequest(@Advice.This HttpContext<?> httpContext) {
+                AbstractSpan<?> activeSpan = tracer.getActive();
+                if (null != activeSpan) {
+                    activeSpan.incrementReferences();
+                    httpContext.set(WEB_CLIENT_PARENT_SPAN_KEY, activeSpan);
+                }
+            }
+        }
+    }
+
+    /**
+     * Instruments TODO
+     */
+    public static class HttpContextSendRequestInstrumentation extends HttpContextInstrumentation {
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("sendRequest").and(takesArgument(0, named("io.vertx.core.http.HttpClientRequest")));
+        }
+
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx.v4.webclient.WebClientInstrumentation$HttpContextSendRequestInstrumentation$HttpContextSendRequestAdvice";
+        }
+
+        public static class HttpContextSendRequestAdvice {
+
+
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void sendRequest(@Advice.This HttpContext<?> httpContext, @Advice.Argument(value = 0) HttpClientRequest request, @Advice.FieldValue(value = "context") Context vertxContext) {
+                Object spanObj = httpContext.get(WEB_CLIENT_PARENT_SPAN_KEY);
+                boolean decrementParentReferences = true;
+                if (null == spanObj) {
+                    spanObj = vertxContext.getLocal(AbstractVertxWebHelper.CONTEXT_TRANSACTION_KEY);
+                    decrementParentReferences = false;
+                }
+
+                if (spanObj instanceof AbstractSpan) {
+                    AbstractSpan<?> parent = (AbstractSpan<?>) spanObj;
+                    webClientHelper.startSpan(parent, httpContext, request);
+                    if (decrementParentReferences) {
+                        parent.decrementReferences();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Instruments TODO
+     */
+    public static class HttpContextReceiveResponseInstrumentation extends HttpContextInstrumentation {
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("receiveResponse").and(takesArgument(0, named("io.vertx.core.http.HttpClientResponse")));
+        }
+
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx.v4.webclient.WebClientInstrumentation$HttpContextReceiveResponseInstrumentation$HttpContextReceiveResponseAdvice";
+        }
+
+        public static class HttpContextReceiveResponseAdvice {
+
+
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void receiveResponse(@Advice.This HttpContext<?> httpContext, @Advice.Argument(value = 0) HttpClientResponse response) {
+                webClientHelper.endSpan(httpContext, response);
+            }
+        }
+    }
+
+    /**
+     * Instruments TODO
+     */
+    public static class HttpContextFailInstrumentation extends HttpContextInstrumentation {
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("fail").and(takesArgument(0, Throwable.class));
+        }
+
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.vertx.v4.webclient.WebClientInstrumentation$HttpContextFailInstrumentation$HttpContextFailAdvice";
+        }
+
+        public static class HttpContextFailAdvice {
+
+
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void fail(@Advice.This HttpContext<?> httpContext, @Advice.Argument(value = 0) Throwable thrown) {
+                webClientHelper.failSpan(httpContext, thrown);
+            }
+        }
+    }
+}

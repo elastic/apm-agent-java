@@ -12,3 +12,8 @@ co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestImplEndInstrumentation
 co.elastic.apm.agent.vertx.v3.web.http1.HttpServerResponseImplInstrumentation
 co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestWrapperInstrumentation
 co.elastic.apm.agent.vertx.v3.web.http2.Http2Instrumentation
+# vertx webclient
+co.elastic.apm.agent.vertx.v3.webclient.WebClientInstrumentation$HttpContextSendRequestInstrumentation
+co.elastic.apm.agent.vertx.v3.webclient.WebClientInstrumentation$HttpContextReceiveResponseInstrumentation
+co.elastic.apm.agent.vertx.v3.webclient.WebClientInstrumentation$HttpContextFailInstrumentation
+co.elastic.apm.agent.vertx.v3.webclient.WebClientInstrumentation$HttpContextFollowRedirectInstrumentation

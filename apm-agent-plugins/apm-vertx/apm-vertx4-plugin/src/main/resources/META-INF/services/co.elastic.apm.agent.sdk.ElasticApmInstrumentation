@@ -9,3 +9,8 @@ co.elastic.apm.agent.vertx.v4.web.WebInstrumentation$VertxTracerReceiveRequestIn
 co.elastic.apm.agent.vertx.v4.web.WebInstrumentation$VertxTracerSendResponseInstrumentation
 co.elastic.apm.agent.vertx.v4.web.WebInstrumentation$ContextImplTracerInstrumentation
 co.elastic.apm.agent.vertx.v4.web.WebInstrumentation$RequestBufferInstrumentation
+# vertx webclient
+co.elastic.apm.agent.vertx.v4.webclient.WebClientInstrumentation$HttpContextPrepareRequestInstrumentation
+co.elastic.apm.agent.vertx.v4.webclient.WebClientInstrumentation$HttpContextSendRequestInstrumentation
+co.elastic.apm.agent.vertx.v4.webclient.WebClientInstrumentation$HttpContextReceiveResponseInstrumentation
+co.elastic.apm.agent.vertx.v4.webclient.WebClientInstrumentation$HttpContextFailInstrumentation
