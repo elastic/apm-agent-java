@@ -121,7 +121,7 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
         int minorVersion = -1;
         String serverInfo = null;
         if (servletConfig != null) {
-            ServletContext servletContext = servletConfig.getServletContext();
+            ServletContext   servletContext = servletConfig.getServletContext();
             if (null != servletContext) {
                 majorVersion = servletContext.getMajorVersion();
                 minorVersion = servletContext.getMinorVersion();

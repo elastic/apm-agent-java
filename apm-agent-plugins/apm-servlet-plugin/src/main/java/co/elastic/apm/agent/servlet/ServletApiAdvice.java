@@ -138,7 +138,7 @@ public class ServletApiAdvice {
                     }
                 }
             } else if (dispatcherType != DispatcherType.ASYNC &&
-                !coreConfig.getDisabledInstrumentations().contains(ServletInstrumentation.SERVLET_API_DISPATCH)) {
+                !coreConfig.getDisabledInstrumentations().contains(Constants.SERVLET_API_DISPATCH)) {
                 final AbstractSpan<?> parent = tracer.getActive();
                 if (parent != null) {
                     Object servletPath = null;

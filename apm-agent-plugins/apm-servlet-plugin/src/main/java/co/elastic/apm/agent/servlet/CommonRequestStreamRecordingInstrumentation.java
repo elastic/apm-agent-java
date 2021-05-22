@@ -29,39 +29,41 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
 
-/**
- * Instruments {@link javax.servlet.FilterChain}s to create transactions.
- */
-public class FilterChainInstrumentation extends AbstractServletInstrumentation {
+public abstract class CommonRequestStreamRecordingInstrumentation extends AbstractServletInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Chain");
+        return nameContains("Request");
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface())
-            .and(hasSuperType(named("javax.servlet.FilterChain")));
+        return hasSuperType(named(typeMatcherClassName())).and(not(isInterface()));
     }
+
+    abstract String typeMatcherClassName();
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("doFilter")
-            .and(takesArgument(0, named("javax.servlet.ServletRequest")))
-            .and(takesArgument(1, named("javax.servlet.ServletResponse")));
+        return named("getInputStream")
+            .and(returns(hasSuperType(named(servletInputStreamArgumentClassName()))));
     }
 
+    abstract String servletInputStreamArgumentClassName();
+
     @Override
-    public String getAdviceClassName() {
-        return "co.elastic.apm.agent.servlet.ServletApiAdvice";
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList(Constants.SERVLET_API, "servlet-input-stream");
     }
 
 }

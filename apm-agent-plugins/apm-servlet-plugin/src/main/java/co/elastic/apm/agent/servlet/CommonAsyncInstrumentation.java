@@ -51,7 +51,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public abstract class AsyncInstrumentation extends AbstractServletInstrumentation {
+public abstract class CommonAsyncInstrumentation extends AbstractServletInstrumentation {
 
     private static final String SERVLET_API_ASYNC_GROUP_NAME = "servlet-api-async";
 
@@ -64,7 +64,7 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         void onExitStartAsync(T asyncContext);
     }
 
-    public static class StartAsyncInstrumentation extends AsyncInstrumentation {
+    public abstract static class StartAsyncInstrumentation extends CommonAsyncInstrumentation {
 
         @Override
         public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -74,9 +74,10 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return not(isInterface())
-                .and(hasSuperType(named("javax.servlet.ServletRequest")));
+                .and(hasSuperType(named(servletRequestClassName())));
         }
 
+        abstract String servletRequestClassName();
         /**
          * Matches
          * <ul>
@@ -90,34 +91,22 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return isPublic()
                 .and(named("startAsync"))
-                .and(returns(hasSuperType(named("javax.servlet.AsyncContext"))))
+                .and(returns(hasSuperType(named(asyncContextClassName()))))
                 .and(takesArguments(0)
                     .or(
-                        takesArgument(0, named("javax.servlet.ServletRequest"))
-                            .and(takesArgument(1, named("javax.servlet.ServletResponse")))
+                        takesArgument(0, named(servletRequestClassName()))
+                            .and(takesArgument(1, named(servletResponseClassName())))
                     )
                 );
         }
 
-        @Override
-        public String getAdviceClassName() {
-            return "co.elastic.apm.agent.servlet.AsyncInstrumentation$StartAsyncInstrumentation$StartAsyncAdvice";
-        }
+        abstract String asyncContextClassName();
 
-        public static class StartAsyncAdvice {
-            private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper = new AsyncContextAdviceHelperImpl(GlobalTracer.requireTracerImpl());;
+        abstract String servletResponseClassName();
 
-            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-            public static void onExitStartAsync(@Advice.Return @Nullable AsyncContext asyncContext) {
-                if (asyncContext == null) {
-                    return;
-                }
-                asyncHelper.onExitStartAsync(asyncContext);
-            }
-        }
     }
 
-    public static class AsyncContextInstrumentation extends AsyncInstrumentation {
+    public static class AsyncContextInstrumentation extends CommonAsyncInstrumentation {
 
         @Override
         public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {

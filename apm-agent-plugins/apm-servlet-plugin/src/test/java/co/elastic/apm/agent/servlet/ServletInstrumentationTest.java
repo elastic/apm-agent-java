@@ -133,7 +133,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
     @Test
     void testForward_DispatchSpansDisabled() throws Exception {
         when(getConfig().getConfig(CoreConfiguration.class).getDisabledInstrumentations())
-            .thenReturn(Collections.singletonList(ServletInstrumentation.SERVLET_API_DISPATCH));
+            .thenReturn(Collections.singletonList(Constants.SERVLET_API_DISPATCH));
         callServlet(1, "/forward");
         assertThat(reporter.getSpans()).isEmpty();
     }
@@ -141,7 +141,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
     @Test
     void testInclude_DispatchSpansDisabled() throws Exception {
         when(getConfig().getConfig(CoreConfiguration.class).getDisabledInstrumentations())
-            .thenReturn(Collections.singletonList(ServletInstrumentation.SERVLET_API_DISPATCH));
+            .thenReturn(Collections.singletonList(Constants.SERVLET_API_DISPATCH));
         callServlet(1, "/include");
         assertThat(reporter.getSpans()).isEmpty();
     }
@@ -149,7 +149,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
     @Test
     void testClientError_DispatchSpansDisabled() throws Exception {
         when(getConfig().getConfig(CoreConfiguration.class).getDisabledInstrumentations())
-            .thenReturn(Collections.singletonList(ServletInstrumentation.SERVLET_API_DISPATCH));
+            .thenReturn(Collections.singletonList(Constants.SERVLET_API_DISPATCH));
         callServlet(1, "/unknown", "Hello Error!", 404);
         assertThat(reporter.getSpans()).isEmpty();
         assertThat(reporter.getErrors().size()).isEqualTo(1);
