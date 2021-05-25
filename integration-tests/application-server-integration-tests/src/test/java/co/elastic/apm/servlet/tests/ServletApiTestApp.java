@@ -225,7 +225,7 @@ public class ServletApiTestApp extends TestApp {
     private void testJmxMetrics(AbstractServletContainerIntegrationTest test) throws Exception {
         // metrics_interval is 1s
         await()
-            .pollDelay(Duration.ofMillis(500))
+            .pollDelay(Duration.ofMillis(1100))
             .until(() -> {
                 boolean hasMetricsets = !test.getEvents("metricset").isEmpty();
                 if (!hasMetricsets) {
