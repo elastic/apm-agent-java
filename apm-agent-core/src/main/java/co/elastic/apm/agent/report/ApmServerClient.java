@@ -143,7 +143,7 @@ public class ApmServerClient {
             boolean verifyServerCert = reporterConfiguration.isVerifyServerCert();
 
             if (!verifyServerCert) {
-                httpsConnection.setHostnameVerifier(SslUtils.getTrustAllHostnameVerifyer());
+                httpsConnection.setHostnameVerifier(SslUtils.getTrustAllHostnameVerifier());
             }
             SSLSocketFactory sslSocketFactory = SslUtils.getSSLSocketFactory(verifyServerCert);
             if (sslSocketFactory != null) {

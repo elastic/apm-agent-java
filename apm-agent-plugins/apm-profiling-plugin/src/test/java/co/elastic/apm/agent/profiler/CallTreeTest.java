@@ -42,6 +42,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nonnull;
@@ -61,6 +63,7 @@ import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+@DisabledOnOs(OS.WINDOWS)
 class CallTreeTest {
 
     private MockReporter reporter;
@@ -902,6 +905,8 @@ class CallTreeTest {
 
     public static CallTree.Root getCallTree(ElasticApmTracer tracer, String[] stackTraces) throws Exception {
         ProfilingFactory profilingFactory = tracer.getLifecycleListener(ProfilingFactory.class);
+        assertThat(profilingFactory).isNotNull();
+
         SamplingProfiler profiler = profilingFactory.getProfiler();
         FixedNanoClock nanoClock = (FixedNanoClock) profilingFactory.getNanoClock();
         nanoClock.setNanoTime(0);

@@ -26,15 +26,19 @@ package co.elastic.apm.agent.logging;
 
 import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.status.StatusLogger;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.converter.ListValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -183,16 +187,31 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             " - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if \n" +
             "   you wish to maintain similar logging-related overhead, but write logs to a different location and/or \n" +
             "   with a different file extension.\n" +
-            /*
-            // NOTE: THIS OPTION IS NOT IMPLEMENTED YET
             " - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. \n" +
             "\n" +
             "NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option \n" +
-            "is also valid for other appenders, like System out and console" +
-            */
-            "")
+            "is also valid for other appenders, like System out and console")
         .dynamic(true)
         .buildWithDefault(LogEcsReformatting.OFF);
+
+    private final ConfigurationOption<List<WildcardMatcher>> logEcsFormatterAllowList = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("log_ecs_formatter_allow_list")
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("Only formatters that match an item on this list will be automatically reformatted to ECS when \n" +
+            "<<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to any option other than `OFF`. \n" +
+            "A formatter is the logging-framework-specific entity that is responsible for the formatting \n" +
+            "of log events. For example, in log4j it would be a `Layout` implementation, whereas in Logback it would \n" +
+            "be an `Encoder` implementation. \n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION
+        )
+        .dynamic(false)
+        .buildWithDefault(Arrays.asList(
+            WildcardMatcher.valueOf("*PatternLayout*"),
+            WildcardMatcher.valueOf("org.apache.log4j.SimpleLayout"),
+            WildcardMatcher.valueOf("ch.qos.logback.core.encoder.EchoEncoder")
+        ));
 
     private final ConfigurationOption<String> logEcsFormattingDestinationDir = ConfigurationOption.stringOption()
         .key("log_ecs_reformatting_dir")
@@ -318,6 +337,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     public LogEcsReformatting getLogEcsReformatting() {
         return logEcsReformatting.get();
+    }
+
+    public List<WildcardMatcher> getLogEcsFormatterAllowList() {
+        return logEcsFormatterAllowList.get();
     }
 
     @Nullable

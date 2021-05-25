@@ -25,30 +25,31 @@
 package co.elastic.apm.agent.logback;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.FileAppender;
 import ch.qos.logback.core.OutputStreamAppender;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
 public class LogbackAppenderAppendAdvice {
 
+    private static final LogbackEcsReformattingHelper helper = new LogbackEcsReformattingHelper();
+
     @SuppressWarnings("unused")
     @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
     public static boolean shadeAndSkipIfOverrideEnabled(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final Object eventObject,
                                                         @Advice.This(typing = Assigner.Typing.DYNAMIC) OutputStreamAppender<ILoggingEvent> thisAppender) {
-        return thisAppender instanceof FileAppender && eventObject instanceof ILoggingEvent &&
-            LogbackLogShadingHelper.instance().shouldSkipAppend((FileAppender<ILoggingEvent>) thisAppender);
+
+        return eventObject instanceof ILoggingEvent && helper.onAppendEnter(thisAppender);
     }
 
     @SuppressWarnings({"unused"})
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
     public static void shadeLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final Object eventObject,
                                          @Advice.This(typing = Assigner.Typing.DYNAMIC) OutputStreamAppender<ILoggingEvent> thisAppender) {
-        if (!LogbackLogShadingHelper.instance().isShadingEnabled() || !(thisAppender instanceof FileAppender) || !(eventObject instanceof ILoggingEvent)) {
+
+        if (!(eventObject instanceof ILoggingEvent)) {
             return;
         }
-        FileAppender<ILoggingEvent> shadeAppender = LogbackLogShadingHelper.instance().getOrCreateShadeAppenderFor((FileAppender<ILoggingEvent>) thisAppender);
-
+        OutputStreamAppender<ILoggingEvent> shadeAppender = helper.onAppendExit(thisAppender);
         if (shadeAppender != null) {
             // We do not invoke the exact same method we instrument, but a public API that calls it
             shadeAppender.doAppend((ILoggingEvent) eventObject);

@@ -52,6 +52,12 @@ public class GrpcHelper {
 
     private static final String FRAMEWORK_NAME = "gRPC";
 
+    private static final GrpcHelper INSTANCE = new GrpcHelper();
+
+    public static GrpcHelper getInstance() {
+        return INSTANCE;
+    }
+
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall} instance as key.
      */
@@ -176,7 +182,7 @@ public class GrpcHelper {
     }
 
     public static Outcome toClientOutcome(@Nullable Status status) {
-        if( status == null || !status.isOk()){
+        if (status == null || !status.isOk()) {
             return Outcome.FAILURE;
         } else {
             return Outcome.SUCCESS;

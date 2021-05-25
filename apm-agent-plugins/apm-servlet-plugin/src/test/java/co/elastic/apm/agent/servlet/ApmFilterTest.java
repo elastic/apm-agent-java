@@ -179,12 +179,13 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         filterChain = new MockFilterChain(new HttpServlet() {
             @Override
             protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-                tracer.currentTransaction().setUser("id", "email", "username");
+                tracer.currentTransaction().setUser("id", "email", "username", "domain");
             }
         });
 
         filterChain.doFilter(new MockHttpServletRequest("GET", "/foo"), new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getDomain()).isEqualTo("domain");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getId()).isEqualTo("id");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isEqualTo("email");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("username");
@@ -211,7 +212,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         filterChain = new MockFilterChain(new HttpServlet() {
             @Override
             protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
-                tracer.currentTransaction().setUser("id", "email", "username");
+                tracer.currentTransaction().setUser("id", "email", "username", "domain");
                 tracer.getActive().captureException(new RuntimeException("Test exception capturing"));
             }
         });
@@ -230,7 +231,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
             @Override
             protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
                 tracer.getActive().captureException(new RuntimeException("Test exception capturing"));
-                tracer.currentTransaction().setUser("id", "email", "username");
+                tracer.currentTransaction().setUser("id", "email", "username", "domain");
             }
         });
 

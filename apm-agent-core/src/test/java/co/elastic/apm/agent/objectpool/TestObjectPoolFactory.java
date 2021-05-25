@@ -74,7 +74,7 @@ public class TestObjectPoolFactory extends ObjectPoolFactory {
                 Collection<?> toReturn = pool.getRecyclablesToReturn();
                 hasSomethingLeft = hasSomethingLeft || toReturn.size() > 0;
             }
-            if(hasSomethingLeft){
+            if (hasSomethingLeft) {
                 try {
                     Thread.sleep(1);
                 } catch (InterruptedException e) {
@@ -83,7 +83,7 @@ public class TestObjectPoolFactory extends ObjectPoolFactory {
             }
         } while (retry-- > 0 && hasSomethingLeft);
 
-        if(retry == 0 && hasSomethingLeft){
+        if (retry == 0 && hasSomethingLeft) {
             for (BookkeeperObjectPool<?> pool : createdPools) {
                 assertThat(pool.getRecyclablesToReturn())
                     .describedAs("pool should have all its items recycled")

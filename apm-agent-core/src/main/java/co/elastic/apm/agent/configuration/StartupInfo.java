@@ -75,7 +75,7 @@ public class StartupInfo extends AbstractLifecycleListener {
     void logConfiguration(ConfigurationRegistry configurationRegistry, Logger logger) {
         final String serviceName = configurationRegistry.getConfig(CoreConfiguration.class).getServiceName();
         logger.info("Starting Elastic APM {} as {} on {}", elasticApmVersion, serviceName, getJvmAndOsVersionString());
-        logger.info("VM Arguments: {}", ManagementFactory.getRuntimeMXBean().getInputArguments());
+        logger.debug("VM Arguments: {}", ManagementFactory.getRuntimeMXBean().getInputArguments());
         for (List<ConfigurationOption<?>> options : configurationRegistry.getConfigurationOptionsByCategory().values()) {
             for (ConfigurationOption<?> option : options) {
                 if (!option.isDefault()) {
@@ -90,7 +90,7 @@ public class StartupInfo extends AbstractLifecycleListener {
     }
 
     private void logConfigWithNonDefaultValue(Logger logger, ConfigurationOption<?> option) {
-        logger.debug("{}: '{}' (source: {})", option.getKey(),
+        logger.info("{}: '{}' (source: {})", option.getKey(),
             option.isSensitive() ? "XXXX" : option.getValueAsSafeString(),
             option.getNameOfCurrentConfigurationSource());
 
