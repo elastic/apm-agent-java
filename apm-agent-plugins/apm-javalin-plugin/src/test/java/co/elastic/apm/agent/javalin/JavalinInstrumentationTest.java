@@ -27,9 +27,6 @@ package co.elastic.apm.agent.javalin;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import io.javalin.Javalin;
-import io.javalin.http.Context;
-import io.javalin.http.Handler;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -40,6 +37,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -129,5 +127,18 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
         final HttpResponse<String> mainUrlResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertThat(mainUrlResponse.statusCode()).isEqualTo(400);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("GET " + endpoint);
+    }
+
+    @Test
+    public void testFuturesGetInstrumented() throws Exception {
+        final String endpoint = "/test-future-instrumentation";
+        app.get(endpoint, ctx -> ctx.result(CompletableFuture.runAsync(() -> ctx.status(404))));
+
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(baseUrl + endpoint)).build();
+        final HttpResponse<String> mainUrlResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
+        assertThat(mainUrlResponse.statusCode()).isEqualTo(404);
+        assertThat(reporter.getFirstTransaction(500).getNameAsString()).isEqualTo("GET " + endpoint);
+        final Span span = reporter.getFirstSpan(500);
+        assertThat(span.getNameAsString()).isEqualTo("GET " + endpoint);
     }
 }

@@ -41,6 +41,7 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -121,14 +122,21 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Enter @Nullable Object spanObj,
+                                          @Advice.Argument(0) Object ctxObject,
                                           @Advice.Thrown @Nullable Throwable t) {
             if (spanObj instanceof Span) {
+                Context ctx = ((Context) ctxObject);
                 final Span span = (Span) spanObj;
                 span.deactivate();
-                if (t != null) {
-                    span.captureException(t);
+
+                final CompletableFuture<?> responseFuture = ctx.resultFuture();
+                if (responseFuture == null) {
+                    // sync request
+                    span.captureException(t).end();
+                } else {
+                    // future was set in the handler, so we need to end the span only on future completion
+                    responseFuture.whenComplete((o, futureThrowable) -> span.captureException(futureThrowable).end());
                 }
-                span.end();
             }
         }
 
