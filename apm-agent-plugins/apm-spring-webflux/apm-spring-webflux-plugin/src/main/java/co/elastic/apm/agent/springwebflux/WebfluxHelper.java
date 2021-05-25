@@ -29,15 +29,12 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.server.reactive.AbstractServerHttpRequest;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
 
 import javax.annotation.Nullable;
-import javax.servlet.http.HttpServletRequest;
 import java.util.function.BiFunction;
 
 public class WebfluxHelper {
@@ -45,16 +42,13 @@ public class WebfluxHelper {
     private static final Logger log = LoggerFactory.getLogger(WebfluxHelper.class);
 
     public static final String TRANSACTION_ATTRIBUTE = WebfluxHelper.class.getName() + ".transaction";
-    public static final String ANNOTATED_BEAN_NAME_ATTRIBUTE = WebfluxHelper.class.getName() + ".bean_name";
-    public static final String ANNOTATED_METHOD_NAME_ATTRIBUTE = WebfluxHelper.class.getName() + ".method_name";
     private static final String SERVLET_TRANSACTION = WebfluxHelper.class.getName() + ".servlet_transaction";
-
     public static final String SSE_EVENT_CLASS = "org.springframework.http.codec.ServerSentEvent";
 
     @Nullable
     public static Transaction getOrCreateTransaction(Tracer tracer, Class<?> clazz, ServerWebExchange exchange) {
 
-        Transaction transaction = getServletTransaction(exchange);
+        Transaction transaction = WebfluxServletHelper.getServletTransaction(exchange);
         boolean fromServlet = transaction != null;
 
         if (!fromServlet) {
@@ -77,31 +71,6 @@ public class WebfluxHelper {
 
     public static boolean isServletTransaction(ServerWebExchange exchange) {
         return Boolean.TRUE == exchange.getAttributes().get(SERVLET_TRANSACTION);
-    }
-
-    @Nullable
-    private static Transaction getServletTransaction(ServerWebExchange exchange) {
-        // see ServletHttpHandlerAdapter and sub-classes for implementation details
-
-        // While the active transaction is the one created by Servlet, it would rely on the fact that we are on the
-        // same thread as the one that created the transaction, which is an implementation detail. While not really
-        // elegant, this solution seems the most reliable for now.
-        Transaction transaction = null;
-        try {
-            ServerHttpRequest exchangeRequest = exchange.getRequest();
-            if (exchangeRequest instanceof AbstractServerHttpRequest) {
-                Object nativeRequest = ((AbstractServerHttpRequest) exchangeRequest).getNativeRequest();
-                if (nativeRequest instanceof HttpServletRequest) {
-                    transaction = (Transaction) ((HttpServletRequest) nativeRequest)
-                        // adding a dependency to servlet instrumentation plugin is not worth for such a simple string
-                        // but it's fine as long as we have tests for this
-                        .getAttribute("co.elastic.apm.agent.servlet.ServletApiAdvice.transaction");
-                }
-            }
-        } catch (Throwable ignored) {
-            return null;
-        }
-        return transaction;
     }
 
     public static <T> Mono<T> wrapDispatcher(Tracer tracer, Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
@@ -131,4 +100,5 @@ public class WebfluxHelper {
         }
         return mono;
     }
+
 }

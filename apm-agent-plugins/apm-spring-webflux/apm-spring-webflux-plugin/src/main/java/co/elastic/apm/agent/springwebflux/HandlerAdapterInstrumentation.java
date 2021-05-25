@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
@@ -79,18 +80,20 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
         public static Object onEnter(@Advice.Argument(0) ServerWebExchange exchange,
                                      @Advice.Argument(1) Object handler) {
 
-            Object attribute = exchange.getAttribute(WebfluxHelper.TRANSACTION_ATTRIBUTE);
-            if (attribute instanceof Transaction) {
+            Object exchangeTransaction = exchange.getAttribute(WebfluxHelper.TRANSACTION_ATTRIBUTE);
+            if (exchangeTransaction instanceof Transaction && handler instanceof HandlerMethod) {
+                // set name for annotated controllers
+                HandlerMethod handlerMethod = (HandlerMethod) handler;
 
-                if (handler instanceof HandlerMethod) {
-                    // store name for annotated controllers
-                    HandlerMethod handlerMethod = (HandlerMethod) handler;
-                    exchange.getAttributes().put(WebfluxHelper.ANNOTATED_BEAN_NAME_ATTRIBUTE, handlerMethod.getBeanType().getSimpleName());
-                    exchange.getAttributes().put(WebfluxHelper.ANNOTATED_METHOD_NAME_ATTRIBUTE, handlerMethod.getMethod().getName());
+                StringBuilder name = ((Transaction) exchangeTransaction).getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK, false);
+                if (name != null) {
+                    name.append(handlerMethod.getBeanType().getSimpleName())
+                        .append("#")
+                        .append(handlerMethod.getMethod().getName());
                 }
             }
 
-            return attribute;
+            return exchangeTransaction;
         }
 
         @Nullable

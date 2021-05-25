@@ -248,33 +248,22 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
             return;
         }
 
-        if (ignoreTransaction(exchange, transaction)) {
+        if (ignoreTransaction(exchange)) {
             transaction.ignoreTransaction();
             transaction.end();
             return;
         }
 
-        StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, true);
-        if (transactionName != null) {
-            String httpMethod = exchange.getRequest().getMethodValue();
-
-            // bean name & method should be set for annotated methods
-            String beanName = exchange.getAttribute(WebfluxHelper.ANNOTATED_BEAN_NAME_ATTRIBUTE);
-            String methodName = exchange.getAttribute(WebfluxHelper.ANNOTATED_METHOD_NAME_ATTRIBUTE);
-
+        StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, false);
+        if (name != null) {
+            // set name from matching pattern & unknown
+            name.append(exchange.getRequest().getMethodValue())
+                .append(' ');
             PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
-
-            if (beanName != null && methodName != null) {
-                transactionName.append(beanName)
-                    .append('#')
-                    .append(methodName);
+            if (pattern != null) {
+                name.append(pattern.getPatternString());
             } else {
-                transactionName.append(httpMethod).append(' ');
-                if (pattern != null) {
-                    transactionName.append(pattern.getPatternString());
-                } else {
-                    transactionName.append("unknown route");
-                }
+                name.append("unknown route");
             }
         }
 
@@ -294,7 +283,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
     }
 
-    private static boolean ignoreTransaction(ServerWebExchange exchange, Transaction transaction) {
+    private static boolean ignoreTransaction(ServerWebExchange exchange) {
         // Annotated controllers have the invoked handler method available in exchange
         // thus we can rely on this to ignore methods that return ServerSideEvents which should not report transactions
         Object attribute = exchange.getAttribute(HandlerMapping.BEST_MATCHING_HANDLER_ATTRIBUTE);
