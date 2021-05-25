@@ -142,6 +142,11 @@ rendering
 |The transactions are named based on your action (`ActionClass#actionMethod`).
 |1.24.0
 
+|Javalin
+|3.x
+|
+|1.24.0
+
 |===
 
 
