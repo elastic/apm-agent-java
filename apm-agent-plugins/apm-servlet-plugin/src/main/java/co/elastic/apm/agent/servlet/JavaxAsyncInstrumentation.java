@@ -9,7 +9,7 @@ import javax.servlet.AsyncContext;
 
 public class JavaxAsyncInstrumentation {
 
-    static class JavaxStartAsyncInstrumentation extends CommonAsyncInstrumentation.StartAsyncInstrumentation {
+    public static class JavaxStartAsyncInstrumentation extends CommonAsyncInstrumentation.StartAsyncInstrumentation {
 
         @Override
         String servletRequestClassName() {
@@ -42,5 +42,19 @@ public class JavaxAsyncInstrumentation {
                 asyncHelper.onExitStartAsync(asyncContext);
             }
         }
+    }
+
+    public static class JavaxAsyncContextInstrumentation extends CommonAsyncInstrumentation.AsyncContextInstrumentation {
+
+        @Override
+        String asyncContextClassName() {
+            return "javax.servlet.AsyncContext";
+        }
+
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.servlet.CommonAsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice";
+        }
+
     }
 }

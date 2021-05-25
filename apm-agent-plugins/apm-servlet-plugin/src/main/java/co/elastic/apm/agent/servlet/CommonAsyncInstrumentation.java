@@ -77,7 +77,6 @@ public abstract class CommonAsyncInstrumentation extends AbstractServletInstrume
                 .and(hasSuperType(named(servletRequestClassName())));
         }
 
-        abstract String servletRequestClassName();
         /**
          * Matches
          * <ul>
@@ -100,13 +99,15 @@ public abstract class CommonAsyncInstrumentation extends AbstractServletInstrume
                 );
         }
 
+        abstract String servletRequestClassName();
+
         abstract String asyncContextClassName();
 
         abstract String servletResponseClassName();
 
     }
 
-    public static class AsyncContextInstrumentation extends CommonAsyncInstrumentation {
+    public abstract static class AsyncContextInstrumentation extends CommonAsyncInstrumentation {
 
         @Override
         public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -116,7 +117,7 @@ public abstract class CommonAsyncInstrumentation extends AbstractServletInstrume
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return not(isInterface())
-                .and(hasSuperType(named("javax.servlet.AsyncContext")));
+                .and(hasSuperType(named(asyncContextClassName())));
         }
 
         @Override
@@ -126,10 +127,7 @@ public abstract class CommonAsyncInstrumentation extends AbstractServletInstrume
                 .and(takesArguments(Runnable.class));
         }
 
-        @Override
-        public String getAdviceClassName() {
-            return "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice";
-        }
+        abstract String asyncContextClassName();
 
         public static class AsyncContextStartAdvice {
 
