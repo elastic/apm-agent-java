@@ -223,21 +223,16 @@ public class ServletApiTestApp extends TestApp {
      * Especially WildFly is problematic see {@link co.elastic.apm.agent.jmx.ManagementFactoryInstrumentation}
      */
     private void testJmxMetrics(AbstractServletContainerIntegrationTest test) throws Exception {
-        // metrics_interval is 1s
         await()
-            .pollDelay(Duration.ofMillis(1100))
-            .until(() -> {
-                boolean hasMetricsets = !test.getEvents("metricset").isEmpty();
-                if (!hasMetricsets) {
-                    flush(test);
-                }
-                return hasMetricsets;
-            });
-        List<JsonNode> metricEvent = test.getEvents("metricset");
-        assertThat(metricEvent.stream()
-            .flatMap(metricset -> Streams.stream(metricset.get("samples").fieldNames()))
-            .distinct())
-            .contains("jvm.jmx.test_heap_metric.max");
+            // metrics_interval is 1s
+            .pollDelay(Duration.ofMillis(500))
+            .pollInterval(Duration.ofMillis(200))
+            .timeout(Duration.ofMillis(2000))
+            .untilAsserted(() -> assertThat(test.getEvents("metricset").stream()
+                .flatMap(metricset -> Streams.stream(metricset.get("samples").fieldNames()))
+                .distinct())
+                .contains("jvm.jmx.test_heap_metric.max")
+            );
     }
 
     private void testPublicApi(AbstractServletContainerIntegrationTest test) throws IOException, InterruptedException {
