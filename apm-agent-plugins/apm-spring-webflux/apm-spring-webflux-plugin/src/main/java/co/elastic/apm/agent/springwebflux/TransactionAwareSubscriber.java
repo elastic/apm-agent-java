@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
@@ -42,6 +44,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.server.ServerWebExchange;
@@ -72,6 +75,8 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
     private static final WeakConcurrentMap<TransactionAwareSubscriber<?>, Transaction> transactionMap = SpanConcurrentHashMap.createWeakMap();
 
+    private static final CoreConfiguration config;
+
     private final CoreSubscriber<? super T> subscriber;
 
     private final ServerWebExchange exchange;
@@ -84,6 +89,10 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
      * {@literal true} when transaction was activated on subscription
      */
     private boolean activatedOnSubscribe = false;
+
+    static {
+        config = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);
+    }
 
     /**
      * @param subscriber  subscriber to wrap
@@ -336,15 +345,13 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
             .withSearch(uri.getQuery())
             .updateFull();
 
-        copyHeaders(serverRequest.getHeaders(), request.getHeaders());
-
-        for (Map.Entry<String, List<HttpCookie>> cookie : serverRequest.getCookies().entrySet()) {
-            for (HttpCookie value : cookie.getValue()) {
-                request.getCookies().add(cookie.getKey(), value.getValue());
-            }
+        if (config.isCaptureHeaders()) {
+            copyHeaders(serverRequest.getHeaders(), request.getHeaders());
+            copyCookies(serverRequest.getCookies(), request.getCookies());
         }
 
     }
+
 
     private static void fillResponse(Transaction transaction, ServerWebExchange exchange) {
         ServerHttpResponse serverResponse = exchange.getResponse();
@@ -355,7 +362,9 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
         Response response = transaction.getContext().getResponse();
 
-        copyHeaders(serverResponse.getHeaders(), response.getHeaders());
+        if (config.isCaptureHeaders()) {
+            copyHeaders(serverResponse.getHeaders(), response.getHeaders());
+        }
 
         response
             .withFinished(true)
@@ -367,6 +376,14 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
         for (Map.Entry<String, List<String>> header : source.entrySet()) {
             for (String value : header.getValue()) {
                 destination.add(header.getKey(), value);
+            }
+        }
+    }
+
+    private static void copyCookies(MultiValueMap<String, HttpCookie> source, PotentiallyMultiValuedMap destination) {
+        for (Map.Entry<String, List<HttpCookie>> cookie : source.entrySet()) {
+            for (HttpCookie value : cookie.getValue()) {
+                destination.add(value.getName(), value.getValue());
             }
         }
     }

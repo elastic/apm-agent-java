@@ -58,6 +58,7 @@ public class GreetingWebClient {
     private final boolean useFunctionalEndpoint;
     private final int port;
     private final MultiValueMap<String, String> headers;
+    private final MultiValueMap<String, String> cookies;
     private final Scheduler clientScheduler;
     private final WebSocketClient wsClient;
     private final String wsBaseUri;
@@ -79,6 +80,7 @@ public class GreetingWebClient {
             .build();
         this.useFunctionalEndpoint = useFunctionalEndpoint;
         this.headers = new HttpHeaders();
+        this.cookies = new HttpHeaders();
         this.clientScheduler = Schedulers.newElastic("webflux-client");
         this.wsClient = new ReactorNettyWebSocketClient();
         this.logEnabled = logEnabled;
@@ -211,6 +213,7 @@ public class GreetingWebClient {
             .uri(path)
             .accept(MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON)
             .headers(httpHeaders -> httpHeaders.addAll(headers))
+            .cookies(httpCookies -> httpCookies.addAll(cookies))
             .retrieve()
             .onRawStatus(status -> status != expectedStatus, r -> Mono.error(new IllegalStateException(String.format("unexpected response status %d", r.rawStatusCode()))));
     }
@@ -234,5 +237,9 @@ public class GreetingWebClient {
 
     public void setHeader(String name, String value) {
         headers.add(name, value);
+    }
+
+    public void setCookie(String name, String value){
+        cookies.add(name, value);
     }
 }

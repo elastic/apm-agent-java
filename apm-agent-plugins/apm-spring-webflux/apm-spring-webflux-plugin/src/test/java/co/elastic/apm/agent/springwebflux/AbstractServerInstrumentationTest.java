@@ -25,12 +25,14 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.reactor.TracedSubscriber;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
+import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -49,6 +51,7 @@ import java.util.Locale;
 import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 
 public abstract class AbstractServerInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -99,7 +102,12 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void dispatchHello() {
+        hello(true);
+    }
+
+    private void hello(boolean expectHeaders) {
         client.setHeader("random-value", "12345");
+        client.setCookie("cookie", "gdpr-compliant-no-chocolate-here");
 
         StepVerifier.create(client.getHelloMono())
             .expectNext("Hello, Spring!")
@@ -114,13 +122,43 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
         checkUrl(transaction, "/hello");
 
-        assertThat(request.getHeaders().getFirst("random-value"))
-            .describedAs("non-standard request headers should be captured")
-            .isEqualTo("12345");
+        PotentiallyMultiValuedMap headers = request.getHeaders();
+        int headersCount = headers.size();
+        if (expectHeaders) {
 
-        assertThat(request.getHeaders().getFirst("Accept"))
-            .isEqualTo("text/plain, application/json");
+            assertThat(headersCount)
+                .describedAs("unexpected headers count")
+                .isEqualTo(6);
 
+            assertThat(headers.getFirst("random-value"))
+                .describedAs("non-standard request headers should be captured")
+                .isEqualTo("12345");
+
+            assertThat(headers.getFirst("Accept"))
+                .isEqualTo("text/plain, application/json");
+
+            assertThat(request.getCookies()
+                .getFirst("cookie"))
+                .isEqualTo("gdpr-compliant-no-chocolate-here");
+
+        } else {
+
+            assertThat(headersCount)
+                .describedAs("no header expected")
+                .isEqualTo(0);
+
+            assertThat(request.getCookies().size())
+                .describedAs("no cookie expected")
+                .isEqualTo(0);
+        }
+    }
+
+    @Test
+    void headerCaptureDisabled() {
+        CoreConfiguration coreConfig = getConfig().getConfig(CoreConfiguration.class);
+        doReturn(false).when(coreConfig).isCaptureHeaders();
+
+        hello(false);
     }
 
     @Test
