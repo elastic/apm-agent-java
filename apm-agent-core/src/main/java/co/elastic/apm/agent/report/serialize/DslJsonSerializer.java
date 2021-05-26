@@ -705,14 +705,14 @@ public class DslJsonSerializer implements PayloadSerializer {
             replace(replaceBuilder, ".", "_", 0);
             String subtype = span.getSubtype();
             String action = span.getAction();
-            if ((subtype != null && !subtype.isEmpty()) || (action != null && !action.isEmpty())) {
+            if (subtype != null || action != null) {
                 replaceBuilder.append('.');
                 int replaceStartIndex = replaceBuilder.length() + 1;
-                if (subtype != null && !subtype.isEmpty()) {
+                if (subtype != null) {
                     replaceBuilder.append(subtype);
                     replace(replaceBuilder, ".", "_", replaceStartIndex);
                 }
-                if (action != null && !action.isEmpty()) {
+                if (action != null) {
                     replaceBuilder.append('.');
                     replaceStartIndex = replaceBuilder.length() + 1;
                     replaceBuilder.append(action);

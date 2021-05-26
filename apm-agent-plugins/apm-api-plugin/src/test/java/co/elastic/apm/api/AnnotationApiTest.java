@@ -27,7 +27,6 @@ package co.elastic.apm.api;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Span;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -83,6 +82,9 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
     }
 
     private void testTransactionAndSpanTypes(boolean useLegacyTyping) {
+
+        reporter.disableCheckStrictSpanType();
+
         reporter.reset();
         AnnotationTestClass.transactionWithType(useLegacyTyping);
         assertThat(reporter.getTransactions()).hasSize(1);
@@ -100,12 +102,14 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
 
     @Test
     void testMissingSubtype() {
+        reporter.disableCheckStrictSpanType();
+
         AnnotationTestClass.transactionForMissingSpanSubtype();
         assertThat(reporter.getSpans()).hasSize(1);
         Span internalSpan = reporter.getFirstSpan();
         assertThat(internalSpan.getNameAsString()).isEqualTo("spanWithMissingSubtype");
         assertThat(internalSpan.getType()).isEqualTo("external.http");
-        assertThat(internalSpan.getSubtype()).isEqualTo("");
+        assertThat(internalSpan.getSubtype()).isNull();
         assertThat(internalSpan.getAction()).isEqualTo("okhttp");
     }
 
