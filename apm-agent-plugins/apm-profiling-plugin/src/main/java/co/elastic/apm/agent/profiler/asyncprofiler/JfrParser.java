@@ -107,6 +107,10 @@ public class JfrParser implements Recyclable {
         this.includedClasses = includedClasses;
         bufferedFile.setFile(file);
         long fileSize = bufferedFile.size();
+        if (fileSize < 16) {
+            logger.debug("Not parsing {}, as it's size ({}) is less than the minimum", file, fileSize);
+            return;
+        }
         logger.debug("Parsing {} ({} bytes)", file, fileSize);
         bufferedFile.ensureRemaining(16, 16);
         for (byte magicByte : MAGIC_BYTES) {
