@@ -38,6 +38,7 @@ events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted aut
 * Load Spring AMQP plugin- {pull}1784[#1784]
 * Avoid `IllegalStateException` when multiple `tracestate` headers are used - {pull}1808[#1808]
 * Ensure CLI attach avoids `sudo` only when required and avoid blocking - {pull}1819[#1819]
+* Avoid sending metric-sets without samples, so to adhere to the intake API - {pull}1826[#1826]
 
 [float]
 ===== Refactors
