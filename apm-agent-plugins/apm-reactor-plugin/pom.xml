@@ -18,7 +18,7 @@
 
         <animal.sniffer.skip>true</animal.sniffer.skip>
 
-        <version.reactor>3.3.2.RELEASE</version.reactor>
+        <version.reactor>3.2.0.RELEASE</version.reactor>
     </properties>
 
     <dependencies>
