@@ -15,8 +15,14 @@
       "cassandra": {
         "comment": "Cassandra"
       },
+      "cosmosdb": {
+        "comment": "Azure CosmosDB"
+      },
       "db2": {
         "comment": "IBM DB2"
+      },
+      "dynamodb": {
+        "comment": "AWS DynamoDB"
       },
       "elasticsearch": {
         "comment": "Elasticsearch"
@@ -65,6 +71,12 @@
   },
   "messaging": {
     "subtypes": {
+      "azurequeue": {
+        "comment": "Azure Queue"
+      },
+      "azureservicebus": {
+        "comment": "Azure Service Bus"
+      },
       "jms": {
         "comment": "Java Messaging Service"
       },
@@ -73,11 +85,28 @@
       },
       "rabbitmq": {
         "comment": "RabbitMQ"
+      },
+      "sns": {
+        "comment": "AWS Simple Notification Service"
+      },
+      "sqs": {
+        "comment": "AWS Simple Queue Service"
       }
     }
   },
   "process": {
     "comment": "External process"
+  },
+  "storage": {
+    "azurefile": {
+      "comment": "Azure Files"
+    },
+    "azuresblob": {
+      "comment": "Azure Blob Storage"
+    },
+    "s3": {
+      "comment": "AWS S3"
+    }
   },
   "template": {
     "comment": "Template engines (no sub-type as really platform-specific)"
