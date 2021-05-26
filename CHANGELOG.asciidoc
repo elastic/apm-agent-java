@@ -30,6 +30,7 @@ endif::[]
 events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted automatically as well - {pull}1793[#1793]
 * Instrumentation for Vert.x Web {pull}1697[#1697]
 * Changed log level of vm arguments to debug
+* Giving precedence for the W3C `tracecontext` header over the `elastic-apm-traceparent` header - {pull}1821[#1821]
 
 [float]
 ===== Bug fixes
