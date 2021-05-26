@@ -225,10 +225,11 @@ public class MockReporter implements Reporter {
 
             String subType = span.getSubtype();
             if (subType != null) {
-                JsonNode subTypesJson = getMandatoryJson(typeJson, "subtypes", String.format("subtypes for type '%s'", type));
-
-                JsonNode subTypeJson = getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' for type '%s' (%s)", subType, type, typeComment));
-                assertThat(subTypeJson).isNotNull();
+                JsonNode subTypesJson = typeJson.get("subtypes");
+                if (null != subTypesJson) {
+                    JsonNode subTypeJson = getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' for type '%s' (%s)", subType, type, typeComment));
+                    assertThat(subTypeJson).isNotNull();
+                }
             }
         }
 
