@@ -29,7 +29,6 @@ import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -92,7 +91,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testTransactionWithError() {
-        reporter.checkUnknownOutcome(false);
+        reporter.disableCheckUnknownOutcome();
 
         final Transaction transaction = ElasticApm.startTransaction();
         transaction.setType("request");

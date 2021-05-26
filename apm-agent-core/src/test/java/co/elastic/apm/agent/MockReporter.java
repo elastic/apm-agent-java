@@ -53,7 +53,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -80,7 +79,12 @@ public class MockReporter implements Reporter {
     // A map of exit span type to actions that that do not support address and port discovery
     private static final Map<String, Collection<String>> SPAN_ACTIONS_WITHOUT_ADDRESS;
     // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
-    private boolean disableDestinationAddressCheck;
+    private boolean checkDestinationAddress = true;
+    // Allows optional opt-out for unknown outcome
+    private boolean checkUnknownOutcomes = true;
+    // Allows optional opt-out from strick span type/sub-type checking
+    private boolean checkStrictSpanType = true;
+
 
     private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
     private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
@@ -88,7 +92,7 @@ public class MockReporter implements Reporter {
     private final List<byte[]> bytes = new CopyOnWriteArrayList<>();
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
-    private boolean checkUnknownOutcomes = true;
+
     private boolean closed;
 
     private static final JsonNode SPAN_TYPES_SPEC = TestJsonSpec.getJson("span_types.json");
@@ -123,22 +127,38 @@ public class MockReporter implements Reporter {
     }
 
     /**
-     * @param enable {@literal true} to enable unknown outcome check, {@literal false} to allow for unknown outcome
+     * Sets all optional checks to their default value (enabled), should be used as a shortcut to reset mock reporter state
+     * after/before using it for a single test execution
      */
-    public void checkUnknownOutcome(boolean enable) {
-        checkUnknownOutcomes = enable;
+    public void resetChecks() {
+        checkDestinationAddress = true;
+        checkUnknownOutcomes = true;
+        checkStrictSpanType = true;
     }
 
-    public void disableDestinationAddressCheck() {
-        disableDestinationAddressCheck = true;
+    /**
+     * Disables unknown outcome check
+     */
+    public void disableCheckUnknownOutcome() {
+        checkUnknownOutcomes = false;
     }
 
-    public void enableDestinationAddressCheck() {
-        disableDestinationAddressCheck = false;
+    /**
+     * Disables destination address check
+     */
+    public void disableCheckDestinationAddress() {
+        checkDestinationAddress = false;
     }
 
-    public boolean isDisableDestinationAddressCheck() {
-        return disableDestinationAddressCheck;
+    public boolean checkDestinationAddress(){
+        return  checkDestinationAddress;
+    }
+
+    /**
+     * Disables strict span type and sub-type check (against shared spec)
+     */
+    public void disableCheckStrictSpanType() {
+        checkStrictSpanType = false;
     }
 
     @Override
@@ -191,40 +211,27 @@ public class MockReporter implements Reporter {
         spans.add(span);
     }
 
+
     private void verifySpanType(Span span) {
         String type = span.getType();
         assertThat(type)
             .describedAs("span type is mandatory")
             .isNotNull();
 
-        String subtype = Objects.toString(span.getSubtype());
+        if (checkStrictSpanType) {
+            JsonNode typeJson = getMandatoryJson(SPAN_TYPES_SPEC, type, String.format("span type '%s'", type));
 
-        JsonNode typeJson = getMandatoryObject(SPAN_TYPES_SPEC, type, String.format("span type '%s'", type));
+            String typeComment = getOptionalComment(typeJson);
 
-        String typeComment = getOptionalComment(typeJson);
+            String subType = span.getSubtype();
+            if (subType != null) {
+                JsonNode subTypesJson = getMandatoryJson(typeJson, "subtypes", String.format("subtypes for type '%s'", type));
 
-        JsonNode subTypesJson = getMandatoryObject(typeJson, "subtypes", String.format("subtypes for type '%s'", type));
+                JsonNode subTypeJson = getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' for type '%s' (%s)", subType, type, typeComment));
+                assertThat(subTypeJson).isNotNull();
+            }
+        }
 
-        JsonNode subTypeJson = getMandatoryObject(subTypesJson, subtype, String.format("span subtype '%s' for type '%s' (%s)", subtype, type, typeComment));
-
-        // TODO : check for sub-type span actions also ?
-    }
-
-    private JsonNode getMandatoryObject(JsonNode json, String name, String desc) {
-        JsonNode jsonNode = json.get(name);
-        assertThat(jsonNode)
-            .describedAs(desc)
-            .describedAs("unknown span type '%s'", name)
-            .isNotNull();
-        assertThat(jsonNode.isObject())
-            .isTrue();
-        return jsonNode;
-    }
-
-    private String getOptionalComment(JsonNode json) {
-        return Optional.ofNullable(json.get("comment"))
-            .map(JsonNode::asText)
-            .orElse("");
     }
 
     private void verifyDestinationFields(Span span) {
@@ -232,7 +239,7 @@ public class MockReporter implements Reporter {
             return;
         }
         Destination destination = span.getContext().getDestination();
-        if (!disableDestinationAddressCheck && !SPAN_TYPES_WITHOUT_ADDRESS.contains(span.getSubtype())) {
+        if (checkDestinationAddress && !SPAN_TYPES_WITHOUT_ADDRESS.contains(span.getSubtype())) {
             // see if this span's action is not supported for its subtype
             Collection<String> unsupportedActions = SPAN_ACTIONS_WITHOUT_ADDRESS.getOrDefault(span.getSubtype(), Collections.emptySet());
             if (!unsupportedActions.contains(span.getAction())) {
@@ -533,5 +540,21 @@ public class MockReporter implements Reporter {
 
     private static boolean hasEmptyTraceContext(AbstractSpan<?> item) {
         return item.getTraceContext().getId().isEmpty();
+    }
+
+    private static JsonNode getMandatoryJson(JsonNode json, String name, String desc) {
+        JsonNode jsonNode = json.get(name);
+        assertThat(jsonNode)
+            .describedAs(desc)
+            .isNotNull();
+        assertThat(jsonNode.isObject())
+            .isTrue();
+        return jsonNode;
+    }
+
+    private static String getOptionalComment(JsonNode json) {
+        return Optional.ofNullable(json.get("comment"))
+            .map(JsonNode::asText)
+            .orElse("");
     }
 }

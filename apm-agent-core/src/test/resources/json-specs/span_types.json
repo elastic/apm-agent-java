@@ -1,41 +1,13 @@
 {
   "app": {
     "subtypes": {
-      "subtype": {
-        "comment": "TODO : fix this anomaly (test)"
-      },
-      "": {
-        "comment": "TODO : fix this anomaly"
-      },
       "inferred": {
         "comment": "Sampling profiler inferred spans"
-      },
-      "null": {
-        "comment": "TODO : find if relevant"
-      }
-    }
-  },
-  "async": {
-    "subtypes": {
-      "blocking-queue": {
-        "comment": "TODO : find where it's being used"
-      }
-    }
-  },
-  "cache": {
-    "subtypes": {
-      "redis": {
-        "comment": "TODO : should we make OpenTracing use 'db.redis' instead ?"
       }
     }
   },
   "custom": {
-    "comment": "API custom instrumentation",
-    "subtypes": {
-      "null": {
-        "comment": "TODO : fix this anomaly"
-      }
-    }
+    "comment": "API custom instrumentation"
   },
   "db": {
     "comment": "database span",
@@ -48,9 +20,6 @@
       },
       "elasticsearch": {
         "comment": "Elasticsearch"
-      },
-      "foo": {
-        "comment": "TODO remove this (test)"
       },
       "h2": {
         "comment": "H2"
@@ -67,9 +36,6 @@
       "mysql": {
         "comment": "MySQL"
       },
-      "null": {
-        "comment": "TODO : fix this anomaly"
-      },
       "oracle": {
         "comment": "Oracle Database"
       },
@@ -81,24 +47,6 @@
       },
       "sqlserver": {
         "comment": "Microsoft SQL Server"
-      }
-    }
-  },
-  "ext": {
-    "subtypes": {
-      "null": {
-        "comment": "TODO find where it's being used in OpenTracing"
-      },
-      "http": {
-        "comment": "TODO remove this, 'external/http' should be used instead"
-      }
-    }
-  },
-  "ext.http": {
-    "comment": "TODO remove this, 'external/http' should be used instead",
-    "subtypes": {
-      "": {
-        "comment": "TODO remove this, 'external/http' should be used instead"
       }
     }
   },
@@ -115,41 +63,6 @@
       }
     }
   },
-  "foo": {
-    "comment": "TODO remove this (test)",
-    "subtypes": {
-      "bar": {
-        "comment": "TODO remove this (test)"
-      },
-      "null": {
-        "comment": "TODO remove this (test)"
-      }
-    }
-  },
-  "foo2": {
-    "comment": "TODO remove this (test)",
-    "subtypes": {
-      "null": {
-        "comment": "TODO remove this (test)"
-      }
-    }
-  },
-  "foo3": {
-    "comment": "TODO remove this (test)",
-    "subtypes": {
-      "null": {
-        "comment": "TODO remove this (test)"
-      }
-    }
-  },
-  "http": {
-    "comment": "TODO remove this",
-    "subtypes": {
-      "get": {
-        "comment": "TODO remove this (tests)"
-      }
-    }
-  },
   "messaging": {
     "subtypes": {
       "jms": {
@@ -163,71 +76,11 @@
       }
     }
   },
-  "plugin": {
-    "comment": "TODO : only for testing ?",
-    "subtypes": {
-      "external": {
-        "comment": "TODO : only for testing ?"
-      }
-    }
-  },
   "process": {
-    "comment": "External process TODO find way to allow for wildcard (or not use binary name as subtype)",
-    "subtypes": {
-      "hello": {
-        "comment": "TODO remove this (test)"
-      },
-      "java": {
-        "comment": "TODO remove this (test)"
-      }
-    }
-  },
-  "servlet": {
-    "subtypes": {
-      "request-dispatcher": {
-        "comment": "Java Servlet request dispatcher"
-      }
-    }
+    "comment": "External process"
   },
   "template": {
-    "comment": "Template engines",
-    "subtypes": {
-      "FreeMarker": {
-        "comment": ""
-      },
-      "GroovyMarkup": {
-        "comment": ""
-      },
-      "InternalResource": {
-        "comment": ""
-      },
-      "Jade": {
-        "comment": ""
-      },
-      "MappingJackson2Json": {
-        "comment": ""
-      },
-      "Thymeleaf": {
-        "comment": ""
-      },
-      "jsf": {
-        "comment": "Java Server Faces"
-      }
-    }
-  },
-  "test": {
-    "subtypes": {
-      "null": {
-        "comment": "TODO remove this (test)"
-      }
-    }
-  },
-  "unknown": {
-    "subtypes": {
-      "null": {
-        "comment": "TODO : find if relevant"
-      }
-    }
+    "comment": "Template engines (no sub-type as really platform-specific)"
   }
 }
 

@@ -88,6 +88,9 @@ public abstract class AbstractInstrumentationTest {
     @After
     @AfterEach
     public final void cleanUp() {
+        // re-enable all reporter checks
+        reporter.resetChecks();
+
         SpyConfiguration.reset(config);
         try {
             if (validateRecycling) {

@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import okhttp3.Response;
 import org.eclipse.jetty.servlet.ErrorPageErrorHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.servlet.DispatcherType;
@@ -60,6 +61,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 class ServletInstrumentationTest extends AbstractServletTest {
+
+    @BeforeEach
+    void beforeEach() {
+        // servlet type & subtype are nor part of shared spec
+        reporter.disableCheckStrictSpanType();
+    }
 
     @Override
     protected void setUpHandler(ServletContextHandler handler) {
