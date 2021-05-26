@@ -30,9 +30,6 @@
       "h2": {
         "comment": "H2"
       },
-      "hibernate-search": {
-        "comment": "Hibernate Search (Java only)"
-      },
       "mariadb": {
         "comment": "MariaDB"
       },
@@ -98,14 +95,16 @@
     "comment": "External process"
   },
   "storage": {
-    "azurefile": {
-      "comment": "Azure Files"
-    },
-    "azuresblob": {
-      "comment": "Azure Blob Storage"
-    },
-    "s3": {
-      "comment": "AWS S3"
+    "subtypes": {
+      "azurefile": {
+        "comment": "Azure Files"
+      },
+      "azuresblob": {
+        "comment": "Azure Blob Storage"
+      },
+      "s3": {
+        "comment": "AWS S3"
+      }
     }
   },
   "template": {
