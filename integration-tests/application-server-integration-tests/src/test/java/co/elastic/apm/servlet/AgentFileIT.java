@@ -64,7 +64,7 @@ public class AgentFileIT {
                 agentJar.stream()
                     .map(JarEntry::getName)
                     .filter(entry -> !entry.startsWith("META-INF/"))
-                    .filter(entry -> !entry.startsWith("co/elastic/apm/agent/"))
+                    .filter(entry -> !entry.startsWith("co/"))
                     .filter(entry -> !entry.startsWith("schema/"))
                     .filter(entry -> !entry.startsWith("asyncprofiler/"))
                     .filter(entry -> !entry.startsWith("bootstrap/"))
