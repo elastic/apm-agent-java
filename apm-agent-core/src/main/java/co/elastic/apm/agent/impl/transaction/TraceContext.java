@@ -137,14 +137,14 @@ public class TraceContext implements Recyclable {
                 }
 
                 boolean isValid = false;
-                String traceparent = traceContextHeaderGetter.getFirstHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+                String traceparent = traceContextHeaderGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
                 if (traceparent != null) {
                     isValid = child.asChildOf(traceparent);
                 }
 
                 if (!isValid) {
                     // Look for the legacy Elastic traceparent header (in case this comes from an older agent)
-                    traceparent = traceContextHeaderGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+                    traceparent = traceContextHeaderGetter.getFirstHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
                     if (traceparent != null) {
                         isValid = child.asChildOf(traceparent);
                     }

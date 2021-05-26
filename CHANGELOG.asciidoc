@@ -30,7 +30,8 @@ endif::[]
 events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted automatically as well - {pull}1793[#1793]
 * Instrumentation for Vert.x Web {pull}1697[#1697]
 * Changed log level of vm arguments to debug
-* Add instrumentation for Webflux {pull}1305[#1305]
+* Giving precedence for the W3C `tracecontext` header over the `elastic-apm-traceparent` header - {pull}1821[#1821]
+* Add instrumentation for Webflux - {pull}1305[#1305]
 
 [float]
 ===== Bug fixes
@@ -38,6 +39,7 @@ events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted aut
 * Load Spring AMQP plugin- {pull}1784[#1784]
 * Avoid `IllegalStateException` when multiple `tracestate` headers are used - {pull}1808[#1808]
 * Ensure CLI attach avoids `sudo` only when required and avoid blocking - {pull}1819[#1819]
+* Avoid sending metric-sets without samples, so to adhere to the intake API - {pull}1826[#1826]
 
 [float]
 ===== Refactors
