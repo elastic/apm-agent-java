@@ -39,6 +39,7 @@
  */
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
+import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import co.elastic.apm.agent.util.IOUtils;
 
 import javax.annotation.Nullable;
@@ -71,6 +72,10 @@ public class AsyncProfiler {
         }
         synchronized (AsyncProfiler.class) {
             if (instance == null) {
+                if (JvmRuntimeInfo.ofCurrentVM().isJ9VM()) {
+                    throw new IllegalStateException("OpenJ9 JVMs are not supported by async profiler. Please set " +
+                        "profiling_inferred_spans_enabled to false");
+                }
                 try {
                     loadNativeLibrary(profilerLibDirectory);
                 } catch (UnsatisfiedLinkError e) {
