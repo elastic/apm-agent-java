@@ -108,8 +108,8 @@ public class JfrParser implements Recyclable {
         bufferedFile.setFile(file);
         long fileSize = bufferedFile.size();
         if (fileSize < 16) {
-            logger.debug("Not parsing {}, as it's size ({}) is less than the minimum", file, fileSize);
-            return;
+            throw new IllegalStateException("Unexpected sampling profiler error, everything else should work as expected. " +
+                "Please report to us with as many details, including OS and JVM details.");
         }
         logger.debug("Parsing {} ({} bytes)", file, fileSize);
         bufferedFile.ensureRemaining(16, 16);
