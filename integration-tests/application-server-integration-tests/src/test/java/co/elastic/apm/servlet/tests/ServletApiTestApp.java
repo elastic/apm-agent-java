@@ -124,7 +124,7 @@ public class ServletApiTestApp extends TestApp {
         for (JsonNode span : spans) {
             assertThat(span.get("parent_id").textValue()).isEqualTo(transactionId);
             assertThat(span.get("name").asText()).isEqualTo("java");
-            assertThat(span.get("type").asText()).isEqualTo("process.java.execute");
+            assertThat(span.get("type").asText()).isEqualTo("process");
         }
     }
 
