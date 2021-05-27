@@ -26,6 +26,7 @@ package co.elastic.apm.agent.es.restclient;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
@@ -45,6 +46,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
@@ -140,6 +142,9 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
                     port = host.getPort();
                     url = host.toURI();
                     statusCode = esre.getResponse().getStatusLine().getStatusCode();
+                } else if (t instanceof CancellationException) {
+                    // We can't tell whether a cancelled search is related to a failure or not
+                    span.withOutcome(Outcome.UNKNOWN);
                 }
                 span.captureException(t);
             }

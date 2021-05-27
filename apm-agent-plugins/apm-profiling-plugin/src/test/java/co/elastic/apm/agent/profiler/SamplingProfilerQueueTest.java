@@ -42,10 +42,8 @@ public class SamplingProfilerQueueTest {
     @DisabledOnOs(OS.WINDOWS)
     void testFillQueue() throws Exception {
         System.out.println(System.getProperty("os.name"));
-        ;
-        ElasticApmTracer tracer = MockTracer.create();
 
-        ScheduledThreadPoolExecutor scheduler = ExecutorUtils.createSingleThreadSchedulingDaemonPool("sampling-profiler");
+        ElasticApmTracer tracer = MockTracer.create();
 
         SamplingProfiler profiler = new SamplingProfiler(tracer, new SystemNanoClock());
 

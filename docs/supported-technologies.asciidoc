@@ -53,7 +53,7 @@ the agent does not capture transactions.
 
 |IBM J9 VM
 |8 service refresh 5+ (build 2.9 or 8.0.5.0)
-|
+|<<method-sampling-based,Sampling profiler>> is not supported
 
 |HP-UX JVM
 | 7.0.10+, 8.0.02+
@@ -136,6 +136,11 @@ rendering
 |3+
 |
 |1.17.0
+
+|Apache Struts
+|2.x
+|The transactions are named based on your action (`ActionClass#actionMethod`).
+|1.24.0
 
 |===
 

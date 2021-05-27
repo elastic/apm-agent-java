@@ -905,6 +905,8 @@ class CallTreeTest {
 
     public static CallTree.Root getCallTree(ElasticApmTracer tracer, String[] stackTraces) throws Exception {
         ProfilingFactory profilingFactory = tracer.getLifecycleListener(ProfilingFactory.class);
+        assertThat(profilingFactory).isNotNull();
+
         SamplingProfiler profiler = profilingFactory.getProfiler();
         FixedNanoClock nanoClock = (FixedNanoClock) profilingFactory.getNanoClock();
         nanoClock.setNanoTime(0);
