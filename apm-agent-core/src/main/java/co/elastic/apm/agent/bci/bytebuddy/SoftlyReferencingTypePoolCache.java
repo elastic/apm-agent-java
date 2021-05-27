@@ -34,11 +34,9 @@ import net.bytebuddy.pool.TypePool;
 
 import javax.annotation.Nullable;
 import java.lang.ref.SoftReference;
-import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Caches {@link TypeDescription}s which speeds up type matching -
@@ -47,7 +45,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * Without a type pool cache those types would have to be re-loaded from the file system if their {@link Class} has not been loaded yet.
  * <p>
  * In order to avoid {@link OutOfMemoryError}s because of this cache,
- * the {@link TypePool.CacheProvider}s are wrapped in a {@link SoftReference}
+ * the {@link TypePool.CacheProvider}s are wrapped in a {@link SoftReference}.
+ * If the underlying cache is being GC'ed, a new one is immediately being created instead, so to both prevent OOME and
+ * enable continuous caching.
+ * Any cache that is not being accessed for some time (configurable through constructor), is being cleared, so that
+ * caches don't occupy heap memory until there is a heap stress. This fits the typical pattern of most type matching
+ * occurring at the beginning of the agent attachment.
  * </p>
  */
 public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCache {
@@ -59,6 +62,7 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
      */
     private final WeakConcurrentMap<ClassLoader, CacheProviderWrapper> cacheProviders =
         new NullSafeWeakConcurrentMap<ClassLoader, CacheProviderWrapper>(false);
+
     private final ElementMatcher<ClassLoader> ignoredClassLoaders;
 
     public SoftlyReferencingTypePoolCache(final TypePool.Default.ReaderMode readerMode,
@@ -82,14 +86,12 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
         }
         classLoader = classLoader == null ? getBootstrapMarkerLoader() : classLoader;
         CacheProviderWrapper cacheProviderWrapper = cacheProviders.get(classLoader);
-        if (cacheProviderWrapper == null || cacheProviderWrapper.isCleared()) {
-            cacheProviderWrapper = new CacheProviderWrapper(classLoader);
-            cacheProviders.put(classLoader, cacheProviderWrapper);
+        if (cacheProviderWrapper == null) {
+            cacheProviders.put(classLoader, new CacheProviderWrapper());
             // accommodate for race condition
             cacheProviderWrapper = cacheProviders.get(classLoader);
         }
-        // guard against edge case when the soft reference has already been cleared since evaluating the loop condition
-        return cacheProviderWrapper.isCleared() ? TypePool.CacheProvider.Simple.withObjectType() : cacheProviderWrapper;
+        return cacheProviderWrapper;
     }
 
     /**
@@ -121,39 +123,33 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
         }
     }
 
-    void clearFromMap(@Nullable ClassLoader classLoader) {
-        if (classLoader != null) {
-            cacheProviders.remove(classLoader);
-        }
-    }
-
     WeakConcurrentMap<ClassLoader, CacheProviderWrapper> getCacheProviders() {
         return cacheProviders;
     }
 
-    private class CacheProviderWrapper implements TypePool.CacheProvider {
-        private final AtomicLong lastAccess = new AtomicLong(System.currentTimeMillis());
-        private final SoftReference<TypePool.CacheProvider> delegate;
-        private final WeakReference<ClassLoader> clRef;
+    private static class CacheProviderWrapper implements TypePool.CacheProvider {
 
-        private CacheProviderWrapper(ClassLoader classLoader) {
-            this.delegate = new SoftReference<TypePool.CacheProvider>(new TypePool.CacheProvider.Simple());
-            this.clRef = new WeakReference<>(classLoader);
+        private volatile long lastAccess = System.currentTimeMillis();
+        private volatile SoftReference<TypePool.CacheProvider> delegate;
+
+        private CacheProviderWrapper() {
+            delegate = new SoftReference<TypePool.CacheProvider>(new Simple());
         }
 
         long getLastAccess() {
-            return lastAccess.get();
+            return lastAccess;
         }
 
-        boolean isCleared() {
-            return delegate.get() == null;
-        }
-
-        private TypePool.CacheProvider getDelegate() throws CacheAlreadyCollectedException {
+        private TypePool.CacheProvider getDelegate() {
             TypePool.CacheProvider cacheProvider = delegate.get();
             if (cacheProvider == null) {
-                SoftlyReferencingTypePoolCache.this.clearFromMap(clRef.get());
-                throw new CacheAlreadyCollectedException();
+                synchronized (this) {
+                    cacheProvider = delegate.get();
+                    if (cacheProvider == null) {
+                        cacheProvider = new Simple();
+                        delegate = new SoftReference<TypePool.CacheProvider>(cacheProvider);
+                    }
+                }
             }
             return cacheProvider;
         }
@@ -161,32 +157,20 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
         @Override
         @Nullable
         public TypePool.Resolution find(String name) {
-            try {
-                return getDelegate().find(name);
-            } catch (CacheAlreadyCollectedException e) {
-                return null;
-            }
+            lastAccess = System.currentTimeMillis();
+            return getDelegate().find(name);
         }
 
         @Override
         public TypePool.Resolution register(String name, TypePool.Resolution resolution) {
-            try {
-                return getDelegate().register(name, resolution);
-            } catch (CacheAlreadyCollectedException e) {
-                return resolution;
-            }
+            lastAccess = System.currentTimeMillis();
+            return getDelegate().register(name, resolution);
         }
 
         @Override
         public void clear() {
-            try {
-                getDelegate().clear();
-            } catch (CacheAlreadyCollectedException e) {
-                // do nothing - already cleared
-            }
+            getDelegate().clear();
         }
-
-        private class CacheAlreadyCollectedException extends Exception {}
     }
 
     /**
