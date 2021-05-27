@@ -17,7 +17,7 @@ periodically recording running methods with a sampling-based profiler.
 
 {y} Very low overhead. +
 {y} No code changes required. +
-{n} Does not work on Windows. +
+{n} Does not work on Windows and on OpenJ9. +
 {n} The duration of profiler-inferred spans are not exact measurements, only estimates.
 
 <<method-sampling-based,Learn more>>
@@ -62,7 +62,8 @@ Use a configuration option to specify additional methods to instrument.
 === Sampling-based profiler
 
 experimental::[]
-added::[1.14.0]
+
+NOTE: this feature is not supported on Windows and on OpenJ9
 
 Instead of recording every event, leverage the agent's built-in integration with
 https://github.com/jvm-profiling-tools/async-profiler[async-profiler]
