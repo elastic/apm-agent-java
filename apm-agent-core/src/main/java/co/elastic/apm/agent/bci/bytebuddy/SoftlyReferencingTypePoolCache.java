@@ -34,6 +34,7 @@ import net.bytebuddy.pool.TypePool;
 
 import javax.annotation.Nullable;
 import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -80,16 +81,15 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
             return TypePool.CacheProvider.Simple.withObjectType();
         }
         classLoader = classLoader == null ? getBootstrapMarkerLoader() : classLoader;
-        CacheProviderWrapper cacheProviderRef = cacheProviders.get(classLoader);
-        if (cacheProviderRef == null || cacheProviderRef.get() == null) {
-            cacheProviderRef = new CacheProviderWrapper();
-            cacheProviders.put(classLoader, cacheProviderRef);
+        CacheProviderWrapper cacheProviderWrapper = cacheProviders.get(classLoader);
+        if (cacheProviderWrapper == null || cacheProviderWrapper.isCleared()) {
+            cacheProviderWrapper = new CacheProviderWrapper(classLoader);
+            cacheProviders.put(classLoader, cacheProviderWrapper);
             // accommodate for race condition
-            cacheProviderRef = cacheProviders.get(classLoader);
+            cacheProviderWrapper = cacheProviders.get(classLoader);
         }
-        final TypePool.CacheProvider cacheProvider = cacheProviderRef.get();
         // guard against edge case when the soft reference has already been cleared since evaluating the loop condition
-        return cacheProvider != null ? cacheProvider : TypePool.CacheProvider.Simple.withObjectType();
+        return cacheProviderWrapper.isCleared() ? TypePool.CacheProvider.Simple.withObjectType() : cacheProviderWrapper;
     }
 
     /**
@@ -121,26 +121,72 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
         }
     }
 
+    void clearFromMap(@Nullable ClassLoader classLoader) {
+        if (classLoader != null) {
+            cacheProviders.remove(classLoader);
+        }
+    }
+
     WeakConcurrentMap<ClassLoader, CacheProviderWrapper> getCacheProviders() {
         return cacheProviders;
     }
 
-    private static class CacheProviderWrapper {
+    private class CacheProviderWrapper implements TypePool.CacheProvider {
         private final AtomicLong lastAccess = new AtomicLong(System.currentTimeMillis());
         private final SoftReference<TypePool.CacheProvider> delegate;
+        private final WeakReference<ClassLoader> clRef;
 
-        private CacheProviderWrapper() {
+        private CacheProviderWrapper(ClassLoader classLoader) {
             this.delegate = new SoftReference<TypePool.CacheProvider>(new TypePool.CacheProvider.Simple());
+            this.clRef = new WeakReference<>(classLoader);
         }
 
         long getLastAccess() {
             return lastAccess.get();
         }
 
-        @Nullable
-        TypePool.CacheProvider get() {
-            return delegate.get();
+        boolean isCleared() {
+            return delegate.get() == null;
         }
+
+        private TypePool.CacheProvider getDelegate() throws CacheAlreadyCollectedException {
+            TypePool.CacheProvider cacheProvider = delegate.get();
+            if (cacheProvider == null) {
+                SoftlyReferencingTypePoolCache.this.clearFromMap(clRef.get());
+                throw new CacheAlreadyCollectedException();
+            }
+            return cacheProvider;
+        }
+
+        @Override
+        @Nullable
+        public TypePool.Resolution find(String name) {
+            try {
+                return getDelegate().find(name);
+            } catch (CacheAlreadyCollectedException e) {
+                return null;
+            }
+        }
+
+        @Override
+        public TypePool.Resolution register(String name, TypePool.Resolution resolution) {
+            try {
+                return getDelegate().register(name, resolution);
+            } catch (CacheAlreadyCollectedException e) {
+                return resolution;
+            }
+        }
+
+        @Override
+        public void clear() {
+            try {
+                getDelegate().clear();
+            } catch (CacheAlreadyCollectedException e) {
+                // do nothing - already cleared
+            }
+        }
+
+        private class CacheAlreadyCollectedException extends Exception {}
     }
 
     /**
