@@ -117,8 +117,9 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
      */
     void clearIfNotAccessedSince(long clearIfNotAccessedSinceMinutes) {
         for (Map.Entry<ClassLoader, CacheProviderWrapper> entry : cacheProviders) {
-            if (System.currentTimeMillis() >= entry.getValue().getLastAccess() + TimeUnit.MINUTES.toMillis(clearIfNotAccessedSinceMinutes)) {
-                cacheProviders.remove(entry.getKey());
+            CacheProviderWrapper cacheWrapper = entry.getValue();
+            if (System.currentTimeMillis() >= cacheWrapper.getLastAccess() + TimeUnit.MINUTES.toMillis(clearIfNotAccessedSinceMinutes)) {
+                cacheWrapper.clear();
             }
         }
     }
