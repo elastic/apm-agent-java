@@ -54,6 +54,7 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>
+            <version>${version.jetty-server}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
