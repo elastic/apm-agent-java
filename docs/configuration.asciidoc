@@ -1930,7 +1930,7 @@ The <<config-profiling-inferred-spans-sampling-interval, `profiling_inferred_spa
 The inferred spans are created after a profiling session has ended.
 This means there is a delay between the regular and the inferred spans being visible in the UI.
 
-NOTE: This feature is not available on Windows
+NOTE: This feature is not available on Windows and on OpenJ9
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -3528,7 +3528,7 @@ The default unit for this option is `ms`.
 # The inferred spans are created after a profiling session has ended.
 # This means there is a delay between the regular and the inferred spans being visible in the UI.
 # 
-# NOTE: This feature is not available on Windows
+# NOTE: This feature is not available on Windows and on OpenJ9
 #
 # This setting can be changed at runtime
 # Type: Boolean
