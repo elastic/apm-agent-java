@@ -193,7 +193,7 @@ public class UserRegistry {
             if (!canSwitchToUser) {
                 throw new IllegalStateException(String.format("Cannot run as user %s", username));
             }
-            if (!username.equals(getCurrentUserName())) {
+            if (!isCurrentUser()) {
                 // sudo only when required
                 cmd = sudoCmd(username, cmd);
             }

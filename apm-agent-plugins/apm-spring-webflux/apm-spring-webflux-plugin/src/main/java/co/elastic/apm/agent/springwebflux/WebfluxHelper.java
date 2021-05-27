@@ -25,10 +25,12 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Mono;
@@ -45,6 +47,8 @@ public class WebfluxHelper {
     private static final String SERVLET_TRANSACTION = WebfluxHelper.class.getName() + ".servlet_transaction";
     public static final String SSE_EVENT_CLASS = "org.springframework.http.codec.ServerSentEvent";
 
+    private static final HeaderGetter HEADER_GETTER = new HeaderGetter();
+
     @Nullable
     public static Transaction getOrCreateTransaction(Tracer tracer, Class<?> clazz, ServerWebExchange exchange) {
 
@@ -52,7 +56,7 @@ public class WebfluxHelper {
         boolean fromServlet = transaction != null;
 
         if (!fromServlet) {
-            transaction = tracer.startRootTransaction(clazz.getClassLoader());
+            transaction = tracer.startChildTransaction(exchange.getRequest().getHeaders(), HEADER_GETTER, ServerWebExchange.class.getClassLoader());
         }
 
         if (transaction == null) {
