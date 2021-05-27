@@ -86,12 +86,11 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                         transaction.withType(Transaction.TYPE_REQUEST);
                     }
                 }
-
-                if (finishMicros >= 0) {
-                    abstractSpan.end(finishMicros);
-                } else {
-                    abstractSpan.end();
-                }
+            }
+            if (finishMicros >= 0) {
+                abstractSpan.end(finishMicros);
+            } else {
+                abstractSpan.end();
             }
         }
     }
