@@ -55,6 +55,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -68,7 +69,7 @@ class MicrometerMetricsReporterTest {
     private MeterRegistry meterRegistry;
     private MicrometerMetricsReporter metricsReporter;
     private MockReporter reporter;
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private ElasticApmTracer tracer;
 
     @BeforeEach
@@ -104,6 +105,21 @@ class MicrometerMetricsReporterTest {
         assertThat(metricSet.get("metricset").get("tags").get("foo").textValue()).isEqualTo("bar");
         assertThat(metricSet.get("metricset").get("samples").get("counter").get("value").doubleValue()).isEqualTo(42);
         assertThat(metricSet.get("metricset").get("samples").get("gauge").get("value").doubleValue()).isEqualTo(42);
+    }
+
+    @Test
+    void testMultipleMetricSets() {
+        meterRegistry.counter("counter", List.of(Tag.of("foo", "bar"))).increment(42);
+        meterRegistry.gauge("gauge", List.of(Tag.of("foo", "baz")), 42, v -> 42);
+
+        List<JsonNode> metricSets = getMetricSets();
+        assertThat(metricSets).hasSize(2);
+        Optional<JsonNode> fooBar = metricSets.stream().filter(metricSet -> metricSet.get("metricset").get("tags").get("foo").textValue().equals("bar")).findAny();
+        assertThat(fooBar).isNotEmpty();
+        assertThat(fooBar.get().get("metricset").get("samples").get("counter").get("value").doubleValue()).isEqualTo(42);
+        Optional<JsonNode> fooBaz = metricSets.stream().filter(metricSet -> metricSet.get("metricset").get("tags").get("foo").textValue().equals("baz")).findAny();
+        assertThat(fooBaz).isNotEmpty();
+        assertThat(fooBaz.get().get("metricset").get("samples").get("gauge").get("value").doubleValue()).isEqualTo(42);
     }
 
     @Test
@@ -244,8 +260,7 @@ class MicrometerMetricsReporterTest {
         JsonNode metricSet = getSingleMetricSet();
         assertThat(metricSet.get("metricset").get("samples").get("gauge").get("value").doubleValue()).isEqualTo(42);
 
-        metricSet = getSingleMetricSet();
-        assertThat(metricSet.get("metricset").get("samples").get("gauge")).isNull();
+        assertThat(getMetricSets()).isEmpty();
     }
 
     @Test
@@ -348,23 +363,22 @@ class MicrometerMetricsReporterTest {
     }
 
     @Test
-    void tryExclusionOfFailedGauge_singleGauge() {
+    void testExclusionOfFailedGauge_singleGauge() {
         List<Tag> tags = List.of(Tag.of("foo", "bar"));
         meterRegistry.gauge("gauge1", tags, 42, v -> {
             throw new RuntimeException("Failed to read gauge value");
         });
         assertThat(metricsReporter.getFailedMeters()).isEmpty();
-        JsonNode metricSet = getSingleMetricSet();
-        assertThat(metricSet.get("metricset").get("samples"))
-            .describedAs("value of %s is not expected to be written to json", "gauge1")
+        assertThat(getMetricSets())
+            .describedAs("json should not be reported for gauge1")
             .isEmpty();
 
-        getSingleMetricSet();
+        getMetricSets();
         assertThat(metricsReporter.getFailedMeters().iterator().next().getId().getName()).isEqualTo("gauge1");
     }
 
     @Test
-    void tryExclusionOfFailedGauge_firstFails() {
+    void testExclusionOfFailedGauge_firstFails() {
         List<Tag> tags = List.of(Tag.of("foo", "bar"));
         meterRegistry.gauge("gauge1", tags, 42, v -> {
             throw new RuntimeException("Failed to read gauge value");
@@ -382,7 +396,7 @@ class MicrometerMetricsReporterTest {
     }
 
     @Test
-    void tryExclusionOfFailedGauge_secondFails() {
+    void testExclusionOfFailedGauge_secondFails() {
         List<Tag> tags = List.of(Tag.of("foo", "bar"));
         meterRegistry.gauge("gauge1", tags, 42, v -> 42D);
         meterRegistry.gauge("gauge2", tags, 42, v -> {
@@ -416,6 +430,19 @@ class MicrometerMetricsReporterTest {
             assertThat(metricSet.get("metricset").get("samples").get("custom-counter-2").get("value").doubleValue())
                 .isEqualTo(42D);
         }
+    }
+
+    @Test
+    void testNotReportingEmptySamples() {
+        List<Tag> invalidMetricTags = List.of(Tag.of("test", "invalid"));
+        meterRegistry.more().counter("custom-counter", invalidMetricTags, 42, v -> Double.NaN);
+        List<Tag> validMetricTags = List.of(Tag.of("test", "valid"));
+        meterRegistry.more().counter("custom-counter", validMetricTags, 42, v -> 42D);
+        List<JsonNode> metricSets = getMetricSets();
+        assertThat(metricSets)
+            .describedAs("json should not be reported for %s", invalidMetricTags)
+            .hasSize(1);
+        assertThat(metricSets.get(0).get("metricset").get("tags").get("test").textValue()).isEqualTo("valid");
     }
 
     @Test
