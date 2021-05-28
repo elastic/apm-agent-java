@@ -135,7 +135,7 @@ pipeline {
         stage('Wait on internal CI') {
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
-                          body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.\n Changes: ${releaseVersions}")
+                          body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")
             input(message: "Start the release job on the internal CI. Click 'Proceed' once the job has succeeded or click 'Abort' if the release has failed and then manually undo the release.")
           }
         }
