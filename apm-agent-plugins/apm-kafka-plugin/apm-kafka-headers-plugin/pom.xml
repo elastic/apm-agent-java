@@ -27,5 +27,10 @@
             <artifactId>apm-kafka-base-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.ivy</groupId>
+            <artifactId>ivy</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

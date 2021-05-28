@@ -55,7 +55,7 @@ class UserRegistryTest {
 
     @Test
     @DisabledOnOs(OS.WINDOWS)
-    void testCurrentUserCanSwitchToHimself() {
+    void testCurrentUserCanSwitchToSelf() {
         String userName = System.getProperty("user.name");
         UserRegistry.User user = UserRegistry.empty().get(userName);
 

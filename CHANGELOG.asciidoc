@@ -31,6 +31,7 @@ events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted aut
 * Instrumentation for Vert.x Web {pull}1697[#1697]
 * Changed log level of vm arguments to debug
 * Giving precedence for the W3C `tracecontext` header over the `elastic-apm-traceparent` header - {pull}1821[#1821]
+* Add instrumentation for Webflux - {pull}1305[#1305]
 
 [float]
 ===== Bug fixes

@@ -27,6 +27,7 @@ package co.elastic.apm.agent.sdk.weakmap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.ConcurrentMap;
 
 import static co.elastic.apm.agent.sdk.weakmap.NullCheck.isNullKey;
 import static co.elastic.apm.agent.sdk.weakmap.NullCheck.isNullValue;
@@ -41,6 +42,22 @@ public class NullSafeWeakConcurrentMap<K, V> extends WeakConcurrentMap<K, V> {
 
     public NullSafeWeakConcurrentMap(boolean cleanerThread) {
         super(cleanerThread);
+    }
+
+    public NullSafeWeakConcurrentMap(boolean cleanerThread, ConcurrentMap<WeakKey<K>, V> target){
+        super(cleanerThread, isPersistentClassLoader(WeakConcurrentMap.class.getClassLoader()), target);
+    }
+
+    // duplicated from WeakConcurrentMap because it's not protected
+    // might be removed once (and if) https://github.com/raphw/weak-lock-free/pull/14 is released.
+    private static boolean isPersistentClassLoader(@Nullable ClassLoader classLoader) {
+        try {
+            return classLoader == null // bootstrap class loader
+                || classLoader == ClassLoader.getSystemClassLoader()
+                || classLoader == ClassLoader.getSystemClassLoader().getParent();
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     @Nullable

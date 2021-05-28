@@ -100,6 +100,7 @@
             <version>2.0.23.Final</version>
             <scope>test</scope>
         </dependency>
+        <!-- jetty required to test reporter -->
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
@@ -155,7 +156,11 @@
             <version>${version.cucumber}</version>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.ivy</groupId>
+            <artifactId>ivy</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
