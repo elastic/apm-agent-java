@@ -20,8 +20,20 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.23.1]]
-==== 1.23.1 - YYYY/MM/DD
+[[release-notes-1.24.1]]
+==== 1.24.1 - YYYY/MM/DD
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.24.0]]
+==== 1.24.0 - 2021/05/28
 
 [float]
 ===== Features
@@ -31,6 +43,7 @@ events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted aut
 * Instrumentation for Vert.x Web {pull}1697[#1697]
 * Changed log level of vm arguments to debug
 * Giving precedence for the W3C `tracecontext` header over the `elastic-apm-traceparent` header - {pull}1821[#1821]
+* Add instrumentation for Webflux - {pull}1305[#1305]
 
 [float]
 ===== Bug fixes
@@ -43,9 +56,6 @@ events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted aut
 [float]
 ===== Refactors
 * Remove single-package limitation for embedded plugins - {pull}1780[#1780]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.23.0]]
 ==== 1.23.0 - 2021/04/22

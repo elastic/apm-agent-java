@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>co.elastic.apm</groupId>
+        <artifactId>apm-agent-plugins</artifactId>
+        <version>1.24.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>apm-reactor-plugin</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <!-- for licence header plugin -->
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+
+        <animal.sniffer.skip>true</animal.sniffer.skip>
+
+        <version.reactor>3.2.0.RELEASE</version.reactor>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core</artifactId>
+            <version>${version.reactor}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-test</artifactId>
+            <version>${version.reactor}</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

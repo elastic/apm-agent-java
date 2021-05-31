@@ -27,7 +27,7 @@ other Java agents in addition to ours that have the same guarantees, they should
 However, some Java agents do not conform to these guarantees, in which case there may be issues with using them in
 parallel to ours. If you encounter errors, one of the first things to do is to remove any additional agent in order to
 check whether this is indeed a case of agent mismatch. We may still find a way to make them work together, but this
-information would be cruicial for our ability to assist, so make sure to include it when reporting such issues.
+information would be crucial for our ability to assist, so make sure to include it when reporting such issues.
 
 [float]
 [[trouble-shooting-logging]]
