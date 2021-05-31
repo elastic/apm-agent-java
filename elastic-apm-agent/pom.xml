@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.23.0</version>
+        <version>1.24.0</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
@@ -14,6 +14,9 @@
     <properties>
         <elastic.apm.agent>co.elastic.apm.agent.premain.AgentMain</elastic.apm.agent>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+
+        <!-- default value that will be overloaded through commit-id plugin -->
+        <git.commit.id.abbrev>UNKNOWN</git.commit.id.abbrev>
     </properties>
 
     <dependencies>
@@ -216,6 +219,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-rabbitmq-spring</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-redis-common</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -242,6 +250,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-spring-resttemplate-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-spring-webflux-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -277,6 +290,21 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-scala-concurrent-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-struts-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-vertx3-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-vertx4-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 

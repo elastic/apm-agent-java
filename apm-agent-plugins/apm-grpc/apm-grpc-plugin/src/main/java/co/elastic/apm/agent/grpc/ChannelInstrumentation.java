@@ -34,15 +34,14 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
 
-import static net.bytebuddy.matcher.ElementMatchers.*;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
  * Instruments {@link Channel#newCall(MethodDescriptor, CallOptions)} to add channel authority (host+port) to the span
@@ -75,7 +74,7 @@ public class ChannelInstrumentation extends BaseInstrumentation {
     public static Object onEnter(@Advice.This Channel channel,
                                  @Advice.Argument(0) MethodDescriptor<?, ?> method) {
 
-        return helper.startSpan(tracer.getActive(), method, channel.authority());
+        return GrpcHelper.getInstance().startSpan(tracer.getActive(), method, channel.authority());
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -83,7 +82,7 @@ public class ChannelInstrumentation extends BaseInstrumentation {
                               @Advice.Enter @Nullable Object span) {
 
         if (span instanceof Span) {
-            helper.registerSpan(clientCall, (Span) span);
+            GrpcHelper.getInstance().registerSpan(clientCall, (Span) span);
         }
     }
 

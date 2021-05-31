@@ -27,7 +27,11 @@ package co.elastic.apm.agent.es.restclient.v7_x;
 import co.elastic.apm.agent.es.restclient.v6_4.AbstractEs6_4ClientInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -44,6 +48,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.client.Cancellable;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
@@ -57,24 +62,27 @@ import org.elasticsearch.script.mustache.SearchTemplateResponse;
 import org.elasticsearch.search.SearchHits;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.testcontainers.elasticsearch.ElasticsearchContainer;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4ClientInstrumentationTest {
+    private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationIT.class);
 
     private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.11.0";
 
-    public ElasticsearchRestClientInstrumentationIT(boolean async) { this.async = async; }
+    public ElasticsearchRestClientInstrumentationIT(boolean async) {
+        this.async = async;
+    }
 
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
@@ -99,6 +107,44 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
             client.indices().delete(new DeleteIndexRequest(INDEX), RequestOptions.DEFAULT);
             client.close();
         }
+    }
+
+    @Test
+    public void testCancelScenario() throws InterruptedException, ExecutionException, IOException {
+        // When spans are cancelled, we can't know the actual address, because there is no response, and we set the outcome as UNKNOWN
+        reporter.disableDestinationAddressCheck();
+        reporter.checkUnknownOutcome(false);
+        super.disableHttpUrlCheck();
+
+        createDocument();
+        reporter.reset();
+
+        SearchRequest searchRequest = defaultSearchRequest();
+
+        Cancellable cancellable = client.searchAsync(searchRequest, RequestOptions.DEFAULT, new ActionListener<SearchResponse>() {
+            @Override
+            public void onResponse(SearchResponse searchResponse) {
+                throw new IllegalStateException("This should not be called, ofFailure should be called by cancel first");
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                // nothing to do - we wrap this listener and synchronously end the span
+            }
+        });
+        // This ends the span synchronously
+        cancellable.cancel();
+
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        Span searchSpan = spans.get(0);
+        validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), -1, "POST");
+
+        deleteDocument();
+
+        reporter.enableDestinationAddressCheck();
+        reporter.checkUnknownOutcome(true);
+        super.enableHttpUrlCheck();
     }
 
     @Override

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>co.elastic.apm</groupId>
+        <artifactId>apm-agent-plugins</artifactId>
+        <version>1.24.0</version>
+    </parent>
+
+    <artifactId>apm-spring-webflux</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+    <packaging>pom</packaging>
+
+    <properties>
+        <!-- for licence header plugin -->
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+
+        <!-- spring boot version to use (for testing), needs to be kept in sync with spring version below -->
+        <version.spring-boot>2.2.4.RELEASE</version.spring-boot>
+
+        <!-- spring version & reactor our instrumentation will rely on -->
+        <version.spring>5.2.3.RELEASE</version.spring>
+        <version.reactor>3.3.2.RELEASE</version.reactor>
+    </properties>
+
+    <modules>
+        <module>apm-spring-webflux-plugin</module>
+        <module>apm-spring-webflux-testapp</module>
+    </modules>
+</project>

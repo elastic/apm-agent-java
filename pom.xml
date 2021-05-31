@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.23.0</version>
+    <version>1.24.0</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -30,7 +30,7 @@
         <connection>scm:git:git@github.com:elastic/apm-agent-java.git</connection>
         <developerConnection>scm:git:git@github.com:elastic/apm-agent-java.git</developerConnection>
         <url>https://github.com/elastic/apm-agent-java</url>
-        <tag>v1.23.0</tag>
+        <tag>v1.24.0</tag>
     </scm>
 
     <developers>
@@ -97,9 +97,9 @@
         <version.error_prone>2.2.0</version.error_prone>
         <version.h2>1.4.196</version.h2>
         <version.jackson>[2.10.0,)</version.jackson>
-        <version.junit-jupiter>5.7.1</version.junit-jupiter>
+        <version.junit-jupiter>5.7.2</version.junit-jupiter>
         <version.junit.vintage>4.13.2</version.junit.vintage>
-        <version.junit-vintage-engine>5.7.1</version.junit-vintage-engine>
+        <version.junit-vintage-engine>5.7.2</version.junit-vintage-engine>
         <version.logback>1.2.3</version.logback>
         <version.okhttp>4.9.1</version.okhttp>
         <version.slf4j>1.7.30</version.slf4j>
@@ -107,8 +107,9 @@
         <version.log4j>2.12.1</version.log4j>
         <version.log4j2-ecs-layout>1.0.1</version.log4j2-ecs-layout>
         <version.spring>5.0.15.RELEASE</version.spring>
+        <version.spring-boot>2.2.2.RELEASE</version.spring-boot>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.0.52</version.json-schema-validator>
+        <version.json-schema-validator>1.0.53</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
         <version.byte-buddy>1.11.0</version.byte-buddy>
         <version.asm>9.1</version.asm>
@@ -518,6 +519,12 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>org.apache.ivy</groupId>
+                <artifactId>ivy</artifactId>
+                <version>2.5.0</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -576,7 +583,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>3.9.0</version>
+            <version>3.10.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -592,12 +599,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-servlet</artifactId>
-            <version>${version.jetty-server}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock-standalone</artifactId>
             <version>2.27.2</version>
@@ -606,13 +607,7 @@
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
-            <version>4.0.3</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.ivy</groupId>
-            <artifactId>ivy</artifactId>
-            <version>2.5.0</version>
+            <version>4.1.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
