@@ -1,4 +1,12 @@
 {
+  "__description": {
+    "<type>": "root element for type identified by '<type>'",
+    "<type>.comment": "description for '<type>' (optional)",
+    "<type>.optional_subtype": "true to allow null subtype, false by default if omitted",
+    "<type>.subtypes": "root element for sub-types of type '<type', if omitted or empty subtype must be null",
+    "<type>.subtypes.<subtype>": "sub-type element for <subtype>",
+    "<type>.subtypes.<subtype>.comment": "description of <subtype> subtype (optional)"
+  },
   "app": {
     "optional_subtype": true,
     "subtypes": {

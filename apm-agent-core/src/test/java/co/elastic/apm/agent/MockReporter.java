@@ -228,7 +228,7 @@ public class MockReporter implements Reporter {
 
             JsonNode subTypesJson = typeJson.get("subtypes");
 
-            if (subTypesJson == null) {
+            if (subTypesJson == null || subTypesJson.isEmpty()) {
                 assertThat(subType)
                     .describedAs("span type '%s' does not allow for subtypes", type)
                     .isNull();
