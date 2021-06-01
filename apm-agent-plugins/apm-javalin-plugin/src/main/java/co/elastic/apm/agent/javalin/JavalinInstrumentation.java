@@ -101,12 +101,13 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
             if (handlerType.isHttpMethod()) {
                 transaction.setFrameworkName(FRAMEWORK_NAME);
                 transaction.setFrameworkVersion(VersionUtils.getVersion(Handler.class, "io.javalin", "javalin"));
+                final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
+                name.append(handlerType.name()).append(" ").append(ctx.endpointHandlerPath());
+
                 // no need for anonymous handler class names in the transaction
-                if (handlerClassName.startsWith("co.elastic.apm.agent.javalin.JavalinHandlerLambdaInstrumentation$WrappingHandler")
-                    || handlerClassName.startsWith("io.javalin.http.JavalinServlet")) {
-                    setName(transaction, handlerType.name() + " " + ctx.endpointHandlerPath());
-                } else {
-                    setName(transaction, handlerType.name() + " " + ctx.endpointHandlerPath() + " " + handlerClassName);
+                if (!handlerClassName.equals("co.elastic.apm.agent.javalin.JavalinHandlerLambdaInstrumentation$WrappingHandler")
+                    && !handlerClassName.startsWith("io.javalin.http.JavalinServlet")) {
+                    name.append(" ").append(handlerClassName);
                 }
             }
 
@@ -124,7 +125,7 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
         public static void onAfterExecute(@Advice.Enter @Nullable Object spanObj,
                                           @Advice.Argument(0) Object ctxObject,
                                           @Advice.Thrown @Nullable Throwable t) {
-            if (spanObj instanceof Span) {
+            if (spanObj != null) {
                 Context ctx = ((Context) ctxObject);
                 final Span span = (Span) spanObj;
                 span.deactivate();
@@ -147,21 +148,13 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
             }
 
             Span span = parent.createSpan().activate();
-            // TODO figure out correct type and subtype or leave out?
-            span.withType("web")
-                .withSubtype("javalin")
+            span.withType("javalin")
+                .withSubtype("javalin-handler")
                 .appendToName(handlerTypeName).appendToName(" ").appendToName(matchedPath);
 
             span.getContext().getHttp().withUrl(url).withMethod(method);
 
             return span;
-        }
-
-        private static void setName(Transaction transaction, String transactionName) {
-            final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
-            if (name != null) {
-                name.append(transactionName);
-            }
         }
     }
 }

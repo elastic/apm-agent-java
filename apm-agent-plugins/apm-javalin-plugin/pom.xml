@@ -13,6 +13,7 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+        <maven.compiler.target>11</maven.compiler.target>
     </properties>
 
     <dependencies>

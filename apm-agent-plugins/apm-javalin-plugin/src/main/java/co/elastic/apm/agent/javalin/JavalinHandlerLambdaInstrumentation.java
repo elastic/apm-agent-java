@@ -32,8 +32,8 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
@@ -91,7 +91,7 @@ public class JavalinHandlerLambdaInstrumentation extends TracerAwareInstrumentat
         }
 
         @Override
-        public void handle(@NotNull Context ctx) throws Exception {
+        public void handle(@Nonnull Context ctx) throws Exception {
             wrappingHandler.handle(ctx);
         }
     }
