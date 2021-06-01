@@ -226,7 +226,13 @@ public class MockReporter implements Reporter {
 
             String subType = span.getSubtype();
 
-            if (subType == null) {
+            JsonNode subTypesJson = typeJson.get("subtypes");
+
+            if (subTypesJson == null) {
+                assertThat(subType)
+                    .describedAs("span type '%s' does not allow for subtypes", type)
+                    .isNull();
+            } else if (subType == null) {
                 // span does not have a sub-type, make sure that it's only when spec allows for it
                 assertThat(optionalSubtype)
                     .describedAs("span type '%s' subtype is not optional by the spec (optional_subtype=false)", type)
@@ -237,11 +243,7 @@ public class MockReporter implements Reporter {
                     .isNotNull();
 
                 // we have a sub-type, make sure that the sub-type matches the spec
-                JsonNode subTypesJson = typeJson.get("subtypes");
-                if (subTypesJson != null) {
-
-                    getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' is now allowed by the spec for type '%s' (%s)", subType, type, typeComment));
-                }
+                getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' is now allowed by the spec for type '%s' (%s)", subType, type, typeComment));
             }
 
         }
