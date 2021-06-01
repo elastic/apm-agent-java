@@ -78,7 +78,9 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
 
     private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.11.0";
 
-    public ElasticsearchRestClientInstrumentationIT(boolean async) { this.async = async; }
+    public ElasticsearchRestClientInstrumentationIT(boolean async) {
+        this.async = async;
+    }
 
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {

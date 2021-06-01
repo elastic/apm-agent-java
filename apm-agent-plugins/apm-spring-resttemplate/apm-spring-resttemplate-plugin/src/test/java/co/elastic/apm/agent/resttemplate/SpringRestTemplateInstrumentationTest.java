@@ -39,7 +39,7 @@ import java.util.function.Supplier;
 @RunWith(Parameterized.class)
 public class SpringRestTemplateInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
     public SpringRestTemplateInstrumentationTest(Supplier<ClientHttpRequestFactory> supplier) {
         restTemplate = new RestTemplate(supplier.get());
