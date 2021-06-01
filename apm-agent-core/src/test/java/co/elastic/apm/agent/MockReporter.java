@@ -223,16 +223,19 @@ public class MockReporter implements Reporter {
             boolean allowUnlistedSubtype = getBooleanJson(typeJson, "allow_unlisted_subtype");
 
             String subType = span.getSubtype();
+
+            JsonNode subTypesJson = typeJson.get("subtypes");
+            boolean hasSubtypes = subTypesJson != null && !subTypesJson.isEmpty();
+
             if (null == subType) {
-                assertThat(allowNullSubtype)
-                    .describedAs("span type '%s' requires non-null subtype (allow_null_subtype=false)")
-                    .isTrue();
+                if (hasSubtypes) {
+                    assertThat(allowNullSubtype)
+                        .describedAs("span type '%s' requires non-null subtype (allow_null_subtype=false)")
+                        .isTrue();
+                }
             } else {
-                if (!allowUnlistedSubtype) {
-                    JsonNode subTypesJson = typeJson.get("subtypes");
-                    if (subTypesJson != null && !subTypesJson.isEmpty()) {
-                        getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' is not allowed by the sped for type '%s'", subType, type));
-                    }
+                if (!allowUnlistedSubtype && hasSubtypes) {
+                    getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' is not allowed by the sped for type '%s'", subType, type));
                 }
             }
 
