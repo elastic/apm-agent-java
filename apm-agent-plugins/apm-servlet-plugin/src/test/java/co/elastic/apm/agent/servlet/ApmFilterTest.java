@@ -96,7 +96,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         Url url = transactionContext.getRequest().getUrl();
         assertThat(url.getProtocol()).isEqualTo("http");
         assertThat(url.getSearch()).isEqualTo("foo=bar");
-        assertThat(url.getPort().toString()).isEqualTo("80");
+        assertThat(url.getPort()).isEqualTo(80);
         assertThat(url.getHostname()).isEqualTo("localhost");
         assertThat(url.getPathname()).isEqualTo("/foo/bar");
         assertThat(url.getFull().toString()).isEqualTo("http://localhost/foo/bar?foo=bar");

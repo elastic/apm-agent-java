@@ -165,7 +165,13 @@ class JmxMetricTrackerTest {
     }
 
     private void printMetricSets() {
-        metricRegistry.flipPhaseAndReport(metricSets -> System.out.println(new MetricRegistrySerializer().serialize(metricSets).toString()));
+        metricRegistry.flipPhaseAndReport(
+            metricSets -> {
+                metricSets.values().forEach(
+                    metricSet -> System.out.println(new MetricRegistrySerializer().serialize(metricSet).toString())
+                );
+            }
+        );
     }
 
     private void setConfig(JmxMetric... jmxMetric) throws java.io.IOException {

@@ -38,6 +38,7 @@ public class Struts2TransactionNameInstrumentationTest extends StrutsTestCase {
 
     public static class TestAction extends ActionSupport {
 
+        @SuppressWarnings("unused")
         public String customMethod() {
             return SUCCESS;
         }

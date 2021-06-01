@@ -96,9 +96,26 @@ public class ServletTransactionHelper {
                                    String scheme, String serverName, int serverPort, String requestURI, String queryString,
                                    String remoteAddr, @Nullable String contentTypeHeader) {
 
-        final Request request = transaction.getContext().getRequest();
         startCaptureBody(transaction, method, contentTypeHeader);
-        fillRequest(request, protocol, method, secure, scheme, serverName, serverPort, requestURI, queryString, remoteAddr);
+
+        // fill request
+        Request request = transaction.getContext().getRequest();
+
+        request.withHttpVersion(protocol)
+            .withMethod(method);
+
+        request.getSocket()
+            .withEncrypted(secure)
+            .withRemoteAddress(remoteAddr);
+
+        request.getUrl()
+            .withProtocol(scheme)
+            .withHostname(serverName)
+            .withPort(serverPort)
+            .withPathname(requestURI)
+            .withSearch(queryString)
+            .updateFull();
+
     }
 
     private void startCaptureBody(Transaction transaction, String method, @Nullable String contentTypeHeader) {
@@ -227,27 +244,6 @@ public class ServletTransactionHelper {
         response.withStatusCode(status);
     }
 
-    private void fillRequest(Request request, String protocol, String method, boolean secure, String scheme, String serverName,
-                             int serverPort, String requestURI, String queryString,
-                             String remoteAddr) {
-
-        request.withHttpVersion(getHttpVersion(protocol));
-        request.withMethod(method);
-
-        request.getSocket()
-            .withEncrypted(secure)
-            .withRemoteAddress(remoteAddr);
-
-        request.getUrl()
-            .withProtocol(scheme)
-            .withHostname(serverName)
-            .withPort(serverPort)
-            .withPathname(requestURI)
-            .withSearch(queryString);
-
-        fillFullUrl(request.getUrl(), scheme, serverPort, serverName, requestURI, queryString);
-    }
-
     private boolean hasBody(@Nullable String contentTypeHeader, String method) {
         return METHODS_WITH_BODY.contains(method) && contentTypeHeader != null;
     }
@@ -293,6 +289,7 @@ public class ServletTransactionHelper {
                 return "2.0";
             default:
                 return protocol.replace("HTTP/", "");
+
         }
     }
 

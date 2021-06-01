@@ -107,6 +107,10 @@ public class JfrParser implements Recyclable {
         this.includedClasses = includedClasses;
         bufferedFile.setFile(file);
         long fileSize = bufferedFile.size();
+        if (fileSize < 16) {
+            throw new IllegalStateException("Unexpected sampling profiler error, everything else should work as expected. " +
+                "Please report to us with as many details, including OS and JVM details.");
+        }
         logger.debug("Parsing {} ({} bytes)", file, fileSize);
         bufferedFile.ensureRemaining(16, 16);
         for (byte magicByte : MAGIC_BYTES) {
