@@ -44,13 +44,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class JavalinHandlerLambdaInstrumentation extends TracerAwareInstrumentation {
 
-    // Javalin
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("io.javalin.Javalin");
     }
 
-    // public Javalin addHandler(@NotNull HandlerType handlerType, @NotNull String path, @NotNull Handler handler, @NotNull Set<Role> roles) {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("addHandler")
