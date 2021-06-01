@@ -150,8 +150,8 @@ public class MockReporter implements Reporter {
         checkDestinationAddress = false;
     }
 
-    public boolean checkDestinationAddress(){
-        return  checkDestinationAddress;
+    public boolean checkDestinationAddress() {
+        return checkDestinationAddress;
     }
 
     /**
@@ -162,7 +162,8 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public void start() {}
+    public void start() {
+    }
 
     @Override
     public synchronized void report(Transaction transaction) {
@@ -194,12 +195,9 @@ public class MockReporter implements Reporter {
             verifySpanType(span);
             verifyDestinationFields(span);
 
-            String type = span.getType();
-            assertThat(type).isNotNull();
-
             if (checkUnknownOutcomes) {
                 assertThat(span.getOutcome())
-                    .describedAs("span outcome should be either success or failure for type = %s", type)
+                    .describedAs("span outcome should be either success or failure for type = %s", span.getType())
                     .isNotEqualTo(Outcome.UNKNOWN);
             }
         } catch (Exception e) {
@@ -219,18 +217,33 @@ public class MockReporter implements Reporter {
             .isNotNull();
 
         if (checkStrictSpanType) {
-            JsonNode typeJson = getMandatoryJson(SPAN_TYPES_SPEC, type, String.format("span type '%s'", type));
+            JsonNode typeJson = getMandatoryJson(SPAN_TYPES_SPEC, type, String.format("span type '%s' is not allowed by the spec", type));
 
             String typeComment = getOptionalComment(typeJson);
 
+            JsonNode jsonOptionalSubtype = typeJson.get("optional_subtype");
+            boolean optionalSubtype = jsonOptionalSubtype != null && jsonOptionalSubtype.isBoolean() && jsonOptionalSubtype.asBoolean();
+
             String subType = span.getSubtype();
-            if (subType != null) {
+
+            if (subType == null) {
+                // span does not have a sub-type, make sure that it's only when spec allows for it
+                assertThat(optionalSubtype)
+                    .describedAs("span type '%s' subtype is not optional by the spec (optional_subtype=false)", type)
+                    .isTrue();
+            } else {
+                assertThat(subType)
+                    .describedAs("span subtype is required by the spec for type '%s'", type)
+                    .isNotNull();
+
+                // we have a sub-type, make sure that the sub-type matches the spec
                 JsonNode subTypesJson = typeJson.get("subtypes");
-                if (null != subTypesJson) {
-                    JsonNode subTypeJson = getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' for type '%s' (%s)", subType, type, typeComment));
-                    assertThat(subTypeJson).isNotNull();
+                if (subTypesJson != null) {
+
+                    getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' is now allowed by the spec for type '%s' (%s)", subType, type, typeComment));
                 }
             }
+
         }
 
     }
@@ -477,7 +490,7 @@ public class MockReporter implements Reporter {
 
         List<Span> spans = getSpans();
         List<Span> spansToFlush = spans.stream()
-            .filter(s-> !hasEmptyTraceContext(s))
+            .filter(s -> !hasEmptyTraceContext(s))
             .collect(Collectors.toList());
 
         transactionsToFlush.forEach(Transaction::decrementReferences);

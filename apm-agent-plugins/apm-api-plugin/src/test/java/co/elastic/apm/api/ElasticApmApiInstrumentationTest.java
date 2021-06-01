@@ -157,7 +157,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
             assertThat(ElasticApm.currentTransaction().getTraceId()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
             assertThat(ElasticApm.currentSpan().getId()).isEqualTo(transaction.getTraceContext().getId().toString());
             assertThat(ElasticApm.currentSpan().getTraceId()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
-            co.elastic.apm.agent.impl.transaction.Span span = transaction.createSpan().withType("db").withName("SELECT");
+            co.elastic.apm.agent.impl.transaction.Span span = transaction.createSpan().withType("db").withSubtype("mysql").withName("SELECT");
             try (Scope spanScope = span.activateInScope()) {
                 assertThat(ElasticApm.currentSpan().getId()).isEqualTo(span.getTraceContext().getId().toString());
                 assertThat(ElasticApm.currentSpan().getTraceId()).isEqualTo(span.getTraceContext().getTraceId().toString());

@@ -1,5 +1,6 @@
 {
   "app": {
+    "optional_subtype": true,
     "subtypes": {
       "inferred": {
         "comment": "Sampling profiler inferred spans"
@@ -7,6 +8,7 @@
     }
   },
   "custom": {
+    "optional_subtype": true,
     "comment": "API custom instrumentation"
   },
   "db": {
@@ -21,6 +23,9 @@
       "db2": {
         "comment": "IBM DB2"
       },
+      "derby": {
+        "comment": "Apache Derby"
+      },
       "dynamodb": {
         "comment": "AWS DynamoDB"
       },
@@ -29,6 +34,12 @@
       },
       "h2": {
         "comment": "H2"
+      },
+      "hsqldb": {
+        "comment": "HSQLDB"
+      },
+      "ingres": {
+        "comment": "Ingres"
       },
       "mariadb": {
         "comment": "MariaDB"
@@ -50,6 +61,9 @@
       },
       "sqlserver": {
         "comment": "Microsoft SQL Server"
+      },
+      "unknown": {
+        "comment": "Unknown database"
       }
     }
   },
@@ -67,6 +81,7 @@
     }
   },
   "messaging": {
+    "comment": "Messaging",
     "subtypes": {
       "azurequeue": {
         "comment": "Azure Queue"
@@ -108,7 +123,7 @@
     }
   },
   "template": {
-    "comment": "Template engines (no sub-type as really platform-specific)"
+    "comment": "Template engines (no sub-type for now as really platform-specific)"
   }
 }
 
