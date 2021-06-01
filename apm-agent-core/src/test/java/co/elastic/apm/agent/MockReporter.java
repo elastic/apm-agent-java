@@ -219,35 +219,37 @@ public class MockReporter implements Reporter {
         if (checkStrictSpanType) {
             JsonNode typeJson = getMandatoryJson(SPAN_TYPES_SPEC, type, String.format("span type '%s' is not allowed by the spec", type));
 
-            String typeComment = getOptionalComment(typeJson);
-
-            JsonNode jsonOptionalSubtype = typeJson.get("optional_subtype");
-            boolean optionalSubtype = jsonOptionalSubtype != null && jsonOptionalSubtype.isBoolean() && jsonOptionalSubtype.asBoolean();
+            boolean allowNullSubtype = getBooleanJson(typeJson, "allow_null_subtype");
+            boolean allowUnlistedSubtype = getBooleanJson(typeJson, "allow_unlisted_subtype");
 
             String subType = span.getSubtype();
-
-            JsonNode subTypesJson = typeJson.get("subtypes");
-
-            if (subTypesJson == null || subTypesJson.isEmpty()) {
-                assertThat(subType)
-                    .describedAs("span type '%s' does not allow for subtypes", type)
-                    .isNull();
-            } else if (subType == null) {
-                // span does not have a sub-type, make sure that it's only when spec allows for it
-                assertThat(optionalSubtype)
-                    .describedAs("span type '%s' subtype is not optional by the spec (optional_subtype=false)", type)
+            if (null == subType) {
+                assertThat(allowNullSubtype)
+                    .describedAs("span type '%s' requires non-null subtype (allow_null_subtype=false)")
                     .isTrue();
             } else {
-                assertThat(subType)
-                    .describedAs("span subtype is required by the spec for type '%s'", type)
-                    .isNotNull();
-
-                // we have a sub-type, make sure that the sub-type matches the spec
-                getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' is now allowed by the spec for type '%s' (%s)", subType, type, typeComment));
+                if (!allowUnlistedSubtype) {
+                    JsonNode subTypesJson = typeJson.get("subtypes");
+                    if (subTypesJson != null && !subTypesJson.isEmpty()) {
+                        getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' is not allowed by the sped for type '%s'", subType, type));
+                    }
+                }
             }
 
         }
 
+    }
+
+    private boolean getBooleanJson(JsonNode json, String name) {
+        JsonNode jsonValue = json.get(name);
+        boolean value = false;
+        if (jsonValue != null) {
+            assertThat(jsonValue.isBoolean())
+                .describedAs("property %s should be a boolean", name)
+                .isTrue();
+            value = jsonValue.asBoolean();
+        }
+        return value;
     }
 
     private void verifyDestinationFields(Span span) {
