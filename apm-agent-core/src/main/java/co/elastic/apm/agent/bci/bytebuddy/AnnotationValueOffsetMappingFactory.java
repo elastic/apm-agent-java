@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -78,13 +78,15 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
     }
 
     @Nullable
-    private MethodDescription findInstrumentedMethodInSuperClass(TypeDescription.Generic superClass, MethodDescription instrumentedMethod) {
-        if (superClass != null) {
-            for (MethodDescription declaredMethod : superClass.getDeclaredMethods()) {
-                if (instrumentedMethod.getInternalName().equals(declaredMethod.getInternalName())
-                    && instrumentedMethod.getParameters().asTypeList().asErasures().equals(declaredMethod.getParameters().asTypeList().asErasures())) {
-                    return declaredMethod;
-                }
+    private MethodDescription findInstrumentedMethodInSuperClass(@Nullable TypeDescription.Generic superClass, MethodDescription instrumentedMethod) {
+        if (superClass == null) {
+            return null;
+
+        }
+        for (MethodDescription declaredMethod : superClass.getDeclaredMethods()) {
+            if (instrumentedMethod.getInternalName().equals(declaredMethod.getInternalName())
+                && instrumentedMethod.getParameters().asTypeList().asErasures().equals(declaredMethod.getParameters().asTypeList().asErasures())) {
+                return declaredMethod;
             }
         }
         return null;
