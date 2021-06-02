@@ -19,6 +19,17 @@ Upload the *complete* logs to a service like https://gist.github.com.
 The logs should include everything from the application startup up until the first request has been executed.
 
 [float]
+[[trouble-shooting-use-latest-agent]]
+=== Updating to latest agent version
+
+Agent is updated frequently and releases are not strongly tied to other components in the stack.
+
+Therefore, trying to update to the most recently released agent version is often the recommended first troubleshooting
+step. If possible, trying the https://github.com/elastic/apm-agent-java/blob/master/README.md#snapshots[latest-snapshot] is even preferable as it would include fixes that are not yet released.
+
+See <<upgrading,upgrading documentation>> for more details.
+
+[float]
 [[trouble-shooting-additional-agent]]
 === Running alongside other agents
 Like many other Java agents, our agent instruments classes by injecting bytecode into them on runtime. Our bytecode
@@ -27,7 +38,7 @@ other Java agents in addition to ours that have the same guarantees, they should
 However, some Java agents do not conform to these guarantees, in which case there may be issues with using them in
 parallel to ours. If you encounter errors, one of the first things to do is to remove any additional agent in order to
 check whether this is indeed a case of agent mismatch. We may still find a way to make them work together, but this
-information would be cruicial for our ability to assist, so make sure to include it when reporting such issues.
+information would be crucial for our ability to assist, so make sure to include it when reporting such issues.
 
 [float]
 [[trouble-shooting-logging]]

@@ -20,8 +20,21 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.23.1]]
-==== 1.23.1 - YYYY/MM/DD
+[[release-notes-1.24.1]]
+==== 1.24.1 - YYYY/MM/DD
+
+[float]
+===== Features
+* Support for inheriting public api annotations {pull}1697[#1697]
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.24.0]]
+==== 1.24.0 - 2021/05/31
 
 [float]
 ===== Features
@@ -31,8 +44,7 @@ events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted aut
 * Instrumentation for Vert.x Web {pull}1697[#1697]
 * Changed log level of vm arguments to debug
 * Giving precedence for the W3C `tracecontext` header over the `elastic-apm-traceparent` header - {pull}1821[#1821]
-* Support for inheriting public api annotations {pull}1697[#1697]
-
+* Add instrumentation for Webflux - {pull}1305[#1305]
 
 [float]
 ===== Bug fixes
@@ -41,13 +53,12 @@ events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted aut
 * Avoid `IllegalStateException` when multiple `tracestate` headers are used - {pull}1808[#1808]
 * Ensure CLI attach avoids `sudo` only when required and avoid blocking - {pull}1819[#1819]
 * Avoid sending metric-sets without samples, so to adhere to the intake API - {pull}1826[#1826]
+* Fixing our type-pool cache, so that it can't cause OOM (softly-referenced), and it gets cleared when not used for
+a while - {pull}1828[#1828]
 
 [float]
 ===== Refactors
 * Remove single-package limitation for embedded plugins - {pull}1780[#1780]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.23.0]]
 ==== 1.23.0 - 2021/04/22
@@ -60,7 +71,7 @@ events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted aut
 [float]
 ===== Features
 * Overhaul of the <<setup-attach-cli,attacher cli>> application that allows to attach the agent to running JVMs - {pull}1667[#1667]
-** The artifact of the standalone cli applicaiton is now called `apm-agent-attach-cli`. The attacher API is still called `apm-agent-attach`.
+** The artifact of the standalone cli application is now called `apm-agent-attach-cli`. The attacher API is still called `apm-agent-attach`.
 ** There is also a slim version of the cli application that does not bundle the Java agent.
 It requires the `--agent-jar` option to be set.
 ** Improved logging +
