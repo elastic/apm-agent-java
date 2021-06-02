@@ -1,139 +1,138 @@
 {
   "__description": {
     "<type>": "root element for type identified by '<type>'",
-    "<type>.comment": "description for '<type>' (optional)",
+    "<type>.__description": "description for '<type>' (optional)",
     "<type>.allow_null_subtype": "true to allow null subtype, false by default if omitted",
     "<type>.allow_unlisted_subtype": "true to allow unlisted subtypes, false by default if omitted",
     "<type>.subtypes": "root element for sub-types of type '<type', if omitted or empty subtype must be null",
     "<type>.subtypes.<subtype>": "sub-type element for <subtype>",
-    "<type>.subtypes.<subtype>.comment": "description of <subtype> subtype (optional)"
+    "<type>.subtypes.<subtype>.__description": "description of <subtype> subtype (optional)"
   },
   "app": {
     "allow_null_subtype": true,
     "subtypes": {
       "inferred": {
-        "comment": "Sampling profiler inferred spans"
+        "__description": "Sampling profiler inferred spans"
       }
     }
   },
   "custom": {
-    "comment": "API custom instrumentation",
+    "__description": "API custom instrumentation",
     "allow_null_subtype": true
   },
   "db": {
-    "comment": "database span",
+    "__description": "database span",
     "subtypes": {
       "cassandra": {
-        "comment": "Cassandra"
+        "__description": "Cassandra"
       },
       "cosmosdb": {
-        "comment": "Azure CosmosDB"
+        "__description": "Azure CosmosDB"
       },
       "db2": {
-        "comment": "IBM DB2"
+        "__description": "IBM DB2"
       },
       "derby": {
-        "comment": "Apache Derby"
+        "__description": "Apache Derby"
       },
       "dynamodb": {
-        "comment": "AWS DynamoDB"
+        "__description": "AWS DynamoDB"
       },
       "elasticsearch": {
-        "comment": "Elasticsearch"
+        "__description": "Elasticsearch"
       },
       "h2": {
-        "comment": "H2"
+        "__description": "H2"
       },
       "hsqldb": {
-        "comment": "HSQLDB"
+        "__description": "HSQLDB"
       },
       "ingres": {
-        "comment": "Ingres"
+        "__description": "Ingres"
       },
       "mariadb": {
-        "comment": "MariaDB"
+        "__description": "MariaDB"
       },
       "mongodb": {
-        "comment": "MongoDB"
+        "__description": "MongoDB"
       },
       "mysql": {
-        "comment": "MySQL"
+        "__description": "MySQL"
       },
       "oracle": {
-        "comment": "Oracle Database"
+        "__description": "Oracle Database"
       },
       "postgresql": {
-        "comment": "PostgreSQL"
+        "__description": "PostgreSQL"
       },
       "redis": {
-        "comment": "Redis"
+        "__description": "Redis"
       },
       "sqlserver": {
-        "comment": "Microsoft SQL Server"
+        "__description": "Microsoft SQL Server"
       },
       "unknown": {
-        "comment": "Unknown database"
+        "__description": "Unknown database"
       }
     }
   },
   "external": {
     "subtypes": {
       "dubbo": {
-        "comment": "Apache Dubbo"
+        "__description": "Apache Dubbo"
       },
       "grpc": {
-        "comment": "gRPC"
+        "__description": "gRPC"
       },
       "http": {
-        "comment": "HTTP client"
+        "__description": "HTTP client"
       }
     }
   },
   "messaging": {
-    "comment": "Messaging",
+    "__description": "Messaging",
     "subtypes": {
       "azurequeue": {
-        "comment": "Azure Queue"
+        "__description": "Azure Queue"
       },
       "azureservicebus": {
-        "comment": "Azure Service Bus"
+        "__description": "Azure Service Bus"
       },
       "jms": {
-        "comment": "Java Messaging Service"
+        "__description": "Java Messaging Service"
       },
       "kafka": {
-        "comment": "Apache Kafka"
+        "__description": "Apache Kafka"
       },
       "rabbitmq": {
-        "comment": "RabbitMQ"
+        "__description": "RabbitMQ"
       },
       "sns": {
-        "comment": "AWS Simple Notification Service"
+        "__description": "AWS Simple Notification Service"
       },
       "sqs": {
-        "comment": "AWS Simple Queue Service"
+        "__description": "AWS Simple Queue Service"
       }
     }
   },
   "process": {
-    "comment": "External process"
+    "__description": "External process"
   },
   "storage": {
     "subtypes": {
       "azurefile": {
-        "comment": "Azure Files"
+        "__description": "Azure Files"
       },
       "azuresblob": {
-        "comment": "Azure Blob Storage"
+        "__description": "Azure Blob Storage"
       },
       "s3": {
-        "comment": "AWS S3"
+        "__description": "AWS S3"
       }
     }
   },
   "template": {
-    "comment": "Template engines (no sub-type for now as really platform-specific)",
+    "__description": "Template engines (no sub-type for now as really platform-specific)",
     "allow_unlisted_subtype": true
   }
 }
-
