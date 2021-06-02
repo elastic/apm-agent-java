@@ -53,11 +53,12 @@ public class ConnectionMetaData {
     /**
      * Creates a DB metadata based on the connection URL.
      *
-     * @param connectionUrl the connection URL obtained from the JDBC connection
-     * @param user          DB user
+     * @param connectionUrl      the connection URL obtained from the JDBC connection
+     * @param connectionInstance instance identifier from connection, to be used if not available from parsing
+     * @param user               DB user
      * @return metadata of a JDBC connection
      */
-    public static ConnectionMetaData create(String connectionUrl, String catalog, String user) {
+    public static ConnectionMetaData create(String connectionUrl, @Nullable String connectionInstance, String user) {
         String dbVendor = "unknown";
 
         // trimming a temp copy, keeping the original for logging purposes
@@ -88,17 +89,17 @@ public class ConnectionMetaData {
         ConnectionUrlParser connectionUrlParser = parsers.get(dbVendor);
         if (connectionUrlParser != null) {
             try {
-                ret = connectionUrlParser.parse(tmpUrl, catalog, user);
+                ret = connectionUrlParser.parse(tmpUrl, connectionInstance, user);
             } catch (Exception e) {
                 logger.error("Failed to parse connection URL: " + tmpUrl, e);
             }
         } else {
             // Doesn't hurt to try...
-            ret = ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, -1, catalog, user);
+            ret = ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, -1, connectionInstance, user);
         }
 
         if (ret == null) {
-            ret = new ConnectionMetaData(dbVendor, null, -1, catalog, user);
+            ret = new ConnectionMetaData(dbVendor, null, -1, connectionInstance, user);
         }
         if (logger.isDebugEnabled()) {
             logger.debug("Based on the connection URL {}, parsed metadata is: {}", connectionUrl, ret);
@@ -110,14 +111,15 @@ public class ConnectionMetaData {
     @Nullable
     private final String host;
     private final int port;
-    private final String catalog;
+    @Nullable
+    private final String instance;
     private final String user;
 
-    private ConnectionMetaData(String dbVendor, @Nullable String host, int port, @Nullable String catalog, String user) {
+    private ConnectionMetaData(String dbVendor, @Nullable String host, int port, @Nullable String instance, String user) {
         this.dbVendor = dbVendor;
         this.host = host;
         this.port = port;
-        this.catalog = catalog;
+        this.instance = instance;
         this.user = user;
     }
 
@@ -134,8 +136,9 @@ public class ConnectionMetaData {
         return port;
     }
 
-    public String getCatalog() {
-        return catalog;
+    @Nullable
+    public String getInstance() {
+        return instance;
     }
 
     public String getUser() {
@@ -148,7 +151,7 @@ public class ConnectionMetaData {
             "dbVendor='" + dbVendor + '\'' +
             ", host='" + host + '\'' +
             ", port=" + port +
-            ", catalog='" + catalog + '\'' +
+            ", instance='" + instance + '\'' +
             ", user='" + user + '\'' +
             '}';
     }
@@ -159,7 +162,7 @@ public class ConnectionMetaData {
             public static final int DEFAULT_PORT = 1521;
 
             @Override
-            ConnectionMetaData parse(String connectionUrl, String catalog, String user) {
+            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
                 // Examples:
                 // jdbc:oracle:thin:scott/tiger@//myhost:1521/myinstance
                 // jdbc:oracle:thin:scott/tiger@127.0.0.1:666:myinstance
@@ -175,7 +178,7 @@ public class ConnectionMetaData {
                         connectionUrl = connectionUrl.substring(indexOfUserDetailsEnd + 1).trim();
                     } else {
                         // jdbc:oracle:oci:scott/tiger/@
-                        return new ConnectionMetaData(dbVendor, null, DEFAULT_PORT, catalog, user);
+                        return new ConnectionMetaData(dbVendor, null, DEFAULT_PORT, instance, user);
                     }
                 }
 
@@ -225,7 +228,7 @@ public class ConnectionMetaData {
                     }
                 }
 
-                return new ConnectionMetaData(dbVendor, host, port, catalog, user);
+                return new ConnectionMetaData(dbVendor, host, port, instance, user);
             }
 
             @Nullable
@@ -314,14 +317,14 @@ public class ConnectionMetaData {
 
         POSTGRESQL("postgresql") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String catalog, String user) {
-                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 5432, catalog, user);
+            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
+                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 5432, instance, user);
             }
         },
 
         MYSQL("mysql") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String catalog, String user) {
+            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
                 String host = "localhost";
                 int port = 3306;
                 HostPort hostPort = parseMySqlFlavor(connectionUrl);
@@ -331,36 +334,36 @@ public class ConnectionMetaData {
                         port = hostPort.port;
                     }
                 }
-                return new ConnectionMetaData(dbVendor, host, port, catalog, user);
+                return new ConnectionMetaData(dbVendor, host, port, instance, user);
             }
         },
 
         DB2("db2") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String catalog, String user) {
-                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 50000, catalog, user);
+            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
+                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 50000, instance, user);
             }
         },
 
         H2("h2") {
             // Actually behaves like the default, but better have it explicit
             @Override
-            ConnectionMetaData parse(String connectionUrl, String catalog, String user) {
-                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, -1, catalog, user);
+            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
+                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, -1, instance, user);
             }
         },
 
         DERBY("derby") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String catalog, String user) {
-                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 1527, catalog, user);
+            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
+                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 1527, instance, user);
             }
         },
 
         HSQLDB("hsqldb") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String catalog, String user) {
-                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 9001, catalog, user);
+            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
+                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 9001, instance, user);
             }
         },
 
@@ -372,7 +375,7 @@ public class ConnectionMetaData {
             ));
 
             @Override
-            ConnectionMetaData parse(String connectionUrl, String catalog, String user) {
+            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
                 // just like MySQL
                 String host = "localhost";
                 int port = 3306;
@@ -393,13 +396,13 @@ public class ConnectionMetaData {
                         port = hostPort.port;
                     }
                 }
-                return new ConnectionMetaData(dbVendor, host, port, catalog, user);
+                return new ConnectionMetaData(dbVendor, host, port, instance, user);
             }
         },
 
         SQLSERVER("sqlserver") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String catalog, String user) {
+            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
                 // just like MySQL
                 String host = "localhost";
                 int port = 1433;
@@ -431,14 +434,14 @@ public class ConnectionMetaData {
                 if (indexOfInstance > 0) {
                     host = host.substring(0, indexOfInstance);
                 }
-                return new ConnectionMetaData(dbVendor, host, port, catalog, user);
+                return new ConnectionMetaData(dbVendor, host, port, instance, user);
             }
         },
 
         UNKNOWN("unknown") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String catalog, String user) {
-                return new ConnectionMetaData(dbVendor, null, -1, catalog, user);
+            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
+                return new ConnectionMetaData(dbVendor, null, -1, instance, user);
             }
         };
 
@@ -448,9 +451,9 @@ public class ConnectionMetaData {
 
         final String dbVendor;
 
-        abstract ConnectionMetaData parse(String connectionUrl, String catalog, String user);
+        abstract ConnectionMetaData parse(String connectionUrl, String instance, String user);
 
-        static ConnectionMetaData defaultParse(String connectionUrl, String dbVendor, int defaultPort, String catalog, String user) {
+        static ConnectionMetaData defaultParse(String connectionUrl, String dbVendor, int defaultPort, String instance, String user) {
             // Examples:
             // database
             // /
@@ -478,7 +481,7 @@ public class ConnectionMetaData {
                     port = defaultPort;
                 }
             }
-            return new ConnectionMetaData(dbVendor, host, port, catalog, user);
+            return new ConnectionMetaData(dbVendor, host, port, instance, user);
         }
 
         /**

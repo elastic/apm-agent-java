@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ConnectionMetaDataTest {
 
@@ -59,7 +59,7 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST= cluster_alias)(PORT=666))" +
             "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "cluster_alias", 666);
         testUrl("jdbc:oracle:thin:@(DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=host1))" +
-            "(ADDRESS=(PROTOCOL=TCP)(HOST=host2)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=service_name)))",
+                "(ADDRESS=(PROTOCOL=TCP)(HOST=host2)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=service_name)))",
             "oracle", "host1", 1521);
         testUrl("jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=6203))(CONNECT_DATA=" +
             "(SERVER=DEDICATED)(SERVICE_NAME=DB.FQDN.ORG.DE)))", "oracle", "localhost", 6203);

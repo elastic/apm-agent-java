@@ -121,7 +121,7 @@ public class JdbcHelper {
             span.withSubtype(connectionMetaData.getDbVendor())
                 .withAction(DB_SPAN_ACTION);
             span.getContext().getDb()
-                .withInstance(connectionMetaData.getCatalog())
+                .withInstance(connectionMetaData.getInstance())
                 .withUser(connectionMetaData.getUser());
             Destination destination = span.getContext().getDestination()
                 .withAddress(connectionMetaData.getHost())
@@ -164,7 +164,8 @@ public class JdbcHelper {
 
         try {
             DatabaseMetaData metaData = connection.getMetaData();
-            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), connection.getCatalog(), metaData.getUserName());
+            String instance = getConnectionInstance(connection.getCatalog(), connection.getSchema());
+            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), instance, metaData.getUserName());
             if (supported == null) {
                 markSupported(metadataSupported, type);
             }
@@ -176,6 +177,19 @@ public class JdbcHelper {
             metaDataMap.put(connection, connectionMetaData);
         }
         return connectionMetaData;
+    }
+
+    @Nullable
+    public static String getConnectionInstance(@Nullable String catalog, @Nullable String schema) {
+        if (catalog != null && schema != null) {
+            return String.format("%s/%s", catalog, schema);
+        } else if (catalog != null) {
+            return catalog;
+        } else if(schema != null){
+            return schema;
+        } else {
+            return null;
+        }
     }
 
     @Nullable
