@@ -129,7 +129,7 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
                 } else {
                     final StackManipulation assign = assigner.assign(adviceMethod.getReturnType(), instrumentedMethod.getReturnType(), assignToReturn.typing());
                     if (!assign.isValid()) {
-                        throw new IllegalStateException("Cannot assign " + adviceMethod.getReturnType() + " to " + instrumentedMethod.getReturnType());
+                        throw new IllegalStateException("Cannot assign " + adviceMethod.getReturnType() + " to " + instrumentedMethod.getReturnType() + " in advice method " + adviceMethod.toGenericString());
                     }
                     return new StackManipulation.Compound(
                         MethodVariableAccess.of(adviceMethod.getReturnType()).loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter()),
