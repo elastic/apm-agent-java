@@ -117,9 +117,10 @@ public class JdbcHelper {
 
         Connection connection = safeGetConnection((Statement) statement);
         ConnectionMetaData connectionMetaData = connection == null ? null : getConnectionMetaData(connection);
+
+        String vendor = "unknown";
         if (connectionMetaData != null) {
-            span.withSubtype(connectionMetaData.getDbVendor())
-                .withAction(DB_SPAN_ACTION);
+            vendor = connectionMetaData.getDbVendor();;
             span.getContext().getDb()
                 .withInstance(connectionMetaData.getInstance())
                 .withUser(connectionMetaData.getUser());
@@ -127,10 +128,11 @@ public class JdbcHelper {
                 .withAddress(connectionMetaData.getHost())
                 .withPort(connectionMetaData.getPort());
             destination.getService()
-                .withName(connectionMetaData.getDbVendor())
-                .withResource(connectionMetaData.getDbVendor())
+                .withName(vendor)
+                .withResource(vendor)
                 .withType(DB_SPAN_TYPE);
         }
+        span.withSubtype(vendor).withAction(DB_SPAN_ACTION);
 
         return span;
     }

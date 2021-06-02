@@ -67,6 +67,9 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
 
     @BeforeEach
     void initSingleTest() {
+        // hibernate search is not part of shared spec
+        reporter.disableCheckStrictSpanType();
+
         tracer.startRootTransaction(null).activate();
     }
 

@@ -24,11 +24,15 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
+import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ConnectionMetaDataTest {
 
@@ -317,10 +321,37 @@ class ConnectionMetaDataTest {
         testUrl("postgresql://myhost:666/database", "unknown", null, -1);
     }
 
+    private static final MockTracer.MockInstrumentationSetup mockSetup = MockTracer.createMockInstrumentationSetup();
+    private static MockReporter reporter = mockSetup.getReporter();
+    private static ElasticApmTracer tracer = mockSetup.getTracer();
+
     private void testUrl(String url, String expectedVendor, @Nullable String expectedHost, int expectedPort) {
         ConnectionMetaData metadata = ConnectionMetaData.create(url, null, "TEST_USER");
-        assertEquals(metadata.getDbVendor(), expectedVendor);
-        assertEquals(metadata.getHost(), expectedHost);
-        assertEquals(metadata.getPort(), expectedPort);
+        assertThat(metadata.getDbVendor()).isEqualTo(expectedVendor);
+        assertThat(metadata.getHost()).isEqualTo(expectedHost);
+        assertThat(metadata.getPort()).isEqualTo(expectedPort);
+
+        if ("arbitrary".equals(expectedVendor)) {
+            // known case where the jdbc url is valid, but has an unknwon value in shared spec
+            return;
+        }
+
+        // try to create a DB span in order to trigger shared span type validation logic
+        // given not all JDBC urls listed here will be explicitly tested with a real database, that allows
+        // to make sure that at least the known ones always fit
+        try {
+
+            Transaction transaction = tracer.startRootTransaction(this.getClass().getClassLoader());
+            assertThat(transaction).isNotNull();
+            transaction.createSpan()
+                .withType("db")
+                .withSubtype(metadata.getDbVendor()).end();
+            transaction.end();
+
+            assertThat(reporter.getNumReportedSpans()).isEqualTo(1);
+            assertThat(reporter.getNumReportedTransactions()).isEqualTo(1);
+        } finally {
+            reporter.reset();
+        }
     }
 }
