@@ -265,7 +265,8 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
             } else if ("http.status_code".equals(key) && value instanceof Number) {
                 int status = ((Number) value).intValue();
                 span.getContext().getHttp().withStatusCode(status);
-                span.withOutcome(ResultUtil.getOutcomeByHttpClientStatus(status));
+                span.withSubtype("http")
+                    .withOutcome(ResultUtil.getOutcomeByHttpClientStatus(status));
                 return true;
             } else if ("http.url".equals(key) && value instanceof String) {
                 span.getContext().getHttp().withUrl((String) value);

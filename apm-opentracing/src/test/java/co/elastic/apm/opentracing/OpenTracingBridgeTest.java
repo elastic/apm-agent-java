@@ -300,6 +300,9 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
 
     @Test
     void testResolveClientType() {
+        // does not fit the shared type/subtype spec
+        reporter.disableCheckStrictSpanType();
+
         assertSoftly(softly -> {
             softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client")).getType()).isEqualTo("external");
             softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "producer")).getType()).isEqualTo("external");

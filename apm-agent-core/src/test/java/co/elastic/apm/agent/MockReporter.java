@@ -230,7 +230,7 @@ public class MockReporter implements Reporter {
             if (null == subType) {
                 if (hasSubtypes) {
                     assertThat(allowNullSubtype)
-                        .describedAs("span type '%s' requires non-null subtype (allow_null_subtype=false)")
+                        .describedAs("span type '%s' requires non-null subtype (allow_null_subtype=false)", type)
                         .isTrue();
                 }
             } else {
