@@ -72,8 +72,6 @@ class ProcessHelper {
 
         Span span = parentContext.createSpan()
             .withType("process")
-            .withSubtype(binaryName)
-            .withAction("execute")
             .withName(binaryName);
 
         // We don't require span to be activated as the background process is not really linked to current thread

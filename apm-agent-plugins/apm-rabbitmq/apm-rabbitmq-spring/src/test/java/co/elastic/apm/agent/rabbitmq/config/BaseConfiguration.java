@@ -69,7 +69,7 @@ public class BaseConfiguration {
         return rabbitTemplate;
     }
 
-    @CaptureSpan(value = "testSpan", type = "http", subtype = "get", action = "test")
+    @CaptureSpan(value = "testSpan", type = "custom", subtype = "anything", action = "test")
     public void testSpan() {
     }
 }
