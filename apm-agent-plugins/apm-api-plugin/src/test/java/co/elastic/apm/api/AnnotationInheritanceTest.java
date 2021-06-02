@@ -38,13 +38,17 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+/**
+ * Test annotation inheritance. Does not inherit from AbstractInstrumentationTest due to non-runtime configuration that
+ * must be applied BEFORE agent instrumentation.
+ */
 class AnnotationInheritanceTest {
 
     protected static ElasticApmTracer tracer;
     protected static MockReporter reporter;
 
     @BeforeAll
-    public static synchronized void beforeAll() {
+    static void beforeAll() {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         tracer = mockInstrumentationSetup.getTracer();
         when(tracer.getConfig(CoreConfiguration.class).isEnablePublicapiAnnotationInheritance()).thenReturn(true);
@@ -53,23 +57,21 @@ class AnnotationInheritanceTest {
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 
-    @AfterAll
-    public static synchronized void afterAll() {
-        ElasticApmAgent.reset();
+    @AfterEach
+    void cleanup() {
+        reporter.reset();
     }
 
-    @AfterEach
-    void afterEach() {
-        reporter.resetWithoutRecycling();
+    @AfterAll
+    static void afterAll() {
+        ElasticApmAgent.reset();
     }
 
     @Test
     void testCaptureTransaction() {
         new ClassWithoutAnnotations().captureTransaction();
 
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("ClassWithoutAnnotations#captureTransaction");
-        assertThat(reporter.getFirstTransaction().getType()).isEqualTo(Transaction.TYPE_REQUEST);
+        checkTransaction("ClassWithoutAnnotations#captureTransaction");
     }
 
     @Test
@@ -78,18 +80,14 @@ class AnnotationInheritanceTest {
             new ClassWithoutAnnotations().captureSpan();
         }
 
-        assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("ClassWithoutAnnotations#captureSpan");
-        assertThat(reporter.getFirstSpan().getType()).isEqualTo("app");
+        checkSpan("ClassWithoutAnnotations#captureSpan");
     }
 
     @Test
     void testTracedWithoutActiveTransaction() {
         new ClassWithoutAnnotations().traced();
 
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("ClassWithoutAnnotations#traced");
-        assertThat(reporter.getFirstTransaction().getType()).isEqualTo(Transaction.TYPE_REQUEST);
+        checkTransaction("ClassWithoutAnnotations#traced");
     }
 
     @Test
@@ -98,8 +96,18 @@ class AnnotationInheritanceTest {
             new ClassWithoutAnnotations().traced();
         }
 
+        checkSpan("ClassWithoutAnnotations#traced");
+    }
+
+    private void checkTransaction(String name) {
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo(name);
+        assertThat(reporter.getFirstTransaction().getType()).isEqualTo(Transaction.TYPE_REQUEST);
+    }
+
+    private void checkSpan(String name) {
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("ClassWithoutAnnotations#traced");
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo(name);
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("app");
     }
 
