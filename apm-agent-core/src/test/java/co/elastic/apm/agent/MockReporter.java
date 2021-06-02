@@ -243,18 +243,6 @@ public class MockReporter implements Reporter {
 
     }
 
-    private boolean getBooleanJson(JsonNode json, String name) {
-        JsonNode jsonValue = json.get(name);
-        boolean value = false;
-        if (jsonValue != null) {
-            assertThat(jsonValue.isBoolean())
-                .describedAs("property %s should be a boolean", name)
-                .isTrue();
-            value = jsonValue.asBoolean();
-        }
-        return value;
-    }
-
     private void verifyDestinationFields(Span span) {
         if (!span.isExit()) {
             return;
@@ -558,7 +546,6 @@ public class MockReporter implements Reporter {
         }
     }
 
-
     private static boolean hasEmptyTraceContext(AbstractSpan<?> item) {
         return item.getTraceContext().getId().isEmpty();
     }
@@ -573,9 +560,15 @@ public class MockReporter implements Reporter {
         return jsonNode;
     }
 
-    private static String getOptionalComment(JsonNode json) {
-        return Optional.ofNullable(json.get("comment"))
-            .map(JsonNode::asText)
-            .orElse("");
+    private static boolean getBooleanJson(JsonNode json, String name) {
+        JsonNode jsonValue = json.get(name);
+        boolean value = false;
+        if (jsonValue != null) {
+            assertThat(jsonValue.isBoolean())
+                .describedAs("property %s should be a boolean", name)
+                .isTrue();
+            value = jsonValue.asBoolean();
+        }
+        return value;
     }
 }
