@@ -32,6 +32,7 @@ import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
+import com.dslplatform.json.JsonWriter;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
@@ -99,7 +100,9 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
             registry.forEachMeter(meterConsumer);
         }
         logger.debug("Reporting {} meters", meterConsumer.meters.size());
-        reporter.report(serializer.serialize(meterConsumer.meters, timestamp));
+        for (JsonWriter serializedMetricSet : serializer.serialize(meterConsumer.meters, timestamp)) {
+            reporter.report(serializedMetricSet);
+        }
     }
 
     @Override

@@ -74,6 +74,8 @@ class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
 
     @BeforeEach
     void initSingleTest() {
+        // hibernate is not in the shared span type/subtype specification
+        reporter.disableCheckStrictSpanType();
         tracer.startRootTransaction(null).activate();
     }
 

@@ -53,4 +53,16 @@ class UserRegistryTest {
         assertThat(UserRegistry.getAllUsersMacOs().getAllTempDirs()).contains(System.getProperty("java.io.tmpdir"));
     }
 
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void testCurrentUserCanSwitchToSelf() {
+        String userName = System.getProperty("user.name");
+        UserRegistry.User user = UserRegistry.empty().get(userName);
+
+        assertThat(user.getUsername()).isEqualTo(userName);
+        assertThat(user.isCurrentUser()).isTrue();
+        assertThat(user.canSwitchToUser()).isTrue();
+    }
+
+
 }
