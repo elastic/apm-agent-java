@@ -53,12 +53,12 @@ public class ConnectionMetaData {
     /**
      * Creates a DB metadata based on the connection URL.
      *
-     * @param connectionUrl      the connection URL obtained from the JDBC connection
-     * @param connectionInstance instance identifier from connection, to be used if not available from parsing
-     * @param user               DB user
+     * @param connectionUrl the connection URL obtained from the JDBC connection
+     * @param instance      instance identifier from connection
+     * @param user          DB user
      * @return metadata of a JDBC connection
      */
-    public static ConnectionMetaData create(String connectionUrl, @Nullable String connectionInstance, String user) {
+    public static ConnectionMetaData create(String connectionUrl, @Nullable String instance, String user) {
         String dbVendor = "unknown";
 
         // trimming a temp copy, keeping the original for logging purposes
@@ -89,17 +89,17 @@ public class ConnectionMetaData {
         ConnectionUrlParser connectionUrlParser = parsers.get(dbVendor);
         if (connectionUrlParser != null) {
             try {
-                ret = connectionUrlParser.parse(tmpUrl, connectionInstance, user);
+                ret = connectionUrlParser.parse(tmpUrl, instance, user);
             } catch (Exception e) {
                 logger.error("Failed to parse connection URL: " + tmpUrl, e);
             }
         } else {
             // Doesn't hurt to try...
-            ret = ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, -1, connectionInstance, user);
+            ret = ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, -1, instance, user);
         }
 
         if (ret == null) {
-            ret = new ConnectionMetaData(dbVendor, null, -1, connectionInstance, user);
+            ret = new ConnectionMetaData(dbVendor, null, -1, instance, user);
         }
         if (logger.isDebugEnabled()) {
             logger.debug("Based on the connection URL {}, parsed metadata is: {}", connectionUrl, ret);
@@ -453,7 +453,7 @@ public class ConnectionMetaData {
 
         abstract ConnectionMetaData parse(String connectionUrl, String instance, String user);
 
-        static ConnectionMetaData defaultParse(String connectionUrl, String dbVendor, int defaultPort, String instance, String user) {
+        static ConnectionMetaData defaultParse(String connectionUrl, String dbVendor, int defaultPort, @Nullable String instance, String user) {
             // Examples:
             // database
             // /

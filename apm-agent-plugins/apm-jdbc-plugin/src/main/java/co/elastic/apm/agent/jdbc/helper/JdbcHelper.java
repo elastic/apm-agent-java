@@ -41,7 +41,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.Callable;
 
-import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.connectionSupported;
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metaDataMap;
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metadataSupported;
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.statementSqlMap;
@@ -116,11 +115,11 @@ public class JdbcHelper {
             .withType("sql");
 
         Connection connection = safeGetConnection((Statement) statement);
-        ConnectionMetaData connectionMetaData = connection == null ? null : getConnectionMetaData(connection);
+        ConnectionMetaData connectionMetaData = getConnectionMetaData(connection);
 
         String vendor = "unknown";
         if (connectionMetaData != null) {
-            vendor = connectionMetaData.getDbVendor();;
+            vendor = connectionMetaData.getDbVendor();
             span.getContext().getDb()
                 .withInstance(connectionMetaData.getInstance())
                 .withUser(connectionMetaData.getUser());
@@ -152,27 +151,30 @@ public class JdbcHelper {
     }
 
     @Nullable
-    private ConnectionMetaData getConnectionMetaData(Connection connection) {
+    private ConnectionMetaData getConnectionMetaData(@Nullable Connection connection) {
+        if (null == connection) {
+            return null;
+        }
+
         ConnectionMetaData connectionMetaData = metaDataMap.get(connection);
         if (connectionMetaData != null) {
             return connectionMetaData;
         }
 
         Class<?> type = connection.getClass();
-        Boolean supported = isSupported(metadataSupported, type);
+        Boolean supported = isSupported(JdbcFeature.METADATA, type);
         if (supported == Boolean.FALSE) {
             return null;
         }
 
         try {
             DatabaseMetaData metaData = connection.getMetaData();
-            String instance = getConnectionInstance(connection.getCatalog(), connection.getSchema());
-            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), instance, metaData.getUserName());
+            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), connection.getCatalog(), metaData.getUserName());
             if (supported == null) {
-                markSupported(metadataSupported, type);
+                markSupported(JdbcFeature.METADATA, type);
             }
         } catch (SQLException e) {
-            markNotSupported(metadataSupported, type, e);
+            markNotSupported(JdbcFeature.METADATA, type, e);
         }
 
         if (connectionMetaData != null) {
@@ -182,23 +184,10 @@ public class JdbcHelper {
     }
 
     @Nullable
-    public static String getConnectionInstance(@Nullable String catalog, @Nullable String schema) {
-        if (catalog != null && schema != null) {
-            return String.format("%s/%s", catalog, schema);
-        } else if (catalog != null) {
-            return catalog;
-        } else if(schema != null){
-            return schema;
-        } else {
-            return null;
-        }
-    }
-
-    @Nullable
     private Connection safeGetConnection(Statement statement) {
         Connection connection = null;
         Class<?> type = statement.getClass();
-        Boolean supported = isSupported(connectionSupported, type);
+        Boolean supported = isSupported(JdbcFeature.CONNECTION, type);
         if (supported == Boolean.FALSE) {
             return null;
         }
@@ -206,28 +195,48 @@ public class JdbcHelper {
         try {
             connection = statement.getConnection();
             if (supported == null) {
-                markSupported(connectionSupported, type);
+                markSupported(JdbcFeature.CONNECTION, type);
             }
         } catch (SQLException e) {
-            markNotSupported(connectionSupported, type, e);
+            markNotSupported(JdbcFeature.CONNECTION, type, e);
         }
 
         return connection;
     }
 
     @Nullable
-    private static Boolean isSupported(WeakConcurrentMap<Class<?>, Boolean> featureMap, Class<?> type) {
-        return featureMap.get(type);
+    private static Boolean isSupported(JdbcFeature feature, Class<?> type) {
+        return feature.classSupport.get(type);
     }
 
-    private static void markSupported(WeakConcurrentMap<Class<?>, Boolean> map, Class<?> type) {
-        map.put(type, Boolean.TRUE);
+    private static void markSupported(JdbcFeature feature, Class<?> type) {
+        feature.classSupport.put(type, Boolean.TRUE);
     }
 
-    private static void markNotSupported(WeakConcurrentMap<Class<?>, Boolean> map, Class<?> type, SQLException e) {
-        Boolean previous = map.put(type, Boolean.FALSE);
+    private static void markNotSupported(JdbcFeature feature, Class<?> type, SQLException e) {
+        Boolean previous = feature.classSupport.put(type, Boolean.FALSE);
         if (previous == null) {
             logger.warn("JDBC feature not supported on class " + type, e);
+        }
+    }
+
+    /**
+     * Represent JDBC features for which availability has to be checked at runtime
+     */
+    private enum JdbcFeature {
+        /**
+         * {@link Connection#getMetaData()}
+         */
+        METADATA(JdbcGlobalState.metadataSupported),
+        /**
+         * {@link Statement#getConnection()}
+         */
+        CONNECTION(JdbcGlobalState.connectionSupported);
+
+        private final WeakConcurrentMap<Class<?>, Boolean> classSupport;
+
+        JdbcFeature(WeakConcurrentMap<Class<?>, Boolean> map) {
+            this.classSupport = map;
         }
     }
 
