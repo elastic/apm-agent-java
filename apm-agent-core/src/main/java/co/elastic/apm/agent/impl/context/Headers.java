@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -39,12 +39,30 @@ public class Headers implements Recyclable, Iterable<Headers.Header> {
     private final BinaryHeaderMap binaryHeaders = new BinaryHeaderMap();
     private final NoGarbageIterator iterator = new NoGarbageIterator();
 
-    public void add(String key, String value) {
+    /**
+     * Adds text header. Will ignore {@literal null} keys and values
+     *
+     * @param key   header key
+     * @param value header value
+     */
+    public void add(@Nullable String key, @Nullable String value) {
+        if (key == null || value == null) {
+            return;
+        }
         textHeaders.add(key, value);
     }
 
-    public boolean add(String key, byte[] value) {
-        return binaryHeaders.add(key, value);
+    /**
+     * Adds binary header. Will ignore {@literal null} keys and values
+     *
+     * @param key   header key
+     * @param value header value
+     */
+    public void add(@Nullable String key, @Nullable byte[] value) {
+        if (key == null || value == null) {
+            return;
+        }
+        binaryHeaders.add(key, value);
     }
 
     @Override
