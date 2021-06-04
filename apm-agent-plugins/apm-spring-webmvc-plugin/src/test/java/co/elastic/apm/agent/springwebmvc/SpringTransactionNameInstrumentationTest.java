@@ -25,7 +25,9 @@
 package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -33,12 +35,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
@@ -50,9 +52,13 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
@@ -80,10 +86,43 @@ class SpringTransactionNameInstrumentationTest extends AbstractInstrumentationTe
     }
 
     @Test
+    void testControllerTransactionNameWhenUsePathAsTransactionNameIsTrue() throws Exception {
+        WebConfiguration webConfiguration = config.getConfig(WebConfiguration.class);
+        when(webConfiguration.isUsePathAsName()).thenReturn(true);
+        mockMvc.perform(get("/test/944207fa-d27b-40f6-be58-6dd6a1b541d4"))
+            .andExpect(content().string("944207fa-d27b-40f6-be58-6dd6a1b541d4"));
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("GET /test/944207fa-d27b-40f6-be58-6dd6a1b541d4");
+        verify(webConfiguration, times(2)).isUsePathAsName();
+    }
+
+    @Test
+    void testControllerTransactionNameWithUrlGroups() throws Exception {
+        WebConfiguration webConfiguration = config.getConfig(WebConfiguration.class);
+        when(webConfiguration.isUsePathAsName()).thenReturn(true);
+
+        when(webConfiguration.getUrlGroups()).thenReturn(List.of(WildcardMatcher.valueOf("/test/*")));
+
+        mockMvc.perform(get("/test/944207fa-d27b-40f6-be58-6dd6a1b541d4"))
+            .andExpect(content().string("944207fa-d27b-40f6-be58-6dd6a1b541d4"));
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("GET /test/*");
+        verify(webConfiguration, times(2)).isUsePathAsName();
+    }
+
+    @Test
     void testServletWrappingControllerTransactionName() throws Exception {
         mockMvc.perform(get("/testServletController"))
             .andExpect(content().string("TestServlet"));
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("SpringTransactionNameInstrumentationTest$TestServlet#doGet");
+    }
+
+    @Test
+    void testServletWrappingControllerTransactionNameWhenUsePathAsTransactionNameIsTrue() throws Exception {
+        WebConfiguration webConfiguration = config.getConfig(WebConfiguration.class);
+        when(webConfiguration.isUsePathAsName()).thenReturn(true);
+        mockMvc.perform(get("/testServletController"))
+            .andExpect(content().string("TestServlet"));
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("GET /testServletController");
+        verify(webConfiguration, times(3)).isUsePathAsName();
     }
 
     public static class TestServlet extends HttpServlet {
@@ -125,6 +164,11 @@ class SpringTransactionNameInstrumentationTest extends AbstractInstrumentationTe
                 final Transaction currentTransaction = tracer.currentTransaction();
                 assertThat(currentTransaction).isNotNull();
                 return currentTransaction.getNameAsString();
+            }
+
+            @GetMapping("/test/{uuid}")
+            public String test(@PathVariable String uuid) {
+                return uuid;
             }
         }
     }

@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
@@ -33,7 +35,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -65,6 +66,10 @@ public class ServletWrappingControllerServiceNameInstrumentation extends TracerA
     public static void onEnter(@Advice.FieldValue("servletClass") Class<?> servletClass, @Advice.Argument(0) HttpServletRequest request) {
         final Transaction transaction = tracer.currentTransaction();
         if (transaction == null) {
+            return;
+        }
+        final WebConfiguration webConfiguration = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);
+        if (webConfiguration.isUsePathAsName()) {
             return;
         }
         TransactionNameUtils.setTransactionNameByServletClass(request.getMethod(), servletClass, transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));

@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.asm.Advice;
@@ -120,7 +122,12 @@ public class SpringTransactionNameInstrumentation extends TracerAwareInstrumenta
                 className = handler.getClass().getSimpleName();
                 methodName = null;
             }
-            setName(transaction, className, methodName);
+
+            final WebConfiguration webConfiguration = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);
+            if (!webConfiguration.isUsePathAsName()) {
+                setName(transaction, className, methodName);
+            }
+
             transaction.setFrameworkName(FRAMEWORK_NAME);
             transaction.setFrameworkVersion(VersionUtils.getVersion(HandlerMethod.class, "org.springframework", "spring-web"));
         }
