@@ -1,8 +1,6 @@
 package co.elastic.apm.agent.rabbitmq;
 
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -22,8 +20,8 @@ public class SpringAmqpBatchMessageListenerInstrumentation extends SpringBaseIns
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return MessageListenerContainerWrappingAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.rabbitmq.SpringAmqpBatchMessageListenerInstrumentation$MessageListenerContainerWrappingAdvice";
     }
 
     public static class MessageListenerContainerWrappingAdvice extends BaseAdvice {
