@@ -24,5 +24,5 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-public class RabbitMQ4xPluginIT extends RabbitMQTest {
+public class RabbitMQ4xPluginIT extends RabbitMQIT {
 }

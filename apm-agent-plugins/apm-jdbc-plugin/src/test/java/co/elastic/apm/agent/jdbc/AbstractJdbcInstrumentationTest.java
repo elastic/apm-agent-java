@@ -25,13 +25,13 @@
 package co.elastic.apm.agent.jdbc;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.db.signature.SignatureParser;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.jdbc.helper.JdbcGlobalState;
-import co.elastic.apm.agent.jdbc.signature.SignatureParser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -223,6 +223,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
 
         final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER1' WHERE FOO=11";
         boolean isResultSet = statement.execute(sql);
+
         assertThat(check.getThrownCount()).isEqualTo(1);
         assertThat(isResultSet).isFalse();
 
@@ -230,6 +231,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
 
         // try to execute statement again, should not throw again
         statement.execute(sql);
+
         assertThat(check.getThrownCount())
             .describedAs("unsupported exception should only be thrown once")
             .isEqualTo(1);
@@ -442,8 +444,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         signatureParser.querySignature(rawSql, processedSql, preparedStatement);
         assertThat(jdbcSpan.getNameAsString()).isEqualTo(processedSql.toString());
         assertThat(jdbcSpan.getType()).isEqualTo(DB_SPAN_TYPE);
-        assertThat(jdbcSpan.getSubtype()).isNull();
-        assertThat(jdbcSpan.getAction()).isNull();
+        assertThat(jdbcSpan.getSubtype()).isEqualTo("unknown");
+        assertThat(jdbcSpan.getAction()).isEqualTo(DB_SPAN_ACTION);
 
         Db db = jdbcSpan.getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(rawSql);

@@ -44,7 +44,7 @@ public class Lettuce3InstrumentationTest extends AbstractRedisInstrumentationTes
     public void setUpLettuce() {
         client = new RedisClient("localhost", redisPort);
         connection = client.connect();
-        reporter.disableDestinationAddressCheck();
+        reporter.disableCheckDestinationAddress();
     }
 
     @Test

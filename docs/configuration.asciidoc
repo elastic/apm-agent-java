@@ -141,6 +141,7 @@ Click on a key to get more information.
 ** <<config-log-file>>
 ** <<config-enable-log-correlation>>
 ** <<config-log-ecs-reformatting>>
+** <<config-log-ecs-formatter-allow-list>>
 ** <<config-log-ecs-reformatting-dir>>
 ** <<config-log-file-size>>
 ** <<config-log-format-sout>>
@@ -709,7 +710,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`.
 If you want to try out experimental features, set the value to an empty string.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -1686,11 +1687,14 @@ Available options:
  - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if 
    you wish to maintain similar logging-related overhead, but write logs to a different location and/or 
    with a different file extension.
+ - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. 
 
+NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option 
+is also valid for other appenders, like System out and console
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
-Valid options: `OFF`, `SHADE`, `REPLACE`
+Valid options: `OFF`, `SHADE`, `REPLACE`, `OVERRIDE`
 
 [options="header"]
 |============
@@ -1703,6 +1707,38 @@ Valid options: `OFF`, `SHADE`, `REPLACE`
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.log_ecs_reformatting` | `log_ecs_reformatting` | `ELASTIC_APM_LOG_ECS_REFORMATTING`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-ecs-formatter-allow-list]]
+==== `log_ecs_formatter_allow_list`
+
+Only formatters that match an item on this list will be automatically reformatted to ECS when 
+<<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to any option other than `OFF`. 
+A formatter is the logging-framework-specific entity that is responsible for the formatting 
+of log events. For example, in log4j it would be a `Layout` implementation, whereas in Logback it would 
+be an `Encoder` implementation. 
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `*PatternLayout*, org.apache.log4j.SimpleLayout, ch.qos.logback.core.encoder.EchoEncoder` | List | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_ecs_formatter_allow_list` | `log_ecs_formatter_allow_list` | `ELASTIC_APM_LOG_ECS_FORMATTER_ALLOW_LIST`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1894,7 +1930,7 @@ The <<config-profiling-inferred-spans-sampling-interval, `profiling_inferred_spa
 The inferred spans are created after a profiling session has ended.
 This means there is a delay between the regular and the inferred spans being visible in the UI.
 
-NOTE: This feature is not available on Windows
+NOTE: This feature is not available on Windows and on OpenJ9
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -2793,7 +2829,7 @@ The default unit for this option is `ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`.
 # If you want to try out experimental features, set the value to an empty string.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -3365,14 +3401,34 @@ The default unit for this option is `ms`.
 #  - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if 
 #    you wish to maintain similar logging-related overhead, but write logs to a different location and/or 
 #    with a different file extension.
+#  - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. 
 # 
+# NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option 
+# is also valid for other appenders, like System out and console
 #
-# Valid options: OFF, SHADE, REPLACE
+# Valid options: OFF, SHADE, REPLACE, OVERRIDE
 # This setting can be changed at runtime
 # Type: LogEcsReformatting
 # Default value: OFF
 #
 # log_ecs_reformatting=OFF
+
+# Only formatters that match an item on this list will be automatically reformatted to ECS when 
+# <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to any option other than `OFF`. 
+# A formatter is the logging-framework-specific entity that is responsible for the formatting 
+# of log events. For example, in log4j it would be a `Layout` implementation, whereas in Logback it would 
+# be an `Encoder` implementation. 
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: comma separated list
+# Default value: *PatternLayout*,org.apache.log4j.SimpleLayout,ch.qos.logback.core.encoder.EchoEncoder
+#
+# log_ecs_formatter_allow_list=*PatternLayout*,org.apache.log4j.SimpleLayout,ch.qos.logback.core.encoder.EchoEncoder
 
 # If <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to `SHADE` or `REPLACE`, 
 # the shade log files will be written alongside the original logs in the same directory by default. 
@@ -3472,7 +3528,7 @@ The default unit for this option is `ms`.
 # The inferred spans are created after a profiling session has ended.
 # This means there is a delay between the regular and the inferred spans being visible in the UI.
 # 
-# NOTE: This feature is not available on Windows
+# NOTE: This feature is not available on Windows and on OpenJ9
 #
 # This setting can be changed at runtime
 # Type: Boolean

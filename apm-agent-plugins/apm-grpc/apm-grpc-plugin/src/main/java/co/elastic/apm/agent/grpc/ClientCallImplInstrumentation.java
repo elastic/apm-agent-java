@@ -92,21 +92,21 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This ClientCall<?, ?> clientCall,
-                                      @Advice.Argument(0) ClientCall.Listener<?> listener,
-                                      @Advice.Argument(1) Metadata headers) {
+                                     @Advice.Argument(0) ClientCall.Listener<?> listener,
+                                     @Advice.Argument(1) Metadata headers) {
 
             DynamicTransformer.Accessor.get().ensureInstrumented(listener.getClass(), RESPONSE_LISTENER_INSTRUMENTATIONS);
 
-            return helper.clientCallStartEnter(clientCall, listener, headers);
+            return GrpcHelper.getInstance().clientCallStartEnter(clientCall, listener, headers);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Advice.Argument(0) ClientCall.Listener<?> listener,
-                                   @Advice.Thrown @Nullable Throwable thrown,
-                                   @Advice.Enter @Nullable Object span) {
+                                  @Advice.Thrown @Nullable Throwable thrown,
+                                  @Advice.Enter @Nullable Object span) {
 
             if (span != null) {
-                helper.clientCallStartExit(listener, thrown);
+                GrpcHelper.getInstance().clientCallStartExit(listener, thrown);
             }
         }
 
@@ -140,7 +140,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This ClientCall.Listener<?> listener) {
-            return helper.enterClientListenerMethod(listener);
+            return GrpcHelper.getInstance().enterClientListenerMethod(listener);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -150,7 +150,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
                                   @Advice.Enter @Nullable Object span) {
 
             if (span instanceof Span) {
-                helper.exitClientListenerMethod(thrown, listener, (Span) span, status);
+                GrpcHelper.getInstance().exitClientListenerMethod(thrown, listener, (Span) span, status);
             }
         }
 
@@ -177,7 +177,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This ClientCall.Listener<?> listener) {
-            return helper.enterClientListenerMethod(listener);
+            return GrpcHelper.getInstance().enterClientListenerMethod(listener);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -186,7 +186,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
                                   @Advice.Enter @Nullable Object span) {
 
             if (span instanceof Span) {
-                helper.exitClientListenerMethod(thrown, listener, (Span) span, null);
+                GrpcHelper.getInstance().exitClientListenerMethod(thrown, listener, (Span) span, null);
             }
         }
 

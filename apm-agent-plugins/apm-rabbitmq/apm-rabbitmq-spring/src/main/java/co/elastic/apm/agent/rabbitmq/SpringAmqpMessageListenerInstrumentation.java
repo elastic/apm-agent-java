@@ -35,7 +35,9 @@ import org.springframework.amqp.core.MessageProperties;
 
 import javax.annotation.Nullable;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -43,6 +45,12 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrumentation {
+
+    @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("org.springframework.amqp.core.MessageListener"));
+    }
+
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface()).and(hasSuperType(named("org.springframework.amqp.core.MessageListener")));
@@ -55,8 +63,8 @@ public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrume
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return SpringAmqpMessageListenerAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.rabbitmq.SpringAmqpMessageListenerInstrumentation$SpringAmqpMessageListenerAdvice";
     }
 
     public static class SpringAmqpMessageListenerAdvice extends BaseAdvice {

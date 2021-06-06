@@ -89,8 +89,19 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testSetUser() {
+        transaction.setUser("foo", "bar", "baz", "abc");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getDomain()).isEqualTo("abc");
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getId()).isEqualTo("foo");
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isEqualTo("bar");
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("baz");
+    }
+
+    @Test
+    void testSetUserWithoutDomain() {
         transaction.setUser("foo", "bar", "baz");
         endTransaction();
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getDomain()).isNull();
         assertThat(reporter.getFirstTransaction().getContext().getUser().getId()).isEqualTo("foo");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isEqualTo("bar");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("baz");
@@ -137,12 +148,13 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
             .setLabel("stringKey", randomString)
             .setLabel("numberKey", randomInt)
             .setLabel("booleanKey", randomBoolean)
-            .setUser("foo", "bar", "baz")
+            .setUser("foo", "bar", "baz", "abc")
             .setResult("foo");
         endTransaction();
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("foo");
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("foo");
         assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isEqualTo("bar");
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getDomain()).isEqualTo("abc");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getId()).isEqualTo("foo");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isEqualTo("bar");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("baz");
@@ -153,7 +165,10 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    public void startSpan() throws Exception {
+    public void startSpan() {
+        // custom spans not part of shared spec
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", null, null);
         span.setName("bar");
         Span child = span.startSpan("foo2", null, null);
@@ -210,7 +225,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     @Test
     public void testGetErrorIdWithSpanCaptureException() {
         String errorId = null;
-        Span span = transaction.startSpan("foo", null, null);
+        Span span = transaction.startSpan("custom", null, null);
         span.setName("bar");
         try {
             throw new RuntimeException("test exception");
@@ -225,7 +240,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void setOutcome_unknown() {
-        reporter.checkUnknownOutcome(false);
+        reporter.disableCheckUnknownOutcome();
 
         testSetOutcome(Outcome.UNKNOWN);
     }

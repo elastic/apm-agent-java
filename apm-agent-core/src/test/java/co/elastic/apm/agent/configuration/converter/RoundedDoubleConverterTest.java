@@ -28,6 +28,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.Locale;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -71,4 +73,21 @@ class RoundedDoubleConverterTest {
         assertThat(converted).isEqualTo(expected);
     }
 
+    @Test
+    void testNonEnglishLocale() {
+        Locale defaultLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.GERMAN);
+
+            RoundedDoubleConverter converter = new RoundedDoubleConverter(4);
+
+            Double expected = Double.valueOf("0.0001");
+            Double converted = converter.convert("0.0001");
+
+            assertThat(converted).isEqualTo(expected);
+            assertThat(converter.toString(converted)).isEqualTo("0.0001");
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
+    }
 }

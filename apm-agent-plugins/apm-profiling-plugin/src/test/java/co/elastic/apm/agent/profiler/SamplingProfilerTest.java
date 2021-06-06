@@ -216,7 +216,7 @@ class SamplingProfilerTest {
     }
 
     private void aInferred(Transaction transaction) throws Exception {
-        Span span = transaction.createSpan().withName("bExplicit").withType("test");
+        Span span = transaction.createSpan().withName("bExplicit").withType("custom");
         try (Scope spanScope = span.activateInScope()) {
             cInferred();
         } finally {
@@ -237,14 +237,13 @@ class SamplingProfilerTest {
 
     private void setupProfiler(boolean enabled) {
         reporter = new MockReporter();
-        ConfigurationRegistry config1 = SpyConfiguration.createSpyConfig();
-        profilingConfig = config1.getConfig(ProfilingConfiguration.class);
+        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        profilingConfig = config.getConfig(ProfilingConfiguration.class);
         when(profilingConfig.getIncludedClasses()).thenReturn(List.of(WildcardMatcher.valueOf(getClass().getName())));
         when(profilingConfig.isProfilingEnabled()).thenReturn(enabled);
         when(profilingConfig.getProfilingDuration()).thenReturn(TimeDuration.of("500ms"));
         when(profilingConfig.getProfilingInterval()).thenReturn(TimeDuration.of("500ms"));
         when(profilingConfig.getSamplingInterval()).thenReturn(TimeDuration.of("5ms"));
-        ConfigurationRegistry config = config1;
         tracer = MockTracer.createRealTracer(reporter, config);
         profiler = tracer.getLifecycleListener(ProfilingFactory.class).getProfiler();
     }

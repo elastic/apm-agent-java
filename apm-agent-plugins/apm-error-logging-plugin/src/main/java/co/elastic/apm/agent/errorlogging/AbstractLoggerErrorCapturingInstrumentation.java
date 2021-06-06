@@ -43,8 +43,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public abstract class AbstractLoggerErrorCapturingInstrumentation extends TracerAwareInstrumentation {
 
     @Override
-    public Class<?> getAdviceClass() {
-        return LoggingAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.errorlogging.AbstractLoggerErrorCapturingInstrumentation$LoggingAdvice";
     }
 
     public static class LoggingAdvice {

@@ -40,6 +40,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -115,6 +116,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         // confluent versions 5.3.0 correspond Kafka versions 2.3.0 -
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
         kafka = new KafkaContainer("5.3.0");
+        kafka.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
         kafka.start();
         kafkaPort = kafka.getMappedPort(KafkaContainer.KAFKA_PORT);
         bootstrapServers = kafka.getBootstrapServers();
@@ -261,7 +263,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
         testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
-        reporter.disableDestinationAddressCheck();
+        reporter.disableCheckDestinationAddress();
         sendTwoRecordsAndConsumeReplies();
         verifyTracing();
     }

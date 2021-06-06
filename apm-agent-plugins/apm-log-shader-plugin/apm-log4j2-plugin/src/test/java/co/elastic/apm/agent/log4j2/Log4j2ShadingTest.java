@@ -29,8 +29,6 @@ import co.elastic.apm.agent.log.shader.LoggerFacade;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
-import org.apache.logging.log4j.core.Appender;
-import org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender;
 import org.apache.logging.log4j.core.appender.RandomAccessFileAppender;
 
 import java.net.URI;
@@ -75,8 +73,6 @@ public class Log4j2ShadingTest extends LogShadingInstrumentationTest {
 
         @Override
         public void close() {
-            Appender fileAppender = ((org.apache.logging.log4j.core.Logger) log4j2Logger).getAppenders().get("FILE");
-            Log4j2LogShadingHelper.instance().stopShading((AbstractOutputStreamAppender<?>) fileAppender);
             LogManager.shutdown();
         }
 

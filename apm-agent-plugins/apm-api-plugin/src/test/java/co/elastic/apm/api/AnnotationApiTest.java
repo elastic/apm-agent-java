@@ -27,7 +27,6 @@ package co.elastic.apm.api;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Span;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -83,6 +82,9 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
     }
 
     private void testTransactionAndSpanTypes(boolean useLegacyTyping) {
+
+        reporter.disableCheckStrictSpanType();
+
         reporter.reset();
         AnnotationTestClass.transactionWithType(useLegacyTyping);
         assertThat(reporter.getTransactions()).hasSize(1);
@@ -93,24 +95,29 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         assertThat(reporter.getSpans()).hasSize(1);
         Span internalSpan = reporter.getFirstSpan();
         assertThat(internalSpan.getNameAsString()).isEqualTo("spanWithType");
-        assertThat(internalSpan.getType()).isEqualTo("ext");
+        assertThat(internalSpan.getType()).isEqualTo("external");
         assertThat(internalSpan.getSubtype()).isEqualTo("http");
         assertThat(internalSpan.getAction()).isEqualTo("okhttp");
     }
 
     @Test
     void testMissingSubtype() {
+        reporter.disableCheckStrictSpanType();
+
         AnnotationTestClass.transactionForMissingSpanSubtype();
         assertThat(reporter.getSpans()).hasSize(1);
         Span internalSpan = reporter.getFirstSpan();
         assertThat(internalSpan.getNameAsString()).isEqualTo("spanWithMissingSubtype");
-        assertThat(internalSpan.getType()).isEqualTo("ext.http");
-        assertThat(internalSpan.getSubtype()).isEqualTo("");
+        assertThat(internalSpan.getType()).isEqualTo("external.http");
+        assertThat(internalSpan.getSubtype()).isNull();
         assertThat(internalSpan.getAction()).isEqualTo("okhttp");
     }
 
     @Test
     void testTracedTransactionAndSpan() {
+        // type = app, subtype = subtype is not part of shared spec
+        reporter.disableCheckStrictSpanType();
+
         TracedAnnotationTest.tracedTransaction();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
@@ -180,12 +187,12 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
             }
         }
 
-        @CaptureSpan(value = "spanWithType", type = "ext.http.okhttp")
+        @CaptureSpan(value = "spanWithType", type = "external.http.okhttp")
         private static void spanWithHierarchicalType() {
 
         }
 
-        @CaptureSpan(value = "spanWithType", type = "ext", subtype = "http", action = "okhttp")
+        @CaptureSpan(value = "spanWithType", type = "external", subtype = "http", action = "okhttp")
         private static void spanWithSplitTypes() {
 
         }
@@ -195,7 +202,7 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
             spanWithMissingSubtype();
         }
 
-        @CaptureSpan(value = "spanWithMissingSubtype", type = "ext.http", action = "okhttp")
+        @CaptureSpan(value = "spanWithMissingSubtype", type = "external.http", action = "okhttp")
         private static void spanWithMissingSubtype() {
 
         }

@@ -705,14 +705,14 @@ public class DslJsonSerializer implements PayloadSerializer {
             replace(replaceBuilder, ".", "_", 0);
             String subtype = span.getSubtype();
             String action = span.getAction();
-            if ((subtype != null && !subtype.isEmpty()) || (action != null && !action.isEmpty())) {
+            if (subtype != null || action != null) {
                 replaceBuilder.append('.');
                 int replaceStartIndex = replaceBuilder.length() + 1;
-                if (subtype != null && !subtype.isEmpty()) {
+                if (subtype != null) {
                     replaceBuilder.append(subtype);
                     replace(replaceBuilder, ".", "_", replaceStartIndex);
                 }
-                if (action != null && !action.isEmpty()) {
+                if (action != null) {
                     replaceBuilder.append('.');
                     replaceStartIndex = replaceBuilder.length() + 1;
                     replaceBuilder.append(action);
@@ -1175,7 +1175,13 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_START);
         writeField("full", url.getFull());
         writeField("hostname", url.getHostname());
-        writeField("port", url.getPort());
+        int port = url.getPort();
+        if (apmServerClient.supportsNumericUrlPort()) {
+            writeField("port", port);
+        } else {
+            // serialize as a string for compatibility
+            writeField("port", Integer.toString(port));
+        }
         writeField("pathname", url.getPathname());
         writeField("search", url.getSearch());
         writeLastField("protocol", url.getProtocol());
@@ -1231,6 +1237,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeUser(final User user) {
         writeFieldName("user");
         jw.writeByte(OBJECT_START);
+        writeField("domain", user.getDomain());
         writeField("id", user.getId());
         writeField("email", user.getEmail());
         writeLastField("username", user.getUsername());

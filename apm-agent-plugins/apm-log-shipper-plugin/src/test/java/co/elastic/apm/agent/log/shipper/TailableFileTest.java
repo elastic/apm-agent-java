@@ -27,6 +27,8 @@ package co.elastic.apm.agent.log.shipper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,7 +44,7 @@ import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-
+@DisabledOnOs(OS.WINDOWS)
 class TailableFileTest {
 
     private final ByteBuffer buffy = ByteBuffer.allocate(1024);

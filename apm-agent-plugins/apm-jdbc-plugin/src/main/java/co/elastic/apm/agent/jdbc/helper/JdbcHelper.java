@@ -24,11 +24,12 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
+import co.elastic.apm.agent.db.signature.Scanner;
+import co.elastic.apm.agent.db.signature.SignatureParser;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.jdbc.signature.SignatureParser;
-import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
+import co.elastic.apm.agent.jdbc.JdbcFilter;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.Callable;
 
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.connectionSupported;
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metaDataMap;
@@ -50,12 +52,18 @@ public class JdbcHelper {
     public static final String DB_SPAN_TYPE = "db";
     public static final String DB_SPAN_ACTION = "query";
 
-    private final DetachedThreadLocal<SignatureParser> SIGNATURE_PARSER_THREAD_LOCAL = new DetachedThreadLocal<SignatureParser>(DetachedThreadLocal.Cleaner.INLINE) {
+    private static final JdbcHelper INSTANCE = new JdbcHelper();
+
+    public static JdbcHelper get() {
+        return INSTANCE;
+    }
+
+    private final SignatureParser signatureParser = new SignatureParser(new Callable<Scanner>() {
         @Override
-        protected SignatureParser initialValue(Thread thread) {
-            return new SignatureParser();
+        public Scanner call() {
+            return new Scanner(new JdbcFilter());
         }
-    };
+    });
 
     /**
      * Maps the provided sql to the provided Statement object
@@ -93,7 +101,7 @@ public class JdbcHelper {
         } else if (span.isSampled()) {
             StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
             if (spanName != null) {
-                SIGNATURE_PARSER_THREAD_LOCAL.get().querySignature(sql, spanName, preparedStatement);
+                signatureParser.querySignature(sql, spanName, preparedStatement);
             }
         }
         // setting the type here is important
@@ -109,19 +117,21 @@ public class JdbcHelper {
 
         Connection connection = safeGetConnection((Statement) statement);
         ConnectionMetaData connectionMetaData = connection == null ? null : getConnectionMetaData(connection);
+
+        String vendor = "unknown";
         if (connectionMetaData != null) {
-            span.withSubtype(connectionMetaData.getDbVendor())
-                .withAction(DB_SPAN_ACTION);
+            vendor = connectionMetaData.getDbVendor();;
             span.getContext().getDb()
                 .withUser(connectionMetaData.getUser());
             Destination destination = span.getContext().getDestination()
                 .withAddress(connectionMetaData.getHost())
                 .withPort(connectionMetaData.getPort());
             destination.getService()
-                .withName(connectionMetaData.getDbVendor())
-                .withResource(connectionMetaData.getDbVendor())
+                .withName(vendor)
+                .withResource(vendor)
                 .withType(DB_SPAN_TYPE);
         }
+        span.withSubtype(vendor).withAction(DB_SPAN_ACTION);
 
         return span;
     }

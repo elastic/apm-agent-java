@@ -82,8 +82,8 @@ public class AlibabaMonitorFilterInstrumentation extends AbstractAlibabaDubboIns
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return AlibabaMonitorFilterAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.dubbo.advice.AlibabaMonitorFilterAdvice";
     }
 
 }

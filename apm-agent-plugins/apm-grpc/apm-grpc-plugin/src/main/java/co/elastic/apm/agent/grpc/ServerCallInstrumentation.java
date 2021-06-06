@@ -68,6 +68,6 @@ public class ServerCallInstrumentation extends BaseInstrumentation {
                               @Advice.This ServerCall<?, ?> serverCall,
                               @Advice.Argument(0) Status status) {
 
-        helper.exitServerCall(status, thrown, serverCall);
+        GrpcHelper.getInstance().exitServerCall(status, thrown, serverCall);
     }
 }

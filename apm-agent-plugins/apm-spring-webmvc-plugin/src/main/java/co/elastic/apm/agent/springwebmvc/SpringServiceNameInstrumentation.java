@@ -64,8 +64,8 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return SpringServiceNameAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.springwebmvc.SpringServiceNameInstrumentation$SpringServiceNameAdvice";
     }
 
     public static class SpringServiceNameAdvice {

@@ -53,10 +53,14 @@ the agent does not capture transactions.
 
 |IBM J9 VM
 |8 service refresh 5+ (build 2.9 or 8.0.5.0)
-|
+|<<method-sampling-based,Sampling profiler>> is not supported
 
 |HP-UX JVM
 | 7.0.10+, 8.0.02+
+|
+
+|SAP JVM
+| 8.1.065+
 |
 |===
 
@@ -95,6 +99,12 @@ the JVM arguments.
   the transactions are named based on your controllers (`ControllerClass#controllerMethod`).
 |1.0.0
 
+|Spring Webflux
+|5.2.3+
+|Creates transactions for incoming HTTP requests, supports annotated and functional endpoints.
+|1.24.0 (experimental)
+
+
 |JavaServer Faces
 |2.2.x, 2.3.x
 |If you are using JSF, transactions are named based on the requested Facelets and spans are captured for visibility into execution and
@@ -132,6 +142,17 @@ rendering
 |3+
 |
 |1.17.0
+
+|Apache Struts
+|2.x
+|The transactions are named based on your action (`ActionClass#actionMethod`).
+|1.24.0
+
+
+|Vert.x Web
+|3.x, 4.x
+|Captures incoming HTTP requests as transactions
+|1.24.0 (experimental)
 
 |===
 
@@ -228,6 +249,11 @@ Other Servlet 3+ compliant servers will most likely work as well.
  The actual query will not be recorded.
 |1.12.0
 
+|Cassandra
+|2.x+
+|
+|1.23.0
+
 |===
 
 [float]
@@ -321,9 +347,15 @@ This section lists all supported asynchronous frameworks.
 |2.13.x
 |The agent propagates the context when using the `scala.concurrent.Future` or `scala.concurrent.Promise`.
 It will propagate the context when using chaining methods such as `map`, `flatMap`, `traverse`, ...
-
 NOTE: To enable Scala Future support, you need to enable experimental plugins.
 |1.18.0
+
+| Reactor
+| 3.2.x+
+|The agent propagates the context for `Flux` and `Mono`.
+|1.24.0 (experimental)
+
+
 
 |===
 
@@ -468,6 +500,13 @@ ECS Reformatting - 1.22.0
 |When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
 ECS-compatible format (since 1.22.0, experimental)
 |1.22.0
+
+|JBoss Logging
+|3.0.0+
+|When <<config-enable-log-correlation>> is set to `true`,
+the agent will add a http://javadox.com/org.jboss.logging/jboss-logging/3.3.0.Final/org/jboss/logging/MDC.html[MDC]
+entry for `trace.id` and `transaction.id`. See the <<config-enable-log-correlation>> configuration option for more details.
+|1.23.0
 
 |===
 

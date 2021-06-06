@@ -58,13 +58,13 @@ public class SetMessageListenerInstrumentation extends SpringBaseInstrumentation
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return MessageListenerContainerWrappingAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.rabbitmq.SetMessageListenerInstrumentation$MessageListenerContainerWrappingAdvice";
     }
 
-    private static final MessageListenerHelper helper = new MessageListenerHelper();
-
     public static class MessageListenerContainerWrappingAdvice {
+
+        private static final MessageListenerHelper helper = new MessageListenerHelper();
 
         @Nullable
         @AssignTo.Argument(0)
