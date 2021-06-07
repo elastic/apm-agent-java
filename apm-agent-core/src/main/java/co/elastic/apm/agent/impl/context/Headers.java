@@ -40,26 +40,26 @@ public class Headers implements Recyclable, Iterable<Headers.Header> {
     private final NoGarbageIterator iterator = new NoGarbageIterator();
 
     /**
-     * Adds text header. Will ignore {@literal null} keys and values
+     * Adds text header.
      *
-     * @param key   header key
-     * @param value header value
+     * @param key   header key, will be ignored if {@literal null}
+     * @param value header value, can be {@literal null}
      */
     public void add(@Nullable String key, @Nullable String value) {
-        if (key == null || value == null) {
+        if (key == null) {
             return;
         }
         textHeaders.add(key, value);
     }
 
     /**
-     * Adds binary header. Will ignore {@literal null} keys and values
+     * Adds binary header.
      *
-     * @param key   header key
-     * @param value header value
+     * @param key   header key, will be ignored if {@literal null}
+     * @param value header value, can be {@literal null}
      */
     public void add(@Nullable String key, @Nullable byte[] value) {
-        if (key == null || value == null) {
+        if (key == null) {
             return;
         }
         binaryHeaders.add(key, value);

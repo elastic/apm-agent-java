@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -52,8 +52,17 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
     private static final Logger logger = LoggerFactory.getLogger(BinaryHeaderMap.class);
 
     private CharBuffer valueBuffer;
+    /**
+     * Ordered list of keys
+     */
     private final ArrayList<String> keys;
+
+    /**
+     * Values lengths, key index is provided with {@link #keys}.
+     * Negative length indicate a {@literal null} entry
+     */
     private int[] valueLengths;
+
     private final NoGarbageIterator iterator;
 
     public BinaryHeaderMap() {
@@ -71,7 +80,15 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
         return size() == 0;
     }
 
-    public boolean add(String key, byte[] value) {
+    public boolean add(String key, @Nullable byte[] value) {
+        boolean result;
+        if (value == null) {
+            int size = keys.size();
+            keys.add(key);
+            valueLengths[size] = -1;
+            return true;
+        }
+
         int valuesPos = valueBuffer.position();
         CoderResult coderResult = IOUtils.decodeUtf8Bytes(value, valueBuffer);
         while (coderResult.isOverflow()) {
@@ -81,7 +98,7 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
             }
             coderResult = IOUtils.decodeUtf8Bytes(value, valueBuffer);
         }
-        boolean result;
+
         if (coderResult.isError()) {
             ((Buffer) valueBuffer).limit(valuesPos);
             result = false;
@@ -94,6 +111,7 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
             valueLengths[size] = valueBuffer.position() - valuesPos;
             result = true;
         }
+
         return result;
     }
 
@@ -148,6 +166,7 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
         @Nullable
         String key;
         CharBuffer value = CharBuffer.allocate(64);
+        private boolean nullValue;
 
         public String getKey() {
             if (key == null) {
@@ -156,23 +175,30 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
             return key;
         }
 
+        @Nullable
         public CharSequence getValue() {
-            return value;
+            return nullValue ? null : value;
         }
 
-        void setValue(CharBuffer valueBuffer) {
-            ((Buffer) value).clear();
-            int remaining = valueBuffer.remaining();
-            if (remaining > value.capacity()) {
-                if (value.capacity() < DslJsonSerializer.MAX_VALUE_LENGTH) {
-                    enlargeBuffer();
+        void setValue(@Nullable CharBuffer valueBuffer) {
+            if (valueBuffer == null) {
+                nullValue = true;
+            } else {
+                nullValue = false;
+                ((Buffer) value).clear();
+                int remaining = valueBuffer.remaining();
+                if (remaining > value.capacity()) {
+                    if (value.capacity() < DslJsonSerializer.MAX_VALUE_LENGTH) {
+                        enlargeBuffer();
+                    }
+                    if (remaining > DslJsonSerializer.MAX_VALUE_LENGTH) {
+                        ((Buffer) valueBuffer).limit(valueBuffer.position() + DslJsonSerializer.MAX_VALUE_LENGTH);
+                    }
                 }
-                if (remaining > DslJsonSerializer.MAX_VALUE_LENGTH) {
-                    ((Buffer) valueBuffer).limit(valueBuffer.position() + DslJsonSerializer.MAX_VALUE_LENGTH);
-                }
+                value.put(valueBuffer);
+                ((Buffer) value).flip();
             }
-            value.put(valueBuffer);
-            ((Buffer) value).flip();
+
         }
 
         void reset() {
@@ -202,11 +228,18 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
         public Entry next() {
             entry.reset();
             entry.key = keys.get(index);
-            int thisValueOffset = nextValueOffset;
-            nextValueOffset += valueLengths[index];
-            ((Buffer) valueBuffer).limit(nextValueOffset);
-            ((Buffer) valueBuffer).position(thisValueOffset);
-            entry.setValue(valueBuffer);
+            int valueLength = valueLengths[index];
+
+            if(valueLength < 0){
+                entry.setValue(null);
+            } else {
+                int thisValueOffset = nextValueOffset;
+                nextValueOffset += valueLengths[index];
+                ((Buffer) valueBuffer).limit(nextValueOffset);
+                ((Buffer) valueBuffer).position(thisValueOffset);
+                entry.setValue(valueBuffer);
+            }
+
             index++;
             return entry;
         }

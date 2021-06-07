@@ -28,6 +28,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -109,19 +110,19 @@ class HeadersTest {
     }
 
     @Test
-    void tryNullKeyOrValues() {
+    void testNullKeysAndValues() {
         headers.resetState();
 
-        headers.add(null, "value");
-        headers.add("key", (String) null);
-        headers.add(null, (String) null);
+        headers.add(null, "null-key-text-value");
+        headers.add("text-null-value", (String) null);
 
-        headers.add(null, new byte[0]);
-        headers.add("key", (byte[]) null);
-        headers.add(null, (byte[]) null);
+        headers.add(null, "null-key-binary-value".getBytes(StandardCharsets.UTF_8));
+        headers.add("binary-null-value", (byte[]) null);
 
-        assertThat(headers.isEmpty())
-            .describedAs("nothing should be added to map")
-            .isTrue();
+        assertThat(headers.size()).isEqualTo(2);
+        headers.forEach(h->{
+            assertThat(h).isNotNull();
+            assertThat(h.getValue()).isNull();
+        });
     }
 }
