@@ -77,10 +77,10 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
         @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "action") String action) {
         final AbstractSpan<?> parent = tracer.getActive();
         if (parent != null) {
-            Span span = parent.createSpan();
-            span.setType(type, subtype, action);
-            span.withName(spanName.isEmpty() ? signature : spanName)
+            Span span = parent.createSpan()
+                .withName(spanName.isEmpty() ? signature : spanName)
                 .activate();
+            span.setType(type, subtype, action);
             return span;
         } else {
             logger.debug("Not creating span for {} because there is no currently active span.", signature);

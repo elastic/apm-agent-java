@@ -377,7 +377,12 @@ class SpanTypeBreakdownTest {
     }
 
     private void assertThatTransactionBreakdownCounterCreated(Map<? extends Labels, MetricSet> metricSets) {
-        assertThat(metricSets.get(Labels.Mutable.of().transactionName("test").transactionType("request")).getCounters().get("transaction.breakdown.count").get()).isEqualTo(1);
+        assertThat(metricSets.get(Labels.Mutable.of()
+            .transactionName("test")
+            .transactionType("request"))
+            .getCounters().get("transaction.breakdown.count")
+            .get())
+            .isEqualTo(1);
     }
 
     private Transaction createTransaction() {
@@ -388,7 +393,11 @@ class SpanTypeBreakdownTest {
 
     @Nullable
     private Timer getTimer(Map<? extends Labels, MetricSet> metricSets, String timerName, @Nullable String spanType, @Nullable String spanSubType) {
-        final MetricSet metricSet = metricSets.get(Labels.Mutable.of().transactionName("test").transactionType("request").spanType(spanType).spanSubType(spanSubType));
+        final MetricSet metricSet = metricSets.get(Labels.Mutable.of()
+            .transactionName("test")
+            .transactionType("request")
+            .spanType(spanType)
+            .spanSubType(spanSubType));
         if (metricSet == null) {
             return null;
         }
