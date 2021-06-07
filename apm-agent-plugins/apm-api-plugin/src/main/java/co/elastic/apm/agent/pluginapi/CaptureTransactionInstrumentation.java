@@ -122,9 +122,8 @@ public class CaptureTransactionInstrumentation extends TracerAwareInstrumentatio
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        if (coreConfig.isEnablePublicapiAnnotationInheritance()) {
-            return overridesOrImplementsMethodThat(
-                isAnnotatedWith(named("co.elastic.apm.api.CaptureTransaction")))
+        if (coreConfig.isEnablePublicApiAnnotationInheritance()) {
+            return overridesOrImplementsMethodThat(isAnnotatedWith(named("co.elastic.apm.api.CaptureTransaction")))
                 .onSuperClassesThat(isInAnyPackage(stacktraceConfig.getApplicationPackages(), ElementMatchers.<NamedElement>any()));
         }
         return isAnnotatedWith(named("co.elastic.apm.api.CaptureTransaction"));

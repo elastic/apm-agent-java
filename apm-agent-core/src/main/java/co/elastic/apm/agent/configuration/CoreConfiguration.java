@@ -601,14 +601,15 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "services. We use this config option to determine the timeout for this purpose. Increase if timed out when shouldn't.")
         .buildWithDefault(TimeDuration.of("1000ms"));
 
-    private final ConfigurationOption<Boolean> enablePublicapiAnnotationInheritance = ConfigurationOption.booleanOption()
-        .key("enable_publicapi_annotation_inheritance")
+    private final ConfigurationOption<Boolean> enablePublicApiAnnotationInheritance = ConfigurationOption.booleanOption()
+        .key("enable_public_api_annotation_inheritance")
         .tags("added[1.24.0]")
         .configurationCategory(CORE_CATEGORY)
         .tags("performance")
-        .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).\n" +
-            "When set to `false` a method is instrumented if it is annotated with a public api annotation. " +
-            "When set to `true` a method is also instrumented when a method of a super class with the same signature is annotated with a public api annotation.")
+        .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).\n " +
+            "When set to `false`, a method is instrumented if it is annotated with a public api annotation.\n  " +
+            "When set to `true` methods overriding annotated methods will be instrumented as well.\n " +
+            "Either way, methods will only be instrumented if they are included in the configured <<config-application-packages>>.")
         .dynamic(false)
         .buildWithDefault(false);
 
@@ -799,8 +800,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return cloudProvider.get();
     }
 
-    public boolean isEnablePublicapiAnnotationInheritance() {
-        return enablePublicapiAnnotationInheritance.get();
+    public boolean isEnablePublicApiAnnotationInheritance() {
+        return enablePublicApiAnnotationInheritance.get();
     }
 
     public enum EventType {

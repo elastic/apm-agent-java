@@ -114,9 +114,8 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        if (coreConfig.isEnablePublicapiAnnotationInheritance()) {
-            return overridesOrImplementsMethodThat(
-                isAnnotatedWith(named("co.elastic.apm.api.CaptureSpan")))
+        if (coreConfig.isEnablePublicApiAnnotationInheritance()) {
+            return overridesOrImplementsMethodThat(isAnnotatedWith(named("co.elastic.apm.api.CaptureSpan")))
                 .onSuperClassesThat(isInAnyPackage(stacktraceConfig.getApplicationPackages(), ElementMatchers.<NamedElement>any()));
         }
         return isAnnotatedWith(named("co.elastic.apm.api.CaptureSpan"));
