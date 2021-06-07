@@ -216,7 +216,7 @@ class SamplingProfilerTest {
     }
 
     private void aInferred(Transaction transaction) throws Exception {
-        Span span = transaction.createSpan().withName("bExplicit").withType("test");
+        Span span = transaction.createSpan().withName("bExplicit").withType("custom");
         try (Scope spanScope = span.activateInScope()) {
             cInferred();
         } finally {

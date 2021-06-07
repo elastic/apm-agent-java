@@ -55,7 +55,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "The inferred spans are created after a profiling session has ended.\n" +
             "This means there is a delay between the regular and the inferred spans being visible in the UI.\n" +
             "\n" +
-            "NOTE: This feature is not available on Windows")
+            "NOTE: This feature is not available on Windows and on OpenJ9")
         .dynamic(true)
         .tags("added[1.15.0]", "experimental")
         .buildWithDefault(false);

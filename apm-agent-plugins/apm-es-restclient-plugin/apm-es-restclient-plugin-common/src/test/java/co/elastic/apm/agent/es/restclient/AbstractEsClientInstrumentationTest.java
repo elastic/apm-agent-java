@@ -63,14 +63,13 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     protected boolean async;
 
-    private boolean disableHttpUrlCheck = false;
+    private boolean checkHttpUrl = true;
 
+    /**
+     * Disables HTTP URL check for the current test method
+     */
     public void disableHttpUrlCheck() {
-        disableHttpUrlCheck = true;
-    }
-
-    public void enableHttpUrlCheck() {
-        disableHttpUrlCheck = false;
+        checkHttpUrl = false;
     }
 
     @Parameterized.Parameters(name = "Async={0}")
@@ -93,6 +92,12 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     @Before
     public void startTransaction() {
+        // While JUnit does not recycle test class instances between method invocations by default
+        // this test should not be required, but it allows to ensure proper correctness even if that changes
+        assertThat(checkHttpUrl)
+            .describedAs("checking HTTP URLs should be enabled by default")
+            .isTrue();
+
         startTestRootTransaction("ES Transaction");
     }
 
@@ -105,7 +110,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     public void assertThatErrorsExistWhenDeleteNonExistingIndex() {
-
         List<ErrorCapture> errorCaptures = reporter.getErrors();
         assertThat(errorCaptures).hasSize(1);
         ErrorCapture errorCapture = errorCaptures.get(0);
@@ -130,7 +134,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(db.getStatementBuffer().toString()).isEqualTo(statement);
     }
 
-
     protected void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
         validateSpanContentWithoutContext(span, expectedName, statusCode, method);
         validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
@@ -139,10 +142,12 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     private void validateDestinationContextContent(Destination destination) {
         assertThat(destination).isNotNull();
-        if (!reporter.isDisableDestinationAddressCheck()) {
+
+        if (reporter.checkDestinationAddress()) {
             assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
             assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
         }
+
         assertThat(destination.getService().getName().toString()).isEqualTo(ELASTICSEARCH);
         assertThat(destination.getService().getResource().toString()).isEqualTo(ELASTICSEARCH);
         assertThat(destination.getService().getType()).isEqualTo(SPAN_TYPE);
@@ -152,27 +157,24 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(http).isNotNull();
         assertThat(http.getMethod()).isEqualTo(method);
         assertThat(http.getStatusCode()).isEqualTo(statusCode);
-        if (!disableHttpUrlCheck) {
+        if (checkHttpUrl) {
             assertThat(http.getUrl()).isEqualTo("http://" + container.getHttpHostAddress());
         }
     }
 
     protected void validateSpanContentAfterIndexCreateRequest() {
-
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s", SECOND_INDEX), 200, "PUT");
     }
 
     protected void validateSpanContentAfterIndexDeleteRequest() {
-
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s", SECOND_INDEX), 200, "DELETE");
     }
 
     protected void validateSpanContentAfterBulkRequest() {
-
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         assertThat(spans.get(0).getNameAsString()).isEqualTo("Elasticsearch: POST /_bulk");

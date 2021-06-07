@@ -37,8 +37,17 @@ public class WeakMapSupplier {
 
     public static <K, V> WeakConcurrentMap<K, V> createMap() {
         WeakConcurrentMap<K, V> result = new NullSafeWeakConcurrentMap<>(false);
-        registeredMaps.add(result);
+        registerMap(result);
         return result;
+    }
+
+    /**
+     * Registers map for global stale entry cleanup
+     *
+     * @param map map to register
+     */
+    public static void registerMap(WeakConcurrentMap<?, ?> map) {
+        registeredMaps.add(map);
     }
 
     public static <V> WeakConcurrentSet<V> createSet() {
