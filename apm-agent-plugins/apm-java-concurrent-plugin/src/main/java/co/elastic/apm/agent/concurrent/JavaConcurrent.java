@@ -207,6 +207,14 @@ public class JavaConcurrent {
         return false;
     }
 
+    public static void avoidPropagationOnCurrentThread() {
+        needsContext.set(Boolean.FALSE);
+    }
+
+    public static void allowContextPropagationOnCurrentThread() {
+        needsContext.set(Boolean.TRUE);
+    }
+
     public static class RunnableLambdaWrapper implements Runnable {
 
         private final Runnable delegate;

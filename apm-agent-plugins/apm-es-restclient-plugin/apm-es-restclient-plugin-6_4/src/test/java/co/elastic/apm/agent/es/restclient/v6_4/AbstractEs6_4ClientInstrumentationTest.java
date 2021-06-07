@@ -120,12 +120,7 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         reporter.reset();
 
         // do search request
-        SearchRequest searchRequest = new SearchRequest(INDEX);
-        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-        sourceBuilder.query(QueryBuilders.termQuery(FOO, BAR));
-        sourceBuilder.from(0);
-        sourceBuilder.size(5);
-        searchRequest.source(sourceBuilder);
+        SearchRequest searchRequest = defaultSearchRequest();
 
         SearchResponse response = doSearch(searchRequest);
 
@@ -274,7 +269,7 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         deleteDocument();
     }
 
-    private void createDocument() throws IOException, ExecutionException, InterruptedException {
+    protected void createDocument() throws IOException, ExecutionException, InterruptedException {
         IndexResponse ir = doIndex(new IndexRequest(INDEX, DOC_TYPE, DOC_ID).source(
             jsonBuilder()
                 .startObject()
@@ -284,7 +279,7 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         assertThat(ir.status().getStatus()).isEqualTo(201);
     }
 
-    private DeleteResponse deleteDocument() throws InterruptedException, ExecutionException, IOException {
+    protected DeleteResponse deleteDocument() throws InterruptedException, ExecutionException, IOException {
         return doDelete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID));
     }
 
@@ -458,6 +453,16 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
             return invokeAsync(bulkRequest, method);
         }
         return client.bulk(bulkRequest, RequestOptions.DEFAULT);
+    }
+
+    protected SearchRequest defaultSearchRequest() {
+        SearchRequest searchRequest = new SearchRequest(INDEX);
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(QueryBuilders.termQuery(FOO, BAR));
+        sourceBuilder.from(0);
+        sourceBuilder.size(5);
+        searchRequest.source(sourceBuilder);
+        return searchRequest;
     }
 
 }

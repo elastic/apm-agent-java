@@ -300,12 +300,15 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
 
     @Test
     void testResolveClientType() {
+        // does not fit the shared type/subtype spec
+        reporter.disableCheckStrictSpanType();
+
         assertSoftly(softly -> {
-            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client")).getType()).isEqualTo("ext");
-            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "producer")).getType()).isEqualTo("ext");
+            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client")).getType()).isEqualTo("external");
+            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "producer")).getType()).isEqualTo("external");
             softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client", "db.type", "mysql")).getType()).isEqualTo("db");
-            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client", "db.type", "foo")).getType()).isEqualTo("db");
-            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client", "db.type", "redis")).getType()).isEqualTo("cache");
+            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client", "db.type", "sqlserver")).getType()).isEqualTo("db");
+            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client", "db.type", "redis")).getType()).isEqualTo("db");
         });
     }
 
@@ -330,7 +333,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     @Test
     void testResolveServerType() {
         assertSoftly(softly -> {
-            softly.assertThat(createTransactionFromOtTags(Map.of("span.kind", "server")).getType()).isEqualTo("unknown");
+            softly.assertThat(createTransactionFromOtTags(Map.of("span.kind", "server")).getType()).isEqualTo("custom");
             softly.assertThat(createTransactionFromOtTags(Map.of("span.kind", "server",
                 "http.url", "http://localhost:8080",
                 "http.method", "GET")).getType()).isEqualTo("request");

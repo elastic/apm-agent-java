@@ -68,7 +68,10 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void testLegacyAPIs() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.createSpan();
         span.setType("foo.bar.baz");
         endSpan(span);
@@ -80,6 +83,8 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testTypes() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "bar", "baz");
         endSpan(span);
         co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
@@ -90,6 +95,8 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testChaining() {
+        reporter.disableCheckStrictSpanType();
+
         int randomInt = random.nextInt();
         boolean randomBoolean = random.nextBoolean();
         String randomString = RandomStringUtils.randomAlphanumeric(3);
