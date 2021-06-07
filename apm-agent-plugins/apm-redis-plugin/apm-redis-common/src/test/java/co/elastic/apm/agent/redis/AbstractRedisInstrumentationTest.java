@@ -68,6 +68,8 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
     public final void initRedis() throws IOException {
         redisPort = getAvailablePort();
         server = RedisServer.builder()
+            // workaround https://github.com/kstyrc/embedded-redis/issues/51
+            .setting("maxmemory 128M")
             .setting("bind 127.0.0.1")
             .port(redisPort)
             .build();

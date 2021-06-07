@@ -57,7 +57,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 
@@ -264,7 +263,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
         testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
-        reporter.disableDestinationAddressCheck();
+        reporter.disableCheckDestinationAddress();
         sendTwoRecordsAndConsumeReplies();
         verifyTracing();
     }

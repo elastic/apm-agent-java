@@ -320,6 +320,7 @@ There are cases where you would want to use the agent only to collect and ship m
 In such cases, you may set the <<config-instrument, `instrument`>> config option to `false`. By doing so, the agent will
 minimize its effect on the application, while still collecting and sending metrics to the APM Server.
 
+[float]
 [[metrics-micrometer]]
 === Micrometer metrics
 

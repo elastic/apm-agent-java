@@ -107,7 +107,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
 
     @BeforeClass
     public static void setup() {
-        reporter.disableDestinationAddressCheck();
+        reporter.disableCheckDestinationAddress();
 
         // confluent versions 3.2.x correspond Kafka versions 0.10.2.2 -
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
@@ -225,7 +225,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
         when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
         testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
-        reporter.disableDestinationAddressCheck();
+        reporter.disableCheckDestinationAddress();
         sendTwoRecordsAndConsumeReplies();
         verifyTracing();
     }
