@@ -64,6 +64,31 @@ class BinaryHeaderMapTest {
     }
 
     @Test
+    void testCapacityIncrease() {
+        // we don't have access to actual capacity
+        // thus we just add more than the initial capacity and ensure it's consistent
+        int targetSize = BinaryHeaderMap.INITIAL_CAPACITY * 10;
+        for (int i = 0; i < targetSize; i++) {
+            byte[] value = (i % 5 == 0) ? null : RandomStringUtils.randomAlphanumeric(32).getBytes();
+            headerMap.add(String.format("key_%d", i), value);
+            assertThat(headerMap.size()).isEqualTo(i + 1);
+        }
+
+        int index = 0;
+        for (BinaryHeaderMap.Entry entry : headerMap) {
+            assertThat(entry.getKey()).isEqualTo("key_%d", index);
+            if (index % 5 == 0) {
+                assertThat(entry.getValue()).isNull();
+            } else {
+                assertThat(entry.getValue()).isNotEmpty();
+            }
+            index++;
+        }
+        assertThat(index).isEqualTo(targetSize);
+
+    }
+
+    @Test
     void testLongHeader() {
         final String longRandomString = RandomStringUtils.randomAlphanumeric(DslJsonSerializer.MAX_VALUE_LENGTH + 1);
         headerMap.add("long", longRandomString.getBytes());

@@ -51,6 +51,8 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
 
     private static final Logger logger = LoggerFactory.getLogger(BinaryHeaderMap.class);
 
+    static final int INITIAL_CAPACITY = 10;
+
     private CharBuffer valueBuffer;
     /**
      * Ordered list of keys
@@ -67,8 +69,8 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
 
     public BinaryHeaderMap() {
         valueBuffer = CharBuffer.allocate(64);
-        keys = new ArrayList<>(10);
-        valueLengths = new int[10];
+        keys = new ArrayList<>(INITIAL_CAPACITY);
+        valueLengths = new int[INITIAL_CAPACITY];
         iterator = new NoGarbageIterator();
     }
 
@@ -83,9 +85,7 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
     public boolean add(String key, @Nullable byte[] value) {
         boolean result;
         if (value == null) {
-            int size = keys.size();
-            keys.add(key);
-            valueLengths[size] = -1;
+            addNewEntry(key, -1);
             return true;
         }
 
@@ -103,16 +103,26 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
             ((Buffer) valueBuffer).limit(valuesPos);
             result = false;
         } else {
-            int size = keys.size();
-            keys.add(key);
-            if (size == valueLengths.length) {
-                enlargeValueLengths();
-            }
-            valueLengths[size] = valueBuffer.position() - valuesPos;
+            addNewEntry(key, valueBuffer.position() - valuesPos);
             result = true;
         }
 
         return result;
+    }
+
+    /**
+     * Adds a new entry and increase storage capacity if needed
+     *
+     * @param key         key
+     * @param valueLength value length
+     */
+    private void addNewEntry(String key, int valueLength) {
+        int size = keys.size();
+        keys.add(key);
+        if (size == valueLengths.length) {
+            enlargeValueLengths();
+        }
+        valueLengths[size] = valueLength;
     }
 
     private boolean enlargeBuffer() {
