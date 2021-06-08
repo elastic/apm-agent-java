@@ -29,6 +29,7 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* Fix NPE with `null` binary header values + properly serialize them - {pull}1842[#1842]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
