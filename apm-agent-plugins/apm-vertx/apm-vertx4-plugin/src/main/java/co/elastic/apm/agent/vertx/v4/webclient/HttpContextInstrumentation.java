@@ -31,6 +31,7 @@ import co.elastic.apm.agent.vertx.v4.Vertx4Instrumentation;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.impl.HttpContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -43,36 +44,31 @@ import java.util.Collection;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public abstract class WebClientInstrumentation extends Vertx4Instrumentation {
+public abstract class HttpContextInstrumentation extends Vertx4Instrumentation {
 
-    private final static AbstractVertxWebClientHelper webClientHelper = new AbstractVertxWebClientHelper() {
-        @Override
-        protected String getMethod(HttpClientRequest request) {
-            return request.getMethod().name();
-        }
-    };
+    protected static final String WEB_CLIENT_PARENT_SPAN_KEY = AbstractVertxWebClientHelper.class.getName() + ".parent";
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("vertx", "vertx-webclient", "http-client", "experimental");
     }
 
-    /**
-     * Instruments TODO
-     */
-    public abstract static class HttpContextInstrumentation extends WebClientInstrumentation {
+    @Override
+    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return named("io.vertx.ext.web.client.impl.HttpContext");
+    }
 
-        protected static final String WEB_CLIENT_PARENT_SPAN_KEY = AbstractVertxWebClientHelper.class.getName() + ".parent";
-
-        @Override
-        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return named("io.vertx.ext.web.client.impl.HttpContext");
-        }
-
+    public static class AdviceBase {
+        protected final static AbstractVertxWebClientHelper webClientHelper = new AbstractVertxWebClientHelper() {
+            @Override
+            protected String getMethod(HttpClientRequest request) {
+                return request.getMethod().name();
+            }
+        };
     }
 
     /**
-     * Instruments TODO
+     * Instruments {@link io.vertx.ext.web.client.impl.HttpContext#prepareRequest(HttpRequest, String, Object)}
      */
     public static class HttpContextPrepareRequestInstrumentation extends HttpContextInstrumentation {
 
@@ -83,10 +79,10 @@ public abstract class WebClientInstrumentation extends Vertx4Instrumentation {
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx.v4.webclient.WebClientInstrumentation$HttpContextPrepareRequestInstrumentation$HttpContextPrepareRequestAdvice";
+            return "co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextPrepareRequestInstrumentation$HttpContextPrepareRequestAdvice";
         }
 
-        public static class HttpContextPrepareRequestAdvice {
+        public static class HttpContextPrepareRequestAdvice extends AdviceBase {
 
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
@@ -101,7 +97,7 @@ public abstract class WebClientInstrumentation extends Vertx4Instrumentation {
     }
 
     /**
-     * Instruments TODO
+     * Instruments {@link io.vertx.ext.web.client.impl.HttpContext#sendRequest(HttpClientRequest)}
      */
     public static class HttpContextSendRequestInstrumentation extends HttpContextInstrumentation {
 
@@ -112,10 +108,10 @@ public abstract class WebClientInstrumentation extends Vertx4Instrumentation {
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx.v4.webclient.WebClientInstrumentation$HttpContextSendRequestInstrumentation$HttpContextSendRequestAdvice";
+            return "co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextSendRequestInstrumentation$HttpContextSendRequestAdvice";
         }
 
-        public static class HttpContextSendRequestAdvice {
+        public static class HttpContextSendRequestAdvice extends AdviceBase {
 
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -139,7 +135,7 @@ public abstract class WebClientInstrumentation extends Vertx4Instrumentation {
     }
 
     /**
-     * Instruments TODO
+     * Instruments {@link io.vertx.ext.web.client.impl.HttpContext#receiveResponse(HttpClientResponse)}
      */
     public static class HttpContextReceiveResponseInstrumentation extends HttpContextInstrumentation {
 
@@ -150,10 +146,10 @@ public abstract class WebClientInstrumentation extends Vertx4Instrumentation {
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx.v4.webclient.WebClientInstrumentation$HttpContextReceiveResponseInstrumentation$HttpContextReceiveResponseAdvice";
+            return "co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextReceiveResponseInstrumentation$HttpContextReceiveResponseAdvice";
         }
 
-        public static class HttpContextReceiveResponseAdvice {
+        public static class HttpContextReceiveResponseAdvice extends AdviceBase {
 
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -164,7 +160,7 @@ public abstract class WebClientInstrumentation extends Vertx4Instrumentation {
     }
 
     /**
-     * Instruments TODO
+     * Instruments {@link io.vertx.ext.web.client.impl.HttpContext#fail(Throwable)}
      */
     public static class HttpContextFailInstrumentation extends HttpContextInstrumentation {
 
@@ -175,10 +171,10 @@ public abstract class WebClientInstrumentation extends Vertx4Instrumentation {
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx.v4.webclient.WebClientInstrumentation$HttpContextFailInstrumentation$HttpContextFailAdvice";
+            return "co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextFailInstrumentation$HttpContextFailAdvice";
         }
 
-        public static class HttpContextFailAdvice {
+        public static class HttpContextFailAdvice extends AdviceBase {
 
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
