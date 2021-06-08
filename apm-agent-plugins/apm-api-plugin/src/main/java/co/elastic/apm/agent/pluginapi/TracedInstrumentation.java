@@ -27,6 +27,7 @@ package co.elastic.apm.agent.pluginapi;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -46,6 +47,7 @@ import java.util.Collection;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_METHOD_SIGNATURE;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
@@ -57,10 +59,12 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class TracedInstrumentation extends TracerAwareInstrumentation {
 
-    private final StacktraceConfiguration config;
+    private final CoreConfiguration coreConfig;
+    private final StacktraceConfiguration stacktraceConfig;
 
     public TracedInstrumentation(ElasticApmTracer tracer) {
-        config = tracer.getConfig(StacktraceConfiguration.class);
+        coreConfig = tracer.getConfig(CoreConfiguration.class);
+        stacktraceConfig = tracer.getConfig(StacktraceConfiguration.class);
     }
 
     @Nullable
@@ -122,13 +126,16 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return isInAnyPackage(config.getApplicationPackages(), ElementMatchers.<NamedElement>none())
+        return isInAnyPackage(stacktraceConfig.getApplicationPackages(), ElementMatchers.<NamedElement>none())
             .and(not(isProxy()))
             .and(declaresMethod(getMethodMatcher()));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        if (coreConfig.isEnablePublicApiAnnotationInheritance()) {
+            return overridesOrImplementsMethodThat(isAnnotatedWith(named("co.elastic.apm.api.Traced")));
+        }
         return isAnnotatedWith(named("co.elastic.apm.api.Traced"));
     }
 
