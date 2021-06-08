@@ -25,7 +25,7 @@ endif::[]
 
 [float]
 ===== Features
-* Support for inheriting public api annotations {pull}1697[#1697]
+* Support for inheritance of public API annotations {pull}1805[#1805]
 
 [float]
 ===== Bug fixes

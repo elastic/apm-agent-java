@@ -134,8 +134,7 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         if (coreConfig.isEnablePublicApiAnnotationInheritance()) {
-            return overridesOrImplementsMethodThat(isAnnotatedWith(named("co.elastic.apm.api.Traced")))
-                .onSuperClassesThat(isInAnyPackage(stacktraceConfig.getApplicationPackages(), ElementMatchers.<NamedElement>any()));
+            return overridesOrImplementsMethodThat(isAnnotatedWith(named("co.elastic.apm.api.Traced")));
         }
         return isAnnotatedWith(named("co.elastic.apm.api.Traced"));
     }

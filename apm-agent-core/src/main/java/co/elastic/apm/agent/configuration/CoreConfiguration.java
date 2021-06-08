@@ -603,7 +603,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Boolean> enablePublicApiAnnotationInheritance = ConfigurationOption.booleanOption()
         .key("enable_public_api_annotation_inheritance")
-        .tags("added[1.24.0]")
+        .tags("added[1.25.0]")
         .configurationCategory(CORE_CATEGORY)
         .tags("performance")
         .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).\n " +

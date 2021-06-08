@@ -54,48 +54,43 @@ class AnnotationInheritanceTest {
         reporter.reset();
     }
 
+    private void init(boolean annotationInheritanceEnabled) {
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
+        tracer = mockInstrumentationSetup.getTracer();
+        when(tracer.getConfig(CoreConfiguration.class).isEnablePublicApiAnnotationInheritance()).thenReturn(annotationInheritanceEnabled);
+        reporter = mockInstrumentationSetup.getReporter();
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+    }
+
+    private void reset() {
+        ElasticApmAgent.reset();
+    }
+
     @Nested
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     class DisabledPublicApiAnnotationInheritance {
 
         @BeforeAll
         void beforeAll() {
-            MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
-            tracer = mockInstrumentationSetup.getTracer();
-            when(tracer.getConfig(CoreConfiguration.class).isEnablePublicApiAnnotationInheritance()).thenReturn(false);
-            reporter = mockInstrumentationSetup.getReporter();
-
-            ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+            init(false);
         }
 
         @AfterAll
         void afterAll() {
-            ElasticApmAgent.reset();
+            reset();
         }
 
         @Test
         void testClassWithAnnotations() {
-            ClassWithAnnotations classWithAnnotations = new ClassWithAnnotations();
-            classWithAnnotations.captureTransaction();
-            try (Scope scope = ElasticApm.startTransaction().activate()) {
-                classWithAnnotations.captureSpan();
-            }
-            classWithAnnotations.traced();
-
-            assertThat(reporter.getTransactions()).hasSize(2);
+            invokeApiMethods(new ClassWithAnnotations());
+            assertThat(reporter.getTransactions()).hasSize(3);
             assertThat(reporter.getSpans()).hasSize(1);
         }
 
         @Test
         void testClassWithoutAnnotations() {
-            ClassWithoutAnnotations classWithoutAnnotations = new ClassWithoutAnnotations();
-            classWithoutAnnotations.captureTransaction();
-            try (Scope scope = ElasticApm.startTransaction().activate()) {
-                classWithoutAnnotations.captureSpan();
-            }
-            classWithoutAnnotations.traced();
-
-            assertThat(reporter.getTransactions()).hasSize(0);
+            invokeApiMethods(new ClassWithoutAnnotations());
+            assertThat(reporter.getTransactions()).hasSize(1);
             assertThat(reporter.getSpans()).hasSize(0);
         }
     }
@@ -106,61 +101,50 @@ class AnnotationInheritanceTest {
 
         @BeforeAll
         void beforeAll() {
-            MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
-            tracer = mockInstrumentationSetup.getTracer();
-            when(tracer.getConfig(CoreConfiguration.class).isEnablePublicApiAnnotationInheritance()).thenReturn(true);
-            reporter = mockInstrumentationSetup.getReporter();
-
-            ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+            init(true);
         }
 
         @AfterAll
         void afterAll() {
-            ElasticApmAgent.reset();
+            reset();
         }
 
         @Test
         void testClassWithAnnotations() {
-            ClassWithAnnotations classWithAnnotations = new ClassWithAnnotations();
-            classWithAnnotations.captureTransaction();
-            try (Scope scope = ElasticApm.startTransaction().activate()) {
-                classWithAnnotations.captureSpan();
-            }
-            classWithAnnotations.traced();
-
-            assertThat(reporter.getTransactions()).hasSize(2);
+            invokeApiMethods(new ClassWithAnnotations());
+            assertThat(reporter.getTransactions()).hasSize(3);
             assertThat(reporter.getSpans()).hasSize(1);
         }
 
         @Test
-        void testCaptureTransaction() {
+        void testInheritedCaptureTransaction() {
             new ClassWithoutAnnotations().captureTransaction();
-
             checkTransaction("ClassWithoutAnnotations#captureTransaction");
         }
 
         @Test
-        void testCaptureSpan() {
-            try (Scope scope = ElasticApm.startTransaction().activate()) {
+        void testInheritedCaptureSpan() {
+            Transaction transaction = ElasticApm.startTransaction();
+            try (Scope scope = transaction.activate()) {
                 new ClassWithoutAnnotations().captureSpan();
             }
-
+            transaction.end();
             checkSpan("ClassWithoutAnnotations#captureSpan");
         }
 
         @Test
-        void testTracedWithoutActiveTransaction() {
+        void testInheritedTracedWithoutActiveTransaction() {
             new ClassWithoutAnnotations().traced();
-
             checkTransaction("ClassWithoutAnnotations#traced");
         }
 
         @Test
-        void testTracedWithActiveTransaction() {
-            try (Scope scope = ElasticApm.startTransaction().activate()) {
+        void testInheritedTracedWithActiveTransaction() {
+            Transaction transaction = ElasticApm.startTransaction();
+            try (Scope scope = transaction.activate()) {
                 new ClassWithoutAnnotations().traced();
             }
-
+            transaction.end();
             checkSpan("ClassWithoutAnnotations#traced");
         }
 
@@ -175,6 +159,16 @@ class AnnotationInheritanceTest {
             assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo(name);
             assertThat(reporter.getFirstSpan().getType()).isEqualTo("app");
         }
+    }
+
+    private void invokeApiMethods(ClassWithAnnotations classWithAnnotations) {
+        classWithAnnotations.captureTransaction();
+        Transaction transaction = ElasticApm.startTransaction();
+        try (Scope scope = transaction.activate()) {
+            classWithAnnotations.captureSpan();
+        }
+        transaction.end();
+        classWithAnnotations.traced();
     }
 
     static class ClassWithAnnotations {
