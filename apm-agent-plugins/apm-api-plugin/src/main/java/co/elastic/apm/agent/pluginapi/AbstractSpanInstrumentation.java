@@ -406,15 +406,10 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
                                                  @Advice.Argument(0) @Nullable String resource) {
             if (context instanceof Span) {
                 SpanContext spanContext = ((Span) context).getContext();
-                boolean isNullResource = resource == null;
-                if (isNullResource) {
+                if (resource == null) {
                     resource = "";
                 }
-                Destination.Service service = spanContext.getDestination().getService();
-                // in case when is already auto detected, and with non-empty values - we override
-                if (!service.hasContent() || service.hasContent() && !isNullResource) {
-                    service.withResource(resource);
-                }
+                spanContext.getDestination().getService().withUserResource(resource);
             }
         }
     }

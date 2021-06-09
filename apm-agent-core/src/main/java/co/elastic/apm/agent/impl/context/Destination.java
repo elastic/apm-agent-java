@@ -26,6 +26,7 @@ package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.objectpool.Recyclable;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -185,6 +186,8 @@ public class Destination implements Recyclable {
          */
         private final StringBuilder resource = new StringBuilder();
 
+        private final StringBuilder userResource = new StringBuilder();
+
         /**
          * Used for detecting “sameness” of services and then the display name of a service in the Service Map.
          * In other words, the {@link Service#resource} is used to query data for ALL destinations. However,
@@ -205,15 +208,27 @@ public class Destination implements Recyclable {
         @Nullable
         private String type;
 
-        public Service withResource(String resource) {
-            if (this.resource.length() > 0) {
-                this.resource.setLength(0);
-            }
-            this.resource.append(resource);
+        public Service withUserResource(@Nonnull String resource) {
+            setNewValue(this.userResource, resource);
             return this;
         }
 
+        public Service withResource(@Nonnull String resource) {
+            setNewValue(this.resource, resource);
+            return this;
+        }
+
+        private void setNewValue(@Nonnull StringBuilder resource, @Nonnull String newValue) {
+            if (resource.length() > 0) {
+                resource.setLength(0);
+            }
+            resource.append(newValue);
+        }
+
         public StringBuilder getResource() {
+            if (userResource.length() > 0) {
+                return userResource;
+            }
             return resource;
         }
 
