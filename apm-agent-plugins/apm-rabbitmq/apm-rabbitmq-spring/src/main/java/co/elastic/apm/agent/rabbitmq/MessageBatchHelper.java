@@ -1,8 +1,10 @@
 package co.elastic.apm.agent.rabbitmq;
 
+import org.springframework.amqp.core.Message;
+
 import java.util.List;
 
-public interface MessageBatchHelper<MSG> {
+public interface MessageBatchHelper {
 
-    List<MSG> wrapMessageBatchList(List<MSG> messageBatchList);
+    List<Message> wrapMessageBatchList(List<Message> messageBatchList);
 }

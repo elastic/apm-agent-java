@@ -9,7 +9,7 @@ import org.springframework.amqp.core.MessageProperties;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class SpringAmqpTransactionHelperImpl implements SpringAmqpTransactionHelper {
+public class SpringAmqpTransactionHelperImpl {
 
     private final ElasticApmTracer tracer;
 
@@ -18,7 +18,6 @@ public class SpringAmqpTransactionHelperImpl implements SpringAmqpTransactionHel
     }
 
     @Nullable
-    @Override
     public Transaction createTransaction(@Nonnull Message message, @Nonnull MessageProperties messageProperties, @Nonnull String transactionNamePrefix) {
         String exchange = messageProperties.getReceivedExchange();
         if (exchange == null || AbstractBaseInstrumentation.isIgnored(exchange)) {
