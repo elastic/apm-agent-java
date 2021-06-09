@@ -85,7 +85,7 @@ public abstract class HttpContextInstrumentation extends Vertx4Instrumentation {
         public static class HttpContextPrepareRequestAdvice extends AdviceBase {
 
 
-            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void prepareRequest(@Advice.This HttpContext<?> httpContext) {
                 AbstractSpan<?> activeSpan = tracer.getActive();
                 if (null != activeSpan) {
@@ -116,19 +116,19 @@ public abstract class HttpContextInstrumentation extends Vertx4Instrumentation {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void sendRequest(@Advice.This HttpContext<?> httpContext, @Advice.Argument(value = 0) HttpClientRequest request, @Advice.FieldValue(value = "context") Context vertxContext) {
-                Object spanObj = httpContext.get(WEB_CLIENT_PARENT_SPAN_KEY);
-                boolean decrementParentReferences = true;
-                if (null == spanObj) {
-                    spanObj = vertxContext.getLocal(AbstractVertxWebHelper.CONTEXT_TRANSACTION_KEY);
-                    decrementParentReferences = false;
+                Object parentSpan = httpContext.get(WEB_CLIENT_PARENT_SPAN_KEY);
+
+                if (parentSpan != null) {
+                    // Setting to null removes from the context attributes map
+                    httpContext.set(WEB_CLIENT_PARENT_SPAN_KEY, null);
+                    ((AbstractSpan<?>) parentSpan).decrementReferences();
+                } else {
+                    parentSpan = vertxContext.getLocal(AbstractVertxWebHelper.CONTEXT_TRANSACTION_KEY);
                 }
 
-                if (spanObj instanceof AbstractSpan) {
-                    AbstractSpan<?> parent = (AbstractSpan<?>) spanObj;
+                if (parentSpan != null) {
+                    AbstractSpan<?> parent = (AbstractSpan<?>) parentSpan;
                     webClientHelper.startSpan(parent, httpContext, request);
-                    if (decrementParentReferences) {
-                        parent.decrementReferences();
-                    }
                 }
             }
         }

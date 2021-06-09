@@ -24,28 +24,26 @@
  */
 package co.elastic.apm.agent.vertx.webclient;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.impl.HttpContext;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(VertxExtension.class)
 public abstract class AbstractVertxWebClientTest extends AbstractHttpClientInstrumentationTest {
 
+    private Vertx vertx;
     protected WebClient client;
 
     @Before
@@ -56,10 +54,17 @@ public abstract class AbstractVertxWebClientTest extends AbstractHttpClientInstr
         System.setProperty("vertx.disableTCCL", "true");
         AbstractSpan activeSpan = tracer.getActive();
 
-        // deactive current span to avoid tracing web client creation for JUnit test
+        // deactivate current span to avoid tracing web client creation for JUnit test
         activeSpan.deactivate();
-        client = WebClient.create(Vertx.vertx());
+        vertx = Vertx.vertx();
+        client = WebClient.create(vertx);
         activeSpan.activate();
+    }
+
+    @After
+    public void tearDown() {
+        close(vertx);
+        client.close();
     }
 
     @Override
@@ -73,6 +78,8 @@ public abstract class AbstractVertxWebClientTest extends AbstractHttpClientInstr
     }
 
     abstract protected void get(HttpRequest<Buffer> httpRequest, VertxTestContext testContext);
+
+    abstract protected void close(Vertx vertx);
 
     @Override
     protected boolean isIpv6Supported() {

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -52,7 +52,7 @@ public abstract class AbstractVertxWebClientHelper {
 
     public void startSpan(AbstractSpan<?> parent, HttpContext<?> httpContext, HttpClientRequest httpRequest) {
         Object existingSpanObj = httpContext.get(WEB_CLIENT_SPAN_KEY);
-        if (existingSpanObj instanceof Span) {
+        if (existingSpanObj != null) {
             // there is already an active span for this HTTP request,
             // don't create a new span but propagate tracing headers
             ((Span) existingSpanObj).propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
@@ -78,6 +78,7 @@ public abstract class AbstractVertxWebClientHelper {
 
             if (span != null) {
                 span.propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
+                span.incrementReferences();
                 httpContext.set(WEB_CLIENT_SPAN_KEY, span);
             }
         }
@@ -85,7 +86,7 @@ public abstract class AbstractVertxWebClientHelper {
 
     public void followRedirect(HttpContext<?> httpContext, HttpClientRequest httpRequest) {
         Object existingSpanObj = httpContext.get(WEB_CLIENT_SPAN_KEY);
-        if (existingSpanObj instanceof Span) {
+        if (existingSpanObj != null) {
             Span existingSpan = (Span) existingSpanObj;
             existingSpan.propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
         }
@@ -104,8 +105,13 @@ public abstract class AbstractVertxWebClientHelper {
     private void finalizeSpan(HttpContext<?> httpContext, int statusCode, @Nullable Throwable thrown) {
         Object spanObj = httpContext.get(WEB_CLIENT_SPAN_KEY);
 
-        if (spanObj instanceof Span) {
+        if (spanObj != null) {
+            // Setting to null removes from the attributes map
+            httpContext.set(WEB_CLIENT_SPAN_KEY, null);
+
             Span span = (Span) spanObj;
+            span.decrementReferences();
+
             if (thrown != null) {
                 span.captureException(thrown).withOutcome(Outcome.FAILURE);
             }
@@ -115,6 +121,7 @@ public abstract class AbstractVertxWebClientHelper {
             }
 
             span.end();
+
         }
     }
 

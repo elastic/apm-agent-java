@@ -230,7 +230,7 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
 
         // Mock reporter expects the reference count to be at 1 at test end,
         // so we decrement it here to emulate real reporter behaviour which would recycle ended transactions directly.
-        transaction.decrementReferences();
+        reporter.decrementReferences();
         reporter.awaitSpanCount(1);
         assertThat(transaction.getSpanCount().getReported().get()).isEqualTo(1);
         assertThat(reporter.getSpans().size()).isEqualTo(1);

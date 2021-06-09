@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -32,6 +32,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.VertxExtension;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -44,6 +45,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(VertxExtension.class)
 public abstract class CommonVertxServerClientTest extends AbstractVertxWebTest {
 
+    private Vertx vertx;
     protected WebClient client;
 
     @ParameterizedTest
@@ -99,16 +101,23 @@ public abstract class CommonVertxServerClientTest extends AbstractVertxWebTest {
         // This property is needed as otherwise Vert.x event loop threads won't have a context class loader (null)
         // which leads to NullPointerExceptions when spans are JSON validated in Unit tests
         System.setProperty("vertx.disableTCCL", "true");
-        client = WebClient.create(Vertx.vertx());
+        vertx = Vertx.vertx();
+        client = WebClient.create(vertx);
+    }
+
+    @AfterEach
+    public void close() {
+        client.close();
+        close(vertx);
     }
 
     @Override
     protected void initRoutes(Router router) {
         router.get("/downstream").handler(getDefaultHandlerImpl());
         router.get("/basic").handler(routingContext ->
-                client.getAbs("http://localhost:" + port() + "/downstream").send(result ->
-                        getDefaultHandlerImpl().handle(routingContext)
-                )
+            client.getAbs("http://localhost:" + port() + "/downstream").send(result ->
+                getDefaultHandlerImpl().handle(routingContext)
+            )
         );
 
         router.get("/oncontext").handler(routingContext -> routingContext.vertx()
@@ -135,14 +144,16 @@ public abstract class CommonVertxServerClientTest extends AbstractVertxWebTest {
                 ));
 
         router.get("/with-extra-span/blocking").handler(routingContext -> routingContext.vertx()
-                .executeBlocking(tid -> new HandlerWithCustomNamedSpan(rContext ->
-                                client.getAbs("http://localhost:" + port() + "/downstream").send(result ->
-                                        getDefaultHandlerImpl().handle(rContext)), routingContext, "custom").handle(null),
-                        result -> {
-                        }));
+            .executeBlocking(tid -> new HandlerWithCustomNamedSpan(rContext ->
+                    client.getAbs("http://localhost:" + port() + "/downstream").send(result ->
+                        getDefaultHandlerImpl().handle(rContext)), routingContext, "custom").handle(null),
+                result -> {
+                }));
     }
 
     protected abstract Handler<RoutingContext> getDefaultHandlerImpl();
+
+    protected abstract void close(Vertx vertx);
 
     @Override
     protected boolean useSSL() {

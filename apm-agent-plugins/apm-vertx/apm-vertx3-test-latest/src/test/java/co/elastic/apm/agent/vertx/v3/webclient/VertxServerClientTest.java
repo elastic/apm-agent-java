@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,11 +26,17 @@ package co.elastic.apm.agent.vertx.v3.webclient;
 
 import co.elastic.apm.agent.vertx.helper.CommonVertxServerClientTest;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
 
 public class VertxServerClientTest extends CommonVertxServerClientTest {
     @Override
     protected Handler<RoutingContext> getDefaultHandlerImpl() {
         return routingContext -> routingContext.response().end(DEFAULT_RESPONSE_BODY);
+    }
+
+    @Override
+    protected void close(Vertx vertx) {
+        vertx.close();
     }
 }
