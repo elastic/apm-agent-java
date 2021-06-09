@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -60,13 +60,33 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
 
     @Nullable
     private Object getAnnotationValue(MethodDescription instrumentedMethod, AnnotationValueExtractor annotationValueExtractor) {
-        for (TypeDescription typeDescription : instrumentedMethod.getDeclaredAnnotations().asTypeList()) {
-            if (named(annotationValueExtractor.annotationClassName()).matches(typeDescription)) {
-                for (MethodDescription.InDefinedShape annotationMethod : typeDescription.getDeclaredMethods()) {
-                    if (annotationMethod.getName().equals(annotationValueExtractor.method())) {
-                        return instrumentedMethod.getDeclaredAnnotations().ofType(typeDescription).getValue(annotationMethod).resolve();
+        MethodDescription methodDescription = instrumentedMethod;
+        do {
+            for (TypeDescription typeDescription : methodDescription.getDeclaredAnnotations().asTypeList()) {
+                if (named(annotationValueExtractor.annotationClassName()).matches(typeDescription)) {
+                    for (MethodDescription.InDefinedShape annotationMethod : typeDescription.getDeclaredMethods()) {
+                        if (annotationMethod.getName().equals(annotationValueExtractor.method())) {
+                            return methodDescription.getDeclaredAnnotations().ofType(typeDescription).getValue(annotationMethod).resolve();
+                        }
                     }
                 }
+            }
+
+            methodDescription = findInstrumentedMethodInSuperClass(methodDescription.getDeclaringType().getSuperClass(), instrumentedMethod);
+        } while (methodDescription != null);
+        return null;
+    }
+
+    @Nullable
+    private MethodDescription findInstrumentedMethodInSuperClass(@Nullable TypeDescription.Generic superClass, MethodDescription instrumentedMethod) {
+        if (superClass == null) {
+            return null;
+
+        }
+        for (MethodDescription declaredMethod : superClass.getDeclaredMethods()) {
+            if (instrumentedMethod.getInternalName().equals(declaredMethod.getInternalName())
+                && instrumentedMethod.getParameters().asTypeList().asErasures().equals(declaredMethod.getParameters().asTypeList().asErasures())) {
+                return declaredMethod;
             }
         }
         return null;
