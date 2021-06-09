@@ -888,7 +888,7 @@ public class DslJsonSerializer implements PayloadSerializer {
             if (body != null && body.length() > 0) {
                 writeLongStringField("body", message.getBodyForWrite());
             }
-            serializeMessageHeaders(message);
+            serializeMessageHeaders(message.getHeaders());
             int messageAge = (int) message.getAge();
             if (messageAge >= 0) {
                 writeFieldName("age");
@@ -908,8 +908,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private void serializeMessageHeaders(Message message) {
-        Headers headers = message.getHeaders();
+    private void serializeMessageHeaders(Headers headers) {
         if (!headers.isEmpty()) {
             writeFieldName("headers");
             jw.writeByte(OBJECT_START);
@@ -917,9 +916,9 @@ public class DslJsonSerializer implements PayloadSerializer {
             while (iterator.hasNext()) {
                 Headers.Header header = iterator.next();
                 if (iterator.hasNext()) {
-                    writeField(header.getKey(), header.getValue());
+                    writeField(header.getKey(), header.getValue(), replaceBuilder, jw, true);
                 } else {
-                    writeLastField(header.getKey(), header.getValue());
+                    writeLastField(header.getKey(), header.getValue(), replaceBuilder, jw);
                 }
             }
             jw.writeByte(OBJECT_END);
@@ -1265,8 +1264,27 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField(fieldName, value, replaceBuilder, jw);
     }
 
-    static void writeField(final String fieldName, @Nullable final CharSequence value, final StringBuilder replaceBuilder, final JsonWriter jw) {
-        if (value != null) {
+    static void writeField(final String fieldName,
+                           @Nullable final CharSequence value,
+                           final StringBuilder replaceBuilder,
+                           final JsonWriter jw) {
+
+        writeField(fieldName, value, replaceBuilder, jw, false);
+    }
+
+    static void writeField(final String fieldName,
+                           @Nullable final CharSequence value,
+                           final StringBuilder replaceBuilder,
+                           final JsonWriter jw,
+                           boolean writeNull) {
+
+        if (value == null) {
+            if (writeNull) {
+                writeFieldName(fieldName, jw);
+                jw.writeNull();
+                jw.writeByte(COMMA);
+            }
+        } else {
             writeFieldName(fieldName, jw);
             writeStringValue(value, replaceBuilder, jw);
             jw.writeByte(COMMA);

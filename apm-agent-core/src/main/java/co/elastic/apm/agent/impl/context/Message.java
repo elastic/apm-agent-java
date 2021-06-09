@@ -118,12 +118,12 @@ public class Message implements Recyclable {
         }
     }
 
-    public Message addHeader(String key, String value) {
+    public Message addHeader(@Nullable String key, @Nullable String value) {
         headers.add(key, value);
         return this;
     }
 
-    public Message addHeader(String key, byte[] value) {
+    public Message addHeader(@Nullable String key, @Nullable byte[] value) {
         headers.add(key, value);
         return this;
     }

@@ -111,7 +111,7 @@
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.json-schema-validator>1.0.53</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.11.0</version.byte-buddy>
+        <version.byte-buddy>1.11.1</version.byte-buddy>
         <version.asm>9.1</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
@@ -587,7 +587,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>3.10.0</version>
+            <version>3.11.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
