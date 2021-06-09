@@ -34,6 +34,7 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.ext.web.client.impl.HttpContext;
 
 import javax.annotation.Nullable;
+import java.net.URI;
 
 
 public abstract class AbstractVertxWebClientHelper {
@@ -57,24 +58,8 @@ public abstract class AbstractVertxWebClientHelper {
             // don't create a new span but propagate tracing headers
             ((Span) existingSpanObj).propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
         } else {
-            String fullURI = httpRequest.absoluteURI();
-
-            int schemeSeparatorIdx = fullURI.indexOf("://");
-            int authoritySeparatorIdx = fullURI.indexOf('/', schemeSeparatorIdx + 3);
-            authoritySeparatorIdx = authoritySeparatorIdx >= 0 ? authoritySeparatorIdx : fullURI.length();
-
-            String scheme = fullURI.substring(0, schemeSeparatorIdx);
-            String host = fullURI.substring(schemeSeparatorIdx + 3, authoritySeparatorIdx);
-
-            int hostPortSeparatorIdx = host.indexOf(':');
-
-            int port = scheme.equals("https") ? 443 : 80;
-
-            if (hostPortSeparatorIdx > 0) {
-                port = Integer.parseInt(host.substring(hostPortSeparatorIdx + 1));
-                host = host.substring(0, hostPortSeparatorIdx);
-            }
-            Span span = HttpClientHelper.startHttpClientSpan(parent, getMethod(httpRequest), fullURI, scheme, host, port);
+            URI requestUri = URI.create(httpRequest.absoluteURI());
+            Span span = HttpClientHelper.startHttpClientSpan(parent, getMethod(httpRequest), requestUri, null);
 
             if (span != null) {
                 span.propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
