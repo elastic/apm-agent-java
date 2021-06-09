@@ -173,7 +173,7 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     @Override
     @Deprecated
     public Transaction setDestinationAddress(@Nullable String address, int port) {
-        return this;
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -183,6 +183,6 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     @Override
     @Deprecated
     public Transaction setDestinationService(@Nullable String resource) {
-        return this;
+        throw new UnsupportedOperationException();
     }
 }

@@ -385,8 +385,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
                                                  @Advice.Argument(1) int port) {
             if (context instanceof Span) {
                 SpanContext spanContext = ((Span) context).getContext();
-                if (address != null && port > 0 && !address.isBlank()) {
-                    spanContext.getDestination().withAddress(address).withPort(port);
+                if (address != null && !address.isBlank()) {
+                    spanContext.getDestination().withAddress(address);
+                }
+                if (port > 0) {
+                    spanContext.getDestination().withPort(port);
                 }
             }
         }
@@ -403,13 +406,13 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
                                                  @Advice.Argument(0) @Nullable String resource) {
             if (context instanceof Span) {
                 SpanContext spanContext = ((Span) context).getContext();
-                boolean isEmptyResource = resource == null || resource.isEmpty();
-                if (isEmptyResource) {
+                boolean isNullResource = resource == null;
+                if (isNullResource) {
                     resource = "";
                 }
                 Destination.Service service = spanContext.getDestination().getService();
                 // in case when is already auto detected, and with non-empty values - we override
-                if (!service.hasContent() || service.hasContent() && !isEmptyResource) {
+                if (!service.hasContent() || service.hasContent() && !isNullResource) {
                     service.withResource(resource);
                 }
             }

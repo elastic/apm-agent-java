@@ -857,31 +857,36 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (destination.hasContent()) {
             writeFieldName("destination");
             jw.writeByte(OBJECT_START);
-            boolean isNeedAddComma = false;
-            if (destination.getAddress().length() > 0) {
-                writeField("address", destination.getAddress());
-                isNeedAddComma = true;
+            boolean isExistAddress = destination.getAddress().length() > 0;
+            boolean isExistPort = destination.getPort() > 0;
+            boolean isServiceHasContent = destination.getService().hasContent();
+            if (isExistAddress) {
+                if (isExistPort || isServiceHasContent) {
+                    writeField("address", destination.getAddress());
+                } else {
+                    writeLastField("address", destination.getAddress());
+                }
             }
-            if (destination.getPort() > 0) {
-                writeLastField("port", destination.getPort());
-                isNeedAddComma = true;
+            if (isExistPort) {
+                if (isServiceHasContent) {
+                    writeField("port", destination.getPort());
+                } else {
+                    writeLastField("port", destination.getPort());
+                }
             }
-            serializeService(isNeedAddComma, destination.getService());
+            serializeService(isServiceHasContent, destination.getService());
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }
     }
 
-    private void serializeService(boolean isNeedAddComma, Destination.Service service) {
-        if (service.hasContent()) {
-            if (isNeedAddComma) {
-                jw.writeByte(COMMA);
-            }
+    private void serializeService(boolean isServiceHasContent, Destination.Service service) {
+        if (isServiceHasContent) {
             writeFieldName("service");
             jw.writeByte(OBJECT_START);
             writeEmptyField("name");
-            writeField("resource", service.getResource());
-            writeLastEmptyField("type");
+            writeEmptyField("type");
+            writeLastField("resource", service.getResource());
             jw.writeByte(OBJECT_END);
         }
     }
@@ -1254,11 +1259,6 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName(fieldName);
         writeStringValue("");
         jw.writeByte(COMMA);
-    }
-
-    void writeLastEmptyField(final String fieldName) {
-        writeFieldName(fieldName);
-        writeStringValue("");
     }
 
     void writeField(final String fieldName, final StringBuilder value) {

@@ -171,6 +171,8 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testSetDestinationAddressWithNonNullValues() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "subtype", "action")
             .setDestinationAddress("address", 80);
         endSpan(span);
@@ -181,36 +183,44 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testSetDestinationAddressWithNegativePort() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "subtype", "action")
             .setDestinationAddress("address", -1);
         endSpan(span);
 
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertDestination("", 0);
+        assertDestination("address", 0);
     }
 
     @Test
     void testSetDestinationAddressWithNullAddress() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "subtype", "action")
             .setDestinationAddress(null, 80);
         endSpan(span);
 
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertDestination("", 0);
+        assertDestination("", 80);
     }
 
     @Test
     void testSetDestinationAddressWithBlank() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "subtype", "action")
             .setDestinationAddress(" ", 80);
         endSpan(span);
 
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertDestination("", 0);
+        assertDestination("", 80);
     }
 
     @Test
     void testSetDestinationServiceWithNonEmptyValues() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "subtype", "action")
             .setDestinationService("service-resource");
         endSpan(span);
@@ -221,6 +231,8 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testSetDestinationServiceWithNullServiceResource() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "subtype", "action")
             .setDestinationService(null);
         endSpan(span);
@@ -231,6 +243,8 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testSetDestinationAddressAndService() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "subtype", "action")
             .setDestinationAddress("localhost", 80)
             .setDestinationService("service-resource");
@@ -243,6 +257,8 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testSetDestinationAddressAndServiceWithNullValues() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "subtype", "action")
             .setDestinationAddress(null, -5)
             .setDestinationService(null);
@@ -255,6 +271,8 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testSetDestinationAddressTwiceWithLastNonNullValues() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "subtype", "action")
             .setDestinationAddress(null, -5)
             .setDestinationAddress("localhost", 80);
@@ -266,6 +284,8 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testSetDestinationAddressTwiceWithLastNullValues() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "subtype", "action")
             .setDestinationAddress("localhost", 80)
             .setDestinationAddress(null, -1);
@@ -277,17 +297,21 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testSetDestinationAddressTwiceWithLastNullAddressAndPositivePort() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "subtype", "action")
             .setDestinationAddress("localhost", 80)
             .setDestinationAddress(null, 443);
         endSpan(span);
 
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertDestination("localhost", 80);
+        assertDestination("localhost", 443);
     }
 
     @Test
     void testSetDestinationServiceTwiceWithLastNullValues() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "subtype", "action")
             .setDestinationService("service-resource")
             .setDestinationService(null);
@@ -299,6 +323,8 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testSetDestinationServiceTwiceWithLastNonNullValues() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "subtype", "action")
             .setDestinationService(null)
             .setDestinationService("service-resource");
