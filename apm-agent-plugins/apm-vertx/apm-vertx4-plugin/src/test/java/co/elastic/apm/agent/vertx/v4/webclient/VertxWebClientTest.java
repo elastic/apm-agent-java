@@ -42,4 +42,12 @@ public class VertxWebClientTest extends AbstractVertxWebClientTest {
     protected void close(Vertx vertx) {
         vertx.close();
     }
+
+    @Override
+    protected void doVerifyFailedRequestHttpSpan(String host, String path) {
+        // in Vert.x 4 a span is not created when the client fails - if we want to fix that, we can create a span in
+        // the exit of HttpContext#prepareRequest(), but it would require fetching destination details from
+        // io.vertx.ext.web.client.HttpRequest, which does not expose them, as opposed to io.vertx.core.http.HttpClientRequest
+        // that is only get filled for the invocation of HttpContext#sendRequest()
+    }
 }

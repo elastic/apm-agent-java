@@ -78,14 +78,14 @@ public abstract class AbstractVertxWebClientHelper {
     }
 
     public void endSpan(HttpContext<?> httpContext, HttpResponse<?> httpResponse) {
-        finalizeSpan(httpContext, httpResponse.statusCode(), null);
+        finalizeSpan(httpContext, httpResponse.statusCode(), null, null);
     }
 
-    public void failSpan(HttpContext<?> httpContext, Throwable thrown) {
-        finalizeSpan(httpContext, 0, thrown);
+    public void failSpan(HttpContext<?> httpContext, Throwable thrown, @Nullable AbstractSpan<?> parent) {
+        finalizeSpan(httpContext, 0, thrown, parent);
     }
 
-    private void finalizeSpan(HttpContext<?> httpContext, int statusCode, @Nullable Throwable thrown) {
+    private void finalizeSpan(HttpContext<?> httpContext, int statusCode, @Nullable Throwable thrown, @Nullable AbstractSpan<?> parent) {
         Object spanObj = httpContext.get(WEB_CLIENT_SPAN_KEY);
 
         if (spanObj != null) {
@@ -104,6 +104,8 @@ public abstract class AbstractVertxWebClientHelper {
             }
 
             span.end();
+        } else if (parent != null) {
+            parent.captureException(thrown);
         }
     }
 

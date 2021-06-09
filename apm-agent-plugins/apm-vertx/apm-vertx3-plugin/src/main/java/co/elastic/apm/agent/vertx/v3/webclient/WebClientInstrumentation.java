@@ -146,7 +146,7 @@ public abstract class WebClientInstrumentation extends Vertx3Instrumentation {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void fail(@Advice.This HttpContext<?> httpContext, @Advice.Argument(value = 0) Throwable thrown) {
-                webClientHelper.failSpan(httpContext, thrown);
+                webClientHelper.failSpan(httpContext, thrown, tracer.getActive());
             }
         }
     }

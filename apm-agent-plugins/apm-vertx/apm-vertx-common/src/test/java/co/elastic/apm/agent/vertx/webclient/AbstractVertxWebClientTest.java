@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.vertx.webclient;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -34,6 +35,7 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.concurrent.TimeUnit;
@@ -75,6 +77,28 @@ public abstract class AbstractVertxWebClientTest extends AbstractHttpClientInstr
         if (testContext.failed()) {
             throw new Exception(testContext.causeOfFailure());
         }
+    }
+
+    @Test
+    public void testFailedRequest() {
+        try {
+            performGet(String.format("http://not-existing.com:%s/error", wireMockRule.port()));
+        } catch (Exception e) {
+            // expected
+        }
+
+        assertThat(reporter.getErrors()).hasSize(1);
+        ErrorCapture error = reporter.getFirstError();
+        assertThat(error.getException()).isNotNull();
+        assertThat(error.getException().getClass()).isNotNull();
+        assertThat(error.getException().getMessage()).contains("not-existing.com");
+        assertThat(error.getTraceContext().getTraceId()).isEqualTo(tracer.currentTransaction().getTraceContext().getTraceId());
+
+        doVerifyFailedRequestHttpSpan("not-existing.com", "/error");
+    }
+
+    protected void doVerifyFailedRequestHttpSpan(String host, String path) {
+        verifyHttpSpan(host, path, 0, false);
     }
 
     abstract protected void get(HttpRequest<Buffer> httpRequest, VertxTestContext testContext);

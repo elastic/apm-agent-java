@@ -179,7 +179,17 @@ public abstract class HttpContextInstrumentation extends Vertx4Instrumentation {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void fail(@Advice.This HttpContext<?> httpContext, @Advice.Argument(value = 0) Throwable thrown) {
-                webClientHelper.failSpan(httpContext, thrown);
+
+                AbstractSpan<?> parent = null;
+                Object parentFromContext = httpContext.get(WEB_CLIENT_PARENT_SPAN_KEY);
+                if (parentFromContext != null) {
+                    parent = (AbstractSpan<?>) parentFromContext;
+
+                    // Setting to null removes from the context attributes map
+                    httpContext.set(WEB_CLIENT_PARENT_SPAN_KEY, null);
+                    parent.decrementReferences();
+                }
+                webClientHelper.failSpan(httpContext, thrown, parent);
             }
         }
     }
