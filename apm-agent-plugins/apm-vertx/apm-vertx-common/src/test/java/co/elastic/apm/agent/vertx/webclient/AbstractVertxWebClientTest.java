@@ -87,8 +87,7 @@ public abstract class AbstractVertxWebClientTest extends AbstractHttpClientInstr
             // expected
         }
 
-        assertThat(reporter.getErrors()).hasSize(1);
-        ErrorCapture error = reporter.getFirstError();
+        ErrorCapture error = reporter.getFirstError(500);
         assertThat(error.getException()).isNotNull();
         assertThat(error.getException().getClass()).isNotNull();
         assertThat(error.getException().getMessage()).contains("not-existing.com");
