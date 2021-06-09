@@ -30,7 +30,7 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
+import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.impl.HttpContext;
 
 import javax.annotation.Nullable;
@@ -77,10 +77,8 @@ public abstract class AbstractVertxWebClientHelper {
         }
     }
 
-    public void endSpan(HttpContext<?> httpContext, HttpClientResponse httpResponse) {
-        if (httpResponse.statusCode() < 300 || httpResponse.statusCode() >= 400) {
-            finalizeSpan(httpContext, httpResponse.statusCode(), null);
-        }
+    public void endSpan(HttpContext<?> httpContext, HttpResponse<?> httpResponse) {
+        finalizeSpan(httpContext, httpResponse.statusCode(), null);
     }
 
     public void failSpan(HttpContext<?> httpContext, Throwable thrown) {
@@ -106,7 +104,6 @@ public abstract class AbstractVertxWebClientHelper {
             }
 
             span.end();
-
         }
     }
 

@@ -12,5 +12,5 @@ co.elastic.apm.agent.vertx.v4.web.WebInstrumentation$RequestBufferInstrumentatio
 # vertx webclient
 co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextPrepareRequestInstrumentation
 co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextSendRequestInstrumentation
-co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextReceiveResponseInstrumentation
+co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextDispatchResponseInstrumentation
 co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextFailInstrumentation

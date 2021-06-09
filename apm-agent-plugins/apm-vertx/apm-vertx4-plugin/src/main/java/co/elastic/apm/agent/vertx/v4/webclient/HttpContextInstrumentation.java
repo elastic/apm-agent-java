@@ -30,8 +30,8 @@ import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import co.elastic.apm.agent.vertx.v4.Vertx4Instrumentation;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.impl.HttpContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -135,25 +135,25 @@ public abstract class HttpContextInstrumentation extends Vertx4Instrumentation {
     }
 
     /**
-     * Instruments {@link io.vertx.ext.web.client.impl.HttpContext#receiveResponse(HttpClientResponse)}
+     * Instruments {@link io.vertx.ext.web.client.impl.HttpContext#dispatchResponse(HttpResponse)}
      */
-    public static class HttpContextReceiveResponseInstrumentation extends HttpContextInstrumentation {
+    public static class HttpContextDispatchResponseInstrumentation extends HttpContextInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("receiveResponse").and(takesArgument(0, named("io.vertx.core.http.HttpClientResponse")));
+            return named("dispatchResponse").and(takesArgument(0, named("io.vertx.ext.web.client.HttpResponse")));
         }
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextReceiveResponseInstrumentation$HttpContextReceiveResponseAdvice";
+            return "co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextDispatchResponseInstrumentation$HttpContextDispatchResponseAdvice";
         }
 
-        public static class HttpContextReceiveResponseAdvice extends AdviceBase {
+        public static class HttpContextDispatchResponseAdvice extends AdviceBase {
 
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void receiveResponse(@Advice.This HttpContext<?> httpContext, @Advice.Argument(value = 0) HttpClientResponse response) {
+            public static void receiveResponse(@Advice.This HttpContext<?> httpContext, @Advice.Argument(value = 0) HttpResponse<?> response) {
                 webClientHelper.endSpan(httpContext, response);
             }
         }
