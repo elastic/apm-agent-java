@@ -390,6 +390,7 @@
                     You cannot withdraw permission for its use at a later date."
                     -->
                     <organizationName>Elastic and contributors</organizationName>
+                    <canUpdateCopyright>true</canUpdateCopyright>
                     <roots>
                         <root>src/main/java</root>
                         <root>src/test/java</root>
