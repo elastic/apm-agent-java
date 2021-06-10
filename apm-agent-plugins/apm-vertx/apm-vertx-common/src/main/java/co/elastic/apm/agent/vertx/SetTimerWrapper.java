@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -28,38 +28,36 @@ import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import io.vertx.core.Handler;
 
-public class GenericHandlerWrapper<T> implements Handler<T> {
+public class SetTimerWrapper extends GenericHandlerWrapper<Long> {
 
-    protected final Handler<T> actualHandler;
-    private final AbstractSpan<?> parentSpan;
-
-    public GenericHandlerWrapper(AbstractSpan<?> parentSpan, Handler<T> actualHandler) {
-        this.parentSpan = parentSpan;
-        this.actualHandler = actualHandler;
-        parentSpan.incrementReferences();
-    }
+    /**
+     * Use this thread local to prevent tracking of endless, recursive timer jobs
+     */
+    private static final ThreadLocal<String> activeTimerHandlerPerThread = new ThreadLocal<>();
 
     @Override
-    public void handle(T event) {
-        parentSpan.activate();
-        parentSpan.decrementReferences();
+    public void handle(Long event) {
+        activeTimerHandlerPerThread.set(actualHandler.getClass().getName());
         try {
-            actualHandler.handle(event);
-        } catch (Throwable throwable) {
-            parentSpan.captureException(throwable);
-            throw throwable;
+            super.handle(event);
         } finally {
-            parentSpan.deactivate();
+            activeTimerHandlerPerThread.remove();
         }
     }
 
-    public static <T> Handler<T> wrapIfActiveSpan(Handler<T> handler) {
+    public SetTimerWrapper(AbstractSpan<?> parentSpan, Handler<Long> actualHandler) {
+        super(parentSpan, actualHandler);
+    }
+
+    public static Handler<Long> wrapTimerIfActiveSpan(Handler<Long> handler) {
         AbstractSpan<?> currentSpan = GlobalTracer.get().getActive();
 
-        if (currentSpan != null) {
-            handler = new GenericHandlerWrapper<>(currentSpan, handler);
+        // do not wrap if there is no parent span or if we are in the recursive context of the same type of timer
+        if (currentSpan != null && !handler.getClass().getName().equals(activeTimerHandlerPerThread.get())) {
+            handler = new SetTimerWrapper(currentSpan, handler);
         }
 
         return handler;
     }
+
 }
