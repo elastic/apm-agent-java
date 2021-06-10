@@ -307,6 +307,11 @@
             <artifactId>apm-vertx4-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jdk-httpserver-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- For auto-generating configuration docs -->
         <dependency>
