@@ -207,7 +207,5 @@ public abstract class WebInstrumentation extends Vertx3Instrumentation {
                 helper.captureBody(transaction, requestDataBuffer);
             }
         }
-
     }
-
 }
