@@ -151,6 +151,8 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
         Http httpContext = span.getContext().getHttp();
 
+        assertThat(span.getNameAsString()).isEqualTo(String.format("%s %s", httpContext.getMethod(), host));
+
         assertThat(httpContext.getUrl()).isEqualTo(baseUrl + path);
         assertThat(httpContext.getStatusCode()).isEqualTo(status);
 
