@@ -68,8 +68,8 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return KafkaProducerAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.kafka.KafkaProducerInstrumentation$KafkaProducerAdvice";
     }
 
     @SuppressWarnings("rawtypes")

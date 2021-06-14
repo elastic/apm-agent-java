@@ -113,8 +113,8 @@ public class AbstractIntakeApiHandler {
                 payloadSerializer.appendMetaDataNdJsonToStream();
                 payloadSerializer.flushToOutputStream();
             } catch (IOException e) {
-                logger.error("Error trying to connect to APM Server. Some details about SSL configurations corresponding " +
-                    "the current connection are logged at INFO level.");
+                logger.error("Error trying to connect to APM Server at {}. Some details about SSL configurations corresponding " +
+                    "the current connection are logged at INFO level.", connection.getURL());
                 if (logger.isInfoEnabled() && connection instanceof HttpsURLConnection) {
                     HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
                     try {

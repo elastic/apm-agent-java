@@ -213,7 +213,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getMethod()).isEqualTo("GET");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getProtocol()).isEqualTo("http");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getHostname()).isEqualTo("www.example.com");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort().toString()).isEqualTo("8080");
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort()).isEqualTo(8080);
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("http://www.example.com:8080/foo?bar");
     }
 
@@ -236,7 +236,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getMethod()).isEqualTo("GET");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getProtocol()).isEqualTo("http");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getHostname()).isEqualTo("example.com");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort().toString()).isEqualTo("8080");
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort()).isEqualTo(8080);
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getSocket().getRemoteAddress()).isEqualTo("192.168.178.1:123456");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("http://example.com:8080/foo?bar");
     }
@@ -260,7 +260,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getMethod()).isEqualTo("GET");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getProtocol()).isEqualTo("http");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getHostname()).isEqualTo("127.0.0.1");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort().toString()).isEqualTo("8080");
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort()).isEqualTo(8080);
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getSocket().getRemoteAddress()).isEqualTo("192.168.178.1:123456");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("http://127.0.0.1:8080/foo?bar");
     }
@@ -281,7 +281,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getMethod()).isEqualTo("GET");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getProtocol()).isEqualTo("http");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getHostname()).isEqualTo("example.com");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort().toString()).isEqualTo("8080");
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort()).isEqualTo(8080);
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getSocket().getRemoteAddress()).isEqualTo("192.168.178.1:123456");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("http://example.com:8080/foo?bar");
     }

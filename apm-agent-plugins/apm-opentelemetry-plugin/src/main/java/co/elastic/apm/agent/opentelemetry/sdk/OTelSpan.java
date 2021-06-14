@@ -263,7 +263,7 @@ public class OTelSpan implements Span {
                 } catch (MalformedURLException ignore) {
                 }
             }
-            HttpClientHelper.setDestinationServiceDetails(s, url.getProtocol(), url.getHostname(), url.getPortAsInt());
+            HttpClientHelper.setDestinationServiceDetails(s, url.getProtocol(), url.getHostname(), url.getPort());
         } else if (context.getDb().hasContent()) {
             s.withType("db").withSubtype(context.getDb().getType());
             if (s.getSubtype() != null) {
@@ -283,19 +283,19 @@ public class OTelSpan implements Span {
 
     /**
      * Only one of the following is required per OpenTelemetry's semantic conventions:
-     *
+     * <p>
      * Client:
-     *   - http.url
-     *   - http.scheme, http.host, http.target
-     *   - http.scheme, net.peer.name, net.peer.port, http.target
-     *   - http.scheme, net.peer.ip, net.peer.port, http.target
-     *
+     * - http.url
+     * - http.scheme, http.host, http.target
+     * - http.scheme, net.peer.name, net.peer.port, http.target
+     * - http.scheme, net.peer.ip, net.peer.port, http.target
+     * <p>
      * Server:
-     *   - http.url
-     *   - http.scheme, http.host, http.target
-     *   - http.scheme, http.server_name, net.host.port, http.target
-     *   - http.scheme, net.host.name, net.host.port, http.target
-     *
+     * - http.url
+     * - http.scheme, http.host, http.target
+     * - http.scheme, http.server_name, net.host.port, http.target
+     * - http.scheme, net.host.name, net.host.port, http.target
+     * <p>
      * The net.* fields are captured on span/transaction end because by the time they are set,
      * we don't necessarily know whether the span represents an http operation
      */
@@ -339,7 +339,7 @@ public class OTelSpan implements Span {
      * these properties may have been set before we know it's an http request, that's why this capture is called on span end
      */
     private void captureNetHostUrlAttributes(Url url, AbstractContext context) {
-        if (url.getHostname() != null && url.getPort().length() > 0) {
+        if (url.getHostname() != null && url.getPort() > 0) {
             return;
         }
         Iterator<? extends Map.Entry<String, ?>> iterator = context.getLabelIterator();
@@ -355,7 +355,7 @@ public class OTelSpan implements Span {
                     url.withHostname((String) entry.getValue());
                 }
             } else if (entry.getKey().equals(SemanticAttributes.NET_HOST_PORT.getKey())) {
-                if (url.getPort().length() == 0) {
+                if (url.getPort() <= 0) {
                     url.withPort(((Number) entry.getValue()).intValue());
                 }
             }

@@ -177,4 +177,10 @@ public class GlobalTracer implements Tracer {
     public boolean isRunning() {
         return tracer.isRunning();
     }
+
+    @Nullable
+    @Override
+    public Span createExitChildSpan() {
+        return tracer.createExitChildSpan();
+    }
 }

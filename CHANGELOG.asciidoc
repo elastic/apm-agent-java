@@ -20,8 +20,119 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.25.0]]
+==== 1.25.0 - YYYY/MM/DD
+
+[float]
+===== Features
+* Support for inheritance of public API annotations - {pull}1805[#1805]
+* JDBC instrumentation sets context.db.instance - {pull}1820[#1820]
+* Add support for Vert.x web client- {pull}1824[#1824]
+* OpenTelemetry tracer API bridge (experimental): <<opentelementry-bridge>>
+
+[float]
+===== Bug fixes
+* Fix NPE with `null` binary header values + properly serialize them - {pull}1842[#1842]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.24.0]]
+==== 1.24.0 - 2021/05/31
+
+[float]
+===== Features
+* Basic support for Apache Struts 2 {pull}1763[#1763]
+* Extending the <<config-log-ecs-reformatting>> config option to enable the overriding of logs with ECS-reformatted
+events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted automatically as well - {pull}1793[#1793]
+* Instrumentation for Vert.x Web {pull}1697[#1697]
+* Changed log level of vm arguments to debug
+* Giving precedence for the W3C `tracecontext` header over the `elastic-apm-traceparent` header - {pull}1821[#1821]
+* Add instrumentation for Webflux - {pull}1305[#1305]
+
+[float]
+===== Bug fixes
+* Fix another error related to instrumentation plugins loading on Windows - {pull}1785[#1785]
+* Load Spring AMQP plugin- {pull}1784[#1784]
+* Avoid `IllegalStateException` when multiple `tracestate` headers are used - {pull}1808[#1808]
+* Ensure CLI attach avoids `sudo` only when required and avoid blocking - {pull}1819[#1819]
+* Avoid sending metric-sets without samples, so to adhere to the intake API - {pull}1826[#1826]
+* Fixing our type-pool cache, so that it can't cause OOM (softly-referenced), and it gets cleared when not used for
+a while - {pull}1828[#1828]
+
+[float]
+===== Refactors
+* Remove single-package limitation for embedded plugins - {pull}1780[#1780]
+
+[[release-notes-1.23.0]]
+==== 1.23.0 - 2021/04/22
+
+[float]
+===== Breaking changes
+* There are breaking changes in the <<setup-attach-cli,attacher cli>>.
+  See the Features section for more information.
+
+[float]
+===== Features
+* Overhaul of the <<setup-attach-cli,attacher cli>> application that allows to attach the agent to running JVMs - {pull}1667[#1667]
+** The artifact of the standalone cli application is now called `apm-agent-attach-cli`. The attacher API is still called `apm-agent-attach`.
+** There is also a slim version of the cli application that does not bundle the Java agent.
+It requires the `--agent-jar` option to be set.
+** Improved logging +
+The application uses {ecs-logging-java-ref}/intro.html[Java ECS logging] to emit JSON logs.
+The log level can be configured with the `--log-level` option.
+By default, the program is logging to the console but using the `--log-file` option, it can also log to a file.
+** Attach to JVMs running under a different user (unix only) +
+The JVM requires the attacher to be running under the same user as the target VM (the attachee).
+The `apm-agent-attach-standalone.jar` can now be run with a user that has permissions to switch to the user that runs the target VM.
+On Windows, the attacher can still only attach to JVMs that are running with under the same user.
+** New include/exclude discovery rules +
+*** `--include-all`: Attach to all discovered JVMs. If no matchers are provided, it will not attach to any JVMs.
+*** `--include-user`/`--exclude-user`: Attach to all JVMs of a given operating system user.
+*** `--include-main`/`--exclude-main`: Attach to all JVMs that whose main class/jar name, or system properties match the provided regex.
+*** `--include-vmargs`/`--exclude-vmargs`: Attach to all JVMs that whose main class/jar name, or system properties match the provided regex.
+** Removal of options +
+*** The deprecated `--arg` option has been removed.
+*** The `-i`/`--include`, `-e`/`exclude` options have been removed in favor of the `--<include|exclude>-<main|vmargs>` options.
+*** The `-p`/`--pid` options have been removed in favor of the `--include-pid` option.
+** Changed behavior of  the `-l`/`--list` option +
+The option now only lists JVMs that match the include/exclude discovery rules.
+Thus, it can be used to do a dry-run of the matchers without actually performing an attachment.
+It even works in combination with `--continuous` now.
+By default, the VM arguments are not printed, but only when the `-a`/`--list-vmargs` option is set.
+** Remove dependency on `jps` +
+Even when matching on the main class name or on system properties,
+** Checks the Java version before attaching to avoid attachment on unsupported JVMs.
+* Cassandra instrumentation - {pull}1712[#1712]
+* Log correlation supports JBoss Logging - {pull}1737[#1737]
+* Update Byte-buddy to `1.11.0` - {pull}1769[#1769]
+* Support for user.domain {pull}1756[#1756]
+* JAX-RS supports javax.ws.rs.PATCH
+* Enabling build and unit tests on Windows - {pull}1671[#1671]
+
+[float]
+===== Bug fixes
+* Fixed log correlation for log4j2 - {pull}1720[#1720]
+* Fix apm-log4j1-plugin and apm-log4j2-plugin dependency on slf4j - {pull}1723[#1723]
+* Avoid systematic `MessageNotWriteableException` error logging, now only visible in `debug` - {pull}1715[#1715] and {pull}1730[#1730]
+* Fix rounded number format for non-english locales - {pull}1728[#1728]
+* Fix `NullPointerException` on legacy Apache client instrumentation when host is `null` - {pull}1746[#1746]
+* Apply consistent proxy class exclusion heuristic - {pull}1738[#1738]
+* Fix micrometer serialization error - {pull}1741[#1741]
+* Optimize & avoid `ensureInstrumented` deadlock by skipping stack-frame computation for Java7+ bytecode - {pull}1758[#1758]
+* Fix instrumentation plugins loading on Windows - {pull}1671[#1671]
+
+[float]
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1369[#1369] {pull}1410[#1410] {pull}1374[#1374]
+
 [[release-notes-1.22.0]]
-==== 1.22.0 - YYYY/MM/DD
+==== 1.22.0 - 2021/03/24
+
+[float]
+===== Breaking changes
+* Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts.
+De-dotting be disabled via <<config-dedot-custom-metrics, `dedot_custom_metrics`>>. - {pull}1700[#1700]
 
 [float]
 ===== Features
@@ -36,19 +147,25 @@ to assist with such efforts.
 * The <<config-use-path-as-transaction-name, `use_path_as_transaction_name`>> option is now dynamic
 * Flushing internal and micrometer metrics before the agent shuts down - {pull}1658[#1658]
 * Support for OkHttp 4.4+ -  {pull}1672[#1672]
-* OpenTelemetry tracer API bridge (experimental): <<opentelementry-bridge>>
+* Adding capability to automatically create ECS-JSON-formatted version of the original application log files, through
+the <<config-log-ecs-reformatting>> config option. This allows effortless ingestion of logs to Elasticsearch without
+any further configuration. Supports log4j1, log4j2 and Logback. {pull}1261[#1261]
+* Add support to Spring AMQP - {pull}1657[#1657]
+* Adds the ability to automatically configure usage of the OpenTracing bridge in systems using ServiceLoader - {pull}1708[#1708]
+* Update to async-profiler 1.8.5 - includes a fix to a Java 7 crash and enhanced safe mode to better deal with
+corrupted stack frames.
+* Add a warning on startup when `-Xverify:none` or `-noverify` flags are set as this can lead to crashes that are very
+difficult to debug - {pull}1593[#1593]. In an upcoming version, the agent will not start when these flags are set,
+unless the system property `elastic.apm.disable_bootstrap_checks` is set to true.
 
 [float]
 ===== Bug fixes
 * fix sample rate rounded to zero when lower than precision - {pull}1655[#1655]
 * fixed a couple of bugs with the external plugin mechanism (not documented until now) - {pull}1660[#1660]
-* Update to async-profiler 1.8.4 to prevent crashes on Java 7 - {pull}1678[#1678]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Fix runtime attach conflict with multiple users - {pull}1704[#1704]
 
 [[release-notes-1.21.0]]
-==== 1.21.0 - 2020/02/09
+==== 1.21.0 - 2021/02/09
 
 [float]
 ===== Breaking changes
@@ -472,7 +589,7 @@ config option]
 ===== Features
 * Add ability to manually specify reported https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-hostname[hostname]
 * Add support for https://www.elastic.co/guide/en/apm/agent/java/master/supported-technologies-details.html#supported-databases[Redis Jedis client]
-* Add support for identifying target JVM to attach apm agent to using JVM property. See also the documentation of the https://www.elastic.co/guide/en/apm/agent/java/master/setup-attach-cli.html#setup-attach-cli-usage-list[`--include` and `--exclude` flags]
+* Add support for identifying target JVM to attach apm agent to using JVM property. See also the documentation of the <<setup-attach-cli-usage-options, `--include` and `--exclude` flags>>
 * Added https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics[`capture_jmx_metrics`] configuration option
 * Improve servlet error capture {pull}812[#812]
   Among others, now also takes Spring MVC `@ExceptionHandler`s into account 

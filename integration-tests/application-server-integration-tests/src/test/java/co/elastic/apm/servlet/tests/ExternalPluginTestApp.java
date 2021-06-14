@@ -47,8 +47,9 @@ public class ExternalPluginTestApp extends TestApp {
 
     @Override
     public Map<String, String> getAdditionalFilesToBind() {
-        File agentBuildDir = new File("../external-plugin-test/external-plugin/target/");
-        File pluginJar = Arrays.stream(agentBuildDir.listFiles(file -> file.getName().startsWith("external-plugin-") && file.getName().endsWith(".jar")))
+        File externalPluginBuildDir = new File("../external-plugin-test/external-plugin/target/");
+        File pluginJar = Arrays.stream(externalPluginBuildDir
+            .listFiles(file -> file.getName().startsWith("external-plugin-") && !file.getName().contains("javadoc") && file.getName().endsWith(".jar")))
             .findFirst()
             .orElse(null);
         assert pluginJar != null;

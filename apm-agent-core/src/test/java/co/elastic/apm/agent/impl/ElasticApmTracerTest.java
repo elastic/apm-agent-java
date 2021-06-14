@@ -33,7 +33,6 @@ import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -79,6 +78,7 @@ class ElasticApmTracerTest {
     void cleanupAndCheck() {
         reporter.assertRecycledAfterDecrementingReferences();
         objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+        tracerImpl.resetServiceNameOverrides();
     }
 
     @Test
@@ -343,7 +343,7 @@ class ElasticApmTracerTest {
         Transaction transaction = startTestRootTransaction().withType("request");
 
         try (Scope scope = transaction.activateInScope()) {
-            transaction.setUser("1", "jon.doe@example.com", "jondoe");
+            transaction.setUser("1", "jon.doe@example.com", "jondoe", "domain");
             Span span = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span.activateInScope()) {
                 span.end();
@@ -428,6 +428,7 @@ class ElasticApmTracerTest {
     @Test
     void testOverrideServiceNameWithoutExplicitServiceName() {
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .configurationRegistry(SpyConfiguration.createSpyConfig())
             .reporter(reporter)
             .buildAndStart();
         tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");

@@ -178,6 +178,9 @@ public interface Tracer {
 
     boolean isRunning();
 
+    @Nullable
+    Span createExitChildSpan();
+
     /**
      * An enumeration used to represent the current tracer state.
      */

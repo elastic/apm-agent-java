@@ -538,7 +538,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     private boolean shouldDelayOnPremain() {
-        return JvmRuntimeInfo.getMajorVersion() <= 8 &&
+        return JvmRuntimeInfo.ofCurrentVM().getMajorVersion() <= 8 &&
             ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
     }
 
@@ -647,6 +647,16 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public boolean isRunning() {
         return tracerState == TracerState.RUNNING;
+    }
+
+    @Override
+    @Nullable
+    public Span createExitChildSpan() {
+        AbstractSpan<?> active = getActive();
+        if (active == null) {
+            return null;
+        }
+        return active.createExitSpan();
     }
 
     @Override

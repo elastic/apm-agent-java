@@ -125,7 +125,13 @@ public class ElasticApmAgent {
     private static final WeakConcurrentMap<Class<?>, Set<Collection<Class<? extends ElasticApmInstrumentation>>>> dynamicallyInstrumentedClasses = WeakMapSupplier.createMap();
     @Nullable
     private static File agentJarFile;
-    private static final Map<String, ClassLoader> pluginClassLoaderByAdviceClass = new ConcurrentHashMap<>();
+
+    /**
+     * A mapping from advice class name to the class loader that loaded the corresponding instrumentation.
+     * We need this in order to locate the advice class file. This implies that the advice class needs to be collocated
+     * with the corresponding instrumentation class.
+     */
+    private static final Map<String, ClassLoader> adviceClassName2instrumentationClassLoader = new ConcurrentHashMap<>();
 
     /**
      * Called reflectively by {@link AgentMain} to initialize the agent
@@ -240,8 +246,8 @@ public class ElasticApmAgent {
             }
         }
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
-            pluginClassLoaderByAdviceClass.put(
-                apmInstrumentation.getAdviceClass().getName(),
+            adviceClassName2instrumentationClassLoader.put(
+                apmInstrumentation.getAdviceClassName(),
                 ObjectUtils.systemClassLoaderIfNull(apmInstrumentation.getClass().getClassLoader()));
         }
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
@@ -261,6 +267,7 @@ public class ElasticApmAgent {
         AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, premain);
         resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
         for (ConfigurationOption<?> instrumentationOption : coreConfig.getInstrumentationOptions()) {
+            //noinspection Convert2Lambda
             instrumentationOption.addChangeListener(new ConfigurationOption.ChangeListener() {
                 @Override
                 public void onChange(ConfigurationOption configurationOption, Object oldValue, Object newValue) {
@@ -428,7 +435,6 @@ public class ElasticApmAgent {
         // external plugins are always indy plugins
         if (!(instrumentation instanceof TracerAwareInstrumentation)
             || ((TracerAwareInstrumentation) instrumentation).indyPlugin()) {
-            validateAdvice(instrumentation.getAdviceClass());
             withCustomMapping = withCustomMapping.bootstrap(IndyBootstrap.getIndyBootstrapMethod(logger));
         }
         return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
@@ -453,7 +459,7 @@ public class ElasticApmAgent {
                         getOrCreateTimer(instrumentation.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
                     }
                 }
-            }, instrumentation.getAdviceClass().getName())
+            }, instrumentation.getAdviceClassName())
             .include(ClassLoader.getSystemClassLoader(), instrumentation.getClass().getClassLoader())
             .withExceptionHandler(PRINTING);
     }
@@ -463,7 +469,7 @@ public class ElasticApmAgent {
      *
      * @param adviceClass the advice class
      */
-    private static void validateAdvice(Class<?> adviceClass) {
+    public static void validateAdvice(Class<?> adviceClass) {
         String adviceClassName = adviceClass.getName();
         ClassLoader classLoader = adviceClass.getClassLoader();
         if (classLoader == null) {
@@ -477,39 +483,65 @@ public class ElasticApmAgent {
 
         TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.of(classLoader), TypePool.Default.ReaderMode.FAST);
         TypeDescription typeDescription = pool.describe(adviceClassName).resolve();
+
         for (MethodDescription.InDefinedShape enterAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodEnter.class)))) {
-            validateAdviceReturnAndParameterTypes(enterAdvice);
+            validateAdviceReturnAndParameterTypes(enterAdvice, adviceClassName);
 
             for (AnnotationDescription enter : enterAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodEnter.class))) {
-                if (enter.prepare(Advice.OnMethodEnter.class).load().inline()) {
-                    throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, enterAdvice.getName()));
-                }
+                checkInline(enterAdvice, adviceClassName, enter.prepare(Advice.OnMethodEnter.class).load().inline());
             }
         }
         for (MethodDescription.InDefinedShape exitAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodExit.class)))) {
-            validateAdviceReturnAndParameterTypes(exitAdvice);
+            validateAdviceReturnAndParameterTypes(exitAdvice, adviceClassName);
             if (exitAdvice.getReturnType().asRawType().getTypeName().startsWith("co.elastic.apm")) {
                 throw new IllegalStateException("Advice return type must be visible from the bootstrap class loader and must not be an agent type.");
             }
             for (AnnotationDescription exit : exitAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodExit.class))) {
-                if (exit.prepare(Advice.OnMethodExit.class).load().inline()) {
-                    throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, exitAdvice.getName()));
-                }
+                checkInline(exitAdvice, adviceClassName, exit.prepare(Advice.OnMethodExit.class).load().inline());
             }
         }
-        if (!(classLoader instanceof ExternalPluginClassLoader) && adviceClassName.startsWith("co.elastic.apm.agent.") && adviceClassName.split("\\.").length > 6) {
-            throw new IllegalStateException("Indy-dispatched advice class must be at the root of the instrumentation plugin.");
+        if (!(classLoader instanceof ExternalPluginClassLoader) && !adviceClassName.startsWith("co.elastic.apm.agent.")) {
+            throw new IllegalStateException(String.format(
+                "Invalid Advice class - %s - Indy-dispatched advice class must be in a sub-package of 'co.elastic.apm.agent'.",
+                adviceClassName)
+            );
+
         }
     }
 
-    private static void validateAdviceReturnAndParameterTypes(MethodDescription.InDefinedShape advice) {
-        if (advice.getReturnType().asRawType().getTypeName().startsWith("co.elastic.apm")) {
-            throw new IllegalStateException("Advice return type must not be an agent type: " + advice.toGenericString());
+    private static void checkInline(MethodDescription.InDefinedShape advice, String adviceClassName, boolean isInline){
+        if (isInline) {
+            throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, advice.getName()));
+        } else if (!Modifier.isPublic(advice.getModifiers())) {
+            throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared public", adviceClassName, advice.getName()));
         }
-        for (ParameterDescription.InDefinedShape parameter : advice.getParameters()) {
-            if (parameter.getType().asRawType().getTypeName().startsWith("co.elastic.apm")) {
-                throw new IllegalStateException("Advice parameters must not contain an agent type: " + advice.toGenericString());
+    }
+
+    private static void validateAdviceReturnAndParameterTypes(MethodDescription.InDefinedShape advice, String adviceClass) {
+        String adviceMethod = advice.getInternalName();
+        try {
+            checkNotAgentType(advice.getReturnType(), "return type", adviceClass, adviceMethod);
+
+            for (ParameterDescription.InDefinedShape parameter : advice.getParameters()) {
+                checkNotAgentType(parameter.getType(), "parameter", adviceClass, adviceMethod);
+
+                AnnotationDescription.Loadable<Advice.Return> returnAnnotation = parameter.getDeclaredAnnotations().ofType(Advice.Return.class);
+                if (returnAnnotation != null && !returnAnnotation.load().readOnly()) {
+                    throw new IllegalStateException("Advice parameter must not use '@Advice.Return(readOnly=false)', use @AssignTo.Return instead");
+                }
             }
+        } catch (Exception e) {
+            // Because types are lazily resolved, unexpected things are expected
+            throw new IllegalStateException(String.format("unable to validate advice defined in %s#%s", adviceClass, adviceMethod), e);
+        }
+    }
+
+    private static void checkNotAgentType(TypeDescription.Generic type, String description, String adviceClass, String adviceMethod) {
+        // We have to use 'raw' type as framework classes are not accessible to the boostrap classloader, and
+        // trying to resolve them will create exceptions.
+        String name = type.asRawType().getTypeName();
+        if (name.startsWith("co.elastic.apm")) {
+            throw new IllegalStateException(String.format("Advice %s in %s#%s must not be an agent type: %s", description, adviceClass, adviceMethod, name));
         }
     }
 
@@ -713,12 +745,12 @@ public class ElasticApmAgent {
                         .with(TypeValidation.of(logger.isDebugEnabled()))
                         .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
                     AgentBuilder agentBuilder = getAgentBuilder(
-                        byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.HYBRID, false, false
+                        byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false, false
                     );
                     for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
                         ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
-                        pluginClassLoaderByAdviceClass.put(
-                            apmInstrumentation.getAdviceClass().getName(),
+                        adviceClassName2instrumentationClassLoader.put(
+                            apmInstrumentation.getAdviceClassName(),
                             ObjectUtils.systemClassLoaderIfNull(instrumentationClass.getClassLoader()));
                         ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
                         if (typeMatcher != null && isIncluded(apmInstrumentation, config)) {
@@ -813,8 +845,14 @@ public class ElasticApmAgent {
         return ObjectUtils.systemClassLoaderIfNull(ElasticApmAgent.class.getClassLoader());
     }
 
-    public static ClassLoader getClassLoader(String adviceClass) {
-        ClassLoader classLoader = pluginClassLoaderByAdviceClass.get(adviceClass);
+    /**
+     * Returns the class loader that loaded the instrumentation class corresponding the given advice class.
+     * We expect to be able to find the advice class file through this class loader.
+     * @param adviceClass name of the advice class
+     * @return class loader that can be used for the advice class file lookup
+     */
+    public static ClassLoader getInstrumentationClassLoader(String adviceClass) {
+        ClassLoader classLoader = adviceClassName2instrumentationClassLoader.get(adviceClass);
         if (classLoader == null) {
             throw new IllegalStateException("There's no mapping for key " + adviceClass);
         }

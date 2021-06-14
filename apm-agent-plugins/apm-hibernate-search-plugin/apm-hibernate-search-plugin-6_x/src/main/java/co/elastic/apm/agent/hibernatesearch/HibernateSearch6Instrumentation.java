@@ -49,8 +49,8 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 public class HibernateSearch6Instrumentation extends TracerAwareInstrumentation {
 
     @Override
-    public Class<?> getAdviceClass() {
-        return Hibernate6ExecuteAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.hibernatesearch.HibernateSearch6Instrumentation$Hibernate6ExecuteAdvice";
     }
 
     @Override

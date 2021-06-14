@@ -37,11 +37,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -56,9 +60,8 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
     void setUp() {
         org.apache.log4j.MDC.put("test", true);
         log4jMdcWorking = (Boolean) org.apache.log4j.MDC.get("test");
-        MDC.clear();
-        org.apache.log4j.MDC.clear();
-        ThreadContext.clearAll();
+
+        forAllMdc(MdcImpl::clear);
         loggingConfiguration = config.getConfig(LoggingConfiguration.class);
     }
 
@@ -270,26 +273,56 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
         assertThat(loggingConfiguration.isLogCorrelationEnabled()).isTrue();
     }
 
-    private void assertMdcIsSet(AbstractSpan span) {
-        assertThat(MDC.get("trace.id")).isEqualTo(span.getTraceContext().getTraceId().toString());
-        assertThat(MDC.get("transaction.id")).isEqualTo(span.getTraceContext().getTransactionId().toString());
-        assertThat(ThreadContext.get("trace.id")).isEqualTo(span.getTraceContext().getTraceId().toString());
-        assertThat(ThreadContext.get("transaction.id")).isEqualTo(span.getTraceContext().getTransactionId().toString());
-        if (log4jMdcWorking == Boolean.TRUE) {
-            assertThat(org.apache.log4j.MDC.get("trace.id")).isEqualTo(span.getTraceContext().getTraceId().toString());
-            assertThat(org.apache.log4j.MDC.get("transaction.id")).isEqualTo(span.getTraceContext().getTransactionId().toString());
+    private void assertMdcIsSet(AbstractSpan<?> span) {
+        forAllMdc(mdc -> {
+            assertThat(mdc.get("trace.id")).isEqualTo(span.getTraceContext().getTraceId().toString());
+            assertThat(mdc.get("transaction.id")).isEqualTo(span.getTraceContext().getTransactionId().toString());
+        });
+    }
+
+    private enum MdcImpl {
+        Slf4j(
+            MDC::get,
+            MDC::clear),
+        Log4j1(
+            k -> (String) org.apache.log4j.MDC.get(k),
+            org.apache.log4j.MDC::clear),
+        Log4j2(
+            ThreadContext::get,
+            ThreadContext::clearAll),
+        JbossLogging(
+            k -> (String) org.jboss.logging.MDC.get(k),
+            org.jboss.logging.MDC::clear);
+
+        private final Function<String, String> get;
+        private final Runnable clear;
+
+        MdcImpl(Function<String, String> get, Runnable clear) {
+            this.get = get;
+            this.clear = clear;
+        }
+
+        @Nullable
+        String get(String key) {
+            return get.apply(key);
+        }
+
+        void clear() {
+            clear.run();
         }
     }
 
     private void assertMdcIsEmpty() {
-        assertThat(MDC.get("trace.id")).isNull();
-        assertThat(MDC.get("transaction.id")).isNull();
-        assertThat(ThreadContext.get("trace.id")).isNull();
-        assertThat(ThreadContext.get("transaction.id")).isNull();
-        if (log4jMdcWorking == Boolean.TRUE) {
-            assertThat(org.apache.log4j.MDC.get("transaction.id")).isNull();
-            assertThat(org.apache.log4j.MDC.get("trace.id")).isNull();
-        }
+        forAllMdc(mdc -> {
+            assertThat(mdc.get("trace.id")).isNull();
+            assertThat(mdc.get("transaction.id")).isNull();
+        });
+    }
+
+    private void forAllMdc(Consumer<MdcImpl> task) {
+        Stream.of(MdcImpl.values())
+            .filter(mdc -> mdc != MdcImpl.Log4j1 || log4jMdcWorking)
+            .forEach(task);
     }
 
 }

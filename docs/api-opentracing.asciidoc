@@ -59,6 +59,12 @@ import io.opentracing.Tracer;
 Tracer tracer = new ElasticApmTracer();
 ----
 
+Since version 1.22.0, the OpenTracing bridge supports `Tracer` lookup and initialization through the ServiceLoader mechanism.
+An example for a system that relies on this capability is https://github.com/opentracing-contrib/java-tracerresolver[tracer-resolver],
+which is used by various OpenTracing libraries, for example the
+https://camel.apache.org/components/3.7.x/others/opentracing.html[Apache Camel OpenTracing component].
+When such is used, no code changes are required, only the addition of dependencies for the OpenTracing library and
+the Elastic OpenTracing bridge.
 
 [float]
 [[opentracing-elastic-apm-tags]]

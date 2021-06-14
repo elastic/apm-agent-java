@@ -147,4 +147,10 @@ class NoopTracer implements Tracer {
     public boolean isRunning() {
         return false;
     }
+
+    @Nullable
+    @Override
+    public Span createExitChildSpan() {
+        return null;
+    }
 }

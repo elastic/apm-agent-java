@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.jdbc;
 
+import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -54,9 +55,8 @@ public class ConnectionInstrumentation extends JdbcInstrumentation {
     public static void storeSql(@Advice.Return @Nullable PreparedStatement statement,
                                 @Advice.Argument(0) String sql) {
         if (statement != null) { // might be null if exception is thrown
-            getJdbcHelper().mapStatementToSql(statement, sql);
+            JdbcHelper.get().mapStatementToSql(statement, sql);
         }
-
     }
 
     @Override

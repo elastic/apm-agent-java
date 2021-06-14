@@ -1,0 +1,19 @@
+# vertx core
+co.elastic.apm.agent.vertx.v3.EventLoopInstrumentation$SetTimerInstrumentation
+co.elastic.apm.agent.vertx.v3.EventLoopInstrumentation$OnContextInstrumentation
+co.elastic.apm.agent.vertx.v3.EventLoopInstrumentation$ExecuteBlockingInstrumentation
+co.elastic.apm.agent.vertx.v3.TaskQueueInstrumentation
+# vertx web
+co.elastic.apm.agent.vertx.v3.web.WebInstrumentation$ResponseEndHandlerInstrumentation
+co.elastic.apm.agent.vertx.v3.web.WebInstrumentation$RouteInstrumentation
+co.elastic.apm.agent.vertx.v3.web.WebInstrumentation$RequestBufferInstrumentation
+co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestImplStartInstrumentation
+co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestImplEndInstrumentation
+co.elastic.apm.agent.vertx.v3.web.http1.HttpServerResponseImplInstrumentation
+co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestWrapperInstrumentation
+co.elastic.apm.agent.vertx.v3.web.http2.Http2Instrumentation
+# vertx webclient
+co.elastic.apm.agent.vertx.v3.webclient.WebClientInstrumentation$HttpContextSendRequestInstrumentation
+co.elastic.apm.agent.vertx.v3.webclient.WebClientInstrumentation$HttpContextDispatchResponseInstrumentation
+co.elastic.apm.agent.vertx.v3.webclient.WebClientInstrumentation$HttpContextFailInstrumentation
+co.elastic.apm.agent.vertx.v3.webclient.WebClientInstrumentation$HttpContextFollowRedirectInstrumentation

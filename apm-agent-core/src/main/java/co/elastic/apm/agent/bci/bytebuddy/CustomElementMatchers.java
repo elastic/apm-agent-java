@@ -121,6 +121,7 @@ public class CustomElementMatchers {
     /**
      * A matcher that checks whether the implementation version read from the MANIFEST.MF related for a given {@link ProtectionDomain} is
      * lower than or equals to the limit version. Assumes a SemVer version format.
+     *
      * @param version the version to check against
      * @return an LTE SemVer matcher
      */
@@ -264,6 +265,10 @@ public class CustomElementMatchers {
     }
 
     public static <T extends NamedElement> ElementMatcher.Junction<T> isProxy() {
-        return nameContains("$Proxy").or(nameContains("$$"));
+        return nameContains("$Proxy")
+            .or(nameContains("$$"))
+            .or(nameContains("$JaxbAccessor"))
+            .or(nameContains("CGLIB"))
+            .or(nameContains("EnhancerBy"));
     }
 }

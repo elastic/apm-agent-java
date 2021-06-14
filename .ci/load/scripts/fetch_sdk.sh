@@ -65,16 +65,27 @@ JDK_ARCHIVE="${JDK_FOLDER}/${SDK_FILENAME}"
 if [[ ! -f "${JDK_ARCHIVE}" ]]
 then
   curl -s -o "${JDK_ARCHIVE}" "${SDK_URL}"
-  if [ "${JDK_ARCHIVE: -4}" == ".zip" ]
-  then
+  case "${JDK_ARCHIVE}" in
+    *.zip)
       unzip -qq "${JDK_ARCHIVE}" -d "${JDK_FOLDER}"
-  else
+      ;;
+    *.tar.gz)
       tar xfz "${JDK_ARCHIVE}" -C "${JDK_FOLDER}"
-  fi
+      ;;
+    *.bin)
+      # assume IBM executable JVM installer
+      INSTALLER_PROPERTIES=${JDK_FOLDER}/response.properties
+      echo "INSTALLER_UI=silent" > ${INSTALLER_PROPERTIES}
+      echo "USER_INSTALL_DIR=${JDK_FOLDER}/${JDK_ID}" >> ${INSTALLER_PROPERTIES}
+      echo "LICENSE_ACCEPTED=TRUE" >> ${INSTALLER_PROPERTIES}
+      mkdir -p "${JDK_FOLDER}/${JDK_ID}"
+      chmod +x ${JDK_ARCHIVE}
+      ${JDK_ARCHIVE} -i silent -f ${INSTALLER_PROPERTIES}
+      ;;
+  esac
 
 fi
 
-set -x
 
 # JDK is stored within a sub-folder
 SUB_FOLDER="$(find "${JDK_FOLDER}" -maxdepth 1 -mindepth 1 -type d)"

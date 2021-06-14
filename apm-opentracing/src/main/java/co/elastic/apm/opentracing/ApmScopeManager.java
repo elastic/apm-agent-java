@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -51,7 +51,7 @@ class ApmScopeManager implements ScopeManager {
     }
 
     private void doActivate(@Nullable Object span, Object traceContext) {
-        // implementation is injected at runtime via co.elastic.apm.agent.opentracing.impl.ScopeManagerInstrumentation
+        // implementation is injected at runtime via co.elastic.apm.agent.opentracingimpl.ScopeManagerInstrumentation
     }
 
     @Override
@@ -91,13 +91,13 @@ class ApmScopeManager implements ScopeManager {
 
     @Nullable
     private Object getCurrentSpan() {
-        // implementation is injected at runtime via co.elastic.apm.agent.opentracing.impl.ScopeManagerInstrumentation
+        // implementation is injected at runtime via co.elastic.apm.agent.opentracingimpl.ScopeManagerInstrumentation
         return null;
     }
 
     @Nullable
     private Object getCurrentTraceContext() {
-        // implementation is injected at runtime via co.elastic.apm.agent.opentracing.impl.ScopeManagerInstrumentation
+        // implementation is injected at runtime via co.elastic.apm.agent.opentracingimpl.ScopeManagerInstrumentation
         return null;
     }
 }

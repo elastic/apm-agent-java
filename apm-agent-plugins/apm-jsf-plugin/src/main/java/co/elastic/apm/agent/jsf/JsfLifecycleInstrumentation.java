@@ -90,8 +90,8 @@ public abstract class JsfLifecycleInstrumentation extends TracerAwareInstrumenta
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return JsfLifecycleExecuteAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.jsf.JsfLifecycleInstrumentation$JsfLifecycleExecuteInstrumentation$JsfLifecycleExecuteAdvice";
         }
 
         public static class JsfLifecycleExecuteAdvice {
@@ -163,8 +163,8 @@ public abstract class JsfLifecycleInstrumentation extends TracerAwareInstrumenta
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return JsfLifecycleRenderAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.jsf.JsfLifecycleInstrumentation$JsfLifecycleRenderInstrumentation$JsfLifecycleRenderAdvice";
         }
 
         public static class JsfLifecycleRenderAdvice {

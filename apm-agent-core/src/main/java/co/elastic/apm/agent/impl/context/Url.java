@@ -50,9 +50,9 @@ public class Url implements Recyclable {
     @Nullable
     private String hostname;
     /**
-     * The port of the request, e.g. '443'
+     * The port of the request, e.g. 443
      */
-    private final StringBuilder port = new StringBuilder();
+    private int port = -1;
     /**
      * The path of the request, e.g. '/search'
      */
@@ -87,6 +87,36 @@ public class Url implements Recyclable {
         return full;
     }
 
+    /**
+     * Updates full URL from current state of {@literal this}. Must be called after all other Url fields are set.
+     *
+     * @return url
+     */
+    public Url updateFull() {
+        // inspired by org.apache.catalina.connector.Request.getRequestURL
+
+        boolean isHttps = "https".equals(protocol);
+        boolean isHttp = "http".equals(protocol);
+        int portValue = port;
+        if (portValue < 0) {
+            portValue = isHttps ? 443 : isHttp ? 80 : portValue; // Work around java.net.URL bug
+        }
+
+        full.setLength(0);
+        full.append(protocol);
+        full.append("://");
+        full.append(hostname);
+        if ((isHttps && portValue != 443) || (isHttp && portValue != 80)) {
+            full.append(':');
+            full.append(portValue);
+        }
+        full.append(pathname);
+        if (search != null) {
+            full.append('?').append(search);
+        }
+        return this;
+    }
+
     public Url appendToFull(CharSequence charSequence) {
         full.append(charSequence);
         return this;
@@ -109,27 +139,17 @@ public class Url implements Recyclable {
     }
 
     /**
-     * The port of the request, e.g. '443'
+     * The port of the request, e.g. 443
      */
-    public StringBuilder getPort() {
+    public int getPort() {
         return port;
     }
 
-    public int getPortAsInt() {
-        if (port.length() > 0) {
-            try {
-                return Integer.parseInt(port.toString());
-            } catch (NumberFormatException ignore) {
-            }
-        }
-        return -1;
-    }
-
     /**
-     * The port of the request, e.g. '443'
+     * The port of the request, e.g. 443
      */
     public Url withPort(int port) {
-        this.port.append(port);
+        this.port = port;
         return this;
     }
 
@@ -184,8 +204,7 @@ public class Url implements Recyclable {
         full.append(protocol != null ? protocol : "http")
             .append("://")
             .append(hostname)
-            .append(port.length() > 0 ? ":" : "")
-            .append(port.length() > 0 ? port : "")
+            .append(port > 0 ? port : "")
             .append(pathname != null ? pathname : "")
             .append(search != null ? "?" : "")
             .append(search != null ? search : "");
@@ -196,7 +215,7 @@ public class Url implements Recyclable {
         protocol = null;
         full.setLength(0);
         hostname = null;
-        port.setLength(0);
+        port = -1;
         pathname = null;
         search = null;
     }
@@ -206,8 +225,7 @@ public class Url implements Recyclable {
         this.full.setLength(0);
         this.full.append(other.full);
         this.hostname = other.hostname;
-        this.port.setLength(0);
-        this.port.append(other.port);
+        this.port = other.port;
         this.pathname = other.pathname;
         this.search = other.search;
     }
@@ -216,7 +234,7 @@ public class Url implements Recyclable {
         return protocol != null ||
             full.length() > 0 ||
             hostname != null ||
-            port.length() > 0 ||
+            port >= 0 ||
             pathname != null ||
             search != null;
     }

@@ -394,6 +394,10 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return (T) this;
     }
 
+    public void endExceptionally(@Nullable Throwable t) {
+        captureException(t).end();
+    }
+
     @Nullable
     public String captureExceptionAndGetErrorId(@Nullable Throwable t) {
         return tracer.captureAndReportException(getTraceContext().getClock().getEpochMicros(), t, this);
