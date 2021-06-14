@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.AbstractApiTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.api.ElasticApm;
@@ -42,7 +42,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SpanInstrumentationTest extends AbstractInstrumentationTest {
+class SpanInstrumentationTest extends AbstractApiTest {
 
     private static final SecureRandom random = new SecureRandom();
 
