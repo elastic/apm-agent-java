@@ -49,7 +49,7 @@ public class GlobalOpenTelemetryInstrumentation extends AbstractOpenTelemetryIns
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.opentelemetry.GlobalOpenTelemetryInstrumentation.GlobalOpenTelemetryAdvice";
+        return "co.elastic.apm.agent.opentelemetry.GlobalOpenTelemetryInstrumentation$GlobalOpenTelemetryAdvice";
     }
 
     public static class GlobalOpenTelemetryAdvice {

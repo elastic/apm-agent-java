@@ -50,7 +50,7 @@ public class ContextStorageInstrumentation extends AbstractOpenTelemetryInstrume
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.opentelemetry.ContextStorageInstrumentation.ContextStorageAdvice";
+        return "co.elastic.apm.agent.opentelemetry.ContextStorageInstrumentation$ContextStorageAdvice";
     }
 
     public static class ContextStorageAdvice {
