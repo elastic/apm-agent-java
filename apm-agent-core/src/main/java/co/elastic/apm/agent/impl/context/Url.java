@@ -203,9 +203,13 @@ public class Url implements Recyclable {
         }
         full.append(protocol != null ? protocol : "http")
             .append("://")
-            .append(hostname)
-            .append(port > 0 ? port : "")
-            .append(pathname != null ? pathname : "")
+            .append(hostname);
+
+        if (port > 0) {
+            full.append(":").append(port);
+        }
+
+        full.append(pathname != null ? pathname : "")
             .append(search != null ? "?" : "")
             .append(search != null ? search : "");
     }
