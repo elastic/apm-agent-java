@@ -43,16 +43,18 @@ public class ElasticAttachmentProvider {
             throw new IllegalStateException("ElasticAttachmentProvider.init() should only be called once");
         }
 
-        ArrayList<ByteBuddyAgent.AttachmentProvider> providers = new ArrayList<>();
-        if (useEmulatedAttach) {
-            providers.add(ByteBuddyAgent.AttachmentProvider.ForEmulatedAttachment.INSTANCE);
-        }
-        providers.addAll(Arrays.asList(ByteBuddyAgent.AttachmentProvider.ForModularizedVm.INSTANCE,
+        ArrayList<ByteBuddyAgent.AttachmentProvider> providers = new ArrayList<>(Arrays.asList(
+            ByteBuddyAgent.AttachmentProvider.ForModularizedVm.INSTANCE,
             ByteBuddyAgent.AttachmentProvider.ForJ9Vm.INSTANCE,
             new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.JVM_ROOT),
             new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.JDK_ROOT),
             new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.MACINTOSH),
             new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForUserDefinedToolsJar.INSTANCE)));
+
+        // only use emulated attach as last resort option
+        if (useEmulatedAttach) {
+            providers.add(ByteBuddyAgent.AttachmentProvider.ForEmulatedAttachment.INSTANCE);
+        }
 
         provider = new ByteBuddyAgent.AttachmentProvider.Compound(providers);
     }
