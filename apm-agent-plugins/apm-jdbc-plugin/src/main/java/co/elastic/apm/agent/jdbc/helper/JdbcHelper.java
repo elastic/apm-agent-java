@@ -42,7 +42,6 @@ import java.sql.Statement;
 import java.util.concurrent.Callable;
 
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metaDataMap;
-import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metadataSupported;
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.statementSqlMap;
 
 public class JdbcHelper {
