@@ -25,6 +25,7 @@
 package co.elastic.apm.attach;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -117,6 +118,13 @@ class DiscoveryRules {
         return excludeRules;
     }
 
+    @Override
+    public String toString() {
+        return "DiscoveryRules{" +
+            "discoveryRules=" + Arrays.toString(discoveryRules.toArray()) +
+            '}';
+    }
+
     public static class DiscoveryRule implements Matcher {
 
         private final Matcher matcher;
@@ -175,6 +183,11 @@ class DiscoveryRules {
             return matches;
         }
 
+
+        @Override
+        public String toString() {
+            return matches ? "all" : "none";
+        }
     }
 
     private static class MainClassMatcher implements Matcher {

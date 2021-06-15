@@ -127,6 +127,10 @@ public class AgentAttacher {
             return;
         }
         Logger logger = initLogging(arguments);
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("attacher arguments : {}", arguments);
+        }
         try {
             new AgentAttacher(arguments).handleNewJvmsLoop();
         } catch (Exception e) {
@@ -553,6 +557,23 @@ public class AgentAttacher {
 
         public Level getLogLevel() {
             return logLevel;
+        }
+
+        @Override
+        public String toString() {
+            return "Arguments{" +
+                "rules=" + rules +
+                ", config=" + config +
+                ", argsProvider='" + argsProvider + '\'' +
+                ", help=" + help +
+                ", list=" + list +
+                ", continuous=" + continuous +
+                ", useEmulatedAttach=" + useEmulatedAttach +
+                ", logLevel=" + logLevel +
+                ", logFile='" + logFile + '\'' +
+                ", listVmArgs=" + listVmArgs +
+                ", agentJar=" + agentJar +
+                '}';
         }
     }
 
