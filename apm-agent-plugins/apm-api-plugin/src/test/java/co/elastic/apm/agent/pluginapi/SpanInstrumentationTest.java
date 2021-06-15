@@ -27,6 +27,7 @@ package co.elastic.apm.agent.pluginapi;
 import co.elastic.apm.AbstractApiTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.objectpool.impl.BookkeeperObjectPool;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Scope;
 import co.elastic.apm.api.Span;
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.Test;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -147,6 +149,27 @@ class SpanInstrumentationTest extends AbstractApiTest {
         assertThat(span.isSampled()).isTrue();
         span.end();
         transaction.end();
+    }
+
+    @Test
+    void testReferenceCounting() {
+        final Transaction transaction = ElasticApm.startTransaction();
+        Span span = transaction.startSpan();
+        try (Scope scope = span.activate()) {
+            span.startSpan().end();
+        }
+        span.end();
+        transaction.end();
+
+        BookkeeperObjectPool<co.elastic.apm.agent.impl.transaction.Span> spanPool = objectPoolFactory.getSpanPool();
+        assertThat(
+            spanPool.getRecyclablesToReturn().stream().filter(span1 -> span1.getReferenceCount() > 1).collect(Collectors.toList()))
+            .hasSize(spanPool.getRequestedObjectCount());
+
+        BookkeeperObjectPool<co.elastic.apm.agent.impl.transaction.Transaction> transactionPool = objectPoolFactory.getTransactionPool();
+        assertThat(
+            transactionPool.getRecyclablesToReturn().stream().filter(transaction1 -> transaction1.getReferenceCount() > 1).collect(Collectors.toList()))
+            .hasSize(transactionPool.getRequestedObjectCount());
     }
 
     @Test
