@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -35,8 +35,7 @@ public class Http implements Recyclable {
     /**
      * URL used by this HTTP outgoing span
      */
-    @Nullable
-    private String url;
+    private final Url url = new Url();
 
     /**
      * HTTP method used by this HTTP outgoing span
@@ -53,7 +52,11 @@ public class Http implements Recyclable {
      * URL used for the outgoing HTTP call
      */
     @Nullable
-    public String getUrl() {
+    public String getFullUrl() {
+        return url.getFull().toString();
+    }
+
+    public Url getUrl() {
         return url;
     }
 
@@ -71,7 +74,10 @@ public class Http implements Recyclable {
      */
     public Http withUrl(@Nullable String url) {
         if (url != null) {
-            this.url = sanitize(url);
+            String sanitized = sanitize(url);
+            if (sanitized != null) {
+                this.url.appendToFull(sanitized);
+            }
         }
         return this;
     }
@@ -106,19 +112,19 @@ public class Http implements Recyclable {
 
     @Override
     public void resetState() {
-        url = null;
+        url.resetState();
         method = null;
         statusCode = 0;
     }
 
     public boolean hasContent() {
-        return url != null ||
+        return url.hasContent() ||
             method != null ||
             statusCode > 0;
     }
 
     public void copyFrom(Http other) {
-        url = other.url;
+        url.copyFrom(other.url);
         method = other.method;
         statusCode = other.statusCode;
     }
