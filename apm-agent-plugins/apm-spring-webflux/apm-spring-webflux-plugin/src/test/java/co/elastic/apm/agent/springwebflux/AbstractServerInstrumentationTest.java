@@ -72,6 +72,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     void beforeEach() {
         assertThat(reporter.getTransactions()).isEmpty();
         client = getClient();
+        disableRecyclingValidation();
     }
 
     @AfterEach
