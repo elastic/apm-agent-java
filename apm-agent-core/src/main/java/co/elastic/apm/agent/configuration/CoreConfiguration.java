@@ -244,7 +244,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("A list of instrumentations which should be disabled.\n" +
             "Valid options are ${allInstrumentationGroupNames}.\n" +
-            "For version `1.25.0` and later, use <<enable_experimental_instrumentations>> to enable experimental instrumentations.\n" +
+            "For version `1.25.0` and later, use <<config-enable_experimental_instrumentations>> to enable experimental instrumentations.\n" +
             "\n" +
             "NOTE: Changing this value at runtime can slow down the application temporarily.")
         .dynamic(true)
