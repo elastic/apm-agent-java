@@ -357,7 +357,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(span.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpClientStatus(status));
         Http spanHttp = span.getContext().getHttp();
         assertThat(spanHttp.getStatusCode()).isEqualTo(status);
-        assertThat(spanHttp.getUrl()).isEqualTo(url);
+        assertThat(spanHttp.getFullUrl()).isEqualTo(url);
         assertThat(spanHttp.getMethod()).isEqualTo(method);
     }
 

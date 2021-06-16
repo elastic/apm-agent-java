@@ -932,7 +932,7 @@ class DslJsonSerializerTest {
         t.start(TraceContext.asRoot(), null, 0, sampler, getClass().getClassLoader());
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
-        t.getContext().getRequest().getUrl().appendToFull("http://localhost:8080/foo/bar");
+        t.getContext().getRequest().getUrl().withFull("http://localhost:8080/foo/bar");
         return t;
     }
 

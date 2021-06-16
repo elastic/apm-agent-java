@@ -52,11 +52,11 @@ public class TransactionUtils {
         request.endOfBufferInput();
         request.getUrl()
             .withProtocol("https")
-            .appendToFull("https://www.example.com/p/a/t/h?query=string#hash")
             .withHostname("www.example.com")
             .withPort(8080)
             .withPathname("/p/a/t/h")
-            .withSearch("?query=string");
+            .withSearch("?query=string")
+            .updateFull();
         request.getSocket()
             .withEncrypted(true)
             .withRemoteAddress("12.53.12.1");

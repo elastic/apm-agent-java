@@ -169,7 +169,7 @@ public abstract class AbstractHttpTransactionHelper {
     }
 
     protected void fillRequest(Request request, String protocol, String method, boolean secure, @Nullable String remoteAddr) {
-        request.withHttpVersion(getHttpVersion(protocol));
+        request.withHttpVersion(protocol);
         request.withMethod(method);
 
         request.getSocket()
@@ -184,55 +184,8 @@ public abstract class AbstractHttpTransactionHelper {
             .withHostname(serverName)
             .withPort(serverPort)
             .withPathname(requestURI)
-            .withSearch(queryString);
-
-        fillFullUrl(request.getUrl(), scheme, serverPort, serverName, requestURI, queryString);
-    }
-
-    // inspired by org.apache.catalina.connector.Request.getRequestURL
-    protected void fillFullUrl(Url url, @Nullable String scheme, int port, @Nullable String serverName, @Nullable String requestURI, @Nullable String queryString) {
-        // using a StringBuilder to avoid allocations when constructing the full URL
-        final StringBuilder fullUrl = url.getFull();
-
-        if (serverName != null) {
-            if (scheme != null) {
-                fullUrl.append(scheme);
-                fullUrl.append("://");
-            }
-            fullUrl.append(serverName);
-            if (port < 0) {
-                port = 80; // Work around java.net.URL bug
-            }
-        }
-        if (port > 0) {
-            if (scheme == null || (scheme.equals("http") && (port != 80)) ||
-                (scheme.equals("https") && (port != 443))) {
-                fullUrl.append(':');
-                fullUrl.append(port);
-            }
-        }
-
-        if (requestURI != null) {
-            fullUrl.append(requestURI);
-        }
-
-        if (queryString != null) {
-            fullUrl.append('?').append(queryString);
-        }
-    }
-
-    private String getHttpVersion(String protocol) {
-        // don't allocate new strings in the common cases
-        switch (protocol) {
-            case "HTTP/1.0":
-                return "1.0";
-            case "HTTP/1.1":
-                return "1.1";
-            case "HTTP/2.0":
-                return "2.0";
-            default:
-                return protocol.replace("HTTP/", "");
-        }
+            .withSearch(queryString)
+            .updateFull();
     }
 
     public boolean isCaptureHeaders() {

@@ -27,6 +27,8 @@ package co.elastic.apm.agent.impl.context;
 import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 
 
@@ -95,31 +97,58 @@ public class Url implements Recyclable {
     public Url updateFull() {
         // inspired by org.apache.catalina.connector.Request.getRequestURL
 
-        boolean isHttps = "https".equals(protocol);
-        boolean isHttp = "http".equals(protocol);
-        int portValue = port;
-        if (portValue < 0) {
-            portValue = isHttps ? 443 : isHttp ? 80 : portValue; // Work around java.net.URL bug
-        }
+        int portValue = normalizePort(port, protocol);
 
         full.setLength(0);
         full.append(protocol);
         full.append("://");
         full.append(hostname);
-        if ((isHttps && portValue != 443) || (isHttp && portValue != 80)) {
-            full.append(':');
-            full.append(portValue);
+        if ((isHttps(protocol) && portValue != 443) || (isHttp(protocol) && portValue != 80)) {
+            full.append(':').append(portValue);
         }
-        full.append(pathname);
+        if (pathname != null) {
+            full.append(pathname);
+        }
         if (search != null) {
             full.append('?').append(search);
         }
         return this;
     }
 
-    public Url appendToFull(CharSequence charSequence) {
-        full.append(charSequence);
+    /**
+     * Sets the full URL from an arbitrary string. The value is only parsed if the URL might contain user credentials
+     * for sanitizing, otherwise it's copied as-is without allocation.
+     *
+     * @param value full URL
+     * @return this
+     */
+    public Url withFull(CharSequence value) {
+        if (!urlNeedsSanitize(value)) {
+            full.setLength(0);
+            full.append(value);
+        } else {
+            // likely needs to be sanitized, thus parsing is simpler
+            String uriStringValue = value.toString();
+            URI uri = null;
+            try {
+                uri = new URI(uriStringValue);
+            } catch (URISyntaxException e) {
+                // silently ignore URIs that we can't parse
+            }
+            if (uri != null) {
+                fillFrom(uri);
+            }
+        }
         return this;
+    }
+
+    private static boolean urlNeedsSanitize(CharSequence sequence) {
+        for (int i = 0; i < sequence.length(); i++) {
+            if (sequence.charAt(i) == '@') {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -185,33 +214,61 @@ public class Url implements Recyclable {
         return this;
     }
 
-    public void fillFromFullUrl(URL url) {
-        if (protocol == null) protocol = url.getProtocol();
-        if (hostname == null) hostname = url.getHost();
-        if (pathname == null) pathname = url.getPath();
-        if (search == null) search = url.getQuery();
-        int port = url.getPort();
-        port = port > 0 ? port : url.getDefaultPort();
-        if (port > 0) {
-            withPort(port);
-        }
+    /**
+     * Fills all attributes of Url from {@link URI} instance, also updates full
+     *
+     * @param uri URI
+     */
+    public void fillFrom(URI uri) {
+        withProtocol(uri.getScheme())
+            .withHostname(uri.getHost())
+            .withPort(normalizePort(uri.getPort(), uri.getScheme()))
+            .withPathname(uri.getPath())
+            .withSearch(uri.getQuery())
+            .updateFull();
     }
 
-    public void fillFullUrl() {
-        if (full.length() > 0 || hostname == null) {
-            return;
+    /**
+     * Fills all attributes of Url from {@link URL} instance, also updates full
+     *
+     * @param url URL
+     */
+    public void fillFrom(URL url) {
+        int port = url.getPort();
+        if (port < 0) {
+            port = url.getDefaultPort();
         }
-        full.append(protocol != null ? protocol : "http")
-            .append("://")
-            .append(hostname);
 
-        if (port > 0) {
-            full.append(":").append(port);
+        withProtocol(url.getProtocol())
+            .withHostname(url.getHost())
+            .withPort(port)
+            .withPathname(url.getPath())
+            .withSearch(url.getQuery())
+            .updateFull();
+    }
+
+    @Deprecated
+    public void fillFrom(CharSequence uriString) {
+        full.setLength(0);
+        full.append(uriString);
+    }
+
+    private static int normalizePort(int port, @Nullable String protocol) {
+        int portValue = port;
+        if (portValue < 0 && protocol != null) {
+            // Work around java.net.URL bug
+            // When port is implicit its value is set to -1 and not the one we expect
+            portValue = isHttps(protocol) ? 443 : isHttp(protocol) ? 80 : portValue;
         }
+        return portValue;
+    }
 
-        full.append(pathname != null ? pathname : "")
-            .append(search != null ? "?" : "")
-            .append(search != null ? search : "");
+    private static boolean isHttps(@Nullable String protocol) {
+        return "https".equals(protocol);
+    }
+
+    private static boolean isHttp(@Nullable String protocol) {
+        return "http".equals(protocol);
     }
 
     @Override
