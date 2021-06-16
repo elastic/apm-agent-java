@@ -80,12 +80,9 @@ public class GetAgentProperties {
     }
 
     static Properties getAgentAndSystemPropertiesCurrentUser(String pid) {
-        ByteBuddyAgent.AttachmentProvider.Accessor accessor = ElasticAttachmentProvider.get().attempt();
+        ByteBuddyAgent.AttachmentProvider.Accessor  accessor = ElasticAttachmentProvider.get(pid.equals(JvmInfo.CURRENT_PID)).attempt();
         if (!accessor.isAvailable()) {
             throw new IllegalStateException("No compatible attachment provider is available");
-        }
-        if (accessor.isExternalAttachmentRequired() && pid.equals(JvmInfo.CURRENT_PID)) {
-            throw new IllegalStateException("The current accessor does not allow to attach to the current VM");
         }
 
         try {

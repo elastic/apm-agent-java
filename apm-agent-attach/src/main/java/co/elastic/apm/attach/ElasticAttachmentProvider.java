@@ -28,10 +28,11 @@ import net.bytebuddy.agent.ByteBuddyAgent;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class ElasticAttachmentProvider {
 
-    private static ByteBuddyAgent.AttachmentProvider provider;
+    private static ElasticAttachmentCompoundProvider provider;
 
     /**
      * Initializes attachment provider, this method can only be called once as it loads native code.
@@ -56,7 +57,7 @@ public class ElasticAttachmentProvider {
             providers.add(ByteBuddyAgent.AttachmentProvider.ForEmulatedAttachment.INSTANCE);
         }
 
-        provider = new ByteBuddyAgent.AttachmentProvider.Compound(providers);
+        provider = new ElasticAttachmentCompoundProvider(providers);
     }
 
     /**
@@ -64,10 +65,59 @@ public class ElasticAttachmentProvider {
      *
      * @return attachment provider
      */
-    public synchronized static ByteBuddyAgent.AttachmentProvider get() {
+    public synchronized static ElasticAttachmentCompoundProvider get(boolean filterExternalAttachmentRequired) {
         if (provider == null) {
             init(true);
         }
-        return provider;
+        return filterExternalAttachmentRequired ? provider.filterExternalAttachmentRequired() : provider;
+    }
+
+    /**
+     * Compound provider that checks for availability and ability to attach to the JVM
+     */
+    public static class ElasticAttachmentCompoundProvider implements ByteBuddyAgent.AttachmentProvider {
+
+        private final List<ByteBuddyAgent.AttachmentProvider> attachmentProviders;
+        private final boolean filterExternalAttachmentRequired;
+
+        private ElasticAttachmentCompoundProvider(List<ByteBuddyAgent.AttachmentProvider> attachmentProviders) {
+            this.attachmentProviders = attachmentProviders;
+            this.filterExternalAttachmentRequired = false;
+        }
+
+        public ElasticAttachmentCompoundProvider filterExternalAttachmentRequired(){
+            return new ElasticAttachmentCompoundProvider(attachmentProviders, true);
+        }
+
+        private ElasticAttachmentCompoundProvider(List<ByteBuddyAgent.AttachmentProvider> attachmentProviders,
+                                                  boolean filterExternalAttachmentRequired) {
+
+            this.attachmentProviders = attachmentProviders;
+            this.filterExternalAttachmentRequired = filterExternalAttachmentRequired;
+        }
+
+        /**
+         * @return first attacher available, {@link Accessor.Unavailable} if none is available
+         */
+        @Override
+        public ByteBuddyAgent.AttachmentProvider.Accessor attempt() {
+            return attempt(filterExternalAttachmentRequired);
+        }
+
+        /**
+         * @param filterExternalAttachmentRequired {@literal true} to filter accessors where external attachment is required
+         * @return first attacher that is available and suitable, {@link Accessor.Unavailable} if there is none.
+         */
+        private ByteBuddyAgent.AttachmentProvider.Accessor attempt(boolean filterExternalAttachmentRequired) {
+            for (ByteBuddyAgent.AttachmentProvider provider : attachmentProviders) {
+                Accessor accessor = provider.attempt();
+                if (accessor.isAvailable()) {
+                    if (!filterExternalAttachmentRequired || !accessor.isExternalAttachmentRequired()) {
+                        return accessor;
+                    }
+                }
+            }
+            return Accessor.Unavailable.INSTANCE;
+        }
     }
 }
