@@ -813,8 +813,6 @@ If the HTTP request or the message has a body and this setting is disabled, the 
 
 This option is case-insensitive.
 
-NOTE: Currently, the body length is limited to 10000 characters and it is not configurable. If the body size exceeds the limit, it will be truncated.
-
 NOTE: Currently, only UTF-8 encoded plain text HTTP content types are supported.
 The option <<config-capture-body-content-types>> determines which content types are captured.
 
