@@ -184,8 +184,7 @@ public abstract class AbstractHttpTransactionHelper {
             .withHostname(serverName)
             .withPort(serverPort)
             .withPathname(requestURI)
-            .withSearch(queryString)
-            .updateFull();
+            .withSearch(queryString);
     }
 
     public boolean isCaptureHeaders() {

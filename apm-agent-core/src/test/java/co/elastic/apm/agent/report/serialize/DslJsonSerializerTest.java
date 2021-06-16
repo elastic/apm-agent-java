@@ -666,12 +666,13 @@ class DslJsonSerializerTest {
         assertThat(jsonRequest.get("headers").get("my_header").asText()).isEqualTo("header value");
 
         JsonNode jsonUrl = jsonRequest.get("url");
-        assertThat(jsonUrl).hasSize(5);
+        assertThat(jsonUrl).hasSize(6);
         assertThat(jsonUrl.get("hostname").asText()).isEqualTo("my-hostname");
         assertThat(jsonUrl.get("port").asText()).isEqualTo("42");
         assertThat(jsonUrl.get("pathname").asText()).isEqualTo("/path/name");
         assertThat(jsonUrl.get("search").asText()).isEqualTo("q=test");
         assertThat(jsonUrl.get("protocol").asText()).isEqualTo("http");
+        assertThat(jsonUrl.get("full").asText()).isEqualTo("http://my-hostname:42/path/name?q=test");
 
         JsonNode jsonSocket = jsonRequest.get("socket");
         assertThat(jsonSocket).hasSize(2);

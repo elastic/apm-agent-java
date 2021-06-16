@@ -92,7 +92,7 @@ public class SprintRestTemplateIntegration extends AbstractInstrumentationTest {
             Span span = reporter.getFirstSpan();
             Http http = span.getContext().getHttp();
             assertThat(http.getMethod()).isEqualTo("GET");
-            assertThat(http.getFullUrl()).isEqualTo(url);
+            assertThat(http.getUrl()).isEqualTo(url);
         }
     }
 }

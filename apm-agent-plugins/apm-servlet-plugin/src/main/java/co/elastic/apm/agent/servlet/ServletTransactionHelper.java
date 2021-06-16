@@ -113,8 +113,7 @@ public class ServletTransactionHelper {
             .withHostname(serverName)
             .withPort(serverPort)
             .withPathname(requestURI)
-            .withSearch(queryString)
-            .updateFull();
+            .withSearch(queryString);
 
     }
 

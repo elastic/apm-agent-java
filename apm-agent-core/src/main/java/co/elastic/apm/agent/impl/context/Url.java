@@ -86,6 +86,9 @@ public class Url implements Recyclable {
      * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
     public StringBuilder getFull() {
+        if (full.length() == 0 && hasContent()) {
+            updateFull();
+        }
         return full;
     }
 
@@ -94,7 +97,7 @@ public class Url implements Recyclable {
      *
      * @return url
      */
-    public Url updateFull() {
+    private void updateFull() {
         // inspired by org.apache.catalina.connector.Request.getRequestURL
 
         int portValue = normalizePort(port, protocol);
@@ -112,7 +115,6 @@ public class Url implements Recyclable {
         if (search != null) {
             full.append('?').append(search);
         }
-        return this;
     }
 
     /**

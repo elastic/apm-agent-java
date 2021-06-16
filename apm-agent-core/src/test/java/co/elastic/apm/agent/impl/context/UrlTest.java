@@ -59,8 +59,7 @@ class UrlTest {
             .withPathname("/foo")
             .withPort(8080)
             .withProtocol("http")
-            .withSearch("foo=bar")
-            .updateFull();
+            .withSearch("foo=bar");
     }
 
     @Test
@@ -69,7 +68,6 @@ class UrlTest {
         assertThat(new Url().withProtocol("http")
             .withHostname("localhost")
             .withPort(80)
-            .updateFull()
             .getFull().toString()).isEqualTo("http://localhost");
 
         // non default port on http + path
@@ -77,7 +75,6 @@ class UrlTest {
             .withHostname("localhost")
             .withPort(8080)
             .withPathname("/hello")
-            .updateFull()
             .getFull().toString()).isEqualTo("http://localhost:8080/hello");
 
         // default port on https + search string
@@ -85,14 +82,12 @@ class UrlTest {
             .withHostname("hostname")
             .withPort(443)
             .withSearch("hello=world")
-            .updateFull()
             .getFull().toString()).isEqualTo("https://hostname?hello=world");
 
         // non default port on https
         assertThat(new Url().withProtocol("https")
             .withHostname("hostname")
             .withPort(447)
-            .updateFull()
             .getFull().toString()).isEqualTo("https://hostname:447");
 
     }
@@ -148,6 +143,17 @@ class UrlTest {
             assertThat(url.getPort()).isLessThan(0);
         }
 
+    }
 
+    @Test
+    void getFullUpdatesFullWhenRequired() {
+        Url url = new Url();
+
+        StringBuilder full = url.getFull();
+
+        url.withProtocol("http").withHostname("localhost").withPathname("/");
+        assertThat(full).isEmpty();
+        assertThat(url.hasContent()).isTrue();
+        assertThat(url.getFull().toString()).isEqualTo("http://localhost/");
     }
 }

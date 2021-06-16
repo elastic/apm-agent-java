@@ -49,12 +49,10 @@ public class Http implements Recyclable {
     /**
      * URL used for the outgoing HTTP call
      */
-    public String getFullUrl() {
-        return url.getFull().toString();
-    }
-
-    public Url getUrl() {
-        return url;
+    public CharSequence getUrl() {
+        // note: do not expose the underlying Url object, as it does not have
+        // all it's properties set due to providing the full URL as-is
+        return url.getFull();
     }
 
     @Nullable
