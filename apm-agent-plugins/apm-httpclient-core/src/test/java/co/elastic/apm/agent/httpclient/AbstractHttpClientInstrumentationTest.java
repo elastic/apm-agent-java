@@ -28,6 +28,7 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
@@ -155,7 +156,12 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(httpContext.getUrl().toString()).isEqualTo(baseUrl + path);
         assertThat(httpContext.getStatusCode()).isEqualTo(status);
 
-        assertThat(span.getOutcome()).isEqualTo(status <= 400 ? Outcome.SUCCESS : Outcome.FAILURE);
+        if (requestExecuted) {
+            assertThat(span.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpClientStatus(status));
+        } else {
+            assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
+        }
+
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("http");
         assertThat(span.getAction()).isNull();
