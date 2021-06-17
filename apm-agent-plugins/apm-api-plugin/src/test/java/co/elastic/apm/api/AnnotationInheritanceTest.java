@@ -51,7 +51,7 @@ class AnnotationInheritanceTest {
 
     @AfterEach
     void cleanup() {
-        reporter.reset();
+        reporter.resetWithoutRecycling();
     }
 
     private void init(boolean annotationInheritanceEnabled) {
