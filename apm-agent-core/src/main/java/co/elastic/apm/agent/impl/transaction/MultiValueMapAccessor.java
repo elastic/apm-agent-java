@@ -22,12 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.impl;
+package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.HeaderRemover;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 
 import javax.annotation.Nullable;

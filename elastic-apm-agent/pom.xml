@@ -204,6 +204,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-opentracing-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -398,6 +403,12 @@
                                         <include>org/HdrHistogram/WriterReaderPhaser.class</include>
                                     </includes>
                                 </filter>
+                                <filter>
+                                    <artifact>io.opentelemetry:*</artifact>
+                                    <includes>
+                                        <include>io/opentelemetry/semconv/**</include>
+                                    </includes>
+                                </filter>
                             </filters>
                             <relocations>
                                 <relocation>
@@ -466,12 +477,17 @@
                                     <pattern>org.HdrHistogram</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.HdrHistogram</shadedPattern>
                                 </relocation>
-
+                                <!-- we need to ship the opentelemetry-semconv artifact, the rest of the otel api is provided -->
+                                <relocation>
+                                    <pattern>io.opentelemetry.semconv</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.opentelemetry.semconv</shadedPattern>
+                                </relocation>
                                 <!-- This reverts logging frameworks temporary packages given during the execution of the package
                                 phase of the apm-log-shader-plugin to their original packages -->
                                 <relocation>
                                     <pattern>co.elastic.apm.agent.logshading.shaded</pattern>
                                     <shadedPattern>org</shadedPattern>
+
                                 </relocation>
                             </relocations>
                             <transformers>

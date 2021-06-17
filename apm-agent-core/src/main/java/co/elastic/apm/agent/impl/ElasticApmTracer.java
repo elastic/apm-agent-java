@@ -167,6 +167,12 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     @Nullable
+    public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, long epochMicro) {
+        return startRootTransaction(sampler, epochMicro, initiatingClassLoader);
+    }
+
+    @Override
+    @Nullable
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;
         if (isRunning()) {
@@ -180,6 +186,12 @@ public class ElasticApmTracer implements Tracer {
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return startChildTransaction(headerCarrier, textHeadersGetter, sampler, -1, initiatingClassLoader);
+    }
+
+    @Override
+    @Nullable
+    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros) {
+        return startChildTransaction(headerCarrier, textHeadersGetter, sampler, epochMicros, initiatingClassLoader);
     }
 
     @Override

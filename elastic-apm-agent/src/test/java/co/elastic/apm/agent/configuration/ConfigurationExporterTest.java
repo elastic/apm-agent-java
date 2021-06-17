@@ -161,7 +161,6 @@ class ConfigurationExporterTest {
 
     public static String getAllInstrumentationGroupNames() {
         Set<String> instrumentationGroupNames = new TreeSet<>();
-        instrumentationGroupNames.add("experimental");
         for (ElasticApmInstrumentation instrumentation : DependencyInjectingServiceLoader.load(ElasticApmInstrumentation.class, MockTracer.create())) {
             instrumentationGroupNames.addAll(instrumentation.getInstrumentationGroupNames());
         }

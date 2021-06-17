@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -42,8 +42,17 @@ import java.util.List;
  */
 public class PotentiallyMultiValuedMap implements Recyclable {
 
-    private final List<String> keys = new ArrayList<>();
-    private final List<Object> values = new ArrayList<>();
+    private final List<String> keys;
+    private final List<Object> values;
+
+    public PotentiallyMultiValuedMap() {
+        this(10);
+    }
+
+    public PotentiallyMultiValuedMap(int initialSize) {
+        keys = new ArrayList<>(initialSize);
+        values = new ArrayList<>(initialSize);
+    }
 
     /**
      * Adds a value to this map.

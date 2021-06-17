@@ -49,6 +49,12 @@ class NoopTracer implements Tracer {
 
     @Nullable
     @Override
+    public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, long epochMicro) {
+        return null;
+    }
+
+    @Nullable
+    @Override
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         return null;
     }
@@ -56,6 +62,12 @@ class NoopTracer implements Tracer {
     @Nullable
     @Override
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros) {
         return null;
     }
 

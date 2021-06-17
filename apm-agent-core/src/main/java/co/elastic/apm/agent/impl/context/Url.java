@@ -27,6 +27,7 @@ package co.elastic.apm.agent.impl.context;
 import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
+import java.net.URL;
 
 
 /**
@@ -182,6 +183,35 @@ public class Url implements Recyclable {
     public Url withSearch(@Nullable String search) {
         this.search = search;
         return this;
+    }
+
+    public void fillFromFullUrl(URL url) {
+        if (protocol == null) protocol = url.getProtocol();
+        if (hostname == null) hostname = url.getHost();
+        if (pathname == null) pathname = url.getPath();
+        if (search == null) search = url.getQuery();
+        int port = url.getPort();
+        port = port > 0 ? port : url.getDefaultPort();
+        if (port > 0) {
+            withPort(port);
+        }
+    }
+
+    public void fillFullUrl() {
+        if (full.length() > 0 || hostname == null) {
+            return;
+        }
+        full.append(protocol != null ? protocol : "http")
+            .append("://")
+            .append(hostname);
+
+        if (port > 0) {
+            full.append(":").append(port);
+        }
+
+        full.append(pathname != null ? pathname : "")
+            .append(search != null ? "?" : "")
+            .append(search != null ? search : "");
     }
 
     @Override
