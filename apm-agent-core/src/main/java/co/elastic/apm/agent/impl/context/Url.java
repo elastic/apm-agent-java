@@ -27,13 +27,14 @@ package co.elastic.apm.agent.impl.context;
 import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 
 
 /**
- * A complete Url, with scheme, host and path.
+ * A complete URL, with scheme, host, port, path and query string.
  */
 public class Url implements Recyclable {
 
@@ -253,6 +254,18 @@ public class Url implements Recyclable {
     public void fillFrom(CharSequence uriString) {
         full.setLength(0);
         full.append(uriString);
+    }
+
+    /**
+     * Parses the full property as URL and populates individual properties
+     */
+    public void parseAndFillFromFull() {
+        if (full.length() > 0) {
+            try {
+                fillFrom(new URL(full.toString()));
+            } catch (MalformedURLException ignore) {
+            }
+        }
     }
 
     private static int normalizePort(int port, @Nullable String protocol) {

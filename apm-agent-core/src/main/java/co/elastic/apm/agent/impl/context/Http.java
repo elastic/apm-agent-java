@@ -50,9 +50,16 @@ public class Http implements Recyclable {
      * URL used for the outgoing HTTP call
      */
     public CharSequence getUrl() {
-        // note: do not expose the underlying Url object, as it does not have
+        // note: do not expose the underlying Url object, as it might does not have
         // all it's properties set due to providing the full URL as-is
         return url.getFull();
+    }
+
+    /**
+     * @return internal {@link Url} instance
+     */
+    public Url getInternalUrl() {
+        return url;
     }
 
     @Nullable
