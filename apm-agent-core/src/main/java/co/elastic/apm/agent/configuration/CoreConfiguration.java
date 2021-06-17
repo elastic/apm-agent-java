@@ -309,6 +309,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "This option is case-insensitive.\n" +
             "\n" +
+            "NOTE: Currently, the body length is limited to 10000 characters and it is not configurable. \n" +
+            "If the body size exceeds the limit, it will be truncated. \n" +
+            "\n" +
             "NOTE: Currently, only UTF-8 encoded plain text HTTP content types are supported.\n" +
             "The option <<config-capture-body-content-types>> determines which content types are captured.\n" +
             "\n" +
