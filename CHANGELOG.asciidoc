@@ -28,6 +28,8 @@ endif::[]
 * Support for inheritance of public API annotations - {pull}1805[#1805]
 * JDBC instrumentation sets context.db.instance - {pull}1820[#1820]
 * Add support for Vert.x web client- {pull}1824[#1824]
+* Avoid recycling of spans and transactions that are using through the public API, so to avoid
+reference-counting-related errors - {pull}1859[#1859]
 * Instrument javax.servlet.Filter the same way as javax.servlet.FilterChain {pull}1858[#1858]
 
 [float]

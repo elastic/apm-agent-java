@@ -434,6 +434,9 @@ public class ElasticApmTracer implements Tracer {
         ExecutorUtils.shutdownAndWaitTermination(sharedPool);
         tracerState = TracerState.STOPPED;
         logger.info("Tracer switched to STOPPED state");
+        if (logger.isDebugEnabled()) {
+            logger.debug("Tracer stop stack trace: ", new Throwable("Expected - for debugging purposes"));
+        }
 
         try {
             configurationRegistry.close();
