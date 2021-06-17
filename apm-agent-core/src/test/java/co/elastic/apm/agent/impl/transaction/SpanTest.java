@@ -26,7 +26,6 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockTracer;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -68,5 +67,15 @@ class SpanTest {
         span.end();
 
         assertThat(span.getOutcome()).isEqualTo(Outcome.UNKNOWN);
+    }
+
+    @Test
+    void normalizeEmptyFields() {
+        Span span = new Span(MockTracer.create())
+            .withName("span");
+
+        assertThat(span.withType("").getType()).isNull();
+        assertThat(span.withSubtype("").getSubtype()).isNull();
+        assertThat(span.withAction("").getAction()).isNull();
     }
 }

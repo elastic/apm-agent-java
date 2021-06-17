@@ -30,7 +30,7 @@ import io.vertx.core.Handler;
 
 public class GenericHandlerWrapper<T> implements Handler<T> {
 
-    private final Handler<T> actualHandler;
+    protected final Handler<T> actualHandler;
     private final AbstractSpan<?> parentSpan;
 
     public GenericHandlerWrapper(AbstractSpan<?> parentSpan, Handler<T> actualHandler) {

@@ -24,9 +24,10 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.AbstractApiTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.objectpool.impl.BookkeeperObjectPool;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Scope;
 import co.elastic.apm.api.Span;
@@ -39,10 +40,11 @@ import org.junit.jupiter.api.Test;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SpanInstrumentationTest extends AbstractInstrumentationTest {
+class SpanInstrumentationTest extends AbstractApiTest {
 
     private static final SecureRandom random = new SecureRandom();
 
@@ -67,7 +69,10 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void testLegacyAPIs() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.createSpan();
         span.setType("foo.bar.baz");
         endSpan(span);
@@ -79,6 +84,8 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testTypes() {
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", "bar", "baz");
         endSpan(span);
         co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
@@ -89,6 +96,8 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testChaining() {
+        reporter.disableCheckStrictSpanType();
+
         int randomInt = random.nextInt();
         boolean randomBoolean = random.nextBoolean();
         String randomString = RandomStringUtils.randomAlphanumeric(3);
@@ -140,6 +149,27 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(span.isSampled()).isTrue();
         span.end();
         transaction.end();
+    }
+
+    @Test
+    void testReferenceCounting() {
+        final Transaction transaction = ElasticApm.startTransaction();
+        Span span = transaction.startSpan();
+        try (Scope scope = span.activate()) {
+            span.startSpan().end();
+        }
+        span.end();
+        transaction.end();
+
+        BookkeeperObjectPool<co.elastic.apm.agent.impl.transaction.Span> spanPool = objectPoolFactory.getSpanPool();
+        assertThat(
+            spanPool.getRecyclablesToReturn().stream().filter(span1 -> span1.getReferenceCount() > 1).collect(Collectors.toList()))
+            .hasSize(spanPool.getRequestedObjectCount());
+
+        BookkeeperObjectPool<co.elastic.apm.agent.impl.transaction.Transaction> transactionPool = objectPoolFactory.getTransactionPool();
+        assertThat(
+            transactionPool.getRecyclablesToReturn().stream().filter(transaction1 -> transaction1.getReferenceCount() > 1).collect(Collectors.toList()))
+            .hasSize(transactionPool.getRequestedObjectCount());
     }
 
     @Test

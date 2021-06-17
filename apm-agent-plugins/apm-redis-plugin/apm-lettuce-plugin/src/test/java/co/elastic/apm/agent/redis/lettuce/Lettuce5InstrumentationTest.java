@@ -50,7 +50,7 @@ public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTes
     public void setUpLettuce() {
         RedisClient client = RedisClient.create(RedisURI.create("localhost", redisPort));
         connection = client.connect();
-        reporter.disableDestinationAddressCheck();
+        reporter.disableCheckDestinationAddress();
     }
 
     @Test

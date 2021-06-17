@@ -26,6 +26,7 @@ package co.elastic.apm.agent.vertx.v3;
 
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.vertx.GenericHandlerWrapper;
+import co.elastic.apm.agent.vertx.SetTimerWrapper;
 import io.vertx.core.Handler;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -63,7 +64,7 @@ public abstract class EventLoopInstrumentation extends Vertx3Instrumentation {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             @AssignTo.Argument(value = 1)
             public static Handler<Long> setTimerEnter(@Advice.Argument(value = 1) Handler<Long> handler) {
-                return GenericHandlerWrapper.wrapIfActiveSpan(handler);
+                return SetTimerWrapper.wrapTimerIfActiveSpan(handler);
             }
         }
 

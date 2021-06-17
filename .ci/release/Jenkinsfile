@@ -13,6 +13,8 @@ pipeline {
     HOME = "${env.WORKSPACE}"
     JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
     PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+    SLACK_CHANNEL = '#apm-agent-java'
+    NOTIFY_TO = 'build-apm+apm-agent-java@elastic.co'
   }
   options {
     timeout(time: 3, unit: 'HOURS')
@@ -106,34 +108,25 @@ pipeline {
             }
           }
         }
-        stage('Review project version') {
+        stage('Set release version') {
           steps {
             dir("${BASE_DIR}"){
               script {
-                def ver = mvnVersion(showQualifiers: true)
-                def should_continue = input(message: "Current version is ${ver}", parameters: [
-                  [
-                    $class: 'ChoiceParameterDefinition',
-                    name: "You are about to release version ${ver - '-SNAPSHOT'}. Do you wish to update the version?",
-                    "choices": ["Yes", "No"],
-                    description: "Selecting 'Yes' will allow you to select the new version in the next step."
-                  ]
-                ])
-                if (should_continue == 'Yes'){
-                  def new_version = input(message: "Please enter version to change to:", parameters:
-                    [
-                      [
-                        $class: 'StringParameterDefinition',
-                        defaultValue: "${ver}",
-                        description: 'We will update the project version in all pom.xml files. Set this to your desired <release-version>-SNAPSHOT (for example 1.2.3-SNAPSHOT if you want to release version 1.2.3).', name: 'New Version'
-                      ]
-                    ]
-                  )
-                  sh(label: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${new_version}")
-                  sh(script: "git commit -a -m 'Version bump'")
-                  gitPush()
+                def snapshot_version = mvnVersion(showQualifiers: true)
+                def release_version = snapshot_version.minus('-SNAPSHOT')
+                def user_release_version = input(message: "Please enter version to release:", parameters: [[
+                    $class: 'StringParameterDefinition',
+                    name: 'Release version',
+                    defaultValue: "${release_version}",
+                    description: "Current project version is ${snapshot_version}, will be released as ${release_version} if unchanged. Input release version without '-SNAPSHOT' suffix"
+                  ]])
+                if( release_version.equals(user_release_version) ) {
+                    echo "changing project version '${snapshot_version}' not required to release ${release_version}"
                 } else {
-                  echo "Skipping version update"
+                    echo "changing project version from '${snapshot_version}' to '${user_release_version}' to prepare release ${user_release_version}."
+                    sh(label: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${user_release_version}-SNAPSHOT")
+                    sh(script: "git commit -a -m 'Version bump ${ver}'")
+                    gitPush()
                 }
               }
             }
@@ -141,6 +134,8 @@ pipeline {
         }
         stage('Wait on internal CI') {
           steps {
+            notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
+                          body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")
             input(message: "Start the release job on the internal CI. Click 'Proceed' once the job has succeeded or click 'Abort' if the release has failed and then manually undo the release.")
           }
         }
@@ -238,8 +233,27 @@ pipeline {
               sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
             }
           }
+          post {
+            success {
+              notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
+            }
+          }
+        }
+      }
+      post {
+        failure {
+          notifyStatus(slackStatus: 'danger', subject: "[${env.REPO}] Release failed", body: "(<${env.RUN_DISPLAY_URL}|Open>)")
         }
       }
     }
   }
+}
+
+def notifyStatus(def args = [:]) {
+  releaseNotification(slackChannel: "${env.SLACK_CHANNEL}",
+                      slackColor: args.slackStatus,
+                      slackCredentialsId: 'jenkins-slack-integration-token',
+                      to: "${env.NOTIFY_TO}",
+                      subject: args.subject,
+                      body: args.body)
 }
