@@ -67,7 +67,6 @@ public abstract class AbstractVertxWebTest extends AbstractInstrumentationTest {
     void setUp() {
         webConfiguration = tracer.getConfig(WebConfiguration.class);
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
-        disableRecyclingValidation();
     }
 
     @Nullable
