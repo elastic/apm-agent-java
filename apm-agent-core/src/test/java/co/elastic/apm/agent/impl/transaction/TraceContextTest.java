@@ -512,7 +512,7 @@ class TraceContextTest {
         assertThat(traceState).isEqualTo("es=s:0.42");
     }
 
-    private TraceContext createRootSpan(double sampleRate){
+    private TraceContext createRootSpan(double sampleRate) {
         final TraceContext traceContext = TraceContext.with64BitId(tracer);
 
         Sampler sampler = mock(Sampler.class);
@@ -577,7 +577,7 @@ class TraceContextTest {
             .isEqualTo(Double.valueOf(expectedRate));
 
         assertThat(child.getTraceState().toTextHeader())
-                .isEqualTo(expectedHeader);
+            .isEqualTo(expectedHeader);
 
     }
 
