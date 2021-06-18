@@ -34,6 +34,8 @@ the recommended way to override the default `disable_instrumentations=experiment
 * Support for inheritance of public API annotations - {pull}1805[#1805]
 * JDBC instrumentation sets context.db.instance - {pull}1820[#1820]
 * Add support for Vert.x web client- {pull}1824[#1824]
+* Avoid recycling of spans and transactions that are using through the public API, so to avoid
+reference-counting-related errors - {pull}1859[#1859]
 * Add <<config-enable-experimental-instrumentations>> configuration option to enable experimental features - {pull}1863[#1863]
 ** Previously, when adding an instrumentation group to `disable_instrumentations`, we had to make sure to not forget the
 default `experimental` value, for example when disabling `jdbc` instrumentation we had to set `disable_instrumentations=experimental,jdbc` otherwise

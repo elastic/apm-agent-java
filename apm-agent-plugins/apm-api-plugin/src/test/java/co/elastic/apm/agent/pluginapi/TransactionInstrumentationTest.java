@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.AbstractApiTest;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Outcome;
@@ -38,7 +38,7 @@ import java.security.SecureRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class TransactionInstrumentationTest extends AbstractInstrumentationTest {
+class TransactionInstrumentationTest extends AbstractApiTest {
 
     private static final SecureRandom random = new SecureRandom();
 
@@ -193,7 +193,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     public void testAgentPaused() {
         // end current transaction first
         endTransaction();
-        reporter.reset();
+        reporter.resetWithoutRecycling();
 
         TracerInternalApiUtils.pauseTracer(tracer);
         int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();

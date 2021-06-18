@@ -68,7 +68,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -133,9 +132,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
         // This ends the span synchronously
         cancellable.cancel();
 
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span searchSpan = spans.get(0);
+        Span searchSpan = reporter.getFirstSpan(500);
         validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), -1, "POST");
 
         assertThat(searchSpan.getOutcome())
