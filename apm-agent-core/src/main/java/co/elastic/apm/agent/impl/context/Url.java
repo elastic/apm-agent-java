@@ -145,7 +145,7 @@ public class Url implements Recyclable {
         return this;
     }
 
-    private static boolean urlNeedsSanitize(CharSequence sequence) {
+    private static boolean urlNeedsSanitization(CharSequence sequence) {
         for (int i = 0; i < sequence.length(); i++) {
             if (sequence.charAt(i) == '@') {
                 return true;
