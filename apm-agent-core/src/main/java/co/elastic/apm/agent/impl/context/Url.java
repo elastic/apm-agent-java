@@ -126,7 +126,7 @@ public class Url implements Recyclable {
      * @return this
      */
     public Url withFull(CharSequence value) {
-        if (!urlNeedsSanitize(value)) {
+        if (!urlNeedsSanitization(value)) {
             full.setLength(0);
             full.append(value);
         } else {
