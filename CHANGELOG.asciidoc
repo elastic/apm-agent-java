@@ -30,6 +30,7 @@ endif::[]
 * Add support for Vert.x web client- {pull}1824[#1824]
 * Avoid recycling of spans and transactions that are using through the public API, so to avoid
 reference-counting-related errors - {pull}1859[#1859]
+* Add support for Spring AMQP batch API - {pull}1716[#1716]
 
 [float]
 ===== Bug fixes
