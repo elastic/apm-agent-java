@@ -77,9 +77,6 @@ public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrume
                 return null;
             }
             MessageProperties messageProperties = message.getMessageProperties();
-            if (messageProperties == null) {
-                return null;
-            }
             return transactionHelper.createTransaction(message, messageProperties, SpringAmqpTransactionNameUtil.getTransactionNamePrefix(listener));
         }
 

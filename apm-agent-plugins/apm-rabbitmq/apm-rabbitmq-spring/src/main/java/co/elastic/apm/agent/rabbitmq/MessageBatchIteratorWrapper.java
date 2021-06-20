@@ -17,9 +17,9 @@ public class MessageBatchIteratorWrapper implements Iterator<Message> {
 
     private final Iterator<Message> delegate;
     private final ElasticApmTracer tracer;
-    private final SpringAmqpTransactionHelper transactionHelper;
+    private final SpringAmqpTransactionHelperImpl transactionHelper;
 
-    public MessageBatchIteratorWrapper(Iterator<Message> delegate, ElasticApmTracer tracer, SpringAmqpTransactionHelper transactionHelper) {
+    public MessageBatchIteratorWrapper(Iterator<Message> delegate, ElasticApmTracer tracer, SpringAmqpTransactionHelperImpl transactionHelper) {
         this.delegate = delegate;
         this.tracer = tracer;
         this.transactionHelper = transactionHelper;
@@ -48,13 +48,7 @@ public class MessageBatchIteratorWrapper implements Iterator<Message> {
 
         Message message = delegate.next();
         try {
-            if (message == null) {
-                return message;
-            }
             MessageProperties messageProperties = message.getMessageProperties();
-            if (messageProperties == null) {
-                return message;
-            }
             transactionHelper.createTransaction(message, messageProperties, AmqpConstants.SPRING_AMQP_TRANSACTION_PREFIX);
         } catch (Throwable throwable) {
             logger.error("Error in transaction creation based on Spring AMQP batch message", throwable);

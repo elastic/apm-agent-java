@@ -9,7 +9,7 @@ import org.springframework.amqp.core.MessageProperties;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class SpringAmqpTransactionHelperImpl implements SpringAmqpTransactionHelper {
+public class SpringAmqpTransactionHelperImpl {
 
     private final ElasticApmTracer tracer;
 
@@ -18,10 +18,12 @@ public class SpringAmqpTransactionHelperImpl implements SpringAmqpTransactionHel
     }
 
     @Nullable
-    @Override
-    public Transaction createTransaction(@Nonnull Message message, @Nonnull MessageProperties messageProperties, @Nonnull String transactionNamePrefix) {
-        String exchange = messageProperties.getReceivedExchange();
-        if (exchange == null || AbstractBaseInstrumentation.isIgnored(exchange)) {
+    public Transaction createTransaction(@Nonnull Message message, @Nullable MessageProperties messageProperties, @Nonnull String transactionNamePrefix) {
+        String exchange = null;
+        if (messageProperties != null) {
+            exchange = messageProperties.getReceivedExchange();
+        }
+        if (exchange != null && AbstractBaseInstrumentation.isIgnored(exchange)) {
             return null;
         }
 
@@ -41,10 +43,15 @@ public class SpringAmqpTransactionHelperImpl implements SpringAmqpTransactionHel
 
         transaction.setFrameworkName("Spring AMQP");
 
-        long timestamp = AbstractBaseInstrumentation.getTimestamp(messageProperties.getTimestamp());
-        co.elastic.apm.agent.impl.context.Message internalMessage = AbstractBaseInstrumentation.captureMessage(exchange, timestamp, transaction);
+        if (messageProperties != null) {
+            long timestamp = AbstractBaseInstrumentation.getTimestamp(messageProperties.getTimestamp());
+            transaction.getContext().getMessage().withAge(timestamp);
+        }
+        if (exchange != null) {
+            transaction.getContext().getMessage().withQueue(exchange);
+        }
         // only capture incoming messages headers for now (consistent with other messaging plugins)
-        AbstractBaseInstrumentation.captureHeaders(messageProperties.getHeaders(), internalMessage);
+        AbstractBaseInstrumentation.captureHeaders(messageProperties != null ? messageProperties.getHeaders() : null, transaction.getContext().getMessage());
         return transaction.activate();
     }
 }

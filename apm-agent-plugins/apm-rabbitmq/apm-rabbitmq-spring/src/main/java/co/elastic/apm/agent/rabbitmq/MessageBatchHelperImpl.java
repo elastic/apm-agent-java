@@ -7,14 +7,14 @@ import org.springframework.amqp.core.Message;
 
 import java.util.List;
 
-public class MessageBatchHelperImpl implements MessageBatchHelper<Message> {
+public class MessageBatchHelperImpl implements MessageBatchHelper {
 
     public static final Logger logger = LoggerFactory.getLogger(MessageBatchHelperImpl.class);
 
     private final ElasticApmTracer tracer;
-    private final SpringAmqpTransactionHelper transactionHelper;
+    private final SpringAmqpTransactionHelperImpl transactionHelper;
 
-    public MessageBatchHelperImpl(ElasticApmTracer tracer, SpringAmqpTransactionHelper transactionHelper) {
+    public MessageBatchHelperImpl(ElasticApmTracer tracer, SpringAmqpTransactionHelperImpl transactionHelper) {
         this.tracer = tracer;
         this.transactionHelper = transactionHelper;
     }
