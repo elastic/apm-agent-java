@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.api;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.AbstractApiTest;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.junit.jupiter.api.Test;
@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class AnnotationApiTest extends AbstractInstrumentationTest {
+class AnnotationApiTest extends AbstractApiTest {
 
     @Test
     void testCaptureTransactionAnnotation() {

@@ -136,7 +136,11 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         return verifyHttpSpan("localhost", path);
     }
 
-    protected Span verifyHttpSpan(String host, String path, int status){
+    protected Span verifyHttpSpan(String host, String path, int status) {
+        return verifyHttpSpan(host, path, status, true);
+    }
+
+    protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted) {
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         Span span = reporter.getSpans().get(0);
@@ -147,10 +151,12 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
         Http httpContext = span.getContext().getHttp();
 
+        assertThat(span.getNameAsString()).isEqualTo(String.format("%s %s", httpContext.getMethod(), host));
+
         assertThat(httpContext.getUrl()).isEqualTo(baseUrl + path);
         assertThat(httpContext.getStatusCode()).isEqualTo(status);
 
-        assertThat(span.getOutcome()).isEqualTo(status <= 400 ? Outcome.SUCCESS : Outcome.FAILURE);
+        assertThat(span.getOutcome()).isEqualTo(status > 0 && status <= 400 ? Outcome.SUCCESS : Outcome.FAILURE);
 
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("http");
@@ -163,7 +169,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(destination.getPort()).isEqualTo(port);
         assertThat(destination.getService().getResource().toString()).isEqualTo("%s:%d", host, port);
 
-        verifyTraceContextHeaders(span, path);
+        if (requestExecuted) {
+            verifyTraceContextHeaders(span, path);
+        }
 
         return span;
     }

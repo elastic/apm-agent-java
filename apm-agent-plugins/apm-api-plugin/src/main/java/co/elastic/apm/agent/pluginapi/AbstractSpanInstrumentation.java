@@ -132,6 +132,17 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
+    public static class InitializeInstrumentation extends AbstractSpanInstrumentation {
+        public InitializeInstrumentation() {
+            super(named("initialize").and(takesArgument(0, Object.class)));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void incrementReferences(@Advice.Argument(0) Object span) {
+            ((AbstractSpan<?>) span).incrementReferences();
+        }
+    }
+
     public static class SetStartTimestampInstrumentation extends AbstractSpanInstrumentation {
         public SetStartTimestampInstrumentation() {
             super(named("doSetStartTimestamp").and(takesArguments(long.class)));

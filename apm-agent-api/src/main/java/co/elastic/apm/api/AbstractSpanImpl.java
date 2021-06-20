@@ -35,6 +35,11 @@ abstract class AbstractSpanImpl implements Span {
 
     AbstractSpanImpl(@Nonnull Object span) {
         this.span = span;
+        initialize(span);
+    }
+
+    private void initialize(@Nonnull Object span) {
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$InitializeInstrumentation
     }
 
     @Nonnull

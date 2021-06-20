@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -22,32 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.api;
+@NonnullApi
+package co.elastic.apm.agent.vertx.v3.webclient;
 
-import org.junit.jupiter.api.Test;
-
-import java.util.Arrays;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-class OutcomeTest {
-
-    @Test
-    void apiOutcomeMatchesInternalOutcome() {
-
-        Set<String> apiEnumNames = getEnumValues(Outcome.values());
-        Set<String> internalEnumNames = getEnumValues(co.elastic.apm.agent.impl.transaction.Outcome.values());
-
-        assertThat(apiEnumNames)
-            .containsExactlyInAnyOrderElementsOf(internalEnumNames);
-
-    }
-
-    private Set<String> getEnumValues(Enum<?>[] values) {
-        return Arrays.stream(values)
-            .map(Enum::name)
-            .collect(Collectors.toSet());
-    }
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

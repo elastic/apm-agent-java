@@ -335,6 +335,11 @@ public class MockReporter implements Reporter {
         return getFirstSpan();
     }
 
+    public ErrorCapture getFirstError(long timeoutMs) {
+        awaitUntilAsserted(timeoutMs, () -> assertThat(getErrors()).isNotEmpty());
+        return getFirstError();
+    }
+
     public void assertNoSpan() {
         assertThat(getSpans())
             .describedAs("no span expected")

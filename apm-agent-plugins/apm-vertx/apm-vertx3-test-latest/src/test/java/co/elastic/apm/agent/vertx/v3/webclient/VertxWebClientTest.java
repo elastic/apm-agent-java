@@ -22,31 +22,24 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.vertx.helper;
+package co.elastic.apm.agent.vertx.v3.webclient;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
-import io.vertx.core.Handler;
-import io.vertx.ext.web.RoutingContext;
+import co.elastic.apm.agent.vertx.webclient.AbstractVertxWebClientTest;
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.junit5.VertxTestContext;
 
-public class HandlerWithCustomNamedSpan implements Handler<Void> {
 
-    private final RoutingContext routingContext;
-    private final Handler<RoutingContext> handler;
-    private final String spanName;
+public class VertxWebClientTest extends AbstractVertxWebClientTest {
 
-    public HandlerWithCustomNamedSpan(Handler<RoutingContext> handler, RoutingContext routingContext, String spanName) {
-        this.routingContext = routingContext;
-        this.spanName = spanName;
-        this.handler = handler;
+    @Override
+    protected void get(HttpRequest<Buffer> httpRequest, VertxTestContext testContext) {
+        httpRequest.send(testContext.succeedingThenComplete());
     }
 
     @Override
-    public void handle(Void v) {
-        Span child = GlobalTracer.requireTracerImpl().getActive().createSpan();
-        child.withName(spanName + "-child-span");
-        child.activate();
-        handler.handle(routingContext);
-        child.deactivate().end();
+    protected void close(Vertx vertx) {
+        vertx.close();
     }
 }

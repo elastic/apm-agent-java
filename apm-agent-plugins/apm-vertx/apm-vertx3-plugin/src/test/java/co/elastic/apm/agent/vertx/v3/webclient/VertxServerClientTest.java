@@ -22,31 +22,21 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.vertx.helper;
+package co.elastic.apm.agent.vertx.v3.webclient;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.vertx.helper.CommonVertxServerClientTest;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
 
-public class HandlerWithCustomNamedSpan implements Handler<Void> {
-
-    private final RoutingContext routingContext;
-    private final Handler<RoutingContext> handler;
-    private final String spanName;
-
-    public HandlerWithCustomNamedSpan(Handler<RoutingContext> handler, RoutingContext routingContext, String spanName) {
-        this.routingContext = routingContext;
-        this.spanName = spanName;
-        this.handler = handler;
+public class VertxServerClientTest extends CommonVertxServerClientTest {
+    @Override
+    protected Handler<RoutingContext> getDefaultHandlerImpl() {
+        return routingContext -> routingContext.response().end(DEFAULT_RESPONSE_BODY);
     }
 
     @Override
-    public void handle(Void v) {
-        Span child = GlobalTracer.requireTracerImpl().getActive().createSpan();
-        child.withName(spanName + "-child-span");
-        child.activate();
-        handler.handle(routingContext);
-        child.deactivate().end();
+    protected void close(Vertx vertx) {
+        vertx.close();
     }
 }
