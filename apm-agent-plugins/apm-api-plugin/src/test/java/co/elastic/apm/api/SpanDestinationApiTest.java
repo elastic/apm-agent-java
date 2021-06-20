@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.api;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.AbstractApiTest;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.junit.jupiter.api.AfterEach;
@@ -35,7 +35,7 @@ import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SpanDestinationApiTest extends AbstractInstrumentationTest {
+class SpanDestinationApiTest extends AbstractApiTest {
 
     public static final String INTERNAL_ADDRESS = "internal-address";
     public static final int INTERNAL_PORT = 9001;
