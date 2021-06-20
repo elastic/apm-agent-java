@@ -710,6 +710,21 @@ Sets the start timestamp of this event.
 
 * `epochMicros`: the timestamp of when this event started, in microseconds (µs) since epoch
 
+[float]
+[[api-span-set-destination-resource]]
+==== `Span setDestinationService(String resource)` added[1.25.0]
+Provides a way to manually set the span's `destination.service.resource` field, which is used for the
+construction of service maps and the identification of downstream services.
+Any value set through this method will take precedence over the automatically inferred one.
+Using `null` or empty resource string will result in the omission of this field from the span context.
+
+[float]
+[[api-span-set-destination-address]]
+==== `Span setDestinationAddress(String address, int port)` added[1.25.0]
+Provides a way to manually set the span's `destination.address` and `destination.port` fields. 
+Values set through this method will take precedence over the automatically discovered ones.
+Using `null` or empty address or non-positive port will result in the omission of the corresponding field from the
+span context.
 
 [float]
 [[api-span-end]]
