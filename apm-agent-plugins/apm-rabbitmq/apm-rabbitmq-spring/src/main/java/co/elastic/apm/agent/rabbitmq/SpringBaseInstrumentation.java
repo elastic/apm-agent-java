@@ -58,11 +58,11 @@ public abstract class SpringBaseInstrumentation extends AbstractBaseInstrumentat
     }
 
     static class BaseAdvice {
-        protected static final SpringAmqpTransactionHelperImpl transactionHelper;
+        protected static final SpringAmqpTransactionHelper transactionHelper;
 
         static {
             ElasticApmTracer elasticApmTracer = GlobalTracer.requireTracerImpl();
-            transactionHelper = new SpringAmqpTransactionHelperImpl(elasticApmTracer);
+            transactionHelper = new SpringAmqpTransactionHelper(elasticApmTracer);
         }
     }
 }
