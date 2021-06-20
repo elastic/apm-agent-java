@@ -80,6 +80,8 @@ public class MockReporter implements Reporter {
     private static final Map<String, Collection<String>> SPAN_ACTIONS_WITHOUT_ADDRESS;
     // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
     private boolean checkDestinationAddress = true;
+    // All external spans coming from internal plugins should have a valid 'destination.resource' field. However, custom spans may not have it
+    private boolean checkDestinationService = true;
     // Allows optional opt-out for unknown outcome
     private boolean checkUnknownOutcomes = true;
     // Allows optional opt-out from strick span type/sub-type checking
@@ -132,6 +134,7 @@ public class MockReporter implements Reporter {
      */
     public void resetChecks() {
         checkDestinationAddress = true;
+        checkDestinationService = true;
         checkUnknownOutcomes = true;
         checkStrictSpanType = true;
     }
@@ -148,6 +151,13 @@ public class MockReporter implements Reporter {
      */
     public void disableCheckDestinationAddress() {
         checkDestinationAddress = false;
+    }
+
+    /**
+     * Disables destination service check
+     */
+    public void disableCheckDestinationService() {
+        checkDestinationService = false;
     }
 
     public boolean checkDestinationAddress() {
@@ -257,9 +267,9 @@ public class MockReporter implements Reporter {
             }
         }
         Destination.Service service = destination.getService();
-        assertThat(service.getName()).describedAs("service name is required").isNotEmpty();
-        assertThat(service.getResource()).describedAs("service resource is required").isNotEmpty();
-        assertThat(service.getType()).describedAs("service type is required").isNotNull();
+        if (checkDestinationService) {
+            assertThat(service.getResource()).describedAs("service resource is required").isNotEmpty();
+        }
     }
 
     public void verifyTransactionSchema(JsonNode jsonNode) {

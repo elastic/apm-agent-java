@@ -24,9 +24,6 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.impl.context.AbstractContext;
-import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -384,13 +381,9 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
                                                  @Advice.Argument(0) @Nullable String address,
                                                  @Advice.Argument(1) int port) {
             if (context instanceof Span) {
-                SpanContext spanContext = ((Span) context).getContext();
-                if (address != null && !address.isBlank()) {
-                    spanContext.getDestination().withAddress(address);
-                }
-                if (port > 0) {
-                    spanContext.getDestination().withPort(port);
-                }
+                ((Span) context).getContext().getDestination()
+                    .withUserAddress(address)
+                    .withUserPort(port);
             }
         }
     }
@@ -405,11 +398,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         public static void setDestinationService(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
                                                  @Advice.Argument(0) @Nullable String resource) {
             if (context instanceof Span) {
-                SpanContext spanContext = ((Span) context).getContext();
-                if (resource == null) {
-                    resource = "";
-                }
-                spanContext.getDestination().getService().withUserResource(resource);
+                ((Span) context).getContext().getDestination().getService().withUserResource(resource);
             }
         }
     }

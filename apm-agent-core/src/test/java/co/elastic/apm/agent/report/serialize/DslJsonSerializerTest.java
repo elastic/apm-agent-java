@@ -402,6 +402,95 @@ class DslJsonSerializerTest {
     }
 
     @Test
+    void testSpanInvalidDestinationSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getDestination().withAddress(null).withPort(-1)
+            .getService()
+            .withResource("");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        assertThat(spanJson.get("context").get("destination")).isNull();
+    }
+
+    @Test
+    void testSpanValidPortSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getDestination().withAddress(null).withPort(8090)
+            .getService()
+            .withResource("");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode destination = spanJson.get("context").get("destination");
+        assertThat(destination).isNotNull();
+        assertThat(destination.get("port").intValue()).isEqualTo(8090);
+        assertThat(destination.get("address")).isNull();
+        assertThat(destination.get("service")).isNull();
+    }
+
+    @Test
+    void testSpanValidAddressAndPortSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getDestination().withAddress("test").withPort(8090)
+            .getService()
+            .withResource("");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode destination = spanJson.get("context").get("destination");
+        assertThat(destination).isNotNull();
+        assertThat(destination.get("port").intValue()).isEqualTo(8090);
+        assertThat(destination.get("address").textValue()).isEqualTo("test");
+        assertThat(destination.get("service")).isNull();
+    }
+
+    @Test
+    void testSpanValidAddressSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getDestination().withAddress("test").withPort(0)
+            .getService()
+            .withResource("");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode destination = spanJson.get("context").get("destination");
+        assertThat(destination).isNotNull();
+        assertThat(destination.get("port")).isNull();
+        assertThat(destination.get("address").textValue()).isEqualTo("test");
+        assertThat(destination.get("service")).isNull();
+    }
+
+    @Test
+    void testSpanValidServiceResourceSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getDestination().withAddress("").withPort(0)
+            .getService()
+            .withResource("test-resource");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode destination = spanJson.get("context").get("destination");
+        assertThat(destination).isNotNull();
+        assertThat(destination.get("port")).isNull();
+        assertThat(destination.get("address")).isNull();
+        JsonNode service = destination.get("service");
+        assertThat(service.get("resource").textValue()).isEqualTo("test-resource");
+        assertThat(service.get("name").textValue()).isEmpty();
+        assertThat(service.get("type").textValue()).isEmpty();
+    }
+
+    @Test
+    void testSpanValidServiceAndAddressResourceSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getDestination().withAddress("test-address").withPort(0)
+            .getService()
+            .withResource("test-resource");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode destination = spanJson.get("context").get("destination");
+        assertThat(destination).isNotNull();
+        assertThat(destination.get("port")).isNull();
+        assertThat(destination.get("address").textValue()).isEqualTo("test-address");
+        assertThat(destination.get("service").get("resource").textValue()).isEqualTo("test-resource");
+    }
+
+    @Test
     void testSpanMessageContextSerialization() {
         Span span = new Span(MockTracer.create());
         span.getContext().getMessage()

@@ -425,9 +425,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         }
 
         Destination.Service service = destination.getService();
-        assertThat(service.getName().toString()).isEqualTo(expectedDbVendor);
         assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor);
-        assertThat(service.getType()).isEqualTo(DB_SPAN_TYPE);
 
         assertThat(span.getOutcome())
             .describedAs("span outcome should be explicitly set to either failure or success")
@@ -463,9 +461,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(destination.getPort()).isLessThanOrEqualTo(0);
 
         Destination.Service service = destination.getService();
-        assertThat(service.getName()).isNullOrEmpty();
         assertThat(service.getResource()).isNullOrEmpty();
-        assertThat(service.getType()).isNullOrEmpty();
     }
 
     private static long[] toLongArray(int[] a) {

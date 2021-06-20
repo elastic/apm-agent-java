@@ -415,9 +415,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         assertThat(pollSpan.getAction()).isEqualTo("poll");
         assertThat(pollSpan.getNameAsString()).isEqualTo("KafkaConsumer#poll");
         Destination.Service service = pollSpan.getContext().getDestination().getService();
-        assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getResource().toString()).isEqualTo("kafka");
-        assertThat(service.getName().toString()).isEqualTo("kafka");
     }
 
     private void verifySendSpanContents(Span sendSpan, String topicName) {
@@ -437,9 +435,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
             assertThat(destination.getAddress().toString()).isEmpty();
         }
         Destination.Service service = destination.getService();
-        assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getResource().toString()).isEqualTo("kafka/" + topicName);
-        assertThat(service.getName().toString()).isEqualTo("kafka");
     }
 
     private void verifyKafkaTransactionContents(Transaction transaction, @Nullable Span parentSpan,

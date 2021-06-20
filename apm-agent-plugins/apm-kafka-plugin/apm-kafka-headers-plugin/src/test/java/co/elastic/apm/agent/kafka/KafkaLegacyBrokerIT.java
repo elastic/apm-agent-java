@@ -322,9 +322,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
         assertThat(pollSpan.getAction()).isEqualTo("poll");
         assertThat(pollSpan.getNameAsString()).isEqualTo("KafkaConsumer#poll");
         Destination.Service service = pollSpan.getContext().getDestination().getService();
-        assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getResource().toString()).isEqualTo("kafka");
-        assertThat(service.getName().toString()).isEqualTo("kafka");
     }
 
     private void verifySendSpanContents(Span sendSpan, String topicName) {
@@ -336,9 +334,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
         Message message = context.getMessage();
         assertThat(message.getQueueName()).isEqualTo(topicName);
         Destination.Service service = context.getDestination().getService();
-        assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getResource().toString()).isEqualTo("kafka/" + topicName);
-        assertThat(service.getName().toString()).isEqualTo("kafka");
     }
 
     private void verifyKafkaTransactionContents(Transaction transaction, @Nullable Span parentSpan,
