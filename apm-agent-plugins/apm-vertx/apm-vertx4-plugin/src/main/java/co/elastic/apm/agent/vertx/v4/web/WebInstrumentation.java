@@ -271,8 +271,5 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
                 helper.captureBody(transaction, requestDataBuffer);
             }
         }
-
-
     }
-
 }

@@ -42,6 +42,7 @@ import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -243,12 +244,24 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("A list of instrumentations which should be disabled.\n" +
             "Valid options are ${allInstrumentationGroupNames}.\n" +
-            "If you want to try out experimental features, set the value to an empty string.\n" +
+            "For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.\n" +
             "\n" +
             "NOTE: Changing this value at runtime can slow down the application temporarily.")
         .dynamic(true)
         .tags("added[1.0.0,Changing this value at runtime is possible since version 1.15.0]")
-        .buildWithDefault(Collections.<String>singleton("experimental"));
+        .buildWithDefault(Collections.<String>emptyList());
+
+    private final ConfigurationOption<Boolean> enableExperimentalInstrumentations = ConfigurationOption.booleanOption()
+        .key("enable_experimental_instrumentations")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Whether to apply experimental instrumentations.\n" +
+            "\n" +
+            "NOTE: Changing this value at runtime can slow down the application temporarily." +
+            "\n" +
+            "Setting to `true` will enable instrumentations in the `experimental` group.")
+        .dynamic(true)
+        .tags("added[1.25.0]")
+        .buildWithDefault(false);
 
     private final ConfigurationOption<List<WildcardMatcher>> unnestExceptions = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -295,6 +308,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "If the HTTP request or the message has a body and this setting is disabled, the body will be shown as [REDACTED].\n" +
             "\n" +
             "This option is case-insensitive.\n" +
+            "\n" +
+            "NOTE: Currently, the body length is limited to 10000 characters and it is not configurable. \n" +
+            "If the body size exceeds the limit, it will be truncated. \n" +
             "\n" +
             "NOTE: Currently, only UTF-8 encoded plain text HTTP content types are supported.\n" +
             "The option <<config-capture-body-content-types>> determines which content types are captured.\n" +
@@ -601,6 +617,18 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "services. We use this config option to determine the timeout for this purpose. Increase if timed out when shouldn't.")
         .buildWithDefault(TimeDuration.of("1000ms"));
 
+    private final ConfigurationOption<Boolean> enablePublicApiAnnotationInheritance = ConfigurationOption.booleanOption()
+        .key("enable_public_api_annotation_inheritance")
+        .tags("added[1.25.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("performance")
+        .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).\n " +
+            "When set to `false`, a method is instrumented if it is annotated with a public api annotation.\n  " +
+            "When set to `true` methods overriding annotated methods will be instrumented as well.\n " +
+            "Either way, methods will only be instrumented if they are included in the configured <<config-application-packages>>.")
+        .dynamic(false)
+        .buildWithDefault(false);
+
     public boolean isEnabled() {
         return enabled.get();
     }
@@ -610,7 +638,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     }
 
     public List<ConfigurationOption<?>> getInstrumentationOptions() {
-        return Arrays.asList(instrument, traceMethods, disabledInstrumentations);
+        return Arrays.asList(instrument, traceMethods, disabledInstrumentations, enableExperimentalInstrumentations);
     }
 
     public String getServiceName() {
@@ -663,7 +691,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     }
 
     public Collection<String> getDisabledInstrumentations() {
-        return disabledInstrumentations.get();
+        List<String> disabled = new ArrayList<>(disabledInstrumentations.get());
+        if (enableExperimentalInstrumentations.get()) {
+            disabled.remove("experimental");
+        } else {
+            disabled.add("experimental");
+        }
+        return disabled;
     }
 
     public List<WildcardMatcher> getUnnestExceptions() {
@@ -790,6 +824,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public CloudProvider getCloudProvider() {
         return cloudProvider.get();
+    }
+
+    public boolean isEnablePublicApiAnnotationInheritance() {
+        return enablePublicApiAnnotationInheritance.get();
     }
 
     public enum EventType {

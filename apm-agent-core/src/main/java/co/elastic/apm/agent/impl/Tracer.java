@@ -47,6 +47,9 @@ public interface Tracer {
     @Nullable
     Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader);
 
+    @Nullable
+    Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, long epochMicro);
+
     /**
      * Starts a trace-root transaction with a specified sampler and start timestamp
      *
@@ -73,6 +76,9 @@ public interface Tracer {
      */
     @Nullable
     <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader);
+
+    @Nullable
+    <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros);
 
     /**
      * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.

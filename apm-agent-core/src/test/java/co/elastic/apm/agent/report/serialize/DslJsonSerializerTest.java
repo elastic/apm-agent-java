@@ -34,6 +34,7 @@ import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.MetaDataMock;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
+import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.Agent;
@@ -284,7 +285,7 @@ class DslJsonSerializerTest {
     }
 
     @Test
-    void testNullHeaders() {
+    void testNullTransactionHeaders() {
         Transaction transaction = new Transaction(MockTracer.create());
         transaction.getContext().getRequest().addHeader("foo", (String) null);
         transaction.getContext().getRequest().addHeader("baz", (Enumeration<String>) null);
@@ -295,6 +296,36 @@ class DslJsonSerializerTest {
         assertThat(jsonNode.get("context").get("request").get("headers").get("baz")).isNull();
         // should a null value sneak in, it should not break
         assertThat(jsonNode.get("context").get("request").get("headers").get("bar").isNull()).isTrue();
+    }
+
+    @Test
+    void testMessageHeaders() {
+        Span span = new Span(MockTracer.create());
+        span.getTraceContext().asRootSpan(ConstantSampler.of(true));
+        span.withType("messaging").withSubtype("kafka");
+
+        Headers headers = span.getContext().getMessage().getHeaders();
+
+        headers.add("null-string-value", (String) null);
+        headers.add("string-value", "as-is");
+
+        headers.add("null-binary-value", (byte[]) null);
+        headers.add("binary-value", "binary-value".getBytes(StandardCharsets.UTF_8));
+
+        JsonNode jsonNode = readJsonString(serializer.toJsonString(span));
+        JsonNode jsonHeaders = jsonNode.get("context").get("message").get("headers");
+        assertThat(jsonHeaders.get("null-string-value"))
+            .describedAs("null value string header should be serialized")
+            .isNotNull();
+        assertThat(jsonHeaders.get("null-string-value").isNull()).isTrue();
+        assertThat(jsonHeaders.get("string-value").asText()).isEqualTo("as-is");
+
+        assertThat(jsonHeaders.get("null-binary-value"))
+            .describedAs("null value binary header should be serialized")
+            .isNotNull();
+        assertThat(jsonHeaders.get("null-binary-value").isNull())
+            .isTrue();
+        assertThat(jsonHeaders.get("binary-value").asText()).isEqualTo("binary-value");
     }
 
     @Test
@@ -638,12 +669,13 @@ class DslJsonSerializerTest {
         assertThat(jsonRequest.get("headers").get("my_header").asText()).isEqualTo("header value");
 
         JsonNode jsonUrl = jsonRequest.get("url");
-        assertThat(jsonUrl).hasSize(5);
+        assertThat(jsonUrl).hasSize(6);
         assertThat(jsonUrl.get("hostname").asText()).isEqualTo("my-hostname");
         assertThat(jsonUrl.get("port").asText()).isEqualTo("42");
         assertThat(jsonUrl.get("pathname").asText()).isEqualTo("/path/name");
         assertThat(jsonUrl.get("search").asText()).isEqualTo("q=test");
         assertThat(jsonUrl.get("protocol").asText()).isEqualTo("http");
+        assertThat(jsonUrl.get("full").asText()).isEqualTo("http://my-hostname:42/path/name?q=test");
 
         JsonNode jsonSocket = jsonRequest.get("socket");
         assertThat(jsonSocket).hasSize(2);
@@ -904,7 +936,7 @@ class DslJsonSerializerTest {
         t.start(TraceContext.asRoot(), null, 0, sampler, getClass().getClassLoader());
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
-        t.getContext().getRequest().getUrl().appendToFull("http://localhost:8080/foo/bar");
+        t.getContext().getRequest().getUrl().withFull("http://localhost:8080/foo/bar");
         return t;
     }
 

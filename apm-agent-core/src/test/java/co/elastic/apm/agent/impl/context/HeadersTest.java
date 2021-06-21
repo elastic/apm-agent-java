@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -28,6 +28,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -106,5 +107,22 @@ class HeadersTest {
             numItems++;
         }
         assertThat(numItems).isEqualTo(6);
+    }
+
+    @Test
+    void testNullKeysAndValues() {
+        headers.resetState();
+
+        headers.add(null, "null-key-text-value");
+        headers.add("text-null-value", (String) null);
+
+        headers.add(null, "null-key-binary-value".getBytes(StandardCharsets.UTF_8));
+        headers.add("binary-null-value", (byte[]) null);
+
+        assertThat(headers.size()).isEqualTo(2);
+        headers.forEach(h->{
+            assertThat(h).isNotNull();
+            assertThat(h.getValue()).isNull();
+        });
     }
 }

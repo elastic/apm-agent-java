@@ -28,6 +28,7 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
@@ -136,7 +137,11 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         return verifyHttpSpan("localhost", path);
     }
 
-    protected Span verifyHttpSpan(String host, String path, int status){
+    protected Span verifyHttpSpan(String host, String path, int status) {
+        return verifyHttpSpan(host, path, status, true);
+    }
+
+    protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted) {
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         Span span = reporter.getSpans().get(0);
@@ -147,10 +152,15 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
         Http httpContext = span.getContext().getHttp();
 
-        assertThat(httpContext.getUrl()).isEqualTo(baseUrl + path);
+        assertThat(span.getNameAsString()).isEqualTo(String.format("%s %s", httpContext.getMethod(), host));
+        assertThat(httpContext.getUrl().toString()).isEqualTo(baseUrl + path);
         assertThat(httpContext.getStatusCode()).isEqualTo(status);
 
-        assertThat(span.getOutcome()).isEqualTo(status <= 400 ? Outcome.SUCCESS : Outcome.FAILURE);
+        if (requestExecuted) {
+            assertThat(span.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpClientStatus(status));
+        } else {
+            assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
+        }
 
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("http");
@@ -165,7 +175,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(destination.getService().getResource().toString()).isEqualTo("%s:%d", host, port);
         assertThat(destination.getService().getType()).isEqualTo("external");
 
-        verifyTraceContextHeaders(span, path);
+        if (requestExecuted) {
+            verifyTraceContextHeaders(span, path);
+        }
 
         return span;
     }

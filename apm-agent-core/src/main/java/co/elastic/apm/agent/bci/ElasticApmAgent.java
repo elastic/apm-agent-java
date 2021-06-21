@@ -318,7 +318,9 @@ public class ElasticApmAgent {
         for (final ElasticApmInstrumentation advice : instrumentations) {
             if (isIncluded(advice, coreConfiguration)) {
                 numberOfAdvices++;
-                agentBuilder = applyAdvice(tracer, agentBuilder, advice, new ElementMatcher.Junction.Conjunction<>(advice.getTypeMatcher(), not(isInterface())));
+                agentBuilder = applyAdvice(tracer, agentBuilder, advice, advice.getTypeMatcher());
+            } else {
+                logger.debug("Not applying excluded instrumentation {}", instrumentation.getClass().getName());
             }
         }
         logger.debug("Applied {} advices", numberOfAdvices);
@@ -481,24 +483,21 @@ public class ElasticApmAgent {
 
         TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.of(classLoader), TypePool.Default.ReaderMode.FAST);
         TypeDescription typeDescription = pool.describe(adviceClassName).resolve();
+
         for (MethodDescription.InDefinedShape enterAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodEnter.class)))) {
-            validateAdviceReturnAndParameterTypes(enterAdvice);
+            validateAdviceReturnAndParameterTypes(enterAdvice, adviceClassName);
 
             for (AnnotationDescription enter : enterAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodEnter.class))) {
-                if (enter.prepare(Advice.OnMethodEnter.class).load().inline()) {
-                    throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, enterAdvice.getName()));
-                }
+                checkInline(enterAdvice, adviceClassName, enter.prepare(Advice.OnMethodEnter.class).load().inline());
             }
         }
         for (MethodDescription.InDefinedShape exitAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodExit.class)))) {
-            validateAdviceReturnAndParameterTypes(exitAdvice);
+            validateAdviceReturnAndParameterTypes(exitAdvice, adviceClassName);
             if (exitAdvice.getReturnType().asRawType().getTypeName().startsWith("co.elastic.apm")) {
                 throw new IllegalStateException("Advice return type must be visible from the bootstrap class loader and must not be an agent type.");
             }
             for (AnnotationDescription exit : exitAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodExit.class))) {
-                if (exit.prepare(Advice.OnMethodExit.class).load().inline()) {
-                    throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, exitAdvice.getName()));
-                }
+                checkInline(exitAdvice, adviceClassName, exit.prepare(Advice.OnMethodExit.class).load().inline());
             }
         }
         if (!(classLoader instanceof ExternalPluginClassLoader) && !adviceClassName.startsWith("co.elastic.apm.agent.")) {
@@ -506,17 +505,43 @@ public class ElasticApmAgent {
                 "Invalid Advice class - %s - Indy-dispatched advice class must be in a sub-package of 'co.elastic.apm.agent'.",
                 adviceClassName)
             );
+
         }
     }
 
-    private static void validateAdviceReturnAndParameterTypes(MethodDescription.InDefinedShape advice) {
-        if (advice.getReturnType().asRawType().getTypeName().startsWith("co.elastic.apm")) {
-            throw new IllegalStateException("Advice return type must not be an agent type: " + advice.toGenericString());
+    private static void checkInline(MethodDescription.InDefinedShape advice, String adviceClassName, boolean isInline){
+        if (isInline) {
+            throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, advice.getName()));
+        } else if (!Modifier.isPublic(advice.getModifiers())) {
+            throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared public", adviceClassName, advice.getName()));
         }
-        for (ParameterDescription.InDefinedShape parameter : advice.getParameters()) {
-            if (parameter.getType().asRawType().getTypeName().startsWith("co.elastic.apm")) {
-                throw new IllegalStateException("Advice parameters must not contain an agent type: " + advice.toGenericString());
+    }
+
+    private static void validateAdviceReturnAndParameterTypes(MethodDescription.InDefinedShape advice, String adviceClass) {
+        String adviceMethod = advice.getInternalName();
+        try {
+            checkNotAgentType(advice.getReturnType(), "return type", adviceClass, adviceMethod);
+
+            for (ParameterDescription.InDefinedShape parameter : advice.getParameters()) {
+                checkNotAgentType(parameter.getType(), "parameter", adviceClass, adviceMethod);
+
+                AnnotationDescription.Loadable<Advice.Return> returnAnnotation = parameter.getDeclaredAnnotations().ofType(Advice.Return.class);
+                if (returnAnnotation != null && !returnAnnotation.load().readOnly()) {
+                    throw new IllegalStateException("Advice parameter must not use '@Advice.Return(readOnly=false)', use @AssignTo.Return instead");
+                }
             }
+        } catch (Exception e) {
+            // Because types are lazily resolved, unexpected things are expected
+            throw new IllegalStateException(String.format("unable to validate advice defined in %s#%s", adviceClass, adviceMethod), e);
+        }
+    }
+
+    private static void checkNotAgentType(TypeDescription.Generic type, String description, String adviceClass, String adviceMethod) {
+        // We have to use 'raw' type as framework classes are not accessible to the boostrap classloader, and
+        // trying to resolve them will create exceptions.
+        String name = type.asRawType().getTypeName();
+        if (name.startsWith("co.elastic.apm")) {
+            throw new IllegalStateException(String.format("Advice %s in %s#%s must not be an agent type: %s", description, adviceClass, adviceMethod, name));
         }
     }
 

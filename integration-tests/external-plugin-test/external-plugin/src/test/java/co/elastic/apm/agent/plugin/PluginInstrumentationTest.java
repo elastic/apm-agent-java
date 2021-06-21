@@ -25,8 +25,10 @@
 package co.elastic.apm.agent.plugin;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.plugin.test.TestClass;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Objects;
@@ -47,6 +49,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class PluginInstrumentationTest extends AbstractInstrumentationTest {
 
+    @BeforeEach
+    void disableObjectRecyclingAssertion() {
+        disableRecyclingValidation();
+    }
+
     @Test
     void testTransactionCreation() {
         new TestClass().traceMe(false);
@@ -57,6 +64,9 @@ class PluginInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testSpanCreation() {
+        // using custom span type/sub-type not part of shared spec
+        reporter.disableCheckStrictSpanType();
+
         Transaction transaction = tracer.startRootTransaction(null);
         Objects.requireNonNull(transaction).activate()
             .withName("Plugin test transaction")
@@ -65,7 +75,11 @@ class PluginInstrumentationTest extends AbstractInstrumentationTest {
         transaction.deactivate().end();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("traceMe");
+        Span span = reporter.getFirstSpan();
+        assertThat(span.getNameAsString()).isEqualTo("traceMe");
+        assertThat(span.getType()).isEqualTo("plugin");
+        assertThat(span.getSubtype()).isEqualTo("external");
+        assertThat(span.getAction()).isEqualTo("trace");
         assertThat(reporter.getErrors()).isEmpty();
     }
 

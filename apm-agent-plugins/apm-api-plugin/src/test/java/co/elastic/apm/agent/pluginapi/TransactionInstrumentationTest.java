@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.AbstractApiTest;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Outcome;
@@ -38,7 +38,7 @@ import java.security.SecureRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class TransactionInstrumentationTest extends AbstractInstrumentationTest {
+class TransactionInstrumentationTest extends AbstractApiTest {
 
     private static final SecureRandom random = new SecureRandom();
 
@@ -165,7 +165,10 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    public void startSpan() throws Exception {
+    public void startSpan() {
+        // custom spans not part of shared spec
+        reporter.disableCheckStrictSpanType();
+
         Span span = transaction.startSpan("foo", null, null);
         span.setName("bar");
         Span child = span.startSpan("foo2", null, null);
@@ -190,7 +193,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     public void testAgentPaused() {
         // end current transaction first
         endTransaction();
-        reporter.reset();
+        reporter.resetWithoutRecycling();
 
         TracerInternalApiUtils.pauseTracer(tracer);
         int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
@@ -222,7 +225,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     @Test
     public void testGetErrorIdWithSpanCaptureException() {
         String errorId = null;
-        Span span = transaction.startSpan("foo", null, null);
+        Span span = transaction.startSpan("custom", null, null);
         span.setName("bar");
         try {
             throw new RuntimeException("test exception");
@@ -237,7 +240,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void setOutcome_unknown() {
-        reporter.checkUnknownOutcome(false);
+        reporter.disableCheckUnknownOutcome();
 
         testSetOutcome(Outcome.UNKNOWN);
     }

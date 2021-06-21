@@ -85,6 +85,12 @@ public class GlobalTracer implements Tracer {
     }
 
     @Nullable
+    @Override
+    public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, long epochMicro) {
+        return tracer.startRootTransaction(initiatingClassLoader, epochMicro);
+    }
+
+    @Nullable
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         return tracer.startRootTransaction(sampler, epochMicros, initiatingClassLoader);
     }
@@ -92,6 +98,12 @@ public class GlobalTracer implements Tracer {
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return tracer.startChildTransaction(headerCarrier, textHeadersGetter, initiatingClassLoader);
+    }
+
+    @Nullable
+    @Override
+    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros) {
+        return tracer.startChildTransaction(headerCarrier, textHeadersGetter, initiatingClassLoader, epochMicros);
     }
 
     @Nullable

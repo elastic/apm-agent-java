@@ -69,11 +69,11 @@ public class BookkeeperObjectPool<T> implements ObjectPool<T> {
     public void recycle(T obj) {
         logger.debug("recycling pooled object: " + obj);
 
-        if (!toReturn.contains(obj)) {
+        boolean returned = toReturn.remove(obj);
+        if (!returned) {
             throw new IllegalStateException("trying to recycle object that has not been taken from this pool or has already been returned " + obj);
         }
         pool.recycle(obj);
-        toReturn.remove(obj);
     }
 
     @Override

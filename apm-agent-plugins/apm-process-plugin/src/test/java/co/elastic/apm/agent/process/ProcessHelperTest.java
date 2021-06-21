@@ -80,8 +80,8 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
         assertThat(span.getNameAsString()).isEqualTo(binaryName);
         assertThat(span.getType()).isEqualTo("process");
-        assertThat(span.getSubtype()).isEqualTo(binaryName);
-        assertThat(span.getAction()).isEqualTo("execute");
+        assertThat(span.getSubtype()).isNull();
+        assertThat(span.getAction()).isNull();
         assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 
@@ -178,7 +178,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         verifyNoMoreInteractions(process); // we should not even use any method of process
 
         // we have to opt-in to allow unknown outcome
-        reporter.checkUnknownOutcome(false);
+        reporter.disableCheckUnknownOutcome();
 
         helper.doStartProcess(transaction, process, "hello");
 
