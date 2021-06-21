@@ -41,68 +41,50 @@ public class Destination implements Recyclable {
      */
     private final StringBuilder address = new StringBuilder();
 
-    /**
-     * A custom address. If set, takes precedence over the automatically discovered one.
-     */
-    private final StringBuilder userAddress = new StringBuilder();
-
-    private boolean ignoreAddress;
+    private boolean addressSetByUser;
 
     /**
      * The destination's port used within this context.
      */
     private int port;
 
-    /**
-     * A custom port. If set, takes precedence over the automatically discovered one.
-     */
-    private int userPort;
-
-    private boolean ignorePort;
+    private boolean portSetByUser;
 
     public Destination withAddress(@Nullable CharSequence address) {
-        if (address != null) {
-            appendAddress(address, 0, address.length(), this.address);
+        if (address != null && !addressSetByUser) {
+            withAddress(address, 0, address.length());
         }
         return this;
     }
 
     public Destination withUserAddress(@Nullable CharSequence address) {
         if (address == null || address.length() == 0) {
-            ignoreAddress = true;
-            userAddress.setLength(0);
+            this.address.setLength(0);
         } else {
-            appendAddress(address, 0, address.length(), this.userAddress);
+            withAddress(address, 0, address.length());
         }
+        addressSetByUser = true;
         return this;
     }
 
     public StringBuilder getAddress() {
-        if (userAddress.length() > 0 || ignoreAddress) {
-            return userAddress;
-        }
         return address;
     }
 
     public Destination withPort(int port) {
-        this.port = port;
+        if (!portSetByUser) {
+            this.port = port;
+        }
         return this;
     }
 
     public Destination withUserPort(int port) {
-        if (port > 0) {
-            userPort = port;
-        } else {
-            ignorePort = true;
-            userPort = 0;
-        }
+        withPort(port);
+        portSetByUser = true;
         return this;
     }
 
     public int getPort() {
-        if (userPort > 0 || ignorePort) {
-            return userPort;
-        }
         return port;
     }
 
@@ -119,7 +101,9 @@ public class Destination implements Recyclable {
 
                 if (port > 0) {
                     withPort(port);
-                    appendAddress(addressPort, 0, separator, this.address);
+                    if (!addressSetByUser) {
+                        withAddress(addressPort, 0, separator);
+                    }
                 }
             }
         }
@@ -142,7 +126,7 @@ public class Destination implements Recyclable {
         return port;
     }
 
-    private void appendAddress(CharSequence address, int start, int end, StringBuilder addressField) {
+    private void withAddress(CharSequence address, int start, int end) {
         if (address.length() > 0 && start < end) {
             int startIndex = start;
             int endIndex = end - 1;
@@ -154,11 +138,11 @@ public class Destination implements Recyclable {
             }
 
             if (startIndex < endIndex) {
-                if (addressField.length() > 0) {
+                if (this.address.length() > 0) {
                     // buffer reset required if it has already been used
-                    addressField.delete(0, addressField.length());
+                    this.address.delete(0, this.address.length());
                 }
-                addressField.append(address, startIndex, endIndex + 1);
+                this.address.append(address, startIndex, endIndex + 1);
             }
         }
     }
@@ -173,17 +157,15 @@ public class Destination implements Recyclable {
     }
 
     public boolean hasContent() {
-        return userAddress.length() > 0 || address.length() > 0 || userPort > 0 || port > 0 || service.hasContent();
+        return address.length() > 0 || port > 0 || service.hasContent();
     }
 
     @Override
     public void resetState() {
         address.setLength(0);
-        userAddress.setLength(0);
-        ignoreAddress = false;
+        addressSetByUser = false;
         port = 0;
-        userPort = 0;
-        ignorePort = false;
+        portSetByUser = false;
         service.resetState();
     }
 
@@ -222,13 +204,7 @@ public class Destination implements Recyclable {
          */
         private final StringBuilder resource = new StringBuilder();
 
-        /**
-         * Same as {@link #resource} but used for custom/manual setting. If set, it should always take precedence
-         * over {@link #resource}.
-         */
-        private final StringBuilder userResource = new StringBuilder();
-
-        private boolean ignoreResource;
+        private boolean resourceSetByUser;
 
         /**
          * Used for detecting “sameness” of services and then the display name of a service in the Service Map.
@@ -252,30 +228,27 @@ public class Destination implements Recyclable {
 
         public Service withUserResource(@Nullable String resource) {
             if (resource == null || resource.isEmpty()) {
-                ignoreResource = true;
-                userResource.setLength(0);
+                this.resource.setLength(0);
             } else {
-                setNewValue(this.userResource, resource);
+                setResourceValue(resource);
             }
+            resourceSetByUser = true;
             return this;
         }
 
         public Service withResource(String resource) {
-            setNewValue(this.resource, resource);
+            if (!resourceSetByUser) {
+                setResourceValue(resource);
+            }
             return this;
         }
 
-        private void setNewValue(StringBuilder resource, String newValue) {
-            if (resource.length() > 0) {
-                resource.setLength(0);
-            }
+        private void setResourceValue(String newValue) {
+            resource.setLength(0);
             resource.append(newValue);
         }
 
         public StringBuilder getResource() {
-            if (userResource.length() > 0 || ignoreResource) {
-                return userResource;
-            }
             return resource;
         }
 
@@ -301,14 +274,13 @@ public class Destination implements Recyclable {
         }
 
         public boolean hasContent() {
-            return resource.length() > 0 || userResource.length() > 0;
+            return resource.length() > 0;
         }
 
         @Override
         public void resetState() {
             resource.setLength(0);
-            userResource.setLength(0);
-            ignoreResource = false;
+            resourceSetByUser = false;
             name.setLength(0);
             type = null;
         }

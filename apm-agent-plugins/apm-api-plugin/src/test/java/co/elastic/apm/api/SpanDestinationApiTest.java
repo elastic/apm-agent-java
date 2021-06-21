@@ -84,7 +84,7 @@ class SpanDestinationApiTest extends AbstractApiTest {
     @Test
     void testSetDestinationAddressWithNegativePort() {
         ElasticApm.currentSpan().setDestinationAddress("address", -1);
-        assertDestinationDetails("address", 0, INTERNAL_RESOURCE);
+        assertDestinationDetails("address", -1, INTERNAL_RESOURCE);
     }
 
     @Test
@@ -92,7 +92,7 @@ class SpanDestinationApiTest extends AbstractApiTest {
         ElasticApm.currentSpan().setDestinationAddress("address", -1);
         setDestinationDetailsThroughInternalApi();
         // using invalid port should unset original setting even if internal used last
-        assertDestinationDetails("address", 0, INTERNAL_RESOURCE);
+        assertDestinationDetails("address", -1, INTERNAL_RESOURCE);
     }
 
     @Test
