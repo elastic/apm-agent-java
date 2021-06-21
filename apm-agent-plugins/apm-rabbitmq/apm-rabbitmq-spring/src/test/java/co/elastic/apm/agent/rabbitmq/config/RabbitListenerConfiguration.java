@@ -38,8 +38,9 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitListenerConfiguration extends DefaultBindingSpringConfiguration {
 
     @RabbitListener(queues = TestConstants.QUEUE_NAME)
-    public void processMessage(String message) {
+    public String processMessage(String message) {
         testSpan();
+        return "reply";
     }
 
     @Bean
