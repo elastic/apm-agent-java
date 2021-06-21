@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.util.concurrent.ListenableFuture;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static co.elastic.apm.agent.rabbitmq.TestConstants.TOPIC_EXCHANGE_NAME;
 
@@ -23,11 +25,11 @@ public abstract class AbstractAsyncRabbitMqTest extends RabbitMqTestBase {
     private AsyncRabbitTemplate asyncRabbitTemplate;
 
     @Test
-    public void verifyThatTransactionWithSpanCreated() {
+    public void verifyThatTransactionWithSpanCreated() throws TimeoutException {
         logger.info("Trying to send to async rabbit template");
         ListenableFuture<String> future = asyncRabbitTemplate.convertSendAndReceive(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, MESSAGE);
         try {
-            String response = future.get();
+            String response = future.get(500, TimeUnit.MILLISECONDS);
             logger.info("Got response = {}", response);
         } catch (ExecutionException | InterruptedException e) {
             logger.error("Got exception", e);
