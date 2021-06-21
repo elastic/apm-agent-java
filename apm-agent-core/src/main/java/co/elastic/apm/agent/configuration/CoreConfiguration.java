@@ -42,6 +42,7 @@ import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -243,12 +244,24 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("A list of instrumentations which should be disabled.\n" +
             "Valid options are ${allInstrumentationGroupNames}.\n" +
-            "If you want to try out experimental features, set the value to an empty string.\n" +
+            "For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.\n" +
             "\n" +
             "NOTE: Changing this value at runtime can slow down the application temporarily.")
         .dynamic(true)
         .tags("added[1.0.0,Changing this value at runtime is possible since version 1.15.0]")
-        .buildWithDefault(Collections.<String>singleton("experimental"));
+        .buildWithDefault(Collections.<String>emptyList());
+
+    private final ConfigurationOption<Boolean> enableExperimentalInstrumentations = ConfigurationOption.booleanOption()
+        .key("enable_experimental_instrumentations")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Whether to apply experimental instrumentations.\n" +
+            "\n" +
+            "NOTE: Changing this value at runtime can slow down the application temporarily." +
+            "\n" +
+            "Setting to `true` will enable instrumentations in the `experimental` group.")
+        .dynamic(true)
+        .tags("added[1.25.0]")
+        .buildWithDefault(false);
 
     private final ConfigurationOption<List<WildcardMatcher>> unnestExceptions = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -625,7 +638,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     }
 
     public List<ConfigurationOption<?>> getInstrumentationOptions() {
-        return Arrays.asList(instrument, traceMethods, disabledInstrumentations);
+        return Arrays.asList(instrument, traceMethods, disabledInstrumentations, enableExperimentalInstrumentations);
     }
 
     public String getServiceName() {
@@ -674,7 +687,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     }
 
     public Collection<String> getDisabledInstrumentations() {
-        return disabledInstrumentations.get();
+        List<String> disabled = new ArrayList<>(disabledInstrumentations.get());
+        if (enableExperimentalInstrumentations.get()) {
+            disabled.remove("experimental");
+        } else {
+            disabled.add("experimental");
+        }
+        return disabled;
     }
 
     public List<WildcardMatcher> getUnnestExceptions() {
