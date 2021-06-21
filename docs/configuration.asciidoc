@@ -110,6 +110,7 @@ Click on a key to get more information.
 ** <<config-transaction-max-spans>>
 ** <<config-sanitize-field-names>>
 ** <<config-disable-instrumentations>>
+** <<config-enable-experimental-instrumentations>>
 ** <<config-unnest-exceptions>>
 ** <<config-ignore-exceptions>>
 ** <<config-capture-body>>
@@ -712,7 +713,7 @@ you should add an additional entry to this list (make sure to also include the d
 
 A list of instrumentations which should be disabled.
 Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`.
-If you want to try out experimental features, set the value to an empty string.
+For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
 
@@ -722,7 +723,7 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `experimental` | Collection | true
+| `<none>` | Collection | true
 |============
 
 
@@ -730,6 +731,32 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.disable_instrumentations` | `disable_instrumentations` | `ELASTIC_APM_DISABLE_INSTRUMENTATIONS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-enable-experimental-instrumentations]]
+==== `enable_experimental_instrumentations` (added[1.25.0])
+
+Whether to apply experimental instrumentations.
+
+NOTE: Changing this value at runtime can slow down the application temporarily.
+Setting to `true` will enable instrumentations in the `experimental` group.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enable_experimental_instrumentations` | `enable_experimental_instrumentations` | `ELASTIC_APM_ENABLE_EXPERIMENTAL_INSTRUMENTATIONS`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -2860,15 +2887,26 @@ The default unit for this option is `ms`.
 
 # A list of instrumentations which should be disabled.
 # Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`.
-# If you want to try out experimental features, set the value to an empty string.
+# For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: experimental
+# Default value: 
 #
-# disable_instrumentations=experimental
+# disable_instrumentations=
+
+# Whether to apply experimental instrumentations.
+# 
+# NOTE: Changing this value at runtime can slow down the application temporarily.
+# Setting to `true` will enable instrumentations in the `experimental` group.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# enable_experimental_instrumentations=false
 
 # When reporting exceptions,
 # un-nests the exceptions matching the wildcard pattern.

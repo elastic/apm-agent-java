@@ -87,8 +87,7 @@ public class HttpHandlerAdvice {
             .withHostname(getHostname(exchange))
             .withPort(exchange.getLocalAddress().getPort())
             .withPathname(exchange.getRequestURI().getPath())
-            .withSearch(exchange.getRequestURI().getQuery())
-            .updateFull();
+            .withSearch(exchange.getRequestURI().getQuery());
 
         CoreConfiguration coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         if (transaction.isSampled() && coreConfiguration.isCaptureHeaders()) {
