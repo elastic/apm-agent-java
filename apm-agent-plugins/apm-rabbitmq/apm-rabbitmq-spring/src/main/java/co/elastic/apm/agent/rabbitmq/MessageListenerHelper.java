@@ -74,5 +74,10 @@ public class MessageListenerHelper {
         public void onMessage(Message message, Channel channel) throws Exception {
             delegate.onMessage(message, channel);
         }
+
+        @Override
+        public void onMessage(Message message) {
+            delegate.onMessage(message);
+        }
     }
 }
