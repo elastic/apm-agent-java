@@ -158,7 +158,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(http.getMethod()).isEqualTo(method);
         assertThat(http.getStatusCode()).isEqualTo(statusCode);
         if (checkHttpUrl) {
-            assertThat(http.getUrl()).isEqualTo("http://" + container.getHttpHostAddress());
+            assertThat(http.getUrl().toString()).isEqualTo("http://" + container.getHttpHostAddress());
         }
     }
 
