@@ -336,14 +336,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
             .withRemoteAddress(remoteAddress == null ? null : remoteAddress.getAddress().getHostAddress())
             .withEncrypted(serverRequest.getSslInfo() != null);
 
-        URI uri = serverRequest.getURI();
-        request.getUrl()
-            .withProtocol(uri.getScheme())
-            .withHostname(uri.getHost())
-            .withPort(uri.getPort())
-            .withPathname(uri.getPath())
-            .withSearch(uri.getQuery())
-            .updateFull();
+        request.getUrl().fillFrom(serverRequest.getURI());
 
         if (config.isCaptureHeaders()) {
             copyHeaders(serverRequest.getHeaders(), request.getHeaders());
