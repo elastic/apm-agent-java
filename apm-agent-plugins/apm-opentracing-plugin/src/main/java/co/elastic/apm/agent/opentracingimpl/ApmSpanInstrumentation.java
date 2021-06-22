@@ -71,7 +71,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void finishInternal(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable Object context,
-                                           @Advice.Argument(0) long finishMicros) {
+                                          @Advice.Argument(0) long finishMicros) {
             if (context instanceof AbstractSpan<?>) {
                 doFinishInternal((AbstractSpan<?>) context, finishMicros);
             }
@@ -84,17 +84,9 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 if (transaction.getType() == null) {
                     if (transaction.getContext().getRequest().hasContent()) {
                         transaction.withType(Transaction.TYPE_REQUEST);
-                    } else {
-                        transaction.withType("unknown");
                     }
                 }
-            } else {
-                Span span = (Span) abstractSpan;
-                if (span.getType() == null) {
-                    span.withType("unknown");
-                }
             }
-
             if (finishMicros >= 0) {
                 abstractSpan.end(finishMicros);
             } else {
@@ -217,7 +209,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 transaction.withType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("http.url".equals(key)) {
-                transaction.getContext().getRequest().getUrl().appendToFull(value.toString());
+                transaction.getContext().getRequest().getUrl().withFull(value.toString());
                 transaction.withType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("sampling.priority".equals(key)) {
@@ -256,11 +248,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 return true;
             } else if ("db.type".equals(key)) {
                 span.getContext().getDb().withType(value.toString());
-                if (isCache(value)) {
-                    span.withType("cache").withSubtype(value.toString());
-                } else {
-                    span.withType("db").withSubtype(value.toString());
-                }
+                span.withType("db").withSubtype(value.toString());
                 return true;
             } else if ("db.instance".equals(key)) {
                 span.getContext().getDb().withInstance(value.toString());
@@ -271,13 +259,14 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 return true;
             } else if ("span.kind".equals(key)) {
                 if (span.getType() == null && ("producer".equals(value) || "client".equals(value))) {
-                    span.withType("ext");
+                    span.withType("external");
                 }
                 return true;
             } else if ("http.status_code".equals(key) && value instanceof Number) {
-                int status =((Number) value).intValue();
+                int status = ((Number) value).intValue();
                 span.getContext().getHttp().withStatusCode(status);
-                span.withOutcome(ResultUtil.getOutcomeByHttpClientStatus(status));
+                span.withSubtype("http")
+                    .withOutcome(ResultUtil.getOutcomeByHttpClientStatus(status));
                 return true;
             } else if ("http.url".equals(key) && value instanceof String) {
                 span.getContext().getHttp().withUrl((String) value);
@@ -289,9 +278,6 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
             return false;
         }
 
-        private static boolean isCache(Object dbType) {
-            return "redis".equals(dbType);
-        }
     }
 
     public static class GetTraceContextInstrumentation extends ApmSpanInstrumentation {

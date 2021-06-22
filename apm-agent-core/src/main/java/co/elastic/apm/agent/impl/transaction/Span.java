@@ -157,7 +157,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Keywords of specific relevance in the span's domain (eg: 'db', 'template', 'ext', etc)
      */
     public Span withType(@Nullable String type) {
-        this.type = type;
+        this.type = normalizeEmpty(type);
         return this;
     }
 
@@ -165,7 +165,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Sets the span's subtype, related to the  (eg: 'mysql', 'postgresql', 'jsf' etc)
      */
     public Span withSubtype(@Nullable String subtype) {
-        this.subtype = subtype;
+        this.subtype = normalizeEmpty(subtype);
         return this;
     }
 
@@ -173,8 +173,13 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Action related to this span (eg: 'query', 'render' etc)
      */
     public Span withAction(@Nullable String action) {
-        this.action = action;
+        this.action = normalizeEmpty(action);
         return this;
+    }
+
+    @Nullable
+    private static String normalizeEmpty(@Nullable String value) {
+        return value == null || value.isEmpty() ? null : value;
     }
 
     /**
@@ -199,9 +204,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                 }
             }
         }
-        this.type = type;
-        this.subtype = subtype;
-        this.action = action;
+        withType(type);
+        withSubtype(subtype);
+        withAction(action);
     }
 
     @Nullable

@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.23.1-SNAPSHOT</version>
+    <version>1.24.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -102,15 +102,18 @@
         <version.junit-vintage-engine>5.7.2</version.junit-vintage-engine>
         <version.logback>1.2.3</version.logback>
         <version.okhttp>4.9.1</version.okhttp>
-        <version.slf4j>1.7.30</version.slf4j>
-        <!-- this is the last version of log4j that is compatible with Java 7 -->
+        <version.slf4j>1.7.31</version.slf4j>
+        <!-- this is the last version of log4j that is compatible with Java 7. Due to a known vulnerability
+        (https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle), the SMTP appender is
+         excluded from the build and not packaged into the agent artifacts -->
         <version.log4j>2.12.1</version.log4j>
         <version.log4j2-ecs-layout>1.0.1</version.log4j2-ecs-layout>
         <version.spring>5.0.15.RELEASE</version.spring>
+        <version.spring-boot>2.2.2.RELEASE</version.spring-boot>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.json-schema-validator>1.0.53</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.11.0</version.byte-buddy>
+        <version.byte-buddy>1.11.2</version.byte-buddy>
         <version.asm>9.1</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
@@ -518,6 +521,12 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>org.apache.ivy</groupId>
+                <artifactId>ivy</artifactId>
+                <version>2.5.0</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -570,13 +579,13 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.19.0</version>
+            <version>3.20.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>3.10.0</version>
+            <version>3.11.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -592,12 +601,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-servlet</artifactId>
-            <version>${version.jetty-server}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock-standalone</artifactId>
             <version>2.27.2</version>
@@ -607,12 +610,6 @@
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
             <version>4.1.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.ivy</groupId>
-            <artifactId>ivy</artifactId>
-            <version>2.5.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

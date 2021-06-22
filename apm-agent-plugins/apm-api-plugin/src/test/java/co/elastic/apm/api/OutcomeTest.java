@@ -50,6 +50,4 @@ class OutcomeTest {
             .map(Enum::name)
             .collect(Collectors.toSet());
     }
-
-
 }

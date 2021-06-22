@@ -45,6 +45,7 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import org.awaitility.core.ThrowingRunnable;
 import org.stagemonitor.configuration.ConfigurationRegistry;
+import specs.TestJsonSpec;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -78,7 +79,12 @@ public class MockReporter implements Reporter {
     // A map of exit span type to actions that that do not support address and port discovery
     private static final Map<String, Collection<String>> SPAN_ACTIONS_WITHOUT_ADDRESS;
     // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
-    private boolean disableDestinationAddressCheck;
+    private boolean checkDestinationAddress = true;
+    // Allows optional opt-out for unknown outcome
+    private boolean checkUnknownOutcomes = true;
+    // Allows optional opt-out from strick span type/sub-type checking
+    private boolean checkStrictSpanType = true;
+
 
     private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
     private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
@@ -86,8 +92,10 @@ public class MockReporter implements Reporter {
     private final List<byte[]> bytes = new CopyOnWriteArrayList<>();
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
-    private boolean checkUnknownOutcomes = true;
+
     private boolean closed;
+
+    private static final JsonNode SPAN_TYPES_SPEC = TestJsonSpec.getJson("span_types.json");
 
     static {
         transactionSchema = getSchema("/schema/transactions/transaction.json");
@@ -119,26 +127,43 @@ public class MockReporter implements Reporter {
     }
 
     /**
-     * @param enable {@literal true} to enable unknown outcome check, {@literal false} to allow for unknown outcome
+     * Sets all optional checks to their default value (enabled), should be used as a shortcut to reset mock reporter state
+     * after/before using it for a single test execution
      */
-    public void checkUnknownOutcome(boolean enable) {
-        checkUnknownOutcomes = enable;
+    public void resetChecks() {
+        checkDestinationAddress = true;
+        checkUnknownOutcomes = true;
+        checkStrictSpanType = true;
     }
 
-    public void disableDestinationAddressCheck() {
-        disableDestinationAddressCheck = true;
+    /**
+     * Disables unknown outcome check
+     */
+    public void disableCheckUnknownOutcome() {
+        checkUnknownOutcomes = false;
     }
 
-    public void enableDestinationAddressCheck() {
-        disableDestinationAddressCheck = false;
+    /**
+     * Disables destination address check
+     */
+    public void disableCheckDestinationAddress() {
+        checkDestinationAddress = false;
     }
 
-    public boolean isDisableDestinationAddressCheck() {
-        return disableDestinationAddressCheck;
+    public boolean checkDestinationAddress() {
+        return checkDestinationAddress;
+    }
+
+    /**
+     * Disables strict span type and sub-type check (against shared spec)
+     */
+    public void disableCheckStrictSpanType() {
+        checkStrictSpanType = false;
     }
 
     @Override
-    public void start() {}
+    public void start() {
+    }
 
     @Override
     public synchronized void report(Transaction transaction) {
@@ -164,19 +189,58 @@ public class MockReporter implements Reporter {
         if (closed) {
             return;
         }
-        verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
-        verifyDestinationFields(span);
 
-        String type = span.getType();
-        assertThat(type).isNotNull();
+        try {
+            verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
+            verifySpanType(span);
+            verifyDestinationFields(span);
 
-        if (checkUnknownOutcomes) {
-            assertThat(span.getOutcome())
-                .describedAs("span outcome should be either success or failure for type = %s", type)
-                .isNotEqualTo(Outcome.UNKNOWN);
+            if (checkUnknownOutcomes) {
+                assertThat(span.getOutcome())
+                    .describedAs("span outcome should be either success or failure for type = %s", span.getType())
+                    .isNotEqualTo(Outcome.UNKNOWN);
+            }
+        } catch (Exception e) {
+            // in case a validation error occurs, ensure that it's properly logged for easier debugging
+            e.printStackTrace(System.err);
+            throw e;
         }
 
         spans.add(span);
+    }
+
+
+    private void verifySpanType(Span span) {
+        String type = span.getType();
+        assertThat(type)
+            .describedAs("span type is mandatory")
+            .isNotNull();
+
+        if (checkStrictSpanType) {
+            JsonNode typeJson = getMandatoryJson(SPAN_TYPES_SPEC, type, String.format("span type '%s' is not allowed by the spec", type));
+
+            boolean allowNullSubtype = getBooleanJson(typeJson, "allow_null_subtype");
+            boolean allowUnlistedSubtype = getBooleanJson(typeJson, "allow_unlisted_subtype");
+
+            String subType = span.getSubtype();
+
+            JsonNode subTypesJson = typeJson.get("subtypes");
+            boolean hasSubtypes = subTypesJson != null && !subTypesJson.isEmpty();
+
+            if (null == subType) {
+                if (hasSubtypes) {
+                    assertThat(allowNullSubtype)
+                        .describedAs("span type '%s' requires non-null subtype (allow_null_subtype=false)", type)
+                        .isTrue();
+                }
+            } else {
+                if (!allowUnlistedSubtype && hasSubtypes) {
+                    getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' is not allowed by the sped for type '%s'", subType, type));
+                }
+            }
+
+        }
+
     }
 
     private void verifyDestinationFields(Span span) {
@@ -184,7 +248,7 @@ public class MockReporter implements Reporter {
             return;
         }
         Destination destination = span.getContext().getDestination();
-        if (!disableDestinationAddressCheck && !SPAN_TYPES_WITHOUT_ADDRESS.contains(span.getSubtype())) {
+        if (checkDestinationAddress && !SPAN_TYPES_WITHOUT_ADDRESS.contains(span.getSubtype())) {
             // see if this span's action is not supported for its subtype
             Collection<String> unsupportedActions = SPAN_ACTIONS_WITHOUT_ADDRESS.getOrDefault(span.getSubtype(), Collections.emptySet());
             if (!unsupportedActions.contains(span.getAction())) {
@@ -259,6 +323,11 @@ public class MockReporter implements Reporter {
     public Span getFirstSpan(long timeoutMs) {
         awaitUntilAsserted(timeoutMs, () -> assertThat(getSpans()).isNotEmpty());
         return getFirstSpan();
+    }
+
+    public ErrorCapture getFirstError(long timeoutMs) {
+        awaitUntilAsserted(timeoutMs, () -> assertThat(getErrors()).isNotEmpty());
+        return getFirstError();
     }
 
     public void assertNoSpan() {
@@ -421,7 +490,7 @@ public class MockReporter implements Reporter {
 
         List<Span> spans = getSpans();
         List<Span> spansToFlush = spans.stream()
-            .filter(s-> !hasEmptyTraceContext(s))
+            .filter(s -> !hasEmptyTraceContext(s))
             .collect(Collectors.toList());
 
         transactionsToFlush.forEach(Transaction::decrementReferences);
@@ -482,8 +551,29 @@ public class MockReporter implements Reporter {
         }
     }
 
-
     private static boolean hasEmptyTraceContext(AbstractSpan<?> item) {
         return item.getTraceContext().getId().isEmpty();
+    }
+
+    private static JsonNode getMandatoryJson(JsonNode json, String name, String desc) {
+        JsonNode jsonNode = json.get(name);
+        assertThat(jsonNode)
+            .describedAs(desc)
+            .isNotNull();
+        assertThat(jsonNode.isObject())
+            .isTrue();
+        return jsonNode;
+    }
+
+    private static boolean getBooleanJson(JsonNode json, String name) {
+        JsonNode jsonValue = json.get(name);
+        boolean value = false;
+        if (jsonValue != null) {
+            assertThat(jsonValue.isBoolean())
+                .describedAs("property %s should be a boolean", name)
+                .isTrue();
+            value = jsonValue.asBoolean();
+        }
+        return value;
     }
 }
