@@ -48,6 +48,7 @@ setting `disable_instrumentations=jdbc` would disable jdbc and also enable exper
 ===== Bug fixes
 * Fix NPE with `null` binary header values + properly serialize them - {pull}1842[#1842]
 * Fix `ListenerExecutionFailedException` when using Spring AMQP's ReplyTo container - {pull}1872[#1872]
+* Enabling log ECS reformatting when using Logback configured with `LayoutWrappingEncoder` and a pattern layout - {pull}1879[#1879]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
