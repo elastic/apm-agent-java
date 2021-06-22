@@ -857,24 +857,24 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (destination.hasContent()) {
             writeFieldName("destination");
             jw.writeByte(OBJECT_START);
-            boolean isExistAddress = destination.getAddress().length() > 0;
-            boolean isExistPort = destination.getPort() > 0;
-            boolean isServiceHasContent = destination.getService().hasContent();
-            if (isExistAddress) {
-                if (isExistPort || isServiceHasContent) {
+            boolean hasAddress = destination.getAddress().length() > 0;
+            boolean hasPort = destination.getPort() > 0;
+            boolean hasServiceContent = destination.getService().hasContent();
+            if (hasAddress) {
+                if (hasPort || hasServiceContent) {
                     writeField("address", destination.getAddress());
                 } else {
                     writeLastField("address", destination.getAddress());
                 }
             }
-            if (isExistPort) {
-                if (isServiceHasContent) {
+            if (hasPort) {
+                if (hasServiceContent) {
                     writeField("port", destination.getPort());
                 } else {
                     writeLastField("port", destination.getPort());
                 }
             }
-            serializeService(isServiceHasContent, destination.getService());
+            serializeService(hasServiceContent, destination.getService());
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }
