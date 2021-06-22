@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,24 +22,17 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.rabbitmq.config;
+package co.elastic.apm;
 
-import co.elastic.apm.agent.rabbitmq.TestConstants;
-import org.springframework.amqp.rabbit.annotation.EnableRabbit;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
+import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
-@Configuration
-@EnableRabbit
-public class RabbitListenerConfiguration extends CommonRabbitListenerConfiguration {
+public class AbstractApiTest extends AbstractInstrumentationTest {
 
-    @RabbitListener(queues = TestConstants.QUEUE_NAME)
-    public void processMessage(String message) {
-        testSpan();
+    @Before
+    @BeforeEach
+    public void disableRecycling() {
+        disableRecyclingValidation();
     }
-
 }

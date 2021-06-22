@@ -209,7 +209,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 transaction.withType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("http.url".equals(key)) {
-                transaction.getContext().getRequest().getUrl().appendToFull(value.toString());
+                transaction.getContext().getRequest().getUrl().withFull(value.toString());
                 transaction.withType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("sampling.priority".equals(key)) {
