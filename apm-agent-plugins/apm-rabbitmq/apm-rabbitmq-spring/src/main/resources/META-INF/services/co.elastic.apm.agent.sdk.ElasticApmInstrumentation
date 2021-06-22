@@ -1,2 +1,3 @@
 co.elastic.apm.agent.rabbitmq.SetMessageListenerInstrumentation
 co.elastic.apm.agent.rabbitmq.SpringAmqpMessageListenerInstrumentation
+co.elastic.apm.agent.rabbitmq.SpringAmqpBatchMessageListenerInstrumentation
