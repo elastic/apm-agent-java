@@ -23,14 +23,17 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.FileAppender;
 import ch.qos.logback.core.OutputStreamAppender;
 import ch.qos.logback.core.encoder.Encoder;
+import ch.qos.logback.core.encoder.LayoutWrappingEncoder;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import co.elastic.apm.agent.log.shader.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.logging.logback.EcsEncoder;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputStreamAppender<ILoggingEvent>, Encoder<ILoggingEvent>> {
 
@@ -50,6 +53,14 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
             ((EcsEncoder) encoder).init(appender.getOutputStream());
         }
         appender.setEncoder(encoder);
+    }
+
+    @Override
+    protected boolean isAllowedFormatter(Encoder<ILoggingEvent> formatter, List<WildcardMatcher> allowList) {
+        if (formatter instanceof LayoutWrappingEncoder<?>) {
+            return WildcardMatcher.anyMatch(allowList, ((LayoutWrappingEncoder<?>) formatter).getLayout().getClass().getName()) != null;
+        }
+        return super.isAllowedFormatter(formatter, allowList);
     }
 
     @Override

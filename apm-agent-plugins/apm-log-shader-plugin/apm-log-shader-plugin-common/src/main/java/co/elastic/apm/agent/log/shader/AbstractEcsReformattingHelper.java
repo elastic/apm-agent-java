@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 /**
  * The abstract Log shading helper- loaded as part of the agent core (agent CL / bootstrap CL / System CL).
@@ -307,11 +308,16 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
         F formatter = getFormatterFrom(originalAppender);
         return !isShadingAppender(originalAppender) &&
             !isEcsFormatter(formatter) &&
-            WildcardMatcher.anyMatch(loggingConfiguration.getLogEcsFormatterAllowList(), formatter.getClass().getName()) != null;
+            isAllowedFormatter(formatter, loggingConfiguration.getLogEcsFormatterAllowList());
+    }
+
+    protected boolean isAllowedFormatter(F formatter, List<WildcardMatcher> allowList) {
+        return WildcardMatcher.anyMatch(allowList, formatter.getClass().getName()) != null;
     }
 
     /**
      * Looks up an ECS-formatter to override logging events in the given appender
+     *
      * @param originalAppender the original log appender
      * @return an ECS-formatter if such is mapped to the provide appender and the caller should override, or {@code null}
      */
