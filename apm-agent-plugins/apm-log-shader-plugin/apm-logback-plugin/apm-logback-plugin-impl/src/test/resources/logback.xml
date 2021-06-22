@@ -15,6 +15,14 @@
         <file>target/logback.log</file>
         <append>false</append>
         <immediateFlush>true</immediateFlush>
+        <!-- Allows testing the special logic for LayoutWrappingEncoder -->
+        <!--
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z'} %thread %-5level %logger{36} %msg%n</pattern>
+            </layout>
+        </encoder>
+        -->
         <encoder>
             <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z'} %thread %-5level %logger{36} %msg%n</pattern>
         </encoder>

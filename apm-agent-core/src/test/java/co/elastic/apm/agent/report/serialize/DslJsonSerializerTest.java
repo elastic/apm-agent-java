@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report.serialize;
 
@@ -666,12 +660,13 @@ class DslJsonSerializerTest {
         assertThat(jsonRequest.get("headers").get("my_header").asText()).isEqualTo("header value");
 
         JsonNode jsonUrl = jsonRequest.get("url");
-        assertThat(jsonUrl).hasSize(5);
+        assertThat(jsonUrl).hasSize(6);
         assertThat(jsonUrl.get("hostname").asText()).isEqualTo("my-hostname");
         assertThat(jsonUrl.get("port").asText()).isEqualTo("42");
         assertThat(jsonUrl.get("pathname").asText()).isEqualTo("/path/name");
         assertThat(jsonUrl.get("search").asText()).isEqualTo("q=test");
         assertThat(jsonUrl.get("protocol").asText()).isEqualTo("http");
+        assertThat(jsonUrl.get("full").asText()).isEqualTo("http://my-hostname:42/path/name?q=test");
 
         JsonNode jsonSocket = jsonRequest.get("socket");
         assertThat(jsonSocket).hasSize(2);
@@ -932,7 +927,7 @@ class DslJsonSerializerTest {
         t.start(TraceContext.asRoot(), null, 0, sampler, getClass().getClassLoader());
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
-        t.getContext().getRequest().getUrl().appendToFull("http://localhost:8080/foo/bar");
+        t.getContext().getRequest().getUrl().withFull("http://localhost:8080/foo/bar");
         return t;
     }
 

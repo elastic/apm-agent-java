@@ -102,8 +102,10 @@
         <version.junit-vintage-engine>5.7.2</version.junit-vintage-engine>
         <version.logback>1.2.3</version.logback>
         <version.okhttp>4.9.1</version.okhttp>
-        <version.slf4j>1.7.30</version.slf4j>
-        <!-- this is the last version of log4j that is compatible with Java 7 -->
+        <version.slf4j>1.7.31</version.slf4j>
+        <!-- this is the last version of log4j that is compatible with Java 7. Due to a known vulnerability
+        (https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle), the SMTP appender is
+         excluded from the build and not packaged into the agent artifacts -->
         <version.log4j>2.12.1</version.log4j>
         <version.log4j2-ecs-layout>1.0.1</version.log4j2-ecs-layout>
         <version.spring>5.0.15.RELEASE</version.spring>
@@ -371,48 +373,35 @@
             </plugin>
             <!-- License headers -->
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
+                <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin</artifactId>
                 <configuration>
-                    <verbose>false</verbose>
-                    <licenseName>apache2_license</licenseName>
-                    <licenseResolver>file:///${apm-agent-parent.base.dir}/licenses</licenseResolver>
-                    <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
-                    <failOnMissingHeader>true</failOnMissingHeader>
-                    <dryRun>false</dryRun>
-                    <failOnNotUptodateHeader>true</failOnNotUptodateHeader>
-                    <projectName>Elastic APM Java agent</projectName>
-                    <!--
-                    Elastic does actually not have the copyright of community contributions.
-                    See https://www.elastic.co/contributor-agreement
-                    "The CLA is a license agreement, which enables Elastic to distribute your code without restriction.
-                    It doesn't require you to assign to us any copyright you have, the ownership of which remains in full with you.
-                    You cannot withdraw permission for its use at a later date."
-                    -->
-                    <organizationName>Elastic and contributors</organizationName>
-                    <roots>
-                        <root>src/main/java</root>
-                        <root>src/test/java</root>
-                    </roots>
+                    <licenseSets>
+                        <licenseSet>
+                            <header>${apm-agent-parent.base.dir}/licenses/apache2_license/apache2-license-header.txt</header>
+                            <includes>
+                                <include>**/*.java</include>
+                            </includes>
+                        </licenseSet>
+                    </licenseSets>
                 </configuration>
                 <executions>
                     <execution>
-                        <id>first</id>
+                        <id>update-license-headers</id>
                         <goals>
-                            <goal>update-file-header</goal>
+                            <goal>format</goal>
                         </goals>
                         <phase>process-sources</phase>
                     </execution>
                     <execution>
-                        <id>license-header-check</id>
+                        <id>check-license-headers</id>
                         <goals>
-                            <goal>check-file-header</goal>
+                            <goal>check</goal>
                         </goals>
                         <phase>verify</phase>
                     </execution>
                 </executions>
             </plugin>
-
         </plugins>
 
         <pluginManagement>
@@ -480,6 +469,11 @@
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>license-maven-plugin</artifactId>
                     <version>1.19</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.mycila</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>4.1</version>
                 </plugin>
                 <plugin>
                     <groupId>com.coderplus.maven.plugins</groupId>
@@ -577,7 +571,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.19.0</version>
+            <version>3.20.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>

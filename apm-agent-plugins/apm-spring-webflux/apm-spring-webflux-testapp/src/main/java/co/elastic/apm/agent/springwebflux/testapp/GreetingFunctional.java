@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,12 +15,13 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.springwebflux.testapp;
 
-import co.elastic.apm.api.ElasticApm;
-import co.elastic.apm.api.Transaction;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -79,9 +75,11 @@ public class GreetingFunctional {
             .GET("/functional/duration", accept(MediaType.TEXT_PLAIN), request -> response(greetingHandler.duration(getDuration(request))))
             // custom transaction name set through API
             .GET("/functional/custom-transaction-name", accept(MediaType.TEXT_PLAIN), request -> {
-                Transaction transaction = Objects.requireNonNull(ElasticApm.currentTransaction(), "active transaction is required");
-                transaction.setName("user-provided-name");
-                return response(greetingHandler.helloMessage("transaction=" + ElasticApm.currentTransaction().getId()));
+                ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+                Transaction transaction = Objects.requireNonNull(tracer.currentTransaction(), "active transaction is required");
+                // This mimics setting the name through the public API. We cannot use the public API if we want to test span recycling
+                transaction.withName("user-provided-name", AbstractSpan.PRIO_USER_SUPPLIED);
+                return response(greetingHandler.helloMessage("transaction=" + Objects.requireNonNull(tracer.currentTransaction()).getTraceContext().getId()));
             })
             .GET("/functional/child-flux", accept(MediaType.TEXT_PLAIN), request -> ServerResponse.ok()
                 .body(greetingHandler.childSpans(getCount(request), getDelay(request), getDuration(request)), String.class
