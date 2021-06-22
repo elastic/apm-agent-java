@@ -43,6 +43,10 @@ setting `disable_instrumentations=jdbc` would disable jdbc and also enable exper
 ** Previously, by default `disable_instrumentations` contained `experimental`
 ** Now by default `disable_instrumentations` is empty and `enable_experimental_instrumentations=false`
 ** Set `disable_instrumentations=true` to enable experimental instrumentations
+* Eliminating concerns related to log4j2 vulnerability - https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle.
+We cannot upgrade to version above 2.12.1 because this is the last version of log4j that is compatible with Java 7.
+Instead, we exclude the SMTP appender (which is the vulnerable one) from our artifacts. Note that older versions of
+our agent are not vulnerable as well, as the SMTP appender was never used, this is only to further reduce our users' concerns.
 * Adding public APIs for setting `destination.service.resource`, `destination.address` and `destination.port` fields
 for exit spans - {pull}1788[#1788]
 
