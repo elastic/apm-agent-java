@@ -26,6 +26,8 @@ package co.elastic.apm.agent.impl.context;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.function.Function;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DestinationTest {
@@ -64,20 +66,71 @@ class DestinationTest {
 
         assertThat(destination.withAddress("aaa").withAddress("bb").getAddress().toString())
             .isEqualTo("bb");
-
     }
 
-    private void checkSetAddress(String input, String expectedAddress){
-        Destination destination = new Destination();
-        destination.withAddress(input);
+    @Test
+    void userAddressHavePriority() {
+        checkAddress("user-before", d -> d.withUserAddress("user-before").withAddress("address"));
+        checkAddress("user-after", d -> d.withAddress("user-before").withUserAddress("user-after"));
 
+        Destination emptyUserAddress = new Destination().withAddress("host").withUserAddress("");
+        assertThat(emptyUserAddress.getAddress()).isEmpty();
+        assertThat(emptyUserAddress.hasContent()).isFalse();
+    }
+
+    @Test
+    void userPortHavePriority() {
+        checkPort(42, d -> d.withPort(42));
+        checkPort(33, d -> d.withUserPort(33));
+        checkPort(33, d -> d.withPort(42).withUserPort(33));
+        checkPort(33, d -> d.withUserPort(33).withPort(42));
+    }
+
+    @Test
+    void userServiceResourceHavePriority() {
+        checkServiceResource("resource", s -> s.withResource("resource"));
+        checkServiceResource("user-resource", s -> s.withResource("resource").withUserResource("user-resource"));
+        checkServiceResource("user-resource", s -> s.withUserResource("user-resource").withResource("resource"));
+
+        Destination.Service emptyService = new Destination.Service().withResource("resource").withUserResource("");
+        assertThat(emptyService.getResource()).isEmpty();
+        assertThat(emptyService.hasContent()).isFalse();
+    }
+
+    private void checkServiceResource(String expected, Function<Destination.Service, Destination.Service> operations) {
+        Destination.Service service = new Destination.Service();
+        operations.apply(service);
+        assertThat(service.getResource().toString())
+            .isEqualTo(expected);
+
+        assertThat(service.hasContent()).isTrue();
+    }
+
+    private static void checkPort(int expected,Function<Destination,Destination> operations ){
+        Destination destination = new Destination();
+        operations.apply(destination);
+        assertThat(destination.getPort()).isEqualTo(expected);
+
+        assertThat(destination.hasContent()).isTrue();
+    }
+
+    private static void checkAddress(String expected, Function<Destination,Destination> operations){
+        Destination destination = new Destination();
+        operations.apply(destination);
         assertThat(destination.getAddress().toString()) // call to toString required otherwise comparison fails
-            .isEqualTo(expectedAddress);
+            .isEqualTo(expected);
+
+        assertThat(destination.hasContent()).isTrue();
+    }
+
+    private void checkSetAddress(String input, String expectedAddress) {
+        checkAddress(expectedAddress, d -> d.withAddress(input));
     }
 
     private void checkSetHostAndPort(String input, String expectedHost, int expectedPort) {
         Destination destination = new Destination();
         destination.withAddressPort(input);
+        assertThat(destination.hasContent()).isTrue();
 
         assertThat(destination.getPort()).isEqualTo(expectedPort);
         assertThat(destination.getAddress().toString())
@@ -88,6 +141,7 @@ class DestinationTest {
         Destination destination = new Destination();
         destination.withAddressPort(input);
 
+        assertThat(destination.hasContent()).isFalse();
         assertThat(destination.getPort()).isZero();
         assertThat(destination.getAddress()).isEmpty();
     }
