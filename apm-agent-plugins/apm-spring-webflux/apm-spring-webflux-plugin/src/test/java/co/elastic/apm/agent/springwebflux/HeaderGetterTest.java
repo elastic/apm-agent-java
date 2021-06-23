@@ -1,4 +1,9 @@
-/*
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 - 2021 Elastic and contributors
+ * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -15,31 +20,28 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
+ * #L%
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.AbstractTextHeaderGetterTest;
 import org.springframework.http.HttpHeaders;
 
-import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 
-public class HeaderGetter implements TextHeaderGetter<HttpHeaders> {
+class HeaderGetterTest extends AbstractTextHeaderGetterTest<HeaderGetter, HttpHeaders> {
 
-    @Nullable
     @Override
-    public String getFirstHeader(String headerName, HttpHeaders carrier) {
-        return carrier.getFirst(headerName);
+    protected HeaderGetter createTextHeaderGetter() {
+        return new HeaderGetter();
     }
 
     @Override
-    public <S> void forEach(String headerName, HttpHeaders carrier, S state, HeaderConsumer<String, S> consumer) {
-        List<String> values = carrier.get(headerName);
-        if (values == null) {
-            return;
-        }
-        for (int i = 0; i < values.size(); i++) {
-            consumer.accept(values.get(i), state);
-        }
+    protected HttpHeaders createCarrier(Map<String, List<String>> map) {
+        HttpHeaders headers = new HttpHeaders();
+        map.forEach(headers::put);
+        return headers;
     }
+
 }

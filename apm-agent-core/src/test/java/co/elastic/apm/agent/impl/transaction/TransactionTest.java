@@ -68,7 +68,7 @@ class TransactionTest {
         assertThat(transaction.withOutcome(Outcome.FAILURE).getOutcome())
             .isSameAs(Outcome.FAILURE);
 
-        Arrays.asList(Outcome.SUCCESS, Outcome.UNKNOWN).forEach(o ->{
+        Arrays.asList(Outcome.SUCCESS, Outcome.UNKNOWN).forEach(o -> {
             assertThat(transaction.withUserOutcome(o).getOutcome())
                 .describedAs("user outcome should have higher priority over outcome")
                 .isSameAs(o);

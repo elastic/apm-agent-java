@@ -53,6 +53,7 @@ our agent are not vulnerable as well, as the SMTP appender was never used, this 
 * Fix NPE with `null` binary header values + properly serialize them - {pull}1842[#1842]
 * Fix `ListenerExecutionFailedException` when using Spring AMQP's ReplyTo container - {pull}1872[#1872]
 * Enabling log ECS reformatting when using Logback configured with `LayoutWrappingEncoder` and a pattern layout - {pull}1879[#1879]
+* Fix NPE with Webflux + context propagation headers - {pull}1871[1871]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
