@@ -32,11 +32,13 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import java.security.ProtectionDomain;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionLte;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -56,6 +58,12 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return classLoaderCanLoadClass("io.javalin.http.Handler");
+    }
+
+    // ctx.handlerType() was introduced in Javalin 3.13.8 and above, so instrument only in that case
+    @Override
+    public ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {
+        return implementationVersionLte("3.13.7");
     }
 
     @Override
