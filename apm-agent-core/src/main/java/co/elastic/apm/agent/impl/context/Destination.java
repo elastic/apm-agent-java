@@ -35,15 +35,29 @@ public class Destination implements Recyclable {
      */
     private final StringBuilder address = new StringBuilder();
 
+    private boolean addressSetByUser;
+
     /**
      * The destination's port used within this context.
      */
     private int port;
 
+    private boolean portSetByUser;
+
     public Destination withAddress(@Nullable CharSequence address) {
-        if (address != null) {
-            return withAddress(address, 0, address.length());
+        if (address != null && !addressSetByUser) {
+            withAddress(address, 0, address.length());
         }
+        return this;
+    }
+
+    public Destination withUserAddress(@Nullable CharSequence address) {
+        if (address == null || address.length() == 0) {
+            this.address.setLength(0);
+        } else {
+            withAddress(address, 0, address.length());
+        }
+        addressSetByUser = true;
         return this;
     }
 
@@ -52,7 +66,15 @@ public class Destination implements Recyclable {
     }
 
     public Destination withPort(int port) {
-        this.port = port;
+        if (!portSetByUser) {
+            this.port = port;
+        }
+        return this;
+    }
+
+    public Destination withUserPort(int port) {
+        withPort(port);
+        portSetByUser = true;
         return this;
     }
 
@@ -72,8 +94,10 @@ public class Destination implements Recyclable {
                 int port = parsePort(addressPort, separator + 1, addressPort.length());
 
                 if (port > 0) {
-                    return withPort(port)
-                        .withAddress(addressPort, 0, separator);
+                    withPort(port);
+                    if (!addressSetByUser) {
+                        withAddress(addressPort, 0, separator);
+                    }
                 }
             }
         }
@@ -96,13 +120,7 @@ public class Destination implements Recyclable {
         return port;
     }
 
-    /**
-     * @param address address buffer
-     * @param start   address start (inclusive)
-     * @param end     address end (exclusive)
-     * @return destination with updated address
-     */
-    private Destination withAddress(CharSequence address, int start, int end) {
+    private void withAddress(CharSequence address, int start, int end) {
         if (address.length() > 0 && start < end) {
             int startIndex = start;
             int endIndex = end - 1;
@@ -121,7 +139,6 @@ public class Destination implements Recyclable {
                 this.address.append(address, startIndex, endIndex + 1);
             }
         }
-        return this;
     }
 
     /**
@@ -140,7 +157,9 @@ public class Destination implements Recyclable {
     @Override
     public void resetState() {
         address.setLength(0);
+        addressSetByUser = false;
         port = 0;
+        portSetByUser = false;
         service.resetState();
     }
 
@@ -179,6 +198,8 @@ public class Destination implements Recyclable {
          */
         private final StringBuilder resource = new StringBuilder();
 
+        private boolean resourceSetByUser;
+
         /**
          * Used for detecting “sameness” of services and then the display name of a service in the Service Map.
          * In other words, the {@link Service#resource} is used to query data for ALL destinations. However,
@@ -186,50 +207,74 @@ public class Destination implements Recyclable {
          * Eventually, we may decide to actively fetch a cluster name or similar and we could use that to detect "sameness".
          * For now, for HTTP we use scheme, host, and non-default port. For anything else, we use {@code span.subtype}
          * (for example- postgresql, elasticsearch).
+         *
+         * @deprecated will be removed
          */
         private final StringBuilder name = new StringBuilder();
 
         /**
          * For displaying icons or similar. Currently, this should be equal to the {@code span.type}.
+         *
+         * @deprecated will be removed
          */
         @Nullable
         private String type;
 
-        public Service withResource(String resource) {
-            this.resource.append(resource);
+        public Service withUserResource(@Nullable String resource) {
+            if (resource == null || resource.isEmpty()) {
+                this.resource.setLength(0);
+            } else {
+                setResourceValue(resource);
+            }
+            resourceSetByUser = true;
             return this;
+        }
+
+        public Service withResource(String resource) {
+            if (!resourceSetByUser) {
+                setResourceValue(resource);
+            }
+            return this;
+        }
+
+        private void setResourceValue(String newValue) {
+            resource.setLength(0);
+            resource.append(newValue);
         }
 
         public StringBuilder getResource() {
             return resource;
         }
 
+        @Deprecated
         public Service withName(String name) {
-            this.name.append(name);
             return this;
         }
 
+        @Deprecated
         public StringBuilder getName() {
             return name;
         }
 
-        public Service withType(String type) {
-            this.type = type;
+        @Deprecated
+        public Service withType(@Nullable String type) {
             return this;
         }
 
         @Nullable
+        @Deprecated
         public String getType() {
             return type;
         }
 
         public boolean hasContent() {
-            return resource.length() > 0 || name.length() > 0 || type != null;
+            return resource.length() > 0;
         }
 
         @Override
         public void resetState() {
             resource.setLength(0);
+            resourceSetByUser = false;
             name.setLength(0);
             type = null;
         }

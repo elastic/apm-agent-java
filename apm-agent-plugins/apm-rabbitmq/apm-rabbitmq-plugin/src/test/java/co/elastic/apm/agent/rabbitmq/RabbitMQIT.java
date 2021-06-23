@@ -716,8 +716,6 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
 
         Destination.Service service = destination.getService();
 
-        assertThat(service.getType()).isEqualTo("messaging");
-        assertThat(service.getName().toString()).isEqualTo("rabbitmq");
         assertThat(service.getResource().toString()).isEqualTo(expectedResource);
     }
 }

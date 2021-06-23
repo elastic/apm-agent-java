@@ -206,9 +206,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
         assertThat(destination.getPort()).isEqualTo(container.getMappedPort(PORT));
 
         Destination.Service service = destination.getService();
-        assertThat(service.getName().toString()).isEqualTo("mongodb");
         assertThat(service.getResource().toString()).isEqualTo("mongodb");
-        assertThat(service.getType()).isEqualTo("db");
     }
 
     private static String getSpanName(String operation) {
