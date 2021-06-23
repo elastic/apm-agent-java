@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.process;
 
@@ -80,8 +74,8 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
         assertThat(span.getNameAsString()).isEqualTo(binaryName);
         assertThat(span.getType()).isEqualTo("process");
-        assertThat(span.getSubtype()).isEqualTo(binaryName);
-        assertThat(span.getAction()).isEqualTo("execute");
+        assertThat(span.getSubtype()).isNull();
+        assertThat(span.getAction()).isNull();
         assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 
@@ -178,7 +172,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         verifyNoMoreInteractions(process); // we should not even use any method of process
 
         // we have to opt-in to allow unknown outcome
-        reporter.checkUnknownOutcome(false);
+        reporter.disableCheckUnknownOutcome();
 
         helper.doStartProcess(transaction, process, "hello");
 

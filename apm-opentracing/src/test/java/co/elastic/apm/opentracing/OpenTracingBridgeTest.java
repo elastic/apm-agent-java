@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.opentracing;
 
@@ -300,12 +294,15 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
 
     @Test
     void testResolveClientType() {
+        // does not fit the shared type/subtype spec
+        reporter.disableCheckStrictSpanType();
+
         assertSoftly(softly -> {
-            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client")).getType()).isEqualTo("ext");
-            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "producer")).getType()).isEqualTo("ext");
+            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client")).getType()).isEqualTo("external");
+            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "producer")).getType()).isEqualTo("external");
             softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client", "db.type", "mysql")).getType()).isEqualTo("db");
-            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client", "db.type", "foo")).getType()).isEqualTo("db");
-            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client", "db.type", "redis")).getType()).isEqualTo("cache");
+            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client", "db.type", "sqlserver")).getType()).isEqualTo("db");
+            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client", "db.type", "redis")).getType()).isEqualTo("db");
         });
     }
 
@@ -330,7 +327,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     @Test
     void testResolveServerType() {
         assertSoftly(softly -> {
-            softly.assertThat(createTransactionFromOtTags(Map.of("span.kind", "server")).getType()).isEqualTo("unknown");
+            softly.assertThat(createTransactionFromOtTags(Map.of("span.kind", "server")).getType()).isEqualTo("custom");
             softly.assertThat(createTransactionFromOtTags(Map.of("span.kind", "server",
                 "http.url", "http://localhost:8080",
                 "http.method", "GET")).getType()).isEqualTo("request");
@@ -354,7 +351,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(span.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpClientStatus(status));
         Http spanHttp = span.getContext().getHttp();
         assertThat(spanHttp.getStatusCode()).isEqualTo(status);
-        assertThat(spanHttp.getUrl()).isEqualTo(url);
+        assertThat(spanHttp.getUrl().toString()).isEqualTo(url);
         assertThat(spanHttp.getMethod()).isEqualTo(method);
     }
 

@@ -20,14 +20,40 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.24.1]]
-==== 1.24.1 - YYYY/MM/DD
+[[release-notes-1.25.0]]
+==== 1.25.0 - YYYY/MM/DD
+
+[float]
+===== Potentially breaking changes
+* If you rely on instrumentations that are in the `experimental` group, you must now set `enable_experimental_instrumentations=true` otherwise
+the experimental instrumentations will be disabled by default. Up to version `1.24.0` using an empty value for `disable_instrumentations` was
+the recommended way to override the default `disable_instrumentations=experimental`.
 
 [float]
 ===== Features
+* Support for inheritance of public API annotations - {pull}1805[#1805]
+* JDBC instrumentation sets context.db.instance - {pull}1820[#1820]
+* Add support for Vert.x web client- {pull}1824[#1824]
+* Avoid recycling of spans and transactions that are using through the public API, so to avoid
+reference-counting-related errors - {pull}1859[#1859]
+* Add <<config-enable-experimental-instrumentations>> configuration option to enable experimental features - {pull}1863[#1863]
+** Previously, when adding an instrumentation group to `disable_instrumentations`, we had to make sure to not forget the
+default `experimental` value, for example when disabling `jdbc` instrumentation we had to set `disable_instrumentations=experimental,jdbc` otherwise
+setting `disable_instrumentations=jdbc` would disable jdbc and also enable experimental features, which would not be the desired effect.
+** Previously, by default `disable_instrumentations` contained `experimental`
+** Now by default `disable_instrumentations` is empty and `enable_experimental_instrumentations=false`
+** Set `disable_instrumentations=true` to enable experimental instrumentations
+* Eliminating concerns related to log4j2 vulnerability - https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle.
+We cannot upgrade to version above 2.12.1 because this is the last version of log4j that is compatible with Java 7.
+Instead, we exclude the SMTP appender (which is the vulnerable one) from our artifacts. Note that older versions of
+our agent are not vulnerable as well, as the SMTP appender was never used, this is only to further reduce our users' concerns.
 
 [float]
 ===== Bug fixes
+* Fix NPE with `null` binary header values + properly serialize them - {pull}1842[#1842]
+* Fix `ListenerExecutionFailedException` when using Spring AMQP's ReplyTo container - {pull}1872[#1872]
+* Enabling log ECS reformatting when using Logback configured with `LayoutWrappingEncoder` and a pattern layout - {pull}1879[#1879]
+* Fix NPE with Webflux + context propagation headers - {pull}1871[1871]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

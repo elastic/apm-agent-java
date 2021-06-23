@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
 
@@ -111,7 +105,7 @@ class TraceStateTest {
         trySetMultipleTimes((s, h) -> traceState.addTextHeader(h));
     }
 
-    private void trySetMultipleTimes(BiConsumer<Double, String> firstSet){
+    private void trySetMultipleTimes(BiConsumer<Double, String> firstSet) {
         double sampleRate = 0.5d;
         String header = TraceState.getHeaderValue(sampleRate);
         firstSet.accept(sampleRate, header);
@@ -127,9 +121,9 @@ class TraceStateTest {
 
     @Test
     void getHeaderValue() {
-        assertThatThrownBy(()-> TraceState.getHeaderValue(Double.NaN));
-        assertThatThrownBy(()-> TraceState.getHeaderValue(-1d));
-        assertThatThrownBy(()-> TraceState.getHeaderValue(1.1d));
+        assertThatThrownBy(() -> TraceState.getHeaderValue(Double.NaN));
+        assertThatThrownBy(() -> TraceState.getHeaderValue(-1d));
+        assertThatThrownBy(() -> TraceState.getHeaderValue(1.1d));
         assertThat(TraceState.getHeaderValue(0d)).isEqualTo("es=s:0");
         assertThat(TraceState.getHeaderValue(1d)).isEqualTo("es=s:1");
         assertThat(TraceState.getHeaderValue(0.5d)).isEqualTo("es=s:0.5");
@@ -232,7 +226,7 @@ class TraceStateTest {
         assertThat(TraceState.getHeaderValue(traceState.getSampleRate())).isEqualTo(header);
     }
 
-    private void checkHeader(double expectedSampleRate, @Nullable String expectedHeader){
+    private void checkHeader(double expectedSampleRate, @Nullable String expectedHeader) {
         double sampleRate = traceState.getSampleRate();
         if (Double.isNaN(expectedSampleRate)) {
             assertThat(sampleRate).isNaN();

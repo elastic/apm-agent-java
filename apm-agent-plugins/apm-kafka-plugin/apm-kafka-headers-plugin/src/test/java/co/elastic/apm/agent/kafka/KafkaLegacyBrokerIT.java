@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.kafka;
 
@@ -107,7 +101,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
 
     @BeforeClass
     public static void setup() {
-        reporter.disableDestinationAddressCheck();
+        reporter.disableCheckDestinationAddress();
 
         // confluent versions 3.2.x correspond Kafka versions 0.10.2.2 -
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
@@ -225,7 +219,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
         when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
         testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
-        reporter.disableDestinationAddressCheck();
+        reporter.disableCheckDestinationAddress();
         sendTwoRecordsAndConsumeReplies();
         verifyTracing();
     }

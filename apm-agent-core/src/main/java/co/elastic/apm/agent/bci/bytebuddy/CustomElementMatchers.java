@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
@@ -126,6 +120,14 @@ public class CustomElementMatchers {
      * @return an LTE SemVer matcher
      */
     public static ElementMatcher.Junction<ProtectionDomain> implementationVersionLte(final String version) {
+        return implementationVersion(version, Matcher.LTE);
+    }
+
+    public static ElementMatcher.Junction<ProtectionDomain> implementationVersionGte(final String version) {
+        return implementationVersion(version, Matcher.GTE);
+    }
+
+    private static ElementMatcher.Junction<ProtectionDomain> implementationVersion(final String version, final Matcher matcher) {
         return new ElementMatcher.Junction.AbstractBase<ProtectionDomain>() {
             /**
              * Returns true if the implementation version read from the manifest file referenced by the given
@@ -142,7 +144,7 @@ public class CustomElementMatchers {
                     Version pdVersion = readImplementationVersionFromManifest(protectionDomain);
                     Version limitVersion = Version.of(version);
                     if (pdVersion != null) {
-                        return pdVersion.compareTo(limitVersion) <= 0;
+                        return matcher.match(pdVersion, limitVersion);
                     }
                 } catch (Exception e) {
                     logger.info("Cannot read implementation version based on ProtectionDomain. This should not affect " +
@@ -152,6 +154,23 @@ public class CustomElementMatchers {
                 return true;
             }
         };
+    }
+
+    private enum Matcher {
+        LTE {
+            @Override
+            <T extends Comparable<T>> boolean match(T c1, T c2) {
+                return c1.compareTo(c2) <= 0;
+            }
+        },
+        GTE {
+            @Override
+            <T extends Comparable<T>> boolean match(T c1, T c2) {
+                return c1.compareTo(c2) >= 0;
+
+            }
+        };
+        abstract <T extends Comparable<T>> boolean match(T c1, T c2);
     }
 
     @Nullable

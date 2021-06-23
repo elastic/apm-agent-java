@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,11 +15,11 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.es.restclient.v7_x;
 
 import co.elastic.apm.agent.es.restclient.v6_4.AbstractEs6_4ClientInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -65,18 +60,14 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4ClientInstrumentationTest {
-    private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationIT.class);
 
     private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.11.0";
 
@@ -112,9 +103,9 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
     @Test
     public void testCancelScenario() throws InterruptedException, ExecutionException, IOException {
         // When spans are cancelled, we can't know the actual address, because there is no response, and we set the outcome as UNKNOWN
-        reporter.disableDestinationAddressCheck();
-        reporter.checkUnknownOutcome(false);
-        super.disableHttpUrlCheck();
+        reporter.disableCheckDestinationAddress();
+        reporter.disableCheckUnknownOutcome();
+        disableHttpUrlCheck();
 
         createDocument();
         reporter.reset();
@@ -135,16 +126,14 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
         // This ends the span synchronously
         cancellable.cancel();
 
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span searchSpan = spans.get(0);
+        Span searchSpan = reporter.getFirstSpan(500);
         validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), -1, "POST");
 
-        deleteDocument();
+        assertThat(searchSpan.getOutcome())
+            .describedAs("span outcome should be unknown when cancelled")
+            .isEqualTo(Outcome.UNKNOWN);
 
-        reporter.enableDestinationAddressCheck();
-        reporter.checkUnknownOutcome(true);
-        super.enableHttpUrlCheck();
+        deleteDocument();
     }
 
     @Override

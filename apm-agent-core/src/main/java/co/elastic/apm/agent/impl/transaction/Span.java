@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
 
@@ -157,7 +151,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Keywords of specific relevance in the span's domain (eg: 'db', 'template', 'ext', etc)
      */
     public Span withType(@Nullable String type) {
-        this.type = type;
+        this.type = normalizeEmpty(type);
         return this;
     }
 
@@ -165,7 +159,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Sets the span's subtype, related to the  (eg: 'mysql', 'postgresql', 'jsf' etc)
      */
     public Span withSubtype(@Nullable String subtype) {
-        this.subtype = subtype;
+        this.subtype = normalizeEmpty(subtype);
         return this;
     }
 
@@ -173,8 +167,13 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Action related to this span (eg: 'query', 'render' etc)
      */
     public Span withAction(@Nullable String action) {
-        this.action = action;
+        this.action = normalizeEmpty(action);
         return this;
+    }
+
+    @Nullable
+    private static String normalizeEmpty(@Nullable String value) {
+        return value == null || value.isEmpty() ? null : value;
     }
 
     /**
@@ -199,9 +198,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                 }
             }
         }
-        this.type = type;
-        this.subtype = subtype;
-        this.action = action;
+        withType(type);
+        withSubtype(subtype);
+        withAction(action);
     }
 
     @Nullable

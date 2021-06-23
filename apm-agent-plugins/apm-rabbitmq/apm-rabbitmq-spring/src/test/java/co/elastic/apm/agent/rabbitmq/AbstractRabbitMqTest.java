@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.rabbitmq;
 
@@ -48,6 +42,7 @@ public abstract class AbstractRabbitMqTest extends RabbitMqTestBase {
         checkTransaction(receiveTransaction, TOPIC_EXCHANGE_NAME, "Spring AMQP");
         Span testSpan = reporter.getFirstSpan(1000);
         assertThat(testSpan.getNameAsString()).isEqualTo("testSpan");
+        assertThat(testSpan.getType()).isEqualTo("custom");
         checkParentChild(receiveTransaction, testSpan);
     }
 
@@ -69,7 +64,7 @@ public abstract class AbstractRabbitMqTest extends RabbitMqTestBase {
         checkSendSpan(sendSpan, TOPIC_EXCHANGE_NAME, LOCALHOST_ADDRESS, container.getAmqpPort());
         checkParentChild(sendSpan, receiveTransaction);
 
-        Span testSpan = spans.stream().filter(span -> span.getType().equals("http")).findFirst().get();
+        Span testSpan = spans.stream().filter(span -> span.getType().equals("custom")).findFirst().get();
         assertThat(testSpan.getNameAsString()).isEqualTo("testSpan");
         checkParentChild(receiveTransaction, testSpan);
     }

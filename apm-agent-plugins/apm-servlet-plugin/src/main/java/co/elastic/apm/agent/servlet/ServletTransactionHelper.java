@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.servlet;
 
@@ -113,8 +107,7 @@ public class ServletTransactionHelper {
             .withHostname(serverName)
             .withPort(serverPort)
             .withPathname(requestURI)
-            .withSearch(queryString)
-            .updateFull();
+            .withSearch(queryString);
 
     }
 
@@ -253,43 +246,6 @@ public class ServletTransactionHelper {
             for (Map.Entry<String, String[]> param : params.entrySet()) {
                 request.addFormUrlEncodedParameters(param.getKey(), param.getValue());
             }
-        }
-    }
-
-    // inspired by org.apache.catalina.connector.Request.getRequestURL
-    private void fillFullUrl(Url url, String scheme, int port, String serverName, String requestURI, @Nullable String queryString) {
-        // using a StringBuilder to avoid allocations when constructing the full URL
-        final StringBuilder fullUrl = url.getFull();
-        if (port < 0) {
-            port = 80; // Work around java.net.URL bug
-        }
-
-        fullUrl.append(scheme);
-        fullUrl.append("://");
-        fullUrl.append(serverName);
-        if ((scheme.equals("http") && (port != 80))
-            || (scheme.equals("https") && (port != 443))) {
-            fullUrl.append(':');
-            fullUrl.append(port);
-        }
-        fullUrl.append(requestURI);
-        if (queryString != null) {
-            fullUrl.append('?').append(queryString);
-        }
-    }
-
-    private String getHttpVersion(String protocol) {
-        // don't allocate new strings in the common cases
-        switch (protocol) {
-            case "HTTP/1.0":
-                return "1.0";
-            case "HTTP/1.1":
-                return "1.1";
-            case "HTTP/2.0":
-                return "2.0";
-            default:
-                return protocol.replace("HTTP/", "");
-
         }
     }
 

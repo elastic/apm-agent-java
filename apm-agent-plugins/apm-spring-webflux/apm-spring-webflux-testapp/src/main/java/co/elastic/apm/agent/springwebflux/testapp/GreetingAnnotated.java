@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,12 +15,13 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.springwebflux.testapp;
 
-import co.elastic.apm.api.ElasticApm;
-import co.elastic.apm.api.Transaction;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -149,11 +145,13 @@ public class GreetingAnnotated {
         log.debug("enter customTransactionName");
         try {
             // transaction should be active, even if we are outside of the Mono/Flux execution
-            Transaction transaction = Objects.requireNonNull(ElasticApm.currentTransaction(), "active transaction is required");
-            transaction.setName("user-provided-name");
+            ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+            Transaction transaction = Objects.requireNonNull(tracer.currentTransaction(), "active transaction is required");
+            // This mimics setting the name through the public API. We cannot use the public API if we want to test span recycling
+            transaction.withName("user-provided-name", AbstractSpan.PRIO_USER_SUPPLIED);
 
 
-            return greetingHandler.helloMessage("transaction=" + ElasticApm.currentTransaction().getId());
+            return greetingHandler.helloMessage("transaction=" + Objects.requireNonNull(tracer.currentTransaction()).getTraceContext().getId());
         } finally {
             log.debug("exit customTransactionName");
         }

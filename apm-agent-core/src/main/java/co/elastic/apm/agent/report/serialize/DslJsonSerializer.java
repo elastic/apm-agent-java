@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report.serialize;
 
@@ -705,14 +699,14 @@ public class DslJsonSerializer implements PayloadSerializer {
             replace(replaceBuilder, ".", "_", 0);
             String subtype = span.getSubtype();
             String action = span.getAction();
-            if ((subtype != null && !subtype.isEmpty()) || (action != null && !action.isEmpty())) {
+            if (subtype != null || action != null) {
                 replaceBuilder.append('.');
                 int replaceStartIndex = replaceBuilder.length() + 1;
-                if (subtype != null && !subtype.isEmpty()) {
+                if (subtype != null) {
                     replaceBuilder.append(subtype);
                     replace(replaceBuilder, ".", "_", replaceStartIndex);
                 }
-                if (action != null && !action.isEmpty()) {
+                if (action != null) {
                     replaceBuilder.append('.');
                     replaceStartIndex = replaceBuilder.length() + 1;
                     replaceBuilder.append(action);
@@ -888,7 +882,7 @@ public class DslJsonSerializer implements PayloadSerializer {
             if (body != null && body.length() > 0) {
                 writeLongStringField("body", message.getBodyForWrite());
             }
-            serializeMessageHeaders(message);
+            serializeMessageHeaders(message.getHeaders());
             int messageAge = (int) message.getAge();
             if (messageAge >= 0) {
                 writeFieldName("age");
@@ -908,8 +902,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private void serializeMessageHeaders(Message message) {
-        Headers headers = message.getHeaders();
+    private void serializeMessageHeaders(Headers headers) {
         if (!headers.isEmpty()) {
             writeFieldName("headers");
             jw.writeByte(OBJECT_START);
@@ -917,9 +910,9 @@ public class DslJsonSerializer implements PayloadSerializer {
             while (iterator.hasNext()) {
                 Headers.Header header = iterator.next();
                 if (iterator.hasNext()) {
-                    writeField(header.getKey(), header.getValue());
+                    writeField(header.getKey(), header.getValue(), replaceBuilder, jw, true);
                 } else {
-                    writeLastField(header.getKey(), header.getValue());
+                    writeLastField(header.getKey(), header.getValue(), replaceBuilder, jw);
                 }
             }
             jw.writeByte(OBJECT_END);
@@ -1265,8 +1258,27 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField(fieldName, value, replaceBuilder, jw);
     }
 
-    static void writeField(final String fieldName, @Nullable final CharSequence value, final StringBuilder replaceBuilder, final JsonWriter jw) {
-        if (value != null) {
+    static void writeField(final String fieldName,
+                           @Nullable final CharSequence value,
+                           final StringBuilder replaceBuilder,
+                           final JsonWriter jw) {
+
+        writeField(fieldName, value, replaceBuilder, jw, false);
+    }
+
+    static void writeField(final String fieldName,
+                           @Nullable final CharSequence value,
+                           final StringBuilder replaceBuilder,
+                           final JsonWriter jw,
+                           boolean writeNull) {
+
+        if (value == null) {
+            if (writeNull) {
+                writeFieldName(fieldName, jw);
+                jw.writeNull();
+                jw.writeByte(COMMA);
+            }
+        } else {
             writeFieldName(fieldName, jw);
             writeStringValue(value, replaceBuilder, jw);
             jw.writeByte(COMMA);

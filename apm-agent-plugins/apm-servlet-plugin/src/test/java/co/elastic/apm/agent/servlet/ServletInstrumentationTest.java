@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.servlet;
 
@@ -31,6 +25,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import okhttp3.Response;
 import org.eclipse.jetty.servlet.ErrorPageErrorHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.servlet.DispatcherType;
@@ -60,6 +55,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 class ServletInstrumentationTest extends AbstractServletTest {
+
+    @BeforeEach
+    void beforeEach() {
+        // servlet type & subtype are nor part of shared spec
+        reporter.disableCheckStrictSpanType();
+    }
 
     @Override
     protected void setUpHandler(ServletContextHandler handler) {

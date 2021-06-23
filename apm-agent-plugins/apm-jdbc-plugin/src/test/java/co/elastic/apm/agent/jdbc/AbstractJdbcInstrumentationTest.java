@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.jdbc;
 
@@ -223,6 +217,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
 
         final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER1' WHERE FOO=11";
         boolean isResultSet = statement.execute(sql);
+
         assertThat(check.getThrownCount()).isEqualTo(1);
         assertThat(isResultSet).isFalse();
 
@@ -230,6 +225,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
 
         // try to execute statement again, should not throw again
         statement.execute(sql);
+
         assertThat(check.getThrownCount())
             .describedAs("unsupported exception should only be thrown once")
             .isEqualTo(1);
@@ -406,6 +402,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         Db db = span.getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(rawSql);
         DatabaseMetaData metaData = connection.getMetaData();
+        assertThat(db.getInstance()).isEqualToIgnoringCase(connection.getCatalog());
         assertThat(db.getUser()).isEqualToIgnoringCase(metaData.getUserName());
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 
@@ -442,11 +439,12 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         signatureParser.querySignature(rawSql, processedSql, preparedStatement);
         assertThat(jdbcSpan.getNameAsString()).isEqualTo(processedSql.toString());
         assertThat(jdbcSpan.getType()).isEqualTo(DB_SPAN_TYPE);
-        assertThat(jdbcSpan.getSubtype()).isNull();
-        assertThat(jdbcSpan.getAction()).isNull();
+        assertThat(jdbcSpan.getSubtype()).isEqualTo("unknown");
+        assertThat(jdbcSpan.getAction()).isEqualTo(DB_SPAN_ACTION);
 
         Db db = jdbcSpan.getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(rawSql);
+        assertThat(db.getInstance()).isNull();
         assertThat(db.getUser()).isNull();
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 
