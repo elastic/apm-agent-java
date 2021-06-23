@@ -99,6 +99,10 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
         final HttpResponse<String> mainUrlResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertThat(mainUrlResponse.statusCode()).isEqualTo(404);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("GET /before");
+        final List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(2);
+        final List<String> names = spans.stream().map(Span::getNameAsString).collect(Collectors.toList());
+        assertThat(names).containsExactly("GET /before", "GET /before");
     }
 
     @Test

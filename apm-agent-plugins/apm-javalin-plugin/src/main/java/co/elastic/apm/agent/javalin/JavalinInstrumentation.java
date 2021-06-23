@@ -31,17 +31,16 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.VersionUtils;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
-import io.javalin.http.HandlerType;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Pattern;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
@@ -82,8 +81,6 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
 
     public static class HandlerAdapterAdvice {
 
-        private static Field handlerTypeField = null;
-
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object setSpanAndTransactionName(@Advice.This Handler handler,
                                                        @Advice.Argument(0) Object ctxObject) throws Exception {
@@ -93,26 +90,19 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
             }
             Context ctx = ((Context) ctxObject);
 
-            // TODO FIXME I don't think this is the right way, I am sure there is a fancy bytecode trick that I am not aware off
-            if (handlerTypeField == null) {
-                Field field = ctx.getClass().getDeclaredField("handlerType");
-                field.setAccessible(true);
-                handlerTypeField = field;
-            }
-
-            final HandlerType handlerType = (HandlerType) handlerTypeField.get(ctx);
             final String handlerClassName = handler.getClass().getName();
+            final boolean isLambdaHandler = handlerClassName.equals("co.elastic.apm.agent.javalin.JavalinHandlerLambdaInstrumentation$WrappingHandler");
 
-            // transaction name like the HTTP path
-            if (handlerType.isHttpMethod()) {
+            final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
+            if (name != null) {
                 transaction.setFrameworkName(FRAMEWORK_NAME);
                 transaction.setFrameworkVersion(VersionUtils.getVersion(Handler.class, "io.javalin", "javalin"));
-                final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
-                name.append(handlerType.name()).append(" ").append(ctx.endpointHandlerPath());
+
+                // TODO USE HANDLERTYPE HERE WITH MOST RECENT VERSION
+                name.append(ctx.method()).append(" ").append(ctx.endpointHandlerPath());
 
                 // no need for anonymous handler class names in the transaction
-                if (!handlerClassName.equals("co.elastic.apm.agent.javalin.JavalinHandlerLambdaInstrumentation$WrappingHandler")
-                    && !handlerClassName.startsWith("io.javalin.http.JavalinServlet")) {
+                if (!isLambdaHandler) {
                     name.append(" ").append(handlerClassName);
                 }
             }
@@ -123,7 +113,7 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
             }
 
             // create own span for all handlers including after/before
-            final Span span = startSpan(handlerType.name(), ctx.matchedPath(), ctx.method(), ctx.url());
+            final Span span = startSpan(handlerClassName, isLambdaHandler, ctx.matchedPath(), ctx.method(), ctx.url());
             return span;
         }
 
@@ -147,7 +137,7 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
             }
         }
 
-        private static Span startSpan(String handlerTypeName, String matchedPath, String method, String url) {
+        private static Span startSpan(String handlerClassName, boolean isLambdaHandler, String matchedPath, String method, String url) {
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent == null) {
                 return null;
@@ -155,8 +145,12 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
 
             Span span = parent.createSpan().activate();
             span.withType("javalin")
-                .withSubtype("javalin-handler")
-                .appendToName(handlerTypeName).appendToName(" ").appendToName(matchedPath);
+                .withSubtype("javalin-handler");
+            if (isLambdaHandler) {
+                span.appendToName("<Lambda> ").appendToName(matchedPath);
+            } else {
+                span.appendToName(handlerClassName).appendToName(" ").appendToName(matchedPath);
+            }
 
             span.getContext().getHttp().withUrl(url).withMethod(method);
 
