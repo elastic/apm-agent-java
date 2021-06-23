@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.httpclient.helper;
 
 import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.objectpool.Recyclable;
@@ -31,21 +32,47 @@ import org.apache.http.nio.IOControl;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.protocol.HttpContext;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyclable {
     private final ApacheHttpAsyncClientHelper asyncClientHelper;
     private volatile HttpAsyncRequestProducer delegate;
+
+    @Nullable
+    private AbstractSpan<?> parent;
+
+    @Nullable
     private Span span;
+
     private TextHeaderSetter<HttpRequest> headerSetter;
 
     HttpAsyncRequestProducerWrapper(ApacheHttpAsyncClientHelper helper) {
         this.asyncClientHelper = helper;
     }
 
-    public HttpAsyncRequestProducerWrapper with(HttpAsyncRequestProducer delegate, Span span, TextHeaderSetter<HttpRequest> headerSetter) {
+    /**
+     * Called in order to wrap the provided {@link HttpAsyncRequestProducer} with our wrapper that is capable of
+     * populating the HTTP span with data and ending it, as well as propagating the trace context through the
+     * generated request.
+     * If the {@code span} is not {@code null}, it will be used for trace context propagation. Otherwise, the
+     * {@code parent} will be used instead.
+     *
+     * @param delegate     the original {@link HttpAsyncRequestProducer}
+     * @param span         the HTTP span corresponding the given {@link HttpAsyncRequestProducer}
+     * @param parent       the active span when this method is called
+     * @param headerSetter facilitates headers setting for trace context propagation
+     * @return the {@link HttpAsyncRequestProducer} wrapper
+     */
+    public HttpAsyncRequestProducerWrapper with(HttpAsyncRequestProducer delegate, @Nullable Span span,
+                                                @Nullable AbstractSpan<?> parent, TextHeaderSetter<HttpRequest> headerSetter) {
         // Order is important due to visibility - write to delegate last on this (initiating) thread
         this.span = span;
+        if (parent != null) {
+            // preventing from the parent to be ended before we propagate the context
+            parent.incrementReferences();
+            this.parent = parent;
+        }
         this.headerSetter = headerSetter;
         this.delegate = delegate;
         return this;
@@ -58,26 +85,38 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
 
     @Override
     public HttpRequest generateRequest() throws IOException, HttpException {
-        // first read the volatile, span will become visible as a result
+        // first read the volatile, span and parent will become visible as a result
         HttpRequest request = delegate.generateRequest();
 
+        // trace context propagation
         if (request != null) {
-            RequestLine requestLine = request.getRequestLine();
-            if (requestLine != null) {
-                String method = requestLine.getMethod();
-                span.withName(method).appendToName(" ");
-                span.getContext().getHttp().withMethod(method).withUrl(requestLine.getUri());
+            if (span != null) {
+                RequestLine requestLine = request.getRequestLine();
+                if (requestLine != null) {
+                    String method = requestLine.getMethod();
+                    span.withName(method).appendToName(" ");
+                    span.getContext().getHttp().withMethod(method).withUrl(requestLine.getUri());
+                }
+                span.propagateTraceContext(request, headerSetter);
+            } else if (parent != null) {
+                parent.propagateTraceContext(request, headerSetter);
             }
-            span.propagateTraceContext(request, headerSetter);
         }
 
-        HttpHost host = getTarget();
-        //noinspection ConstantConditions
-        if (host != null) {
-            String hostname = host.getHostName();
-            if (hostname != null) {
-                span.appendToName(hostname);
-                HttpClientHelper.setDestinationServiceDetails(span, host.getSchemeName(), hostname, host.getPort());
+        if (parent != null) {
+            parent.decrementReferences();
+        }
+
+        // HTTP span details
+        if (span != null) {
+            HttpHost host = getTarget();
+            //noinspection ConstantConditions
+            if (host != null) {
+                String hostname = host.getHostName();
+                if (hostname != null) {
+                    span.appendToName(hostname);
+                    HttpClientHelper.setDestinationServiceDetails(span, host.getSchemeName(), hostname, host.getPort());
+                }
             }
         }
 
@@ -120,6 +159,7 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
     public void resetState() {
         // Order is important due to visibility - write to delegate last
         span = null;
+        parent = null;
         headerSetter = null;
         delegate = null;
     }

@@ -43,6 +43,7 @@ import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
@@ -104,6 +105,19 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         performGetWithinTransaction(path);
 
         verifyHttpSpan(path);
+    }
+
+    @Test
+    public void testContextPropagationFromExitParent() throws InterruptedException {
+        String path = "/";
+        Span exitSpan = Objects.requireNonNull(Objects.requireNonNull(tracer.currentTransaction()).createExitSpan()).activate();
+        reporter.disableCheckDestinationAddress();
+        // todo - also disable destination service check
+        performGetWithinTransaction(path);
+        Thread.sleep(200);
+        assertThat(reporter.getSpans()).isEmpty();
+        verifyTraceContextHeaders(exitSpan, path);
+        exitSpan.deactivate().end();
     }
 
     @Test
