@@ -12,6 +12,7 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
+        <animal.sniffer.skip>true</animal.sniffer.skip>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
         <maven.compiler.target>11</maven.compiler.target>
     </properties>
@@ -26,7 +27,7 @@
         <dependency>
             <groupId>io.javalin</groupId>
             <artifactId>javalin</artifactId>
-            <version>3.13.7</version>
+            <version>3.13.8</version>
             <scope>provided</scope>
         </dependency>
         <!-- this has to override the global jetty dependency, and needs to match the javalin version -->
@@ -46,12 +47,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-servlet-plugin</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest-core</artifactId>
-            <version>1.3</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

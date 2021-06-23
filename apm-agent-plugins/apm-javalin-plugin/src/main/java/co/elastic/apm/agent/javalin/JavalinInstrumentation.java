@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.javalin;
 
@@ -31,6 +25,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.VersionUtils;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
+import io.javalin.http.HandlerType;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -40,7 +35,6 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
-import java.util.regex.Pattern;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
@@ -93,17 +87,20 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
             final String handlerClassName = handler.getClass().getName();
             final boolean isLambdaHandler = handlerClassName.equals("co.elastic.apm.agent.javalin.JavalinHandlerLambdaInstrumentation$WrappingHandler");
 
-            final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
-            if (name != null) {
-                transaction.setFrameworkName(FRAMEWORK_NAME);
-                transaction.setFrameworkVersion(VersionUtils.getVersion(Handler.class, "io.javalin", "javalin"));
+            // transaction name gets only set if we are dealing with a HTTP method processing, not before/after handlers
+            if (ctx.handlerType().isHttpMethod()) {
+                final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
+                if (name != null) {
+                    transaction.setFrameworkName(FRAMEWORK_NAME);
+                    transaction.setFrameworkVersion(VersionUtils.getVersion(Handler.class, "io.javalin", "javalin"));
+                    transaction.withType("request");
 
-                // TODO USE HANDLERTYPE HERE WITH MOST RECENT VERSION
-                name.append(ctx.method()).append(" ").append(ctx.endpointHandlerPath());
+                    name.append(ctx.handlerType().name()).append(" ").append(ctx.endpointHandlerPath());
 
-                // no need for anonymous handler class names in the transaction
-                if (!isLambdaHandler) {
-                    name.append(" ").append(handlerClassName);
+                    // no need for anonymous handler class names in the transaction
+                    if (!isLambdaHandler) {
+                        name.append(" ").append(handlerClassName);
+                    }
                 }
             }
 
@@ -113,8 +110,7 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
             }
 
             // create own span for all handlers including after/before
-            final Span span = startSpan(handlerClassName, isLambdaHandler, ctx.matchedPath(), ctx.method(), ctx.url());
-            return span;
+            return startSpan(handlerClassName, ctx.handlerType(), isLambdaHandler, ctx.matchedPath(), ctx.method(), ctx.url());
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -137,19 +133,18 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
             }
         }
 
-        private static Span startSpan(String handlerClassName, boolean isLambdaHandler, String matchedPath, String method, String url) {
+        private static Span startSpan(String handlerClassName, HandlerType handlerType, boolean isLambdaHandler, String matchedPath, String method, String url) {
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent == null) {
                 return null;
             }
 
             Span span = parent.createSpan().activate();
-            span.withType("javalin")
-                .withSubtype("javalin-handler");
+            span.appendToName(handlerType.name()).appendToName(" ").appendToName(matchedPath).appendToName(" ");
             if (isLambdaHandler) {
-                span.appendToName("<Lambda> ").appendToName(matchedPath);
+                span.appendToName("<Lambda>");
             } else {
-                span.appendToName(handlerClassName).appendToName(" ").appendToName(matchedPath);
+                span.appendToName(handlerClassName);
             }
 
             span.getContext().getHttp().withUrl(url).withMethod(method);

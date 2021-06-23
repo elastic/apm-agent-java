@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.javalin;
 
@@ -68,6 +62,7 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
         final HttpResponse<String> mainUrlResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertThat(mainUrlResponse.statusCode()).isEqualTo(200);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("GET /");
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("GET / <Lambda>");
     }
 
     @Test
@@ -78,6 +73,7 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
         final HttpResponse<String> mainUrlResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertThat(mainUrlResponse.statusCode()).isEqualTo(200);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("POST /hello/:id");
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("POST /hello/:id <Lambda>");
     }
 
     @Test
@@ -88,6 +84,7 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
         final HttpResponse<String> mainUrlResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertThat(mainUrlResponse.statusCode()).isEqualTo(201);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("GET /test");
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("GET /test <Lambda>");
     }
 
     @Test
@@ -102,7 +99,7 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
         final List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(2);
         final List<String> names = spans.stream().map(Span::getNameAsString).collect(Collectors.toList());
-        assertThat(names).containsExactly("GET /before", "GET /before");
+        assertThat(names).containsExactly("BEFORE /before <Lambda>", "GET /before <Lambda>");
     }
 
     @Test
@@ -120,7 +117,7 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
         final List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(3);
         final List<String> names = spans.stream().map(Span::getNameAsString).collect(Collectors.toList());
-        assertThat(names).containsExactly("GET /after", "AFTER /after", "AFTER /after");
+        assertThat(names).containsExactly("GET /after <Lambda>", "AFTER /after <Lambda>", "AFTER /after <Lambda>");
     }
 
     @Test
@@ -131,6 +128,7 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
         final HttpResponse<String> mainUrlResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertThat(mainUrlResponse.statusCode()).isEqualTo(400);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("GET /my-handler co.elastic.apm.agent.javalin.MyHandler");
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("GET /my-handler co.elastic.apm.agent.javalin.MyHandler");
     }
 
     @Test
@@ -142,6 +140,7 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
         final HttpResponse<String> mainUrlResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertThat(mainUrlResponse.statusCode()).isEqualTo(400);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("GET " + endpoint);
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("GET " + endpoint + " <Lambda>");
     }
 
     @Test
@@ -154,6 +153,6 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(mainUrlResponse.statusCode()).isEqualTo(404);
         assertThat(reporter.getFirstTransaction(500).getNameAsString()).isEqualTo("GET " + endpoint);
         final Span span = reporter.getFirstSpan(500);
-        assertThat(span.getNameAsString()).isEqualTo("GET " + endpoint);
+        assertThat(span.getNameAsString()).isEqualTo("GET " + endpoint + " <Lambda>");
     }
 }
