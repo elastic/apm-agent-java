@@ -165,9 +165,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
         assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
         assertThat(destination.getPort()).isEqualTo(port);
-        assertThat(destination.getService().getName().toString()).isEqualTo(baseUrl);
         assertThat(destination.getService().getResource().toString()).isEqualTo("%s:%d", host, port);
-        assertThat(destination.getService().getType()).isEqualTo("external");
 
         if (requestExecuted) {
             verifyTraceContextHeaders(span, path);

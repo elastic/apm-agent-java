@@ -100,9 +100,7 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
                 assertThat(destination.getPort()).isEqualTo(redisPort);
             }
             Destination.Service service = destination.getService();
-            assertThat(service.getName().toString()).isEqualTo("redis");
             assertThat(service.getResource().toString()).isEqualTo("redis");
-            assertThat(service.getType()).isEqualTo("db");
         }
     }
 
