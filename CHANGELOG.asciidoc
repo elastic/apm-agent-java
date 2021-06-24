@@ -56,6 +56,7 @@ for exit spans - {pull}1788[#1788]
 * Fix `ListenerExecutionFailedException` when using Spring AMQP's ReplyTo container - {pull}1872[#1872]
 * Enabling log ECS reformatting when using Logback configured with `LayoutWrappingEncoder` and a pattern layout - {pull}1879[#1879]
 * Fix NPE with Webflux + context propagation headers - {pull}1871[1871]
+* Fix `ClassCastException` with `ConnnectionMetaData` and multiple classloaders - {pull}1864[#1864]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
