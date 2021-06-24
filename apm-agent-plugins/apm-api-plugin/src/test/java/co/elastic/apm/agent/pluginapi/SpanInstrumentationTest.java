@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.pluginapi;
 
@@ -106,7 +100,9 @@ class SpanInstrumentationTest extends AbstractApiTest {
             .addLabel("foo", "bar")
             .setLabel("stringKey", randomString)
             .setLabel("numberKey", randomInt)
-            .setLabel("booleanKey", randomBoolean);
+            .setLabel("booleanKey", randomBoolean)
+            .setDestinationAddress("localhost", 443)
+            .setDestinationService("resource:123");
         endSpan(span);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("foo");
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("foo");
@@ -114,6 +110,9 @@ class SpanInstrumentationTest extends AbstractApiTest {
         assertThat(reporter.getFirstSpan().getContext().getLabel("stringKey")).isEqualTo(randomString);
         assertThat(reporter.getFirstSpan().getContext().getLabel("numberKey")).isEqualTo(randomInt);
         assertThat(reporter.getFirstSpan().getContext().getLabel("booleanKey")).isEqualTo(randomBoolean);
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getAddress().toString()).isEqualTo("localhost");
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getPort()).isEqualTo(443);
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getResource().toString()).isEqualTo("resource:123");
     }
 
     private void endSpan(Span span) {

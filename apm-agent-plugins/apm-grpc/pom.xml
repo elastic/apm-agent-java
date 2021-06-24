@@ -96,13 +96,13 @@
                     </plugin>
                     <!-- updating licence header on generated files is required-->
                     <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
+                        <groupId>com.mycila</groupId>
                         <artifactId>license-maven-plugin</artifactId>
                         <executions>
                             <execution>
                                 <phase>generate-test-sources</phase>
                                 <goals>
-                                    <goal>update-file-header</goal>
+                                    <goal>format</goal>
                                 </goals>
                             </execution>
                         </executions>
