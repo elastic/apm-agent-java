@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.httpclient;
 
@@ -171,9 +165,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
         assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
         assertThat(destination.getPort()).isEqualTo(port);
-        assertThat(destination.getService().getName().toString()).isEqualTo(baseUrl);
         assertThat(destination.getService().getResource().toString()).isEqualTo("%s:%d", host, port);
-        assertThat(destination.getService().getType()).isEqualTo("external");
 
         if (requestExecuted) {
             verifyTraceContextHeaders(span, path);

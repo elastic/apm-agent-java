@@ -88,7 +88,7 @@ pipeline {
                 retryWithSleep(retries: 5, seconds: 10) {
                   sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
                 }
-                sh label: 'mvn license', script: "./mvnw license:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
+                sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
               }
               stash allowEmpty: true, name: 'build', useDefaultExcludes: false
               archiveArtifacts allowEmptyArchive: true,
