@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent;
 
@@ -80,6 +74,8 @@ public class MockReporter implements Reporter {
     private static final Map<String, Collection<String>> SPAN_ACTIONS_WITHOUT_ADDRESS;
     // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
     private boolean checkDestinationAddress = true;
+    // All external spans coming from internal plugins should have a valid 'destination.resource' field. However, custom spans may not have it
+    private boolean checkDestinationService = true;
     // Allows optional opt-out for unknown outcome
     private boolean checkUnknownOutcomes = true;
     // Allows optional opt-out from strick span type/sub-type checking
@@ -132,6 +128,7 @@ public class MockReporter implements Reporter {
      */
     public void resetChecks() {
         checkDestinationAddress = true;
+        checkDestinationService = true;
         checkUnknownOutcomes = true;
         checkStrictSpanType = true;
     }
@@ -148,6 +145,13 @@ public class MockReporter implements Reporter {
      */
     public void disableCheckDestinationAddress() {
         checkDestinationAddress = false;
+    }
+
+    /**
+     * Disables destination service check
+     */
+    public void disableCheckDestinationService() {
+        checkDestinationService = false;
     }
 
     public boolean checkDestinationAddress() {
@@ -257,9 +261,9 @@ public class MockReporter implements Reporter {
             }
         }
         Destination.Service service = destination.getService();
-        assertThat(service.getName()).describedAs("service name is required").isNotEmpty();
-        assertThat(service.getResource()).describedAs("service resource is required").isNotEmpty();
-        assertThat(service.getType()).describedAs("service type is required").isNotNull();
+        if (checkDestinationService) {
+            assertThat(service.getResource()).describedAs("service resource is required").isNotEmpty();
+        }
     }
 
     public void verifyTransactionSchema(JsonNode jsonNode) {

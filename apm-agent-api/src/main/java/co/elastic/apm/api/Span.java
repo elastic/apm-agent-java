@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.api;
 
@@ -424,4 +418,34 @@ public interface Span {
      */
     void injectTraceHeaders(HeaderInjector headerInjector);
 
+    /**
+     * Provides a way to manually set the destination address and port for this span. If used, values will override
+     * the automatically discovered ones, if there are such.
+     * Any value set through this method will take precedence over the automatically discovered one.
+     *
+     * NOTE: this is only relevant for spans that represent outgoing communication. Trying to invoke this method
+     * on a {@link Transaction} object will result with an {@link UnsupportedOperationException}.
+     *
+     * @param address a string representation of the destination host name or IP. {@code null} and empty values will
+     *                will cause the exclusion of the address field from the span context.
+     * @param port the destination port. Non-positive values will cause the exclusion of the port field from the span context.
+     * @return this span
+     */
+    @Nonnull
+    Span setDestinationAddress(@Nullable String address, int port);
+
+    /**
+     * Provides a way to manually set the {@code destination.service.resource} field, which is used for the construction
+     * of service maps and the identification of downstream services.
+     * Any value set through this method will take precedence over the automatically inferred one.
+     *
+     * NOTE: this is only relevant for spans that represent outgoing communication. Trying to invoke this method
+     * on a {@link Transaction} object will result with an {@link UnsupportedOperationException}.
+     *
+     * @param resource the string representation of the downstream service. Will be used to override automatically
+     *                 inferred value, even if {@code null}.
+     * @return this span
+     */
+    @Nonnull
+    Span setDestinationService(@Nullable String resource);
 }

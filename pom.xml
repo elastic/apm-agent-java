@@ -373,48 +373,35 @@
             </plugin>
             <!-- License headers -->
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
+                <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin</artifactId>
                 <configuration>
-                    <verbose>false</verbose>
-                    <licenseName>apache2_license</licenseName>
-                    <licenseResolver>file:///${apm-agent-parent.base.dir}/licenses</licenseResolver>
-                    <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
-                    <failOnMissingHeader>true</failOnMissingHeader>
-                    <dryRun>false</dryRun>
-                    <failOnNotUptodateHeader>true</failOnNotUptodateHeader>
-                    <projectName>Elastic APM Java agent</projectName>
-                    <!--
-                    Elastic does actually not have the copyright of community contributions.
-                    See https://www.elastic.co/contributor-agreement
-                    "The CLA is a license agreement, which enables Elastic to distribute your code without restriction.
-                    It doesn't require you to assign to us any copyright you have, the ownership of which remains in full with you.
-                    You cannot withdraw permission for its use at a later date."
-                    -->
-                    <organizationName>Elastic and contributors</organizationName>
-                    <roots>
-                        <root>src/main/java</root>
-                        <root>src/test/java</root>
-                    </roots>
+                    <licenseSets>
+                        <licenseSet>
+                            <header>${apm-agent-parent.base.dir}/licenses/apache2_license/apache2-license-header.txt</header>
+                            <includes>
+                                <include>**/*.java</include>
+                            </includes>
+                        </licenseSet>
+                    </licenseSets>
                 </configuration>
                 <executions>
                     <execution>
-                        <id>first</id>
+                        <id>update-license-headers</id>
                         <goals>
-                            <goal>update-file-header</goal>
+                            <goal>format</goal>
                         </goals>
                         <phase>process-sources</phase>
                     </execution>
                     <execution>
-                        <id>license-header-check</id>
+                        <id>check-license-headers</id>
                         <goals>
-                            <goal>check-file-header</goal>
+                            <goal>check</goal>
                         </goals>
                         <phase>verify</phase>
                     </execution>
                 </executions>
             </plugin>
-
         </plugins>
 
         <pluginManagement>
@@ -482,6 +469,11 @@
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>license-maven-plugin</artifactId>
                     <version>1.19</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.mycila</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>4.1</version>
                 </plugin>
                 <plugin>
                     <groupId>com.coderplus.maven.plugins</groupId>
