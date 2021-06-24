@@ -165,7 +165,7 @@ public class ElasticApmAttacher {
         File tempFile = createTempProperties(configuration);
         String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();
 
-        ByteBuddyAgent.attach(agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get(false));
+        ByteBuddyAgent.attach(agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
         if (tempFile != null) {
             if (!tempFile.delete()) {
                 tempFile.deleteOnExit();
@@ -182,7 +182,7 @@ public class ElasticApmAttacher {
      */
     @Deprecated
     public static void attach(String pid, String agentArgs) {
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get(false));
+        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
     }
 
     public static File getBundledAgentJarFile() {

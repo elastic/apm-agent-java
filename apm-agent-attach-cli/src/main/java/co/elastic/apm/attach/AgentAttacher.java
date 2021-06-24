@@ -67,8 +67,7 @@ public class AgentAttacher {
 
     private AgentAttacher(Arguments arguments) throws Exception {
         this.arguments = arguments;
-        // in case emulated attach is disabled, we need to init provider first, otherwise it's enabled by default
-        ElasticAttachmentProvider.init(arguments.useEmulatedAttach());
+        ElasticAttachmentProvider.init();
         // fail fast if no attachment provider is working
         GetAgentProperties.getAgentAndSystemProperties(JvmInfo.CURRENT_PID, userRegistry.getCurrentUser());
         this.jvmDiscoverer = new JvmDiscoverer.Compound(Arrays.asList(
@@ -279,13 +278,12 @@ public class AgentAttacher {
         private final boolean help;
         private final boolean list;
         private final boolean continuous;
-        private final boolean useEmulatedAttach;
         private final Level logLevel;
         private final String logFile;
         private final boolean listVmArgs;
         private final File agentJar;
 
-        private Arguments(DiscoveryRules rules, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean listVmArgs, boolean continuous, boolean useEmulatedAttach, Level logLevel, String logFile, String agentJarString) {
+        private Arguments(DiscoveryRules rules, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean listVmArgs, boolean continuous, Level logLevel, String logFile, String agentJarString) {
             this.rules = rules;
             this.help = help;
             this.list = list;
@@ -309,7 +307,6 @@ public class AgentAttacher {
             }
             this.config = config;
             this.argsProvider = argsProvider;
-            this.useEmulatedAttach = useEmulatedAttach;
         }
 
         static Arguments parse(String... args) {
@@ -320,7 +317,6 @@ public class AgentAttacher {
             boolean list = false;
             boolean listVmArgs = false;
             boolean continuous = false;
-            boolean useEmulatedAttach = true;
             String currentArg = "";
             Level logLevel = Level.INFO;
             String logFile = null;
@@ -344,10 +340,6 @@ public class AgentAttacher {
                         case "-c":
                         case "--continuous":
                             continuous = true;
-                            break;
-                        case "-w":
-                        case "--without-emulated-attach":
-                            useEmulatedAttach = false;
                             break;
                         case "--include-all":
                             rules.includeAll();
@@ -416,7 +408,7 @@ public class AgentAttacher {
                     }
                 }
             }
-            return new Arguments(rules, config, argsProvider, help, list, listVmArgs, continuous, useEmulatedAttach, logLevel, logFile, agentJar);
+            return new Arguments(rules, config, argsProvider, help, list, listVmArgs, continuous, logLevel, logFile, agentJar);
         }
 
         // -ab -> -a -b
@@ -437,7 +429,7 @@ public class AgentAttacher {
         static void printHelp(PrintStream out) {
             out.println("SYNOPSIS");
             out.println("    java -jar apm-agent-attach-cli.jar [--include-* <pattern>...] [--exclude-* <pattern>...]");
-            out.println("                                       [--continuous] [--without-emulated-attach]");
+            out.println("                                       [--continuous]");
             out.println("                                       [--config <key=value>... | --args-provider <args_provider_script>]");
             out.println("                                       [--list] [--list-vmargs]");
             out.println("                                       [--log-level <level>]");
@@ -495,10 +487,6 @@ public class AgentAttacher {
             out.println("        The syntax of the arguments is 'key1=value1;key2=value1,value2'.");
             out.println("        Note: this option can not be used in conjunction with --include-pid and --args.");
             out.println();
-            out.println("    -w, --without-emulated-attach");
-            out.println("        Disables the emulated attach feature provided by Byte Buddy, this should be used as a workaround on some JDK/JREs");
-            out.println("        when runtime attachment fails.");
-            out.println();
             out.println("    -g, --log-level <off|fatal|error|warn|info|debug|trace|all>");
             out.println("        Configures the verbosity of the logs that are sent to stdout with an ECS JSON format.");
             out.println();
@@ -529,10 +517,6 @@ public class AgentAttacher {
 
         boolean isContinuous() {
             return continuous;
-        }
-
-        boolean useEmulatedAttach() {
-            return useEmulatedAttach;
         }
 
         public DiscoveryRules getDiscoveryRules() {
@@ -568,7 +552,6 @@ public class AgentAttacher {
                 ", help=" + help +
                 ", list=" + list +
                 ", continuous=" + continuous +
-                ", useEmulatedAttach=" + useEmulatedAttach +
                 ", logLevel=" + logLevel +
                 ", logFile='" + logFile + '\'' +
                 ", listVmArgs=" + listVmArgs +
