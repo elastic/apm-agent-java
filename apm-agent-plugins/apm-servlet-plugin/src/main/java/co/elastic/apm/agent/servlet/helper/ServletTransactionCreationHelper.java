@@ -79,7 +79,7 @@ public class ServletTransactionCreationHelper {
 
     @Nullable
     public ClassLoader getClassloader(@Nullable ServletContext servletContext){
-        if(servletContext == null) {
+        if (servletContext == null) {
             return null;
         }
 
