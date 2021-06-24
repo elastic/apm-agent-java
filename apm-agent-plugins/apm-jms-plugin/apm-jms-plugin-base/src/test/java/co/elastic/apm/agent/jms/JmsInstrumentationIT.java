@@ -419,9 +419,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     }
 
     private void verifySendSpanDestinationDetails(Span sendSpan, String destinationName) {
-        assertThat(sendSpan.getContext().getDestination().getService().getName().toString()).isEqualTo("jms");
         assertThat(sendSpan.getContext().getDestination().getService().getResource().toString()).isEqualTo("jms/" + destinationName);
-        assertThat(sendSpan.getContext().getDestination().getService().getType()).isEqualTo(MESSAGING_TYPE);
     }
 
     // tests transaction creation following a receive

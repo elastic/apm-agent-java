@@ -154,4 +154,12 @@ abstract class AbstractSpanImpl implements Span {
     private void doInjectTraceHeaders(MethodHandle addHeader, HeaderInjector headerInjector) {
         // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.InjectTraceHeadersInstrumentation
     }
+
+    protected void doSetDestinationAddress(@Nullable String address, int port) {
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.SetDestinationAddressInstrumentation
+    }
+
+    protected void doSetDestinationService(@Nullable String resource) {
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.SetDestinationServiceInstrumentation
+    }
 }
