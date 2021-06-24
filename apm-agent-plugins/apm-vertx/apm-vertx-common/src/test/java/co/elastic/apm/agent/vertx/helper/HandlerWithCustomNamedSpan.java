@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,13 +15,11 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.vertx.helper;
 
-import co.elastic.apm.api.ElasticApm;
-import co.elastic.apm.api.Scope;
-import co.elastic.apm.api.Span;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.transaction.Span;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 
@@ -44,11 +37,10 @@ public class HandlerWithCustomNamedSpan implements Handler<Void> {
 
     @Override
     public void handle(Void v) {
-        Span child = ElasticApm.currentSpan().startSpan();
-        child.setName(spanName + "-child-span");
-        try (Scope ignored = child.activate()) {
-            handler.handle(routingContext);
-        }
-        child.end();
+        Span child = GlobalTracer.requireTracerImpl().getActive().createSpan();
+        child.withName(spanName + "-child-span");
+        child.activate();
+        handler.handle(routingContext);
+        child.deactivate().end();
     }
 }

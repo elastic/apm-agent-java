@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.opentracingimpl;
 
@@ -209,7 +203,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 transaction.withType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("http.url".equals(key)) {
-                transaction.getContext().getRequest().getUrl().appendToFull(value.toString());
+                transaction.getContext().getRequest().getUrl().withFull(value.toString());
                 transaction.withType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("sampling.priority".equals(key)) {

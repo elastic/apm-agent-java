@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.vertx.helper;
 
@@ -35,7 +29,6 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.util.VersionUtils;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
-import co.elastic.apm.api.ElasticApm;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -51,6 +44,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.nio.CharBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -333,8 +327,8 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         router.get("/" + CALL_SCHEDULED_SHIFTED).handler(routingContext -> {
             routingContext.vertx()
                 .setTimer(500, tid -> {
-                    co.elastic.apm.api.Span child = ElasticApm.currentSpan().startSpan();
-                    child.setName(CALL_SCHEDULED_SHIFTED + "-child-span");
+                    Span child = Objects.requireNonNull(tracer.getActive()).createSpan();
+                    child.withName(CALL_SCHEDULED_SHIFTED + "-child-span");
                     child.end();
                 });
             getDefaultHandlerImpl().handle(routingContext);
@@ -346,12 +340,12 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
             .runOnContext(new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_ON_CONTEXT)));
 
         router.get("/parallel/:param").handler(routingContext -> routingContext.vertx().setTimer(1, tid_1 -> {
-            co.elastic.apm.api.Span asyncChild = ElasticApm.currentSpan().startSpan();
-            asyncChild.setName("first-child-" + routingContext.pathParam("param"));
+            Span asyncChild = Objects.requireNonNull(tracer.getActive()).createSpan();
+            asyncChild.withName("first-child-" + routingContext.pathParam("param"));
 
             routingContext.vertx().executeBlocking(p -> {
-                co.elastic.apm.api.Span blockingChild = ElasticApm.currentSpan().startSpan();
-                blockingChild.setName("second-child-" + routingContext.pathParam("param"));
+                Span blockingChild = Objects.requireNonNull(tracer.getActive()).createSpan();
+                blockingChild.withName("second-child-" + routingContext.pathParam("param"));
 
                 try {
                     Thread.sleep(new Random(System.currentTimeMillis()).nextInt(100));
@@ -360,8 +354,8 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
                 }
 
                 routingContext.vertx().setTimer(1, tid_2 -> {
-                    co.elastic.apm.api.Span thirdChild = ElasticApm.currentSpan().startSpan();
-                    thirdChild.setName("third-child-" + routingContext.pathParam("param"));
+                    Span thirdChild = Objects.requireNonNull(tracer.getActive()).createSpan();
+                    thirdChild.withName("third-child-" + routingContext.pathParam("param"));
                     getDefaultHandlerImpl().handle(routingContext);
                     thirdChild.end();
                 });

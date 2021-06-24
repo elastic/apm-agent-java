@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.httpclient;
 
@@ -28,6 +22,7 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
@@ -152,11 +147,14 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         Http httpContext = span.getContext().getHttp();
 
         assertThat(span.getNameAsString()).isEqualTo(String.format("%s %s", httpContext.getMethod(), host));
-
-        assertThat(httpContext.getUrl()).isEqualTo(baseUrl + path);
+        assertThat(httpContext.getUrl().toString()).isEqualTo(baseUrl + path);
         assertThat(httpContext.getStatusCode()).isEqualTo(status);
 
-        assertThat(span.getOutcome()).isEqualTo(status > 0 && status <= 400 ? Outcome.SUCCESS : Outcome.FAILURE);
+        if (requestExecuted) {
+            assertThat(span.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpClientStatus(status));
+        } else {
+            assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
+        }
 
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("http");
@@ -167,9 +165,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
         assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
         assertThat(destination.getPort()).isEqualTo(port);
-        assertThat(destination.getService().getName().toString()).isEqualTo(baseUrl);
         assertThat(destination.getService().getResource().toString()).isEqualTo("%s:%d", host, port);
-        assertThat(destination.getService().getType()).isEqualTo("external");
 
         if (requestExecuted) {
             verifyTraceContextHeaders(span, path);
