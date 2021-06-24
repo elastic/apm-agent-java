@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.springwebflux;
 
@@ -336,14 +330,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
             .withRemoteAddress(remoteAddress == null ? null : remoteAddress.getAddress().getHostAddress())
             .withEncrypted(serverRequest.getSslInfo() != null);
 
-        URI uri = serverRequest.getURI();
-        request.getUrl()
-            .withProtocol(uri.getScheme())
-            .withHostname(uri.getHost())
-            .withPort(uri.getPort())
-            .withPathname(uri.getPath())
-            .withSearch(uri.getQuery())
-            .updateFull();
+        request.getUrl().fillFrom(serverRequest.getURI());
 
         if (config.isCaptureHeaders()) {
             copyHeaders(serverRequest.getHeaders(), request.getHeaders());
