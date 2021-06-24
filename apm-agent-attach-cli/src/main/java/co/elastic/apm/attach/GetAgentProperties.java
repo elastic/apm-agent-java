@@ -80,7 +80,7 @@ public class GetAgentProperties {
     }
 
     static Properties getAgentAndSystemPropertiesCurrentUser(String pid) {
-        ByteBuddyAgent.AttachmentProvider.Accessor  accessor = ElasticAttachmentProvider.get().attempt();
+        ByteBuddyAgent.AttachmentProvider.Accessor accessor = ElasticAttachmentProvider.get().attempt();
         if (!accessor.isAvailable()) {
             throw new IllegalStateException("No compatible attachment provider is available");
         }

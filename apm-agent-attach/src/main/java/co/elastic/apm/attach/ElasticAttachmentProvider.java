@@ -31,7 +31,7 @@ import java.util.List;
 
 public class ElasticAttachmentProvider {
 
-    private static ByteBuddyAgent.AttachmentProvider.Compound provider;
+    private static ByteBuddyAgent.AttachmentProvider provider;
 
     /**
      * Initializes attachment provider, this method can only be called once as it loads native code.
