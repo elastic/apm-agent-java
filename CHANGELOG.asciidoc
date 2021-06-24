@@ -49,6 +49,7 @@ Instead, we exclude the SMTP appender (which is the vulnerable one) from our art
 our agent are not vulnerable as well, as the SMTP appender was never used, this is only to further reduce our users' concerns.
 * Adding public APIs for setting `destination.service.resource`, `destination.address` and `destination.port` fields
 for exit spans - {pull}1788[#1788]
+* Only use emulated runtime attachment as fallback, remove the `--without-emulated-attach` option - {pull}1865[#1865]
 * Instrument javax.servlet.Filter the same way as javax.servlet.FilterChain {pull}1858[#1858]
 
 [float]
