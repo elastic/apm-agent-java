@@ -61,7 +61,6 @@ public class AgentAttacher {
 
     private AgentAttacher(Arguments arguments) throws Exception {
         this.arguments = arguments;
-        ElasticAttachmentProvider.init();
         // fail fast if no attachment provider is working
         GetAgentProperties.getAgentAndSystemProperties(JvmInfo.CURRENT_PID, userRegistry.getCurrentUser());
         this.jvmDiscoverer = new JvmDiscoverer.Compound(Arrays.asList(

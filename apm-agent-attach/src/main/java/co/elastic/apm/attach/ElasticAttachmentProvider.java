@@ -31,7 +31,7 @@ public class ElasticAttachmentProvider {
      * Initializes attachment provider, this method can only be called once as it loads native code.
      *
      */
-    public synchronized static void init() {
+    private synchronized static void init() {
         if (provider != null) {
             throw new IllegalStateException("ElasticAttachmentProvider.init() should only be called once");
         }
