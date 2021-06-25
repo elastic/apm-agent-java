@@ -49,6 +49,7 @@ Instead, we exclude the SMTP appender (which is the vulnerable one) from our art
 our agent are not vulnerable as well, as the SMTP appender was never used, this is only to further reduce our users' concerns.
 * Adding public APIs for setting `destination.service.resource`, `destination.address` and `destination.port` fields
 for exit spans - {pull}1788[#1788]
+* Only use emulated runtime attachment as fallback, remove the `--without-emulated-attach` option - {pull}1865[#1865]
 * Basic support for remote EJB invocations on a WildFly application server
 
 [float]
@@ -57,6 +58,8 @@ for exit spans - {pull}1788[#1788]
 * Fix `ListenerExecutionFailedException` when using Spring AMQP's ReplyTo container - {pull}1872[#1872]
 * Enabling log ECS reformatting when using Logback configured with `LayoutWrappingEncoder` and a pattern layout - {pull}1879[#1879]
 * Fix NPE with Webflux + context propagation headers - {pull}1871[1871]
+* Fix `ClassCastException` with `ConnnectionMetaData` and multiple classloaders - {pull}1864[#1864]
+* Fix NPE in `co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper.getClassloader` - {pull}1861[#1861]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

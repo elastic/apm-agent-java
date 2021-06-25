@@ -26,18 +26,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GetAgentPropertiesTest {
 
     @Test
-    void testGetProperties() {
-        System.setProperty("foo", "bar");
-        try {
-            assertThat(GetAgentProperties.getAgentAndSystemPropertiesCurrentUser(JvmInfo.CURRENT_PID))
-                .containsEntry("foo", "bar");
-        } finally {
-            System.clearProperty("foo");
-        }
-    }
-
-    @Test
     void testGetPropertiesSwitchUser() throws Exception {
+        // note: we can only test by using the variant that uses a forked JVM because we are trying to get properties
+        // from the current JVM
+
         UserRegistry.User currentUser = UserRegistry.empty().getCurrentUser();
         Assumptions.assumeTrue(currentUser.canSwitchToUser());
         System.setProperty("foo", "bar");
