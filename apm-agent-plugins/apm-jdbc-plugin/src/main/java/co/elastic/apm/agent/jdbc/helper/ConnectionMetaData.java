@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
+import co.elastic.apm.agent.sdk.state.GlobalState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@GlobalState
 public class ConnectionMetaData {
 
     private static final Logger logger = LoggerFactory.getLogger(ConnectionMetaData.class);

@@ -78,7 +78,11 @@ public class ServletTransactionCreationHelper {
     }
 
     @Nullable
-    public ClassLoader getClassloader(ServletContext servletContext){
+    public ClassLoader getClassloader(@Nullable ServletContext servletContext){
+        if (servletContext == null) {
+            return null;
+        }
+
         // getClassloader might throw UnsupportedOperationException
         // see Section 4.4 of the Servlet 3.0 specification
         ClassLoader classLoader = null;
