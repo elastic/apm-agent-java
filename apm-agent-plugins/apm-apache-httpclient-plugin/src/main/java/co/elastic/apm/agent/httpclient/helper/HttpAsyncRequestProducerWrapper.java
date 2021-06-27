@@ -105,6 +105,7 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
 
         if (parent != null) {
             parent.decrementReferences();
+            parent = null;
         }
 
         // HTTP span details
@@ -159,7 +160,10 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
     public void resetState() {
         // Order is important due to visibility - write to delegate last
         span = null;
-        parent = null;
+        if (parent != null) {
+            parent.decrementReferences();
+            parent = null;
+        }
         headerSetter = null;
         delegate = null;
     }
