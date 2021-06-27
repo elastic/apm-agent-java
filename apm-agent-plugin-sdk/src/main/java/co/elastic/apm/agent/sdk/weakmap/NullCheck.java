@@ -31,10 +31,8 @@ public class NullCheck {
     static {
         try {
             logger = LoggerFactory.getLogger(NullCheck.class);
-            // todo: remove this one
-            logger.info("Logger for NullCheck class created successfully");
         } catch (Throwable throwable) {
-            System.err.println("Failed to initialize logger for the NullCheck class: " + throwable.getMessage());
+            System.err.println("[elastic-apm-agent] WARN Failed to initialize logger for the NullCheck class: " + throwable.getMessage());
             throwable.printStackTrace();
         }
     }
