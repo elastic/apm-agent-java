@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
 
@@ -31,7 +25,6 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.BinaryHeaderMapAccessor;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.MultiValueMapAccessor;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
@@ -512,7 +505,7 @@ class TraceContextTest {
         assertThat(traceState).isEqualTo("es=s:0.42");
     }
 
-    private TraceContext createRootSpan(double sampleRate){
+    private TraceContext createRootSpan(double sampleRate) {
         final TraceContext traceContext = TraceContext.with64BitId(tracer);
 
         Sampler sampler = mock(Sampler.class);
@@ -577,7 +570,7 @@ class TraceContextTest {
             .isEqualTo(Double.valueOf(expectedRate));
 
         assertThat(child.getTraceState().toTextHeader())
-                .isEqualTo(expectedHeader);
+            .isEqualTo(expectedHeader);
 
     }
 
