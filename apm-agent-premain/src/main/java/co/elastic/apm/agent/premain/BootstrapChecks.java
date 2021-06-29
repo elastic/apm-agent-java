@@ -54,19 +54,19 @@ class BootstrapChecks {
         if (result.hasErrors()) {
             if (bootstrapChecksEnabled) {
                 isPassing = false;
-                System.err.println("ERROR - Failed to start agent because of failing bootstrap checks.");
-                System.err.println("To override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.");
+                System.err.println("[elastic-apm-agent] WARN Failed to start agent because of failing bootstrap checks.");
+                System.err.println("[elastic-apm-agent] INFO To override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.");
             } else {
-                System.err.println("WARNING - Bootstrap checks have failed. The agent will still start because bootstrap check have been disabled.");
+                System.err.println("[elastic-apm-agent] WARN Bootstrap checks have failed. The agent will still start because bootstrap check have been disabled.");
             }
-            System.err.println("Note that we can not offer support for issues related to disabled bootstrap checks.");
+            System.err.println("[elastic-apm-agent] INFO Note that we can not offer support for issues related to disabled bootstrap checks.");
             for (String msg : result.getErrors()) {
-                System.err.println(msg);
+                System.err.println("[elastic-apm-agent] ERROR " + msg);
             }
         }
         if (result.hasWarnings()) {
             for (String msg : result.getWarnings()) {
-                System.err.println(msg);
+                System.err.println("[elastic-apm-agent] WARN " + msg);
             }
         }
         return isPassing;
