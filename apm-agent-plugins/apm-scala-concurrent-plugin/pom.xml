@@ -17,6 +17,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.13.4</version>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-java-concurrent-plugin</artifactId>
             <version>${project.version}</version>
@@ -36,9 +41,9 @@
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
-                <version>4.3.1</version>
+                <version>4.4.0</version>
                 <configuration>
-                    <scalaVersion>2.13.2</scalaVersion>
+                    <scalaVersion>2.13.4</scalaVersion>
                 </configuration>
                 <executions>
                     <execution>
