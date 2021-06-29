@@ -25,7 +25,17 @@ import javax.annotation.Nullable;
 
 public class NullCheck {
 
-    private static final Logger logger = LoggerFactory.getLogger(NullCheck.class);
+    @Nullable
+    private static Logger logger;
+
+    static {
+        try {
+            logger = LoggerFactory.getLogger(NullCheck.class);
+        } catch (Throwable throwable) {
+            System.err.println("[elastic-apm-agent] WARN Failed to initialize logger for the NullCheck class: " + throwable.getMessage());
+            throwable.printStackTrace();
+        }
+    }
 
     /**
      * checks if key or value is {@literal null}
@@ -38,10 +48,12 @@ public class NullCheck {
             return false;
         }
         String msg = String.format("trying to use null %s", isKey ? "key" : "value");
-        if (logger.isDebugEnabled()) {
-            logger.debug(msg, new RuntimeException(msg));
-        } else {
-            logger.warn(msg);
+        if (logger != null) {
+            if (logger.isDebugEnabled()) {
+                logger.debug(msg, new RuntimeException(msg));
+            } else {
+                logger.warn(msg);
+            }
         }
         return true;
     }

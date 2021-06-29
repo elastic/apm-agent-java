@@ -82,7 +82,7 @@ public class AgentMain {
             try {
                 delayAgentInitMs = Long.parseLong(delayAgentInitMsProperty.trim());
             } catch (NumberFormatException numberFormatException) {
-                System.err.println("The value of the \"elastic.apm.delay_agent_premain_ms\" System property must be a number");
+                System.err.println("[elastic-apm-agent] WARN The value of the \"elastic.apm.delay_agent_premain_ms\" System property must be a number");
             }
         }
         if (premain && shouldDelayOnPremain()) {
@@ -114,7 +114,7 @@ public class AgentMain {
     private static void delayAndInitAgentAsync(final String agentArguments, final Instrumentation instrumentation,
                                                final boolean premain, final long delayAgentInitMs) {
 
-        System.out.println("Delaying Elastic APM Agent initialization by " + delayAgentInitMs + " milliseconds.");
+        System.out.println("[elastic-apm-agent] INFO Delaying Elastic APM Agent initialization by " + delayAgentInitMs + " milliseconds.");
         Thread initThread = new Thread(ThreadUtils.addElasticApmThreadPrefix("agent-initialization")) {
             @Override
             public void run() {
@@ -124,10 +124,10 @@ public class AgentMain {
                         loadAndInitializeAgent(agentArguments, instrumentation, premain);
                     }
                 } catch (InterruptedException e) {
-                    System.err.println(getName() + " thread was interrupted, the agent will not be attached to this JVM.");
+                    System.err.println("[elastic-apm-agent] ERROR " + getName() + " thread was interrupted, the agent will not be attached to this JVM.");
                     e.printStackTrace();
                 } catch (Throwable throwable) {
-                    System.err.println("Error during Elastic APM Agent initialization: " + throwable.getMessage());
+                    System.err.println("[elastic-apm-agent] ERROR Elastic APM Agent initialization failed: " + throwable.getMessage());
                     throwable.printStackTrace();
                 }
             }
@@ -149,7 +149,7 @@ public class AgentMain {
                 .invoke(null, agentArguments, instrumentation, agentJarFile, premain);
             System.setProperty("ElasticApm.attached", Boolean.TRUE.toString());
         } catch (Exception | LinkageError e) {
-            System.err.println("Failed to start agent");
+            System.err.println("[elastic-apm-agent] ERROR Failed to start agent");
             e.printStackTrace();
         }
     }
