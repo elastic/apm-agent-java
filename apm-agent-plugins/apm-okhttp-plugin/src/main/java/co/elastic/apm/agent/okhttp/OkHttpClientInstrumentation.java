@@ -50,22 +50,26 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
         @AssignTo(fields = @AssignTo.Field(index = 0, value = "originalRequest", typing = Assigner.Typing.DYNAMIC))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeExecute(@Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
-            if (tracer.getActive() == null || !(originalRequest instanceof Request)) {
+
+            final AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null || !(originalRequest instanceof Request)) {
                 return new Object[]{originalRequest, null};
             }
-            final AbstractSpan<?> parent = tracer.getActive();
 
             com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) originalRequest;
             HttpUrl httpUrl = request.httpUrl();
+
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), httpUrl.toString(), httpUrl.scheme(),
                 OkHttpClientHelper.computeHostName(httpUrl.host()), httpUrl.port());
+
+            Request.Builder builder = ((com.squareup.okhttp.Request) originalRequest).newBuilder();
             if (span != null) {
                 span.activate();
-                Request.Builder builder = ((com.squareup.okhttp.Request) originalRequest).newBuilder();
                 span.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
-                return new Object[]{builder.build(), span};
+            } else {
+                parent.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
             }
-            return new Object[]{originalRequest, null};
+            return new Object[]{builder.build(), span};
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

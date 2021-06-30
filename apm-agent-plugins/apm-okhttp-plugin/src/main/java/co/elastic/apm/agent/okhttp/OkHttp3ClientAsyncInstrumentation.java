@@ -65,7 +65,9 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
         public static Object[] onBeforeEnqueue(final @Advice.Origin Class<? extends Call> clazz,
                                                final @Advice.FieldValue("originalRequest") @Nullable okhttp3.Request originalRequest,
                                                final @Advice.Argument(0) @Nullable Callback originalCallback) {
-            if (tracer.getActive() == null) {
+
+            final AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null) {
                 return null;
             }
 
@@ -73,19 +75,22 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
                 return null;
             }
 
-            final AbstractSpan<?> parent = tracer.getActive();
-
             okhttp3.Request request = originalRequest;
             Callback callback = originalCallback;
             HttpUrl url = request.url();
+
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
                 OkHttpClientHelper.computeHostName(url.host()), url.port());
+
+            Request.Builder builder = originalRequest.newBuilder();
             if (span != null) {
                 span.activate();
-                Request.Builder builder = originalRequest.newBuilder();
                 span.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
                 request = builder.build();
                 callback = CallbackWrapperCreator.INSTANCE.wrap(callback, span);
+            } else {
+                parent.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
+                request = builder.build();
             }
             return new Object[]{request, callback, span};
         }

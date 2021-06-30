@@ -34,6 +34,7 @@ import com.github.tomakehurst.wiremock.http.HttpHeader;
 import com.github.tomakehurst.wiremock.http.HttpHeaders;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -44,6 +45,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
@@ -100,7 +103,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     @Test
-    public void testHttpCall() throws Exception {
+    public void testHttpCall() {
         String path = "/";
         performGetWithinTransaction(path);
 
@@ -108,15 +111,16 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     @Test
-    public void testContextPropagationFromExitParent() throws InterruptedException {
+    public void testContextPropagationFromExitParent() {
         String path = "/";
-        Span exitSpan = Objects.requireNonNull(Objects.requireNonNull(tracer.currentTransaction()).createExitSpan()).activate();
-        reporter.disableCheckDestinationAddress();
-        // todo - also disable destination service check
+        Span exitSpan = Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(tracer.currentTransaction()).createExitSpan()));
+        exitSpan.withType("custom").withSubtype("exit");
+        exitSpan.getContext().getDestination().withAddress("test-host").withPort(6000);
+        exitSpan.getContext().getDestination().getService().withResource("test-resource");
+        exitSpan.activate();
         performGetWithinTransaction(path);
-        Thread.sleep(200);
-        assertThat(reporter.getSpans()).isEmpty();
         verifyTraceContextHeaders(exitSpan, path);
+        assertThat(reporter.getSpans()).isEmpty();
         exitSpan.deactivate().end();
     }
 
@@ -196,9 +200,16 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         Map<String, String> headerMap = new HashMap<>();
         span.propagateTraceContext(headerMap, TextHeaderMapAccessor.INSTANCE);
         assertThat(headerMap).isNotEmpty();
-        List<LoggedRequest> loggedRequests = wireMockRule.findAll(anyRequestedFor(urlPathEqualTo(path)));
-        assertThat(loggedRequests).isNotEmpty();
-        loggedRequests.forEach(request -> {
+        final AtomicReference<List<LoggedRequest>> loggedRequests = new AtomicReference<>();
+        Awaitility.await()
+            .pollInterval(1, TimeUnit.MILLISECONDS)
+            .timeout(1000, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> {
+                List<LoggedRequest> tmp = wireMockRule.findAll(anyRequestedFor(urlPathEqualTo(path)));
+                loggedRequests.set(tmp);
+                assertThat(tmp).isNotEmpty();
+            });
+        loggedRequests.get().forEach(request -> {
             assertThat(TraceContext.containsTraceContextTextHeaders(request, new HeaderAccessor())).isTrue();
             headerMap.forEach((key, value) -> assertThat(request.getHeader(key)).isEqualTo(value));
         });
@@ -265,6 +276,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
 
+    @SuppressWarnings("NullableProblems")
     protected abstract void performGet(String path) throws Exception;
 
     private static class HeaderAccessor implements TextHeaderGetter<LoggedRequest> {
@@ -281,8 +293,8 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
                 HttpHeader header = headers.getHeader(headerName);
                 if (header != null) {
                     List<String> values = header.values();
-                    for (int i = 0, size = values.size(); i < size; i++) {
-                        consumer.accept(values.get(i), state);
+                    for (String value : values) {
+                        consumer.accept(value, state);
                     }
                 }
             }
