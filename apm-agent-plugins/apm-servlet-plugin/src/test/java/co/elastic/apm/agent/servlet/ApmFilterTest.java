@@ -34,6 +34,7 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import javax.annotation.Nullable;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -337,6 +338,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     private static class SimpleTestFilter implements Filter {
 
+        @Nullable
         AbstractSpan<?> active = null;
 
         @Override
