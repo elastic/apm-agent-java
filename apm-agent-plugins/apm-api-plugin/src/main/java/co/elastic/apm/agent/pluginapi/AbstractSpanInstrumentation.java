@@ -374,4 +374,37 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             }
         }
     }
+
+    public static class SetDestinationAddressInstrumentation extends AbstractSpanInstrumentation {
+
+        public SetDestinationAddressInstrumentation() {
+            super(named("doSetDestinationAddress"));
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void setDestinationAddress(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                                 @Advice.Argument(0) @Nullable String address,
+                                                 @Advice.Argument(1) int port) {
+            if (context instanceof Span) {
+                ((Span) context).getContext().getDestination()
+                    .withUserAddress(address)
+                    .withUserPort(port);
+            }
+        }
+    }
+
+    public static class SetDestinationServiceInstrumentation extends AbstractSpanInstrumentation {
+
+        public SetDestinationServiceInstrumentation() {
+            super(named("doSetDestinationService"));
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void setDestinationService(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                                 @Advice.Argument(0) @Nullable String resource) {
+            if (context instanceof Span) {
+                ((Span) context).getContext().getDestination().getService().withUserResource(resource);
+            }
+        }
+    }
 }

@@ -105,7 +105,7 @@ class TraceStateTest {
         trySetMultipleTimes((s, h) -> traceState.addTextHeader(h));
     }
 
-    private void trySetMultipleTimes(BiConsumer<Double, String> firstSet){
+    private void trySetMultipleTimes(BiConsumer<Double, String> firstSet) {
         double sampleRate = 0.5d;
         String header = TraceState.getHeaderValue(sampleRate);
         firstSet.accept(sampleRate, header);
@@ -121,9 +121,9 @@ class TraceStateTest {
 
     @Test
     void getHeaderValue() {
-        assertThatThrownBy(()-> TraceState.getHeaderValue(Double.NaN));
-        assertThatThrownBy(()-> TraceState.getHeaderValue(-1d));
-        assertThatThrownBy(()-> TraceState.getHeaderValue(1.1d));
+        assertThatThrownBy(() -> TraceState.getHeaderValue(Double.NaN));
+        assertThatThrownBy(() -> TraceState.getHeaderValue(-1d));
+        assertThatThrownBy(() -> TraceState.getHeaderValue(1.1d));
         assertThat(TraceState.getHeaderValue(0d)).isEqualTo("es=s:0");
         assertThat(TraceState.getHeaderValue(1d)).isEqualTo("es=s:1");
         assertThat(TraceState.getHeaderValue(0.5d)).isEqualTo("es=s:0.5");
@@ -226,7 +226,7 @@ class TraceStateTest {
         assertThat(TraceState.getHeaderValue(traceState.getSampleRate())).isEqualTo(header);
     }
 
-    private void checkHeader(double expectedSampleRate, @Nullable String expectedHeader){
+    private void checkHeader(double expectedSampleRate, @Nullable String expectedHeader) {
         double sampleRate = traceState.getSampleRate();
         if (Double.isNaN(expectedSampleRate)) {
             assertThat(sampleRate).isNaN();

@@ -18,19 +18,23 @@
  */
 package co.elastic.apm.agent.rabbitmq.header;
 
+import co.elastic.apm.agent.impl.transaction.AbstractTextHeaderGetterTest;
 import co.elastic.apm.agent.impl.transaction.HeaderGetter;
 import com.rabbitmq.client.AMQP;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class RabbitMQTextHeaderGetterTest {
+public class RabbitMQTextHeaderGetterTest extends AbstractTextHeaderGetterTest<RabbitMQTextHeaderGetter,AMQP.BasicProperties> {
 
     private static RabbitMQTextHeaderGetter rabbitMQTextHeaderGetter;
 
@@ -48,6 +52,26 @@ public class RabbitMQTextHeaderGetterTest {
         ObjectHeader header = new ObjectHeader();
         getFirstHeader(header, header.toString());
     }
+
+    @Override
+    protected RabbitMQTextHeaderGetter createTextHeaderGetter() {
+        return RabbitMQTextHeaderGetter.INSTANCE;
+    }
+
+    @Override
+    protected AMQP.BasicProperties createCarrier(Map<String, List<String>> map) {
+        Map<String,Object> headers = new HashMap<>();
+        map.forEach((k,values)-> headers.put(k,values.get(0)));
+        return new AMQP.BasicProperties.Builder().headers(headers).build();
+    }
+
+    @Test
+    @Override
+    @Disabled
+    public void multipleValueHeader() {
+        // disabled as multiple-value headers are not supported
+    }
+
 
     private static class ObjectHeader {
         @Override

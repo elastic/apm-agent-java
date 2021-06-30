@@ -100,7 +100,9 @@ class SpanInstrumentationTest extends AbstractApiTest {
             .addLabel("foo", "bar")
             .setLabel("stringKey", randomString)
             .setLabel("numberKey", randomInt)
-            .setLabel("booleanKey", randomBoolean);
+            .setLabel("booleanKey", randomBoolean)
+            .setDestinationAddress("localhost", 443)
+            .setDestinationService("resource:123");
         endSpan(span);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("foo");
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("foo");
@@ -108,6 +110,9 @@ class SpanInstrumentationTest extends AbstractApiTest {
         assertThat(reporter.getFirstSpan().getContext().getLabel("stringKey")).isEqualTo(randomString);
         assertThat(reporter.getFirstSpan().getContext().getLabel("numberKey")).isEqualTo(randomInt);
         assertThat(reporter.getFirstSpan().getContext().getLabel("booleanKey")).isEqualTo(randomBoolean);
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getAddress().toString()).isEqualTo("localhost");
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getPort()).isEqualTo(443);
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getResource().toString()).isEqualTo("resource:123");
     }
 
     private void endSpan(Span span) {

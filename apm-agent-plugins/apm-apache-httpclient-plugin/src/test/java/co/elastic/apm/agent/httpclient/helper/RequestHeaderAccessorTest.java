@@ -16,30 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.springwebflux;
+package co.elastic.apm.agent.httpclient.helper;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import org.springframework.http.HttpHeaders;
+import co.elastic.apm.agent.impl.transaction.AbstractTextHeaderGetterTest;
+import org.apache.http.HttpRequest;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.message.BasicHttpRequest;
 
-import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 
-public class HeaderGetter implements TextHeaderGetter<HttpHeaders> {
+class RequestHeaderAccessorTest extends AbstractTextHeaderGetterTest<RequestHeaderAccessor, HttpRequest> {
 
-    @Nullable
     @Override
-    public String getFirstHeader(String headerName, HttpHeaders carrier) {
-        return carrier.getFirst(headerName);
+    protected RequestHeaderAccessor createTextHeaderGetter() {
+        return RequestHeaderAccessor.INSTANCE;
     }
 
     @Override
-    public <S> void forEach(String headerName, HttpHeaders carrier, S state, HeaderConsumer<String, S> consumer) {
-        List<String> values = carrier.get(headerName);
-        if (values == null) {
-            return;
-        }
-        for (int i = 0; i < values.size(); i++) {
-            consumer.accept(values.get(i), state);
-        }
+    protected HttpRequest createCarrier(Map<String, List<String>> map) {
+        HttpRequest request = new BasicHttpRequest("GET", "http://fake/");
+        map.forEach((k, values) -> values.forEach(v -> request.addHeader(new BasicHeader(k, v))));
+        return request;
     }
 }
