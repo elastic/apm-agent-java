@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -45,15 +45,17 @@ public class ServletTransactionCreationHelper {
 
     @Nullable
     public Transaction createAndActivateTransaction(HttpServletRequest request) {
-        Transaction transaction = null;
         // only create a transaction if there is not already one
-        if (tracer.currentTransaction() == null &&
-            !isExcluded(request.getServletPath(), request.getPathInfo(), request.getHeader("User-Agent"))) {
-            ClassLoader cl = getClassloader(request.getServletContext());
-            transaction = tracer.startChildTransaction(request, ServletRequestHeaderGetter.getInstance(), cl);
-            if (transaction != null) {
-                transaction.activate();
-            }
+        if (tracer.currentTransaction() != null) {
+            return null;
+        }
+        if (isExcluded(request.getServletPath(), request.getPathInfo(), request.getHeader("User-Agent"))) {
+            return null;
+        }
+        ClassLoader cl = getClassloader(request.getServletContext());
+        Transaction transaction = tracer.startChildTransaction(request, ServletRequestHeaderGetter.getInstance(), cl);
+        if (transaction != null) {
+            transaction.activate();
         }
         return transaction;
     }
