@@ -35,6 +35,7 @@ import org.stagemonitor.configuration.source.SimpleSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.ServiceLoader;
 import java.util.concurrent.ExecutionException;
 
@@ -55,7 +56,11 @@ public class AbstractMockApmServerBenchmark extends AbstractBenchmark {
         server = Undertow.builder()
             .addHttpListener(0, "127.0.0.1")
             .setHandler(new BlockingHandler(exchange -> {
-                if (!exchange.getRequestPath().equals("/healthcheck")) {
+                if (exchange.getRequestPath().equals("/healthcheck")) {
+                    // emulate a rather recent server version
+                    exchange.getOutputStream().write("{\"version\":\"7.0.0\"}".getBytes(StandardCharsets.UTF_8));
+                    exchange.setStatusCode(200).endExchange();
+                } else {
                     receivedPayloads++;
                     exchange.startBlocking();
                     try (InputStream is = exchange.getInputStream()) {
