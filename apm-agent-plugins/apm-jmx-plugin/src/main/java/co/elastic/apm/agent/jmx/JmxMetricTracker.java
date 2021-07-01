@@ -210,7 +210,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
             private boolean matchesJbossStatisticsPool(ObjectName beanName, ObjectName metricName, MBeanServer server) {
                 String asDomain = "jboss.as";
-                String exprDomain = "jboss.as.expr__";
+                String exprDomain = "jboss.as.expr";
 
                 if (!asDomain.equals(metricName.getDomain())) {
                     // only relevant for metrics in 'jboss.as' domain
