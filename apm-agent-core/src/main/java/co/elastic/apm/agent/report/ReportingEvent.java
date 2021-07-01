@@ -21,9 +21,12 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.CompletableVoidFuture;
 import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
+
+import java.util.concurrent.Future;
 
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.FLUSH;
@@ -43,6 +46,8 @@ public class ReportingEvent {
     private Span span;
     @Nullable
     private JsonWriter jsonWriter;
+    @Nullable
+    private CompletableVoidFuture flushFuture;
 
     public void resetState() {
         this.transaction = null;
@@ -50,6 +55,7 @@ public class ReportingEvent {
         this.error = null;
         this.span = null;
         this.jsonWriter = null;
+        this.flushFuture = null;
     }
 
     @Nullable
@@ -62,7 +68,8 @@ public class ReportingEvent {
         this.type = TRANSACTION;
     }
 
-    public void setFlushEvent() {
+    public void setFlushEvent(CompletableVoidFuture flushFuture) {
+        this.flushFuture = flushFuture;
         this.type = FLUSH;
     }
 
@@ -124,7 +131,14 @@ public class ReportingEvent {
             span.decrementReferences();
         } else if (error != null) {
             error.recycle();
+        } else if (flushFuture != null) {
+            flushFuture.complete();
         }
+    }
+
+    @Nullable
+    public Future<Void> getFlushFuture() {
+        return flushFuture;
     }
 
     enum ReportingEventType {

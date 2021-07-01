@@ -22,6 +22,7 @@ import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.disruptor.ExponentionallyIncreasingSleepingWaitStrategy;
+import co.elastic.apm.agent.util.CompletableVoidFuture;
 import co.elastic.apm.agent.util.MathUtils;
 import co.elastic.apm.agent.premain.ThreadUtils;
 import com.dslplatform.json.JsonWriter;
@@ -37,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -62,10 +62,10 @@ public class ApmServerReporter implements Reporter {
             event.setSpan(s);
         }
     };
-    private static final EventTranslator<ReportingEvent> FLUSH_EVENT_TRANSLATOR = new EventTranslator<ReportingEvent>() {
+    private static final EventTranslatorOneArg<ReportingEvent, CompletableVoidFuture> FLUSH_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, CompletableVoidFuture>() {
         @Override
-        public void translateTo(ReportingEvent event, long sequence) {
-            event.setFlushEvent();
+        public void translateTo(ReportingEvent event, long sequence, CompletableVoidFuture future) {
+            event.setFlushEvent(future);
         }
     };
     private static final EventTranslatorOneArg<ReportingEvent, ErrorCapture> ERROR_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, ErrorCapture>() {
@@ -156,70 +156,19 @@ public class ApmServerReporter implements Reporter {
     }
 
     /**
-     * Flushes pending {@link ErrorCapture}s and {@link Transaction}s to the APM server.
-     * <p>
-     * This method may block for a while until a slot in the ring buffer becomes available.
-     * </p>
+     * Flushes pending events and ends the HTTP request to APM server.
      *
      * @return A {@link Future} which resolves when the flush has been executed.
+     * @throws IllegalStateException if the ring buffer has no available slots
      */
     @Override
     public Future<Void> flush() {
-        final boolean success = disruptor.getRingBuffer().tryPublishEvent(FLUSH_EVENT_TRANSLATOR);
+        CompletableVoidFuture future = new CompletableVoidFuture();
+        final boolean success = disruptor.getRingBuffer().tryPublishEvent(FLUSH_EVENT_TRANSLATOR, future);
         if (!success) {
             throw new IllegalStateException("Ring buffer has no available slots");
         }
-        final long cursor = disruptor.getCursor();
-        return new Future<Void>() {
-            private volatile boolean cancelled = false;
-
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                if (isDone()) {
-                    return false;
-                }
-                disruptor.get(cursor).resetState();
-                // the volatile write also ensures visibility of the resetState() in other threads
-                cancelled = true;
-                return true;
-            }
-
-            @Override
-            public boolean isCancelled() {
-                return cancelled;
-            }
-
-            @Override
-            public boolean isDone() {
-                return isEventProcessed(cursor);
-            }
-
-            @Override
-            public Void get() throws InterruptedException {
-                while (!isDone()) {
-                    Thread.sleep(1);
-                }
-                return null;
-            }
-
-            /*
-             * This might not a very elegant or efficient implementation but it is only intended to be used in tests anyway
-             */
-            @Override
-            public Void get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
-                for (; timeout > 0 && !isDone(); timeout--) {
-                    Thread.sleep(1);
-                }
-                if (!isDone()) {
-                    throw new TimeoutException();
-                }
-                return null;
-            }
-        };
-    }
-
-    private boolean isEventProcessed(long sequence) {
-        return disruptor.getSequenceValueFor(reportingEventHandler) >= sequence;
+        return future;
     }
 
     @Override

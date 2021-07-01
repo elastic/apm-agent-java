@@ -65,6 +65,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
                 handleEvent(event, sequence, endOfBatch);
             }
         } finally {
+            event.end();
             event.resetState();
         }
     }
@@ -73,8 +74,10 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
         if (event.getType() == null) {
             return;
-        } else if (event.getType() == ReportingEvent.ReportingEventType.FLUSH) {
-            endRequest();
+        } else if (event.getFlushFuture() != null) {
+            if (!event.getFlushFuture().isCancelled()) {
+                endRequest();
+            }
             return;
         } else if (event.getType() == ReportingEvent.ReportingEventType.SHUTDOWN) {
             shutDown = true;
@@ -99,8 +102,6 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             logger.debug("Event handling failure", e);
             endRequest();
             onConnectionError(null, currentlyTransmitting + 1, 0);
-        } finally {
-            event.end();
         }
 
         if (shouldEndRequest()) {
