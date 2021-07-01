@@ -35,11 +35,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public class RoutesInstrumentation extends ElasticApmInstrumentation {
 
     @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return named("spark.route.Routes");
-    }
-
-    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("spark.route.Routes");
     }

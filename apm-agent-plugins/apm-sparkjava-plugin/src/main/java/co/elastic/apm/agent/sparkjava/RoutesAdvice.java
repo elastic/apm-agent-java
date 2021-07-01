@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.sparkjava;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.asm.Advice;
@@ -29,15 +30,22 @@ import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL
 
 public class RoutesAdvice {
 
+    private static final Tracer tracer = GlobalTracer.get();
+
     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
     public static void onExitFind(@Advice.Return RouteMatch routeMatch) {
-        Transaction transaction = GlobalTracer.get().currentTransaction();
+        Transaction transaction = tracer.currentTransaction();
         if (transaction == null || routeMatch == null) {
             return;
         }
 
         String method = routeMatch.getHttpMethod().name().toUpperCase();
-        transaction.withName(method + " " + routeMatch.getMatchUri(), PRIO_HIGH_LEVEL_FRAMEWORK, false);
+        StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
+        if (name != null) {
+            name.append(method);
+            name.append(" ");
+            name.append(routeMatch.getMatchUri());
+        }
         transaction.setFrameworkName("Spark");
         transaction.setFrameworkVersion(VersionUtils.getVersion(Route.class, "com.sparkjava", "spark-core"));
     }
