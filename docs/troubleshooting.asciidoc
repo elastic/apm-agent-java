@@ -17,6 +17,7 @@ and we will help you out.
 IMPORTANT: If you do so, *please attach your debug logs* so that we can analyze the problem.
 Upload the *complete* logs to a service like https://gist.github.com.
 The logs should include everything from the application startup up until the first request has been executed.
+In addition to agent and application logs, look for `[elastic-apm-agent]` entries in all of your service's std out and std error logs, where we sometimes print useful information when logging is unavailable.
 
 [float]
 [[trouble-shooting-use-latest-agent]]
@@ -24,8 +25,8 @@ The logs should include everything from the application startup up until the fir
 
 Agent is updated frequently and releases are not strongly tied to other components in the stack.
 
-Therefore, trying to update to the most recently released agent version is often the recommended first troubleshooting
-step. If possible, trying the https://github.com/elastic/apm-agent-java/blob/master/README.md#snapshots[latest-snapshot] is even preferable as it would include fixes that are not yet released.
+Therefore, trying to update to the most recently released agent version is often the recommended first troubleshooting step.
+If possible, trying the https://github.com/elastic/apm-agent-java/blob/master/README.md#snapshots[latest-snapshot] is even preferable as it would include fixes that are not yet released.
 
 See <<upgrading,upgrading documentation>> for more details.
 
