@@ -14,11 +14,16 @@ feedback and ideas are always welcome.
 
 ## Code contributions
 
-If you have a bugfix or new feature that you would like to contribute,
-please find or open an issue about it first.
-Talk about what you would like to do.
-It may be that somebody is already working on it,
-or that there are particular issues that you should know about before implementing the change.
+If you have a bugfix or new feature that you would like to contribute, please do the following:
+- Double check in open issues if there are any related issues or PRs
+- Open an issue, ensure that you have properly described the use-case and possible solutions, link related issues/PRs if any
+- Open a PR and link the issue created in previous step with your code changes.
+
+Doing so allows to:
+- Share knowledge and document a bug/missing feature
+- Get feedback if someone is already working on it or is having a similar issue
+- Benefit from the team experience by discussing it first, there are lots of implementation details that might not be
+obvious at first sight.
 
 Once you are all set to go, [this "cookbook recipe" blog post](https://www.elastic.co/blog/a-cookbook-for-contributing-a-plugin-to-the-elastic-apm-java-agent) can guide you through.
 

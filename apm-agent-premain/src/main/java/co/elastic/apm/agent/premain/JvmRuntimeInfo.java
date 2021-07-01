@@ -111,7 +111,7 @@ public class JvmRuntimeInfo {
         }
 
         if (updateVersion < 0) {
-            System.err.println("Unsupported format of the java.version system property - " + version);
+            System.err.println("[elastic-apm-agent] WARN Unsupported format of the java.version system property - " + version);
         }
         return updateVersion;
     }
