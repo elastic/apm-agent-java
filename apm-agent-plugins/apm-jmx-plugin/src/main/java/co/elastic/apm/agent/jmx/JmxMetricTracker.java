@@ -209,19 +209,27 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
             }
 
             private boolean matchesJbossStatisticsPool(ObjectName beanName, ObjectName metricName, MBeanServer server) {
-                String exprDomain = "jboss.as.expr";
                 String asDomain = "jboss.as";
+                String exprDomain = "jboss.as.expr__";
 
-                if (!exprDomain.equals(beanName.getDomain()) // notification is received in the 'jboss.as.expr' domain
-                    || !asDomain.equals(metricName.getDomain())) { // jmx metric is defined in the 'jboss.as' domain
+                if (!asDomain.equals(metricName.getDomain())) {
+                    // only relevant for metrics in 'jboss.as' domain
                     return false;
                 }
 
-                // For example, with Jboss datasources the bean that is notified is in the "jboss.as.expr" domain and does not
-                // has the 'statistics=pool' property, and the visible bean through JMX that the end-user expects
-                // is in fact published with 'statistics=pool' property and in the 'jboss.as' domain, thus we
-                // have to perform a partial match
+                if (!exprDomain.equals(beanName.getDomain()) && !asDomain.equals(beanName.getDomain())) {
+                    // only relevant for notifications in the 'jboss.as' or 'jboss.as.expr' domains
+                    return false;
+                }
 
+                // On JBoos EAP 7.3.0 and 7.1.0, we have similar behaviors
+                // - notification can be on `jboss.as.expr` or `jboss.as` domain, but we registered `jboss.as`
+                // - notification on `jboss.as.expr` seems to be setup-dependant
+                // - notification bean will miss the `statistics=pool` property
+                //
+                // We just do an extra lookup to check that the MBean we are looking for is actually present
+                // thus in the worst case it just means few extra lookups.
+                //
                 // while we haven't found a clear "why is this not reflected on JMX notifications", some
                 // references to this can be found in Jboss/Wildfly sources with the following regex: `statistics.*pool`
 
