@@ -8,6 +8,7 @@
     <filter>
         <filter-name>TestFilter</filter-name>
         <filter-class>co.elastic.webapp.TestFilter</filter-class>
+        <async-supported>true</async-supported>
     </filter>
     <filter-mapping>
         <filter-name>TestFilter</filter-name>
