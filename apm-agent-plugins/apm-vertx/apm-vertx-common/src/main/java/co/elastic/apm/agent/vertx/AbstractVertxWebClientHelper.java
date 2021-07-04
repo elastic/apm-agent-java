@@ -59,6 +59,8 @@ public abstract class AbstractVertxWebClientHelper {
                 span.propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
                 span.incrementReferences();
                 httpContext.set(WEB_CLIENT_SPAN_KEY, span);
+            } else {
+                parent.propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
             }
         }
     }
