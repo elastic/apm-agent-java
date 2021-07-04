@@ -96,17 +96,19 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
             Span span = parent.createExitSpan();
             HttpAsyncRequestProducer wrappedProducer = requestProducer;
             FutureCallback<?> wrappedFutureCallback = futureCallback;
-            boolean wrapped = false;
+            boolean responseFutureWrapped = false;
             if (span != null) {
                 span.withType(HttpClientHelper.EXTERNAL_TYPE)
                     .withSubtype(HttpClientHelper.HTTP_SUBTYPE)
                     .activate();
 
-                wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, span, RequestHeaderAccessor.INSTANCE);
+                wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, span, null, RequestHeaderAccessor.INSTANCE);
                 wrappedFutureCallback = asyncHelper.wrapFutureCallback(futureCallback, context, span);
-                wrapped = true;
+                responseFutureWrapped = true;
+            } else {
+                wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, null, parent, RequestHeaderAccessor.INSTANCE);
             }
-            return new Object[]{wrappedProducer, wrappedFutureCallback, wrapped, span};
+            return new Object[]{wrappedProducer, wrappedFutureCallback, responseFutureWrapped, span};
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
