@@ -20,6 +20,7 @@ package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -71,17 +72,20 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                                  @Advice.FieldValue("connected") boolean connected,
                                  @Advice.Origin String signature) {
 
-            if (tracer.getActive() == null) {
+            AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null) {
                 return null;
             }
             Span span = inFlightSpans.get(thiz);
             if (span == null && !connected) {
                 final URL url = thiz.getURL();
-                span = HttpClientHelper.startHttpClientSpan(tracer.getActive(), thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
+                span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
                 if (span != null) {
                     if (!TraceContext.containsTraceContextTextHeaders(thiz, UrlConnectionPropertyAccessor.instance())) {
                         span.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
                     }
+                } else {
+                    parent.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
                 }
             }
             if (span != null) {
