@@ -224,9 +224,9 @@ public class ApmServerReporter implements Reporter {
 
             // periodically waking up to check if the connection turned unhealthy
             // after the event has been published to the ring buffer
-            int minPeriodicWakeupMs = 10;
+            int minPeriodicWakeupNs = 10_000_000;
             // after the event has been processed, this thread will be unparked and we'll return immediately
-            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(Math.min(minPeriodicWakeupMs, thresholdNs - nowNs)));
+            LockSupport.parkNanos(Math.min(minPeriodicWakeupNs, thresholdNs - nowNs));
             if (Thread.currentThread().isInterrupted()) {
                 break;
             }
