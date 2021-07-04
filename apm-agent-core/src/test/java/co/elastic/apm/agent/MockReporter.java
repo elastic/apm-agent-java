@@ -455,6 +455,16 @@ public class MockReporter implements Reporter {
     }
 
     @Override
+    public boolean hardFlush(long timeout, TimeUnit unit) {
+        return true;
+    }
+
+    @Override
+    public boolean softFlush(long timeout, TimeUnit unit) {
+        return true;
+    }
+
+    @Override
     public synchronized void close() {
         closed = true;
     }

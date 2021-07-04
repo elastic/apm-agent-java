@@ -27,18 +27,21 @@ import co.elastic.apm.agent.util.MathUtils;
 import co.elastic.apm.agent.premain.ThreadUtils;
 import com.dslplatform.json.JsonWriter;
 import com.lmax.disruptor.EventFactory;
-import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.EventTranslatorOneArg;
+import com.lmax.disruptor.EventTranslatorTwoArg;
 import com.lmax.disruptor.IgnoreExceptionHandler;
+import com.lmax.disruptor.InsufficientCapacityException;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * This reporter asynchronously reports {@link Transaction}s to the APM server
@@ -62,10 +65,20 @@ public class ApmServerReporter implements Reporter {
             event.setSpan(s);
         }
     };
-    private static final EventTranslatorOneArg<ReportingEvent, CompletableVoidFuture> FLUSH_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, CompletableVoidFuture>() {
+    private static final EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread> END_REQUEST_EVENT_TRANSLATOR = new EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread>() {
         @Override
-        public void translateTo(ReportingEvent event, long sequence, CompletableVoidFuture future) {
-            event.setFlushEvent(future);
+        public void translateTo(ReportingEvent event, long sequence, @Nullable CompletableVoidFuture future, @Nullable Thread unparkAfterProcessed) {
+            event.setEndRequestEvent();
+            event.setCompletableFuture(future);
+            event.unparkAfterProcessed(unparkAfterProcessed);
+        }
+    };
+    private static final EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread> SYNC_FLUSH_EVENT_TRANSLATOR = new EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, @Nullable CompletableVoidFuture future, @Nullable Thread unparkAfterProcessed) {
+            event.setSyncFlushEvent();
+            event.setCompletableFuture(future);
+            event.unparkAfterProcessed(Thread.currentThread());
         }
     };
     private static final EventTranslatorOneArg<ReportingEvent, ErrorCapture> ERROR_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, ErrorCapture>() {
@@ -80,10 +93,12 @@ public class ApmServerReporter implements Reporter {
             event.setJsonWriter(jsonWriter);
         }
     };
-    private static final EventTranslator<ReportingEvent> SHUTDOWN_EVENT_TRANSLATOR = new EventTranslator<ReportingEvent>() {
+    private static final EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread> SHUTDOWN_EVENT_TRANSLATOR = new EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread>() {
         @Override
-        public void translateTo(ReportingEvent event, long sequence) {
+        public void translateTo(ReportingEvent event, long sequence, @Nullable CompletableVoidFuture future,  @Nullable Thread unparkAfterProcessed) {
             event.shutdownEvent();
+            event.setCompletableFuture(future);
+            event.unparkAfterProcessed(Thread.currentThread());
         }
     };
 
@@ -155,16 +170,10 @@ public class ApmServerReporter implements Reporter {
         return reportingEventHandler.getReported();
     }
 
-    /**
-     * Flushes pending events and ends the HTTP request to APM server.
-     *
-     * @return A {@link Future} which resolves when the flush has been executed.
-     * @throws IllegalStateException if the ring buffer has no available slots
-     */
     @Override
     public Future<Void> flush() {
         CompletableVoidFuture future = new CompletableVoidFuture();
-        final boolean success = disruptor.getRingBuffer().tryPublishEvent(FLUSH_EVENT_TRANSLATOR, future);
+        final boolean success = disruptor.getRingBuffer().tryPublishEvent(END_REQUEST_EVENT_TRANSLATOR, future, null);
         if (!success) {
             throw new IllegalStateException("Ring buffer has no available slots");
         }
@@ -172,15 +181,69 @@ public class ApmServerReporter implements Reporter {
     }
 
     @Override
+    public boolean hardFlush(long timeout, TimeUnit unit) {
+        return publishAndWaitForEvent(timeout, unit, END_REQUEST_EVENT_TRANSLATOR);
+    }
+
+    @Override
+    public boolean softFlush(long timeout, TimeUnit unit) {
+        return publishAndWaitForEvent(timeout, unit, SYNC_FLUSH_EVENT_TRANSLATOR);
+    }
+
+    private boolean publishAndWaitForEvent(long timeout, TimeUnit unit, EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread> eventTranslator) {
+        if (timeout <= 0) {
+            return false;
+        }
+        ReportingEventHandler reportingEventHandler = this.reportingEventHandler;
+        long startNs = System.nanoTime();
+        long thresholdNs = unit.toNanos(timeout) + startNs;
+        do {
+            try {
+                long sequence = disruptor.getRingBuffer().tryNext();
+                try {
+                    eventTranslator.translateTo(disruptor.get(sequence), sequence, null, Thread.currentThread());
+                } finally {
+                    disruptor.getRingBuffer().publish(sequence);
+                }
+                return waitForEventProcessed(sequence, thresholdNs);
+            } catch (InsufficientCapacityException e) {
+                LockSupport.parkNanos(100_000);
+                if (Thread.currentThread().isInterrupted()) {
+                    break;
+                }
+            }
+        } while (System.nanoTime() < thresholdNs && reportingEventHandler.isHealthy());
+        return false;
+    }
+
+    private boolean waitForEventProcessed(long sequence, long thresholdNs) {
+        ReportingEventHandler reportingEventHandler = this.reportingEventHandler;
+        for (long nowNs = System.nanoTime();
+             nowNs < thresholdNs && reportingEventHandler.isHealthy() && !reportingEventHandler.isProcessed(sequence);
+             nowNs = System.nanoTime()) {
+
+            // periodically waking up to check if the connection turned unhealthy
+            // after the event has been published to the ring buffer
+            int minPeriodicWakeupMs = 10;
+            // after the event has been processed, this thread will be unparked and we'll return immediately
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(Math.min(minPeriodicWakeupMs, thresholdNs - nowNs)));
+            if (Thread.currentThread().isInterrupted()) {
+                break;
+            }
+        }
+        return reportingEventHandler.isProcessed(sequence);
+    }
+
+    @Override
     public void close() {
         logger.info("dropped events because of full queue: {}", dropped.get());
-        disruptor.getRingBuffer().tryPublishEvent(SHUTDOWN_EVENT_TRANSLATOR);
+        publishAndWaitForEvent(5, TimeUnit.SECONDS, SHUTDOWN_EVENT_TRANSLATOR);
+        reportingEventHandler.close();
         try {
-            disruptor.shutdown(5, TimeUnit.SECONDS);
+            disruptor.shutdown(1, TimeUnit.SECONDS);
         } catch (com.lmax.disruptor.TimeoutException e) {
             logger.warn("Timeout while shutting down disruptor");
         }
-        reportingEventHandler.close();
     }
 
     @Override

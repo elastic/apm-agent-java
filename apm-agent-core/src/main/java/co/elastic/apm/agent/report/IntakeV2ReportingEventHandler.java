@@ -21,10 +21,12 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
 import co.elastic.apm.agent.premain.ThreadUtils;
+import com.lmax.disruptor.Sequence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -42,6 +44,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private ApmServerReporter reporter;
     @Nullable
     private TimerTask timeoutTask;
+    private final Sequence processed = new Sequence();
 
     public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
                                          PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
@@ -62,28 +65,64 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         }
         try {
             if (!shutDown) {
-                handleEvent(event, sequence, endOfBatch);
+                dispatchEvent(event, sequence, endOfBatch);
             }
         } finally {
+            processed.set(sequence);
             event.end();
             event.resetState();
         }
     }
 
-    private void handleEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
+    @Override
+    public boolean isProcessed(long sequence) {
+        return processed.get() >= sequence;
+    }
 
+    private void dispatchEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
         if (event.getType() == null) {
             return;
-        } else if (event.getFlushFuture() != null) {
-            if (!event.getFlushFuture().isCancelled()) {
-                endRequest();
-            }
-            return;
-        } else if (event.getType() == ReportingEvent.ReportingEventType.SHUTDOWN) {
-            shutDown = true;
-            endRequest();
+        }
+        Future<Void> future = event.getFuture();
+        if (future != null && future.isCancelled()) {
             return;
         }
+        switch (event.getType()) {
+            case END_REQUEST:
+                endRequest();
+                break;
+            case SHUTDOWN:
+                handleShutdownEvent();
+                break;
+            case SYNC_FLUSH:
+                handleSyncFlushEvent(event);
+                break;
+            case SPAN:
+            case ERROR:
+            case TRANSACTION:
+            case JSON_WRITER:
+                handleIntakeEvent(event, sequence, endOfBatch);
+                break;
+        }
+    }
+
+    private void handleShutdownEvent() {
+        shutDown = true;
+        endRequest();
+    }
+
+    private void handleSyncFlushEvent(ReportingEvent event) {
+        try {
+            if (os != null) {
+                payloadSerializer.flushToOutputStream();
+                os.flush();
+            }
+        } catch (IOException e) {
+            handleConnectionError(event, e);
+        }
+    }
+
+    private void handleIntakeEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
         processorEventHandler.onEvent(event, sequence, endOfBatch);
         try {
             if (connection == null) {
@@ -98,15 +137,19 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
                 dropped++;
             }
         } catch (Exception e) {
-            logger.error("Failed to handle event of type {} with this error: {}", event.getType(), e.getMessage());
-            logger.debug("Event handling failure", e);
-            endRequest();
-            onConnectionError(null, currentlyTransmitting + 1, 0);
+            handleConnectionError(event, e);
         }
 
         if (shouldEndRequest()) {
             endRequest();
         }
+    }
+
+    private void handleConnectionError(ReportingEvent event, Exception e) {
+        logger.error("Failed to handle event of type {} with this error: {}", event.getType(), e.getMessage());
+        logger.debug("Event handling failure", e);
+        endRequest();
+        onConnectionError(null, currentlyTransmitting + 1, 0);
     }
 
     /**

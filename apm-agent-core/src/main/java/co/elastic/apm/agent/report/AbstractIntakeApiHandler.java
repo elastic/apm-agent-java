@@ -54,6 +54,7 @@ public class AbstractIntakeApiHandler {
     protected OutputStream os;
     protected int errorCount;
     protected volatile boolean shutDown;
+    private volatile boolean healthy = true;
 
     public AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
         this.reporterConfiguration = reporterConfiguration;
@@ -102,7 +103,7 @@ public class AbstractIntakeApiHandler {
                 connection.setRequestProperty("Content-Type", "application/x-ndjson");
                 connection.setUseCaches(false);
                 connection.connect();
-                os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
+                os = new DeflaterOutputStream(connection.getOutputStream(), deflater, true);
                 payloadSerializer.setOutputStream(os);
                 payloadSerializer.appendMetaDataNdJsonToStream();
                 payloadSerializer.flushToOutputStream();
@@ -196,19 +197,30 @@ public class AbstractIntakeApiHandler {
                 "Please use APM Server 6.5.0 or newer.");
         }
 
+        backoff();
+    }
+
+    private void backoff() {
         long backoffTimeSeconds = getBackoffTimeSeconds(errorCount++);
         logger.info("Backing off for {} seconds (+/-10%)", backoffTimeSeconds);
         final long backoffTimeMillis = TimeUnit.SECONDS.toMillis(backoffTimeSeconds);
         if (backoffTimeMillis > 0) {
             // back off because there are connection issues with the apm server
             try {
+                healthy = false;
                 synchronized (WAIT_LOCK) {
                     WAIT_LOCK.wait(backoffTimeMillis + getRandomJitter(backoffTimeMillis));
                 }
             } catch (InterruptedException e) {
                 logger.info("APM Agent ReportingEventHandler had been interrupted", e);
+            } finally {
+                healthy = true;
             }
         }
+    }
+
+    public boolean isHealthy() {
+        return healthy;
     }
 
     public long getReported() {
