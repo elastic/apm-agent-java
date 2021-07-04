@@ -50,7 +50,9 @@ our agent are not vulnerable as well, as the SMTP appender was never used, this 
 * Adding public APIs for setting `destination.service.resource`, `destination.address` and `destination.port` fields
 for exit spans - {pull}1788[#1788]
 * Only use emulated runtime attachment as fallback, remove the `--without-emulated-attach` option - {pull}1865[#1865]
-* Instrument javax.servlet.Filter the same way as javax.servlet.FilterChain {pull}1858[#1858]
+* Instrument javax.servlet.Filter the same way as javax.servlet.FilterChain - {pull}1858[#1858]
+* Propagate trace context headers in HTTP calls occurring from within traced exit points, for example - when using
+Elasticsearch's REST client - {pull}1883[#1883]
 
 [float]
 ===== Bug fixes
