@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,12 +15,11 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -51,15 +45,17 @@ public class ServletTransactionCreationHelper {
 
     @Nullable
     public Transaction createAndActivateTransaction(HttpServletRequest request) {
-        Transaction transaction = null;
         // only create a transaction if there is not already one
-        if (tracer.currentTransaction() == null &&
-            !isExcluded(request.getServletPath(), request.getPathInfo(), request.getHeader("User-Agent"))) {
-            ClassLoader cl = getClassloader(request.getServletContext());
-            transaction = tracer.startChildTransaction(request, ServletRequestHeaderGetter.getInstance(), cl);
-            if (transaction != null) {
-                transaction.activate();
-            }
+        if (tracer.currentTransaction() != null) {
+            return null;
+        }
+        if (isExcluded(request.getServletPath(), request.getPathInfo(), request.getHeader("User-Agent"))) {
+            return null;
+        }
+        ClassLoader cl = getClassloader(request.getServletContext());
+        Transaction transaction = tracer.startChildTransaction(request, ServletRequestHeaderGetter.getInstance(), cl);
+        if (transaction != null) {
+            transaction.activate();
         }
         return transaction;
     }
@@ -84,7 +80,11 @@ public class ServletTransactionCreationHelper {
     }
 
     @Nullable
-    public ClassLoader getClassloader(ServletContext servletContext){
+    public ClassLoader getClassloader(@Nullable ServletContext servletContext){
+        if (servletContext == null) {
+            return null;
+        }
+
         // getClassloader might throw UnsupportedOperationException
         // see Section 4.4 of the Servlet 3.0 specification
         ClassLoader classLoader = null;

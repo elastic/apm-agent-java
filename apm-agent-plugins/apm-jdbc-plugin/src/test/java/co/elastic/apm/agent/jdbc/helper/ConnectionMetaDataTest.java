@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.jdbc.helper;
 
@@ -63,7 +57,7 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST= cluster_alias)(PORT=666))" +
             "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "cluster_alias", 666);
         testUrl("jdbc:oracle:thin:@(DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=host1))" +
-            "(ADDRESS=(PROTOCOL=TCP)(HOST=host2)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=service_name)))",
+                "(ADDRESS=(PROTOCOL=TCP)(HOST=host2)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=service_name)))",
             "oracle", "host1", 1521);
         testUrl("jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=6203))(CONNECT_DATA=" +
             "(SERVER=DEDICATED)(SERVICE_NAME=DB.FQDN.ORG.DE)))", "oracle", "localhost", 6203);
@@ -326,7 +320,7 @@ class ConnectionMetaDataTest {
     private static ElasticApmTracer tracer = mockSetup.getTracer();
 
     private void testUrl(String url, String expectedVendor, @Nullable String expectedHost, int expectedPort) {
-        ConnectionMetaData metadata = ConnectionMetaData.create(url, "TEST_USER");
+        ConnectionMetaData metadata = ConnectionMetaData.create(url, null, "TEST_USER");
         assertThat(metadata.getDbVendor()).isEqualTo(expectedVendor);
         assertThat(metadata.getHost()).isEqualTo(expectedHost);
         assertThat(metadata.getPort()).isEqualTo(expectedPort);
@@ -353,6 +347,5 @@ class ConnectionMetaDataTest {
         } finally {
             reporter.reset();
         }
-
     }
 }

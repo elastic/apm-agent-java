@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,13 +15,13 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -48,6 +43,7 @@ import java.util.Collection;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -57,10 +53,12 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
 
     public static final Logger logger = LoggerFactory.getLogger(CaptureSpanInstrumentation.class);
 
-    private final StacktraceConfiguration config;
+    private final CoreConfiguration coreConfig;
+    private final StacktraceConfiguration stacktraceConfig;
 
     public CaptureSpanInstrumentation(ElasticApmTracer tracer) {
-        config = tracer.getConfig(StacktraceConfiguration.class);
+        coreConfig = tracer.getConfig(CoreConfiguration.class);
+        stacktraceConfig = tracer.getConfig(StacktraceConfiguration.class);
     }
 
     @Nullable
@@ -103,13 +101,16 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return isInAnyPackage(config.getApplicationPackages(), ElementMatchers.<NamedElement>none())
+        return isInAnyPackage(stacktraceConfig.getApplicationPackages(), ElementMatchers.<NamedElement>none())
             .and(not(isProxy()))
             .and(declaresMethod(getMethodMatcher()));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        if (coreConfig.isEnablePublicApiAnnotationInheritance()) {
+            return overridesOrImplementsMethodThat(isAnnotatedWith(named("co.elastic.apm.api.CaptureSpan")));
+        }
         return isAnnotatedWith(named("co.elastic.apm.api.CaptureSpan"));
     }
 

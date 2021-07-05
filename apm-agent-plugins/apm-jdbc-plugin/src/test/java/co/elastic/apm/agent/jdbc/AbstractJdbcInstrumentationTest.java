@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.jdbc;
 
@@ -408,6 +402,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         Db db = span.getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(rawSql);
         DatabaseMetaData metaData = connection.getMetaData();
+        assertThat(db.getInstance()).isEqualToIgnoringCase(connection.getCatalog());
         assertThat(db.getUser()).isEqualToIgnoringCase(metaData.getUserName());
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 
@@ -424,9 +419,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         }
 
         Destination.Service service = destination.getService();
-        assertThat(service.getName().toString()).isEqualTo(expectedDbVendor);
         assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor);
-        assertThat(service.getType()).isEqualTo(DB_SPAN_TYPE);
 
         assertThat(span.getOutcome())
             .describedAs("span outcome should be explicitly set to either failure or success")
@@ -449,6 +442,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
 
         Db db = jdbcSpan.getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(rawSql);
+        assertThat(db.getInstance()).isNull();
         assertThat(db.getUser()).isNull();
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 
@@ -461,9 +455,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(destination.getPort()).isLessThanOrEqualTo(0);
 
         Destination.Service service = destination.getService();
-        assertThat(service.getName()).isNullOrEmpty();
         assertThat(service.getResource()).isNullOrEmpty();
-        assertThat(service.getType()).isNullOrEmpty();
     }
 
     private static long[] toLongArray(int[] a) {

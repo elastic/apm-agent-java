@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.es.restclient;
 
@@ -148,9 +142,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
             assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
         }
 
-        assertThat(destination.getService().getName().toString()).isEqualTo(ELASTICSEARCH);
         assertThat(destination.getService().getResource().toString()).isEqualTo(ELASTICSEARCH);
-        assertThat(destination.getService().getType()).isEqualTo(SPAN_TYPE);
     }
 
     private void validateHttpContextContent(Http http, int statusCode, String method) {
@@ -158,7 +150,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(http.getMethod()).isEqualTo(method);
         assertThat(http.getStatusCode()).isEqualTo(statusCode);
         if (checkHttpUrl) {
-            assertThat(http.getUrl()).isEqualTo("http://" + container.getHttpHostAddress());
+            assertThat(http.getUrl().toString()).isEqualTo("http://" + container.getHttpHostAddress());
         }
     }
 
