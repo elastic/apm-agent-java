@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report.serialize;
 
@@ -857,25 +851,36 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (destination.hasContent()) {
             writeFieldName("destination");
             jw.writeByte(OBJECT_START);
-            if (destination.getAddress().length() > 0) {
-                writeField("address", destination.getAddress());
+            boolean hasAddress = destination.getAddress().length() > 0;
+            boolean hasPort = destination.getPort() > 0;
+            boolean hasServiceContent = destination.getService().hasContent();
+            if (hasAddress) {
+                if (hasPort || hasServiceContent) {
+                    writeField("address", destination.getAddress());
+                } else {
+                    writeLastField("address", destination.getAddress());
+                }
             }
-            if (destination.getPort() > 0) {
-                writeField("port", destination.getPort());
+            if (hasPort) {
+                if (hasServiceContent) {
+                    writeField("port", destination.getPort());
+                } else {
+                    writeLastField("port", destination.getPort());
+                }
             }
-            serializeService(destination.getService());
+            serializeService(hasServiceContent, destination.getService());
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }
     }
 
-    private void serializeService(Destination.Service service) {
-        if (service.hasContent()) {
+    private void serializeService(boolean isServiceHasContent, Destination.Service service) {
+        if (isServiceHasContent) {
             writeFieldName("service");
             jw.writeByte(OBJECT_START);
-            writeField("name", service.getName());
-            writeField("resource", service.getResource());
-            writeLastField("type", service.getType());
+            writeEmptyField("name");
+            writeEmptyField("type");
+            writeLastField("resource", service.getResource());
             jw.writeByte(OBJECT_END);
         }
     }
@@ -1179,7 +1184,12 @@ public class DslJsonSerializer implements PayloadSerializer {
             writeField("port", port);
         } else {
             // serialize as a string for compatibility
-            writeField("port", Integer.toString(port));
+            // doing it in low-level to avoid allocation
+            writeFieldName("port", jw);
+            jw.writeByte(QUOTE);
+            NumberConverter.serialize(port, jw);
+            jw.writeByte(QUOTE);
+            jw.writeByte(COMMA);
         }
         writeField("pathname", url.getPathname());
         writeField("search", url.getSearch());
@@ -1241,6 +1251,12 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("email", user.getEmail());
         writeLastField("username", user.getUsername());
         jw.writeByte(OBJECT_END);
+    }
+
+    void writeEmptyField(final String fieldName) {
+        writeFieldName(fieldName);
+        writeStringValue("");
+        jw.writeByte(COMMA);
     }
 
     void writeField(final String fieldName, final StringBuilder value) {

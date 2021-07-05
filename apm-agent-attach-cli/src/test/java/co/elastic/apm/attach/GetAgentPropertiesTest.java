@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.attach;
 
@@ -32,18 +26,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GetAgentPropertiesTest {
 
     @Test
-    void testGetProperties() {
-        System.setProperty("foo", "bar");
-        try {
-            assertThat(GetAgentProperties.getAgentAndSystemPropertiesCurrentUser(JvmInfo.CURRENT_PID))
-                .containsEntry("foo", "bar");
-        } finally {
-            System.clearProperty("foo");
-        }
-    }
-
-    @Test
     void testGetPropertiesSwitchUser() throws Exception {
+        // note: we can only test by using the variant that uses a forked JVM because we are trying to get properties
+        // from the current JVM
+
         UserRegistry.User currentUser = UserRegistry.empty().getCurrentUser();
         Assumptions.assumeTrue(currentUser.canSwitchToUser());
         System.setProperty("foo", "bar");

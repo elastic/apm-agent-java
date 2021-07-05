@@ -5,6 +5,16 @@
          version="3.0">
     <display-name>Simple Web App</display-name>
 
+    <filter>
+        <filter-name>TestFilter</filter-name>
+        <filter-class>co.elastic.webapp.TestFilter</filter-class>
+        <async-supported>true</async-supported>
+    </filter>
+    <filter-mapping>
+        <filter-name>TestFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
     <servlet>
         <servlet-name>TestServlet</servlet-name>
         <servlet-class>co.elastic.webapp.TestServlet</servlet-class>
