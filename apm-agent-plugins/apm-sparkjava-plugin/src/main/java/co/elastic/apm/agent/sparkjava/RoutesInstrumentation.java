@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.wildfly_ejb;
+package co.elastic.apm.agent.sparkjava;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import net.bytebuddy.description.NamedElement;
@@ -24,37 +24,38 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class RemoteEJBClientInstrumentation extends ElasticApmInstrumentation {
-
-    @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return named("org.jboss.ejb.client.EJBInvocationHandler");
-    }
+public class RoutesInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.jboss.ejb.client.EJBInvocationHandler");
+        return named("spark.route.Routes");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("invoke").and(takesArguments(Object.class, Method.class, Object[].class));
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("wildfly-remote-ejb", "wildfly-remote-ejb-client");
+        return named("find")
+            .and(takesArguments(3))
+            .and(takesArgument(0, named("spark.route.HttpMethod")))
+            .and(takesArgument(1, named("java.lang.String")))
+            .and(takesArgument(2, named("java.lang.String")))
+            .and(returns(named("spark.routematch.RouteMatch")));
     }
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.wildfly_ejb.RemoteEJBClientAdvice";
+        return "co.elastic.apm.agent.sparkjava.RoutesAdvice";
+    }
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singletonList("sparkjava");
     }
 }
