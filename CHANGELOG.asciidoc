@@ -53,7 +53,6 @@ for exit spans - {pull}1788[#1788]
 * Instrument javax.servlet.Filter the same way as javax.servlet.FilterChain - {pull}1858[#1858]
 * Propagate trace context headers in HTTP calls occurring from within traced exit points, for example - when using
 Elasticsearch's REST client - {pull}1883[#1883]
-* Instrument javax.servlet.Filter the same way as javax.servlet.FilterChain {pull}1858[#1858]
 * Basic support for remote EJB invocations on a WildFly application server
 
 [float]
