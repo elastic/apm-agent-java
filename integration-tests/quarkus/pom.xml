@@ -19,8 +19,11 @@
     </modules>
 
     <properties>
-        <version.quarkus>1.13.2.Final</version.quarkus>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.release>${maven.compiler.target}</maven.compiler.release>
+        <animal.sniffer.skip>true</animal.sniffer.skip>
+        <version.quarkus>2.0.0.Final</version.quarkus>
     </properties>
 
     <dependencyManagement>
