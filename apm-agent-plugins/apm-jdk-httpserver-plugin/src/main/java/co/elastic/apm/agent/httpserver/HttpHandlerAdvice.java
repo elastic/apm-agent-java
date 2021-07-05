@@ -138,8 +138,7 @@ public class HttpHandlerAdvice {
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static void onExitHandle(@Advice.Argument(0) HttpExchange exchange, @Advice.Enter @Nullable Object transactionOrNull, @Advice.Thrown @Nullable Throwable t) {
-        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
-        if (tracer == null || transactionOrNull == null) {
+        if (transactionOrNull == null) {
             return;
         }
 
@@ -153,6 +152,7 @@ public class HttpHandlerAdvice {
             .withFinished(true)
             .withStatusCode(exchange.getResponseCode());
 
+        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
         if (transaction.isSampled() && tracer.getConfig(CoreConfiguration.class).isCaptureHeaders()) {
             Headers headers = exchange.getResponseHeaders();
             if (headers != null) {
