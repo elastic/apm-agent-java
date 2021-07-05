@@ -224,8 +224,9 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
                 // On JBoos EAP 7.3.0 and 7.1.0, we have similar behaviors
                 // - notification can be on `jboss.as.expr` or `jboss.as` domain, but we registered `jboss.as`
-                // - notification on `jboss.as.expr` seems to be setup-dependant
+                // - notification on `jboss.as.expr` seems to be setup-dependant and might be optional
                 // - notification bean will miss the `statistics=pool` property
+                // - when we get one of those "close but not 100% identical", the beans we usually look for are available
                 //
                 // We just do an extra lookup to check that the MBean we are looking for is actually present
                 // thus in the worst case it just means few extra lookups.
