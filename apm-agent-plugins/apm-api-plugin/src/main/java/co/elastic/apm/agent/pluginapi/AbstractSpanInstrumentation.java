@@ -126,6 +126,24 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
+    public static class DoCreateExitSpanInstrumentation extends AbstractSpanInstrumentation {
+        public DoCreateExitSpanInstrumentation() {
+            super(named("doCreateExitSpan"));
+        }
+
+        @Nullable
+        @AssignTo.Return
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static Object doCreateExitSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                              @Advice.Return @Nullable Object returnValue) {
+            if (context instanceof AbstractSpan<?>) {
+                return ((AbstractSpan<?>) context).createExitSpan();
+            } else {
+                return returnValue;
+            }
+        }
+    }
+
     public static class InitializeInstrumentation extends AbstractSpanInstrumentation {
         public InitializeInstrumentation() {
             super(named("initialize").and(takesArgument(0, Object.class)));
