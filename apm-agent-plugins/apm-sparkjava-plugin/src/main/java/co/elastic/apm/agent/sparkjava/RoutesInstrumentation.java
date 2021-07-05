@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.httpserver;
+package co.elastic.apm.agent.sparkjava;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -26,33 +27,35 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.util.Collection;
 import java.util.Collections;
 
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class HttpHandlerInstrumentation extends ElasticApmInstrumentation {
+public class RoutesInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("com.sun.net.httpserver.HttpHandler"))
-            .and(not(named("sun.net.httpserver.ServerImpl$Exchange$LinkHandler")));
+        return named("spark.route.Routes");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("handle").and(takesArguments(1))
-            .and(takesArgument(0, named("com.sun.net.httpserver.HttpExchange")));
+        return named("find")
+            .and(takesArguments(3))
+            .and(takesArgument(0, named("spark.route.HttpMethod")))
+            .and(takesArgument(1, named("java.lang.String")))
+            .and(takesArgument(2, named("java.lang.String")))
+            .and(returns(named("spark.routematch.RouteMatch")));
     }
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.httpserver.HttpHandlerAdvice";
+        return "co.elastic.apm.agent.sparkjava.RoutesAdvice";
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("jdk-httpserver");
+        return Collections.singletonList("sparkjava");
     }
 }

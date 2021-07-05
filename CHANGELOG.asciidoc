@@ -53,6 +53,7 @@ for exit spans - {pull}1788[#1788]
 * Instrument javax.servlet.Filter the same way as javax.servlet.FilterChain - {pull}1858[#1858]
 * Propagate trace context headers in HTTP calls occurring from within traced exit points, for example - when using
 Elasticsearch's REST client - {pull}1883[#1883]
+* Added support for naming sparkjava (not Apache Spark) transactions {pull}1894[#1894]
 * Basic support for com.sun.net.httpserver.HttpServer - {pull}1854[#1854]
 
 [float]
@@ -60,9 +61,10 @@ Elasticsearch's REST client - {pull}1883[#1883]
 * Fix NPE with `null` binary header values + properly serialize them - {pull}1842[#1842]
 * Fix `ListenerExecutionFailedException` when using Spring AMQP's ReplyTo container - {pull}1872[#1872]
 * Enabling log ECS reformatting when using Logback configured with `LayoutWrappingEncoder` and a pattern layout - {pull}1879[#1879]
-* Fix NPE with Webflux + context propagation headers - {pull}1871[1871]
+* Fix NPE with Webflux + context propagation headers - {pull}1871[#1871]
 * Fix `ClassCastException` with `ConnnectionMetaData` and multiple classloaders - {pull}1864[#1864]
 * Fix NPE in `co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper.getClassloader` - {pull}1861[#1861]
+* Fix for Jboss JMX unexpected notifications - {pull}1895[#1895]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
