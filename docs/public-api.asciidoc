@@ -448,7 +448,7 @@ Start and return a new span with a type, a subtype and an action, as a child of 
 The type, subtype and action strings are used to group similar spans together, with different resolution.
 For instance, all DB spans are given the type `db`; all spans of MySQL queries are given the subtype `mysql` and all spans
 describing queries are given the action `query`.
-In this example `db` is considered the general type.Though there are no naming restrictions for the general types,
+In this example `db` is considered the general type. Though there are no naming restrictions for the general types,
 the following are standardized across all Elastic APM agents: `app`, `db`, `cache`, `template`, and `ext`.
 
 NOTE: '.' (dot) character is not allowed within type, subtype and action.Any such character will be replaced with a '_'
@@ -768,7 +768,7 @@ Start and return a new span with a type, a subtype and an action, as a child of 
 The type, subtype and action strings are used to group similar spans together, with different resolution.
 For instance, all DB spans are given the type `db`; all spans of MySQL queries are given the subtype `mysql` and all spans
 describing queries are give the action `query`.
-In this example `db` is considered the general type.Though there are no naming restrictions for the general types,
+In this example `db` is considered the general type. Though there are no naming restrictions for the general types,
 the following are standardized across all Elastic APM agents: `app`, `db`, `cache`, `template`, and `ext`.
 
 NOTE: '.' (dot) character is not allowed within type, subtype and action.Any such character will be replaced with a '_'
