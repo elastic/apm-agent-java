@@ -53,23 +53,26 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
         @AssignTo(fields = @AssignTo.Field(index = 0, value = "originalRequest", typing = Assigner.Typing.DYNAMIC))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeExecute(final @Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
-            if (tracer.getActive() == null || !(originalRequest instanceof Request)) {
+
+            final AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null || !(originalRequest instanceof Request)) {
                 return new Object[]{originalRequest, null};
             }
 
-            final AbstractSpan<?> parent = tracer.getActive();
-
             okhttp3.Request request = (okhttp3.Request) originalRequest;
             HttpUrl url = request.url();
+
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
                 OkHttpClientHelper.computeHostName(url.host()), url.port());
+
+            Request.Builder builder = ((okhttp3.Request) originalRequest).newBuilder();
             if (span != null) {
                 span.activate();
-                Request.Builder builder = ((okhttp3.Request) originalRequest).newBuilder();
                 span.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
-                return new Object[]{builder.build(), span};
+            } else {
+                parent.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
             }
-            return new Object[]{originalRequest, null};
+            return new Object[]{builder.build(), span};
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
