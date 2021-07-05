@@ -476,7 +476,7 @@ NOTE: Spans created via this method can not be retrieved by calling <<api-curren
 See <<api-span-activate, `span.activate()`>> on how to achieve that.
 
 [float]
-[[api-span-start-exit-span-with-type]]
+[[api-transaction-start-exit-span-with-type]]
 ==== `Span startExitSpan(String type, String subtype, String action)`
 
 Start and return a new exit span with a type, a subtype and an action, as a child of this transaction.
