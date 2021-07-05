@@ -97,7 +97,6 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -235,7 +234,7 @@ public class ElasticApmAgent {
                     }
                     System.setProperty("co.elastic.apm.agent.shaded.bytebuddy.dump", bytecodeDumpDir.getPath());
                 } catch (Exception e) {
-                    System.err.println("Failed to create directory to dump instrumented bytecode: " + e.getMessage());
+                    System.err.println("[elastic-apm-agent] WARN Failed to create directory to dump instrumented bytecode: " + e.getMessage());
                 }
             }
         }

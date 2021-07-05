@@ -91,6 +91,8 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
                 span.activate();
                 span.propagateTraceContext(request, RequestHeaderSetter.INSTANCE);
                 handlerSpanMap.put(asyncHandler, span);
+            } else {
+                parent.propagateTraceContext(request, RequestHeaderSetter.INSTANCE);
             }
             return span;
         }

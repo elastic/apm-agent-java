@@ -296,7 +296,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         try {
             Configurator.initialize(new Log4j2ConfigurationFactory(sources, ephemeralId).getConfiguration());
         } catch (Throwable throwable) {
-            System.err.println("Failure during initialization of agent's log4j system: " + throwable.getMessage());
+            System.err.println("[elastic-apm-agent] ERROR Failure during initialization of agent's log4j system: " + throwable.getMessage());
         } finally {
             restoreSystemProperty(INITIAL_LISTENERS_LEVEL, initialListenersLevel);
             restoreSystemProperty(INITIAL_STATUS_LOGGER_LEVEL, initialStatusLoggerLevel);

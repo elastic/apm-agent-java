@@ -62,6 +62,7 @@
         <module>apm-cassandra</module>
         <module>apm-struts-plugin</module>
         <module>apm-vertx</module>
+        <module>apm-sparkjava-plugin</module>
     </modules>
 
     <dependencies>

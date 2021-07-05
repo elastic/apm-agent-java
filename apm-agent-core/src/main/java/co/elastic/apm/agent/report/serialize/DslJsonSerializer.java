@@ -1188,7 +1188,12 @@ public class DslJsonSerializer implements PayloadSerializer {
             writeField("port", port);
         } else {
             // serialize as a string for compatibility
-            writeField("port", Integer.toString(port));
+            // doing it in low-level to avoid allocation
+            writeFieldName("port", jw);
+            jw.writeByte(QUOTE);
+            NumberConverter.serialize(port, jw);
+            jw.writeByte(QUOTE);
+            jw.writeByte(COMMA);
         }
         writeField("pathname", url.getPathname());
         writeField("search", url.getSearch());
