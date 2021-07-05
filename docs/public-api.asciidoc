@@ -451,7 +451,7 @@ describing queries are given the action `query`.
 In this example `db` is considered the general type. Though there are no naming restrictions for the general types,
 the following are standardized across all Elastic APM agents: `app`, `db`, `cache`, `template`, and `ext`.
 
-NOTE: '.' (dot) character is not allowed within type, subtype and action.Any such character will be replaced with a '_'
+NOTE: '.' (dot) character is not allowed within type, subtype and action. Any such character will be replaced with a '_'
 (underscore) character.
 
 It is important to call <<api-span-end>> when the span has ended.
@@ -771,7 +771,7 @@ describing queries are give the action `query`.
 In this example `db` is considered the general type. Though there are no naming restrictions for the general types,
 the following are standardized across all Elastic APM agents: `app`, `db`, `cache`, `template`, and `ext`.
 
-NOTE: '.' (dot) character is not allowed within type, subtype and action.Any such character will be replaced with a '_'
+NOTE: '.' (dot) character is not allowed within type, subtype and action. Any such character will be replaced with a '_'
 (underscore) character.
 
 It is important to call <<api-span-end>> when the span has ended.
