@@ -52,9 +52,10 @@ public class SpringRestTemplateAdvice {
         if (span != null) {
             span.activate();
             span.propagateTraceContext(request, SpringRestRequestHeaderSetter.INSTANCE);
-            return span;
+        } else {
+            parent.propagateTraceContext(request, SpringRestRequestHeaderSetter.INSTANCE);
         }
-        return null;
+        return span;
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
