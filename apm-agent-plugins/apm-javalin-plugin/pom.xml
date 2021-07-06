@@ -30,20 +30,20 @@
         <dependency>
             <groupId>io.javalin</groupId>
             <artifactId>javalin</artifactId>
-            <version>3.13.8</version>
+            <version>3.13.9</version>
             <scope>provided</scope>
         </dependency>
         <!-- this has to override the global jetty dependency, and needs to match the javalin version -->
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-webapp</artifactId>
-            <version>9.4.40.v20210413</version>
+            <version>9.4.42.v20210604</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>
-            <version>9.4.40.v20210413</version>
+            <version>9.4.42.v20210604</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
