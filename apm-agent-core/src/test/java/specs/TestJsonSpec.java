@@ -18,6 +18,7 @@
  */
 package specs;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -33,7 +34,9 @@ public class TestJsonSpec {
     public static JsonNode getJson(Class<?> type, String path) {
         URL jsonSpec = type.getClassLoader().getResource(path);
         try {
-            return new ObjectMapper().readTree(jsonSpec);
+            return new ObjectMapper()
+                .enable(JsonParser.Feature.ALLOW_COMMENTS)
+                .readTree(jsonSpec);
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
