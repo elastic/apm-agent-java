@@ -58,7 +58,7 @@ public interface Reporter extends Closeable {
      * </p>
      * <p>
      * This method is allocation-free.
-     * It's guaranteed than any events that are reported in-between two invocations of this method have been processed after the second
+     * It's guaranteed that events reported in-between two invocations of this method have been processed after the second
      * invocation returns {@code true}.
      * </p>
      * <p>
@@ -84,7 +84,7 @@ public interface Reporter extends Closeable {
      * </p>
      * <p>
      * This method is allocation-free.
-     * It's guaranteed than any events that are reported in-between two invocations of this method have been processed after the second
+     * It's guaranteed that events reported in-between two invocations of this method have been processed after the second
      * invocation returns {@code true}.
      * </p>
      * <p>
