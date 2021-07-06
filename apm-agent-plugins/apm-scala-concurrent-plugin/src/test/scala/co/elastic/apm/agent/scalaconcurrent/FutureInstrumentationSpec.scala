@@ -197,16 +197,16 @@ class FutureInstrumentationSpec extends FunSuite {
 //  }
 
   test("Scala Future should not propagate the tracing-context to unrelated threads") {
-    implicit val executionContext: ExecutionContext = ExecutionContext.fromExecutorService(new ForkJoinPool(10))
+    implicit val executionContext: ExecutionContext = ExecutionContext.fromExecutorService(new ForkJoinPool(5))
 
-    val fs = (1 to 1).map(transactionNumber => Future {
+    val fs = (1 to 10).map(transactionNumber => Future {
       Thread.sleep(10)
 
       val transaction = tracer.startRootTransaction(getClass.getClassLoader).withName(transactionNumber.toString).activate()
 
       println(s"thread=${Thread.currentThread().getId} transaction=$transactionNumber, trace=${tracer.currentTransaction()} starting transaction")
 
-      val futures = (1 to 1)
+      val futures = (1 to 10)
         .map(futureNumber => Future {
           Thread.sleep(10)
 
