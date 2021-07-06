@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import specs.TestJsonSpec;
 
 import java.io.IOException;
 
@@ -36,12 +37,9 @@ public class TraceContextW3CTest {
 
     private JsonNode testData;
 
-
     @BeforeEach
-    void setUp() throws IOException {
-        testData = new ObjectMapper()
-            .enable(JsonParser.Feature.ALLOW_COMMENTS)
-            .readTree(getClass().getResource("/w3c_test_data.json"));
+    void setUp() {
+        testData = TestJsonSpec.getJson("w3c_distributed_tracing.json");
     }
 
     @Test
