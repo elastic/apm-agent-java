@@ -56,12 +56,15 @@ public class ServiceResourceTest {
     @MethodSource("getTestCases")
     void testServiceResourceInference(JsonNode testCase) {
         Span span = createSpan(testCase);
+        StringBuilder serviceResource = span.getContext().getDestination().getService().getResource();
+        // before auto-inference
+        assertThat(serviceResource.toString()).isEmpty();
         span.end();
         String expected = getTextValueOrNull(testCase, "inferred_resource");
         if (expected == null) {
             expected = "";
         }
-        String actual = span.getContext().getDestination().getService().getResource().toString();
+        String actual = serviceResource.toString();
         assertThat(actual)
             .withFailMessage(String.format("%s, expected: %s, actual: `%s`", getTextValueOrNull(testCase, "failure_message"), expected, actual))
             .isEqualTo(expected);
