@@ -18,32 +18,51 @@
  */
 package co.elastic.apm.agent.httpserver;
 
+import com.sun.net.httpserver.HttpHandler;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import static net.bytebuddy.matcher.ElementMatchers.any;
+import javax.annotation.Nullable;
+
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
-import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class HttpHandlerInstrumentation extends JdkHttpServerInstrumentation {
+public class HttpContextInstrumentation extends JdkHttpServerInstrumentation {
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameStartsWith("sun.net.httpserver") // implementation is in sun.net
+            .and(nameContains("HttpContext"));
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        // applied at runtime only, thus no type check required
-        return any();
+        return hasSuperType(named("com.sun.net.httpserver.HttpContext"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("handle").and(takesArguments(1))
-            .and(takesArgument(0, named("com.sun.net.httpserver.HttpExchange")));
+        return named("setHandler")
+            .and(takesArgument(0, named("com.sun.net.httpserver.HttpHandler")));
     }
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.httpserver.HttpHandlerAdvice";
+        return "co.elastic.apm.agent.httpserver.HttpContextInstrumentation$HttpContextAdvice";
     }
 
+    public static class HttpContextAdvice {
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Argument(0) @Nullable HttpHandler handler) {
+            HttpHandlerHelper.ensureInstrumented(handler);
+        }
+
+    }
 }

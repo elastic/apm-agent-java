@@ -34,7 +34,9 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import okhttp3.OkHttpClient;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -65,10 +67,19 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
 
     private static OkHttpClient httpClient;
 
-    @BeforeAll
-    static void createServer() throws IOException {
+    private static int count = 0;
+
+    @BeforeEach
+    void createServer() throws IOException {
         httpServer = HttpServer.create(new InetSocketAddress(0), -1);
-        httpServer.createContext("/").setHandler(new MyHttpHandler());
+
+        // ensure that 2 ways to create context and register handler are covered
+        if (((count++) % 2) == 0) {
+            httpServer.createContext("/", new MyHttpHandler());
+        } else {
+            httpServer.createContext("/").setHandler(new MyHttpHandler());
+        }
+
         httpServer.start();
 
         httpClient = new OkHttpClient.Builder()
@@ -78,8 +89,8 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
             .build();
     }
 
-    @AfterAll
-    static void stopServer() {
+    @AfterEach
+    void stopServer() {
         httpServer.stop(0);
     }
 
