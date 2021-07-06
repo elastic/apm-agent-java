@@ -5,15 +5,31 @@
       "type": "custom",
       "subtype": "test-subtype"
     },
-    "inferred_resource": "test-subtype",
+    "expected_resource": "test-subtype",
     "failure_message": "In the absence of specific context fields, subtype should used"
+  },
+  {
+    "span": {
+      "exit": "true",
+      "type": "custom",
+      "subtype": "test-subtype",
+      "context": {
+        "destination": {
+          "service": {
+            "resource": "already-set-resource"
+          }
+        }
+      }
+    },
+    "expected_resource": "already-set-resource",
+    "failure_message": "If the `service.resource` is already set, the inference mechanism should not override it"
   },
   {
     "span": {
       "exit": "true",
       "type": "custom"
     },
-    "inferred_resource": "custom",
+    "expected_resource": "custom",
     "failure_message": "In the absence of specific context fields and absence of subtype, the type should be used"
   },
   {
@@ -22,7 +38,7 @@
       "type": "custom",
       "subtype": "test-subtype"
     },
-    "inferred_resource": null,
+    "expected_resource": null,
     "failure_message": "The output for non-exit spans should be `null`"
   },
   {
@@ -36,7 +52,7 @@
         }
       }
     },
-    "inferred_resource": "mysql/myInstance",
+    "expected_resource": "mysql/myInstance",
     "failure_message": "If `context.db.instance` exists, the output should be: `${subtype}/${context.db.instance}`"
   },
   {
@@ -50,7 +66,7 @@
         }
       }
     },
-    "inferred_resource": "mysql",
+    "expected_resource": "mysql",
     "failure_message": "If `context.db` exists without `context.db.instance`, the subtype should be used"
   },
   {
@@ -63,7 +79,7 @@
         }
       }
     },
-    "inferred_resource": "db/myInstance",
+    "expected_resource": "db/myInstance",
     "failure_message": "If `context.db.instance` exists and subtype is `null`, the output should be: `${type}/${context.db.instance}`"
   },
   {
@@ -83,8 +99,28 @@
         }
       }
     },
-    "inferred_resource": "elasticsearch",
+    "expected_resource": "elasticsearch",
     "failure_message": "If `context.db` exists without `context.db.instance`, the subtype should be used, even if `context.http` exists"
+  },
+  {
+    "span": {
+      "exit": "true",
+      "type": "messaging",
+      "subtype": "msg-http-client",
+      "context": {
+        "message": {
+          "body": "Text message"
+        },
+        "http": {
+          "url": {
+            "host": "my-broker.com",
+            "port": 8888
+          }
+        }
+      }
+    },
+    "expected_resource": "msg-http-client",
+    "failure_message": "If `context.message` exists without `context.message.queue.name`, the subtype should be used, even if `context.http` exists"
   },
   {
     "span": {
@@ -99,7 +135,7 @@
         }
       }
     },
-    "inferred_resource": "my-cluster.com:9200",
+    "expected_resource": "my-cluster.com:9200",
     "failure_message": "If `context.http.url` exists, output should be `${context.http.url.host}:${context.http.url.port}"
   },
   {
@@ -115,7 +151,7 @@
         }
       }
     },
-    "inferred_resource": "my-cluster.com",
+    "expected_resource": "my-cluster.com",
     "failure_message": "Negative `context.http.url.port` should be omitted from output"
   },
   {
@@ -130,7 +166,7 @@
         }
       }
     },
-    "inferred_resource": "my-cluster.com",
+    "expected_resource": "my-cluster.com",
     "failure_message": "If `context.http.url.port` does not exist, output should be `${context.http.url.host}`"
   },
   {
@@ -146,7 +182,7 @@
         }
       }
     },
-    "inferred_resource": "messaging/myQueue",
+    "expected_resource": "messaging/myQueue",
     "failure_message": "If `context.message` exists, and subtype is `null`, output should be `${type}:${context.message.queue.name}"
   },
   {
@@ -163,7 +199,7 @@
         }
       }
     },
-    "inferred_resource": "kafka/myQueue",
+    "expected_resource": "kafka/myQueue",
     "failure_message": "If `context.message` exists, output should be `${subtype}:${context.message.queue.name}"
   },
   {
@@ -177,7 +213,7 @@
         }
       }
     },
-    "inferred_resource": "kafka",
+    "expected_resource": "kafka",
     "failure_message": "If `context.message` exists without `context.message.queue.name`, output should be `${subtype}`"
   }
 ]

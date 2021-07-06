@@ -57,16 +57,15 @@ public class ServiceResourceTest {
     void testServiceResourceInference(JsonNode testCase) {
         Span span = createSpan(testCase);
         StringBuilder serviceResource = span.getContext().getDestination().getService().getResource();
-        // before auto-inference
-        assertThat(serviceResource.toString()).isEmpty();
+        // auto-inference happens now
         span.end();
-        String expected = getTextValueOrNull(testCase, "inferred_resource");
+        String expected = getTextValueOrNull(testCase, "expected_resource");
         if (expected == null) {
             expected = "";
         }
         String actual = serviceResource.toString();
         assertThat(actual)
-            .withFailMessage(String.format("%s, expected: %s, actual: `%s`", getTextValueOrNull(testCase, "failure_message"), expected, actual))
+            .withFailMessage(String.format("%s, expected: `%s`, actual: `%s`", getTextValueOrNull(testCase, "failure_message"), expected, actual))
             .isEqualTo(expected);
     }
 
@@ -108,6 +107,16 @@ public class ServiceResourceTest {
                     JsonNode portJson = urlJson.get("port");
                     if (portJson != null) {
                         url.withPort(portJson.intValue());
+                    }
+                }
+            }
+            JsonNode destinationJson = contextJson.get("destination");
+            if (destinationJson != null) {
+                JsonNode serviceJson = destinationJson.get("service");
+                if (serviceJson != null) {
+                    String resource = getTextValueOrNull(serviceJson, "resource");
+                    if (resource != null) {
+                        context.getDestination().getService().withResource(resource);
                     }
                 }
             }
