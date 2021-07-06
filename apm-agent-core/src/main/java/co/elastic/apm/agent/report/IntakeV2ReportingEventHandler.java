@@ -31,6 +31,7 @@ import java.net.HttpURLConnection;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This reporter supports the nd-json HTTP streaming based intake v2 protocol
@@ -44,7 +45,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private ApmServerReporter reporter;
     @Nullable
     private TimerTask timeoutTask;
-    private final Sequence processed = new Sequence();
+    private final AtomicLong processed = new AtomicLong();
 
     public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
                                          PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
