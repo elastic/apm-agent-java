@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
@@ -58,6 +59,11 @@ public class JavalinHandlerLambdaInstrumentation extends TracerAwareInstrumentat
     }
 
     @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return classLoaderCanLoadClass("io.javalin.http.Handler");
+    }
+
+    @Override
     public String getAdviceClassName() {
         return "co.elastic.apm.agent.javalin.JavalinHandlerLambdaInstrumentation$HandlerWrappingAdvice";
     }
@@ -66,7 +72,7 @@ public class JavalinHandlerLambdaInstrumentation extends TracerAwareInstrumentat
         @Nullable
         @AssignTo.Argument(2)
         @Advice.OnMethodEnter(inline = false)
-        public static Handler beforeSetHandler(@Advice.Argument(2) @Nullable Handler original) {
+        public static Handler beforeAddHandler(@Advice.Argument(2) @Nullable Handler original) {
             if (original != null && original.getClass().getName().contains("/")) {
                 return new WrappingHandler(original);
             }
