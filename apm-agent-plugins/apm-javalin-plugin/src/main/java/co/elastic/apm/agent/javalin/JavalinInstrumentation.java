@@ -30,8 +30,11 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.Collection;
@@ -47,6 +50,8 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class JavalinInstrumentation extends TracerAwareInstrumentation {
+
+    private static final Logger logger = LoggerFactory.getLogger(JavalinInstrumentation.class);
 
     private static final String FRAMEWORK_NAME = "Javalin";
 
@@ -77,23 +82,53 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
 
     public static class HandlerAdapterAdvice {
 
-        private static Boolean handlerTypeMethodExists = null;
+        // never invoked, only used to cache the fact that the io.javalin.http.Context#handlerType() method is unavailable in this Javalin version
+        private static final MethodHandle NOOP = MethodHandles.constant(String.class, "Non-supported Javalin version");
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object setSpanAndTransactionName(@Advice.This Handler handler,
-                                                       @Advice.Argument(0) Context ctx) throws Exception {
-            // this ensures that the javalin version we got also includes our method
-            if (handlerTypeMethodExists == null) {
-                try {
-                    MethodHandles.lookup().findVirtual(Context.class, "handlerType", MethodType.methodType(HandlerType.class));
-                    handlerTypeMethodExists = true;
-                } catch (NoSuchMethodException e) {
-                    handlerTypeMethodExists = false;
+        @Nullable
+        private static MethodHandle handlerTypeMethodHandle = null;
+
+        @Nullable
+        private static HandlerType getHandlerType(Context context) {
+            if (handlerTypeMethodHandle == null) {
+                synchronized (HandlerAdapterAdvice.class) {
+                    if (handlerTypeMethodHandle == null) {
+                        try {
+                            handlerTypeMethodHandle = MethodHandles.lookup().findVirtual(
+                                context.getClass(), "handlerType", MethodType.methodType(HandlerType.class)
+                            );
+                            logger.debug("This Javalin version is supported");
+                        } catch (NoSuchMethodException e) {
+                            logger.info("The current Javalin version is not supported, only 3.13.8+ versions are supported");
+                            handlerTypeMethodHandle = NOOP;
+                        } catch (Throwable throwable) {
+                            logger.error("Cannot get a method handle for io.javalin.http.Context#handlerType(), Javalin will not be traced", throwable);
+                            handlerTypeMethodHandle = NOOP;
+                        }
+                    }
                 }
             }
+            HandlerType handlerType = null;
+            if (handlerTypeMethodHandle != NOOP) {
+                try {
+                    //noinspection ConstantConditions
+                    handlerType = (HandlerType) handlerTypeMethodHandle.invoke(context);
+                } catch (Throwable throwable) {
+                    logger.error("Cannot determine Javalin HandlerType. Javalin cannot be traced");
+                }
+            }
+            return handlerType;
+        }
+
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object setSpanAndTransactionName(@Advice.This Handler handler,
+                                                       @Advice.Argument(0) Context ctx) {
+
+            HandlerType handlerType = getHandlerType(ctx);
 
             // exit early if instrumentation cannot work because of missing Context.handlerType() method due to older version
-            if (handlerTypeMethodExists == false) {
+            if (handlerType == null) {
                 return null;
             }
 
@@ -103,26 +138,27 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
             }
 
             final String handlerClassName = handler.getClass().getName();
-            final boolean isLambdaHandler = handlerClassName.equals("co.elastic.apm.agent.javalin.JavalinHandlerLambdaInstrumentation$WrappingHandler");
 
             // do not create an own span for JavalinServlet.addHandler, as this not added by the users code and leads to confusion
             if (handlerClassName.startsWith("io.javalin.http.JavalinServlet")) {
                 return null;
             }
 
+            final boolean isLambdaHandlerWrapper = handlerClassName.equals("co.elastic.apm.agent.javalin.JavalinHandlerLambdaInstrumentation$WrappingHandler");
+
             // transaction name gets only set if we are dealing with a HTTP method processing, not before/after handlers
-            if (ctx.handlerType().isHttpMethod()) {
+            if (handlerType.isHttpMethod()) {
                 final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, false);
                 if (name != null) {
                     transaction.setFrameworkName(FRAMEWORK_NAME);
                     transaction.setFrameworkVersion(VersionUtils.getVersion(Handler.class, "io.javalin", "javalin"));
                     transaction.withType("request");
 
-                    name.append(ctx.handlerType().name()).append(" ").append(ctx.endpointHandlerPath());
+                    name.append(handlerType.name()).append(" ").append(ctx.endpointHandlerPath());
 
                     // no need for anonymous handler class names in the transaction
-                    if (!isLambdaHandler) {
-                        name.append(" ").append(handlerClassName);
+                    if (!isLambdaHandlerWrapper) {
+                        name.append(" ").append(handler.getClass().getSimpleName());
                     }
                 }
             }
@@ -134,7 +170,7 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
             }
 
             Span span = parent.createSpan().activate();
-            setSpanName(span, handlerClassName, ctx.handlerType(), isLambdaHandler, ctx.matchedPath());
+            setSpanName(span, handler.getClass().getSimpleName(), handlerType, isLambdaHandlerWrapper, ctx.matchedPath());
             return span;
         }
 

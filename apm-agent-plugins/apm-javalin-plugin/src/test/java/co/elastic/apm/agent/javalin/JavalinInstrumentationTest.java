@@ -127,8 +127,8 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
         HttpRequest request = HttpRequest.newBuilder().uri(URI.create(baseUrl + "/my-handler")).build();
         final HttpResponse<String> mainUrlResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertThat(mainUrlResponse.statusCode()).isEqualTo(400);
-        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("GET /my-handler co.elastic.apm.agent.javalin.MyHandler");
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("GET /my-handler co.elastic.apm.agent.javalin.MyHandler");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("GET /my-handler MyHandler");
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("GET /my-handler MyHandler");
     }
 
     @Test
