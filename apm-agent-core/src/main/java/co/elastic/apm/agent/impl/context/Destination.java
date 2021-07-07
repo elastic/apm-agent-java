@@ -242,6 +242,10 @@ public class Destination implements Recyclable {
             resource.append(newValue);
         }
 
+        public boolean isResourceSetByUser() {
+            return resourceSetByUser;
+        }
+
         public StringBuilder getResource() {
             return resource;
         }
