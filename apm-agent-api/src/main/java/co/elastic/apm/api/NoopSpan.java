@@ -138,6 +138,12 @@ enum NoopSpan implements Span {
 
     @Nonnull
     @Override
+    public Span startExitSpan(String type, String subtype, @Nullable String action) {
+        return INSTANCE;
+    }
+
+    @Nonnull
+    @Override
     public Span startSpan() {
         // noop
         return this;

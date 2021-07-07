@@ -180,6 +180,12 @@ enum NoopTransaction implements Transaction {
 
     @Nonnull
     @Override
+    public Span startExitSpan(String type, String subtype, @Nullable String action) {
+        return NoopSpan.INSTANCE;
+    }
+
+    @Nonnull
+    @Override
     public Span startSpan() {
         return NoopSpan.INSTANCE;
     }
