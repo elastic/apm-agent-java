@@ -55,6 +55,7 @@ public class AbstractIntakeApiHandler {
     protected int errorCount;
     protected volatile boolean shutDown;
     private volatile boolean healthy = true;
+    private volatile boolean ignoreNonHttpErrorsOnRequestEnd = false;
 
     public AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
         this.reporterConfiguration = reporterConfiguration;
@@ -157,7 +158,9 @@ public class AbstractIntakeApiHandler {
                 try {
                     onRequestError(connection.getResponseCode(), connection.getErrorStream(), e);
                 } catch (IOException e1) {
-                    onRequestError(-1, connection.getErrorStream(), e);
+                    if (!ignoreNonHttpErrorsOnRequestEnd) {
+                        onRequestError(-1, connection.getErrorStream(), e);
+                    }
                 }
             } finally {
                 HttpUtils.consumeAndClose(connection);
@@ -245,5 +248,9 @@ public class AbstractIntakeApiHandler {
     protected void onRequestSuccess() {
         errorCount = 0;
         reported += currentlyTransmitting;
+    }
+
+    public void setIgnoreNonHttpErrorsOnRequestEnd(boolean ignoreNonHttpErrorsOnRequestEnd) {
+        this.ignoreNonHttpErrorsOnRequestEnd = ignoreNonHttpErrorsOnRequestEnd;
     }
 }

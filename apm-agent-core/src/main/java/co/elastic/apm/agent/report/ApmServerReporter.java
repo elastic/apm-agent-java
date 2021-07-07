@@ -21,10 +21,10 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.premain.ThreadUtils;
 import co.elastic.apm.agent.report.disruptor.ExponentionallyIncreasingSleepingWaitStrategy;
 import co.elastic.apm.agent.util.CompletableVoidFuture;
 import co.elastic.apm.agent.util.MathUtils;
-import co.elastic.apm.agent.premain.ThreadUtils;
 import com.dslplatform.json.JsonWriter;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslatorOneArg;
@@ -191,7 +191,7 @@ public class ApmServerReporter implements Reporter {
     }
 
     private boolean publishAndWaitForEvent(long timeout, TimeUnit unit, EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread> eventTranslator) {
-        if (timeout <= 0) {
+        if (timeout <= 0 || !reportingEventHandler.isHealthy()) {
             return false;
         }
         ReportingEventHandler reportingEventHandler = this.reportingEventHandler;

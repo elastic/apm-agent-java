@@ -67,6 +67,8 @@ class ApmServerReporterIntegrationTest {
     private ReporterConfiguration reporterConfiguration;
     private ApmServerReporter reporter;
     private final AtomicInteger receivedEvents = new AtomicInteger();
+    private final AtomicInteger closeConnectionAfterEveryReceivedEvents = new AtomicInteger(Integer.MAX_VALUE);
+    private IntakeV2ReportingEventHandler v2handler;
 
     @BeforeAll
     static void startServer() {
@@ -96,6 +98,10 @@ class ApmServerReporterIntegrationTest {
                     for (int n = 0; -1 != n; n = in.read()) {
                         if (n == '\n') {
                             receivedEvents.incrementAndGet();
+                            if (receivedEvents.get() % closeConnectionAfterEveryReceivedEvents.get() == 0) {
+                                exchange.getConnection().close();
+                                return;
+                            }
                         }
                     }
                 }
@@ -113,7 +119,7 @@ class ApmServerReporterIntegrationTest {
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
         apmServerClient.start();
-        final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
+        v2handler = new IntakeV2ReportingEventHandler(
                 reporterConfiguration,
                 processorEventHandler,
                 new DslJsonSerializer(
@@ -134,7 +140,7 @@ class ApmServerReporterIntegrationTest {
     @Test
     void testReportTransaction() {
         reporter.report(new Transaction(tracer));
-        reporter.hardFlush(5, TimeUnit.SECONDS);
+        assertThat(reporter.hardFlush(5, TimeUnit.SECONDS)).isTrue();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
         assertThat(reporter.getReported()).isEqualTo(1);
@@ -200,7 +206,31 @@ class ApmServerReporterIntegrationTest {
         reporter.hardFlush(1, TimeUnit.SECONDS);
         reporter.report(new Transaction(tracer));
 
+        assertThat(v2handler.isHealthy()).isFalse();
         assertThat(reporter.softFlush(1, TimeUnit.SECONDS)).isFalse();
         assertThat(reporter.hardFlush(1, TimeUnit.SECONDS)).isFalse();
+    }
+
+    @Test
+    void testConnectionClosedByApmServer() {
+        // tests that we can sustain APM Server closing the connection without going into a backoff
+        v2handler.setIgnoreNonHttpErrorsOnRequestEnd(true);
+        closeConnectionAfterEveryReceivedEvents.set(2);
+
+        int expectedReceivedEvents = 0;
+        int expectedIntakeApiCalls = 0;
+        for (int i = 0; i < 5; i++) {
+            // doing this for a couple of times makes sure we don't trigger the exponential backoff
+            sendTransactionEventAndFlush(expectedReceivedEvents += 2, expectedIntakeApiCalls += 1);
+            assertThat(v2handler.isHealthy()).isTrue();
+            assertThat(reporter.hardFlush(1, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    private void sendTransactionEventAndFlush(int expectedReceivedEvents, int expectedIntakeApiCalls) {
+        reporter.report(new Transaction(tracer));
+        assertThat(reporter.softFlush(1, TimeUnit.SECONDS)).isTrue();
+        await().untilAsserted(() -> assertThat(receivedEvents.get()).isEqualTo(expectedReceivedEvents));
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(expectedIntakeApiCalls);
     }
 }
