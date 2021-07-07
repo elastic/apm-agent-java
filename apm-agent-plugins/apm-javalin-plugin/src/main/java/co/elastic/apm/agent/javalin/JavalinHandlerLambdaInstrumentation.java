@@ -36,6 +36,7 @@ import java.util.Set;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class JavalinHandlerLambdaInstrumentation extends TracerAwareInstrumentation {
 
@@ -50,7 +51,8 @@ public class JavalinHandlerLambdaInstrumentation extends TracerAwareInstrumentat
             .and(takesArgument(0, named("io.javalin.http.HandlerType")))
             .and(takesArgument(1, String.class))
             .and(takesArgument(2, named("io.javalin.http.Handler")))
-            .and(takesArgument(3, Set.class));
+            // the fourth argument of Javalin.addHandler method is not matched, because its type differs between Javalin 3 and Javalin 4
+            .and(takesArguments(4));
     }
 
     @Override
