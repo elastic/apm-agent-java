@@ -111,10 +111,10 @@
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.spring-boot>2.2.2.RELEASE</version.spring-boot>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.0.55</version.json-schema-validator>
+        <version.json-schema-validator>1.0.56</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
         <version.byte-buddy>1.11.6</version.byte-buddy>
-        <version.asm>9.1</version.asm>
+        <version.asm>9.2</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
         <!-- used both for plugin & annotations dependency -->
