@@ -118,7 +118,7 @@ class TransactionNameUtilsTest extends AbstractInstrumentationTest {
 
     private void testHttpRequestPath(String httpMethod, String firstPart, @Nullable String secondPart, List<WildcardMatcher> urlGroups, String expected) {
         StringBuilder sb = new StringBuilder();
-        TransactionNameUtils.setNameFromHttpRequestPath(httpMethod, firstPart, secondPart, sb, webConfig.getUrlGroups());
+        TransactionNameUtils.setNameFromHttpRequestPath(httpMethod, firstPart, secondPart, sb, urlGroups);
         assertThat(sb.toString()).isEqualTo(expected);
     }
 
