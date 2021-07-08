@@ -95,7 +95,12 @@ public abstract class AbstractHttpTransactionHelper {
         // JSPs don't contain path params and the name is more telling than the generated servlet class
         if (webConfiguration.isUsePathAsName() || ENDS_WITH_JSP.matches(pathFirstPart, pathSecondPart)) {
             // should override ServletName#doGet
-            TransactionNameUtils.setNameFromHttpRequestPath(method, pathFirstPart, pathSecondPart, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1 + priorityOffset));
+            TransactionNameUtils.setNameFromHttpRequestPath(
+                method,
+                pathFirstPart,
+                pathSecondPart,
+                transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1 + priorityOffset),
+                webConfiguration.getUrlGroups());
         } else {
             StringBuilder transactionName = transaction.getAndOverrideName(PRIO_DEFAULT);
             if (transactionName != null) {

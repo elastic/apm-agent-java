@@ -20,14 +20,12 @@ package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 public class TransactionNameUtils {
-
-    private static final WebConfiguration webConfig = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);
 
     public static void setTransactionNameByServletClass(@Nullable String httpMethod, @Nullable Class<?> servletClass, @Nullable StringBuilder transactionName) {
         if (servletClass == null || transactionName == null) {
@@ -80,11 +78,11 @@ public class TransactionNameUtils {
         }
     }
 
-    public static void setNameFromHttpRequestPath(String method, String firstPart, @Nullable String secondPart, @Nullable StringBuilder transactionName) {
+    public static void setNameFromHttpRequestPath(String method, String firstPart, @Nullable String secondPart, @Nullable StringBuilder transactionName, List<WildcardMatcher> urlGroups) {
         if (transactionName == null) {
             return;
         }
-        WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(webConfig.getUrlGroups(), firstPart, secondPart);
+        WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(urlGroups, firstPart, secondPart);
         if (groupMatcher != null) {
             transactionName.append(method).append(' ').append(groupMatcher);
         } else {

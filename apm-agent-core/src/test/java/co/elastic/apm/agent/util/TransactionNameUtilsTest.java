@@ -40,6 +40,7 @@ class TransactionNameUtilsTest extends AbstractInstrumentationTest {
     @BeforeEach
     void beforeEach() {
         webConfig = config.getConfig(WebConfiguration.class);
+        when(webConfig.isUsePathAsName()).thenReturn(true);
     }
 
     @ParameterizedTest
@@ -96,28 +97,28 @@ class TransactionNameUtilsTest extends AbstractInstrumentationTest {
 
     @Test
     void setNameFromHttpRequestPath() {
-        // shuold be a no-op
-        TransactionNameUtils.setNameFromHttpRequestPath("GET", "", "", null);
-
-        testHttpRequestPath("GET", "/hello", "/world", "GET /hello/world");
-        testHttpRequestPath("POST", "/hello", null, "POST /hello");
-
-        when(webConfig.getUrlGroups()).thenReturn(List.of(
+        List<WildcardMatcher> urlGroups = List.of(
             WildcardMatcher.valueOf("/foo/bar/*/qux"),
             WildcardMatcher.valueOf("/foo/bar/*")
-        ));
+        );
 
-        testHttpRequestPath("GET", "/foo/bar/baz", null, "GET /foo/bar/*");
-        testHttpRequestPath("GET", "/foo", "/bar/baz", "GET /foo/bar/*");
-        testHttpRequestPath("POST", "/foo/bar/baz/qux", null, "POST /foo/bar/*/qux");
-        testHttpRequestPath("GET", "/foo/bar/baz/quux", null, "GET /foo/bar/*");
-        testHttpRequestPath("GET", "/foo/bar/baz/quux/qux", null, "GET /foo/bar/*/qux");
+        // shuold be a no-op
+        TransactionNameUtils.setNameFromHttpRequestPath("GET", "", "", null, urlGroups);
+
+        testHttpRequestPath("GET", "/hello", "/world", urlGroups, "GET /hello/world");
+        testHttpRequestPath("POST", "/hello", null, urlGroups, "POST /hello");
+
+        testHttpRequestPath("GET", "/foo/bar/baz", null, urlGroups, "GET /foo/bar/*");
+        testHttpRequestPath("GET", "/foo", "/bar/baz", urlGroups, "GET /foo/bar/*");
+        testHttpRequestPath("POST", "/foo/bar/baz/qux", null, urlGroups, "POST /foo/bar/*/qux");
+        testHttpRequestPath("GET", "/foo/bar/baz/quux", null, urlGroups, "GET /foo/bar/*");
+        testHttpRequestPath("GET", "/foo/bar/baz/quux/qux", null, urlGroups, "GET /foo/bar/*/qux");
 
     }
 
-    private void testHttpRequestPath(String httpMethod, String firstPart, @Nullable String secondPart, String expected) {
+    private void testHttpRequestPath(String httpMethod, String firstPart, @Nullable String secondPart, List<WildcardMatcher> urlGroups, String expected) {
         StringBuilder sb = new StringBuilder();
-        TransactionNameUtils.setNameFromHttpRequestPath(httpMethod, firstPart, secondPart, sb);
+        TransactionNameUtils.setNameFromHttpRequestPath(httpMethod, firstPart, secondPart, sb, webConfig.getUrlGroups());
         assertThat(sb.toString()).isEqualTo(expected);
     }
 

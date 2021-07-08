@@ -20,6 +20,7 @@ package co.elastic.apm.agent.sparkjava;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;
@@ -41,7 +42,12 @@ public class RoutesAdvice {
         }
 
         String method = routeMatch.getHttpMethod().name().toUpperCase();
-        TransactionNameUtils.setNameFromHttpRequestPath(method, routeMatch.getMatchUri(), null, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1));
+        TransactionNameUtils.setNameFromHttpRequestPath(method,
+            routeMatch.getMatchUri(),
+            null,
+            transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1),
+            tracer.getConfig(WebConfiguration.class).getUrlGroups());
+
         transaction.setFrameworkName("Spark");
         transaction.setFrameworkVersion(VersionUtils.getVersion(Route.class, "com.sparkjava", "spark-core"));
     }
