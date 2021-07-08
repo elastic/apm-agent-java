@@ -159,6 +159,11 @@ rendering
 |The transactions are named based on your route (`GET /foo/:bar`).
 |1.25.0
 
+|com.sun.net.httpserver.HttpServer
+|1.7+
+|Captures incoming HTTP requests as transactions
+|1.25.0 (experimental)
+
 |===
 
 
@@ -555,7 +560,7 @@ entry for `trace.id` and `transaction.id`. See the <<config-enable-log-correlati
 | Remote EJB on WildFly
 | 11+
 | Client & Server instrumentation.
-| 1.24.0
+| 1.25.0
 
 |===
 

@@ -57,6 +57,7 @@
         <module>apm-bootdelegation-plugin</module>
         <module>apm-micrometer-plugin</module>
         <module>apm-jdk-httpclient-plugin</module>
+        <module>apm-jdk-httpserver-plugin</module>
         <module>apm-rabbitmq</module>
         <module>apm-okhttp-test</module>
         <module>apm-cassandra</module>

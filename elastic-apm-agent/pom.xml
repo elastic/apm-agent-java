@@ -314,6 +314,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jdk-httpserver-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-wildfly-remote-ejb-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
