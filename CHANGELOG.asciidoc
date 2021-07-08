@@ -57,6 +57,7 @@ Elasticsearch's REST client - {pull}1883[#1883]
 * Added the ability to manually create exit spans, which will result with the auto creation of service nodes in the
 service map and downstream service in the dependencies table - {pull}1898[#1898]
 * Basic support for com.sun.net.httpserver.HttpServer - {pull}1854[#1854]
+* Added support for setting destination.address/port on JMS (client) spans who use ActiveMQ Artemis as underlying technology - {pull}1905[#1905]
 
 [float]
 ===== Bug fixes
