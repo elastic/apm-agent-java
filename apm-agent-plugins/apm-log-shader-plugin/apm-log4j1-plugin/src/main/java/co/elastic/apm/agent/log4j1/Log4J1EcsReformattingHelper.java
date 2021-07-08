@@ -50,9 +50,10 @@ class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAp
     }
 
     @Override
-    protected Layout createEcsFormatter(String eventDataset, @Nullable String serviceName) {
+    protected Layout createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName) {
         EcsLayout ecsLayout = new EcsLayout();
         ecsLayout.setServiceName(serviceName);
+        ecsLayout.setServiceNodeName(serviceNodeName);
         ecsLayout.setEventDataset(eventDataset);
         ecsLayout.setIncludeOrigin(false);
         ecsLayout.setStackTraceAsArray(false);

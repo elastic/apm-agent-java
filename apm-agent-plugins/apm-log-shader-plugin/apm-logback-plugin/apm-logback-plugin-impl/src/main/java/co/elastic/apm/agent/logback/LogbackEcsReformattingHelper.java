@@ -69,9 +69,10 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
     }
 
     @Override
-    protected Encoder<ILoggingEvent> createEcsFormatter(String eventDataset, @Nullable String serviceName) {
+    protected Encoder<ILoggingEvent> createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName) {
         EcsEncoder ecsEncoder = new EcsEncoder();
         ecsEncoder.setServiceName(serviceName);
+        ecsEncoder.setServiceNodeName(serviceNodeName);
         ecsEncoder.setEventDataset(eventDataset);
         ecsEncoder.setIncludeMarkers(false);
         ecsEncoder.setIncludeOrigin(false);

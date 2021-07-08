@@ -51,9 +51,10 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
     }
 
     @Override
-    protected Layout<? extends Serializable> createEcsFormatter(String eventDataset, @Nullable String serviceName) {
+    protected Layout<? extends Serializable> createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName) {
         return EcsLayout.newBuilder()
             .setServiceName(serviceName)
+            .setServiceNodeName(serviceNodeName)
             .setEventDataset(eventDataset)
             .setIncludeMarkers(false)
             .setIncludeOrigin(false)

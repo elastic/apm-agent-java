@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.log.shader;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -56,6 +57,8 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     public static final String WARN_MESSAGE = "Warn-this";
     public static final String ERROR_MESSAGE = "Error-this";
 
+    private static final  String SERVICE_NODE_NAME = "my-service-node";
+
     private final LoggerFacade logger;
     private final ObjectMapper objectMapper;
     private LoggingConfiguration loggingConfig;
@@ -71,6 +74,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         logger.open();
         loggingConfig = config.getConfig(LoggingConfiguration.class);
         serviceName = Objects.requireNonNull(tracer.getMetaData().get(2000, TimeUnit.MILLISECONDS).getService().getName());
+        doReturn(SERVICE_NODE_NAME).when(config.getConfig(CoreConfiguration.class)).getServiceNodeName();
     }
 
     private void setEcsReformattingConfig(LogEcsReformatting ecsReformattingConfig) {
@@ -246,6 +250,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(ecsLogLineTree.get("log.logger").textValue()).isEqualTo("Test-File-Logger");
         assertThat(ecsLogLineTree.get("message")).isNotNull();
         assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
+        assertThat(ecsLogLineTree.get("service.node.name").textValue()).isEqualTo(SERVICE_NODE_NAME);
         assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
     }
 
@@ -299,6 +304,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(splitRawLogLine[3]).isEqualTo(ecsLogLineTree.get("log.logger").textValue());
         assertThat(splitRawLogLine[4]).isEqualTo(ecsLogLineTree.get("message").textValue());
         assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
+        assertThat(ecsLogLineTree.get("service.node.name").textValue()).isEqualTo(SERVICE_NODE_NAME);
         assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
         if (traceId != null) {
             assertThat(ecsLogLineTree.get("trace.id").textValue()).isEqualTo(traceId);
