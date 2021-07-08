@@ -18,9 +18,23 @@
  */
 package co.elastic.apm.agent.util;
 
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+
 import javax.annotation.Nullable;
 
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+
 public class TransactionNameUtils {
+
+    private static final WebConfiguration webConfig = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);
+
+    public static void setTransactionNameByServletClass(@Nullable String method, @Nullable Class<?> servletClass, Transaction transaction, int priority) {
+        setTransactionNameByServletClass(method, servletClass, transaction.getAndOverrideName(priority));
+    }
 
     public static void setTransactionNameByServletClass(@Nullable String method, @Nullable Class<?> servletClass, @Nullable StringBuilder transactionName) {
         if (servletClass == null) {
@@ -60,4 +74,32 @@ public class TransactionNameUtils {
             }
         }
     }
+
+    public static void setNameFromClassAndMethod(String className, @Nullable String methodName, @Nullable StringBuilder transactionName) {
+        if (transactionName == null) {
+            return;
+        }
+        transactionName.append(className);
+
+        if (methodName != null) {
+            transactionName.append('#')
+                .append(methodName);
+        }
+    }
+
+    public static void setNameFromHttpRequestPath(String method, String firstPart, @Nullable String secondPart, @Nullable StringBuilder transactionName) {
+        if (transactionName == null) {
+            return;
+        }
+        WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(webConfig.getUrlGroups(), firstPart, secondPart);
+        if (groupMatcher != null) {
+            transactionName.append(method).append(' ').append(groupMatcher);
+        } else {
+            transactionName.append(method).append(' ').append(firstPart);
+            if (secondPart != null) {
+                transactionName.append(secondPart);
+            }
+        }
+    }
+
 }

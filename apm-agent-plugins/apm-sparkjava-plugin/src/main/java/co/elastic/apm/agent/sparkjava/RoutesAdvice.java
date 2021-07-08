@@ -18,19 +18,20 @@
  */
 package co.elastic.apm.agent.sparkjava;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.asm.Advice;
 import spark.Route;
 import spark.routematch.RouteMatch;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 
 public class RoutesAdvice {
 
-    private static final Tracer tracer = GlobalTracer.get();
+    private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
 
     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
     public static void onExitFind(@Advice.Return RouteMatch routeMatch) {
@@ -40,12 +41,7 @@ public class RoutesAdvice {
         }
 
         String method = routeMatch.getHttpMethod().name().toUpperCase();
-        StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
-        if (name != null) {
-            name.append(method);
-            name.append(" ");
-            name.append(routeMatch.getMatchUri());
-        }
+        TransactionNameUtils.setNameFromHttpRequestPath(method, routeMatch.getMatchUri(), null, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1));
         transaction.setFrameworkName("Spark");
         transaction.setFrameworkVersion(VersionUtils.getVersion(Route.class, "com.sparkjava", "spark-core"));
     }
