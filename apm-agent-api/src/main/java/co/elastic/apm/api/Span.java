@@ -265,6 +265,24 @@ public interface Span {
     Span startSpan(String type, @Nullable String subtype, @Nullable String action);
 
     /**
+     * Start and return a new typed custom exit span as a child of this span.
+     * <p>
+     * Similar to {@link #startSpan(String, String, String)}, but the created span will be used to create a node in
+     * the Service Map and a downstream service in the Dependencies Table. The provided subtype will be used as the
+     * downstream service name, unless the {@code destination.service.resource} field is explicitly set through
+     * {@link #setDestinationService(String)}.
+     * <p>
+     * If invoked on a span which is already an exit span, this method will return a noop span.
+     *
+     * @param type    The type of the create span. If a known type is provide, it may be used to select service icon
+     * @param subtype The subtype of the created span. Will be used as the downstream service name. Cannot be {@code null}
+     * @param action  The action related to the new span
+     * @return the started exit span, or a noop span if this span is already an exit span, never {@code null}
+     */
+    @Nonnull
+    Span startExitSpan(String type, String subtype, @Nullable String action);
+
+    /**
      * Start and return a new custom span with no type, as a child of this span.
      * <p>
      * It is important to call {@link Span#end()} when the span has ended.
