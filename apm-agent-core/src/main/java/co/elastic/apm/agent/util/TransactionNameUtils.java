@@ -25,54 +25,47 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
-
 public class TransactionNameUtils {
 
     private static final WebConfiguration webConfig = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);
 
-    public static void setTransactionNameByServletClass(@Nullable String method, @Nullable Class<?> servletClass, Transaction transaction, int priority) {
-        setTransactionNameByServletClass(method, servletClass, transaction.getAndOverrideName(priority));
-    }
-
-    public static void setTransactionNameByServletClass(@Nullable String method, @Nullable Class<?> servletClass, @Nullable StringBuilder transactionName) {
-        if (servletClass == null) {
-            return;
-        }
-        if (transactionName == null) {
+    public static void setTransactionNameByServletClass(@Nullable String httpMethod, @Nullable Class<?> servletClass, @Nullable StringBuilder transactionName) {
+        if (servletClass == null || transactionName == null) {
             return;
         }
         String servletClassName = servletClass.getName();
         transactionName.append(servletClassName, servletClassName.lastIndexOf('.') + 1, servletClassName.length());
-        if (method != null) {
-            transactionName.append('#');
-            switch (method) {
-                case "DELETE":
-                    transactionName.append("doDelete");
-                    break;
-                case "HEAD":
-                    transactionName.append("doHead");
-                    break;
-                case "GET":
-                    transactionName.append("doGet");
-                    break;
-                case "OPTIONS":
-                    transactionName.append("doOptions");
-                    break;
-                case "POST":
-                    transactionName.append("doPost");
-                    break;
-                case "PUT":
-                    transactionName.append("doPut");
-                    break;
-                case "TRACE":
-                    transactionName.append("doTrace");
-                    break;
-                default:
-                    transactionName.append(method);
-            }
+
+        if (httpMethod == null) {
+            return;
         }
+        transactionName.append('#');
+        switch (httpMethod) {
+            case "DELETE":
+                transactionName.append("doDelete");
+                break;
+            case "HEAD":
+                transactionName.append("doHead");
+                break;
+            case "GET":
+                transactionName.append("doGet");
+                break;
+            case "OPTIONS":
+                transactionName.append("doOptions");
+                break;
+            case "POST":
+                transactionName.append("doPost");
+                break;
+            case "PUT":
+                transactionName.append("doPut");
+                break;
+            case "TRACE":
+                transactionName.append("doTrace");
+                break;
+            default:
+                transactionName.append(httpMethod);
+        }
+
     }
 
     public static void setNameFromClassAndMethod(String className, @Nullable String methodName, @Nullable StringBuilder transactionName) {
