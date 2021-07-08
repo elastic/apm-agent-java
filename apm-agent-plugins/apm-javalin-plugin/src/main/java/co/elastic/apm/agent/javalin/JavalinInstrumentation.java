@@ -144,8 +144,6 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
                 return null;
             }
 
-            final boolean isLambdaHandlerWrapper = handlerClassName.equals("co.elastic.apm.agent.javalin.JavalinHandlerLambdaInstrumentation$WrappingHandler");
-
             // transaction name gets only set if we are dealing with a HTTP method processing, not before/after handlers
             if (handlerType.isHttpMethod()) {
                 final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, false);
@@ -155,11 +153,6 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
                     transaction.withType("request");
 
                     name.append(handlerType.name()).append(" ").append(ctx.endpointHandlerPath());
-
-                    // no need for anonymous handler class names in the transaction
-                    if (!isLambdaHandlerWrapper) {
-                        name.append(" ").append(handler.getClass().getSimpleName());
-                    }
                 }
             }
 
@@ -170,7 +163,7 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
             }
 
             Span span = parent.createSpan().activate();
-            setSpanName(span, handler.getClass().getSimpleName(), handlerType, isLambdaHandlerWrapper, ctx.matchedPath());
+            span.appendToName(handlerType.name()).appendToName(" ").appendToName(ctx.matchedPath());
             return span;
         }
 
@@ -190,15 +183,6 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
                     // future was set in the handler, so we need to end the span only on future completion
                     responseFuture.whenComplete((o, futureThrowable) -> span.captureException(futureThrowable).end());
                 }
-            }
-        }
-
-        private static void setSpanName(AbstractSpan span, String handlerClassName, HandlerType handlerType, boolean isLambdaHandler, String matchedPath) {
-            span.appendToName(handlerType.name()).appendToName(" ").appendToName(matchedPath).appendToName(" ");
-            if (isLambdaHandler) {
-                span.appendToName("<Lambda>");
-            } else {
-                span.appendToName(handlerClassName);
             }
         }
     }

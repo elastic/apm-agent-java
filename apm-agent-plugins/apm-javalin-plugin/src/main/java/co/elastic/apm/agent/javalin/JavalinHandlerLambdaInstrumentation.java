@@ -33,8 +33,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class JavalinHandlerLambdaInstrumentation extends TracerAwareInstrumentation {
 
@@ -49,12 +51,18 @@ public class JavalinHandlerLambdaInstrumentation extends TracerAwareInstrumentat
             .and(takesArgument(0, named("io.javalin.http.HandlerType")))
             .and(takesArgument(1, String.class))
             .and(takesArgument(2, named("io.javalin.http.Handler")))
-            .and(takesArgument(3, Set.class));
+            // the fourth argument of Javalin.addHandler method is not matched, because its type differs between Javalin 3 and Javalin 4
+            .and(takesArguments(4));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singleton("javalin");
+    }
+
+    @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return classLoaderCanLoadClass("io.javalin.http.Handler");
     }
 
     @Override
@@ -66,7 +74,7 @@ public class JavalinHandlerLambdaInstrumentation extends TracerAwareInstrumentat
         @Nullable
         @AssignTo.Argument(2)
         @Advice.OnMethodEnter(inline = false)
-        public static Handler beforeSetHandler(@Advice.Argument(2) @Nullable Handler original) {
+        public static Handler beforeAddHandler(@Advice.Argument(2) @Nullable Handler original) {
             if (original != null && original.getClass().getName().contains("/")) {
                 return new WrappingHandler(original);
             }
