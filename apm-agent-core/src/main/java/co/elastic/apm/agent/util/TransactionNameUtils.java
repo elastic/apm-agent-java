@@ -18,8 +18,6 @@
  */
 package co.elastic.apm.agent.util;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 
 import javax.annotation.Nullable;

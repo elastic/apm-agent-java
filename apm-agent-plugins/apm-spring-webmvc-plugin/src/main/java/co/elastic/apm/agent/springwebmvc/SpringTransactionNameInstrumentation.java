@@ -122,10 +122,13 @@ public class SpringTransactionNameInstrumentation extends TracerAwareInstrumenta
                 methodName = null;
             }
 
-            if (webConfig.isUsePathAsName() || methodName == null) {
+            if (webConfig.isUsePathAsName() || (methodName == null && !className.equals("ResourceHttpRequestHandler"))) {
                 // when method name is not known, using path is a better default as multiple distinct requests
                 // would be handled by a single class. If delegating to a Servlet, then servlet naming will be applied
                 // thus it allows to provide a better fallback in case method name is null and there is no servlet executed.
+                //
+                // ResourceHttpRequestHandler is handling static resources, thus rather high cardinality most of the time
+                // and grouping on a single transaction is preferable.
                 TransactionNameUtils.setNameFromHttpRequestPath(request.getMethod(), request.getServletPath(), request.getPathInfo(), transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1), webConfig.getUrlGroups());
             } else {
                 TransactionNameUtils.setNameFromClassAndMethod(className, methodName, transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
