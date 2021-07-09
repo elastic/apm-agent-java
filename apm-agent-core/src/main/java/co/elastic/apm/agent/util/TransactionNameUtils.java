@@ -76,17 +76,21 @@ public class TransactionNameUtils {
         }
     }
 
-    public static void setNameFromHttpRequestPath(String method, String firstPart, @Nullable String secondPart, @Nullable StringBuilder transactionName, List<WildcardMatcher> urlGroups) {
+    public static void setNameFromHttpRequestPath(String method, String firstPart, @Nullable StringBuilder transactionName, List<WildcardMatcher> urlGroups) {
+        setNameFromHttpRequestPath(method, firstPart, null, transactionName, urlGroups);
+    }
+
+    public static void setNameFromHttpRequestPath(String method, String pathFirstPart, @Nullable String pathSecondPart, @Nullable StringBuilder transactionName, List<WildcardMatcher> urlGroups) {
         if (transactionName == null) {
             return;
         }
-        WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(urlGroups, firstPart, secondPart);
+        WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(urlGroups, pathFirstPart, pathSecondPart);
         if (groupMatcher != null) {
             transactionName.append(method).append(' ').append(groupMatcher);
         } else {
-            transactionName.append(method).append(' ').append(firstPart);
-            if (secondPart != null) {
-                transactionName.append(secondPart);
+            transactionName.append(method).append(' ').append(pathFirstPart);
+            if (pathSecondPart != null) {
+                transactionName.append(pathSecondPart);
             }
         }
     }

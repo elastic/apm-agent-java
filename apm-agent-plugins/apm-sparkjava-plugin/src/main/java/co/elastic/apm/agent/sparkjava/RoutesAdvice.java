@@ -44,7 +44,6 @@ public class RoutesAdvice {
         String method = routeMatch.getHttpMethod().name().toUpperCase();
         TransactionNameUtils.setNameFromHttpRequestPath(method,
             routeMatch.getMatchUri(),
-            null,
             transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1),
             tracer.getConfig(WebConfiguration.class).getUrlGroups());
 
