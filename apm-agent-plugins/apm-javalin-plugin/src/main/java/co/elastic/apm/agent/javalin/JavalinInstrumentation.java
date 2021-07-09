@@ -163,6 +163,7 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
             }
 
             Span span = parent.createSpan().activate();
+            span.withType("app").withSubtype("handler");
             span.appendToName(handlerType.name()).appendToName(" ").appendToName(ctx.matchedPath());
             return span;
         }
