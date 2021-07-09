@@ -16,29 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package specs;
+package co.elastic.apm.agent.httpserver;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import com.sun.net.httpserver.Headers;
 
-import java.io.IOException;
-import java.net.URL;
+import javax.annotation.Nullable;
 
-public class TestJsonSpec {
+public class HeadersHeaderGetter extends AbstractHeaderGetter<String, Headers> implements TextHeaderGetter<Headers> {
 
-    public static JsonNode getJson(String jsonFile) {
-        return getJson(TestJsonSpec.class, "json-specs/" + jsonFile);
-    }
+    public static final HeadersHeaderGetter INSTANCE = new HeadersHeaderGetter();
 
-    public static JsonNode getJson(Class<?> type, String path) {
-        URL jsonSpec = type.getClassLoader().getResource(path);
-        try {
-            return new ObjectMapper()
-                .enable(JsonParser.Feature.ALLOW_COMMENTS)
-                .readTree(jsonSpec);
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
+    @Nullable
+    @Override
+    public String getFirstHeader(String headerName, Headers carrier) {
+        return carrier.getFirst(headerName);
     }
 }
