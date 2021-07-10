@@ -58,6 +58,13 @@ class TransactionInstrumentationTest extends AbstractApiTest {
     }
 
     @Test
+    void testSetFrameworkName() {
+        transaction.setFrameworkName("foo");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("foo");
+    }
+
+    @Test
     void testSetType() {
         transaction.setType("foo");
         endTransaction();
@@ -127,7 +134,6 @@ class TransactionInstrumentationTest extends AbstractApiTest {
     private void checkResult(String expected) {
         assertThat(reporter.getFirstTransaction().getResult()).isEqualTo(expected);
     }
-
 
 
     @Test

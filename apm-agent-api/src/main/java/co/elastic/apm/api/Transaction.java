@@ -58,6 +58,19 @@ public interface Transaction extends Span {
     Transaction setType(String type);
 
     /**
+     * Override the name of the framework for the current transaction.
+     * <p>
+     * For supported frameworks,
+     * the framework name is determined automatically,
+     * and can be overridden using this function.
+     * </p>
+     *
+     * @param frameworkName The name of the framework
+     */
+    @Nonnull
+    Transaction setFrameworkName(String frameworkName);
+
+    /**
      * {@inheritDoc}
      *
      * @deprecated use {@link #addLabel(String, String)} instead
