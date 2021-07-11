@@ -30,10 +30,12 @@ import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import co.elastic.apm.agent.log.shader.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.logging.AdditionalField;
 import co.elastic.logging.logback.EcsEncoder;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 
 class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputStreamAppender<ILoggingEvent>, Encoder<ILoggingEvent>> {
 
@@ -69,7 +71,8 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
     }
 
     @Override
-    protected Encoder<ILoggingEvent> createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName) {
+    protected Encoder<ILoggingEvent> createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName,
+                                                        @Nullable Map<String, String> additionalFields, Encoder<ILoggingEvent> originalFormatter) {
         EcsEncoder ecsEncoder = new EcsEncoder();
         ecsEncoder.setServiceName(serviceName);
         ecsEncoder.setServiceNodeName(serviceNodeName);
@@ -77,6 +80,13 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
         ecsEncoder.setIncludeMarkers(false);
         ecsEncoder.setIncludeOrigin(false);
         ecsEncoder.setStackTraceAsArray(false);
+
+        if (additionalFields != null) {
+            for (Map.Entry<String, String> keyValuePair : additionalFields.entrySet()) {
+                ecsEncoder.addAdditionalField(new AdditionalField(keyValuePair.getKey(), keyValuePair.getValue()));
+            }
+        }
+
         return ecsEncoder;
     }
 

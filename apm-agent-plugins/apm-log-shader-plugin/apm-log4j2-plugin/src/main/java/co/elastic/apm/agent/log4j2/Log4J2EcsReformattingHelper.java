@@ -30,10 +30,16 @@ import org.apache.logging.log4j.core.appender.rolling.RolloverStrategy;
 import org.apache.logging.log4j.core.appender.rolling.SizeBasedTriggeringPolicy;
 import org.apache.logging.log4j.core.appender.rolling.TriggeringPolicy;
 import org.apache.logging.log4j.core.config.DefaultConfiguration;
+import org.apache.logging.log4j.core.config.NullConfiguration;
+import org.apache.logging.log4j.core.layout.AbstractLayout;
+import org.apache.logging.log4j.core.util.KeyValuePair;
 
 import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 
 class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender, Layout<? extends Serializable>> {
@@ -51,15 +57,31 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
     }
 
     @Override
-    protected Layout<? extends Serializable> createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName) {
-        return EcsLayout.newBuilder()
+    protected Layout<? extends Serializable> createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName,
+                                                                @Nullable Map<String, String> additionalFields, Layout<? extends Serializable> originalFormatter) {
+        EcsLayout.Builder builder = EcsLayout.newBuilder()
             .setServiceName(serviceName)
             .setServiceNodeName(serviceNodeName)
             .setEventDataset(eventDataset)
             .setIncludeMarkers(false)
             .setIncludeOrigin(false)
-            .setStackTraceAsArray(false)
-            .build();
+            .setStackTraceAsArray(false);
+
+        if (originalFormatter instanceof AbstractLayout<?>) {
+            builder.setConfiguration(((AbstractLayout<?>) originalFormatter).getConfiguration());
+        } else {
+            builder.setConfiguration(new NullConfiguration());
+        }
+
+        if (additionalFields != null && !additionalFields.isEmpty()) {
+            List<KeyValuePair> additionalFieldsList = new ArrayList<KeyValuePair>();
+            for (Map.Entry<String, String> keyValuePair : additionalFields.entrySet()) {
+                additionalFieldsList.add(new KeyValuePair(keyValuePair.getKey(), keyValuePair.getValue()));
+            }
+            builder.setAdditionalFields(additionalFieldsList.toArray(new KeyValuePair[0]));
+        }
+
+        return builder.build();
     }
 
     @Override

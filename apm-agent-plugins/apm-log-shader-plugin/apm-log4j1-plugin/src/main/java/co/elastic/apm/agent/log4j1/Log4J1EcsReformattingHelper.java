@@ -29,6 +29,7 @@ import org.apache.log4j.WriterAppender;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Map;
 
 class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAppender, Layout> {
 
@@ -50,11 +51,17 @@ class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAp
     }
 
     @Override
-    protected Layout createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName) {
+    protected Layout createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName,
+                                        @Nullable Map<String, String> additionalFields, Layout originalFormatter) {
         EcsLayout ecsLayout = new EcsLayout();
         ecsLayout.setServiceName(serviceName);
         ecsLayout.setServiceNodeName(serviceNodeName);
         ecsLayout.setEventDataset(eventDataset);
+        if (additionalFields != null) {
+            for (Map.Entry<String, String> keyValuePair : additionalFields.entrySet()) {
+                ecsLayout.setAdditionalField(keyValuePair.getKey() + "=" + keyValuePair.getValue());
+            }
+        }
         ecsLayout.setIncludeOrigin(false);
         ecsLayout.setStackTraceAsArray(false);
         return ecsLayout;

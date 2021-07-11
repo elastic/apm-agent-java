@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The abstract Log shading helper- loaded as part of the agent core (agent CL / bootstrap CL / System CL).
@@ -151,9 +152,13 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     @Nullable
     private final String configuredServiceNodeName;
 
+    @Nullable
+    private final Map<String, String> additionalFields;
+
     public AbstractEcsReformattingHelper() {
         ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
         loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
+        additionalFields = loggingConfiguration.getLogEcsReformattingAdditionalFields();
         Service service = new ServiceFactory().createService(tracer.getConfig(CoreConfiguration.class), "");
         configuredServiceName = service.getName();
         if (service.getNode() != null) {
@@ -211,13 +216,17 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
                 return;
             }
 
-            Object originalFormatter = NULL_FORMATTER;
+            Object mappedFormatter = NULL_FORMATTER;
             Object ecsFormatter = NULL_FORMATTER;
             try {
                 if (shouldApplyEcsReformatting(originalAppender)) {
-                    originalFormatter = getFormatterFrom(originalAppender);
+                    F originalFormatter = getFormatterFrom(originalAppender);
+                    mappedFormatter = originalFormatter;
                     String serviceName = getServiceName();
-                    F createdEcsFormatter = createEcsFormatter(getEventDataset(originalAppender, serviceName), serviceName, configuredServiceNodeName);
+                    F createdEcsFormatter = createEcsFormatter(
+                        getEventDataset(originalAppender, serviceName), serviceName, configuredServiceNodeName,
+                        additionalFields, originalFormatter
+                    );
                     setFormatter(originalAppender, createdEcsFormatter);
                     ecsFormatter = createdEcsFormatter;
                 }
@@ -227,7 +236,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
                     originalAppender.getClass().getName(), getAppenderName(originalAppender)), throwable);
             } finally {
                 originalAppender2ecsFormatter.put(originalAppender, ecsFormatter);
-                originalAppender2originalFormatter.put(originalAppender, originalFormatter);
+                originalAppender2originalFormatter.put(originalAppender, mappedFormatter);
             }
         }
     }
@@ -297,7 +306,10 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
             try {
                 if (shouldApplyEcsReformatting(originalAppender)) {
                     String serviceName = getServiceName();
-                    F ecsFormatter = createEcsFormatter(getEventDataset(originalAppender, serviceName), serviceName, configuredServiceNodeName);
+                    F ecsFormatter = createEcsFormatter(
+                        getEventDataset(originalAppender, serviceName), serviceName, configuredServiceNodeName,
+                        additionalFields, getFormatterFrom(originalAppender)
+                    );
                     ecsAppender = createAndStartEcsAppender(originalAppender, ECS_SHADE_APPENDER_NAME, ecsFormatter);
                     if (ecsAppender == null) {
                         ecsAppender = NULL_APPENDER;
@@ -402,7 +414,8 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     @Nullable
     protected abstract A createAndStartEcsAppender(A originalAppender, String ecsAppenderName, F ecsFormatter);
 
-    protected abstract F createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName);
+    protected abstract F createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName,
+                                            @Nullable Map<String, String> additionalFields, F originalFormatter);
 
     /**
      * We currently get the same service name that is reported in the metadata document.
