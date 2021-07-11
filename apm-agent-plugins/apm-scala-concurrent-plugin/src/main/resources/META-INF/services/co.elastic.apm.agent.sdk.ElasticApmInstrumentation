@@ -3,3 +3,5 @@
 #co.elastic.apm.agent.scalaconcurrent.FutureInstrumentation$TransformationRunInstrumentation
 #co.elastic.apm.agent.scalaconcurrent.FutureInstrumentation$TransformationSubmitWithValueInstrumentation
 co.elastic.apm.agent.scalaconcurrent.FutureInstrumentation$BatchedExecutionContextInstrumentation
+co.elastic.apm.agent.scalaconcurrent.FutureInstrumentation$TransformationConstructorInstrumentation
+co.elastic.apm.agent.scalaconcurrent.FutureInstrumentation$TransformationRunInstrumentation
