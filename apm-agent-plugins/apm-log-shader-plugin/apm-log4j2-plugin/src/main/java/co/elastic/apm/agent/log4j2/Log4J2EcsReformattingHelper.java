@@ -63,7 +63,7 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
             .setServiceName(serviceName)
             .setServiceNodeName(serviceNodeName)
             .setEventDataset(eventDataset)
-            .setIncludeMarkers(false)
+            .setIncludeMarkers(true)
             .setIncludeOrigin(false)
             .setStackTraceAsArray(false);
 

@@ -132,6 +132,33 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     }
 
     @Test
+    public void testMarkers() throws Exception {
+        if (markersSupported()) {
+            setEcsReformattingConfig(LogEcsReformatting.SHADE);
+            initializeShadeDir("markers");
+            logger.debugWithMarker(DEBUG_MESSAGE);
+
+            ArrayList<String[]> rawLogLines = readRawLogLines();
+            assertThat(rawLogLines).hasSize(1);
+            String[] rawLogLine = rawLogLines.get(0);
+
+            ArrayList<JsonNode> ecsLogLines = readShadeLogFile();
+            assertThat(ecsLogLines).hasSize(1);
+            JsonNode ecsLogLine = ecsLogLines.get(0);
+
+            verifyEcsFormat(rawLogLine, ecsLogLine, null);
+
+            JsonNode tagsJson = ecsLogLine.get("tags");
+            assertThat(tagsJson.isArray()).isTrue();
+            assertThat(tagsJson.get(0).textValue()).isEqualTo("TEST");
+        }
+    }
+
+    protected boolean markersSupported() {
+        return false;
+    }
+
+    @Test
     public void testShadingIntoOriginalLogsDir() throws Exception {
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
         initializeShadeDir("");

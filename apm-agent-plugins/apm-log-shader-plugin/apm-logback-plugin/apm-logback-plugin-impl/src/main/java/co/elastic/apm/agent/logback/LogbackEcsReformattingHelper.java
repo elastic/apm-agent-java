@@ -77,7 +77,7 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
         ecsEncoder.setServiceName(serviceName);
         ecsEncoder.setServiceNodeName(serviceNodeName);
         ecsEncoder.setEventDataset(eventDataset);
-        ecsEncoder.setIncludeMarkers(false);
+        ecsEncoder.setIncludeMarkers(true);
         ecsEncoder.setIncludeOrigin(false);
         ecsEncoder.setStackTraceAsArray(false);
 
