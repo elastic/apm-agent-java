@@ -25,9 +25,7 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.concurrent.JavaConcurrent;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
-import co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -35,9 +33,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import javax.servlet.AsyncContext;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -60,10 +55,6 @@ public abstract class CommonAsyncInstrumentation extends AbstractServletInstrume
         return Arrays.asList(Constants.SERVLET_API, SERVLET_API_ASYNC_GROUP_NAME);
     }
 
-    public interface AsyncContextAdviceHelper<T> {
-        void onExitStartAsync(T asyncContext);
-    }
-
     public abstract static class StartAsyncInstrumentation extends CommonAsyncInstrumentation {
 
         @Override
@@ -77,15 +68,6 @@ public abstract class CommonAsyncInstrumentation extends AbstractServletInstrume
                 .and(hasSuperType(named(servletRequestClassName())));
         }
 
-        /**
-         * Matches
-         * <ul>
-         * <li>{@link ServletRequest#startAsync()}</li>
-         * <li>{@link ServletRequest#startAsync(ServletRequest, ServletResponse)}</li>
-         * </ul>
-         *
-         * @return
-         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return isPublic()
@@ -140,7 +122,7 @@ public abstract class CommonAsyncInstrumentation extends AbstractServletInstrume
 
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Exception.class, inline = false)
             public static void onExitAsyncContextStart(@Nullable @Advice.Thrown Throwable thrown,
-                                                        @Advice.Argument(value = 0) @Nullable Runnable runnable) {
+                                                       @Advice.Argument(value = 0) @Nullable Runnable runnable) {
                 JavaConcurrent.doFinally(thrown, runnable);
             }
         }

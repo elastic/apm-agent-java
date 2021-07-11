@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.servlet.helper;
 
@@ -30,12 +24,12 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
 
 import javax.annotation.Nullable;
-import javax.servlet.AsyncContext;
-import javax.servlet.AsyncEvent;
-import javax.servlet.AsyncListener;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.AsyncContext;
+import jakarta.servlet.AsyncEvent;
+import jakarta.servlet.AsyncListener;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -57,22 +51,22 @@ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_
  *  - Jetty fails to invoke onError after AsyncContext.dispatch to a Servlet that ends with ServletException
  *  - JBoss EAP 6.4 does not invoke onComplete after onError is invoked
  */
-public class JavaxApmAbstractAsyncListener extends AbstractAsyncListener implements AsyncListener, Recyclable {
+public class JakartaApmAsyncListener implements AsyncListener, Recyclable {
 
     private final AtomicBoolean completed = new AtomicBoolean(false);
-    private final AsyncContextAdviceHelperImpl asyncContextAdviceHelperImpl;
+    private final JakartaAsyncContextAdviceHelperV2 asyncContextAdviceHelperImpl;
     private final ServletTransactionHelper servletTransactionHelper;
     @Nullable
     private volatile Transaction transaction;
     @Nullable
     private volatile Throwable throwable;
 
-    JavaxApmAbstractAsyncListener(AsyncContextAdviceHelperImpl asyncContextAdviceHelperImpl) {
+    JakartaApmAsyncListener(JakartaAsyncContextAdviceHelperV2 asyncContextAdviceHelperImpl) {
         this.asyncContextAdviceHelperImpl = asyncContextAdviceHelperImpl;
         this.servletTransactionHelper = asyncContextAdviceHelperImpl.getServletTransactionHelper();
     }
 
-    JavaxApmAbstractAsyncListener withTransaction(Transaction transaction) {
+    JakartaApmAsyncListener withTransaction(Transaction transaction) {
         this.transaction = transaction;
         return this;
     }

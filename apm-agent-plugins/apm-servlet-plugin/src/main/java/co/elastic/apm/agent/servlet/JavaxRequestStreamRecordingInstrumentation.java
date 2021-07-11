@@ -3,7 +3,7 @@ package co.elastic.apm.agent.servlet;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.sdk.state.CallDepth;
-import co.elastic.apm.agent.servlet.helper.RecordingServletInputStreamWrapper;
+import co.elastic.apm.agent.servlet.helper.JavaxRecordingServletInputStreamWrapper;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
@@ -45,7 +45,7 @@ public class JavaxRequestStreamRecordingInstrumentation extends CommonRequestStr
             final Transaction transaction = tracer.currentTransaction();
             // only wrap if the body buffer has been initialized via ServletTransactionHelper.startCaptureBody
             if (transaction != null && transaction.getContext().getRequest().getBodyBuffer() != null) {
-                return new RecordingServletInputStreamWrapper(transaction.getContext().getRequest(), inputStream);
+                return new JavaxRecordingServletInputStreamWrapper(transaction.getContext().getRequest(), inputStream);
             } else {
                 return inputStream;
             }

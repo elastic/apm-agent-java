@@ -5,7 +5,6 @@ import net.bytebuddy.asm.Advice;
 import javax.annotation.Nullable;
 import javax.servlet.Servlet;
 import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
 
 public abstract class JavaxServletVersionInstrumentation extends CommonServletVersionInstrumentation {
 

@@ -45,12 +45,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public abstract class CommonServletInstrumentation extends AbstractServletInstrumentation {
 
-    static final String SERVLET_API = "servlet-api";
-    static final String SERVLET_API_DISPATCH = "servlet-api-dispatch";
-
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(SERVLET_API, SERVLET_API_DISPATCH);
+        return Arrays.asList(Constants.SERVLET_API, Constants.SERVLET_API_DISPATCH);
     }
 
     @Override

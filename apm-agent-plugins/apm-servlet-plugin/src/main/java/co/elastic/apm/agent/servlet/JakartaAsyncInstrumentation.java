@@ -2,15 +2,15 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperV2;
-import co.elastic.apm.agent.servlet.helper.JavaxAsyncContextAdviceHelperV2;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import co.elastic.apm.agent.servlet.helper.JakartaAsyncContextAdviceHelperV2;
+import jakarta.servlet.AsyncContext;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
-import javax.servlet.AsyncContext;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 
-public class JavaxAsyncInstrumentation {
+public class JakartaAsyncInstrumentation {
 
     /**
      * Matches
@@ -21,30 +21,30 @@ public class JavaxAsyncInstrumentation {
      *
      * @return
      */
-    public static class JavaxStartAsyncInstrumentation extends CommonAsyncInstrumentation.StartAsyncInstrumentation {
+    public static class JakartaStartAsyncInstrumentation extends CommonAsyncInstrumentation.StartAsyncInstrumentation {
 
         @Override
         String servletRequestClassName() {
-            return "javax.servlet.ServletRequest";
+            return "jakarta.servlet.ServletRequest";
         }
 
         @Override
         String asyncContextClassName() {
-            return "javax.servlet.AsyncContext";
+            return "jakarta.servlet.AsyncContext";
         }
 
         @Override
         String servletResponseClassName() {
-            return "javax.servlet.ServletResponse";
+            return "jakarta.servlet.ServletResponse";
         }
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.servlet.JavaxAsyncInstrumentation$JavaxStartAsyncInstrumentation$StartAsyncAdvice";
+            return "co.elastic.apm.agent.servlet.JakartaAsyncInstrumentation$JakartaStartAsyncInstrumentation$JakartaStartAsyncAdvice";
         }
 
-        public static class StartAsyncAdvice {
-            private static final AsyncContextAdviceHelperV2<AsyncContext> asyncHelper = new JavaxAsyncContextAdviceHelperV2(GlobalTracer.requireTracerImpl());;
+        public static class JakartaStartAsyncAdvice {
+            private static final AsyncContextAdviceHelperV2<AsyncContext> asyncHelper = new JakartaAsyncContextAdviceHelperV2(GlobalTracer.requireTracerImpl());
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void onExitStartAsync(@Advice.Return @Nullable AsyncContext asyncContext) {
@@ -56,11 +56,11 @@ public class JavaxAsyncInstrumentation {
         }
     }
 
-    public static class JavaxAsyncContextInstrumentation extends CommonAsyncInstrumentation.AsyncContextInstrumentation {
+    public static class JakartaAsyncContextInstrumentation extends CommonAsyncInstrumentation.AsyncContextInstrumentation {
 
         @Override
         String asyncContextClassName() {
-            return "javax.servlet.AsyncContext";
+            return "jakarta.servlet.AsyncContext";
         }
 
         @Override

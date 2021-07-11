@@ -27,12 +27,12 @@ import java.io.IOException;
 import java.nio.CharBuffer;
 import java.nio.charset.CoderResult;
 
-public class RecordingServletInputStreamWrapper extends ServletInputStream {
+public class JavaxRecordingServletInputStreamWrapper extends ServletInputStream {
 
     private final Request request;
     private final ServletInputStream servletInputStream;
 
-    public RecordingServletInputStreamWrapper(Request request, ServletInputStream servletInputStream) {
+    public JavaxRecordingServletInputStreamWrapper(Request request, ServletInputStream servletInputStream) {
         this.request = request;
         this.servletInputStream = servletInputStream;
     }

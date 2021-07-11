@@ -1,31 +1,11 @@
-/*
- * Licensed to Elasticsearch B.V. under one or more contributor
- * license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright
- * ownership. Elasticsearch B.V. licenses this file to you under
- * the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
-import co.elastic.apm.agent.servlet.AsyncInstrumentation;
-import co.elastic.apm.agent.servlet.ServletApiAdvice;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
 import org.jctools.queues.atomic.AtomicQueueFactory;
 
@@ -34,36 +14,36 @@ import javax.servlet.ServletRequest;
 
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.ASYNC_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
+import static co.elastic.apm.agent.servlet.helper.AsyncConstants.ASYNC_LISTENER_ADDED;
+import static co.elastic.apm.agent.servlet.helper.AsyncConstants.MAX_POOLED_ELEMENTS;
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
-public class AsyncContextAdviceHelperImpl implements AsyncInstrumentation.AsyncContextAdviceHelper<AsyncContext> {
+public class JavaxAsyncContextAdviceHelperV2 implements AsyncContextAdviceHelperV2<AsyncContext> {
 
-    private static final String ASYNC_LISTENER_ADDED = ServletApiAdvice.class.getName() + ".asyncListenerAdded";
-    private static final int MAX_POOLED_ELEMENTS = 256;
-
-    private final ObjectPool<ApmAsyncListener> asyncListenerObjectPool;
+    private final ObjectPool<JavaxApmAsyncListener> asyncListenerObjectPool;
     private final ServletTransactionHelper servletTransactionHelper;
     private final Tracer tracer;
 
-    public AsyncContextAdviceHelperImpl(ElasticApmTracer tracer) {
+    public JavaxAsyncContextAdviceHelperV2(ElasticApmTracer tracer) {
         this.tracer = tracer;
         servletTransactionHelper = new ServletTransactionHelper(tracer);
 
         asyncListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
-            AtomicQueueFactory.<ApmAsyncListener>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
+            AtomicQueueFactory.<JavaxApmAsyncListener>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
             false,
-            new ApmAsyncListenerAllocator());
+            new JavaxAsyncContextAdviceHelperV2.ApmAsyncListenerAllocator());
     }
+
+    private final class ApmAsyncListenerAllocator implements Allocator<JavaxApmAsyncListener> {
+        @Override
+        public JavaxApmAsyncListener createInstance() {
+            return new JavaxApmAsyncListener(JavaxAsyncContextAdviceHelperV2.this);
+        }
+    }
+
 
     ServletTransactionHelper getServletTransactionHelper() {
         return servletTransactionHelper;
-    }
-
-    private final class ApmAsyncListenerAllocator implements Allocator<ApmAsyncListener> {
-        @Override
-        public ApmAsyncListener createInstance() {
-            return new ApmAsyncListener(AsyncContextAdviceHelperImpl.this);
-        }
     }
 
     @Override
@@ -88,7 +68,7 @@ public class AsyncContextAdviceHelperImpl implements AsyncInstrumentation.AsyncC
         }
     }
 
-    void recycle(ApmAsyncListener apmAsyncListener) {
+    void recycle(JavaxApmAsyncListener apmAsyncListener) {
         asyncListenerObjectPool.recycle(apmAsyncListener);
     }
 }
