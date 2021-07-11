@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.micrometer;
 
@@ -57,13 +51,16 @@ public class MicrometerMeterRegistrySerializer {
 
     private static final byte NEW_LINE = (byte) '\n';
 
+    private static final int BUFFER_SIZE_LIMIT = 2048;
+
     private static final Logger logger = LoggerFactory.getLogger(MicrometerMeterRegistrySerializer.class);
 
     private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
     private final StringBuilder replaceBuilder = new StringBuilder();
     private final MetricsConfiguration config;
     private final WeakConcurrentSet<Meter> internallyDisabledMeters = WeakMapSupplier.createSet();
-    private int previousSize = 0;
+
+    private int maxSerializedSize = 512;
 
     public MicrometerMeterRegistrySerializer(MetricsConfiguration config) {
         this.config = config;
@@ -73,15 +70,8 @@ public class MicrometerMeterRegistrySerializer {
         return internallyDisabledMeters;
     }
 
-    public JsonWriter serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros) {
-        int newSize = (int) (Math.max(previousSize, 512) * 1.25);
-        JsonWriter jw = dslJson.newWriter(newSize);
-        serialize(metersById, epochMicros, replaceBuilder, jw);
-        previousSize = jw.size();
-        return jw;
-    }
-
-    void serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros, final StringBuilder replaceBuilder, final JsonWriter jw) {
+    public List<JsonWriter> serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros) {
+        List<JsonWriter> serializedMeters = new ArrayList<>();
         final Map<List<Tag>, List<Meter>> metersGroupedByTags = new HashMap<>();
         for (Map.Entry<Meter.Id, Meter> entry : metersById.entrySet()) {
             List<Tag> tags = entry.getKey().getTags();
@@ -93,12 +83,17 @@ public class MicrometerMeterRegistrySerializer {
             meters.add(entry.getValue());
         }
         for (Map.Entry<List<Tag>, List<Meter>> entry : metersGroupedByTags.entrySet()) {
-            serializeMetricSet(entry.getKey(), entry.getValue(), epochMicros, replaceBuilder, jw);
-            jw.writeByte(NEW_LINE);
+            JsonWriter jw = dslJson.newWriter(maxSerializedSize);
+            if (serializeMetricSet(entry.getKey(), entry.getValue(), epochMicros, replaceBuilder, jw)) {
+                serializedMeters.add(jw);
+                maxSerializedSize = Math.max(Math.min(jw.size(), BUFFER_SIZE_LIMIT), maxSerializedSize);
+            }
         }
+        return serializedMeters;
     }
 
-    void serializeMetricSet(List<Tag> tags, List<Meter> meters, long epochMicros, StringBuilder replaceBuilder, JsonWriter jw) {
+    boolean serializeMetricSet(List<Tag> tags, List<Meter> meters, long epochMicros, StringBuilder replaceBuilder, JsonWriter jw) {
+        boolean hasSamples = false;
         boolean dedotMetricName = config.isDedotCustomMetrics();
         jw.writeByte(JsonWriter.OBJECT_START);
         {
@@ -111,7 +106,6 @@ public class MicrometerMeterRegistrySerializer {
                 serializeTags(tags, replaceBuilder, jw);
                 DslJsonSerializer.writeFieldName("samples", jw);
                 jw.writeByte(JsonWriter.OBJECT_START);
-                boolean hasValue = false;
 
                 ClassLoader originalContextCL = Thread.currentThread().getContextClassLoader();
                 try {
@@ -125,25 +119,25 @@ public class MicrometerMeterRegistrySerializer {
                             Thread.currentThread().setContextClassLoader(meter.getClass().getClassLoader());
                             if (meter instanceof Timer) {
                                 Timer timer = (Timer) meter;
-                                hasValue = serializeTimer(jw, timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeTimer(jw, timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasSamples, replaceBuilder, dedotMetricName);
                             } else if (meter instanceof FunctionTimer) {
                                 FunctionTimer timer = (FunctionTimer) meter;
-                                hasValue = serializeTimer(jw, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeTimer(jw, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasSamples, replaceBuilder, dedotMetricName);
                             } else if (meter instanceof LongTaskTimer) {
                                 LongTaskTimer timer = (LongTaskTimer) meter;
-                                hasValue = serializeTimer(jw, timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS), hasValue, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeTimer(jw, timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS), hasSamples, replaceBuilder, dedotMetricName);
                             } else if (meter instanceof DistributionSummary) {
                                 DistributionSummary timer = (DistributionSummary) meter;
-                                hasValue = serializeDistributionSummary(jw, timer.getId(), timer.count(), timer.totalAmount(), hasValue, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeDistributionSummary(jw, timer.getId(), timer.count(), timer.totalAmount(), hasSamples, replaceBuilder, dedotMetricName);
                             } else if (meter instanceof Gauge) {
                                 Gauge gauge = (Gauge) meter;
-                                hasValue = serializeValue(gauge.getId(), gauge.value(), hasValue, jw, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeValue(gauge.getId(), gauge.value(), hasSamples, jw, replaceBuilder, dedotMetricName);
                             } else if (meter instanceof Counter) {
                                 Counter counter = (Counter) meter;
-                                hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeValue(counter.getId(), counter.count(), hasSamples, jw, replaceBuilder, dedotMetricName);
                             } else if (meter instanceof FunctionCounter) {
                                 FunctionCounter counter = (FunctionCounter) meter;
-                                hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeValue(counter.getId(), counter.count(), hasSamples, jw, replaceBuilder, dedotMetricName);
                             }
                         } catch (Throwable throwable) {
                             String meterName = meter.getId().getName();
@@ -162,6 +156,8 @@ public class MicrometerMeterRegistrySerializer {
             jw.writeByte(JsonWriter.OBJECT_END);
         }
         jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(NEW_LINE);
+        return hasSamples;
     }
 
     private static void serializeTags(List<Tag> tags, StringBuilder replaceBuilder, JsonWriter jw) {

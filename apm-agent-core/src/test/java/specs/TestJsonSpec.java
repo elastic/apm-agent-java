@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,10 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package specs;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -39,7 +34,9 @@ public class TestJsonSpec {
     public static JsonNode getJson(Class<?> type, String path) {
         URL jsonSpec = type.getClassLoader().getResource(path);
         try {
-            return new ObjectMapper().readTree(jsonSpec);
+            return new ObjectMapper()
+                .enable(JsonParser.Feature.ALLOW_COMMENTS)
+                .readTree(jsonSpec);
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }

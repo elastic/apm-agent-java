@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.httpclient;
 
@@ -102,17 +96,19 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
             Span span = parent.createExitSpan();
             HttpAsyncRequestProducer wrappedProducer = requestProducer;
             FutureCallback<?> wrappedFutureCallback = futureCallback;
-            boolean wrapped = false;
+            boolean responseFutureWrapped = false;
             if (span != null) {
                 span.withType(HttpClientHelper.EXTERNAL_TYPE)
                     .withSubtype(HttpClientHelper.HTTP_SUBTYPE)
                     .activate();
 
-                wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, span, RequestHeaderAccessor.INSTANCE);
+                wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, span, null, RequestHeaderAccessor.INSTANCE);
                 wrappedFutureCallback = asyncHelper.wrapFutureCallback(futureCallback, context, span);
-                wrapped = true;
+                responseFutureWrapped = true;
+            } else {
+                wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, null, parent, RequestHeaderAccessor.INSTANCE);
             }
-            return new Object[]{wrappedProducer, wrappedFutureCallback, wrapped, span};
+            return new Object[]{wrappedProducer, wrappedFutureCallback, responseFutureWrapped, span};
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

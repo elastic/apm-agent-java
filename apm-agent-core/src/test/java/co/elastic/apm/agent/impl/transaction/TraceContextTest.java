@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
 
@@ -31,7 +25,6 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.BinaryHeaderMapAccessor;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.MultiValueMapAccessor;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
@@ -138,15 +131,15 @@ class TraceContextTest {
     }
 
     @Test
-    void testElasticTraceparentHeaderPrecedence() {
+    void testW3CTraceparentHeaderPrecedence() {
         Map<String, String> textHeaderMap = Map.of(
-            TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01",
-            TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-dd8448eb211c80319c0af7651916cd43-f97918e1b9c7c989-00"
+            TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-00",
+            TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-dd8448eb211c80319c0af7651916cd43-f97918e1b9c7c989-01"
         );
         final TraceContext child = TraceContext.with64BitId(tracer);
         assertThat(TraceContext.<Map<String, String>>getFromTraceContextTextHeaders().asChildOf(child, textHeaderMap, TextHeaderMapAccessor.INSTANCE)).isTrue();
-        assertThat(child.getTraceId().toString()).isEqualTo("dd8448eb211c80319c0af7651916cd43");
-        assertThat(child.getParentId().toString()).isEqualTo("f97918e1b9c7c989");
+        assertThat(child.getTraceId().toString()).isEqualTo("0af7651916cd43dd8448eb211c80319c");
+        assertThat(child.getParentId().toString()).isEqualTo("b9c7c989f97918e1");
         assertThat(child.getId()).isNotEqualTo(child.getParentId());
         assertThat(child.isSampled()).isFalse();
     }
@@ -512,7 +505,7 @@ class TraceContextTest {
         assertThat(traceState).isEqualTo("es=s:0.42");
     }
 
-    private TraceContext createRootSpan(double sampleRate){
+    private TraceContext createRootSpan(double sampleRate) {
         final TraceContext traceContext = TraceContext.with64BitId(tracer);
 
         Sampler sampler = mock(Sampler.class);
@@ -577,7 +570,7 @@ class TraceContextTest {
             .isEqualTo(Double.valueOf(expectedRate));
 
         assertThat(child.getTraceState().toTextHeader())
-                .isEqualTo(expectedHeader);
+            .isEqualTo(expectedHeader);
 
     }
 

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report.serialize;
 
@@ -31,6 +25,7 @@ import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import com.dslplatform.json.JsonWriter;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -72,7 +67,12 @@ public class MetricRegistryReporter extends AbstractLifecycleListener implements
     @Override
     public void report(Map<? extends Labels, MetricSet> metricSets) {
         if (tracer.isRunning()) {
-            reporter.report(serializer.serialize(metricSets));
+            for (MetricSet metricSet : metricSets.values()) {
+                JsonWriter jw = serializer.serialize(metricSet);
+                if (jw != null) {
+                    reporter.report(jw);
+                }
+            }
         }
     }
 }

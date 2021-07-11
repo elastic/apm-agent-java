@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,11 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.sdk.state.GlobalVariables;
+import co.elastic.apm.agent.util.LoggerUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -39,7 +33,6 @@ import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -55,9 +48,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public abstract class ServletVersionInstrumentation extends AbstractServletInstrumentation {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServletVersionInstrumentation.class);
-
-    private static final AtomicBoolean alreadyLogged = GlobalVariables.get(ServletVersionInstrumentation.class, "alreadyLogged", new AtomicBoolean(false));
+    private static final Logger logger = LoggerUtils.logOnce(LoggerFactory.getLogger(ServletVersionInstrumentation.class));
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -112,10 +103,9 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
     }
 
     private static void logServletVersion(@Nullable ServletConfig servletConfig) {
-        if (alreadyLogged.get()) {
+        if (!logger.isInfoEnabled() && logger.isWarnEnabled()) {
             return;
         }
-        alreadyLogged.set(true);
 
         int majorVersion = -1;
         int minorVersion = -1;
@@ -129,9 +119,10 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
             }
         }
 
-        logger.info("Servlet container info = {}", serverInfo);
         if (majorVersion < 3) {
-            logger.warn("Unsupported servlet version detected: {}.{}, no Servlet transaction will be created", majorVersion, minorVersion);
+            logger.warn("Unsupported servlet version detected: {}.{}, no Servlet transaction will be created. Servlet container info = {}", majorVersion, minorVersion, serverInfo);
+        } else {
+            logger.info("Servlet container info = {}", serverInfo);
         }
     }
 

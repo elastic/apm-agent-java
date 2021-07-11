@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.sdk.weakmap;
 
@@ -37,8 +31,17 @@ public class WeakMapSupplier {
 
     public static <K, V> WeakConcurrentMap<K, V> createMap() {
         WeakConcurrentMap<K, V> result = new NullSafeWeakConcurrentMap<>(false);
-        registeredMaps.add(result);
+        registerMap(result);
         return result;
+    }
+
+    /**
+     * Registers map for global stale entry cleanup
+     *
+     * @param map map to register
+     */
+    public static void registerMap(WeakConcurrentMap<?, ?> map) {
+        registeredMaps.add(map);
     }
 
     public static <V> WeakConcurrentSet<V> createSet() {

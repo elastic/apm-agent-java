@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,13 +15,11 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockTracer;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -68,5 +61,15 @@ class SpanTest {
         span.end();
 
         assertThat(span.getOutcome()).isEqualTo(Outcome.UNKNOWN);
+    }
+
+    @Test
+    void normalizeEmptyFields() {
+        Span span = new Span(MockTracer.create())
+            .withName("span");
+
+        assertThat(span.withType("").getType()).isNull();
+        assertThat(span.withSubtype("").getSubtype()).isNull();
+        assertThat(span.withAction("").getAction()).isNull();
     }
 }
