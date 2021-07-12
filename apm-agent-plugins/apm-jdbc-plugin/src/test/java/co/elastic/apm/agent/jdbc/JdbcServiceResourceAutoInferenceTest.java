@@ -18,12 +18,20 @@
  */
 package co.elastic.apm.agent.jdbc;
 
+import org.junit.BeforeClass;
+
 import java.sql.DriverManager;
 
-public class JdbcInstrumentationTest extends AbstractJdbcInstrumentationTest {
+import static org.mockito.Mockito.when;
 
-    public JdbcInstrumentationTest() throws Exception {
-        super(DriverManager.getConnection("jdbc:h2:mem:test"), "h2", "TEST");
+public class JdbcServiceResourceAutoInferenceTest extends AbstractJdbcInstrumentationTest {
+
+    @BeforeClass
+    public static void setUseJDBCServiceResourceAutoInference() {
+        when(config.getConfig(JDBCConfiguration.class).getUseJDBCServiceResourceAutoInference()).thenReturn(true);
     }
 
+    public JdbcServiceResourceAutoInferenceTest() throws Exception {
+        super(DriverManager.getConnection("jdbc:h2:mem:test"), "h2", "TEST");
+    }
 }

@@ -39,7 +39,7 @@ public class DataSourceIT extends AbstractJdbcInstrumentationTest {
     private static final String URL = "jdbc:h2:mem:test";
 
     public DataSourceIT(Supplier<DataSource> dataSourceSupplier) throws Exception {
-        super(dataSourceSupplier.get().getConnection(), "h2");
+        super(dataSourceSupplier.get().getConnection(), "h2", "TEST");
     }
 
     @Parameterized.Parameters(name = "{0}")

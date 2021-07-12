@@ -20,9 +20,11 @@ package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.db.signature.Scanner;
 import co.elastic.apm.agent.db.signature.SignatureParser;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.jdbc.JDBCConfiguration;
 import co.elastic.apm.agent.jdbc.JdbcFilter;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
@@ -43,6 +45,10 @@ public class JdbcHelper {
     private static final Logger logger = LoggerFactory.getLogger(JdbcHelper.class);
     public static final String DB_SPAN_TYPE = "db";
     public static final String DB_SPAN_ACTION = "query";
+
+    private static final boolean useJDBCServiceResourceAutoInference = GlobalTracer.getTracerImpl()
+        .getConfig(JDBCConfiguration.class)
+        .getUseJDBCServiceResourceAutoInference();
 
     private static final JdbcHelper INSTANCE = new JdbcHelper();
 
@@ -87,7 +93,7 @@ public class JdbcHelper {
             return null;
         }
 
-        Span span = parent.createSpan().activate();
+        Span span = parent.createExitSpan().activate();
         if (sql.isEmpty()) {
             span.withName("empty query");
         } else if (span.isSampled()) {
@@ -121,8 +127,11 @@ public class JdbcHelper {
                 .withPort(connectionMetaData.getPort());
             destination.getService()
                 .withName(vendor)
-                .withResource(vendor)
                 .withType(DB_SPAN_TYPE);
+
+            if(!useJDBCServiceResourceAutoInference) {
+                destination.getService().withResource(vendor);
+            }
         }
         span.withSubtype(vendor).withAction(DB_SPAN_ACTION);
 

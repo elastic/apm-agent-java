@@ -136,6 +136,8 @@ Click on a key to get more information.
 * <<config-jax-rs>>
 ** <<config-enable-jaxrs-annotation-inheritance>>
 ** <<config-use-jaxrs-path-as-transaction-name>>
+* <<config-jdbc>>
+** <<config-use-jdbc-service-resource-auto-inference>>
 * <<config-jmx>>
 ** <<config-capture-jmx-metrics>>
 * <<config-logging>>
@@ -1502,6 +1504,32 @@ If you want to use the URI template from the `@Path` annotation, set the value t
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.use_jaxrs_path_as_transaction_name` | `use_jaxrs_path_as_transaction_name` | `ELASTIC_APM_USE_JAXRS_PATH_AS_TRANSACTION_NAME`
+|============
+
+[[config-jdbc]]
+=== JDBC configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-use-jdbc-service-resource-auto-inference]]
+==== `use_jdbc_service_resource_auto_inference` (added[1.25.0])
+
+If set to `true`, the agent uses `type`, `subtype` and `db.instance` of a JDBC span to infer its `destination.service.resource` instead of relying on the JDBC instrumentation to set it.
+See for https://github.com/elastic/apm/blob/master/specs/agents/tracing-spans-destination.md#contextdestinationserviceresource for the inference algorithm.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.use_jdbc_service_resource_auto_inference` | `use_jdbc_service_resource_auto_inference` | `ELASTIC_APM_USE_JDBC_SERVICE_RESOURCE_AUTO_INFERENCE`
 |============
 
 [[config-jmx]]
@@ -3305,6 +3333,19 @@ The default unit for this option is `ms`.
 # Default value: false
 #
 # use_jaxrs_path_as_transaction_name=false
+
+############################################
+# JDBC                                     #
+############################################
+
+# If set to `true`, the agent uses `type`, `subtype` and `db.instance` of a JDBC span to infer its `destination.service.resource` instead of relying on the JDBC instrumentation to set it.
+# See for https://github.com/elastic/apm/blob/master/specs/agents/tracing-spans-destination.md#contextdestinationserviceresource for the inference algorithm.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# use_jdbc_service_resource_auto_inference=false
 
 ############################################
 # JMX                                      #

@@ -59,6 +59,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     private static final long PREPARED_STMT_TIMEOUT = 10000;
 
     private final String expectedDbVendor;
+    private final String expectedDbInstance;
     private Connection connection;
     @Nullable
     private PreparedStatement preparedStatement;
@@ -67,9 +68,10 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     private final Transaction transaction;
     private final SignatureParser signatureParser;
 
-    AbstractJdbcInstrumentationTest(Connection connection, String expectedDbVendor) throws Exception {
+    AbstractJdbcInstrumentationTest(Connection connection, String expectedDbVendor, String expectedDbInstance) throws Exception {
         this.connection = connection;
         this.expectedDbVendor = expectedDbVendor;
+        this.expectedDbInstance= expectedDbInstance;
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT NOT NULL, BAR VARCHAR(255))");
         connection.createStatement().execute("ALTER TABLE ELASTIC_APM ADD PRIMARY KEY (FOO)");
         transaction = startTestRootTransaction("jdbc-test");
@@ -78,6 +80,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
 
     @Before
     public void setUp() throws Exception {
+        reporter.disableCheckDestinationAddress();
+
         preparedStatement = EXECUTOR_SERVICE.submit(new Callable<PreparedStatement>() {
             public PreparedStatement call() throws Exception {
                 return connection.prepareStatement(PREPARED_STATEMENT_SQL);
@@ -394,6 +398,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         Span span = reporter.getFirstSpan();
         StringBuilder processedSql = new StringBuilder();
         signatureParser.querySignature(rawSql, processedSql, preparedStatement);
+        assertThat(span.isExit()).isTrue();
         assertThat(span.getNameAsString()).isEqualTo(processedSql.toString());
         assertThat(span.getType()).isEqualTo(DB_SPAN_TYPE);
         assertThat(span.getSubtype()).isEqualTo(expectedDbVendor);
@@ -419,7 +424,11 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         }
 
         Destination.Service service = destination.getService();
-        assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor);
+        if (tracer.getConfig(JDBCConfiguration.class).getUseJDBCServiceResourceAutoInference() && expectedDbInstance != null) {
+            assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor + "/" + expectedDbInstance);
+        } else {
+            assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor);
+        }
 
         assertThat(span.getOutcome())
             .describedAs("span outcome should be explicitly set to either failure or success")
@@ -435,6 +444,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         Span jdbcSpan = reporter.getFirstSpan();
         StringBuilder processedSql = new StringBuilder();
         signatureParser.querySignature(rawSql, processedSql, preparedStatement);
+        assertThat(jdbcSpan.isExit()).isTrue();
         assertThat(jdbcSpan.getNameAsString()).isEqualTo(processedSql.toString());
         assertThat(jdbcSpan.getType()).isEqualTo(DB_SPAN_TYPE);
         assertThat(jdbcSpan.getSubtype()).isEqualTo("unknown");
@@ -455,7 +465,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(destination.getPort()).isLessThanOrEqualTo(0);
 
         Destination.Service service = destination.getService();
-        assertThat(service.getResource()).isNullOrEmpty();
+        assertThat(service.getResource().toString()).isEqualTo("unknown");
     }
 
     private static long[] toLongArray(int[] a) {

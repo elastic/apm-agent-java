@@ -31,20 +31,20 @@ public class JdbcDbIT extends AbstractJdbcInstrumentationTest {
         System.setProperty("oracle.jdbc.timezoneAsRegion", "false");
     }
 
-    public JdbcDbIT(String url, String expectedDbVendor) throws Exception {
-        super(DriverManager.getConnection(url), expectedDbVendor);
+    public JdbcDbIT(String url, String expectedDbVendor, String expectedDbInstance) throws Exception {
+        super(DriverManager.getConnection(url), expectedDbVendor, expectedDbInstance);
     }
 
     @Parameterized.Parameters(name = "{1} {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"jdbc:tc:mysql:5://hostname/databasename", "mysql"},
-            {"jdbc:tc:postgresql:9://hostname/databasename", "postgresql"},
-            {"jdbc:tc:postgresql:10://hostname/databasename", "postgresql"},
-            {"jdbc:tc:mariadb:10://hostname/databasename", "mariadb"},
-            {"jdbc:tc:sqlserver:2017-CU12://hostname/databasename", "sqlserver"},
-            {"jdbc:tc:db2:11.5.0.0a://hostname/databasename", "db2"},
-            {"jdbc:tc:oracle://hostname/databasename", "oracle"},
+            {"jdbc:tc:mysql:5://hostname/databasename", "mysql", "databasename"},
+            {"jdbc:tc:postgresql:9://hostname/databasename", "postgresql", "databasename"},
+            {"jdbc:tc:postgresql:10://hostname/databasename", "postgresql", "databasename"},
+            {"jdbc:tc:mariadb:10://hostname/databasename", "mariadb", "databasename"},
+            {"jdbc:tc:sqlserver:2017-CU12://hostname/databasename", "sqlserver", "master"},
+            {"jdbc:tc:db2:11.5.0.0a://hostname/databasename", "db2", null},
+            {"jdbc:tc:oracle://hostname/databasename", "oracle", null},
         });
     }
 
