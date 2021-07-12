@@ -18,26 +18,26 @@ import static co.elastic.apm.agent.servlet.helper.AsyncConstants.ASYNC_LISTENER_
 import static co.elastic.apm.agent.servlet.helper.AsyncConstants.MAX_POOLED_ELEMENTS;
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
-public class JakartaAsyncContextAdviceHelperV2 implements AsyncContextAdviceHelperV2<AsyncContext> {
+public class JakartaAsyncContextAdviceHelper implements AsyncContextAdviceHelper<AsyncContext> {
 
     private final ObjectPool<JakartaApmAsyncListener> asyncListenerObjectPool;
     private final ServletTransactionHelper servletTransactionHelper;
     private final Tracer tracer;
 
-    public JakartaAsyncContextAdviceHelperV2(ElasticApmTracer tracer) {
+    public JakartaAsyncContextAdviceHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
         servletTransactionHelper = new ServletTransactionHelper(tracer);
 
         asyncListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
             AtomicQueueFactory.<JakartaApmAsyncListener>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
             false,
-            new JakartaAsyncContextAdviceHelperV2.JakartaApmAsyncListenerAllocator());
+            new JakartaAsyncContextAdviceHelper.JakartaApmAsyncListenerAllocator());
     }
 
     private final class JakartaApmAsyncListenerAllocator implements Allocator<JakartaApmAsyncListener> {
         @Override
         public JakartaApmAsyncListener createInstance() {
-            return new JakartaApmAsyncListener(JakartaAsyncContextAdviceHelperV2.this);
+            return new JakartaApmAsyncListener(JakartaAsyncContextAdviceHelper.this);
         }
     }
 

@@ -6,7 +6,8 @@ co.elastic.apm.agent.servlet.JavaxServletVersionInstrumentation$JavaxInit
 co.elastic.apm.agent.servlet.JavaxServletVersionInstrumentation$JavaxService
 co.elastic.apm.agent.servlet.JavaxFilterChainInstrumentation
 co.elastic.apm.agent.servlet.JakartaFilterChainInstrumentation
-co.elastic.apm.agent.servlet.FilterInstrumentation
+co.elastic.apm.agent.servlet.JavaxFilterInstrumentation
+co.elastic.apm.agent.servlet.JakartaFilterInstrumentation
 co.elastic.apm.agent.servlet.JavaxAsyncInstrumentation$JavaxStartAsyncInstrumentation
 co.elastic.apm.agent.servlet.JavaxAsyncInstrumentation$JavaxAsyncContextInstrumentation
 co.elastic.apm.agent.servlet.JakartaAsyncInstrumentation$JakartaStartAsyncInstrumentation

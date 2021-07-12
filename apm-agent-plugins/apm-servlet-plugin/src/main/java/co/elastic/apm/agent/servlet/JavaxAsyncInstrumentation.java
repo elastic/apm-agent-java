@@ -1,8 +1,8 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperV2;
-import co.elastic.apm.agent.servlet.helper.JavaxAsyncContextAdviceHelperV2;
+import co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelper;
+import co.elastic.apm.agent.servlet.helper.JavaxAsyncContextAdviceHelper;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import net.bytebuddy.asm.Advice;
@@ -44,7 +44,7 @@ public class JavaxAsyncInstrumentation {
         }
 
         public static class StartAsyncAdvice {
-            private static final AsyncContextAdviceHelperV2<AsyncContext> asyncHelper = new JavaxAsyncContextAdviceHelperV2(GlobalTracer.requireTracerImpl());;
+            private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper = new JavaxAsyncContextAdviceHelper(GlobalTracer.requireTracerImpl());;
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void onExitStartAsync(@Advice.Return @Nullable AsyncContext asyncContext) {

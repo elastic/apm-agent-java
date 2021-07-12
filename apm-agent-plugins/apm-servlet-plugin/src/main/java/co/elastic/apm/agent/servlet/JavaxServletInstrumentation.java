@@ -13,6 +13,6 @@ public class JavaxServletInstrumentation extends CommonServletInstrumentation {
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.servlet.ServletApiAdvice";
+        return "co.elastic.apm.agent.servlet.JavaxServletApiAdvice";
     }
 }

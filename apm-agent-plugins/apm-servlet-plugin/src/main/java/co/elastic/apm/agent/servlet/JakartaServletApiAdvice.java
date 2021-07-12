@@ -3,20 +3,19 @@ package co.elastic.apm.agent.servlet;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.servlet.helper.JavaxServletTransactionCreationHelper;
+import co.elastic.apm.agent.servlet.helper.JakartaServletTransactionCreationHelper;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
-import javax.servlet.DispatcherType;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -24,13 +23,14 @@ import java.util.Map;
 
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 
-public class JavaxServletApiAdvice extends BaseServletApiAdvice implements ServletHelper<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
+public class JakartaServletApiAdvice extends BaseServletApiAdvice implements ServletHelper<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
 
-    private static JavaxServletTransactionCreationHelper transactionCreationHelper;
-    private static JavaxServletApiAdvice helper;
+    private static JakartaServletTransactionCreationHelper transactionCreationHelper;
+    private static JakartaServletApiAdvice helper;
+
     static {
-        transactionCreationHelper = new JavaxServletTransactionCreationHelper(GlobalTracer.requireTracerImpl());
-        helper = new JavaxServletApiAdvice();
+        transactionCreationHelper = new JakartaServletTransactionCreationHelper(GlobalTracer.requireTracerImpl());
+        helper = new JakartaServletApiAdvice();
     }
 
     @Nullable

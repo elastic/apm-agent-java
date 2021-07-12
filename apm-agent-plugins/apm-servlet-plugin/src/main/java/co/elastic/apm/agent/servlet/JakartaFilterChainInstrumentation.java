@@ -18,6 +18,6 @@ public class JakartaFilterChainInstrumentation extends CommonFilterChainInstrume
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.servlet.ServletApiAdvice";
+        return "co.elastic.apm.agent.servlet.JakartaServletApiAdvice";
     }
 }

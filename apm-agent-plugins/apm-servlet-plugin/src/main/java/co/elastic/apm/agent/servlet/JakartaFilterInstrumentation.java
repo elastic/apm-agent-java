@@ -1,9 +1,12 @@
 package co.elastic.apm.agent.servlet;
 
-public class JakartaServletInstrumentation extends CommonServletInstrumentation{
+/**
+ * Instruments {@link jakarta.servlet.Filter}s to create transactions.
+ */
+public class JakartaFilterInstrumentation extends CommonFilterInstrumentation{
     @Override
-    public String getServletClassName() {
-        return "jakarta.servlet.Servlet";
+    public String getFilterClassName() {
+        return "jakarta.servlet.Filter";
     }
 
     @Override
@@ -14,10 +17,5 @@ public class JakartaServletInstrumentation extends CommonServletInstrumentation{
     @Override
     public String getAdviceClassName() {
         return "co.elastic.apm.agent.servlet.JakartaServletApiAdvice";
-    }
-
-    @Override
-    public String rootClassNameThatClassloaderCanLoad() {
-        return "jakarta.servlet.AsyncContext";
     }
 }

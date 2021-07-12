@@ -54,14 +54,14 @@ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_
 public class JavaxApmAsyncListener implements AsyncListener, Recyclable {
 
     private final AtomicBoolean completed = new AtomicBoolean(false);
-    private final JavaxAsyncContextAdviceHelperV2 asyncContextAdviceHelperImpl;
+    private final JavaxAsyncContextAdviceHelper asyncContextAdviceHelperImpl;
     private final ServletTransactionHelper servletTransactionHelper;
     @Nullable
     private volatile Transaction transaction;
     @Nullable
     private volatile Throwable throwable;
 
-    JavaxApmAsyncListener(JavaxAsyncContextAdviceHelperV2 asyncContextAdviceHelperImpl) {
+    JavaxApmAsyncListener(JavaxAsyncContextAdviceHelper asyncContextAdviceHelperImpl) {
         this.asyncContextAdviceHelperImpl = asyncContextAdviceHelperImpl;
         this.servletTransactionHelper = asyncContextAdviceHelperImpl.getServletTransactionHelper();
     }

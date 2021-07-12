@@ -49,8 +49,8 @@ import java.util.EnumSet;
 import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.ERROR;
 import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.FORWARD;
 import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.INCLUDE;
-import static co.elastic.apm.agent.servlet.ServletApiAdvice.SPAN_SUBTYPE;
-import static co.elastic.apm.agent.servlet.ServletApiAdvice.SPAN_TYPE;
+import static co.elastic.apm.agent.servlet.BaseServletApiAdvice.SPAN_SUBTYPE;
+import static co.elastic.apm.agent.servlet.BaseServletApiAdvice.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 

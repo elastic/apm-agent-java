@@ -1,13 +1,16 @@
 package co.elastic.apm.agent.servlet;
 
-public class JavaxFilterChainInstrumentation extends CommonFilterChainInstrumentation {
+/**
+ * Instruments {@link javax.servlet.Filter}s to create transactions.
+ */
+public class JavaxFilterInstrumentation extends CommonFilterInstrumentation{
     @Override
-    String filterChainTypeMatcherClassName() {
-        return "javax.servlet.FilterChain";
+    public String getFilterClassName() {
+        return "javax.servlet.Filter";
     }
 
     @Override
-    String[] filterChainMethodMatcherArgumentClassNames() {
+    public String[] getServletMethodArgumentNames() {
         return new String[]{"javax.servlet.ServletRequest", "javax.servlet.ServletResponse"};
     }
 

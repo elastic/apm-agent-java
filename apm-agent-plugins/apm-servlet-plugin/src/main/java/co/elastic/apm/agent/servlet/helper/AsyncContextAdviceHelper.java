@@ -1,6 +1,6 @@
 package co.elastic.apm.agent.servlet.helper;
 
-public interface AsyncContextAdviceHelperV2<T> {
+public interface AsyncContextAdviceHelper<T> {
 
     void onExitStartAsync(T asyncContext);
 }

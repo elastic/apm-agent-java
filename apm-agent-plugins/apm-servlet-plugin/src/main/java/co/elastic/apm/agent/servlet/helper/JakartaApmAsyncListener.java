@@ -54,14 +54,14 @@ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_
 public class JakartaApmAsyncListener implements AsyncListener, Recyclable {
 
     private final AtomicBoolean completed = new AtomicBoolean(false);
-    private final JakartaAsyncContextAdviceHelperV2 asyncContextAdviceHelperImpl;
+    private final JakartaAsyncContextAdviceHelper asyncContextAdviceHelperImpl;
     private final ServletTransactionHelper servletTransactionHelper;
     @Nullable
     private volatile Transaction transaction;
     @Nullable
     private volatile Throwable throwable;
 
-    JakartaApmAsyncListener(JakartaAsyncContextAdviceHelperV2 asyncContextAdviceHelperImpl) {
+    JakartaApmAsyncListener(JakartaAsyncContextAdviceHelper asyncContextAdviceHelperImpl) {
         this.asyncContextAdviceHelperImpl = asyncContextAdviceHelperImpl;
         this.servletTransactionHelper = asyncContextAdviceHelperImpl.getServletTransactionHelper();
     }
