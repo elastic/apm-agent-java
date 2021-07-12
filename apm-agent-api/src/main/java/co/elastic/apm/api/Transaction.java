@@ -64,6 +64,9 @@ public interface Transaction extends Span {
      * the framework name is determined automatically,
      * and can be overridden using this function.
      * </p>
+     * <p>
+     * <code>null</code> or the empty string will make the agent omit this field.
+     * </p>
      *
      * @param frameworkName The name of the framework
      */

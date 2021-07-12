@@ -318,6 +318,7 @@ Override the name of the framework for the current transaction.
 For supported frameworks,
 the framework name is determined automatically,
 and can be overridden using this function.
+`null` or the empty string will make the agent omit this field.
 
 Example:
 
