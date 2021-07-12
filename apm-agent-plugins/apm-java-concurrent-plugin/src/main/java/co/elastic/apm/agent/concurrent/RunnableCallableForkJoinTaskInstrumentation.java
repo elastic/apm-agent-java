@@ -75,7 +75,7 @@ public class RunnableCallableForkJoinTaskInstrumentation extends TracerAwareInst
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static void onExit(@Advice.Thrown Throwable thrown,
                               @Nullable @Advice.Enter Object context) {
-        if (context instanceof AbstractSpan) {
+        if (context instanceof AbstractSpan && tracer.getActive() == context) {
             ((AbstractSpan<?>) context).deactivate();
         }
     }

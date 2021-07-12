@@ -14,6 +14,6 @@
         <Logger name="com.networknt.schema" level="warn"/>
 
         <!-- agent always in debug for easier -->
-        <Logger name="co.elastic.apm" level="info"/>
+        <Logger name="co.elastic.apm" level="debug"/>
     </Loggers>
 </Configuration>
