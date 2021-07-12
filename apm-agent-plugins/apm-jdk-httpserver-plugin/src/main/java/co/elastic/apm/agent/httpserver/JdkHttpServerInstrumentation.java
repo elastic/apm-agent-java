@@ -16,29 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package specs;
+package co.elastic.apm.agent.httpserver;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 
-import java.io.IOException;
-import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
 
-public class TestJsonSpec {
+public abstract class JdkHttpServerInstrumentation extends ElasticApmInstrumentation {
 
-    public static JsonNode getJson(String jsonFile) {
-        return getJson(TestJsonSpec.class, "json-specs/" + jsonFile);
-    }
-
-    public static JsonNode getJson(Class<?> type, String path) {
-        URL jsonSpec = type.getClassLoader().getResource(path);
-        try {
-            return new ObjectMapper()
-                .enable(JsonParser.Feature.ALLOW_COMMENTS)
-                .readTree(jsonSpec);
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList("jdk-httpserver", "experimental");
     }
 }

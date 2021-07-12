@@ -54,6 +54,10 @@ for exit spans - {pull}1788[#1788]
 * Propagate trace context headers in HTTP calls occurring from within traced exit points, for example - when using
 Elasticsearch's REST client - {pull}1883[#1883]
 * Added support for naming sparkjava (not Apache Spark) transactions {pull}1894[#1894]
+* Added the ability to manually create exit spans, which will result with the auto creation of service nodes in the
+service map and downstream service in the dependencies table - {pull}1898[#1898]
+* Basic support for com.sun.net.httpserver.HttpServer - {pull}1854[#1854]
+* Update to async-profiler 1.8.6 {pull}1907[#1907]
 
 [float]
 ===== Bug fixes
