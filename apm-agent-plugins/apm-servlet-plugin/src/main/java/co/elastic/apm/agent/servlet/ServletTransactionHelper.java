@@ -24,7 +24,6 @@ import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -45,9 +44,9 @@ import static co.elastic.apm.agent.servlet.ServletGlobalState.nameInitialized;
 
 public class ServletTransactionHelper {
 
-    public static final String TRANSACTION_ATTRIBUTE = ServletApiAdvice.class.getName() + ".transaction";
+    public static final String TRANSACTION_ATTRIBUTE = ServletTransactionHelper.class.getName() + ".transaction";
 
-    public static final String ASYNC_ATTRIBUTE = ServletApiAdvice.class.getName() + ".async";
+    public static final String ASYNC_ATTRIBUTE = ServletTransactionHelper.class.getName() + ".async";
 
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
     private static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcher.valueOf("*.jsp");

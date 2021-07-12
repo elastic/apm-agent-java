@@ -31,9 +31,15 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 /**
- * Instruments {@link javax.servlet.Filter}s to create transactions.
+ * Instruments servlets to create transactions.
+ * <p>
+ * If the transaction has already been recorded with the help of {@link CommonFilterChainInstrumentation},
+ * it does not record the transaction again.
+ * But if there is no filter registered for a servlet,
+ * this makes sure to record a transaction in that case.
+ * </p>
  */
-public class FilterInstrumentation extends AbstractServletInstrumentation {
+public abstract class CommonFilterInstrumentation extends AbstractServletInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -42,18 +48,20 @@ public class FilterInstrumentation extends AbstractServletInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface()).and(hasSuperType(named("javax.servlet.Filter")));
+        return not(isInterface())
+            .and(hasSuperType(named(getFilterClassName())));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        String[] classNames = getServletMethodArgumentNames();
         return named("doFilter")
-            .and(takesArgument(0, named("javax.servlet.ServletRequest")))
-            .and(takesArgument(1, named("javax.servlet.ServletResponse")));
+            .and(takesArgument(0, named(classNames[0])))
+            .and(takesArgument(1, named(classNames[1])));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return "co.elastic.apm.agent.servlet.ServletApiAdvice";
-    }
+    public abstract String getFilterClassName();
+
+    public abstract String[] getServletMethodArgumentNames();
+
 }

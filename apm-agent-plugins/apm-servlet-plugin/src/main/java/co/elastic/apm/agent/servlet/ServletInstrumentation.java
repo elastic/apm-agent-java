@@ -37,20 +37,17 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 /**
  * Instruments servlets to create transactions.
  * <p>
- * If the transaction has already been recorded with the help of {@link FilterChainInstrumentation},
+ * If the transaction has already been recorded with the help of {@link CommonFilterChainInstrumentation},
  * it does not record the transaction again.
  * But if there is no filter registered for a servlet,
  * this makes sure to record a transaction in that case.
  * </p>
  */
-public class ServletInstrumentation extends AbstractServletInstrumentation {
-
-    static final String SERVLET_API = "servlet-api";
-    static final String SERVLET_API_DISPATCH = "servlet-api-dispatch";
+public abstract class CommonServletInstrumentation extends AbstractServletInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(SERVLET_API, SERVLET_API_DISPATCH);
+        return Arrays.asList(Constants.SERVLET_API, Constants.SERVLET_API_DISPATCH);
     }
 
     @Override
@@ -61,19 +58,19 @@ public class ServletInstrumentation extends AbstractServletInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(hasSuperType(named("javax.servlet.Servlet")));
+            .and(hasSuperType(named(getServletClassName())));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        String[] classNames = getServletMethodArgumentNames();
         return named("service")
-            .and(takesArgument(0, named("javax.servlet.ServletRequest")))
-            .and(takesArgument(1, named("javax.servlet.ServletResponse")));
+            .and(takesArgument(0, named(classNames[0])))
+            .and(takesArgument(1, named(classNames[1])));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return "co.elastic.apm.agent.servlet.ServletApiAdvice";
-    }
+    public abstract String getServletClassName();
+
+    public abstract String[] getServletMethodArgumentNames();
 
 }

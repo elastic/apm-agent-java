@@ -23,7 +23,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.servlet.ServletInstrumentation;
+import co.elastic.apm.agent.servlet.JavaxServletInstrumentation;
 import co.elastic.apm.agent.springwebmvc.ExceptionHandlerInstrumentation;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.AfterClass;
@@ -69,7 +69,7 @@ public abstract class AbstractExceptionHandlerInstrumentationTest {
         tracer = mockInstrumentationSetup.getTracer();
         config = mockInstrumentationSetup.getConfig();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
-            Arrays.asList(new ServletInstrumentation(), new ExceptionHandlerInstrumentation()));
+            Arrays.asList(new JavaxServletInstrumentation(), new ExceptionHandlerInstrumentation()));
     }
 
     @AfterClass
