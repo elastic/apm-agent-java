@@ -286,7 +286,7 @@ pipeline {
       options { skipDefaultCheckout() }
       when {
         beforeAgent true
-        expression { return params.test_ci }
+        not { changeRequest() }
       }
       matrix {
         agent { label 'linux && immutable' }
