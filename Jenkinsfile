@@ -320,7 +320,7 @@ pipeline {
           axis {
             // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
             name 'JAVA_VERSION'
-            values 'java11', 'java12', 'adoptopenjdk13', 'adoptopenjdk14', 'adoptopenjdk15', 'adoptopenjdk16'
+            values 'java12', 'openjdk12', 'openjdk13', 'openjdk14', 'openjdk15', 'openjdk16'
           }
         }
         stages {
