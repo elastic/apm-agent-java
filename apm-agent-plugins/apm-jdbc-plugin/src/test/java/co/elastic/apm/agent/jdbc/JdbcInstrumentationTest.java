@@ -23,7 +23,7 @@ import java.sql.DriverManager;
 public class JdbcInstrumentationTest extends AbstractJdbcInstrumentationTest {
 
     public JdbcInstrumentationTest() throws Exception {
-        super(DriverManager.getConnection("jdbc:h2:mem:test"), "h2");
+        super(DriverManager.getConnection("jdbc:h2:mem:test"), "h2", "TEST");
     }
 
 }

@@ -87,7 +87,7 @@ public class JdbcHelper {
             return null;
         }
 
-        Span span = parent.createSpan().activate();
+        Span span = parent.createExitSpan().activate();
         if (sql.isEmpty()) {
             span.withName("empty query");
         } else if (span.isSampled()) {
@@ -121,7 +121,6 @@ public class JdbcHelper {
                 .withPort(connectionMetaData.getPort());
             destination.getService()
                 .withName(vendor)
-                .withResource(vendor)
                 .withType(DB_SPAN_TYPE);
         }
         span.withSubtype(vendor).withAction(DB_SPAN_ACTION);
