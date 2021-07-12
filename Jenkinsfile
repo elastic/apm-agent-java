@@ -28,7 +28,7 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger('(?i).*(?:jenkins\\W+)?run\\W+(?:the\\W+)?tests(?:\\W+please)?.*')
+    issueCommentTrigger('(?i).*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:matrix\\W+)?tests(?:\\W+please)?.*')
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: '-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn', description: 'Additional maven options.')
@@ -38,7 +38,6 @@ pipeline {
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
     booleanParam(name: 'push_docker', defaultValue: false, description: 'Push Docker image during release stage')
   }
-
   stages {
     stage('Initializing'){
       options { skipDefaultCheckout() }
@@ -286,7 +285,11 @@ pipeline {
       options { skipDefaultCheckout() }
       when {
         beforeAgent true
-        not { changeRequest() }
+        anyOf {
+          not { changeRequest() }
+          expression { return params.Run_As_Master_Branch }
+          expression { return env.GITHUB_COMMENT?.contains('matrix tests') }
+        }
       }
       matrix {
         agent { label 'linux && immutable' }
