@@ -93,6 +93,8 @@ public class Transaction extends AbstractSpan<Transaction> {
     @Nullable
     private String frameworkName;
 
+    private boolean frameworkNameSetByUser;
+
     @Nullable
     private String frameworkVersion;
 
@@ -319,7 +321,15 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     public void setFrameworkName(@Nullable String frameworkName) {
+        if (frameworkNameSetByUser) {
+            return;
+        }
         this.frameworkName = frameworkName;
+    }
+
+    public void setUserFrameworkName(@Nullable String frameworkName) {
+        this.frameworkName = frameworkName;
+        this.frameworkNameSetByUser = true;
     }
 
     @Nullable

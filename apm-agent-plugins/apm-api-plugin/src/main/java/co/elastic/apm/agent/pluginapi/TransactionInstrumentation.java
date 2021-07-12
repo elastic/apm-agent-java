@@ -62,7 +62,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         public static void setFrameworkName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
                                    @Advice.Argument(0) String frameworkName) {
             if (transaction instanceof Transaction) {
-                ((Transaction) transaction).setFrameworkName(frameworkName);
+                ((Transaction) transaction).setUserFrameworkName(frameworkName);
             }
         }
     }

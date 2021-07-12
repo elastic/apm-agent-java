@@ -20,6 +20,7 @@ package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.AbstractApiTest;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.api.AbstractSpanImplAccessor;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Outcome;
 import co.elastic.apm.api.Span;
@@ -27,6 +28,8 @@ import co.elastic.apm.api.Transaction;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.security.SecureRandom;
 
@@ -57,11 +60,34 @@ class TransactionInstrumentationTest extends AbstractApiTest {
         assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
     }
 
-    @Test
-    void testSetFrameworkName() {
+    static String[] frameworkNames() {
+        return new String[]{null, "", "bar"};
+    }
+
+    @ParameterizedTest
+    @MethodSource("frameworkNames")
+    void testSetUserFrameworkNameBeforeItIsSetByAPlugin(String frameworkName) {
+        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName(frameworkName);
         transaction.setFrameworkName("foo");
         endTransaction();
         assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("foo");
+    }
+
+    @ParameterizedTest
+    @MethodSource("frameworkNames")
+    void testSetUserFrameworkNameAfterItIsSetByAPlugin(String frameworkName) {
+        transaction.setFrameworkName("foo");
+        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName(frameworkName);
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("foo");
+    }
+
+    @ParameterizedTest
+    @MethodSource("frameworkNames")
+    void testSetUserFrameworkName(String frameworkName) {
+        transaction.setFrameworkName(frameworkName);
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo(frameworkName);
     }
 
     @Test
