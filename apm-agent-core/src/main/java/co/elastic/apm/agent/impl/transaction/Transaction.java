@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,30 +15,32 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
 import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.HdrHistogram.WriterReaderPhaser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
 public class Transaction extends AbstractSpan<Transaction> {
 
-    private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
     private static final ThreadLocal<Labels.Mutable> labelsThreadLocal = new ThreadLocal<Labels.Mutable>() {
         @Override
         protected Labels.Mutable initialValue() {
@@ -91,6 +88,19 @@ public class Transaction extends AbstractSpan<Transaction> {
     @Nullable
     private volatile String type;
 
+    private int maxSpans;
+
+    @Nullable
+    private String frameworkName;
+
+    @Nullable
+    private String frameworkVersion;
+
+    @Override
+    public Transaction getTransaction() {
+        return this;
+    }
+
     public Transaction(ElasticApmTracer tracer) {
         super(tracer);
     }
@@ -112,13 +122,14 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     private void onTransactionStart(boolean startedAsChild, long epochMicros, Sampler sampler) {
+        maxSpans = tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans();
         if (!startedAsChild) {
             traceContext.asRootSpan(sampler);
         }
         if (epochMicros >= 0) {
             setStartTimestamp(epochMicros);
         } else {
-            setStartTimestamp(traceContext.getClock().getEpochMicros());
+            setStartTimestampNow();
         }
         onAfterStart();
     }
@@ -190,11 +201,11 @@ public class Transaction extends AbstractSpan<Transaction> {
         return this;
     }
 
-    public void setUser(String id, String email, String username) {
+    public void setUser(String id, String email, String username, String domain) {
         if (!isSampled()) {
             return;
         }
-        getContext().getUser().withId(id).withEmail(email).withUsername(username);
+        getContext().getUser().withDomain(domain).withId(id).withEmail(email).withUsername(username);
     }
 
     @Override
@@ -205,9 +216,26 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (type == null) {
             type = "custom";
         }
+
+        if (outcomeNotSet()) {
+            // set outcome from HTTP status if not already set
+            Response response = getContext().getResponse();
+            Outcome outcome;
+
+            int httpStatus = response.getStatusCode();
+            if (httpStatus > 0) {
+                outcome = ResultUtil.getOutcomeByHttpServerStatus(httpStatus);
+            } else {
+                outcome = hasCapturedExceptions() ? Outcome.FAILURE : Outcome.SUCCESS;
+            }
+            withOutcome(outcome);
+        }
+
         context.onTransactionEnd();
         incrementTimer("app", null, getSelfDuration());
     }
+
+
 
     @Override
     protected void afterEnd() {
@@ -217,6 +245,10 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     public SpanCount getSpanCount() {
         return spanCount;
+    }
+
+    boolean isSpanLimitReached() {
+        return getSpanCount().isSpanLimitReached(maxSpans);
     }
 
     public KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> getTimerBySpanTypeAndSubtype() {
@@ -229,8 +261,11 @@ public class Transaction extends AbstractSpan<Transaction> {
         context.resetState();
         result = null;
         spanCount.resetState();
-        noop = false;
         type = null;
+        noop = false;
+        maxSpans = 0;
+        frameworkName = null;
+        frameworkVersion = null;
         // don't clear timerBySpanTypeAndSubtype map (see field-level javadoc)
     }
 
@@ -281,6 +316,29 @@ public class Transaction extends AbstractSpan<Transaction> {
     @Override
     protected void recycle() {
         tracer.recycle(this);
+    }
+
+    public void setFrameworkName(@Nullable String frameworkName) {
+        this.frameworkName = frameworkName;
+    }
+
+    @Nullable
+    public String getFrameworkName() {
+        return this.frameworkName;
+    }
+
+    public void setFrameworkVersion(@Nullable String frameworkVersion) {
+        this.frameworkVersion = frameworkVersion;
+    }
+
+    @Nullable
+    public String getFrameworkVersion() {
+        return this.frameworkVersion;
+    }
+
+    @Override
+    protected Transaction thiz() {
+        return this;
     }
 
     void incrementTimer(@Nullable String type, @Nullable String subtype, long duration) {
@@ -350,7 +408,10 @@ public class Transaction extends AbstractSpan<Transaction> {
                             String subtype = subtypes.get(j);
                             final Timer timer = timerBySubtype.get(subtype);
                             if (timer.getCount() > 0) {
-                                labels.spanType(spanType).spanSubType(!subtype.equals("") ? subtype : null);
+                                if (subtype.equals("")) {
+                                    subtype = null;
+                                }
+                                labels.spanType(spanType).spanSubType(subtype);
                                 metricRegistry.updateTimer("span.self_time", labels, timer.getTotalTimeUs(), timer.getCount());
                                 timer.resetState();
                             }

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.kafka;
 
@@ -71,8 +65,8 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return KafkaProducerHeadersInstrumentation.KafkaProducerHeadersAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.kafka.KafkaProducerHeadersInstrumentation$KafkaProducerHeadersAdvice";
     }
 
     @SuppressWarnings("rawtypes")
@@ -83,15 +77,11 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
         @Nullable
         public static Span beforeSend(@Advice.FieldValue("apiVersions") final ApiVersions apiVersions,
                                       @Advice.Argument(0) final ProducerRecord record,
-                                      @Advice.Local("helper") @Nullable KafkaInstrumentationHelper<Callback, ProducerRecord, KafkaProducer> helper,
                                       @Nullable @Advice.Argument(value = 1, readOnly = false) Callback callback) {
-            if (tracer == null) {
-                return null;
-            }
             Span span = null;
 
             //noinspection ConstantConditions
-            helper = kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
+            KafkaInstrumentationHelper<Callback, ProducerRecord, KafkaProducer> helper = kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
 
             if (helper != null) {
                 span = helper.onSendStart(record);
@@ -126,7 +116,6 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
         public static boolean afterSend(@Advice.Enter(readOnly = false) @Nullable Span span,
                                         @Advice.Argument(value = 0, readOnly = false) ProducerRecord record,
                                         @Advice.This final KafkaProducer thiz,
-                                        @Advice.Local("helper") @Nullable KafkaInstrumentationHelper<Callback, ProducerRecord, KafkaProducer> helper,
                                         @Advice.Thrown @Nullable final Throwable throwable) {
 
             if (throwable != null && throwable.getMessage().contains("Magic v1 does not support record headers")) {
@@ -149,6 +138,8 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
                     return true;
                 }
             }
+            //noinspection ConstantConditions
+            KafkaInstrumentationHelper<Callback, ProducerRecord, KafkaProducer> helper = kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
             if (helper != null && span != null) {
                 helper.onSendEnd(span, record, thiz, throwable);
             }

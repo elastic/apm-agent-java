@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,25 +6,24 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
+import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.SoapTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -67,11 +61,17 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class, SoapTestApp.class, CdiApplicationServerTestApp.class);
+        return Arrays.asList(
+            ServletApiTestApp.class,
+            JsfApplicationServerTestApp.class,
+            SoapTestApp.class,
+            CdiApplicationServerTestApp.class,
+            ExternalPluginTestApp.class
+        );
     }
 
     @Override
-    public @NotNull List<String> getPathsToTestErrors() {
+    public List<String> getPathsToTestErrors() {
         // WebLogic can't handle the case when a exception is thrown in the runnable submitted to AsyncContext#start(Runnable)
         // it requires AsyncContext#complete() to be called, otherwise it throws a timeout
         return List.of("/index.jsp", "/servlet", "/async-dispatch-servlet");
@@ -85,7 +85,7 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
     }
 
     @Override
-    protected boolean runtimeAttach() {
+    protected boolean runtimeAttachSupported() {
         return true;
     }
 }

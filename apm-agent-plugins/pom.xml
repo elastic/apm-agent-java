@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.13.1-SNAPSHOT</version>
+        <version>1.24.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-plugins</artifactId>
@@ -24,11 +24,15 @@
         <module>apm-opentracing-plugin</module>
         <module>apm-servlet-plugin</module>
         <module>apm-spring-webmvc-plugin</module>
+        <module>apm-spring-webflux</module>
+        <module>apm-reactor-plugin</module>
         <module>apm-api-plugin</module>
         <module>apm-apache-httpclient-plugin</module>
-        <module>apm-spring-resttemplate-plugin</module>
+        <module>apm-spring-resttemplate</module>
         <module>apm-httpclient-core</module>
         <module>apm-log-correlation-plugin</module>
+        <module>apm-log-shader-plugin</module>
+        <module>apm-log-shipper-plugin</module>
         <module>apm-es-restclient-plugin</module>
         <module>apm-okhttp-plugin</module>
         <module>apm-java-concurrent-plugin</module>
@@ -40,12 +44,26 @@
         <module>apm-jms-plugin</module>
         <module>apm-hibernate-search-plugin</module>
         <module>apm-redis-plugin</module>
+        <module>apm-scala-concurrent-plugin</module>
         <module>apm-error-logging-plugin</module>
         <module>apm-jmx-plugin</module>
-        <module>apm-mule4-plugin</module>
         <module>apm-mongoclient-plugin</module>
         <module>apm-process-plugin</module>
         <module>apm-kafka-plugin</module>
+        <module>apm-profiling-plugin</module>
+        <module>apm-grpc</module>
+        <module>apm-grails-plugin</module>
+        <module>apm-dubbo-plugin</module>
+        <module>apm-bootdelegation-plugin</module>
+        <module>apm-micrometer-plugin</module>
+        <module>apm-jdk-httpclient-plugin</module>
+        <module>apm-jdk-httpserver-plugin</module>
+        <module>apm-rabbitmq</module>
+        <module>apm-okhttp-test</module>
+        <module>apm-cassandra</module>
+        <module>apm-struts-plugin</module>
+        <module>apm-vertx</module>
+        <module>apm-sparkjava-plugin</module>
     </modules>
 
     <dependencies>
@@ -57,9 +75,20 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>
-            <type>test-jar</type>
             <version>${project.version}</version>
+            <type>test-jar</type>
             <scope>test</scope>
+            <exclusions>
+                <!-- exclude jetty server, otherwise jetty is available in every module test classpath -->
+                <exclusion>
+                    <groupId>org.eclipse.jetty</groupId>
+                    <artifactId>jetty-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.eclipse.jetty</groupId>
+                    <artifactId>jetty-util</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 

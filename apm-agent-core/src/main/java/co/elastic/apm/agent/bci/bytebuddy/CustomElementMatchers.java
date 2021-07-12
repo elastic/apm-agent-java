@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,21 +6,21 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
 import co.elastic.apm.agent.matcher.AnnotationMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.Version;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.NamedElement;
@@ -45,6 +40,7 @@ import java.net.URLConnection;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.Collection;
+import java.util.List;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
@@ -83,7 +79,7 @@ public class CustomElementMatchers {
         return new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
 
             private final boolean loadableByBootstrapClassLoader = canLoadClass(null, className);
-            private WeakConcurrentMap<ClassLoader, Boolean> cache = new WeakConcurrentMap.WithInlinedExpunction<>();
+            private final WeakConcurrentMap<ClassLoader, Boolean> cache = WeakMapSupplier.createMap();
 
             @Override
             public boolean matches(@Nullable ClassLoader target) {
@@ -102,7 +98,6 @@ public class CustomElementMatchers {
     }
 
     private static boolean canLoadClass(@Nullable ClassLoader target, String className) {
-        boolean result;
         try {
             final URL resource;
             final String classResource = className.replace('.', '/') + ".class";
@@ -111,28 +106,28 @@ public class CustomElementMatchers {
             } else {
                 resource = target.getResource(classResource);
             }
-            result = resource != null;
-            if (logger.isDebugEnabled()) {
-                String classLoaderName = (target == null) ? "Bootstrap ClassLoader" : target.getClass().getName();
-                String codeSourceString = "";
-                if (resource != null) {
-                    codeSourceString = " from " + resource;
-                }
-                logger.debug("{} was loaded by {}{}", className, classLoaderName, codeSourceString);
-            }
+            return resource != null;
         } catch (Exception ignore) {
-            result = false;
+            return false;
         }
-        return result;
     }
 
     /**
      * A matcher that checks whether the implementation version read from the MANIFEST.MF related for a given {@link ProtectionDomain} is
      * lower than or equals to the limit version. Assumes a SemVer version format.
+     *
      * @param version the version to check against
      * @return an LTE SemVer matcher
      */
     public static ElementMatcher.Junction<ProtectionDomain> implementationVersionLte(final String version) {
+        return implementationVersion(version, Matcher.LTE);
+    }
+
+    public static ElementMatcher.Junction<ProtectionDomain> implementationVersionGte(final String version) {
+        return implementationVersion(version, Matcher.GTE);
+    }
+
+    private static ElementMatcher.Junction<ProtectionDomain> implementationVersion(final String version, final Matcher matcher) {
         return new ElementMatcher.Junction.AbstractBase<ProtectionDomain>() {
             /**
              * Returns true if the implementation version read from the manifest file referenced by the given
@@ -149,7 +144,7 @@ public class CustomElementMatchers {
                     Version pdVersion = readImplementationVersionFromManifest(protectionDomain);
                     Version limitVersion = Version.of(version);
                     if (pdVersion != null) {
-                        return pdVersion.compareTo(limitVersion) <= 0;
+                        return matcher.match(pdVersion, limitVersion);
                     }
                 } catch (Exception e) {
                     logger.info("Cannot read implementation version based on ProtectionDomain. This should not affect " +
@@ -159,6 +154,23 @@ public class CustomElementMatchers {
                 return true;
             }
         };
+    }
+
+    private enum Matcher {
+        LTE {
+            @Override
+            <T extends Comparable<T>> boolean match(T c1, T c2) {
+                return c1.compareTo(c2) <= 0;
+            }
+        },
+        GTE {
+            @Override
+            <T extends Comparable<T>> boolean match(T c1, T c2) {
+                return c1.compareTo(c2) >= 0;
+
+            }
+        };
+        abstract <T extends Comparable<T>> boolean match(T c1, T c2);
     }
 
     @Nullable
@@ -228,11 +240,29 @@ public class CustomElementMatchers {
         };
     }
 
+    public static ElementMatcher.Junction<NamedElement> anyMatch(final List<WildcardMatcher> matchers) {
+        return new ElementMatcher.Junction.AbstractBase<NamedElement>() {
+            @Override
+            public boolean matches(NamedElement target) {
+                return WildcardMatcher.isAnyMatch(matchers, target.getActualName());
+            }
+
+            @Override
+            public String toString() {
+                return "matches(" + matchers + ")";
+            }
+        };
+    }
+
     public static ElementMatcher.Junction<AnnotationSource> annotationMatches(final String annotationWildcard) {
         return AnnotationMatcher.annotationMatcher(annotationWildcard);
     }
 
     public static <T extends NamedElement> ElementMatcher.Junction<T> isProxy() {
-        return nameContains("$Proxy").or(nameContains("$$"));
+        return nameContains("$Proxy")
+            .or(nameContains("$$"))
+            .or(nameContains("$JaxbAccessor"))
+            .or(nameContains("CGLIB"))
+            .or(nameContains("EnhancerBy"));
     }
 }

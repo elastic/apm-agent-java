@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,13 +15,16 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.util.ByteUtils;
 import co.elastic.apm.agent.util.HexUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
@@ -35,9 +33,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Callable;
+import java.util.Objects;
 
 /**
  * This is an implementation of the
@@ -73,12 +69,12 @@ import java.util.concurrent.Callable;
  *                      2, 1]
  * </pre>
  */
-@SuppressWarnings({"rawtypes"})
-public class TraceContext extends TraceContextHolder {
+public class TraceContext implements Recyclable {
 
     public static final String ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
     public static final String W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME = "traceparent";
     public static final String TRACESTATE_HEADER_NAME = "tracestate";
+    public static final int SERIALIZED_LENGTH = 42;
     private static final int TEXT_HEADER_EXPECTED_LENGTH = 55;
     private static final int TEXT_HEADER_TRACE_ID_OFFSET = 3;
     private static final int TEXT_HEADER_PARENT_ID_OFFSET = 36;
@@ -96,15 +92,24 @@ public class TraceContext extends TraceContextHolder {
     // one byte for the flags field id (0x02), followed by two bytes of flags contents
     private static final int BINARY_FORMAT_FLAGS_OFFSET = 27;
     private static final byte BINARY_FORMAT_FLAGS_FIELD_ID = (byte) 0b0000_0010;
-
     private static final Logger logger = LoggerFactory.getLogger(TraceContext.class);
+
+    private static final Double SAMPLE_RATE_ZERO = 0d;
+
     /**
      * Helps to reduce allocations by caching {@link WeakReference}s to {@link ClassLoader}s
      */
-    private static final WeakConcurrentMap<ClassLoader, WeakReference<ClassLoader>> classLoaderWeakReferenceCache = new WeakConcurrentMap.WithInlinedExpunction<>();
-    private static final ChildContextCreator<TraceContextHolder<?>> FROM_PARENT = new ChildContextCreator<TraceContextHolder<?>>() {
+    private static final WeakConcurrentMap<ClassLoader, WeakReference<ClassLoader>> classLoaderWeakReferenceCache = WeakMapSupplier.createMap();
+    private static final ChildContextCreator<TraceContext> FROM_PARENT_CONTEXT = new ChildContextCreator<TraceContext>() {
         @Override
-        public boolean asChildOf(TraceContext child, TraceContextHolder<?> parent) {
+        public boolean asChildOf(TraceContext child, TraceContext parent) {
+            child.asChildOf(parent);
+            return true;
+        }
+    };
+    private static final ChildContextCreator<AbstractSpan<?>> FROM_PARENT = new ChildContextCreator<AbstractSpan<?>>() {
+        @Override
+        public boolean asChildOf(TraceContext child, AbstractSpan<?> parent) {
             child.asChildOf(parent.getTraceContext());
             return true;
         }
@@ -113,7 +118,7 @@ public class TraceContext extends TraceContextHolder {
         @Override
         public void accept(@Nullable String tracestateHeaderValue, TraceContext state) {
             if (tracestateHeaderValue != null) {
-                state.addTracestate(tracestateHeaderValue);
+                state.traceState.addTextHeader(tracestateHeaderValue);
             }
         }
     };
@@ -126,14 +131,14 @@ public class TraceContext extends TraceContextHolder {
                 }
 
                 boolean isValid = false;
-                String traceparent = traceContextHeaderGetter.getFirstHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+                String traceparent = traceContextHeaderGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
                 if (traceparent != null) {
                     isValid = child.asChildOf(traceparent);
                 }
 
                 if (!isValid) {
                     // Look for the legacy Elastic traceparent header (in case this comes from an older agent)
-                    traceparent = traceContextHeaderGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+                    traceparent = traceContextHeaderGetter.getFirstHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
                     if (traceparent != null) {
                         isValid = child.asChildOf(traceparent);
                     }
@@ -161,12 +166,12 @@ public class TraceContext extends TraceContextHolder {
                 return false;
             }
         };
-    private static final ChildContextCreator<ElasticApmTracer> FROM_ACTIVE = new ChildContextCreator<ElasticApmTracer>() {
+    private static final ChildContextCreator<Tracer> FROM_ACTIVE = new ChildContextCreator<Tracer>() {
         @Override
-        public boolean asChildOf(TraceContext child, ElasticApmTracer tracer) {
-            final TraceContextHolder active = tracer.getActive();
+        public boolean asChildOf(TraceContext child, Tracer tracer) {
+            final AbstractSpan<?> active = tracer.getActive();
             if (active != null) {
-                return fromParent().asChildOf(child, active.getTraceContext());
+                return fromParent().asChildOf(child, active);
 
             }
             return false;
@@ -178,6 +183,7 @@ public class TraceContext extends TraceContextHolder {
             return false;
         }
     };
+
 
     public static <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter) {
         return headerGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier) != null;
@@ -210,16 +216,17 @@ public class TraceContext extends TraceContextHolder {
     // ???????0 -> not recorded
     private static final byte FLAG_RECORDED = 0b0000_0001;
     private final Id traceId = Id.new128BitId();
+    private final ElasticApmTracer tracer;
     private final Id id;
     private final Id parentId = Id.new64BitId();
     private final Id transactionId = Id.new64BitId();
     private final StringBuilder outgoingTextHeader = new StringBuilder(TEXT_HEADER_EXPECTED_LENGTH);
     private byte flags;
-    private boolean discard;
+    private boolean discardable = true;
     // weakly referencing to avoid CL leaks in case of leaked spans
     @Nullable
     private WeakReference<ClassLoader> applicationClassLoader;
-    private final List<String> tracestate = new ArrayList<>(1);
+    private final TraceState traceState;
 
     final CoreConfiguration coreConfiguration;
 
@@ -228,13 +235,16 @@ public class TraceContext extends TraceContextHolder {
      *
      * @see EpochTickClock
      */
-    private EpochTickClock clock = new EpochTickClock();
+    private final EpochTickClock clock = new EpochTickClock();
+
     @Nullable
     private String serviceName;
 
     private TraceContext(ElasticApmTracer tracer, Id id) {
-        super(tracer);
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+        traceState = new TraceState();
+        traceState.setSizeLimit(coreConfiguration.getTracestateSizeLimit());
+        this.tracer = tracer;
         this.id = id;
     }
 
@@ -270,11 +280,15 @@ public class TraceContext extends TraceContextHolder {
         return (ChildContextCreatorTwoArg<C, BinaryHeaderGetter<C>>) FROM_TRACE_CONTEXT_BINARY_HEADERS;
     }
 
-    public static ChildContextCreator<ElasticApmTracer> fromActive() {
+    public static ChildContextCreator<Tracer> fromActive() {
         return FROM_ACTIVE;
     }
 
-    public static ChildContextCreator<TraceContextHolder<?>> fromParent() {
+    public static ChildContextCreator<TraceContext> fromParentContext() {
+        return FROM_PARENT_CONTEXT;
+    }
+
+    public static ChildContextCreator<AbstractSpan<?>> fromParent() {
         return FROM_PARENT;
     }
 
@@ -282,6 +296,12 @@ public class TraceContext extends TraceContextHolder {
         return AS_ROOT;
     }
 
+    /**
+     * Tries to set trace context identifiers (Id, parent, ...) from traceparent text header value
+     *
+     * @param traceParentHeader traceparent text header value
+     * @return {@literal true} if header value is valid, {@literal false} otherwise
+     */
     boolean asChildOf(String traceParentHeader) {
         traceParentHeader = traceParentHeader.trim();
         try {
@@ -333,6 +353,12 @@ public class TraceContext extends TraceContextHolder {
         }
     }
 
+    /**
+     * Tries to set trace context identifiers (Id, parent, ...) from traceparent binary header value
+     *
+     * @param traceParentHeader traceparent binary header value
+     * @return {@literal true} if header value is valid, {@literal false} otherwise
+     */
     boolean asChildOf(byte[] traceParentHeader) {
         if (logger.isTraceEnabled()) {
             logger.trace("Binary header content UTF-8-decoded: {}", new String(traceParentHeader, StandardCharsets.UTF_8));
@@ -394,7 +420,8 @@ public class TraceContext extends TraceContextHolder {
         id.setToRandomValue();
         transactionId.copyFrom(id);
         if (sampler.isSampled(traceId)) {
-            this.flags = FLAG_RECORDED;
+            flags = FLAG_RECORDED;
+            traceState.set(sampler.getSampleRate(), sampler.getTraceStateHeader());
         }
         clock.init();
         onMutation();
@@ -409,24 +436,24 @@ public class TraceContext extends TraceContextHolder {
         clock.init(parent.clock);
         serviceName = parent.serviceName;
         applicationClassLoader = parent.applicationClassLoader;
-        tracestate.addAll(parent.tracestate);
+        traceState.copyFrom(parent.traceState);
         onMutation();
     }
 
     @Override
     public void resetState() {
-        super.resetState();
         traceId.resetState();
         id.resetState();
         parentId.resetState();
         transactionId.resetState();
         outgoingTextHeader.setLength(0);
         flags = 0;
-        discard = false;
+        discardable = true;
         clock.resetState();
         serviceName = null;
         applicationClassLoader = null;
-        tracestate.clear();
+        traceState.resetState();
+        traceState.setSizeLimit(coreConfiguration.getTracestateSizeLimit());
     }
 
     /**
@@ -469,6 +496,19 @@ public class TraceContext extends TraceContextHolder {
     }
 
     /**
+     * Returns the sample rate used for this transaction/span between 0.0 and 1.0 or {@link Double#NaN} if sample rate is unknown
+     *
+     * @return sample rate
+     */
+    public double getSampleRate() {
+        if (isRecorded()) {
+            return traceState.getSampleRate();
+        } else {
+            return SAMPLE_RATE_ZERO;
+        }
+    }
+
+    /**
      * When {@code true}, this span should be recorded aka. sampled.
      *
      * @return {@code true} when this span should be recorded, {@code false} otherwise
@@ -485,12 +525,12 @@ public class TraceContext extends TraceContextHolder {
         }
     }
 
-    public void setDiscard(boolean discard) {
-        this.discard = discard;
+    void setNonDiscardable() {
+        this.discardable = false;
     }
 
-    public boolean isDiscard() {
-        return discard;
+    boolean isDiscardable() {
+        return discardable;
     }
 
     /**
@@ -510,17 +550,19 @@ public class TraceContext extends TraceContextHolder {
      * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
      * @param <C>          the header carrier type, for example - an HTTP request
      */
-    public <C> void setOutgoingTraceContextHeaders(C carrier, TextHeaderSetter<C> headerSetter) {
-        headerSetter.setHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
+    <C> void propagateTraceContext(C carrier, TextHeaderSetter<C> headerSetter) {
+        String outgoingTraceParent = getOutgoingTraceParentTextHeader().toString();
+
+        headerSetter.setHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, outgoingTraceParent, carrier);
         if (coreConfiguration.isElasticTraceparentHeaderEnabled()) {
-            headerSetter.setHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
+            headerSetter.setHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, outgoingTraceParent, carrier);
         }
-        if (tracestate.size() == 1) {
-            headerSetter.setHeader(TRACESTATE_HEADER_NAME, tracestate.get(0), carrier);
-        } else if (!tracestate.isEmpty()) {
-            String tracestateHeaderValue = TextTracestateAppender.instance().join(tracestate, coreConfiguration.getTracestateSizeLimit());
-            headerSetter.setHeader(TRACESTATE_HEADER_NAME, tracestateHeaderValue, carrier);
+
+        String outgoingTraceState = traceState.toTextHeader();
+        if (outgoingTraceState != null) {
+            headerSetter.setHeader(TRACESTATE_HEADER_NAME, outgoingTraceState, carrier);
         }
+        logger.trace("Trace context headers added to {}", carrier);
     }
 
     /**
@@ -531,7 +573,7 @@ public class TraceContext extends TraceContextHolder {
      * @param <C>          the header carrier type, for example - a Kafka record
      * @return true if Trace Context headers were set; false otherwise
      */
-    public <C> boolean setOutgoingTraceContextHeaders(C carrier, BinaryHeaderSetter<C> headerSetter) {
+    <C> boolean propagateTraceContext(C carrier, BinaryHeaderSetter<C> headerSetter) {
         byte[] buffer = headerSetter.getFixedLengthByteArray(TRACE_PARENT_BINARY_HEADER_NAME, BINARY_FORMAT_EXPECTED_LENGTH);
         if (buffer == null || buffer.length != BINARY_FORMAT_EXPECTED_LENGTH) {
             logger.warn("Header setter {} failed to provide a byte buffer with the proper length. Allocating a buffer for each header.",
@@ -546,7 +588,7 @@ public class TraceContext extends TraceContextHolder {
     }
 
     /**
-     * Returns the value of the {@code traceparent} header for downstream services.
+     * @return  the value of the {@code traceparent} header for downstream services.
      */
     StringBuilder getOutgoingTraceParentTextHeader() {
         if (outgoingTextHeader.length() == 0) {
@@ -592,9 +634,8 @@ public class TraceContext extends TraceContextHolder {
         return true;
     }
 
-    @Override
-    public boolean isChildOf(TraceContextHolder parent) {
-        return parent.getTraceContext().getTraceId().equals(traceId) && parent.getTraceContext().getId().equals(parentId);
+    public boolean isChildOf(TraceContext other) {
+        return other.getTraceId().equals(traceId) && other.getId().equals(parentId);
     }
 
     public boolean hasContent() {
@@ -607,11 +648,11 @@ public class TraceContext extends TraceContextHolder {
         parentId.copyFrom(other.parentId);
         transactionId.copyFrom(other.transactionId);
         flags = other.flags;
-        discard = other.discard;
+        discardable = other.discardable;
         clock.init(other.clock);
         serviceName = other.serviceName;
         applicationClassLoader = other.applicationClassLoader;
-        tracestate.addAll(other.tracestate);
+        traceState.copyFrom(other.traceState);
         onMutation();
     }
 
@@ -642,19 +683,32 @@ public class TraceContext extends TraceContextHolder {
         this.serviceName = serviceName;
     }
 
-    @Override
-    public TraceContext getTraceContext() {
-        return this;
-    }
-
-    @Override
     public Span createSpan() {
-        return tracer.startSpan(fromParent(), this);
+        return tracer.startSpan(fromParentContext(), this);
+    }
+
+    public Span createSpan(long epochMicros) {
+        return tracer.startSpan(fromParentContext(), this, epochMicros);
     }
 
     @Override
-    public Span createSpan(long epochMicros) {
-        return tracer.startSpan(fromParent(), this, epochMicros);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TraceContext that = (TraceContext) o;
+        return id.equals(that.id) &&
+            traceId.equals(that.traceId);
+    }
+
+    public boolean idEquals(@Nullable TraceContext o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        return id.equals(o.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(traceId, id, parentId, flags);
     }
 
     void setApplicationClassLoader(@Nullable ClassLoader classLoader) {
@@ -677,8 +731,65 @@ public class TraceContext extends TraceContextHolder {
         }
     }
 
-    public void addTracestate(String headerValue) {
-        tracestate.add(headerValue);
+    public TraceState getTraceState() {
+        return traceState;
+    }
+
+    public byte[] serialize() {
+        byte[] result = new byte[SERIALIZED_LENGTH];
+        serialize(result);
+        return result;
+    }
+
+    public void serialize(byte[] buffer) {
+        int offset = 0;
+        offset = traceId.toBytes(buffer, offset);
+        offset = id.toBytes(buffer, offset);
+        offset = transactionId.toBytes(buffer, offset);
+        buffer[offset++] = flags;
+        buffer[offset++] = (byte) (discardable ? 1 : 0);
+        ByteUtils.putLong(buffer, offset, clock.getOffset());
+    }
+
+    private void asChildOf(byte[] buffer, @Nullable String serviceName) {
+        int offset = 0;
+        offset += traceId.fromBytes(buffer, offset);
+        offset += parentId.fromBytes(buffer, offset);
+        offset += transactionId.fromBytes(buffer, offset);
+        id.setToRandomValue();
+        flags = buffer[offset++];
+        discardable = buffer[offset++] == (byte) 1;
+        clock.init(ByteUtils.getLong(buffer, offset));
+        this.serviceName = serviceName;
+        onMutation();
+    }
+
+    public void deserialize(byte[] buffer, @Nullable String serviceName) {
+        int offset = 0;
+        offset += traceId.fromBytes(buffer, offset);
+        offset += id.fromBytes(buffer, offset);
+        offset += transactionId.fromBytes(buffer, offset);
+        flags = buffer[offset++];
+        discardable = buffer[offset++] == (byte) 1;
+        clock.init(ByteUtils.getLong(buffer, offset));
+        this.serviceName = serviceName;
+        onMutation();
+    }
+
+    public static void deserializeSpanId(Id id, byte[] buffer) {
+        id.fromBytes(buffer, 16);
+    }
+
+    public static long getSpanId(byte[] serializedTraceContext) {
+        return ByteUtils.getLong(serializedTraceContext, 16);
+    }
+
+    public boolean traceIdAndIdEquals(byte[] serialized) {
+        return id.dataEquals(serialized, traceId.getLength()) && traceId.dataEquals(serialized, 0);
+    }
+
+    public byte getFlags() {
+        return flags;
     }
 
     public interface ChildContextCreator<T> {
@@ -701,32 +812,5 @@ public class TraceContext extends TraceContextHolder {
         }
         copy.copyFrom(this);
         return copy;
-    }
-
-    /**
-     * Wraps the provided {@link Runnable} and makes this {@link TraceContext} active in the {@link Runnable#run()} method.
-     *
-     * <p>
-     * Note: does not activate the {@link AbstractSpan} but only the {@link TraceContext}.
-     * This is useful if this span is closed in a different thread than the provided {@link Runnable} is executed in.
-     * </p>
-     */
-    @Override
-    public Runnable withActive(Runnable runnable) {
-        return tracer.wrapRunnable(runnable, this);
-    }
-
-    /**
-     * Wraps the provided {@link Callable} and makes this {@link TraceContext} active in the {@link Callable#call()} method.
-     *
-     * <p>
-     * Note: does not activate the {@link AbstractSpan} but only the {@link TraceContext}.
-     * This is useful if this span is closed in a different thread than the provided {@link java.util.concurrent.Callable} is executed in.
-     * </p>
-     */
-    @Override
-    public Callable withActive(Callable callable) {
-        //noinspection unchecked
-        return tracer.wrapCallable(callable, this);
     }
 }

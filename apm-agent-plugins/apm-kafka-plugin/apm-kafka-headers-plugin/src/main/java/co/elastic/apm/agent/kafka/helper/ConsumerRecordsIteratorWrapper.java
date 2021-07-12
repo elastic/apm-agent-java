@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.kafka.helper;
 
@@ -43,6 +37,7 @@ import java.util.Iterator;
 class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
 
     public static final Logger logger = LoggerFactory.getLogger(ConsumerRecordsIteratorWrapper.class);
+    public static final String FRAMEWORK_NAME = "Kafka";
 
     private final Iterator<ConsumerRecord> delegate;
     private final ElasticApmTracer tracer;
@@ -81,26 +76,30 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
             String topic = record.topic();
             if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {
                 Transaction transaction = tracer.startChildTransaction(record, KafkaRecordHeaderAccessor.instance(), ConsumerRecordsIteratorWrapper.class.getClassLoader());
-                transaction.withType("messaging").withName("Kafka record from " + topic).activate();
-                Message message = transaction.getContext().getMessage();
-                message.withQueue(topic);
-                if (record.timestampType() == TimestampType.CREATE_TIME) {
-                    message.withAge(System.currentTimeMillis() - record.timestamp());
-                }
+                if (transaction != null) {
+                    transaction.withType("messaging").withName("Kafka record from " + topic).activate();
+                    transaction.setFrameworkName(FRAMEWORK_NAME);
 
-                if (transaction.isSampled() && coreConfiguration.isCaptureHeaders()) {
-                    for (Header header : record.headers()) {
-                        String key = header.key();
-                        if (!TraceContext.TRACE_PARENT_BINARY_HEADER_NAME.equals(key) &&
-                            WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
-                            message.addHeader(key, header.value());
+                    Message message = transaction.getContext().getMessage();
+                    message.withQueue(topic);
+                    if (record.timestampType() == TimestampType.CREATE_TIME) {
+                        message.withAge(System.currentTimeMillis() - record.timestamp());
+                    }
+
+                    if (transaction.isSampled() && coreConfiguration.isCaptureHeaders()) {
+                        for (Header header : record.headers()) {
+                            String key = header.key();
+                            if (!TraceContext.TRACE_PARENT_BINARY_HEADER_NAME.equals(key) &&
+                                WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
+                                message.addHeader(key, header.value());
+                            }
                         }
                     }
-                }
 
-                if (transaction.isSampled() && coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF) {
-                    message.appendToBody("key=").appendToBody(String.valueOf(record.key())).appendToBody("; ")
-                        .appendToBody("value=").appendToBody(String.valueOf(record.value()));
+                    if (transaction.isSampled() && coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF) {
+                        message.appendToBody("key=").appendToBody(String.valueOf(record.key())).appendToBody("; ")
+                            .appendToBody("value=").appendToBody(String.valueOf(record.value()));
+                    }
                 }
             }
         } catch (Exception e) {

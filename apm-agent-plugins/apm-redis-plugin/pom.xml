@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.13.1-SNAPSHOT</version>
+        <version>1.24.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-redis-plugin</artifactId>
@@ -23,6 +23,7 @@
         <module>apm-lettuce-3-tests</module>
         <module>apm-lettuce-plugin</module>
         <module>apm-redis-common</module>
+        <module>apm-redisson-plugin</module>
     </modules>
 
     <dependencies>
@@ -30,6 +31,11 @@
             <groupId>com.github.kstyrc</groupId>
             <artifactId>embedded-redis</artifactId>
             <version>0.6</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.ivy</groupId>
+            <artifactId>ivy</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

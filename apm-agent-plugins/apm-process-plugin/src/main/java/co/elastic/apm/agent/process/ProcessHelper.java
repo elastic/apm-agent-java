@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,33 +6,35 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
-import co.elastic.apm.agent.util.DataStructures;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nonnull;
 import java.io.File;
 import java.util.List;
 
-@VisibleForAdvice
-public class ProcessHelper {
+/**
+ * Having direct references to {@link Process} class is safe here because those are loaded in the bootstrap classloader.
+ * Thus there is no need to separate helper interface from implementation or use {@link co.elastic.apm.agent.bci.HelperClassManager}.
+ */
+class ProcessHelper {
 
-    private static final ProcessHelper INSTANCE = new ProcessHelper(new WeakConcurrentMap.WithInlinedExpunction<Process, Span>());
+    private static final ProcessHelper INSTANCE = new ProcessHelper(WeakMapSupplier.<Process, Span>createMap());
 
     private final WeakConcurrentMap<Process, Span> inFlightSpans;
 
@@ -45,13 +42,11 @@ public class ProcessHelper {
         this.inFlightSpans = inFlightSpans;
     }
 
-    @VisibleForAdvice
-    public static void startProcess(TraceContextHolder<?> parentContext, Process process, List<String> command) {
+    static void startProcess(AbstractSpan<?> parentContext, Process process, List<String> command) {
         INSTANCE.doStartProcess(parentContext, process, command.get(0));
     }
 
-    @VisibleForAdvice
-    public static void endProcess(@Nonnull Process process, boolean checkTerminatedProcess) {
+    static void endProcess(@Nonnull Process process, boolean checkTerminatedProcess) {
         INSTANCE.doEndProcess(process, checkTerminatedProcess);
     }
 
@@ -62,7 +57,7 @@ public class ProcessHelper {
      * @param process       started process
      * @param processName   process name
      */
-    void doStartProcess(@Nonnull TraceContextHolder<?> parentContext, @Nonnull Process process, @Nonnull String processName) {
+    void doStartProcess(@Nonnull AbstractSpan<?> parentContext, @Nonnull Process process, @Nonnull String processName) {
         if (inFlightSpans.containsKey(process)) {
             return;
         }
@@ -71,8 +66,6 @@ public class ProcessHelper {
 
         Span span = parentContext.createSpan()
             .withType("process")
-            .withSubtype(binaryName)
-            .withAction("execute")
             .withName(binaryName);
 
         // We don't require span to be activated as the background process is not really linked to current thread
@@ -99,20 +92,28 @@ public class ProcessHelper {
         // it has the same caveat as isAlive, which means that it will not detect process termination
         // until the actual process has terminated, for example right after a call to Process#destroy().
         // in that case, ignoring the process actual status is relevant.
-        boolean terminated = !checkTerminatedProcess;
+
+        Outcome outcome = Outcome.UNKNOWN;
+        Span span = inFlightSpans.get(process);
+        boolean endAndRemoveSpan = !checkTerminatedProcess;
+
         if (checkTerminatedProcess) {
             try {
-                process.exitValue();
-                terminated = true;
+                int exitValue = process.exitValue();
+                outcome = exitValue == 0 ? Outcome.SUCCESS : Outcome.FAILURE;
+                endAndRemoveSpan = true;
             } catch (IllegalThreadStateException e) {
-                terminated = false;
+                // process hasn't terminated, we don't know it's actual return value
+                outcome = Outcome.UNKNOWN;
+                endAndRemoveSpan = false;
             }
         }
 
-        if (terminated) {
-            Span span = inFlightSpans.remove(process);
+        if (endAndRemoveSpan) {
+            inFlightSpans.remove(process);
             if (span != null) {
-                span.end();
+                span.withOutcome(outcome).
+                    end();
             }
         }
     }

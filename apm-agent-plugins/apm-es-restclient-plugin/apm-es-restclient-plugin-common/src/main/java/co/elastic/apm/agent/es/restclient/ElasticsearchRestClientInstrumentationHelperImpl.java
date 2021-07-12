@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,22 +6,23 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.es.restclient;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
@@ -42,6 +38,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CancellationException;
 
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
@@ -49,7 +48,12 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelperImpl.class);
 
-    public static final String SEARCH_QUERY_PATH_SUFFIX = "_search";
+    public static final List<WildcardMatcher> QUERY_WILDCARD_MATCHERS = Arrays.asList(
+        WildcardMatcher.valueOf("*_search"),
+        WildcardMatcher.valueOf("*_msearch"),
+        WildcardMatcher.valueOf("*_msearch/template"),
+        WildcardMatcher.valueOf("*_search/template"),
+        WildcardMatcher.valueOf("*_count"));
     public static final String SPAN_TYPE = "db";
     public static final String ELASTICSEARCH = "elasticsearch";
     public static final String SPAN_ACTION = "request";
@@ -76,8 +80,8 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
     @Override
     @Nullable
     public Span createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity) {
-        final TraceContextHolder<?> activeSpan = tracer.getActive();
-        if (activeSpan == null || !activeSpan.isSampled()) {
+        final AbstractSpan<?> activeSpan = tracer.getActive();
+        if (activeSpan == null) {
             return null;
         }
 
@@ -97,7 +101,7 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
 
         if (span.isSampled()) {
             span.getContext().getHttp().withMethod(method);
-            if (endpoint.endsWith(SEARCH_QUERY_PATH_SUFFIX)) {
+            if (WildcardMatcher.isAnyMatch(QUERY_WILDCARD_MATCHERS, endpoint)) {
                 if (httpEntity != null && httpEntity.isRepeatable()) {
                     try {
                         IOUtils.readUtf8Stream(httpEntity.getContent(), span.getContext().getDb().withStatementBuffer());
@@ -132,6 +136,9 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
                     port = host.getPort();
                     url = host.toURI();
                     statusCode = esre.getResponse().getStatusLine().getStatusCode();
+                } else if (t instanceof CancellationException) {
+                    // We can't tell whether a cancelled search is related to a failure or not
+                    span.withOutcome(Outcome.UNKNOWN);
                 }
                 span.captureException(t);
             }

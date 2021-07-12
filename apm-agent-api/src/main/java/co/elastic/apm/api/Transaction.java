@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,16 +6,15 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.api;
 
@@ -72,17 +66,56 @@ public interface Transaction extends Span {
     @Deprecated
     Transaction addTag(String key, String value);
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated use {@link #setLabel(String, String)} instead
+     */
     @Nonnull
+    @Deprecated
     @Override
     Transaction addLabel(String key, String value);
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated use {@link #setLabel(String, Number)} instead
+     */
     @Nonnull
+    @Deprecated
     @Override
     Transaction addLabel(String key, Number value);
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated use {@link #setLabel(String, boolean)} instead
+     */
     @Nonnull
+    @Deprecated
     @Override
     Transaction addLabel(String key, boolean value);
+
+    /**
+     * {@inheritDoc}
+     */
+    @Nonnull
+    @Override
+    Transaction setLabel(String key, String value);
+
+    /**
+     * {@inheritDoc}
+     */
+    @Nonnull
+    @Override
+    Transaction setLabel(String key, Number value);
+
+    /**
+     * {@inheritDoc}
+     */
+    @Nonnull
+    @Override
+    Transaction setLabel(String key, boolean value);
 
     /**
      * Custom context is used to add non-indexed,
@@ -143,6 +176,23 @@ public interface Transaction extends Span {
     Transaction setUser(String id, String email, String username);
 
     /**
+     * Call this to enrich collected performance data and errors with information about the user/client.
+     * <p>
+     * This method can be called at any point during the request/response life cycle (i.e. while a transaction is active).
+     * The given context will be added to the active transaction.
+     * </p>
+     * <p>
+     * If an error is captured, the context from the active transaction is used as context for the captured error.
+     * </p>
+     *
+     * @param id       The user's id or {@code null}, if not applicable.
+     * @param email    The user's email address or {@code null}, if not applicable.
+     * @param username The user's name or {@code null}, if not applicable.
+     * @param domain   The user's domain or {@code null}, if not applicable.
+     */
+    Transaction setUser(String id, String email, String username, String domain);
+
+    /**
      * A string describing the result of the transaction.
      * This is typically the HTTP status code, or e.g. "success" for a background task
      *
@@ -152,6 +202,16 @@ public interface Transaction extends Span {
 
     @Override
     Transaction setStartTimestamp(long epochMicros);
+
+    /**
+     * Sets the transaction outcome
+     *
+     * @param outcome {@link Outcome#SUCCESS} to indicate success, {@link Outcome#FAILURE} for failure,
+     *                {@link Outcome#UNKNOWN} to indicate unknown outcome
+     * @return this
+     */
+
+    Transaction setOutcome(Outcome outcome);
 
     /**
      * End tracking the transaction.

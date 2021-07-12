@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,13 +15,13 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Message;
@@ -34,10 +29,12 @@ import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -67,6 +64,7 @@ import java.util.UUID;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 /**
@@ -112,6 +110,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         // confluent versions 5.3.0 correspond Kafka versions 2.3.0 -
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
         kafka = new KafkaContainer("5.3.0");
+        kafka.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
         kafka.start();
         kafkaPort = kafka.getMappedPort(KafkaContainer.KAFKA_PORT);
         bootstrapServers = kafka.getBootstrapServers();
@@ -142,7 +141,6 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
     @Before
     public void startTransaction() {
-        reporter.reset();
         startAndActivateTransaction(null);
         testScenario = TestScenario.NORMAL;
     }
@@ -150,13 +148,17 @@ public class KafkaIT extends AbstractInstrumentationTest {
     private void startAndActivateTransaction(@Nullable Sampler sampler) {
         Transaction transaction;
         if (sampler == null) {
-            transaction = tracer.startRootTransaction(null).activate();
+            transaction = tracer.startRootTransaction(null);
         } else {
-            transaction = tracer.startRootTransaction(sampler, -1, null).activate();
+            transaction = tracer.startRootTransaction(sampler, -1, null);
         }
-        transaction.withName("Kafka-Test Transaction");
-        transaction.withType("request");
-        transaction.withResult("success");
+        if (transaction != null) {
+            transaction.activate()
+                .withName("Kafka-Test Transaction")
+                .withType("request")
+                .withResult("success")
+                .withOutcome(Outcome.SUCCESS);
+        }
     }
 
     @After
@@ -226,7 +228,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
     @Test
     public void testBodyCaptureEnabled() {
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
         testScenario = TestScenario.BODY_CAPTURE_ENABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
@@ -255,7 +257,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
         testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
-        reporter.disableDestinationAddressCheck();
+        reporter.disableCheckDestinationAddress();
         sendTwoRecordsAndConsumeReplies();
         verifyTracing();
     }
@@ -302,6 +304,27 @@ public class KafkaIT extends AbstractInstrumentationTest {
         verifyKafkaTransactionContents(transactions.get(3), sendSpan2, null, REPLY_TOPIC);
     }
 
+    @Test
+    public void testAgentPaused() {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+
+        // End current transaction and start a non-sampled one
+        //noinspection ConstantConditions
+        tracer.currentTransaction().deactivate().end();
+        reporter.reset();
+
+        testScenario = TestScenario.AGENT_PAUSED;
+        startAndActivateTransaction(ConstantSampler.of(false));
+        sendTwoRecordsAndConsumeReplies();
+
+        assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
+    }
+
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testSendTwoRecords_TransactionNotSampled() {
@@ -324,6 +347,9 @@ public class KafkaIT extends AbstractInstrumentationTest {
         transactions.forEach(transaction -> assertThat(
             transaction.getTraceContext().getTraceId()).isEqualTo(tracer.currentTransaction().getTraceContext().getTraceId())
         );
+        transactions.forEach(transaction -> assertThat(
+            transaction.getTraceContext().getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId())
+        );
         transactions.forEach(transaction -> assertThat(transaction.getType()).isEqualTo("messaging"));
         transactions.forEach(transaction -> assertThat(transaction.getNameAsString()).isEqualTo("Kafka record from " + REQUEST_TOPIC));
     }
@@ -337,7 +363,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         record2.headers().add(headerKey, TEST_HEADER_VALUE.getBytes(StandardCharsets.UTF_8));
         producer.send(record1);
         producer.send(record2, (metadata, exception) -> callback.append("done"));
-        if (testScenario != TestScenario.IGNORE_REQUEST_TOPIC) {
+        if (testScenario != TestScenario.IGNORE_REQUEST_TOPIC && testScenario != TestScenario.AGENT_PAUSED) {
             await().atMost(2000, MILLISECONDS).until(() -> reporter.getTransactions().size() == 2);
             if (testScenario != TestScenario.NON_SAMPLED_TRANSACTION) {
                 int expectedSpans = (testScenario == TestScenario.NO_CONTEXT_PROPAGATION) ? 2 : 4;
@@ -383,9 +409,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         assertThat(pollSpan.getAction()).isEqualTo("poll");
         assertThat(pollSpan.getNameAsString()).isEqualTo("KafkaConsumer#poll");
         Destination.Service service = pollSpan.getContext().getDestination().getService();
-        assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getResource().toString()).isEqualTo("kafka");
-        assertThat(service.getName().toString()).isEqualTo("kafka");
     }
 
     private void verifySendSpanContents(Span sendSpan, String topicName) {
@@ -405,15 +429,15 @@ public class KafkaIT extends AbstractInstrumentationTest {
             assertThat(destination.getAddress().toString()).isEmpty();
         }
         Destination.Service service = destination.getService();
-        assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getResource().toString()).isEqualTo("kafka/" + topicName);
-        assertThat(service.getName().toString()).isEqualTo("kafka");
     }
 
     private void verifyKafkaTransactionContents(Transaction transaction, @Nullable Span parentSpan,
                                                 @Nullable String messageValue, String topic) {
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getNameAsString()).isEqualTo("Kafka record from " + topic);
+        assertThat(transaction.getFrameworkName()).isEqualTo("Kafka");
+
         TraceContext traceContext = transaction.getTraceContext();
         if (parentSpan != null) {
             assertThat(traceContext.getTraceId()).isEqualTo(parentSpan.getTraceContext().getTraceId());
@@ -552,6 +576,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         HEADERS_CAPTURE_DISABLED,
         SANITIZED_HEADER,
         IGNORE_REQUEST_TOPIC,
+        AGENT_PAUSED,
         NO_CONTEXT_PROPAGATION,
         TOPIC_ADDRESS_COLLECTION_DISABLED,
         NON_SAMPLED_TRANSACTION

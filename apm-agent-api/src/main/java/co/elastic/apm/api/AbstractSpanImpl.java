@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.api;
 
@@ -28,13 +22,18 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 
-public abstract class AbstractSpanImpl implements Span {
+abstract class AbstractSpanImpl implements Span {
     @Nonnull
-    // co.elastic.apm.agent.impl.transaction.TraceContextHolder
+    // co.elastic.apm.agent.impl.transaction.Span
     protected final Object span;
 
     AbstractSpanImpl(@Nonnull Object span) {
         this.span = span;
+        initialize(span);
+    }
+
+    private void initialize(@Nonnull Object span) {
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$InitializeInstrumentation
     }
 
     @Nonnull
@@ -57,89 +56,109 @@ public abstract class AbstractSpanImpl implements Span {
 
     @Nonnull
     @Override
+    public Span startExitSpan(String type, String subtype, @Nullable String action) {
+        Object span = doCreateExitSpan();
+        if (span != null) {
+            doSetTypes(span, type, subtype, action);
+            return new SpanImpl(span);
+        }
+        return NoopSpan.INSTANCE;
+    }
+
+    @Nonnull
+    @Override
     public Span startSpan() {
         Object span = doCreateSpan();
         return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
     }
 
     public void doSetStartTimestamp(long epochMicros) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetStartTimestampInstrumentation
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetStartTimestampInstrumentation
+    }
+
+    public void doSetOutcome(Outcome outcome) {
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.SetOutcomeInstrumentation
     }
 
     private Object doCreateSpan() {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
+        return null;
+    }
+
+    private Object doCreateExitSpan() {
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$DoCreateExitSpanInstrumentation.doCreateExitSpan
         return null;
     }
 
     void doSetName(String name) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetNameInstrumentation.doSetName
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetNameInstrumentation.doSetName
     }
 
     void doSetType(String type) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetTypeInstrumentation.doSetType
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetTypeInstrumentation.doSetType
     }
 
     private void doSetTypes(Object span, String type, @Nullable String subtype, @Nullable String action) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetTypesInstrumentation.doSetType
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetTypesInstrumentation.doSetType
     }
 
     // keep for backwards compatibility reasons
     @Deprecated
     void doAddTag(String key, String value) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddStringLabelInstrumentation
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$AddStringLabelInstrumentation
     }
 
     void doAddStringLabel(String key, String value) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddStringLabelInstrumentation
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$AddStringLabelInstrumentation
     }
 
     void doAddNumberLabel(String key, Number value) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddNumberTagInstrumentation
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddNumberLabelInstrumentation
     }
 
     void doAddBooleanLabel(String key, Boolean value) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddBooleanTagInstrumentation
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$AddBooleanTagInstrumentation
     }
 
     @Override
     public void end() {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$EndInstrumentation
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$EndInstrumentation
     }
 
     @Override
     public void end(long epochMicros) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$EndWithTimestampInstrumentation
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$EndWithTimestampInstrumentation
     }
 
     @Override
     public String captureException(Throwable throwable) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.CaptureExceptionInstrumentation
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.CaptureExceptionInstrumentation
         return "";
     }
 
     @Nonnull
     @Override
     public String getId() {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.GetIdInstrumentation
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.GetIdInstrumentation
         return "";
     }
 
     @Nonnull
     @Override
     public String getTraceId() {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.GetTraceIdInstrumentation
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.GetTraceIdInstrumentation
         return "";
     }
 
     @Override
     public Scope activate() {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.ActivateInstrumentation
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.ActivateInstrumentation
         return new ScopeImpl(span);
     }
 
     @Override
     public boolean isSampled() {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.IsSampledInstrumentation
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.IsSampledInstrumentation
         return false;
     }
 
@@ -149,6 +168,14 @@ public abstract class AbstractSpanImpl implements Span {
     }
 
     private void doInjectTraceHeaders(MethodHandle addHeader, HeaderInjector headerInjector) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.InjectTraceHeadersInstrumentation
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.InjectTraceHeadersInstrumentation
+    }
+
+    protected void doSetDestinationAddress(@Nullable String address, int port) {
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.SetDestinationAddressInstrumentation
+    }
+
+    protected void doSetDestinationService(@Nullable String resource) {
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.SetDestinationServiceInstrumentation
     }
 }

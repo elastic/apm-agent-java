@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,16 +15,14 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -38,67 +31,65 @@ import net.bytebuddy.matcher.ElementMatcher;
 import okhttp3.HttpUrl;
 import okhttp3.Request;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumentation {
 
-    public OkHttp3ClientInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
-
     @Override
-    public Class<?> getAdviceClass() {
-        return OkHttpClient3ExecuteAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.okhttp.OkHttp3ClientInstrumentation$OkHttpClient3ExecuteAdvice";
     }
 
-    @VisibleForAdvice
     public static class OkHttpClient3ExecuteAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute( @Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Object originalRequest,
-                                             @Advice.Local("span") Span span) {
+        @Nonnull
+        @AssignTo(fields = @AssignTo.Field(index = 0, value = "originalRequest", typing = Assigner.Typing.DYNAMIC))
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object[] onBeforeExecute(final @Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
 
-            if (tracer == null || tracer.getActive() == null) {
-                return;
+            final AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null || !(originalRequest instanceof Request)) {
+                return new Object[]{originalRequest, null};
             }
 
-            if (originalRequest == null) {
-                return;
-            }
+            okhttp3.Request request = (okhttp3.Request) originalRequest;
+            HttpUrl url = request.url();
 
-            final TraceContextHolder<?> parent = tracer.getActive();
+            Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
+                OkHttpClientHelper.computeHostName(url.host()), url.port());
 
-            if (originalRequest instanceof okhttp3.Request) {
-                okhttp3.Request request = (okhttp3.Request) originalRequest;
-                HttpUrl url = request.url();
-                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
-                    OkHttpClientHelper.computeHostName(url.host()), url.port());
-                if (span != null) {
-                    span.activate();
-                    if (headerSetterHelperManager != null) {
-                        TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
-                        if (headerSetter != null) {
-                            Request.Builder builder = ((okhttp3.Request) originalRequest).newBuilder();
-                            span.getTraceContext().setOutgoingTraceContextHeaders(builder, headerSetter);
-                            originalRequest = builder.build();
-                        }
-                    }
-                }
+            Request.Builder builder = ((okhttp3.Request) originalRequest).newBuilder();
+            if (span != null) {
+                span.activate();
+                span.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
+            } else {
+                parent.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
             }
+            return new Object[]{builder.build(), span};
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Return @Nullable okhttp3.Response response,
-                                          @Advice.Local("span") @Nullable Span span,
-                                          @Advice.Thrown @Nullable Throwable t) {
+                                          @Advice.Thrown @Nullable Throwable t,
+                                          @Advice.Enter @Nonnull Object[] enter) {
+            Span span = null;
+            if (enter[1] instanceof Span) {
+                span = (Span) enter[1];
+            }
             if (span != null) {
                 try {
                     if (response != null) {
                         int statusCode = response.code();
                         span.getContext().getHttp().withStatusCode(statusCode);
+                    } else if (t != null) {
+                        span.withOutcome(Outcome.FAILURE);
                     }
                     span.captureException(t);
                 } finally {
@@ -110,11 +101,11 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("okhttp3.RealCall");
+        return nameStartsWith("okhttp3.").and(nameEndsWith(".RealCall"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("execute").and(returns(named("okhttp3.Response")));
+        return named("execute").and(returns(hasSuperType(named("okhttp3.Response"))));
     }
 }

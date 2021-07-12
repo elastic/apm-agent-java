@@ -28,10 +28,10 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger('(?i)(.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:matrix\\W+)?tests(?:\\W+please)?.*|^/test(?:\\W+.*)?$)')
+    issueCommentTrigger('(?i)(.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:(matrix|benchmark)\\W+)?tests(?:\\W+please)?.*|^/test(?:\\W+.*)?$)')
   }
   parameters {
-    string(name: 'MAVEN_CONFIG', defaultValue: '-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn', description: 'Additional maven options.')
+    string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
     booleanParam(name: 'Run_As_Master_Branch', defaultValue: false, description: 'Allow to run any steps on a PR, some steps normally only run on master branch.')
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
     booleanParam(name: 'smoketests_ci', defaultValue: true, description: 'Enable Smoke tests')
@@ -43,7 +43,7 @@ pipeline {
       options { skipDefaultCheckout() }
       environment {
         HOME = "${env.WORKSPACE}"
-        JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+        JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
@@ -55,28 +55,44 @@ pipeline {
           steps {
             pipelineManager([ cancelPreviousRunningBuilds: [ when: 'PR' ] ])
             deleteDir()
-            gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, reference: '/var/lib/jenkins/.git-references/apm-agent-java.git')
+            gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, shallow: false,
+                        reference: '/var/lib/jenkins/.git-references/apm-agent-java.git')
             stash allowEmpty: true, name: 'source', useDefaultExcludes: false
+            script {
+              dir("${BASE_DIR}"){
+                // Skip all the stages except docs for PR's with asciidoc and md changes only
+                env.ONLY_DOCS = isGitRegionMatch(patterns: [ '.*\\.(asciidoc|md)' ], shouldMatchAll: true)
+              }
+            }
           }
         }
         /**
         Build on a linux environment.
         */
         stage('Build') {
+          when {
+            beforeAgent true
+            expression { return env.ONLY_DOCS == "false" }
+          }
           steps {
             withGithubNotify(context: 'Build', tab: 'artifacts') {
               deleteDir()
               unstash 'source'
+              // prepare m2 repository with the existing dependencies
+              whenTrue(fileExists('/var/lib/jenkins/.m2/repository')) {
+                sh label: 'Prepare .m2 cached folder', returnStatus: true, script: 'cp -Rf /var/lib/jenkins/.m2/repository ${HOME}/.m2'
+                sh label: 'Size .m2', returnStatus: true, script: 'du -hs .m2'
+              }
               dir("${BASE_DIR}"){
-                sh """#!/bin/bash
-                set -euxo pipefail
-                ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
-                ./mvnw license:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
-                """
+                retryWithSleep(retries: 5, seconds: 10) {
+                  sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                }
+                sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
               }
               stash allowEmpty: true, name: 'build', useDefaultExcludes: false
               archiveArtifacts allowEmptyArchive: true,
                 artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
+                      ${BASE_DIR}/apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar,${BASE_DIR}/apm-agent-api/target/apm-agent-api-*.jar,\
                       ${BASE_DIR}/target/site/aggregate-third-party-report.html",
                 onlyIfSuccessful: true
             }
@@ -85,6 +101,10 @@ pipeline {
       }
     }
     stage('Tests') {
+      when {
+        beforeAgent true
+        expression { return env.ONLY_DOCS == "false" }
+      }
       environment {
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
@@ -97,7 +117,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -130,7 +150,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -160,7 +180,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -191,7 +211,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
             NO_BUILD = "true"
           }
@@ -202,8 +222,9 @@ pipeline {
                 branch 'master'
                 branch "\\d+\\.\\d+"
                 branch "v\\d?"
-                tag "v\\d+\\.\\d+\\.\\d+*"
+                tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
                 expression { return params.Run_As_Master_Branch }
+                expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
               }
               expression { return params.bench_ci }
             }
@@ -240,12 +261,12 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
             beforeAgent true
-            expression { return params.doc_ci }
+            expression { return env.ONLY_DOCS == "false" }
           }
           steps {
             withGithubNotify(context: 'Javadoc') {
@@ -265,16 +286,18 @@ pipeline {
     stage('Integration Tests') {
       agent none
       when {
-        anyOf {
-          changeRequest()
-          expression { return !params.Run_As_Master_Branch }
+        allOf {
+          expression { return env.ONLY_DOCS == "false" }
+          anyOf {
+            changeRequest()
+            expression { return !params.Run_As_Master_Branch }
+          }
         }
       }
       steps {
-        log(level: 'INFO', text: 'Launching Async ITs')
         build(job: env.ITS_PIPELINE, propagate: false, wait: false,
-              parameters: [string(name: 'AGENT_INTEGRATION_TEST', value: 'Java'),
-                           string(name: 'BUILD_OPTS', value: "--java-agent-version ${env.GIT_BASE_COMMIT}"),
+              parameters: [string(name: 'INTEGRATION_TEST', value: 'Java'),
+                           string(name: 'BUILD_OPTS', value: "--java-agent-version ${env.GIT_BASE_COMMIT} --opbeans-java-agent-branch ${env.GIT_BASE_COMMIT}"),
                            string(name: 'GITHUB_CHECK_NAME', value: env.GITHUB_CHECK_ITS_NAME),
                            string(name: 'GITHUB_CHECK_REPO', value: env.REPO),
                            string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])
@@ -312,7 +335,7 @@ pipeline {
                 deleteDir()
                 unstash 'build'
                 dir("${BASE_DIR}"){
-                  sh './mvnw -V -B test'
+                  sh './mvnw test'
                 }
               }
             }
@@ -325,24 +348,31 @@ pipeline {
         }
       }
     }
+    stage('Stable') {
+      options { skipDefaultCheckout() }
+      when {
+        branch 'master'
+      }
+      steps {
+        deleteDir()
+        unstash 'source'
+        dir("${BASE_DIR}"){
+          setupAPMGitEmail(global: false)
+          sh(label: "checkout ${BRANCH_NAME} branch", script: "git checkout -f '${BRANCH_NAME}'")
+          sh(label: 'rebase stable', script: """
+            git rev-parse --quiet --verify stable && git checkout stable || git checkout -b stable
+            git rebase '${BRANCH_NAME}'
+          """)
+          gitPush()
+        }
+      }
+    }
     stage('AfterRelease') {
       options { skipDefaultCheckout() }
       when {
         tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
       }
       stages {
-        stage('Docker push') {
-          when {
-            beforeAgent true
-            expression { return params.push_docker }
-          }
-          steps {
-            sh(label: "Build Docker image", script: "scripts/jenkins/build_docker.sh")
-            // Get Docker registry credentials
-            dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co')
-            sh(label: "Push Docker image", script: "scripts/jenkins/push_docker.sh")
-          }
-        }
         stage('Opbeans') {
           environment {
             REPO_NAME = "${OPBEANS_REPO}"
@@ -366,7 +396,7 @@ pipeline {
   }
   post {
     cleanup {
-      notifyBuildResult()
+      notifyBuildResult(analyzeFlakey: !isTag(), flakyReportIdx: 'reporter-apm-agent-java-apm-agent-java-master', flakyDisableGHIssueCreation: true)
     }
   }
 }

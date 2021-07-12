@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.api;
 
@@ -46,6 +40,7 @@ enum NoopTransaction implements Transaction {
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Transaction addTag(String key, String value) {
         // noop
@@ -53,20 +48,41 @@ enum NoopTransaction implements Transaction {
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Transaction addLabel(String key, String value) {
         return this;
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Transaction addLabel(String key, Number value) {
         return this;
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Transaction addLabel(String key, boolean value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction setLabel(String key, String value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction setLabel(String key, Number value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction setLabel(String key, boolean value) {
         return this;
     }
 
@@ -95,6 +111,12 @@ enum NoopTransaction implements Transaction {
     }
 
     @Override
+    public Transaction setUser(String id, String email, String username, String domain) {
+        // noop
+        return this;
+    }
+
+    @Override
     public Transaction setResult(String result) {
         // noop
         return this;
@@ -112,7 +134,7 @@ enum NoopTransaction implements Transaction {
 
     @Override
     public String captureException(Throwable throwable) {
-        // co.elastic.apm.agent.plugin.api.CaptureExceptionInstrumentation
+        // co.elastic.apm.agent.pluginapi.CaptureExceptionInstrumentation
         return "";
     }
 
@@ -158,6 +180,12 @@ enum NoopTransaction implements Transaction {
 
     @Nonnull
     @Override
+    public Span startExitSpan(String type, String subtype, @Nullable String action) {
+        return NoopSpan.INSTANCE;
+    }
+
+    @Nonnull
+    @Override
     public Span startSpan() {
         return NoopSpan.INSTANCE;
     }
@@ -168,7 +196,25 @@ enum NoopTransaction implements Transaction {
     }
 
     @Override
+    public Transaction setOutcome(Outcome outcome) {
+
+        return this;
+    }
+
+    @Override
     public void injectTraceHeaders(HeaderInjector headerInjector) {
         // noop
+    }
+
+    @Nonnull
+    @Override
+    public Span setDestinationAddress(@Nullable String address, int port) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Span setDestinationService(@Nullable String resource) {
+        return this;
     }
 }

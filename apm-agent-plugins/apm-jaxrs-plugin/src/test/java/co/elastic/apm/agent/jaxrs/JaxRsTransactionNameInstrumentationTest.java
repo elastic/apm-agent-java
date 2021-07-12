@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,27 +15,27 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Application;
@@ -55,30 +50,30 @@ import static org.mockito.Mockito.when;
  */
 public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
-    private static ElasticApmTracer tracer;
-    private static MockReporter reporter;
-    private static ConfigurationRegistry config;
+    private ElasticApmTracer tracer;
+    private MockReporter reporter;
+    private ConfigurationRegistry config;
+    private TestObjectPoolFactory objectPoolFactory;
 
-    @BeforeClass
-    public static void beforeClass() {
-        reporter = new MockReporter();
-        config = SpyConfiguration.createSpyConfig();
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build();
+    @Before
+    public void before() {
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
+        reporter = mockInstrumentationSetup.getReporter();
+        config = mockInstrumentationSetup.getConfig();
+        tracer = mockInstrumentationSetup.getTracer();
+        objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
     }
 
     @After
     public void after() {
-        //reset after each method to test different non-dynamic parameters
-        ElasticApmAgent.reset();
-    }
-
-    @Before
-    public void before() {
-        SpyConfiguration.reset(config);
-        reporter.reset();
+        try {
+            reporter.assertRecycledAfterDecrementingReferences();
+            objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+        } finally {
+            reporter.reset();
+            objectPoolFactory.reset();
+            ElasticApmAgent.reset();
+        }
     }
 
     @Test
@@ -110,6 +105,17 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("ResourceWithPath#testMethod");
         assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("ResourceWithPathOnInterface#testMethod");
         assertThat(actualTransactions.get(2).getNameAsString()).isEqualTo("ResourceWithPathOnAbstract#testMethod");
+    }
+
+    @Test
+    public void testJaxRsTransactionNameMethodDelegation() {
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("methodDelegation/methodA");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("MethodDelegationResource#methodA");
     }
 
     @Test
@@ -248,6 +254,32 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /testInterface/test");
     }
 
+    @Test
+    public void testJaxRsFrameworkNameAndVersion() throws IOException {
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("test");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("JAX-RS");
+        assertThat(reporter.getFirstTransaction().getFrameworkVersion()).isEqualTo("2.1");
+    }
+
+    @Test
+    public void testJaxRsFrameworkNameAndVersionWithNonSampledTransaction() throws IOException {
+        config.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("test");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("JAX-RS");
+        assertThat(reporter.getFirstTransaction().getFrameworkVersion()).isEqualTo("2.1");
+    }
 
     /**
      * @return configuration for the jersey test server. Includes all resource classes in the co.elastic.apm.agent.jaxrs.resources package.
@@ -262,6 +294,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
             ProxiedClass$Proxy.class,
             ResourceWithPathOnMethod.class,
             ResourceWithPathOnMethodSlash.class,
+            MethodDelegationResource.class,
             FooBarResource.class,
             EmptyPathResource.class,
             ResourceWithPathAndWithPathOnInterface.class);
@@ -273,11 +306,15 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
      * @param path the path to make the get request against
      */
     private void doRequest(String path) {
-        final Transaction request = tracer.startRootTransaction(null).withType("request").activate();
+        final Transaction request = tracer.startRootTransaction(null)
+            .withType("request")
+            .activate();
         try {
             assertThat(getClient().target(getBaseUri()).path(path).request().buildGet().invoke(String.class)).isEqualTo("ok");
         } finally {
-            request.deactivate().end();
+            request
+                .deactivate()
+                .end();
         }
     }
 
@@ -320,6 +357,20 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     public static class ResourceWithPath extends AbstractResourceClassWithoutPath {
         public String testMethod() {
             return "ok";
+        }
+    }
+
+    @Path("methodDelegation")
+    public static class MethodDelegationResource {
+        @GET
+        @Path("methodA")
+        public String methodA(){
+            methodB();
+            return "ok";
+        }
+
+        @POST
+        public void methodB(){
         }
     }
 

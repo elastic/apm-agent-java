@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,16 +6,15 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.util;
 
@@ -46,13 +40,46 @@ class BinaryHeaderMapTest {
     @Test
     void testOneEntry() {
         headerMap.add("foo", "bar".getBytes());
-        int numElements = 0;
-        for (BinaryHeaderMap.Entry entry : headerMap) {
-            numElements++;
-            assertThat(entry.getKey()).isEqualTo("foo");
-            assertThat(entry.getValue().toString()).isEqualTo("bar");
+        assertThat(headerMap).hasSize(1);
+        headerMap.forEach(e -> {
+            assertThat(e.getKey()).isEqualTo("foo");
+            assertThat(e.getValue().toString()).isEqualTo("bar");
+        });
+    }
+
+    @Test
+    void testNullValue() {
+        headerMap.add("key", null);
+        assertThat(headerMap.size()).isEqualTo(1);
+        headerMap.iterator().forEachRemaining(e -> {
+            assertThat(e.getKey()).isEqualTo("key");
+            assertThat(e.getValue()).isNull();
+        });
+    }
+
+    @Test
+    void testCapacityIncrease() {
+        // we don't have access to actual capacity
+        // thus we just add more than the initial capacity and ensure it's consistent
+        int targetSize = BinaryHeaderMap.INITIAL_CAPACITY * 10;
+        for (int i = 0; i < targetSize; i++) {
+            byte[] value = (i % 5 == 0) ? null : RandomStringUtils.randomAlphanumeric(32).getBytes();
+            headerMap.add(String.format("key_%d", i), value);
+            assertThat(headerMap.size()).isEqualTo(i + 1);
         }
-        assertThat(numElements).isEqualTo(1);
+
+        int index = 0;
+        for (BinaryHeaderMap.Entry entry : headerMap) {
+            assertThat(entry.getKey()).isEqualTo("key_%d", index);
+            if (index % 5 == 0) {
+                assertThat(entry.getValue()).isNull();
+            } else {
+                assertThat(entry.getValue()).isNotEmpty();
+            }
+            index++;
+        }
+        assertThat(index).isEqualTo(targetSize);
+
     }
 
     @Test

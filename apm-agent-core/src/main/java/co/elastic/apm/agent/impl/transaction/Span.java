@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,30 +6,39 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.SpanContext;
+import co.elastic.apm.agent.impl.context.Url;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class Span extends AbstractSpan<Span> implements Recyclable {
 
     private static final Logger logger = LoggerFactory.getLogger(Span.class);
+    public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
+    private static long lastSpanMaxWarningTimestamp;
 
     /**
      * General type describing this span (eg: 'db', 'ext', 'template', etc)
@@ -67,12 +71,26 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private AbstractSpan<?> parent;
     @Nullable
     private Transaction transaction;
+    @Nullable
+    private List<StackFrame> stackFrames;
+
+    /**
+     * If a span is non-discardable, all the spans leading up to it are non-discardable as well
+     */
+    public void setNonDiscardable() {
+        if (isDiscardable()) {
+            getTraceContext().setNonDiscardable();
+            if (parent != null) {
+                parent.setNonDiscardable();
+            }
+        }
+    }
 
     public Span(ElasticApmTracer tracer) {
         super(tracer);
     }
 
-    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros, boolean dropped) {
+    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
         childContextCreator.asChildOf(traceContext, parentContext);
         if (parentContext instanceof Transaction) {
             this.transaction = (Transaction) parentContext;
@@ -82,16 +100,31 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             this.parent = parentSpan;
             this.transaction = parentSpan.transaction;
         }
-        if (dropped) {
-            traceContext.setRecorded(false);
+        return start(epochMicros);
+    }
+
+    private Span start(long epochMicros) {
+        if (transaction != null) {
+            SpanCount spanCount = transaction.getSpanCount();
+            if (transaction.isSpanLimitReached()) {
+                if (epochMicros - lastSpanMaxWarningTimestamp > MAX_LOG_INTERVAL_MICRO_SECS) {
+                    lastSpanMaxWarningTimestamp = epochMicros;
+                    logger.warn("Max spans ({}) for transaction {} has been reached. For this transaction and possibly others, further spans will be dropped. See config param 'transaction_max_spans'.",
+                        tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans(), transaction);
+                }
+                logger.debug("Span exceeds transaction_max_spans {}", this);
+                traceContext.setRecorded(false);
+                spanCount.getDropped().incrementAndGet();
+            }
+            spanCount.getTotal().incrementAndGet();
         }
         if (epochMicros >= 0) {
             setStartTimestamp(epochMicros);
         } else {
-            setStartTimestamp(getTraceContext().getClock().getEpochMicros());
+            setStartTimestampNow();
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("startSpan {} {", this);
+            logger.debug("startSpan {}", this);
             if (logger.isTraceEnabled()) {
                 logger.trace("starting span at",
                     new RuntimeException("this exception is just used to record where the span has been started from"));
@@ -122,7 +155,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Keywords of specific relevance in the span's domain (eg: 'db', 'template', 'ext', etc)
      */
     public Span withType(@Nullable String type) {
-        this.type = type;
+        this.type = normalizeEmpty(type);
         return this;
     }
 
@@ -130,7 +163,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Sets the span's subtype, related to the  (eg: 'mysql', 'postgresql', 'jsf' etc)
      */
     public Span withSubtype(@Nullable String subtype) {
-        this.subtype = subtype;
+        this.subtype = normalizeEmpty(subtype);
         return this;
     }
 
@@ -138,8 +171,13 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Action related to this span (eg: 'query', 'render' etc)
      */
     public Span withAction(@Nullable String action) {
-        this.action = action;
+        this.action = normalizeEmpty(action);
         return this;
+    }
+
+    @Nullable
+    private static String normalizeEmpty(@Nullable String value) {
+        return value == null || value.isEmpty() ? null : value;
     }
 
     /**
@@ -164,9 +202,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                 }
             }
         }
-        this.type = type;
-        this.subtype = subtype;
-        this.action = action;
+        withType(type);
+        withSubtype(subtype);
+        withAction(action);
     }
 
     @Nullable
@@ -200,6 +238,49 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (type == null) {
             type = "custom";
         }
+
+        // set outcome when not explicitly set by user nor instrumentation
+        if (outcomeNotSet()) {
+            Outcome outcome;
+            if (context.getHttp().hasContent()) {
+                // HTTP client spans
+                outcome = ResultUtil.getOutcomeByHttpClientStatus(context.getHttp().getStatusCode());
+            } else {
+                // span types & sub-types for which we consider getting an exception as a failure
+                outcome = hasCapturedExceptions() ? Outcome.FAILURE : Outcome.SUCCESS;
+            }
+            withOutcome(outcome);
+        }
+
+        // auto-infer context.destination.service.resource as per spec:
+        // https://github.com/elastic/apm/blob/master/specs/agents/tracing-spans-destination.md#contextdestinationserviceresource
+        Destination.Service service = getContext().getDestination().getService();
+        StringBuilder serviceResource = service.getResource();
+        if (isExit() && serviceResource.length() == 0 && !service.isResourceSetByUser()) {
+            String resourceType = (subtype != null) ? subtype : type;
+            Db db = context.getDb();
+            Message message = context.getMessage();
+            Url internalUrl = context.getHttp().getInternalUrl();
+            if (db.hasContent()) {
+                serviceResource.append(resourceType);
+                if (db.getInstance() != null) {
+                    serviceResource.append('/').append(db.getInstance());
+                }
+            } else if (message.hasContent()) {
+                serviceResource.append(resourceType);
+                if (message.getQueueName() != null) {
+                    serviceResource.append('/').append(message.getQueueName());
+                }
+            } else if (internalUrl.hasContent()) {
+                serviceResource.append(internalUrl.getHostname());
+                if (internalUrl.getPort() > 0) {
+                    serviceResource.append(':').append(internalUrl.getPort());
+                }
+            } else {
+                serviceResource.append(resourceType);
+            }
+        }
+
         if (transaction != null) {
             transaction.incrementTimer(type, subtype, getSelfDuration());
         }
@@ -224,6 +305,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         action = null;
         parent = null;
         transaction = null;
+        // recycling this array list by clear()-ing it doesn't seem worth it
+        // it's used in the context of profiling-inferred spans which entails allocations anyways
+        // when trying to recycle this list by clearing it, we increase the static memory overhead of the agent
+        // because all spans in the pool contain that list even if they are not used as inferred spans
+        stackFrames = null;
     }
 
     @Override
@@ -255,5 +341,30 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Override
     protected void recycle() {
         tracer.recycle(this);
+    }
+
+    @Override
+    protected Span thiz() {
+        return this;
+    }
+
+    public void setStackTrace(List<StackFrame> stackTrace) {
+        this.stackFrames = stackTrace;
+    }
+
+    @Nullable
+    public List<StackFrame> getStackFrames() {
+        return stackFrames;
+    }
+
+    @Nullable
+    @Override
+    public Transaction getTransaction() {
+        return transaction;
+    }
+
+    @Nullable
+    public AbstractSpan<?> getParent() {
+        return parent;
     }
 }

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,16 +15,14 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.es.restclient.v6_4;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.MetaDataMock;
 import co.elastic.apm.agent.impl.payload.Agent;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
@@ -124,7 +117,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(USER_NAME, PASSWORD));
 
-        RestClientBuilder builder =  RestClient.builder(new HttpHost("localhost", 9200))
+        RestClientBuilder builder = RestClient.builder(new HttpHost("localhost", 9200))
             .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
         client = new RestHighLevelClient(builder);
 
@@ -140,18 +133,23 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient.start();
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             processorEventHandler,
-            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
-            new MetaData(title, service, system, Collections.emptyMap()),
+            new DslJsonSerializer(
+                mock(StacktraceConfiguration.class),
+                apmServerClient,
+                MetaDataMock.create(title, service, system, null, Collections.emptyMap())
+            ),
             apmServerClient);
-        realReporter = new ApmServerReporter(true, reporterConfiguration, configurationRegistry.getConfig(CoreConfiguration.class), v2handler);
+        realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler);
+        realReporter.start();
 
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(configurationRegistry)
             .reporter(realReporter)
-            .build();
+            .buildAndStart();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 
@@ -170,10 +168,11 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
 
     @Before
     public void startTransaction() {
-        Transaction transaction = tracer.startRootTransaction(null).activate();
-        transaction.withName("transaction");
-        transaction.withType("request");
-        transaction.withResult("success");
+        tracer.startRootTransaction(null)
+            .activate()
+            .withName("transaction")
+            .withType("request")
+            .withResult("success");
     }
 
     @After
@@ -241,18 +240,18 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
     @Test
     public void testScenarioAsBulkRequest() throws IOException {
         client.bulk(new BulkRequest()
-            .add(new IndexRequest(INDEX, DOC_TYPE, "2").source(
-                jsonBuilder()
-                    .startObject()
-                    .field(FOO, BAR)
-                    .endObject()
-            ))
-            .add(new IndexRequest(INDEX, DOC_TYPE, "3").source(
-                jsonBuilder()
-                    .startObject()
-                    .field(FOO, BAR)
-                    .endObject()
-            ))
-        , RequestOptions.DEFAULT);
+                .add(new IndexRequest(INDEX, DOC_TYPE, "2").source(
+                    jsonBuilder()
+                        .startObject()
+                        .field(FOO, BAR)
+                        .endObject()
+                ))
+                .add(new IndexRequest(INDEX, DOC_TYPE, "3").source(
+                    jsonBuilder()
+                        .startObject()
+                        .field(FOO, BAR)
+                        .endObject()
+                ))
+            , RequestOptions.DEFAULT);
     }
 }

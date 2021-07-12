@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,21 +6,20 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.util.VersionUtils;
@@ -34,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.lang.management.ManagementFactory;
 import java.util.List;
 
 /**
@@ -43,13 +38,13 @@ import java.util.List;
  * under Apache license 2.0.
  * </p>
  */
-public class StartupInfo implements LifecycleListener {
+public class StartupInfo extends AbstractLifecycleListener {
 
     private static final Logger logger = LoggerFactory.getLogger(StartupInfo.class);
     private final String elasticApmVersion;
 
     public StartupInfo() {
-        final String version = VersionUtils.getVersionFromPomProperties(getClass(), "co.elastic.apm", "elastic-apm-agent");
+        final String version = VersionUtils.getAgentVersion();
         if (version != null) {
             elasticApmVersion = version;
         } else {
@@ -58,12 +53,15 @@ public class StartupInfo implements LifecycleListener {
     }
 
     private static String getJvmAndOsVersionString() {
-        return "Java " + System.getProperty("java.version") + " (" + System.getProperty("java.vendor") + ") " +
+        return "Java " + System.getProperty("java.version") +
+            " Runtime version: "+ System.getProperty("java.runtime.version") +
+            " VM version: "+ System.getProperty("java.vm.version") +
+            " (" + System.getProperty("java.vendor") + ") " +
             System.getProperty("os.name") + " " + System.getProperty("os.version");
     }
 
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void init(ElasticApmTracer tracer) {
         ConfigurationRegistry configurationRegistry = tracer.getConfigurationRegistry();
         logConfiguration(configurationRegistry, logger);
     }
@@ -71,6 +69,7 @@ public class StartupInfo implements LifecycleListener {
     void logConfiguration(ConfigurationRegistry configurationRegistry, Logger logger) {
         final String serviceName = configurationRegistry.getConfig(CoreConfiguration.class).getServiceName();
         logger.info("Starting Elastic APM {} as {} on {}", elasticApmVersion, serviceName, getJvmAndOsVersionString());
+        logger.debug("VM Arguments: {}", ManagementFactory.getRuntimeMXBean().getInputArguments());
         for (List<ConfigurationOption<?>> options : configurationRegistry.getConfigurationOptionsByCategory().values()) {
             for (ConfigurationOption<?> option : options) {
                 if (!option.isDefault()) {
@@ -79,13 +78,13 @@ public class StartupInfo implements LifecycleListener {
             }
         }
         if (configurationRegistry.getConfig(StacktraceConfiguration.class).getApplicationPackages().isEmpty()) {
-            logger.warn("To enable all features and to increase startup times, please configure {}",
+            logger.warn("To enable all features and decrease startup time, please configure {}",
                 StacktraceConfiguration.APPLICATION_PACKAGES);
         }
     }
 
     private void logConfigWithNonDefaultValue(Logger logger, ConfigurationOption<?> option) {
-        logger.debug("{}: '{}' (source: {})", option.getKey(),
+        logger.info("{}: '{}' (source: {})", option.getKey(),
             option.isSensitive() ? "XXXX" : option.getValueAsSafeString(),
             option.getNameOfCurrentConfigurationSource());
 
@@ -104,10 +103,5 @@ public class StartupInfo implements LifecycleListener {
                 option.getValueAsString(),
                 option.getNameOfCurrentConfigurationSource());
         }
-    }
-
-    @Override
-    public void stop() throws Exception {
-        // noop
     }
 }

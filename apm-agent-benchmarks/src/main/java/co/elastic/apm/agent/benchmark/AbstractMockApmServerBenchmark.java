@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,16 +6,15 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.benchmark;
 
@@ -41,6 +35,7 @@ import org.stagemonitor.configuration.source.SimpleSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.ServiceLoader;
 import java.util.concurrent.ExecutionException;
 
@@ -61,7 +56,11 @@ public class AbstractMockApmServerBenchmark extends AbstractBenchmark {
         server = Undertow.builder()
             .addHttpListener(0, "127.0.0.1")
             .setHandler(new BlockingHandler(exchange -> {
-                if (!exchange.getRequestPath().equals("/healthcheck")) {
+                if (exchange.getRequestPath().equals("/healthcheck")) {
+                    // emulate a rather recent server version
+                    exchange.getOutputStream().write("{\"version\":\"7.0.0\"}".getBytes(StandardCharsets.UTF_8));
+                    exchange.setStatusCode(200).endExchange();
+                } else {
                     receivedPayloads++;
                     exchange.startBlocking();
                     try (InputStream is = exchange.getInputStream()) {
@@ -82,14 +81,16 @@ public class AbstractMockApmServerBenchmark extends AbstractBenchmark {
                 .addConfigSource(new SimpleSource()
                     .add(CoreConfiguration.SERVICE_NAME, "benchmark")
                     .add(CoreConfiguration.INSTRUMENT, Boolean.toString(apmEnabled))
-                    .add(CoreConfiguration.ACTIVE, Boolean.toString(apmEnabled))
+                    .add("active", Boolean.toString(apmEnabled))
                     .add("api_request_size", "10mb")
                     .add("capture_headers", "false")
+//                     .add("profiling_inferred_spans", "true")
+//                     .add("profiling_interval", "10s")
                     .add("classes_excluded_from_instrumentation", "java.*,com.sun.*,sun.*")
-                    .add("server_urls", "http://localhost:" + port))
+                    .add("server_url", "http://localhost:" + port))
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
                 .build())
-            .build();
+            .buildAndStart();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
 
     }

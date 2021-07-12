@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,12 +15,11 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -44,7 +38,7 @@ import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 @SuppressWarnings("rawtypes")
-public abstract class BaseKafkaInstrumentation extends ElasticApmInstrumentation {
+public abstract class BaseKafkaInstrumentation extends TracerAwareInstrumentation {
 
     @SuppressWarnings({"WeakerAccess"})
     @Nullable
@@ -72,12 +66,16 @@ public abstract class BaseKafkaInstrumentation extends ElasticApmInstrumentation
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        // Incubating until we implement traceparent binary format
         return Collections.singletonList("kafka");
     }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("org.apache.kafka.clients.consumer.ConsumerRecord"));
+    }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
     }
 }

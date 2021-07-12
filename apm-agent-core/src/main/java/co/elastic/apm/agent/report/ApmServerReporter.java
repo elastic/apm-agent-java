@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,19 +15,16 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.disruptor.ExponentionallyIncreasingSleepingWaitStrategy;
-import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.MathUtils;
-import co.elastic.apm.agent.util.ThreadUtils;
+import co.elastic.apm.agent.premain.ThreadUtils;
+import com.dslplatform.json.JsonWriter;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.EventTranslatorOneArg;
@@ -42,9 +34,7 @@ import com.lmax.disruptor.dsl.ProducerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -84,6 +74,12 @@ public class ApmServerReporter implements Reporter {
             event.setError(error);
         }
     };
+    private static final EventTranslatorOneArg<ReportingEvent, JsonWriter> JSON_WRITER_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, JsonWriter>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, JsonWriter jsonWriter) {
+            event.setJsonWriter(jsonWriter);
+        }
+    };
     private static final EventTranslator<ReportingEvent> SHUTDOWN_EVENT_TRANSLATOR = new EventTranslator<ReportingEvent>() {
         @Override
         public void translateTo(ReportingEvent event, long sequence) {
@@ -94,14 +90,11 @@ public class ApmServerReporter implements Reporter {
     private final Disruptor<ReportingEvent> disruptor;
     private final AtomicLong dropped = new AtomicLong();
     private final boolean dropTransactionIfQueueFull;
-    private final CoreConfiguration coreConfiguration;
     private final ReportingEventHandler reportingEventHandler;
     private final boolean syncReport;
-    @Nullable
-    private ScheduledThreadPoolExecutor metricsReportingScheduler;
 
     public ApmServerReporter(boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration,
-                             CoreConfiguration coreConfiguration, ReportingEventHandler reportingEventHandler) {
+                             ReportingEventHandler reportingEventHandler) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         this.syncReport = reporterConfiguration.isReportSynchronously();
         disruptor = new Disruptor<>(new TransactionEventFactory(), MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()), new ThreadFactory() {
@@ -113,10 +106,13 @@ public class ApmServerReporter implements Reporter {
                 return thread;
             }
         }, ProducerType.MULTI, new ExponentionallyIncreasingSleepingWaitStrategy(100_000, 10_000_000));
-        this.coreConfiguration = coreConfiguration;
         this.reportingEventHandler = reportingEventHandler;
         disruptor.setDefaultExceptionHandler(new IgnoreExceptionHandler());
         disruptor.handleEventsWith(this.reportingEventHandler);
+    }
+
+    @Override
+    public void start() {
         disruptor.start();
         reportingEventHandler.init(this);
     }
@@ -228,6 +224,7 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public void close() {
+        logger.info("dropped events because of full queue: {}", dropped.get());
         disruptor.getRingBuffer().tryPublishEvent(SHUTDOWN_EVENT_TRANSLATOR);
         try {
             disruptor.shutdown(5, TimeUnit.SECONDS);
@@ -235,9 +232,6 @@ public class ApmServerReporter implements Reporter {
             logger.warn("Timeout while shutting down disruptor");
         }
         reportingEventHandler.close();
-        if (metricsReportingScheduler != null) {
-            metricsReportingScheduler.shutdown();
-        }
     }
 
     @Override
@@ -251,23 +245,13 @@ public class ApmServerReporter implements Reporter {
     }
 
     @Override
-    public void scheduleMetricReporting(final MetricRegistry metricRegistry, long intervalMs) {
-        if (intervalMs > 0 && metricsReportingScheduler == null) {
-            metricsReportingScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("metrics-reporter", 1);
-            metricsReportingScheduler.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
-                    if (!coreConfiguration.isActive()) {
-                        return;
-                    }
-                    disruptor.getRingBuffer().tryPublishEvent(new EventTranslatorOneArg<ReportingEvent, MetricRegistry>() {
-                        @Override
-                        public void translateTo(ReportingEvent event, long sequence, MetricRegistry metricRegistry) {
-                            event.reportMetrics(metricRegistry);
-                        }
-                    }, metricRegistry);
-                }
-            }, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
+    public void report(JsonWriter jsonWriter) {
+        if (jsonWriter.size() == 0) {
+            return;
+        }
+        tryAddEventToRingBuffer(jsonWriter, JSON_WRITER_EVENT_TRANSLATOR);
+        if (syncReport) {
+            waitForFlush();
         }
     }
 
@@ -275,6 +259,9 @@ public class ApmServerReporter implements Reporter {
         if (dropTransactionIfQueueFull) {
             boolean queueFull = !disruptor.getRingBuffer().tryPublishEvent(eventTranslator, event);
             if (queueFull) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Could not add {} {} to ring buffer as no slots are available", event.getClass().getSimpleName(), event);
+                }
                 dropped.incrementAndGet();
                 return false;
             }

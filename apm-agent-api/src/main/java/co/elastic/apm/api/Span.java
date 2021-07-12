@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.api;
 
@@ -73,35 +67,36 @@ public interface Span {
     Span addTag(String key, String value);
 
     /**
-     * <p>
-     * Labels are used to add indexed information to transactions, spans, and errors.
-     * Indexed means the data is searchable and aggregatable in Elasticsearch.
-     * Multiple labels can be defined with different key-value pairs.
-     * </p>
-     * <ul>
-     *     <li>Indexed: Yes</li>
-     *     <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
-     *     <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
-     * </ul>
-     * <p>
-     * Label values can be a string, boolean, or number.
-     * Because labels for a given key are stored in the same place in Elasticsearch, all label values of a given key must have the same data type.
-     * Multiple data types per key will throw an exception, e.g. {@code {foo: bar}} and {@code {foo: 42}}
-     * </p>
-     * <p>
-     * Important: Avoid defining too many user-specified labels.
-     * Defining too many unique fields in an index is a condition that can lead to a
-     * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html#mapping-limit-settings">mapping explosion</a>.
-     * </p>
-     *
      * @param key   The label key.
      * @param value The label value.
      * @since 1.5.0
+     * @deprecated use {@link #setLabel(String, String)}
      */
     @Nonnull
+    @Deprecated
     Span addLabel(String key, String value);
 
     /**
+     * @param key   The label key.
+     * @param value The label value.
+     * @since 1.5.0, APM Server 6.7
+     * @deprecated use {@link #setLabel(String, Number)}
+     */
+    @Nonnull
+    @Deprecated
+    Span addLabel(String key, Number value);
+
+    /**
+     * @param key   The label key.
+     * @param value The label value.
+     * @since 1.5.0, APM Server 6.7
+     * @deprecated use {@link #setLabel(String, boolean)}
+     */
+    @Nonnull
+    @Deprecated
+    Span addLabel(String key, boolean value);
+
+    /**
      * <p>
      * Labels are used to add indexed information to transactions, spans, and errors.
      * Indexed means the data is searchable and aggregatable in Elasticsearch.
@@ -118,10 +113,6 @@ public interface Span {
      * Multiple data types per key will throw an exception, e.g. {@code {foo: bar}} and {@code {foo: 42}}
      * </p>
      * <p>
-     * Note: Number and boolean labels were only introduced in APM Server 6.7+.
-     * Using this API in combination with an older APM Server versions leads to validation errors.
-     * </p>
-     * <p>
      * Important: Avoid defining too many user-specified labels.
      * Defining too many unique fields in an index is a condition that can lead to a
      * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html#mapping-limit-settings">mapping explosion</a>.
@@ -129,10 +120,10 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
-     * @since 1.5.0, APM Server 6.7
+     * @since 1.19.0
      */
     @Nonnull
-    Span addLabel(String key, Number value);
+    Span setLabel(String key, String value);
 
     /**
      * <p>
@@ -162,10 +153,43 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
-     * @since 1.5.0, APM Server 6.7
+     * @since 1.19.0, APM Server 6.7
      */
     @Nonnull
-    Span addLabel(String key, boolean value);
+    Span setLabel(String key, Number value);
+
+    /**
+     * <p>
+     * Labels are used to add indexed information to transactions, spans, and errors.
+     * Indexed means the data is searchable and aggregatable in Elasticsearch.
+     * Multiple labels can be defined with different key-value pairs.
+     * </p>
+     * <ul>
+     *     <li>Indexed: Yes</li>
+     *     <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
+     *     <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
+     * </ul>
+     * <p>
+     * Label values can be a string, boolean, or number.
+     * Because labels for a given key are stored in the same place in Elasticsearch, all label values of a given key must have the same data type.
+     * Multiple data types per key will throw an exception, e.g. {@code {foo: bar}} and {@code {foo: 42}}
+     * </p>
+     * <p>
+     * Note: Number and boolean labels were only introduced in APM Server 6.7+.
+     * Using this API in combination with an older APM Server versions leads to validation errors.
+     * </p>
+     * <p>
+     * Important: Avoid defining too many user-specified labels.
+     * Defining too many unique fields in an index is a condition that can lead to a
+     * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html#mapping-limit-settings">mapping explosion</a>.
+     * </p>
+     *
+     * @param key   The label key.
+     * @param value The label value.
+     * @since 1.19.0, APM Server 6.7
+     */
+    @Nonnull
+    Span setLabel(String key, boolean value);
 
     /**
      * Sets the start timestamp of this event.
@@ -175,6 +199,15 @@ public interface Span {
      * @since 1.5.0
      */
     Span setStartTimestamp(long epochMicros);
+
+    /**
+     * Sets the outcome of this event
+     *
+     * @param outcome {@link Outcome#SUCCESS} to indicate success, {@link Outcome#FAILURE} for failure,
+     *                {@link Outcome#UNKNOWN} to indicate unknown outcome
+     * @return this
+     */
+    Span setOutcome(Outcome outcome);
 
     /**
      * NOTE: THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN VERSION 2.0.
@@ -223,13 +256,31 @@ public interface Span {
      * (underscore) character.
      * </p>
      *
-     * @param type      The general type of the new span
-     * @param subtype   The subtype of the new span
-     * @param action    The action related to the new span
+     * @param type    The general type of the new span
+     * @param subtype The subtype of the new span
+     * @param action  The action related to the new span
      * @return the started span, never {@code null}
      */
     @Nonnull
     Span startSpan(String type, @Nullable String subtype, @Nullable String action);
+
+    /**
+     * Start and return a new typed custom exit span as a child of this span.
+     * <p>
+     * Similar to {@link #startSpan(String, String, String)}, but the created span will be used to create a node in
+     * the Service Map and a downstream service in the Dependencies Table. The provided subtype will be used as the
+     * downstream service name, unless the {@code destination.service.resource} field is explicitly set through
+     * {@link #setDestinationService(String)}.
+     * <p>
+     * If invoked on a span which is already an exit span, this method will return a noop span.
+     *
+     * @param type    The type of the create span. If a known type is provide, it may be used to select service icon
+     * @param subtype The subtype of the created span. Will be used as the downstream service name. Cannot be {@code null}
+     * @param action  The action related to the new span
+     * @return the started exit span, or a noop span if this span is already an exit span, never {@code null}
+     */
+    @Nonnull
+    Span startExitSpan(String type, String subtype, @Nullable String action);
 
     /**
      * Start and return a new custom span with no type, as a child of this span.
@@ -385,4 +436,34 @@ public interface Span {
      */
     void injectTraceHeaders(HeaderInjector headerInjector);
 
+    /**
+     * Provides a way to manually set the destination address and port for this span. If used, values will override
+     * the automatically discovered ones, if there are such.
+     * Any value set through this method will take precedence over the automatically discovered one.
+     *
+     * NOTE: this is only relevant for spans that represent outgoing communication. Trying to invoke this method
+     * on a {@link Transaction} object will result with an {@link UnsupportedOperationException}.
+     *
+     * @param address a string representation of the destination host name or IP. {@code null} and empty values will
+     *                will cause the exclusion of the address field from the span context.
+     * @param port the destination port. Non-positive values will cause the exclusion of the port field from the span context.
+     * @return this span
+     */
+    @Nonnull
+    Span setDestinationAddress(@Nullable String address, int port);
+
+    /**
+     * Provides a way to manually set the {@code destination.service.resource} field, which is used for the construction
+     * of service maps and the identification of downstream services.
+     * Any value set through this method will take precedence over the automatically inferred one.
+     *
+     * NOTE: this is only relevant for spans that represent outgoing communication. Trying to invoke this method
+     * on a {@link Transaction} object will result with an {@link UnsupportedOperationException}.
+     *
+     * @param resource the string representation of the downstream service. Will be used to override automatically
+     *                 inferred value, even if {@code null}.
+     * @return this span
+     */
+    @Nonnull
+    Span setDestinationService(@Nullable String resource);
 }

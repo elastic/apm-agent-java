@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,12 +15,12 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -60,25 +55,28 @@ public class ConsumerRecordsRecordListInstrumentation extends KafkaConsumerRecor
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ConsumerRecordsAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.kafka.ConsumerRecordsRecordListInstrumentation$ConsumerRecordsAdvice";
     }
 
     @SuppressWarnings("rawtypes")
     public static class ConsumerRecordsAdvice {
 
+        @Nullable
+        @AssignTo.Return
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-        public static void wrapRecordList(@Nullable @Advice.Return(readOnly = false) List<ConsumerRecord> list) {
-            if (tracer == null || tracer.currentTransaction() != null) {
-                return;
+        public static List<ConsumerRecord> wrapRecordList(@Advice.Return @Nullable final List<ConsumerRecord> list) {
+            if (!tracer.isRunning() || tracer.currentTransaction() != null || list == null) {
+                return list;
             }
 
             //noinspection ConstantConditions,rawtypes
             KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord> kafkaInstrumentationHelper =
                 kafkaInstrHeadersHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
-            if (list != null && kafkaInstrumentationHelper != null) {
-                list = kafkaInstrumentationHelper.wrapConsumerRecordList(list);
+            if (kafkaInstrumentationHelper != null) {
+                return kafkaInstrumentationHelper.wrapConsumerRecordList(list);
             }
+            return list;
         }
     }
 }

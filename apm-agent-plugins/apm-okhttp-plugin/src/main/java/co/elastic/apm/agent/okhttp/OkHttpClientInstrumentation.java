@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,18 +15,14 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.squareup.okhttp.HttpUrl;
 import com.squareup.okhttp.Request;
 import net.bytebuddy.asm.Advice;
@@ -40,68 +31,62 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumentation {
 
-    public OkHttpClientInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
-
     @Override
-    public Class<?> getAdviceClass() {
-        return OkHttpClientExecuteAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.okhttp.OkHttpClientInstrumentation$OkHttpClientExecuteAdvice";
     }
 
-    @VisibleForAdvice
     public static class OkHttpClientExecuteAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute(@Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Object originalRequest,
-                                            @Advice.Local("span") Span span) {
+        @Nonnull
+        @AssignTo(fields = @AssignTo.Field(index = 0, value = "originalRequest", typing = Assigner.Typing.DYNAMIC))
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object[] onBeforeExecute(@Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
 
-            if (tracer == null || tracer.getActive() == null) {
-                return;
-            }
-            final TraceContextHolder<?> parent = tracer.getActive();
-
-            if (originalRequest == null) {
-                return;
+            final AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null || !(originalRequest instanceof Request)) {
+                return new Object[]{originalRequest, null};
             }
 
-            if (originalRequest instanceof com.squareup.okhttp.Request) {
-                com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) originalRequest;
-                HttpUrl httpUrl = request.httpUrl();
-                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), httpUrl.toString(), httpUrl.scheme(),
-                    OkHttpClientHelper.computeHostName(httpUrl.host()), httpUrl.port());
-                if (span != null) {
-                    span.activate();
-                    if (headerSetterHelperManager != null) {
-                        TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
-                        if (headerSetter != null) {
-                            Request.Builder builder = ((com.squareup.okhttp.Request) originalRequest).newBuilder();
-                            span.getTraceContext().setOutgoingTraceContextHeaders(builder, headerSetter);
-                            originalRequest = builder.build();
-                        }
-                    }
-                }
+            com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) originalRequest;
+            HttpUrl httpUrl = request.httpUrl();
+
+            Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), httpUrl.toString(), httpUrl.scheme(),
+                OkHttpClientHelper.computeHostName(httpUrl.host()), httpUrl.port());
+
+            Request.Builder builder = ((com.squareup.okhttp.Request) originalRequest).newBuilder();
+            if (span != null) {
+                span.activate();
+                span.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
+            } else {
+                parent.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
             }
+            return new Object[]{builder.build(), span};
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Return @Nullable com.squareup.okhttp.Response response,
-                                          @Advice.Local("span") @Nullable Span span,
-                                          @Advice.Thrown @Nullable Throwable t) {
+                                          @Advice.Thrown @Nullable Throwable t,
+                                          @Advice.Enter @Nonnull Object[] enter) {
+            Span span = null;
+            if (enter[1] instanceof Span) {
+                span = (Span) enter[1];
+            }
             if (span != null) {
                 try {
                     if (response != null) {
                         int statusCode = response.code();
                         span.getContext().getHttp().withStatusCode(statusCode);
+                    } else if (t != null) {
+                        span.withOutcome(Outcome.FAILURE);
                     }
                     span.captureException(t);
                 } finally {

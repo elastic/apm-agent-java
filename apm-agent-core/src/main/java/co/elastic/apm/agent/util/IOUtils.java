@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,40 +6,48 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigInteger;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 @VisibleForAdvice
 public class IOUtils {
-    static final int BYTE_BUFFER_CAPACITY = 2048;
-    private static ThreadLocal<ByteBuffer> threadLocalByteBuffer = new ThreadLocal<ByteBuffer>() {
+    protected static final int BYTE_BUFFER_CAPACITY = 2048;
+    protected static final ThreadLocal<ByteBuffer> threadLocalByteBuffer = new ThreadLocal<ByteBuffer>() {
         @Override
         protected ByteBuffer initialValue() {
             return ByteBuffer.allocate(BYTE_BUFFER_CAPACITY);
         }
     };
-    private static ThreadLocal<CharsetDecoder> threadLocalCharsetDecoder = new ThreadLocal<CharsetDecoder>() {
+    protected static final ThreadLocal<CharsetDecoder> threadLocalCharsetDecoder = new ThreadLocal<CharsetDecoder>() {
         @Override
         protected CharsetDecoder initialValue() {
             return StandardCharsets.UTF_8.newDecoder();
@@ -189,7 +192,7 @@ public class IOUtils {
         return decode(charBuffer, buffer);
     }
 
-    private static CoderResult decode(CharBuffer charBuffer, ByteBuffer buffer) {
+    protected static CoderResult decode(CharBuffer charBuffer, ByteBuffer buffer) {
         final CharsetDecoder charsetDecoder = threadLocalCharsetDecoder.get();
         try {
             final CoderResult coderResult = charsetDecoder.decode(buffer, charBuffer, true);
@@ -198,6 +201,51 @@ public class IOUtils {
         } finally {
             ((Buffer) buffer).clear();
             charsetDecoder.reset();
+        }
+    }
+
+    /**
+     * Why it's synchronized : if the same JVM try to lock file, we got an java.nio.channels.OverlappingFileLockException.
+     * So we need to block until the file is totally written.
+     */
+    public static synchronized File exportResourceToDirectory(String resource, String parentDirectory, String tempFileNamePrefix,
+                                                              String tempFileNameExtension) {
+        try (InputStream resourceStream = IOUtils.class.getResourceAsStream("/" + resource)) {
+            if (resourceStream == null) {
+                throw new IllegalStateException(resource + " not found");
+            }
+            String hash = md5Hash(IOUtils.class.getResourceAsStream("/" + resource));
+            File tempFile = new File(parentDirectory, tempFileNamePrefix + "-" + hash + tempFileNameExtension);
+            if (!tempFile.exists()) {
+                try (FileOutputStream out = new FileOutputStream(tempFile)) {
+                    FileChannel channel = out.getChannel();
+                    // If multiple JVM start on same compute, they can write in same file
+                    // and this file will be corrupted.
+                    try (FileLock ignored = channel.lock()) {
+                        if (tempFile.length() == 0) {
+                            byte[] buffer = new byte[1024];
+                            for (int length; (length = resourceStream.read(buffer)) != -1; ) {
+                                out.write(buffer, 0, length);
+                            }
+                        }
+                    }
+                }
+            } else if (!md5Hash(new FileInputStream(tempFile)).equals(hash)) {
+                throw new IllegalStateException("Invalid MD5 checksum of " + tempFile + ". Please delete this file.");
+            }
+            return tempFile;
+        } catch (NoSuchAlgorithmException | IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    public static String md5Hash(InputStream resourceAsStream) throws IOException, NoSuchAlgorithmException {
+        try (InputStream is = resourceAsStream) {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] buffer = new byte[1024];
+            DigestInputStream dis = new DigestInputStream(is, md);
+            while (dis.read(buffer) != -1) {}
+            return String.format("%032x", new BigInteger(1, md.digest()));
         }
     }
 }

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,10 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.httpclient.helper;
 
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.apache.http.HttpResponse;
@@ -35,14 +30,14 @@ import org.apache.http.protocol.HttpCoreContext;
 import javax.annotation.Nullable;
 
 class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
-    private final ApacheHttpAsyncClientHelperImpl helper;
+    private final ApacheHttpAsyncClientHelper helper;
     @Nullable
     private FutureCallback<T> delegate;
     @Nullable
     private HttpContext context;
     private volatile Span span;
 
-    FutureCallbackWrapper(ApacheHttpAsyncClientHelperImpl helper) {
+    FutureCallbackWrapper(ApacheHttpAsyncClientHelper helper) {
         this.helper = helper;
     }
 
@@ -104,6 +99,10 @@ class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
                 }
             }
             localSpan.captureException(e);
+
+            if (e != null) {
+                localSpan.withOutcome(Outcome.FAILURE);
+            }
         } finally {
             localSpan.end();
         }

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,22 +6,23 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.servlet.tests;
 
 import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.Map;
 
 public abstract class TestApp {
 
@@ -58,6 +54,22 @@ public abstract class TestApp {
     @Nullable
     public String getExpectedServiceName() {
         return expectedServiceName;
+    }
+
+    /**
+     * Provides a way to bind additional files to the container file system
+     * @return a map of file-paths to designated container-paths
+     */
+    public Map<String, String> getAdditionalFilesToBind() {
+        return Collections.emptyMap();
+    }
+
+    /**
+     * Provides a way to configure additional environment variables for a specific app
+     * @return a map of env variable names to values
+     */
+    public Map<String, String> getAdditionalEnvVariables() {
+        return Collections.emptyMap();
     }
 
     public abstract void test(AbstractServletContainerIntegrationTest test) throws Exception;

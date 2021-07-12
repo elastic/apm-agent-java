@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,20 +6,18 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.redis.lettuce;
 
-import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.redis.AbstractRedisInstrumentationTest;
 import io.lettuce.core.LettuceFutures;
 import io.lettuce.core.RedisClient;
@@ -51,58 +44,49 @@ public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTes
     public void setUpLettuce() {
         RedisClient client = RedisClient.create(RedisURI.create("localhost", redisPort));
         connection = client.connect();
-        reporter.disableDestinationAddressCheck();
+        reporter.disableCheckDestinationAddress();
     }
 
     @Test
     public void testClusterCommand() {
         RedisCommands<String, String> sync = connection.sync();
-        try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
-            sync.set("foo", "bar");
-            assertThat(sync.get("foo")).isEqualTo("bar");
-        }
+        sync.set("foo", "bar");
+        assertThat(sync.get("foo")).isEqualTo("bar");
         assertTransactionWithRedisSpans("SET", "GET");
     }
+
     @Test
     public void testSyncLettuce() {
         RedisCommands<String, String> sync = connection.sync();
-        try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
-            sync.set("foo", "bar");
-            assertThat(sync.get("foo")).isEqualTo("bar");
-        }
+        sync.set("foo", "bar");
+        assertThat(sync.get("foo")).isEqualTo("bar");
         assertTransactionWithRedisSpans("SET", "GET");
     }
 
     @Test
     public void testAsyncLettuce() throws Exception {
         RedisAsyncCommands<String, String> async = connection.async();
-        try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
-            async.set("foo", "bar").get();
-            assertThat(async.get("foo").get()).isEqualTo("bar");
-        }
+        async.set("foo", "bar").get();
+        assertThat(async.get("foo").get()).isEqualTo("bar");
         assertTransactionWithRedisSpans("SET", "GET");
     }
 
     @Test
     public void testBatchedLettuce() throws Exception {
         RedisAsyncCommands<String, String> async = connection.async();
-        try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
-            async.set("foo", "bar").get();
-            async.setAutoFlushCommands(false);
-            List<RedisFuture<String>> futures = List.of(async.get("foo"), async.get("foo"));
-            async.flushCommands();
-            LettuceFutures.awaitAll(Duration.ofSeconds(5), futures.toArray(new RedisFuture[0]));
-        }
+        async.set("foo", "bar").get();
+        async.setAutoFlushCommands(false);
+        List<RedisFuture<String>> futures = List.of(async.get("foo"), async.get("foo"));
+        async.flushCommands();
+        LettuceFutures.awaitAll(Duration.ofSeconds(5), futures.toArray(new RedisFuture[0]));
         assertTransactionWithRedisSpans("SET", "GET", "GET");
     }
 
     @Test
     public void testReactiveLettuce() {
         RedisReactiveCommands<String, String> async = connection.reactive();
-        try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
-            async.set("foo", "bar").block();
-            assertThat(async.get("foo").block()).isEqualTo("bar");
-        }
+        async.set("foo", "bar").block();
+        assertThat(async.get("foo").block()).isEqualTo("bar");
         assertTransactionWithRedisSpans("SET", "GET");
     }
 

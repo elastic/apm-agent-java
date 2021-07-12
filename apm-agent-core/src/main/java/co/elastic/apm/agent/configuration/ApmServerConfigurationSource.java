@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,22 +6,20 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
 import co.elastic.apm.agent.util.ExecutorUtils;
@@ -63,7 +56,6 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
     private final byte[] buffer = new byte[4096];
     private final PayloadSerializer payloadSerializer;
-    private final MetaData metaData;
     private final ApmServerClient apmServerClient;
     @Nullable
     private String etag;
@@ -71,13 +63,12 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     @Nullable
     private volatile ThreadPoolExecutor threadPool;
 
-    public ApmServerConfigurationSource(PayloadSerializer payloadSerializer, MetaData metaData, ApmServerClient apmServerClient) {
-        this(payloadSerializer, metaData, apmServerClient, LoggerFactory.getLogger(ApmServerConfigurationSource.class));
+    public ApmServerConfigurationSource(PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
+        this(payloadSerializer, apmServerClient, LoggerFactory.getLogger(ApmServerConfigurationSource.class));
     }
 
-    ApmServerConfigurationSource(PayloadSerializer payloadSerializer, MetaData metaData, ApmServerClient apmServerClient, Logger logger) {
+    ApmServerConfigurationSource(PayloadSerializer payloadSerializer, ApmServerClient apmServerClient, Logger logger) {
         this.payloadSerializer = payloadSerializer;
-        this.metaData = metaData;
         this.apmServerClient = apmServerClient;
         this.logger = logger;
     }
@@ -104,8 +95,13 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     }
 
     @Override
+    public void init(ElasticApmTracer tracer) throws Exception {
+        // noop
+    }
+
+    @Override
     public void start(final ElasticApmTracer tracer) {
-        threadPool = ExecutorUtils.createSingleThreadDeamonPool("remote-config-poller", 1);
+        threadPool = ExecutorUtils.createSingleThreadDaemonPool("remote-config-poller", 1);
         threadPool.execute(new Runnable() {
             @Override
             public void run() {
@@ -155,10 +151,15 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
             return null;
         }
         try {
+            payloadSerializer.blockUntilReady();
             return apmServerClient.execute("/config/v1/agents", new ApmServerClient.ConnectionHandler<String>() {
                 @Override
                 public String withConnection(HttpURLConnection connection) throws IOException {
-                    return tryFetchConfig(configurationRegistry, connection);
+                    try {
+                        return tryFetchConfig(configurationRegistry, connection);
+                    } catch (PayloadSerializer.UninitializedException e) {
+                        throw new IOException("Cannot fetch configuration from APM Server, serializer not initialized yet", e);
+                    }
                 }
             });
         } catch (Exception e) {
@@ -167,7 +168,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
         }
     }
 
-    private String tryFetchConfig(ConfigurationRegistry configurationRegistry, HttpURLConnection connection) throws IOException {
+    private String tryFetchConfig(ConfigurationRegistry configurationRegistry, HttpURLConnection connection) throws IOException, PayloadSerializer.UninitializedException {
         if (logger.isDebugEnabled()) {
             logger.debug("Reloading configuration from APM Server {}", connection.getURL());
         }
@@ -178,8 +179,8 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
             connection.setRequestProperty("If-None-Match", etag);
         }
         payloadSerializer.setOutputStream(connection.getOutputStream());
-        payloadSerializer.serializeMetadata(metaData);
-        payloadSerializer.flush();
+        payloadSerializer.appendMetadataToStream();
+        payloadSerializer.fullFlush();
         etag = connection.getHeaderField("ETag");
 
         final int status = connection.getResponseCode();
@@ -225,6 +226,16 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     @Override
     public String getName() {
         return "APM Server";
+    }
+
+    @Override
+    public void pause() {
+        // Keep polling for remote config changes, in case the user wants to resume a paused agent or change the stress
+        // monitoring configurations.
+    }
+
+    @Override
+    public void resume() {
     }
 
     @Override

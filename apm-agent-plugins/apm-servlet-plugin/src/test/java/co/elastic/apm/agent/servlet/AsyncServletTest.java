@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,30 +6,21 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.AbstractServletTest;
-import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import net.bytebuddy.agent.ByteBuddyAgent;
 import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javax.servlet.AsyncContext;
@@ -55,25 +41,9 @@ import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class AsyncServletTest extends AbstractServletTest {
+class AsyncServletTest extends AbstractServletTest {
 
     private static final String ACTIVE_TRANSACTION_ATTRIBUTE = "active-transaction";
-
-    private static ElasticApmTracer tracer;
-
-    @BeforeAll
-    static void setUp() {
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
-            .reporter(reporter)
-            .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
-    }
-
-    @AfterAll
-    static void afterAll() {
-        ElasticApmAgent.reset();
-    }
 
     @Override
     protected void setUpHandler(ServletContextHandler handler) {
@@ -218,9 +188,13 @@ public class AsyncServletTest extends AbstractServletTest {
 
         @Override
         public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-            assertThat(tracer.currentTransaction()).isNotNull();
+            assertThat(tracer.currentTransaction())
+                .describedAs("should be within a transaction at beginning of doFilter %s", request)
+                .isNotNull();
             chain.doFilter(request, response);
-            assertThat(tracer.currentTransaction()).isNotNull();
+            assertThat(tracer.currentTransaction())
+                .describedAs("should be within a transaction at end of doFilter %s", request)
+                .isNotNull();
         }
 
         @Override

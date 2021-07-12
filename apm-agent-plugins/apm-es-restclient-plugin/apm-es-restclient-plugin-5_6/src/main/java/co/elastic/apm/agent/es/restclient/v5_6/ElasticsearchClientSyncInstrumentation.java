@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,16 +6,15 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.es.restclient.v5_6;
 
@@ -34,6 +28,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.http.HttpEntity;
 import org.elasticsearch.client.Response;
+import org.elasticsearch.client.ResponseListener;
 
 import javax.annotation.Nullable;
 
@@ -49,24 +44,26 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
         super(tracer);
     }
 
-    private static class ElasticsearchRestClientAdvice {
+    public static class ElasticsearchRestClientAdvice {
+        @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute(@Advice.Argument(0) String method,
+        public static Span onBeforeExecute(@Advice.Argument(0) String method,
                                             @Advice.Argument(1) String endpoint,
-                                            @Advice.Argument(3) @Nullable HttpEntity entity,
-                                            @Advice.Local("span") Span span,
-                                            @Advice.Local("helper") ElasticsearchRestClientInstrumentationHelper helper) {
-            helper = esClientInstrHelperManager.getForClassLoaderOfClass(Response.class);
-            if (helper != null) {
-                span = helper.createClientSpan(method, endpoint, entity);
+                                            @Advice.Argument(3) @Nullable HttpEntity entity) {
+            ElasticsearchRestClientInstrumentationHelper<HttpEntity, Response, ResponseListener> helper =
+                esClientInstrHelperManager.getForClassLoaderOfClass(Response.class);
+            if (helper == null) {
+                return null;
             }
+            return helper.createClientSpan(method, endpoint, entity);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.Return @Nullable Response response,
-                                          @Advice.Local("span") @Nullable Span span,
-                                          @Advice.Local("helper") @Nullable ElasticsearchRestClientInstrumentationHelper helper,
+                                          @Advice.Enter @Nullable Span span,
                                           @Advice.Thrown @Nullable Throwable t) {
+            ElasticsearchRestClientInstrumentationHelper<HttpEntity, Response, ResponseListener> helper =
+                esClientInstrHelperManager.getForClassLoaderOfClass(Response.class);
             if (helper != null && span != null) {
                 try {
                     helper.finishClientSpan(response, span, t);
@@ -78,8 +75,8 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ElasticsearchRestClientAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchClientSyncInstrumentation$ElasticsearchRestClientAdvice";
     }
 
     @Override

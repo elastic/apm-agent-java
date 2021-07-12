@@ -7,16 +7,23 @@ from writing tutorials or blog posts,
 improving the documentation,
 submitting bug reports and feature requests or writing code.
 
+If you want to be rewarded for your contributions, sign up for the [Elastic Contributor Program](https://www.elastic.co/community/contributor). Each time you make a valid contribution, you’ll earn points that increase your chances of winning prizes and being recognized as a top contributor.
+
 You can get in touch with us through [Discuss](https://discuss.elastic.co/c/apm),
 feedback and ideas are always welcome.
 
 ## Code contributions
 
-If you have a bugfix or new feature that you would like to contribute,
-please find or open an issue about it first.
-Talk about what you would like to do.
-It may be that somebody is already working on it,
-or that there are particular issues that you should know about before implementing the change.
+If you have a bugfix or new feature that you would like to contribute, please do the following:
+- Double check in open issues if there are any related issues or PRs
+- Open an issue, ensure that you have properly described the use-case and possible solutions, link related issues/PRs if any
+- Open a PR and link the issue created in previous step with your code changes.
+
+Doing so allows to:
+- Share knowledge and document a bug/missing feature
+- Get feedback if someone is already working on it or is having a similar issue
+- Benefit from the team experience by discussing it first, there are lots of implementation details that might not be
+obvious at first sight.
 
 Once you are all set to go, [this "cookbook recipe" blog post](https://www.elastic.co/blog/a-cookbook-for-contributing-a-plugin-to-the-elastic-apm-java-agent) can guide you through.
 
@@ -39,6 +46,17 @@ The integration tests take some more time to execute.
 For small changes you don't have to execute them locally.
 When creating a pull requests,
 they will be executed by a CI server.
+
+#### Performance testing
+
+We have some JMH Tests that allow to track the following performance metrics deltas when agent is activated.
+- memory allocation rate (GC pressure)
+- cpu time
+
+In order to run them, you can use the `ElasticApmActiveContinuousBenchmark` from IDE or command line.
+
+Metrics reported by this test are just data, in order to make good use of them, you have to
+compare them against `master` branch values as a baseline to know if a given code change has any impact.
 
 ### Configuring IDEs
 
@@ -68,7 +86,7 @@ These live templates can be pasted in Preferences > Editor > Live Templates > ot
 
 **`enter`**
 ```xml
-<template name="enter" value="@Advice.OnMethodEnter(suppress = Throwable.class)&#10;private static void onEnter() {&#10;    $END$&#10;}" description="Adds @OnMethodEnter advice" toReformat="false" toShortenFQNames="true">
+<template name="enter" value="@Advice.OnMethodEnter(suppress = Throwable.class, inline = false)&#10;public static void onEnter() {&#10;    $END$&#10;}" description="Adds @OnMethodEnter advice" toReformat="true" toShortenFQNames="true">
   <context>
     <option name="JAVA_DECLARATION" value="true" />
   </context>
@@ -78,17 +96,17 @@ These live templates can be pasted in Preferences > Editor > Live Templates > ot
 **`exit`**
 
 ```xml
-<template name="exit" value="@Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)&#10;private static void onExit(@Advice.Thrown Throwable thrown) {&#10;    $END$&#10;}" description="Adds @OnMethodExit advice" toReformat="false" toShortenFQNames="true">
-  <context>
-    <option name="JAVA_DECLARATION" value="true" />
-  </context>
+<template name="exit" value="@Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)&#10;public static void onExit(@Advice.Thrown @Nullable Throwable thrown, @Advice.Return @Nullable Object returnValue) {&#10;    $END$&#10;}" description="Adds @OnMethodExit advice" toReformat="true" toShortenFQNames="true">
+    <context>
+        <option name="JAVA_DECLARATION" value="true" />
+    </context>
 </template>
 ```
 
 
 **`logger`**
 ```xml
-<template name="logger" value="private static final Logger logger = LoggerFactory.getLogger($CLASS_NAME$.class);" description="" toReformat="false" toShortenFQNames="true">
+<template name="logger" value="private static final Logger logger = LoggerFactory.getLogger($CLASS_NAME$.class);" description="" toReformat="true" toShortenFQNames="true">
   <variable name="CLASS_NAME" expression="className()" defaultValue="" alwaysStopAt="true" />
   <context>
     <option name="JAVA_DECLARATION" value="true" />
@@ -108,12 +126,12 @@ These live templates can be pasted in Preferences > Editor > Live Templates > ot
 
 **`at`**
 ```xml
-<template name="at" value="assertThat($EXPR$)$END$;" description="assertJ assert expression" toReformat="false" toShortenFQNames="true">
+<template name="at" value="assertThat($EXPR$)$END$;" description="assertJ assert expression" toReformat="true" toShortenFQNames="true" useStaticImport="true">
   <variable name="EXPR" expression="" defaultValue="" alwaysStopAt="true" />
   <context>
     <option name="JAVA_STATEMENT" value="true" />
   </context>
- </template>
+</template>
  ```
 
 
@@ -224,7 +242,7 @@ we should think about whether they bring us closer to or further away from those
   Create a configuration option for this new feature and disable it by default.
   One advantage is that less time will be spent rebasing long lasting feature branches.
   Another advantage is that users can try out cutting-edge features by activating a configuration option.
-  Instrumentations can be tagged with `incubating` which makes them being disabled by default.
+  Instrumentations can be tagged with `experimental` which makes them being disabled by default.
 
 ### Architecture overview
 
@@ -243,6 +261,8 @@ all the other asciidoc text files are written manually.
 A preview of the documentation is generated for each pull-request.
 Click on the build `Details` of the `elasticsearch-ci/docs` job and go to the bottom of the `Console Output` to see the link.
 
+This step is part of Elasticsearch CI, and the build job is [the following](https://elasticsearch-ci.elastic.co/view/Docs/job/elastic+docs+apm-agent-java+pull-request/).
+
 In order to generate a local copy of agent documentation, you will need to clone [docs](https://github.com/elastic/docs) repository
 and follow [those instructions](https://github.com/elastic/docs#for-a-local-repo).
 
@@ -256,8 +276,9 @@ For illustration purpose, `1.2.3` will be the target release version, and the gi
 1. Update [`CHANGELOG.asciidoc`](CHANGELOG.asciidoc) to reflect the new version release:
    1. Go over PRs or git log and add bug fixes and features.
    1. Move release notes from the `Unreleased` sub-heading to the correct `[[release-notes-{major}.x]]` sub-heading ([Example PR](https://github.com/elastic/apm-agent-java/pull/1027/files) for 1.13.0 release).
+1. For major releases, update the EOL table in [`upgrading.asciidoc`](docs/upgrading.asciidoc).
 1. Review Maven project version, you must have `${project.version}` equal to `1.2.3-SNAPSHOT`, `-SNAPSHOT` suffix will be removed during release process.
-   1. If needed, use following command to set version `mvn versions:set -DnewVersion=1.2.3-SNAPSHOT`, then commit and push changes.
+   1. If needed, use following command to update version - `mvn release:update-versions`, then commit and push changes.
 1. Execute the release Jenkins job on the internal ci server. This job is same as the snapshot-build job, but it also:
    1. Removes `-SNAPSHOT` from all `${project.version}` occurrences and makes a commit before build
    1. Tags this new commit with the version name, e.g. `v1.2.3`.
@@ -277,7 +298,7 @@ For illustration purpose, `1.2.3` will be the target release version, and the gi
 1. Build and push a Docker image using the instructions below
    Use `SONATYPE_FALLBACK=1 scripts/jenkins/build_docker.sh` to build image with released artifact.
    Requires credentials, thus need to delegate this manual step to someone that has them.
-1. Update [`cloudfoundry/index.yml`](cloudfoundry/index.yml) on  master`.
+1. Update [`cloudfoundry/index.yml`](cloudfoundry/index.yml) on  `master`.
 1. Publish release on Github. This will notify users watching repository.
 
 ###  Docker images

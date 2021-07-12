@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,15 +15,14 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.Recyclable;
-import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.objectpool.Resetter;
+import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
@@ -151,7 +145,11 @@ public class Request implements Recyclable {
      * Note: you may not hold a reference to the returned {@link CharBuffer} as it will be reused.
      * </p>
      * <p>
-     * Note: This method is not thread safe
+     * Note: this method is not thread safe
+     * </p>
+     * <p>
+     * Note: In order for the value written to the body buffer to be used, you must call {@link Request#endOfBufferInput()},
+     * which is the only valid way to invoke {@link CharBuffer#flip()} on the body buffer.
      * </p>
      *
      * @return a {@link CharBuffer} to record the request body
@@ -187,9 +185,18 @@ public class Request implements Recyclable {
         }
     }
 
+    /**
+     * Returns the body buffer if it was written to and writing to it was finished through {@link Request#endOfBufferInput()}
+     *
+     * @return body buffer if it was written to and writing was finished; returns {@code null} otherwise.
+     */
     @Nullable
-    public CharBuffer getBodyBufferForSerialization() {
-        return bodyBuffer;
+    public CharSequence getBodyBufferForSerialization() {
+        if (bodyBufferFinished) {
+            return bodyBuffer;
+        } else {
+            return null;
+        }
     }
 
     public PotentiallyMultiValuedMap getFormUrlEncodedParameters() {
@@ -235,8 +242,24 @@ public class Request implements Recyclable {
     }
 
     public Request withHttpVersion(@Nullable String httpVersion) {
-        this.httpVersion = httpVersion;
+        if (httpVersion != null) {
+            this.httpVersion = getHttpVersion(httpVersion);
+        }
         return this;
+    }
+
+    private String getHttpVersion(String protocol) {
+        // don't allocate new strings in the common cases
+        switch (protocol) {
+            case "HTTP/1.0":
+                return "1.0";
+            case "HTTP/1.1":
+                return "1.1";
+            case "HTTP/2.0":
+                return "2.0";
+            default:
+                return protocol.replace("HTTP/", "");
+        }
     }
 
     /**
@@ -296,6 +319,7 @@ public class Request implements Recyclable {
             charBufferPool.recycle(bodyBuffer);
             bodyBuffer = null;
         }
+        rawBody = null;
     }
 
     public void copyFrom(Request other) {
@@ -306,14 +330,16 @@ public class Request implements Recyclable {
         this.socket.copyFrom(other.socket);
         this.url.copyFrom(other.url);
         this.cookies.copyFrom(other.cookies);
-        if (other.bodyBuffer != null) {
-            final CharBuffer otherBuffer = other.bodyBuffer;
+        // Using getBodyBufferForSerialization to make sure we copy body buffer only if it was written to and writing was finished
+        final CharSequence otherBuffer = other.getBodyBufferForSerialization();
+        if (otherBuffer != null) {
             final CharBuffer thisBuffer = this.withBodyBuffer();
             for (int i = 0; i < otherBuffer.length(); i++) {
                 thisBuffer.append(otherBuffer.charAt(i));
             }
-            ((Buffer) thisBuffer).flip();
+            endOfBufferInput();
         }
+        this.rawBody = other.rawBody;
     }
 
     public boolean hasContent() {

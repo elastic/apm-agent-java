@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.concurrent;
 
@@ -32,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -40,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ExecutorServiceDoubleWrappingTest extends AbstractInstrumentationTest {
     private static final Object TEST_OBJECT = new Object();
 
-    private final RunnableWrapperExecutorService executor = RunnableWrapperExecutorService.wrap(Executors.newSingleThreadExecutor(), tracer);
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private Transaction transaction;
 
     @Before
@@ -92,11 +87,7 @@ public class ExecutorServiceDoubleWrappingTest extends AbstractInstrumentationTe
         int numWrappers = 0;
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (StackTraceElement stackTraceElement : stackTrace) {
-            if (stackTraceElement.getClassName().equals("co.elastic.apm.agent.impl.async.SpanInScopeRunnableWrapper") &&
-                stackTraceElement.getMethodName().equals("run")) {
-                numWrappers++;
-            } else if (stackTraceElement.getClassName().equals("co.elastic.apm.agent.impl.async.SpanInScopeCallableWrapper") &&
-                stackTraceElement.getMethodName().equals("call")) {
+            if (stackTraceElement.getClassName().endsWith("LambdaWrapper")) {
                 numWrappers++;
             }
         }

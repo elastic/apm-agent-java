@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,22 +6,20 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.eclipse.jetty.http.HttpVersion;
@@ -43,22 +36,19 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-// Jenkins fails with java.lang.IllegalStateException: no valid keystore
-// tbh, I have no clue why
-@DisabledIfEnvironmentVariable(named = "JENKINS_HOME", matches = ".*")
 class ReporterFactoryTest {
 
     private Server server;
@@ -71,7 +61,8 @@ class ReporterFactoryTest {
     void setUp() throws Exception {
         server = new Server();
 
-        final SslContextFactory sslContextFactory = new SslContextFactory(getClass().getResource("/keystore").getPath());
+        Path keyStorePath = Paths.get(ReporterFactoryTest.class.getResource("/keystore").toURI());
+        final SslContextFactory sslContextFactory = new SslContextFactory(keyStorePath.toAbsolutePath().toString());
         sslContextFactory.setKeyStorePassword("password");
         sslContextFactory.getSslContext();
 
@@ -111,23 +102,33 @@ class ReporterFactoryTest {
     @Test
     void testNotValidatingSslCertificate() throws Exception {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(false);
-        final Reporter reporter = reporterFactory.createReporter(configuration, new ApmServerClient(reporterConfiguration), MetaData.create(configuration, null, null));
+        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient.start();
+        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaData.create(configuration, null));
+        reporter.start();
 
         reporter.report(new Transaction(MockTracer.create()));
         reporter.flush().get();
 
-        assertThat(requestHandled).isTrue();
+        assertThat(requestHandled)
+            .describedAs("request should ignore certificate validation and properly execute")
+            .isTrue();
     }
 
 
     @Test
     void testValidatingSslCertificate() throws Exception {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(true);
-        final Reporter reporter = reporterFactory.createReporter(configuration, new ApmServerClient(reporterConfiguration), MetaData.create(configuration, null, null));
+        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient.start();
+        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaData.create(configuration, null));
+        reporter.start();
 
         reporter.report(new Transaction(MockTracer.create()));
         reporter.flush().get();
 
-        assertThat(requestHandled).isFalse();
+        assertThat(requestHandled)
+            .describedAs("request should have produced a certificate validation error")
+            .isFalse();
     }
 }

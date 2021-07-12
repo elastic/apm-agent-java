@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,20 +6,20 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.es.restclient.v5_6;
 
 import co.elastic.apm.agent.es.restclient.AbstractEsClientInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -71,7 +66,7 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 @RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientInstrumentationTest {
 
-    protected static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:5.6.0";
+    private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:5.6.0";
     protected static final String USER_NAME = "elastic";
     protected static final String PASSWORD = "changeme";
 
@@ -87,8 +82,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
         // Start the container
-        container = new ElasticsearchContainer(ELASTICSEARCH_CONTAINER_VERSION);
-        container.start();
+        startContainer(ELASTICSEARCH_CONTAINER_VERSION);
 
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(USER_NAME, PASSWORD));
@@ -105,7 +99,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
     @AfterClass
     public static void stopElasticsearchContainerAndClient() throws IOException {
         lowLevelClient.performRequest("DELETE", "/" + INDEX);
-        container.stop();
         lowLevelClient.close();
     }
 
@@ -123,6 +116,8 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         assertThat(re.getResponse().getStatusLine().getStatusCode()).isEqualTo(400);
 
         assertThatErrorsExistWhenDeleteNonExistingIndex();
+
+        assertThat(reporter.getFirstSpan().getOutcome()).isEqualTo(Outcome.FAILURE);
     }
 
     @Test
@@ -137,8 +132,9 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
 
         doPerformRequest("DELETE", "/" + SECOND_INDEX);
 
-
         validateSpanContentAfterIndexDeleteRequest();
+
+        assertThat(reporter.getFirstSpan().getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 
     @Test
@@ -204,7 +200,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         reporter.reset();
         DeleteResponse dr = doDelete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID));
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
-
     }
 
     @Test

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,33 +15,15 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import okhttp3.Request;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-public abstract class AbstractOkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
-
-    // We can refer OkHttp types thanks to type erasure
-    @VisibleForAdvice
-    @Nullable
-    public static HelperClassManager<TextHeaderSetter<Request.Builder>> headerSetterHelperManager;
-
-    public AbstractOkHttp3ClientInstrumentation(ElasticApmTracer tracer) {
-        headerSetterHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-            "co.elastic.apm.agent.okhttp.OkHttp3RequestHeaderSetter"
-        );
-    }
+public abstract class AbstractOkHttp3ClientInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,34 +6,38 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.http.client;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.net.URI;
 
 public class HttpClientHelper {
+
+    private static final Logger logger = LoggerFactory.getLogger(HttpClientHelper.class);
+
     public static final String EXTERNAL_TYPE = "external";
     public static final String HTTP_SUBTYPE = "http";
 
     @Nullable
     @VisibleForAdvice
-    public static Span startHttpClientSpan(TraceContextHolder<?> parent, String method, @Nullable URI uri, @Nullable CharSequence hostName) {
+    public static Span startHttpClientSpan(AbstractSpan<?> parent, String method, @Nullable URI uri, @Nullable CharSequence hostName) {
         String uriString = null;
         String scheme = null;
         int port = -1;
@@ -55,7 +54,7 @@ public class HttpClientHelper {
 
     @Nullable
     @VisibleForAdvice
-    public static Span startHttpClientSpan(TraceContextHolder<?> parent, String method, @Nullable String uri,
+    public static Span startHttpClientSpan(AbstractSpan<?> parent, String method, @Nullable String uri,
                                            String scheme, CharSequence hostName, int port) {
         Span span = parent.createExitSpan();
         if (span != null) {
@@ -63,10 +62,14 @@ public class HttpClientHelper {
                 .withSubtype(HTTP_SUBTYPE)
                 .appendToName(method).appendToName(" ").appendToName(hostName);
 
-            if (uri != null) {
-                span.getContext().getHttp().withUrl(uri);
-            }
+            span.getContext().getHttp()
+                .withUrl(uri)
+                .withMethod(method);
+
             setDestinationServiceDetails(span, scheme, hostName, port);
+        }
+        if (logger.isTraceEnabled()) {
+            logger.trace("Created an HTTP exit span: {} for URI: {}. Parent span: {}", span, uri, parent);
         }
         return span;
     }

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,16 +6,15 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.payload;
 
@@ -47,8 +41,8 @@ public class SystemInfo {
     private static final String CONTAINER_UID_REGEX = "^[0-9a-fA-F]{64}$";
     private static final String SHORTENED_UUID_PATTERN = "^[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4,}";
     private static final String POD_REGEX =
-        "(?:^/kubepods/[^/]+/pod([^/]+)$)|" +
-            "(?:^/kubepods\\.slice/kubepods-[^/]+\\.slice/kubepods-[^/]+-pod([^/]+)\\.slice$)";
+        "(?:^/kubepods[\\S]*/pod([^/]+)$)|" +
+            "(?:^/kubepods\\.slice/(kubepods-[^/]+\\.slice/)?kubepods[^/]*-pod([^/]+)\\.slice$)";
 
     /**
      * Architecture of the system the agent is running on.
@@ -203,6 +197,8 @@ public class SystemInfo {
                             String podUid = matcher.group(i);
                             if (podUid != null && !podUid.isEmpty()) {
                                 if (i == 2) {
+                                    continue;
+                                } else if (i == 3) {
                                     // systemd cgroup driver is being used, so we need to unescape '_' back to '-'.
                                     podUid = podUid.replace('_', '-');
                                 }
