@@ -57,6 +57,7 @@ Elasticsearch's REST client - {pull}1883[#1883]
 * Added the ability to manually create exit spans, which will result with the auto creation of service nodes in the
 service map and downstream service in the dependencies table - {pull}1898[#1898]
 * Basic support for com.sun.net.httpserver.HttpServer - {pull}1854[#1854]
+* Update to async-profiler 1.8.6 {pull}1907[#1907]
 * Added support for setting the framework using the public api (#1908) - {pull}1909[#1909]
 
 [float]
