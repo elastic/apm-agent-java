@@ -27,38 +27,48 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
 import java.util.Objects;
 
-public class ServletTransactionCreationHelper {
+public abstract class CommonServletTransactionCreationHelper<ServletRequest, ServletContext> {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServletTransactionCreationHelper.class);
+    private static final Logger logger = LoggerFactory.getLogger(CommonServletTransactionCreationHelper.class);
 
     private final Tracer tracer;
     private final WebConfiguration webConfiguration;
 
-    public ServletTransactionCreationHelper(ElasticApmTracer tracer) {
+    public CommonServletTransactionCreationHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
         webConfiguration = tracer.getConfig(WebConfiguration.class);
     }
 
     @Nullable
-    public Transaction createAndActivateTransaction(HttpServletRequest request) {
+    public Transaction createAndActivateTransaction(ServletRequest request) {
         // only create a transaction if there is not already one
         if (tracer.currentTransaction() != null) {
             return null;
         }
-        if (isExcluded(request.getServletPath(), request.getPathInfo(), request.getHeader("User-Agent"))) {
+        if (isExcluded(getServletPath(request), getPathInfo(request), getHeader(request, "User-Agent"))) {
             return null;
         }
-        ClassLoader cl = getClassloader(request.getServletContext());
-        Transaction transaction = tracer.startChildTransaction(request, ServletRequestHeaderGetter.getInstance(), cl);
+        ClassLoader cl = getClassloader(getServletContext(request));
+        Transaction transaction = tracer.startChildTransaction(request, getRequestHeaderGetter(), cl);
         if (transaction != null) {
             transaction.activate();
         }
         return transaction;
     }
+
+    protected abstract String getServletPath(ServletRequest request);
+
+    protected abstract String getPathInfo(ServletRequest request);
+
+    protected abstract String getHeader(ServletRequest request, String headerName);
+
+    protected abstract ServletContext getServletContext(ServletRequest request);
+
+    protected abstract ClassLoader getClassLoader(ServletContext servletContext);
+
+    protected abstract CommonServletRequestHeaderGetter getRequestHeaderGetter();
 
     private boolean isExcluded(String servletPath, @Nullable String pathInfo, @Nullable String userAgentHeader) {
         final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), servletPath, pathInfo);
@@ -80,7 +90,7 @@ public class ServletTransactionCreationHelper {
     }
 
     @Nullable
-    public ClassLoader getClassloader(@Nullable ServletContext servletContext){
+    public ClassLoader getClassloader(@Nullable ServletContext servletContext) {
         if (servletContext == null) {
             return null;
         }
@@ -89,7 +99,7 @@ public class ServletTransactionCreationHelper {
         // see Section 4.4 of the Servlet 3.0 specification
         ClassLoader classLoader = null;
         try {
-            return servletContext.getClassLoader();
+            return getClassLoader(servletContext);
         } catch (UnsupportedOperationException e) {
             // silently ignored
             return null;

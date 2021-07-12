@@ -29,7 +29,7 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
-import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
+import co.elastic.apm.agent.servlet.helper.JavaxServletTransactionCreationHelper;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
 
@@ -59,11 +59,11 @@ public class ServletApiAdvice {
     static final String SPAN_TYPE = "servlet";
     static final String SPAN_SUBTYPE = "request-dispatcher";
     private static final ServletTransactionHelper servletTransactionHelper;
-    private static final ServletTransactionCreationHelper servletTransactionCreationHelper;
+    private static final JavaxServletTransactionCreationHelper servletTransactionCreationHelper;
 
     static {
         servletTransactionHelper = new ServletTransactionHelper(GlobalTracer.requireTracerImpl());
-        servletTransactionCreationHelper = new ServletTransactionCreationHelper(GlobalTracer.requireTracerImpl());
+        servletTransactionCreationHelper = new JavaxServletTransactionCreationHelper(GlobalTracer.requireTracerImpl());
     }
 
     private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(ServletApiAdvice.class, "excluded");
