@@ -68,6 +68,7 @@ service map and downstream service in the dependencies table - {pull}1898[#1898]
 * Fix `ClassCastException` with `ConnnectionMetaData` and multiple classloaders - {pull}1864[#1864]
 * Fix NPE in `co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper.getClassloader` - {pull}1861[#1861]
 * Fix for Jboss JMX unexpected notifications - {pull}1895[#1895]
+* Use the resource auto-inference to set `context.destination.service.resource` for JDBC spans  - {pull}1914[#1914]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
