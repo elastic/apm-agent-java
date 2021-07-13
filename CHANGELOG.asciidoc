@@ -58,6 +58,7 @@ Elasticsearch's REST client - {pull}1883[#1883]
 service map and downstream service in the dependencies table - {pull}1898[#1898]
 * Basic support for com.sun.net.httpserver.HttpServer - {pull}1854[#1854]
 * Update to async-profiler 1.8.6 {pull}1907[#1907]
+* Added support for setting the framework using the public api (#1908) - {pull}1909[#1909]
 * Added support for overwritting the service version per classloader {pull}#1726[#1726]
 
 [float]
@@ -85,6 +86,7 @@ events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted aut
 * Changed log level of vm arguments to debug
 * Giving precedence for the W3C `tracecontext` header over the `elastic-apm-traceparent` header - {pull}1821[#1821]
 * Add instrumentation for Webflux - {pull}1305[#1305]
+* Add instrumentation for Javalin {pull}1822[#1822]
 
 [float]
 ===== Bug fixes

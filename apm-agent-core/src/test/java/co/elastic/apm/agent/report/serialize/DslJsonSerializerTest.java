@@ -396,6 +396,24 @@ class DslJsonSerializerTest {
     }
 
     @Test
+    void testTransactionNullFrameworkNameSerialization() {
+        Transaction transaction = new Transaction(MockTracer.create());
+        transaction.getTraceContext().setServiceName("service-name");
+        transaction.setUserFrameworkName(null);
+        JsonNode transactionJson = readJsonString(serializer.toJsonString(transaction));
+        assertThat(transactionJson.get("context").get("service").get("framework")).isNull();
+    }
+
+    @Test
+    void testTransactionEmptyFrameworkNameSerialization() {
+        Transaction transaction = new Transaction(MockTracer.create());
+        transaction.getTraceContext().setServiceName("service-name");
+        transaction.setUserFrameworkName("");
+        JsonNode transactionJson = readJsonString(serializer.toJsonString(transaction));
+        assertThat(transactionJson.get("context").get("service").get("framework")).isNull();
+    }
+
+    @Test
     void testSpanInvalidDestinationSerialization() {
         Span span = new Span(MockTracer.create());
         span.getContext().getDestination().withAddress(null).withPort(-1)
