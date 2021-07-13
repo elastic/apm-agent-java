@@ -5,6 +5,7 @@ import co.elastic.apm.agent.bci.ElasticApmAgent
 import co.elastic.apm.agent.configuration.{CoreConfiguration, SpyConfiguration}
 import co.elastic.apm.agent.impl.transaction.Transaction
 import co.elastic.apm.agent.impl.{ElasticApmTracer, ElasticApmTracerBuilder}
+import munit.FunSuite
 import net.bytebuddy.agent.ByteBuddyAgent
 import org.stagemonitor.configuration.ConfigurationRegistry
 
@@ -13,7 +14,7 @@ import scala.concurrent.duration._
 import scala.concurrent._
 import scala.util.{Failure, Success}
 
-class FutureInstrumentationSpec extends RerunSuite {
+class FutureInstrumentationSpec extends FunSuite {
 
   private var reporter: MockReporter = _
   private var tracer: ElasticApmTracer = _
@@ -30,7 +31,7 @@ class FutureInstrumentationSpec extends RerunSuite {
 
   override def afterEach(context: AfterEach): Unit = ElasticApmAgent.reset()
 
-  override def munitExecutionContext: ExecutionContext = ExecutionContext.fromExecutorService(new ForkJoinPool(10))
+  override def munitExecutionContext: ExecutionContext = ExecutionContext.fromExecutorService(new ForkJoinPool(5))
 
     test("Scala Future should propagate the tracing-context correctly across different threads") {
       implicit val executionContext: ExecutionContextExecutor =
@@ -46,7 +47,8 @@ class FutureInstrumentationSpec extends RerunSuite {
         .map(_ => tracer.currentTransaction().addCustomContext("future", true))
 
       Await.ready(future, 10.seconds)
-      transaction.end()
+      transaction.deactivate().end()
+
       assertEquals(
         reporter.getTransactions.get(0).getContext.getCustom("future").asInstanceOf[Boolean],
         true
@@ -60,7 +62,8 @@ class FutureInstrumentationSpec extends RerunSuite {
       val transaction = tracer.startRootTransaction(getClass.getClassLoader).withName("Transaction").activate()
 
       new TestFutureTraceMethods().invokeAsync(tracer)
-      transaction.end()
+      transaction.deactivate().end()
+
       assertEquals(reporter.getTransactions.size(), 1)
       assertEquals(reporter.getSpans.size(), 0)
       assertEquals(
@@ -94,9 +97,50 @@ class FutureInstrumentationSpec extends RerunSuite {
 
       Await.ready(future, 10.seconds)
 
-      println(s"thread=${Thread.currentThread().getId}, span=${tracer.getActive}. trace=${tracer.currentTransaction()}, transaction=$transaction")
+      transaction.deactivate().end()
 
-      transaction.end()
+      assertEquals(
+        reporter.getTransactions.get(0).getContext.getCustom("future1").asInstanceOf[Boolean],
+        true
+      )
+      assertEquals(
+        reporter.getTransactions.get(0).getContext.getCustom("future2").asInstanceOf[Boolean],
+        true
+      )
+      assertEquals(
+        reporter.getTransactions.get(0).getContext.getCustom("future3").asInstanceOf[Boolean],
+        true
+      )
+
+    }
+
+    test("Multiple async operations should be able to set context on the current transaction with global EC") {
+      implicit val multiPoolEc: ExecutionContext = ExecutionContext.global
+
+      val transaction = tracer.startRootTransaction(getClass.getClassLoader).withName("Transaction").activate()
+
+      val future = Future
+        .traverse(1 to 100) { _ =>
+          Future.sequence(List(
+            Future {
+              Thread.sleep(25)
+              tracer.currentTransaction().addCustomContext("future1", true)
+            },
+            Future {
+              Thread.sleep(50)
+              tracer.currentTransaction().addCustomContext("future2", true)
+            },
+            Future {
+              Thread.sleep(10)
+              tracer.currentTransaction().addCustomContext("future3", true)
+            }
+          ))
+        }
+
+      Await.ready(future, 10.seconds)
+
+      transaction.deactivate().end()
+
       assertEquals(
         reporter.getTransactions.get(0).getContext.getCustom("future1").asInstanceOf[Boolean],
         true
@@ -131,7 +175,8 @@ class FutureInstrumentationSpec extends RerunSuite {
         .map(_ => tracer.currentTransaction().addCustomContext("future", true))
 
       Await.ready(future, 10.seconds)
-      transaction.end()
+      transaction.deactivate().end()
+
       assertEquals(
         reporter.getTransactions.get(0).getContext.getCustom("future").asInstanceOf[Boolean],
         true
@@ -151,7 +196,7 @@ class FutureInstrumentationSpec extends RerunSuite {
         .map(_ => tracer.currentTransaction().addCustomContext("future", true))
 
       Await.ready(future, 10.seconds)
-      transaction.end()
+      transaction.deactivate().end()
       assertEquals(
         reporter.getTransactions.get(0).getContext.getCustom("future").asInstanceOf[Boolean],
         true
@@ -166,23 +211,24 @@ class FutureInstrumentationSpec extends RerunSuite {
 
       val promise = Promise[Int]()
 
-        Future
-          .sequence(List(
-            Future(Thread.sleep(25))
-          ))
-          .map(_ => tracer.currentTransaction().addCustomContext("future1", true))
-          .map(_ => 42)
-          .onComplete {
-            case Success(value) => promise.success(value)
-            case Failure(exception) => promise.failure(exception)
-        }
+      Future
+        .sequence(List(
+          Future(Thread.sleep(25))
+        ))
+        .map(_ => tracer.currentTransaction().addCustomContext("future1", true))
+        .map(_ => 42)
+        .onComplete {
+          case Success(value) => promise.success(value)
+          case Failure(exception) => promise.failure(exception)
+      }
 
       val future = promise
         .future
         .map(_ => tracer.currentTransaction().addCustomContext("future2", true))
 
       Await.ready(future, 10.seconds)
-      transaction.end()
+      transaction.deactivate().end()
+
       assertEquals(
         reporter.getTransactions.get(0).getContext.getCustom("future1").asInstanceOf[Boolean],
         true
@@ -194,52 +240,99 @@ class FutureInstrumentationSpec extends RerunSuite {
 
     }
 
-  test("Scala Future should not propagate the tracing-context to unrelated threads".tag(Rerun(10))) {
+  test("Scala Future should not propagate the tracing-context to unrelated threads with async deactivation") {
     implicit val executionContext: ExecutionContext = munitExecutionContext
 
-    val fs = (1 to 5).map(transactionNumber => Future {
+    val fs = (1 to 10).map(transactionNumber => Future {
       Thread.sleep(10)
 
       val transaction = tracer.startRootTransaction(getClass.getClassLoader).withName(transactionNumber.toString).activate()
 
-      println(s"thread=${Thread.currentThread().getId} transaction=$transactionNumber, span=${tracer.getActive}, trace=${tracer.currentTransaction()} starting transaction")
+      val futures = (1 to 10)
+        .map { futureNumber =>
+          Future {
+            Thread.sleep(10)
 
-      val futures = (1 to 5)
-        .map(futureNumber => Future {
-          Thread.sleep(10)
+            val currentTransactionNumber = tracer.currentTransaction().getNameAsString
 
-          val currentTransactionNumber = tracer.currentTransaction().getNameAsString
+            assertEquals(transaction, tracer.currentTransaction())
+            assertEquals(currentTransactionNumber.toInt, transactionNumber)
 
-          println(s"thread=${Thread.currentThread().getId} transactionNumber=$transactionNumber, span=${tracer.getActive}. trace=${tracer.currentTransaction()} before futureNumber=$futureNumber, $currentTransactionNumber")
+            (transaction, futureNumber)
+          }
+          .map { case (transaction: Transaction, futureNumber: Int) =>
+            Thread.sleep(10)
 
-          assertEquals(transaction, tracer.currentTransaction())
-          assertEquals(currentTransactionNumber.toInt, transactionNumber)
+            val currentTransactionNumber = tracer.currentTransaction().getNameAsString
 
-          (transaction, futureNumber)
+            assertEquals(transaction, tracer.currentTransaction())
+            assertEquals(currentTransactionNumber.toInt, transactionNumber)
+
+            transaction
+          }
         }
-        .map { case (transaction: Transaction, futureNumber: Int) =>
-          Thread.sleep(10)
-
-          val currentTransactionNumber = tracer.currentTransaction().getNameAsString
-          println(s"thread=${Thread.currentThread().getId} transactionNumber=$transactionNumber, span=${tracer.getActive}. trace=${tracer.currentTransaction()} map1 futureNumber=$futureNumber, $currentTransactionNumber")
-
-          assertEquals(transaction, tracer.currentTransaction())
-          assertEquals(currentTransactionNumber.toInt, transactionNumber)
-
-          transaction
-        })
 
       val future = Future.sequence(futures)
 
-      Await.result(future, 5.seconds)
+      future.onComplete(_ => transaction.deactivate().end())
 
-      transaction.end()
+      future
 
     })
 
-    val res = Future.sequence(fs)
+    Await.result(Future.sequence(fs), 10.seconds)
 
-    Await.result(res, 5.seconds)
+    assert(tracer.currentTransaction() == null)
+  }
+
+  test("Scala Future should not propagate the tracing-context to unrelated threads with deadlock") {
+    // See https://github.com/scala/bug/issues/12089
+    implicit val executionContext: ExecutionContext = ExecutionContext.global
+
+    val fs = (1 to 10).map { transactionNumber =>
+      Future {
+        Thread.sleep(10)
+
+        val transaction = tracer.startRootTransaction(getClass.getClassLoader).withName(transactionNumber.toString).activate()
+
+        val futures = (1 to 10)
+          .map { futureNumber =>
+            Future {
+              Thread.sleep(10)
+
+              val currentTransactionNumber = tracer.currentTransaction().getNameAsString
+
+              assertEquals(transaction, tracer.currentTransaction())
+              assertEquals(currentTransactionNumber.toInt, transactionNumber)
+
+              (transaction, futureNumber)
+            }
+            .map { case (transaction: Transaction, futureNumber: Int) =>
+              Thread.sleep(10)
+
+              val currentTransactionNumber = tracer.currentTransaction().getNameAsString
+
+              assertEquals(transaction, tracer.currentTransaction())
+              assertEquals(currentTransactionNumber.toInt, transactionNumber)
+
+              transaction
+            }
+          }
+
+        Await.result(Future.sequence(futures), Duration.Inf)
+
+        val currentTransactionNumber = tracer.currentTransaction().getNameAsString
+        assertEquals(transaction, tracer.currentTransaction())
+        assertEquals(currentTransactionNumber.toInt, transactionNumber)
+
+        transaction.deactivate().end()
+
+      }
+    }
+
+    Await.result(Future.sequence(fs), Duration.Inf)
+
+    assert(tracer.currentTransaction() == null)
   }
 
 }

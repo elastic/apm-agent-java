@@ -33,7 +33,11 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static net.bytebuddy.matcher.ElementMatchers.*;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
 
@@ -118,12 +122,10 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
         public static Object onEnter(@Advice.This Object thiz) {
             AbstractSpan<?> context = promisesToContext.remove(thiz);
             if (context != null) {
-                if (tracer.getActive() != context) {
-                    context.activate();
-                    // decrements the reference we incremented to avoid that the parent context gets recycled before the promise is run
-                    // because we have activated it, we can be sure it doesn't get recycled until we deactivate in the OnMethodExit advice
-                    context.decrementReferences();
-                }
+                context.activate();
+                // decrements the reference we incremented to avoid that the parent context gets recycled before the promise is run
+                // because we have activated it, we can be sure it doesn't get recycled until we deactivate in the OnMethodExit advice
+                context.decrementReferences();
             }
             return context;
         }
@@ -132,7 +134,7 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
         public static void onExit(@Advice.Enter @Nullable Object abstractSpanObj) {
             if (abstractSpanObj instanceof AbstractSpan<?>) {
                 AbstractSpan<?> context = (AbstractSpan<?>) abstractSpanObj;
-                if (tracer.getActive() == context) context.deactivate();
+                context.deactivate();
             }
         }
     }
