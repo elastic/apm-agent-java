@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.log.shader;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -38,6 +39,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -56,6 +58,9 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     public static final String WARN_MESSAGE = "Warn-this";
     public static final String ERROR_MESSAGE = "Error-this";
 
+    private static final String SERVICE_NODE_NAME = "my-service-node";
+    private static final Map<String, String> ADDITIONAL_FIELDS = Map.of("service.version", "v42", "some.field", "some-value");
+
     private final LoggerFacade logger;
     private final ObjectMapper objectMapper;
     private LoggingConfiguration loggingConfig;
@@ -68,8 +73,14 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
 
     @BeforeEach
     public void setup() throws Exception {
-        logger.open();
+        doReturn(SERVICE_NODE_NAME).when(config.getConfig(CoreConfiguration.class)).getServiceNodeName();
+
         loggingConfig = config.getConfig(LoggingConfiguration.class);
+        doReturn(ADDITIONAL_FIELDS).when(loggingConfig).getLogEcsReformattingAdditionalFields();
+
+        logger.open();
+
+        // IMPORTANT: keep this last, so that it doesn't interfere with Mockito settings above
         serviceName = Objects.requireNonNull(tracer.getMetaData().get(2000, TimeUnit.MILLISECONDS).getService().getName());
     }
 
@@ -118,6 +129,33 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         for (int i = 0; i < 4; i++) {
             verifyEcsFormat(rawLogLines.get(i), ecsLogLines.get(i), traceId);
         }
+    }
+
+    @Test
+    public void testMarkers() throws Exception {
+        if (markersSupported()) {
+            setEcsReformattingConfig(LogEcsReformatting.SHADE);
+            initializeShadeDir("markers");
+            logger.debugWithMarker(DEBUG_MESSAGE);
+
+            ArrayList<String[]> rawLogLines = readRawLogLines();
+            assertThat(rawLogLines).hasSize(1);
+            String[] rawLogLine = rawLogLines.get(0);
+
+            ArrayList<JsonNode> ecsLogLines = readShadeLogFile();
+            assertThat(ecsLogLines).hasSize(1);
+            JsonNode ecsLogLine = ecsLogLines.get(0);
+
+            verifyEcsFormat(rawLogLine, ecsLogLine, null);
+
+            JsonNode tagsJson = ecsLogLine.get("tags");
+            assertThat(tagsJson.isArray()).isTrue();
+            assertThat(tagsJson.get(0).textValue()).isEqualTo("TEST");
+        }
+    }
+
+    protected boolean markersSupported() {
+        return false;
     }
 
     @Test
@@ -246,7 +284,10 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(ecsLogLineTree.get("log.logger").textValue()).isEqualTo("Test-File-Logger");
         assertThat(ecsLogLineTree.get("message")).isNotNull();
         assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
+        assertThat(ecsLogLineTree.get("service.node.name").textValue()).isEqualTo(SERVICE_NODE_NAME);
         assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
+        assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo("v42");
+        assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
     }
 
     @Nonnull
@@ -299,7 +340,10 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(splitRawLogLine[3]).isEqualTo(ecsLogLineTree.get("log.logger").textValue());
         assertThat(splitRawLogLine[4]).isEqualTo(ecsLogLineTree.get("message").textValue());
         assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
+        assertThat(ecsLogLineTree.get("service.node.name").textValue()).isEqualTo(SERVICE_NODE_NAME);
         assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
+        assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo("v42");
+        assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
         if (traceId != null) {
             assertThat(ecsLogLineTree.get("trace.id").textValue()).isEqualTo(traceId);
         } else {
