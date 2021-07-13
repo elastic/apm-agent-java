@@ -16,6 +16,7 @@ pipeline {
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
     OPBEANS_REPO = 'opbeans-java'
+    JAVA_VERSION = "${params.JAVA_VERSION}"
   }
   options {
     timeout(time: 1, unit: 'HOURS')
@@ -31,6 +32,7 @@ pipeline {
     issueCommentTrigger('(?i)(.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:benchmark\\W+)?tests(?:\\W+please)?|/test).*')
   }
   parameters {
+    string(name: 'JAVA_VERSION', defaultValue: 'java11', description: 'What Java version?')
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
     booleanParam(name: 'Run_As_Master_Branch', defaultValue: false, description: 'Allow to run any steps on a PR, some steps normally only run on master branch.')
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
@@ -44,7 +46,7 @@ pipeline {
       options { skipDefaultCheckout() }
       environment {
         HOME = "${env.WORKSPACE}"
-        JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
+        JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
@@ -118,7 +120,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -143,6 +145,47 @@ pipeline {
             }
           }
         }
+        stage('Windows') {
+          agent { label 'windows-2019-docker-immutable' }
+          options { skipDefaultCheckout() }
+          environment {
+            JAVA_HOME = "C:\\Users\\jenkins\\.java\\${env.JAVA_VERSION}"
+            PATH = "${env.JAVA_HOME}\\bin;${env.PATH}"
+          }
+          when {
+            beforeAgent true
+            expression { return params.test_ci }
+          }
+          stages {
+            stage('Windows Build') {
+              steps {
+                withGithubNotify(context: 'Windows Build') {
+                  deleteDir()
+                  unstash 'source'
+                  dir("${BASE_DIR}"){
+                    retryWithSleep(retries: 5, seconds: 10) {
+                      bat "mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true"
+                    }
+                  }
+                }
+              }
+            }
+            stage('Windows Test') {
+              steps {
+                withGithubNotify(context: 'Windows Tests', tab: 'tests') {
+                  dir("${BASE_DIR}"){
+                    bat "mvnw test"
+                  }
+                }
+              }
+              post {
+                always {
+                  reportTestResultsOnly()
+                }
+              }
+            }
+          }
+        }
         /**
           Run smoke tests for different servers and databases.
         */
@@ -151,7 +194,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -181,7 +224,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -212,7 +255,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
             NO_BUILD = "true"
           }
@@ -262,7 +305,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -359,8 +402,12 @@ pipeline {
 }
 
 def reportTestResults(){
+  reportTestResultsOnly()
+  codecov(repo: env.REPO, basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
+}
+
+def reportTestResultsOnly(){
   junit(allowEmptyResults: true,
     keepLongStdio: true,
     testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
-  codecov(repo: env.REPO, basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
 }
