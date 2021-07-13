@@ -19,7 +19,10 @@
 package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -27,12 +30,13 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.web.method.HandlerMethod;
 
-import javax.annotation.Nullable;
+import javax.servlet.http.HttpServletRequest;
 import java.util.Collection;
 import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -98,8 +102,11 @@ public class SpringTransactionNameInstrumentation extends TracerAwareInstrumenta
 
     public static class HandlerAdapterAdvice {
 
+        private static final WebConfiguration webConfig = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);;
+
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void setTransactionName(@Advice.Argument(2) Object handler) {
+        public static void setTransactionName(@Advice.Argument(0) HttpServletRequest request,
+                                              @Advice.Argument(2) Object handler) {
             final Transaction transaction = tracer.currentTransaction();
             if (transaction == null) {
                 return;
@@ -114,19 +121,23 @@ public class SpringTransactionNameInstrumentation extends TracerAwareInstrumenta
                 className = handler.getClass().getSimpleName();
                 methodName = null;
             }
-            setName(transaction, className, methodName);
+
+            if (webConfig.isUsePathAsName() || (methodName == null && !className.equals("ResourceHttpRequestHandler"))) {
+                // when method name is not known, using path is a better default as multiple distinct requests
+                // would be handled by a single class. If delegating to a Servlet, then servlet naming will be applied
+                // thus it allows to provide a better fallback in case method name is null and there is no servlet executed.
+                //
+                // ResourceHttpRequestHandler is handling static resources, thus rather high cardinality most of the time
+                // and grouping on a single transaction is preferable.
+                TransactionNameUtils.setNameFromHttpRequestPath(request.getMethod(), request.getServletPath(), request.getPathInfo(), transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1), webConfig.getUrlGroups());
+            } else {
+                TransactionNameUtils.setNameFromClassAndMethod(className, methodName, transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
+            }
+
+
             transaction.setFrameworkName(FRAMEWORK_NAME);
             transaction.setFrameworkVersion(VersionUtils.getVersion(HandlerMethod.class, "org.springframework", "spring-web"));
         }
 
-        public static void setName(Transaction transaction, String className, @Nullable String methodName) {
-            final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
-            if (name != null) {
-                name.append(className);
-                if (methodName != null) {
-                    name.append('#').append(methodName);
-                }
-            }
-        }
     }
 }

@@ -91,6 +91,7 @@ public abstract class JsfLifecycleInstrumentation extends TracerAwareInstrumenta
         public static class JsfLifecycleExecuteAdvice {
             private static final String SPAN_ACTION = "execute";
 
+            @Nullable
             @SuppressWarnings("Duplicates")
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object createExecuteSpan(@Advice.Argument(0) javax.faces.context.FacesContext facesContext) {

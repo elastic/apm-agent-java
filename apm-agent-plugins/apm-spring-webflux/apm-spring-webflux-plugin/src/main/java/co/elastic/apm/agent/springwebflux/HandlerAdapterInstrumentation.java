@@ -21,6 +21,7 @@ package co.elastic.apm.agent.springwebflux;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -79,12 +80,11 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
                 // set name for annotated controllers
                 HandlerMethod handlerMethod = (HandlerMethod) handler;
 
-                StringBuilder name = ((Transaction) exchangeTransaction).getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK, false);
-                if (name != null) {
-                    name.append(handlerMethod.getBeanType().getSimpleName())
-                        .append("#")
-                        .append(handlerMethod.getMethod().getName());
-                }
+                TransactionNameUtils.setNameFromClassAndMethod(
+                    handlerMethod.getBeanType().getSimpleName(),
+                    handlerMethod.getMethod().getName(),
+                    ((Transaction) exchangeTransaction).getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK, false));
+
             }
 
             return exchangeTransaction;

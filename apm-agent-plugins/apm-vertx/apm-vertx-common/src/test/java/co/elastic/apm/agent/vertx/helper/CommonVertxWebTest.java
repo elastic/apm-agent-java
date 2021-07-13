@@ -125,7 +125,6 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         when(webConfiguration.isUsePathAsName()).thenReturn(true);
         when(webConfiguration.getUrlGroups()).thenReturn(List.of(WildcardMatcher.valueOf("/test/*/group")));
 
-
         Response response = http().get("/test/secondSegment/group");
         expectTransaction(response, "/test/secondSegment/group", DEFAULT_RESPONSE_BODY, "GET /test/*/group", 200);
     }
