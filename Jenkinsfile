@@ -28,7 +28,7 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger('(?i)(.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:benchmark\\W+)?tests(?:\\W+please)?|/test).*')
+    issueCommentTrigger('(?i)(.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:(matrix|benchmark)\\W+)?tests(?:\\W+please)?.*|^/test(?:\\W+.*)?$)')
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
@@ -38,7 +38,6 @@ pipeline {
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
     booleanParam(name: 'push_docker', defaultValue: false, description: 'Push Docker image during release stage')
   }
-
   stages {
     stage('Initializing'){
       options { skipDefaultCheckout() }
@@ -303,6 +302,50 @@ pipeline {
                            string(name: 'GITHUB_CHECK_REPO', value: env.REPO),
                            string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])
         githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
+      }
+    }
+    stage('Unit Tests') {
+      options { skipDefaultCheckout() }
+      when {
+        beforeAgent true
+        anyOf {
+          not { changeRequest() }
+          expression { return params.Run_As_Master_Branch }
+          expression { return env.GITHUB_COMMENT?.contains('matrix tests') }
+        }
+      }
+      matrix {
+        agent { label 'linux && immutable' }
+        axes {
+          axis {
+            // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
+            name 'JAVA_VERSION'
+            values 'java12', 'openjdk12', 'openjdk13', 'openjdk14', 'openjdk15', 'openjdk16'
+          }
+        }
+        stages {
+          stage('Test') {
+            environment {
+              HOME = "${env.WORKSPACE}"
+              JAVA_HOME = "${env.HUDSON_HOME}/.java/${JAVA_VERSION}"
+              PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+            }
+            steps {
+              withGithubNotify(context: "Unit Tests ${JAVA_VERSION}", tab: 'tests') {
+                deleteDir()
+                unstash 'build'
+                dir("${BASE_DIR}"){
+                  sh './mvnw test'
+                }
+              }
+            }
+            post {
+              always {
+                reportTestResults()
+              }
+            }
+          }
+        }
       }
     }
     stage('Stable') {
