@@ -58,17 +58,11 @@ public interface Transaction extends Span {
     Transaction setType(String type);
 
     /**
-     * Override the name of the framework for the current transaction.
-     * <p>
-     * For supported frameworks,
-     * the framework name is determined automatically,
-     * and can be overridden using this function.
-     * </p>
-     * <p>
-     * <code>null</code> or the empty string will make the agent omit this field.
-     * </p>
-     *
-     * @param frameworkName The name of the framework
+     * Provides a way to manually set the {@code service.framework.name} field.
+     * Any value set through this method will take precedence over automatically-set value for supported frameworks.
+
+     * @param frameworkName The name of the framework. {@code null} and empty values will cause the exclusion of the
+     *                      framework name from the transaction context.
      */
     @Nonnull
     Transaction setFrameworkName(String frameworkName);

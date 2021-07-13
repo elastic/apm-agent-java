@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import javax.annotation.Nullable;
 import java.security.SecureRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,16 +67,7 @@ class TransactionInstrumentationTest extends AbstractApiTest {
 
     @ParameterizedTest
     @MethodSource("frameworkNames")
-    void testSetUserFrameworkNameBeforeItIsSetByAPlugin(String frameworkName) {
-        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName(frameworkName);
-        transaction.setFrameworkName("foo");
-        endTransaction();
-        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("foo");
-    }
-
-    @ParameterizedTest
-    @MethodSource("frameworkNames")
-    void testSetUserFrameworkNameAfterItIsSetByAPlugin(String frameworkName) {
+    void testSetUserFrameworkValidNameBeforeSetByInternalAPI(@Nullable String frameworkName) {
         transaction.setFrameworkName("foo");
         AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName(frameworkName);
         endTransaction();
@@ -84,7 +76,26 @@ class TransactionInstrumentationTest extends AbstractApiTest {
 
     @ParameterizedTest
     @MethodSource("frameworkNames")
-    void testSetUserFrameworkName(String frameworkName) {
+    void testSetUserFrameworkValidNameAfterSetByInternalAPI(@Nullable String frameworkName) {
+        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName(frameworkName);
+        transaction.setFrameworkName("foo");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("foo");
+    }
+
+    @ParameterizedTest
+    @MethodSource("frameworkNames")
+    void testSetUserFrameworkAnyNameBeforeSetByInternalAPI(@Nullable String frameworkName) {
+        transaction.setFrameworkName(frameworkName);
+        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName("foo");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo(frameworkName);
+    }
+
+    @ParameterizedTest
+    @MethodSource("frameworkNames")
+    void testSetUserFrameworkAnyNameAfterSetByInternalAPI(@Nullable String frameworkName) {
+        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName("foo");
         transaction.setFrameworkName(frameworkName);
         endTransaction();
         assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo(frameworkName);

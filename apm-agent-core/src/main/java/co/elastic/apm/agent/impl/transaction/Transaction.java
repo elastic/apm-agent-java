@@ -31,10 +31,7 @@ import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.HdrHistogram.WriterReaderPhaser;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
@@ -328,7 +325,11 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     public void setUserFrameworkName(@Nullable String frameworkName) {
-        this.frameworkName = frameworkName;
+        if (frameworkName != null && frameworkName.isEmpty()) {
+            this.frameworkName = null;
+        } else {
+            this.frameworkName = frameworkName;
+        }
         this.frameworkNameSetByUser = true;
     }
 

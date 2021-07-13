@@ -314,7 +314,7 @@ transaction.setType(Transaction.TYPE_REQUEST);
 [float]
 [[api-transaction-set-framework-name]]
 ==== `Transaction setFrameworkName(String frameworkName)` added[1.25.0]
-Override the name of the framework for the current transaction.
+Provides a way to manually set the `service.framework.name` field.
 For supported frameworks,
 the framework name is determined automatically,
 and can be overridden using this function.
