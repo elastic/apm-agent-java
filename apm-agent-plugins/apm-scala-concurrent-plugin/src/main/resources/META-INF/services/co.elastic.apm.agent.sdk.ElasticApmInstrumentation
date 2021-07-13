@@ -1,2 +1,3 @@
-co.elastic.apm.agent.scalaconcurrent.FutureInstrumentation$ConstructorInstrumentation
-co.elastic.apm.agent.scalaconcurrent.FutureInstrumentation$RunInstrumentation
+co.elastic.apm.agent.scalaconcurrent.FutureInstrumentation$BatchedExecutionContextInstrumentation
+co.elastic.apm.agent.scalaconcurrent.FutureInstrumentation$TransformationConstructorInstrumentation
+co.elastic.apm.agent.scalaconcurrent.FutureInstrumentation$TransformationRunInstrumentation

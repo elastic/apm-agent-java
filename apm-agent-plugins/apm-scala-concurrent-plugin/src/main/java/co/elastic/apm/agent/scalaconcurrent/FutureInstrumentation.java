@@ -19,7 +19,9 @@
 package co.elastic.apm.agent.scalaconcurrent;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.concurrent.JavaConcurrent;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -31,9 +33,11 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
 
@@ -47,7 +51,34 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
         return Arrays.asList("scala-future", "experimental");
     }
 
-    public static class ConstructorInstrumentation extends FutureInstrumentation {
+    public static class BatchedExecutionContextInstrumentation extends FutureInstrumentation {
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return hasSuperType(named("scala.concurrent.BatchingExecutor"));
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("submitForExecution").and(returns(void.class)).and(takesArguments(Runnable.class));
+        }
+
+        @Nullable
+        @AssignTo.Argument(0)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Runnable onExecute(@Advice.Argument(0) @Nullable Runnable runnable) {
+            return JavaConcurrent.withContext(runnable, tracer);
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+                                  @Advice.Argument(value = 0) @Nullable Runnable runnable) {
+            JavaConcurrent.doFinally(thrown, runnable);
+        }
+    }
+
+
+    public static class TransformationConstructorInstrumentation extends FutureInstrumentation {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -67,12 +98,14 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
                 // this span might be ended before the Promise$Transformation#run method starts
                 // we have to avoid that this span gets recycled, even in the above mentioned case
                 context.incrementReferences();
+                // Do no discard branches leading to async operations so not to break span references
+                context.setNonDiscardable();
             }
         }
 
     }
 
-    public static class RunInstrumentation extends FutureInstrumentation {
+    public static class TransformationRunInstrumentation extends FutureInstrumentation {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {

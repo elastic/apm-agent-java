@@ -20,12 +20,17 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-java-concurrent-plugin</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.13.6</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.scalameta</groupId>
             <artifactId>munit_2.13</artifactId>
-            <version>0.7.9</version>
+            <version>0.7.26</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -36,9 +41,9 @@
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
-                <version>4.3.1</version>
+                <version>4.5.3</version>
                 <configuration>
-                    <scalaVersion>2.13.2</scalaVersion>
+                    <scalaVersion>2.13.6</scalaVersion>
                 </configuration>
                 <executions>
                     <execution>
