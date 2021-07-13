@@ -61,44 +61,42 @@ class TransactionInstrumentationTest extends AbstractApiTest {
         assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
     }
 
-    static String[] frameworkNames() {
-        return new String[]{null, "", "bar"};
-    }
-
-    @ParameterizedTest
-    @MethodSource("frameworkNames")
-    void testSetUserFrameworkValidNameBeforeSetByInternalAPI(@Nullable String frameworkName) {
+    @Test
+    void testSetUserFrameworkValidNameBeforeSetByInternalAPI() {
         transaction.setFrameworkName("foo");
-        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName(frameworkName);
+        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName("bar");
         endTransaction();
         assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("foo");
     }
 
-    @ParameterizedTest
-    @MethodSource("frameworkNames")
-    void testSetUserFrameworkValidNameAfterSetByInternalAPI(@Nullable String frameworkName) {
-        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName(frameworkName);
+    @Test
+    void testSetUserFrameworkValidNameAfterSetByInternalAPI() {
+        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName("bar");
         transaction.setFrameworkName("foo");
         endTransaction();
         assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("foo");
     }
 
-    @ParameterizedTest
-    @MethodSource("frameworkNames")
-    void testSetUserFrameworkAnyNameBeforeSetByInternalAPI(@Nullable String frameworkName) {
-        transaction.setFrameworkName(frameworkName);
-        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName("foo");
-        endTransaction();
-        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo(frameworkName);
+    static String[] invalidFrameworkNames() {
+        return new String[]{null, ""};
     }
 
     @ParameterizedTest
-    @MethodSource("frameworkNames")
-    void testSetUserFrameworkAnyNameAfterSetByInternalAPI(@Nullable String frameworkName) {
-        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName("foo");
+    @MethodSource("invalidFrameworkNames")
+    void testSetUserFrameworkInvalidNameBeforeSetByInternalAPI(@Nullable String frameworkName) {
+        transaction.setFrameworkName(frameworkName);
+        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName("bar");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isNull();
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidFrameworkNames")
+    void testSetUserFrameworkInvalidNameAfterSetByInternalAPI(@Nullable String frameworkName) {
+        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName("bar");
         transaction.setFrameworkName(frameworkName);
         endTransaction();
-        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo(frameworkName);
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isNull();
     }
 
     @Test
