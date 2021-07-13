@@ -103,6 +103,7 @@ public abstract class AbstractInstrumentationTest {
             }
         }
         tracer.resetServiceNameOverrides();
+        tracer.resetServiceVersionOverrides();
 
         assertThat(tracer.getActive())
             .describedAs("nothing should be left active at end of test, failure will likely indicate a span/transaction still active")

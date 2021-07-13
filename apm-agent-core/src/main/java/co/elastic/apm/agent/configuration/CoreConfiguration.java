@@ -660,6 +660,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return serviceVersion.get();
     }
 
+    public ConfigurationOption<String> getServiceVersionConfig() {
+        return serviceVersion;
+    }
+
     public String getHostname() {
         return hostname.get();
     }

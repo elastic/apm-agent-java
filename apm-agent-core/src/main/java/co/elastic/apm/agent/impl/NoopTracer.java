@@ -134,6 +134,10 @@ class NoopTracer implements Tracer {
     }
 
     @Override
+    public void overrideServiceVersionForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceVersion) {
+    }
+
+    @Override
     public void stop() {
     }
 
