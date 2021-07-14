@@ -21,21 +21,19 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.util.CompletableVoidFuture;
 import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
-
-import java.util.concurrent.Future;
 import java.util.concurrent.locks.LockSupport;
 
-import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.END_REQUEST;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.JSON_WRITER;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SHUTDOWN;
-import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SYNC_FLUSH;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SPAN;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SYNC_FLUSH;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.TRANSACTION;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.WAKEUP;
 
 public class ReportingEvent {
     @Nullable
@@ -49,8 +47,6 @@ public class ReportingEvent {
     @Nullable
     private JsonWriter jsonWriter;
     @Nullable
-    private CompletableVoidFuture future;
-    @Nullable
     private Thread unparkAfterProcessed;
 
     public void resetState() {
@@ -59,7 +55,6 @@ public class ReportingEvent {
         this.error = null;
         this.span = null;
         this.jsonWriter = null;
-        this.future = null;
         this.unparkAfterProcessed = null;
     }
 
@@ -136,17 +131,9 @@ public class ReportingEvent {
         } else if (error != null) {
             error.recycle();
         }
-        if (future != null) {
-            future.complete();
-        }
         if (unparkAfterProcessed != null) {
             LockSupport.unpark(unparkAfterProcessed);
         }
-    }
-
-    @Nullable
-    public Future<Void> getFuture() {
-        return future;
     }
 
     public void setSyncFlushEvent() {
@@ -157,11 +144,11 @@ public class ReportingEvent {
         unparkAfterProcessed = thread;
     }
 
-    public void setCompletableFuture(@Nullable CompletableVoidFuture future) {
-        this.future = future;
+    public void setWakeupEvent() {
+        type = WAKEUP;
     }
 
     enum ReportingEventType {
-        END_REQUEST, TRANSACTION, SPAN, ERROR, SHUTDOWN, JSON_WRITER, SYNC_FLUSH
+        END_REQUEST, TRANSACTION, SPAN, ERROR, SHUTDOWN, JSON_WRITER, SYNC_FLUSH, WAKEUP
     }
 }

@@ -53,6 +53,7 @@ import java.util.zip.InflaterInputStream;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -69,6 +70,7 @@ class ApmServerReporterIntegrationTest {
     private final AtomicInteger receivedEvents = new AtomicInteger();
     private final AtomicInteger closeConnectionAfterEveryReceivedEvents = new AtomicInteger(Integer.MAX_VALUE);
     private IntakeV2ReportingEventHandler v2handler;
+    private AbstractIntakeApiHandler.NanoClock clock;
 
     @BeforeAll
     static void startServer() {
@@ -119,6 +121,7 @@ class ApmServerReporterIntegrationTest {
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
         apmServerClient.start();
+        clock = mock(AbstractIntakeApiHandler.NanoClock.class);
         v2handler = new IntakeV2ReportingEventHandler(
                 reporterConfiguration,
                 processorEventHandler,
@@ -127,7 +130,8 @@ class ApmServerReporterIntegrationTest {
                         apmServerClient,
                         MetaDataMock.create(title, service, system, null, Collections.emptyMap())
                 ),
-                apmServerClient);
+                apmServerClient,
+                clock);
         reporter = new ApmServerReporter(false, reporterConfiguration, v2handler);
         reporter.start();
     }
@@ -149,7 +153,7 @@ class ApmServerReporterIntegrationTest {
     @Test
     void testReportSpan() throws ExecutionException, InterruptedException {
         reporter.report(new Span(tracer));
-        reporter.flush().get();
+        reporter.waitForHardFlush();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
     }
@@ -165,7 +169,7 @@ class ApmServerReporterIntegrationTest {
             exchange.setStatusCode(200).endExchange();
         };
         reporter.report(new Transaction(tracer));
-        reporter.flush().get();
+        reporter.waitForHardFlush();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
     }
@@ -173,9 +177,20 @@ class ApmServerReporterIntegrationTest {
     @Test
     void testReportErrorCapture() throws ExecutionException, InterruptedException {
         reporter.report(new ErrorCapture(tracer));
-        reporter.flush().get();
+        reporter.waitForHardFlush();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
+    }
+
+    @Test
+    void testTimeout() throws InterruptedException {
+        doReturn(TimeDuration.of("1ms")).when(reporterConfiguration).getApiRequestTime();
+        doAnswer(invocation -> System.nanoTime()).when(clock).nanoTicks();
+        reporter.report(new Transaction(tracer));
+        await().untilAsserted(() -> assertThat(reporter.getReported()).isEqualTo(1));
+        assertThat(reporter.getDropped()).isEqualTo(0);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
+        assertThat(receivedEvents.get()).isEqualTo(2);
     }
 
     @Test
@@ -214,21 +229,25 @@ class ApmServerReporterIntegrationTest {
     @Test
     void testConnectionClosedByApmServer() {
         // tests that we can sustain APM Server closing the connection without going into a backoff
-        v2handler.setIgnoreNonHttpErrorsOnRequestEnd(true);
         closeConnectionAfterEveryReceivedEvents.set(2);
 
         int expectedReceivedEvents = 0;
         int expectedIntakeApiCalls = 0;
+        // doing this for a couple of times makes sure we don't trigger the exponential backoff
         for (int i = 0; i < 5; i++) {
-            // doing this for a couple of times makes sure we don't trigger the exponential backoff
             sendTransactionEventAndFlush(expectedReceivedEvents += 2, expectedIntakeApiCalls += 1);
+            // connection is now closed by the server
             assertThat(v2handler.isHealthy()).isTrue();
-            assertThat(reporter.hardFlush(1, TimeUnit.SECONDS)).isTrue();
+            // advance the clock so that on the next event, the request will be closed
+            // the SocketException due to the closed connection will be ignored because the request has been open for one second beyond the threshold
+            doReturn((i + 1) * TimeUnit.MILLISECONDS.toNanos(reporterConfiguration.getApiRequestTime().getMillis()) + TimeUnit.SECONDS.toNanos(1))
+                .when(clock).nanoTicks();
         }
     }
 
     private void sendTransactionEventAndFlush(int expectedReceivedEvents, int expectedIntakeApiCalls) {
         reporter.report(new Transaction(tracer));
+        // after the flush, the metadata and the transaction event will be received by the server
         assertThat(reporter.softFlush(1, TimeUnit.SECONDS)).isTrue();
         await().untilAsserted(() -> assertThat(receivedEvents.get()).isEqualTo(expectedReceivedEvents));
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(expectedIntakeApiCalls);

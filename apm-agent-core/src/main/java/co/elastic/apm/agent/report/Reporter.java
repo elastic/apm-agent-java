@@ -24,7 +24,6 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.dslplatform.json.JsonWriter;
 
 import java.io.Closeable;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public interface Reporter extends Closeable {
@@ -45,14 +44,6 @@ public interface Reporter extends Closeable {
 
     /**
      * Flushes pending events and ends the HTTP request to APM server.
-     *
-     * @return A {@link Future} which resolves when the flush has been executed.
-     * @throws IllegalStateException if the ring buffer has no available slots
-     */
-    Future<Void> flush();
-
-    /**
-     * Flushes pending events and ends the HTTP request to APM server.
      * <p>
      * This means that the first event that gets processed after the end-request-event will start a new HTTP request to APM Server.
      * </p>
@@ -68,14 +59,19 @@ public interface Reporter extends Closeable {
      *     <li>The connection to APM Server is not healthy</li>
      *     <li>The thread has been interrupted</li>
      *     <li>The flush event could not be processed within the provided timeout</li>
-     *     <li>The provided timeout is zero or negative</li>
      * </ul>
      *
-     * @param timeout the maximum time to wait
+     * @param timeout the maximum time to wait. Negative values mean an indefinite timeout.
      * @param unit the time unit of the timeout argument
      * @return {code true}, if the flush has been executed successfully
      */
     boolean hardFlush(long timeout, TimeUnit unit);
+
+    /**
+     * Same as {@code hardFlush(-1, NANOSECONDS)}
+     * @see #hardFlush(long, TimeUnit)
+     */
+    boolean waitForHardFlush();
 
     /**
      * Flushes pending events but keeps the HTTP request to APM server alive.
@@ -94,9 +90,8 @@ public interface Reporter extends Closeable {
      *     <li>The connection to APM Server is not healthy</li>
      *     <li>The thread has been interrupted</li>
      *     <li>The flush event could not be processed within the provided timeout</li>
-     *     <li>The provided timeout is zero or negative</li>
      * </ul>
-     * @param timeout the maximum time to wait
+     * @param timeout the maximum time to wait. Negative values mean an indefinite timeout.
      * @param unit the time unit of the timeout argument
      * @return {code true}, if the flush has been executed successfully
      */

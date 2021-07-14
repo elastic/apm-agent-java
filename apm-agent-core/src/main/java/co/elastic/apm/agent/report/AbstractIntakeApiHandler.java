@@ -55,12 +55,18 @@ public class AbstractIntakeApiHandler {
     protected int errorCount;
     protected volatile boolean shutDown;
     private volatile boolean healthy = true;
-    private volatile boolean ignoreNonHttpErrorsOnRequestEnd = false;
+    private final NanoClock clock;
+    private long requestStartedNanos;
 
     public AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
+        this(reporterConfiguration, payloadSerializer, apmServerClient, new SystemNanoClock());
+    }
+
+    public AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient, NanoClock clock) {
         this.reporterConfiguration = reporterConfiguration;
         this.payloadSerializer = payloadSerializer;
         this.apmServerClient = apmServerClient;
+        this.clock = clock;
         this.deflater = new Deflater(GZIP_COMPRESSION_LEVEL);
     }
 
@@ -108,6 +114,7 @@ public class AbstractIntakeApiHandler {
                 payloadSerializer.setOutputStream(os);
                 payloadSerializer.appendMetaDataNdJsonToStream();
                 payloadSerializer.flushToOutputStream();
+                requestStartedNanos = clock.nanoTicks();
             } catch (IOException e) {
                 logger.error("Error trying to connect to APM Server at {}. Some details about SSL configurations corresponding " +
                     "the current connection are logged at INFO level.", connection.getURL());
@@ -158,7 +165,13 @@ public class AbstractIntakeApiHandler {
                 try {
                     onRequestError(connection.getResponseCode(), connection.getErrorStream(), e);
                 } catch (IOException e1) {
-                    if (!ignoreNonHttpErrorsOnRequestEnd) {
+                    long maxRequestTime = TimeUnit.MILLISECONDS.toNanos(reporterConfiguration.getApiRequestTime().getMillis());
+                    long threshold = requestStartedNanos + maxRequestTime + TimeUnit.SECONDS.toNanos(1);
+                    if (threshold < clock.nanoTicks()) {
+                        // the request has been open for significantly longer than api_request_time
+                        // it's quite likely that APM Server or a proxy has already closed the connection
+                        // we don't want to trigger a backoff in this case or log an error
+                        // reasons for that include long stop-the-world pauses and freezing of the environment (ex. on AWS Lambda)
                         onRequestError(-1, connection.getErrorStream(), e);
                     }
                 }
@@ -170,6 +183,10 @@ public class AbstractIntakeApiHandler {
                 currentlyTransmitting = 0;
             }
         }
+    }
+
+    protected boolean isApiRequestTimeExpired() {
+        return clock.nanoTicks() >= requestStartedNanos + TimeUnit.MILLISECONDS.toNanos(reporterConfiguration.getApiRequestTime().getMillis());
     }
 
     protected void onRequestError(Integer responseCode, InputStream inputStream, @Nullable IOException e) {
@@ -250,7 +267,15 @@ public class AbstractIntakeApiHandler {
         reported += currentlyTransmitting;
     }
 
-    public void setIgnoreNonHttpErrorsOnRequestEnd(boolean ignoreNonHttpErrorsOnRequestEnd) {
-        this.ignoreNonHttpErrorsOnRequestEnd = ignoreNonHttpErrorsOnRequestEnd;
+    interface NanoClock {
+        long nanoTicks();
+    }
+
+    static class SystemNanoClock implements NanoClock {
+
+        @Override
+        public long nanoTicks() {
+            return System.nanoTime();
+        }
     }
 }

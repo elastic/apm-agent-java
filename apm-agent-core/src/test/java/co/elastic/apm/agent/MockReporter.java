@@ -50,10 +50,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Collectors;
 
@@ -375,6 +372,11 @@ public class MockReporter implements Reporter {
         this.bytes.add(jsonWriter.toByteArray());
     }
 
+    @Override
+    public boolean waitForHardFlush() {
+        return true;
+    }
+
     public synchronized Span getFirstSpan() {
         assertThat(spans)
             .describedAs("at least one span expected, none have been reported")
@@ -422,36 +424,6 @@ public class MockReporter implements Reporter {
     @Override
     public long getReported() {
         return 0;
-    }
-
-    @Override
-    public Future<Void> flush() {
-        return new Future<>() {
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                return false;
-            }
-
-            @Override
-            public boolean isCancelled() {
-                return false;
-            }
-
-            @Override
-            public boolean isDone() {
-                return false;
-            }
-
-            @Override
-            public Void get() throws InterruptedException, ExecutionException {
-                return null;
-            }
-
-            @Override
-            public Void get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                return null;
-            }
-        };
     }
 
     @Override

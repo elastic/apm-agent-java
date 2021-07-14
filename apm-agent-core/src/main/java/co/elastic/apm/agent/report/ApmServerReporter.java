@@ -23,12 +23,11 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.premain.ThreadUtils;
 import co.elastic.apm.agent.report.disruptor.ExponentionallyIncreasingSleepingWaitStrategy;
-import co.elastic.apm.agent.util.CompletableVoidFuture;
 import co.elastic.apm.agent.util.MathUtils;
 import com.dslplatform.json.JsonWriter;
 import com.lmax.disruptor.EventFactory;
+import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.EventTranslatorOneArg;
-import com.lmax.disruptor.EventTranslatorTwoArg;
 import com.lmax.disruptor.IgnoreExceptionHandler;
 import com.lmax.disruptor.InsufficientCapacityException;
 import com.lmax.disruptor.dsl.Disruptor;
@@ -37,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -65,19 +63,23 @@ public class ApmServerReporter implements Reporter {
             event.setSpan(s);
         }
     };
-    private static final EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread> END_REQUEST_EVENT_TRANSLATOR = new EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread>() {
+    private static final EventTranslatorOneArg<ReportingEvent, Thread> END_REQUEST_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Thread>() {
         @Override
-        public void translateTo(ReportingEvent event, long sequence, @Nullable CompletableVoidFuture future, @Nullable Thread unparkAfterProcessed) {
+        public void translateTo(ReportingEvent event, long sequence, @Nullable Thread unparkAfterProcessed) {
             event.setEndRequestEvent();
-            event.setCompletableFuture(future);
             event.unparkAfterProcessed(unparkAfterProcessed);
         }
     };
-    private static final EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread> SYNC_FLUSH_EVENT_TRANSLATOR = new EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread>() {
+    private static final EventTranslator<ReportingEvent> WAKEUP_EVENT_TRANSLATOR = new EventTranslator<ReportingEvent>() {
         @Override
-        public void translateTo(ReportingEvent event, long sequence, @Nullable CompletableVoidFuture future, @Nullable Thread unparkAfterProcessed) {
+        public void translateTo(ReportingEvent event, long sequence) {
+            event.setWakeupEvent();
+        }
+    };
+    private static final EventTranslatorOneArg<ReportingEvent, Thread> SYNC_FLUSH_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Thread>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, @Nullable Thread unparkAfterProcessed) {
             event.setSyncFlushEvent();
-            event.setCompletableFuture(future);
             event.unparkAfterProcessed(Thread.currentThread());
         }
     };
@@ -93,11 +95,10 @@ public class ApmServerReporter implements Reporter {
             event.setJsonWriter(jsonWriter);
         }
     };
-    private static final EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread> SHUTDOWN_EVENT_TRANSLATOR = new EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread>() {
+    private static final EventTranslatorOneArg<ReportingEvent, Thread> SHUTDOWN_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Thread>() {
         @Override
-        public void translateTo(ReportingEvent event, long sequence, @Nullable CompletableVoidFuture future,  @Nullable Thread unparkAfterProcessed) {
+        public void translateTo(ReportingEvent event, long sequence, @Nullable Thread unparkAfterProcessed) {
             event.shutdownEvent();
-            event.setCompletableFuture(future);
             event.unparkAfterProcessed(Thread.currentThread());
         }
     };
@@ -138,7 +139,7 @@ public class ApmServerReporter implements Reporter {
             transaction.decrementReferences();
         }
         if (syncReport) {
-            waitForFlush();
+            waitForHardFlush();
         }
     }
 
@@ -148,16 +149,13 @@ public class ApmServerReporter implements Reporter {
             span.decrementReferences();
         }
         if (syncReport) {
-            waitForFlush();
+            waitForHardFlush();
         }
     }
 
-    private void waitForFlush() {
-        try {
-            flush().get();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    @Override
+    public boolean waitForHardFlush() {
+        return hardFlush(-1, TimeUnit.NANOSECONDS);
     }
 
     @Override
@@ -170,14 +168,8 @@ public class ApmServerReporter implements Reporter {
         return reportingEventHandler.getReported();
     }
 
-    @Override
-    public Future<Void> flush() {
-        CompletableVoidFuture future = new CompletableVoidFuture();
-        final boolean success = disruptor.getRingBuffer().tryPublishEvent(END_REQUEST_EVENT_TRANSLATOR, future, null);
-        if (!success) {
-            throw new IllegalStateException("Ring buffer has no available slots");
-        }
-        return future;
+    public void scheduleWakeupEvent() {
+        disruptor.getRingBuffer().tryPublishEvent(WAKEUP_EVENT_TRANSLATOR);
     }
 
     @Override
@@ -190,18 +182,23 @@ public class ApmServerReporter implements Reporter {
         return publishAndWaitForEvent(timeout, unit, SYNC_FLUSH_EVENT_TRANSLATOR);
     }
 
-    private boolean publishAndWaitForEvent(long timeout, TimeUnit unit, EventTranslatorTwoArg<ReportingEvent, CompletableVoidFuture, Thread> eventTranslator) {
-        if (timeout <= 0 || !reportingEventHandler.isHealthy()) {
+    private boolean publishAndWaitForEvent(long timeout, TimeUnit unit, EventTranslatorOneArg<ReportingEvent, Thread> eventTranslator) {
+        if (!reportingEventHandler.isHealthy()) {
             return false;
         }
         ReportingEventHandler reportingEventHandler = this.reportingEventHandler;
         long startNs = System.nanoTime();
-        long thresholdNs = unit.toNanos(timeout) + startNs;
+        long thresholdNs;
+        if (timeout < 0) {
+            thresholdNs = Long.MAX_VALUE;
+        } else {
+            thresholdNs = unit.toNanos(timeout) + startNs;
+        }
         do {
             try {
                 long sequence = disruptor.getRingBuffer().tryNext();
                 try {
-                    eventTranslator.translateTo(disruptor.get(sequence), sequence, null, Thread.currentThread());
+                    eventTranslator.translateTo(disruptor.get(sequence), sequence, Thread.currentThread());
                 } finally {
                     disruptor.getRingBuffer().publish(sequence);
                 }
@@ -252,7 +249,7 @@ public class ApmServerReporter implements Reporter {
             error.recycle();
         }
         if (syncReport) {
-            waitForFlush();
+            waitForHardFlush();
         }
     }
 
@@ -263,7 +260,7 @@ public class ApmServerReporter implements Reporter {
         }
         tryAddEventToRingBuffer(jsonWriter, JSON_WRITER_EVENT_TRANSLATOR);
         if (syncReport) {
-            waitForFlush();
+            waitForHardFlush();
         }
     }
 
