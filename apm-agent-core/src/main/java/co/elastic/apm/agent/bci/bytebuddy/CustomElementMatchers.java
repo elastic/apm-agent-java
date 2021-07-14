@@ -254,6 +254,28 @@ public class CustomElementMatchers {
         };
     }
 
+    public static ElementMatcher.Junction<NamedElement> anyMatchExcept(final List<WildcardMatcher> matchers, final List<ElementMatcher<? super NamedElement>> excepts) {
+        return new ElementMatcher.Junction.AbstractBase<NamedElement>() {
+            @Override
+            public boolean matches(NamedElement target) {
+                if (WildcardMatcher.isAnyMatch(matchers, target.getActualName())) {
+                    for (ElementMatcher<? super NamedElement> except : excepts) {
+                        if (except.matches(target)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            @Override
+            public String toString() {
+                return "matches((" + matchers + ") except (" + excepts + "))";
+            }
+        };
+    }
+
     public static ElementMatcher.Junction<AnnotationSource> annotationMatches(final String annotationWildcard) {
         return AnnotationMatcher.annotationMatcher(annotationWildcard);
     }

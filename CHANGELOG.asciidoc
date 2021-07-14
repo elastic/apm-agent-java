@@ -59,6 +59,7 @@ service map and downstream service in the dependencies table - {pull}1898[#1898]
 * Basic support for com.sun.net.httpserver.HttpServer - {pull}1854[#1854]
 * Update to async-profiler 1.8.6 {pull}1907[#1907]
 * Added support for setting the framework using the public api (#1908) - {pull}1909[#1909]
+* Added support for excluding classes from classes_excluded_from_instrumentation_default (#1919) - {pull}1920[#1920]
 
 [float]
 ===== Bug fixes
