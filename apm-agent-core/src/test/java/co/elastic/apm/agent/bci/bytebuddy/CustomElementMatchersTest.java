@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import net.bytebuddy.description.type.TypeDescription;
 import org.apache.http.client.HttpClient;
 import org.junit.jupiter.api.Test;
@@ -31,13 +32,23 @@ import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.List;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.anyMatchExcept;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionLte;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CustomElementMatchersTest {
+
+    @Test
+    void testAnyMatchExcept() {
+        final TypeDescription thisClass = TypeDescription.ForLoadedType.of(getClass());
+        assertThat(anyMatchExcept(List.of(WildcardMatcher.valueOf("co.elastic.apm.agent*")), List.of(none())).matches(thisClass)).isTrue();
+        assertThat(anyMatchExcept(List.of(WildcardMatcher.valueOf("co.elastic.apm.agent*")), List.of(named("co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchersTest"))).matches(thisClass)).isFalse();
+        assertThat(anyMatchExcept(List.of(WildcardMatcher.valueOf("co.elastic.apm.agent*")), List.of(none(), named("co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchersTest"))).matches(thisClass)).isFalse();
+    }
 
     @Test
     void testIncludedPackages() {
