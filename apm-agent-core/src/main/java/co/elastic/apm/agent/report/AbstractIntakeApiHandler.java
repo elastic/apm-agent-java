@@ -57,6 +57,7 @@ public class AbstractIntakeApiHandler {
     private volatile boolean healthy = true;
     private final NanoClock clock;
     private long requestStartedNanos;
+    protected boolean pendingFlush = false;
 
     public AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
         this(reporterConfiguration, payloadSerializer, apmServerClient, new SystemNanoClock());
@@ -166,12 +167,15 @@ public class AbstractIntakeApiHandler {
                     onRequestError(connection.getResponseCode(), connection.getErrorStream(), e);
                 } catch (IOException e1) {
                     long maxRequestTime = TimeUnit.MILLISECONDS.toNanos(reporterConfiguration.getApiRequestTime().getMillis());
-                    long threshold = requestStartedNanos + maxRequestTime + TimeUnit.SECONDS.toNanos(1);
-                    if (threshold < clock.nanoTicks()) {
+                    long significantlyOverApiRequestTime = requestStartedNanos + maxRequestTime + TimeUnit.SECONDS.toNanos(1);
+                    if (pendingFlush && clock.nanoTicks() < significantlyOverApiRequestTime) {
                         // the request has been open for significantly longer than api_request_time
                         // it's quite likely that APM Server or a proxy has already closed the connection
-                        // we don't want to trigger a backoff in this case or log an error
-                        // reasons for that include long stop-the-world pauses and freezing of the environment (ex. on AWS Lambda)
+                        // we don't want to trigger a backoff or log an error if we have already flushed all data previously
+                        // note: flushing the OutputStream of a closed connection does not necessarily lead to an exception.
+                        // only when closing the connection, the exception occurrs
+                        // use case: on AWS Lambda, we flush after every request
+                        // and the environment may freeze for a long period of time so that the APM Server closes the connection
                         onRequestError(-1, connection.getErrorStream(), e);
                     }
                 }
@@ -181,6 +185,7 @@ public class AbstractIntakeApiHandler {
                 os = null;
                 deflater.reset();
                 currentlyTransmitting = 0;
+                pendingFlush = false;
             }
         }
     }

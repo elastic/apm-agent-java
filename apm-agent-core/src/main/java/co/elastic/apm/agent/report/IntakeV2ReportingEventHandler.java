@@ -118,6 +118,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             if (os != null) {
                 payloadSerializer.flushToOutputStream();
                 os.flush();
+                pendingFlush = false;
             }
         } catch (IOException e) {
             handleConnectionError(event, e);
@@ -175,7 +176,10 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             payloadSerializer.serializeErrorNdJson(event.getError());
         } else if (event.getJsonWriter() != null) {
             payloadSerializer.writeBytes(event.getJsonWriter().getByteBuffer(), event.getJsonWriter().size());
+        } else {
+            return;
         }
+        pendingFlush = true;
     }
 
     @Override

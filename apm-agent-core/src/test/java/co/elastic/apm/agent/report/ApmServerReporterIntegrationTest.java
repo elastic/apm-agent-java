@@ -46,7 +46,6 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.Collections;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.InflaterInputStream;
@@ -151,7 +150,7 @@ class ApmServerReporterIntegrationTest {
     }
 
     @Test
-    void testReportSpan() throws ExecutionException, InterruptedException {
+    void testReportSpan() {
         reporter.report(new Span(tracer));
         reporter.waitForHardFlush();
         assertThat(reporter.getDropped()).isEqualTo(0);
@@ -159,7 +158,7 @@ class ApmServerReporterIntegrationTest {
     }
 
     @Test
-    void testSecretToken() throws ExecutionException, InterruptedException {
+    void testSecretToken() {
         doReturn("token").when(reporterConfiguration).getSecretToken();
         handler = exchange -> {
             if (exchange.getRequestPath().equals("/intake/v2/events")) {
@@ -175,7 +174,7 @@ class ApmServerReporterIntegrationTest {
     }
 
     @Test
-    void testReportErrorCapture() throws ExecutionException, InterruptedException {
+    void testReportErrorCapture() {
         reporter.report(new ErrorCapture(tracer));
         reporter.waitForHardFlush();
         assertThat(reporter.getDropped()).isEqualTo(0);
@@ -183,7 +182,7 @@ class ApmServerReporterIntegrationTest {
     }
 
     @Test
-    void testTimeout() throws InterruptedException {
+    void testTimeout() {
         doReturn(TimeDuration.of("1ms")).when(reporterConfiguration).getApiRequestTime();
         doAnswer(invocation -> System.nanoTime()).when(clock).nanoTicks();
         reporter.report(new Transaction(tracer));
