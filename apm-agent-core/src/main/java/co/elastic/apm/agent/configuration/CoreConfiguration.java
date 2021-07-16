@@ -142,6 +142,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("A version string for the currently deployed version of the service. If you don’t version your deployments, " +
             "the recommended value for this field is the commit identifier of the deployed revision, " +
             "e.g. the output of git rev-parse HEAD.")
+        .defaultValue(ServiceVersionUtil.getDefaultServiceVersion())
         .build();
 
     private final ConfigurationOption<String> hostname = ConfigurationOption.stringOption()
