@@ -24,7 +24,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.dslplatform.json.JsonWriter;
 
 import java.io.Closeable;
-import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public interface Reporter extends Closeable {
 
@@ -42,7 +42,60 @@ public interface Reporter extends Closeable {
 
     long getReported();
 
-    Future<Void> flush();
+    /**
+     * Flushes pending events and ends the HTTP request to APM server.
+     * <p>
+     * This means that the first event that gets processed after the end-request-event will start a new HTTP request to APM Server.
+     * </p>
+     * <p>
+     * This method is allocation-free.
+     * It's guaranteed that events reported in-between two invocations of this method have been processed after the second
+     * invocation returns {@code true}.
+     * </p>
+     * <p>
+     * If this method returns {@code false}, any of the following situations may have occurred:
+     * </p>
+     * <ul>
+     *     <li>The connection to APM Server is not healthy</li>
+     *     <li>The thread has been interrupted</li>
+     *     <li>The flush event could not be processed within the provided timeout</li>
+     * </ul>
+     *
+     * @param timeout the maximum time to wait. Negative values mean an indefinite timeout.
+     * @param unit the time unit of the timeout argument
+     * @return {code true}, if the flush has been executed successfully
+     */
+    boolean hardFlush(long timeout, TimeUnit unit);
+
+    /**
+     * Same as {@code hardFlush(-1, NANOSECONDS)}
+     * @see #hardFlush(long, TimeUnit)
+     */
+    boolean waitForHardFlush();
+
+    /**
+     * Flushes pending events but keeps the HTTP request to APM server alive.
+     * <p>
+     * This means that events that are reported after this method may be sent to APM Server within the same HTTP request.
+     * </p>
+     * <p>
+     * This method is allocation-free.
+     * It's guaranteed that events reported in-between two invocations of this method have been processed after the second
+     * invocation returns {@code true}.
+     * </p>
+     * <p>
+     * If this method returns {@code false}, any of the following situations may have occurred:
+     * </p>
+     * <ul>
+     *     <li>The connection to APM Server is not healthy</li>
+     *     <li>The thread has been interrupted</li>
+     *     <li>The flush event could not be processed within the provided timeout</li>
+     * </ul>
+     * @param timeout the maximum time to wait. Negative values mean an indefinite timeout.
+     * @param unit the time unit of the timeout argument
+     * @return {code true}, if the flush has been executed successfully
+     */
+    boolean softFlush(long timeout, TimeUnit unit);
 
     @Override
     void close();

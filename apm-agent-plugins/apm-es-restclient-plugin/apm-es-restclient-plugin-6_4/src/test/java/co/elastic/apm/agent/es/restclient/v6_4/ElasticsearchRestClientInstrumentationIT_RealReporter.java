@@ -74,7 +74,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -159,11 +158,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         container.stop();
         client.close();
 
-        try {
-            realReporter.flush().get();
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
+        realReporter.waitForHardFlush();
     }
 
     @Before

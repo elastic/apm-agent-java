@@ -108,7 +108,7 @@ class ReporterFactoryTest {
         reporter.start();
 
         reporter.report(new Transaction(MockTracer.create()));
-        reporter.flush().get();
+        reporter.waitForHardFlush();
 
         assertThat(requestHandled)
             .describedAs("request should ignore certificate validation and properly execute")
@@ -125,7 +125,7 @@ class ReporterFactoryTest {
         reporter.start();
 
         reporter.report(new Transaction(MockTracer.create()));
-        reporter.flush().get();
+        reporter.waitForHardFlush();
 
         assertThat(requestHandled)
             .describedAs("request should have produced a certificate validation error")
