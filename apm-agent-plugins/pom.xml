@@ -64,6 +64,7 @@
         <module>apm-struts-plugin</module>
         <module>apm-vertx</module>
         <module>apm-sparkjava-plugin</module>
+        <module>apm-javalin-plugin</module>
         <module>apm-servlet-jakarta-test</module>
     </modules>
 
