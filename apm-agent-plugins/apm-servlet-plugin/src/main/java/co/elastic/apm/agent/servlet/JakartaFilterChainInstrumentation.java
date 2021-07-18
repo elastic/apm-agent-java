@@ -7,8 +7,13 @@ public class JakartaFilterChainInstrumentation extends FilterChainInstrumentatio
     }
 
     @Override
-    String[] filterChainMethodMatcherArgumentClassNames() {
-        return new String[]{"jakarta.servlet.ServletRequest", "jakarta.servlet.ServletResponse"};
+    String doFilterFirstArgumentClassName() {
+        return "jakarta.servlet.ServletRequest";
+    }
+
+    @Override
+    String doFilterSecondArgumentClassName() {
+        return "jakarta.servlet.ServletResponse";
     }
 
     @Override

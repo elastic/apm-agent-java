@@ -7,8 +7,13 @@ public class JavaxFilterChainInstrumentation extends FilterChainInstrumentation 
     }
 
     @Override
-    String[] filterChainMethodMatcherArgumentClassNames() {
-        return new String[]{"javax.servlet.ServletRequest", "javax.servlet.ServletResponse"};
+    String doFilterFirstArgumentClassName() {
+        return "javax.servlet.ServletRequest";
+    }
+
+    @Override
+    String doFilterSecondArgumentClassName() {
+        return "javax.servlet.ServletResponse";
     }
 
     @Override

@@ -57,20 +57,20 @@ public abstract class ServletInstrumentation extends AbstractServletInstrumentat
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface())
-            .and(hasSuperType(named(getServletClassName())));
+        return not(isInterface()).and(hasSuperType(named(getServletClassName())));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        String[] classNames = getServletMethodArgumentNames();
         return named("service")
-            .and(takesArgument(0, named(classNames[0])))
-            .and(takesArgument(1, named(classNames[1])));
+            .and(takesArgument(0, named(doFilterFirstArgumentClassName())))
+            .and(takesArgument(1, named(doFilterSecondArgumentClassName())));
     }
 
     public abstract String getServletClassName();
 
-    public abstract String[] getServletMethodArgumentNames();
+    abstract String doFilterFirstArgumentClassName();
+
+    abstract String doFilterSecondArgumentClassName();
 
 }

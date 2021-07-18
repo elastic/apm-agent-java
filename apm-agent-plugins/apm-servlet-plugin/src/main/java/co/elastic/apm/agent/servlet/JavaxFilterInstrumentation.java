@@ -10,8 +10,13 @@ public class JavaxFilterInstrumentation extends FilterInstrumentation {
     }
 
     @Override
-    public String[] getServletMethodArgumentNames() {
-        return new String[]{"javax.servlet.ServletRequest", "javax.servlet.ServletResponse"};
+    String doFilterFirstArgumentClassName() {
+        return "javax.servlet.ServletRequest";
+    }
+
+    @Override
+    String doFilterSecondArgumentClassName() {
+        return "javax.servlet.ServletResponse";
     }
 
     @Override

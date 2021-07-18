@@ -10,8 +10,13 @@ public class JakartaFilterInstrumentation extends FilterInstrumentation {
     }
 
     @Override
-    public String[] getServletMethodArgumentNames() {
-        return new String[]{"jakarta.servlet.ServletRequest", "jakarta.servlet.ServletResponse"};
+    String doFilterFirstArgumentClassName() {
+        return "jakarta.servlet.ServletRequest";
+    }
+
+    @Override
+    String doFilterSecondArgumentClassName() {
+        return "jakarta.servlet.ServletResponse";
     }
 
     @Override

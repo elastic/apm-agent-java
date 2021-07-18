@@ -28,16 +28,16 @@ public abstract class FilterChainInstrumentation extends AbstractServletInstrume
             .and(hasSuperType(named(filterChainTypeMatcherClassName())));
     }
 
-    abstract String filterChainTypeMatcherClassName();
-
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        String[] classNames = filterChainMethodMatcherArgumentClassNames();
         return named("doFilter")
-            .and(takesArgument(0, named(classNames[0])))
-            .and(takesArgument(1, named(classNames[1])));
+            .and(takesArgument(0, named(doFilterFirstArgumentClassName())))
+            .and(takesArgument(1, named(doFilterSecondArgumentClassName())));
     }
 
-    abstract String[] filterChainMethodMatcherArgumentClassNames();
+    abstract String filterChainTypeMatcherClassName();
 
+    abstract String doFilterFirstArgumentClassName();
+
+    abstract String doFilterSecondArgumentClassName();
 }
