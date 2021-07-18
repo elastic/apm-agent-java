@@ -15,7 +15,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 /**
  * Instruments {@link javax.servlet.FilterChain}s to create transactions.
  */
-public abstract class CommonFilterChainInstrumentation extends AbstractServletInstrumentation {
+public abstract class FilterChainInstrumentation extends AbstractServletInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {

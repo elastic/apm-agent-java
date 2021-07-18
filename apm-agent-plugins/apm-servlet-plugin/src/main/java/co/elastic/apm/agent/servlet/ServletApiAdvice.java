@@ -21,9 +21,10 @@ import java.util.List;
 import java.util.Map;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
 
-public abstract class BaseServletApiAdvice {
+public abstract class ServletApiAdvice {
 
     private static final String FRAMEWORK_NAME = "Servlet API";
     static final String SPAN_TYPE = "servlet";
@@ -34,9 +35,9 @@ public abstract class BaseServletApiAdvice {
         servletTransactionHelper = new ServletTransactionHelper(GlobalTracer.requireTracerImpl());
     }
 
-    private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(BaseServletApiAdvice.class, "excluded");
-    private static final GlobalThreadLocal<Object> servletPathTL = GlobalThreadLocal.get(BaseServletApiAdvice.class, "servletPath");
-    private static final GlobalThreadLocal<Object> pathInfoTL = GlobalThreadLocal.get(BaseServletApiAdvice.class, "pathInfo");
+    private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(ServletApiAdvice.class, "excluded");
+    private static final GlobalThreadLocal<Object> servletPathTL = GlobalThreadLocal.get(ServletApiAdvice.class, "servletPath");
+    private static final GlobalThreadLocal<Object> pathInfoTL = GlobalThreadLocal.get(ServletApiAdvice.class, "pathInfo");
 
     private static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "jakarta.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
 
@@ -48,7 +49,7 @@ public abstract class BaseServletApiAdvice {
         }
         AbstractSpan<?> ret = null;
         // re-activate transactions for async requests
-        final Transaction transactionAttr = helper.getTransactionAttribute(servletRequest);
+        final Transaction transactionAttr = (Transaction) helper.getAttribute(servletRequest, TRANSACTION_ATTRIBUTE);
         if (tracer.currentTransaction() == null && transactionAttr != null) {
             return transactionAttr.activateInScope();
         }
@@ -178,7 +179,7 @@ public abstract class BaseServletApiAdvice {
         if (transaction != null && helper.isHttpServletRequest(servletRequest) && helper.isHttpServletResponse(servletResponse)) {
 
             final HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
-            if (helper.getAttribute(httpServletRequest, ServletTransactionHelper.ASYNC_ATTRIBUTE) != null) {
+            if (helper.getHttpAttribute(httpServletRequest, ServletTransactionHelper.ASYNC_ATTRIBUTE) != null) {
                 // HttpServletRequest.startAsync was invoked on this httpServletRequest.
                 // The transaction should be handled from now on by the other thread committing the response
                 transaction.deactivate();
@@ -207,7 +208,7 @@ public abstract class BaseServletApiAdvice {
                     final int size = requestExceptionAttributes.size();
                     for (int i = 0; i < size; i++) {
                         String attributeName = requestExceptionAttributes.get(i);
-                        Object throwable = helper.getAttribute(httpServletRequest, attributeName);
+                        Object throwable = helper.getHttpAttribute(httpServletRequest, attributeName);
                         if (throwable instanceof Throwable) {
                             t2 = (Throwable) throwable;
                             if (!attributeName.equals("javax.servlet.error.exception") && !attributeName.equals("jakarta.servlet.error.exception")) {

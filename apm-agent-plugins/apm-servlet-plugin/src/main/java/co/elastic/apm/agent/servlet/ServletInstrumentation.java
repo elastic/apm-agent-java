@@ -37,13 +37,13 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 /**
  * Instruments servlets to create transactions.
  * <p>
- * If the transaction has already been recorded with the help of {@link CommonFilterChainInstrumentation},
+ * If the transaction has already been recorded with the help of {@link FilterChainInstrumentation},
  * it does not record the transaction again.
  * But if there is no filter registered for a servlet,
  * this makes sure to record a transaction in that case.
  * </p>
  */
-public abstract class CommonServletInstrumentation extends AbstractServletInstrumentation {
+public abstract class ServletInstrumentation extends AbstractServletInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

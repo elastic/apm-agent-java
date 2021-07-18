@@ -1,6 +1,6 @@
 package co.elastic.apm.agent.servlet;
 
-public class JavaxServletInstrumentation extends CommonServletInstrumentation {
+public class JavaxServletInstrumentation extends ServletInstrumentation {
     @Override
     public String getServletClassName() {
         return "javax.servlet.Servlet";
@@ -14,5 +14,10 @@ public class JavaxServletInstrumentation extends CommonServletInstrumentation {
     @Override
     public String getAdviceClassName() {
         return "co.elastic.apm.agent.servlet.JavaxServletApiAdvice";
+    }
+
+    @Override
+    public String rootClassNameThatClassloaderCanLoad() {
+        return "javax.servlet.AsyncContext";
     }
 }

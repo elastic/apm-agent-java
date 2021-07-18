@@ -29,20 +29,20 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.Objects;
 
-public abstract class CommonServletTransactionCreationHelper<ServletRequest, ServletContext> {
+public abstract class ServletTransactionCreationHelper<HttpServletRequest, ServletContext> {
 
-    private static final Logger logger = LoggerFactory.getLogger(CommonServletTransactionCreationHelper.class);
+    private static final Logger logger = LoggerFactory.getLogger(ServletTransactionCreationHelper.class);
 
     private final Tracer tracer;
     private final WebConfiguration webConfiguration;
 
-    public CommonServletTransactionCreationHelper(ElasticApmTracer tracer) {
+    public ServletTransactionCreationHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
         webConfiguration = tracer.getConfig(WebConfiguration.class);
     }
 
     @Nullable
-    public Transaction createAndActivateTransaction(ServletRequest request) {
+    public Transaction createAndActivateTransaction(HttpServletRequest request) {
         // only create a transaction if there is not already one
         if (tracer.currentTransaction() != null) {
             return null;
@@ -58,13 +58,13 @@ public abstract class CommonServletTransactionCreationHelper<ServletRequest, Ser
         return transaction;
     }
 
-    protected abstract String getServletPath(ServletRequest request);
+    protected abstract String getServletPath(HttpServletRequest request);
 
-    protected abstract String getPathInfo(ServletRequest request);
+    protected abstract String getPathInfo(HttpServletRequest request);
 
-    protected abstract String getHeader(ServletRequest request, String headerName);
+    protected abstract String getHeader(HttpServletRequest request, String headerName);
 
-    protected abstract ServletContext getServletContext(ServletRequest request);
+    protected abstract ServletContext getServletContext(HttpServletRequest request);
 
     protected abstract ClassLoader getClassLoader(ServletContext servletContext);
 

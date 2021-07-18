@@ -21,7 +21,7 @@ public class JavaxAsyncInstrumentation {
      *
      * @return
      */
-    public static class JavaxStartAsyncInstrumentation extends CommonAsyncInstrumentation.StartAsyncInstrumentation {
+    public static class JavaxStartAsyncInstrumentation extends AsyncInstrumentation.StartAsyncInstrumentation {
 
         @Override
         String servletRequestClassName() {
@@ -43,6 +43,11 @@ public class JavaxAsyncInstrumentation {
             return "co.elastic.apm.agent.servlet.JavaxAsyncInstrumentation$JavaxStartAsyncInstrumentation$StartAsyncAdvice";
         }
 
+        @Override
+        public String rootClassNameThatClassloaderCanLoad() {
+            return "javax.servlet.AsyncContext";
+        }
+
         public static class StartAsyncAdvice {
             private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper = new JavaxAsyncContextAdviceHelper(GlobalTracer.requireTracerImpl());;
 
@@ -56,7 +61,7 @@ public class JavaxAsyncInstrumentation {
         }
     }
 
-    public static class JavaxAsyncContextInstrumentation extends CommonAsyncInstrumentation.AsyncContextInstrumentation {
+    public static class JavaxAsyncContextInstrumentation extends AsyncInstrumentation.AsyncContextInstrumentation {
 
         @Override
         String asyncContextClassName() {
@@ -68,5 +73,9 @@ public class JavaxAsyncInstrumentation {
             return "co.elastic.apm.agent.servlet.CommonAsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice";
         }
 
+        @Override
+        public String rootClassNameThatClassloaderCanLoad() {
+            return "javax.servlet.AsyncContext";
+        }
     }
 }

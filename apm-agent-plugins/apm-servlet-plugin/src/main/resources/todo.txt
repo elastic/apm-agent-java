@@ -1,5 +1,0 @@
-ServletInstrumentation +
-ServletVersionInstrumentation +
-RequestStreamRecordingInstrumentation +
-FilterChainInstrumentation +
-AsyncInstrumentation

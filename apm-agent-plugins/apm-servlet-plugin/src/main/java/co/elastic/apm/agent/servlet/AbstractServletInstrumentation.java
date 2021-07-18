@@ -41,7 +41,5 @@ public abstract class AbstractServletInstrumentation extends TracerAwareInstrume
         return CustomElementMatchers.classLoaderCanLoadClass(rootClassNameThatClassloaderCanLoad());
     }
 
-    public String rootClassNameThatClassloaderCanLoad() {
-        return "javax.servlet.AsyncContext";
-    }
+    public abstract String rootClassNameThatClassloaderCanLoad();
 }

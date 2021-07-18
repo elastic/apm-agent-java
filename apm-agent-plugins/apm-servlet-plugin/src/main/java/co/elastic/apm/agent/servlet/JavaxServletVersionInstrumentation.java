@@ -6,14 +6,14 @@ import javax.annotation.Nullable;
 import javax.servlet.Servlet;
 import javax.servlet.ServletConfig;
 
-public abstract class JavaxServletVersionInstrumentation extends CommonServletVersionInstrumentation {
+public abstract class JavaxServletVersionInstrumentation extends ServletVersionInstrumentation {
 
     public static class JavaxInit extends Init {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
         public static void onEnter(@Advice.Argument(0) @Nullable ServletConfig servletConfig) {
-            logServletVersion(() -> JavaxUtil.getInfoFromServletContext(servletConfig));
+            logServletVersion(JavaxUtil.getInfoFromServletContext(servletConfig));
         }
 
         @Override
@@ -36,7 +36,7 @@ public abstract class JavaxServletVersionInstrumentation extends CommonServletVe
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.This Servlet servlet) {
-            logServletVersion(() -> JavaxUtil.getInfoFromServletContext(servlet.getServletConfig()));
+            logServletVersion(JavaxUtil.getInfoFromServletContext(servlet.getServletConfig()));
         }
 
         @Override

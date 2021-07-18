@@ -9,7 +9,7 @@ import net.bytebuddy.asm.Advice;
 import javax.annotation.Nullable;
 import javax.servlet.ServletInputStream;
 
-public class JavaxRequestStreamRecordingInstrumentation extends CommonRequestStreamRecordingInstrumentation {
+public class JavaxRequestStreamRecordingInstrumentation extends RequestStreamRecordingInstrumentation {
 
     @Override
     String typeMatcherClassName() {
@@ -24,6 +24,11 @@ public class JavaxRequestStreamRecordingInstrumentation extends CommonRequestStr
     @Override
     public String getAdviceClassName() {
         return "co.elastic.apm.agent.servlet.JavaxRequestStreamRecordingInstrumentation$GetInputStreamAdvice";
+    }
+
+    @Override
+    public String rootClassNameThatClassloaderCanLoad() {
+        return "javax.servlet.AsyncContext";
     }
 
     public static class GetInputStreamAdvice {

@@ -21,7 +21,7 @@ public class JakartaAsyncInstrumentation {
      *
      * @return
      */
-    public static class JakartaStartAsyncInstrumentation extends CommonAsyncInstrumentation.StartAsyncInstrumentation {
+    public static class JakartaStartAsyncInstrumentation extends AsyncInstrumentation.StartAsyncInstrumentation {
 
         @Override
         String servletRequestClassName() {
@@ -43,6 +43,11 @@ public class JakartaAsyncInstrumentation {
             return "co.elastic.apm.agent.servlet.JakartaAsyncInstrumentation$JakartaStartAsyncInstrumentation$JakartaStartAsyncAdvice";
         }
 
+        @Override
+        public String rootClassNameThatClassloaderCanLoad() {
+            return "jakarta.servlet.AsyncContext";
+        }
+
         public static class JakartaStartAsyncAdvice {
             private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper = new JakartaAsyncContextAdviceHelper(GlobalTracer.requireTracerImpl());
 
@@ -56,7 +61,7 @@ public class JakartaAsyncInstrumentation {
         }
     }
 
-    public static class JakartaAsyncContextInstrumentation extends CommonAsyncInstrumentation.AsyncContextInstrumentation {
+    public static class JakartaAsyncContextInstrumentation extends AsyncInstrumentation.AsyncContextInstrumentation {
 
         @Override
         String asyncContextClassName() {
@@ -68,5 +73,9 @@ public class JakartaAsyncInstrumentation {
             return "co.elastic.apm.agent.servlet.CommonAsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice";
         }
 
+        @Override
+        public String rootClassNameThatClassloaderCanLoad() {
+            return "jakarta.servlet.AsyncContext";
+        }
     }
 }

@@ -5,7 +5,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 
-public class JavaxServletTransactionCreationHelper extends CommonServletTransactionCreationHelper<HttpServletRequest, ServletContext> {
+public class JavaxServletTransactionCreationHelper extends ServletTransactionCreationHelper<HttpServletRequest, ServletContext> {
 
     public JavaxServletTransactionCreationHelper(ElasticApmTracer tracer) {
         super(tracer);

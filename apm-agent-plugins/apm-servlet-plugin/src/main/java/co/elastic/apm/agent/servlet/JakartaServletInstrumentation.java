@@ -1,6 +1,6 @@
 package co.elastic.apm.agent.servlet;
 
-public class JakartaServletInstrumentation extends CommonServletInstrumentation{
+public class JakartaServletInstrumentation extends ServletInstrumentation {
     @Override
     public String getServletClassName() {
         return "jakarta.servlet.Servlet";

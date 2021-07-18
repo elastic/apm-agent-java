@@ -41,7 +41,6 @@ public class JavaxAsyncContextAdviceHelper implements AsyncContextAdviceHelper<A
         }
     }
 
-
     ServletTransactionHelper getServletTransactionHelper() {
         return servletTransactionHelper;
     }

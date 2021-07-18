@@ -21,9 +21,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Map;
 
-import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
-
-public class JakartaServletApiAdvice extends BaseServletApiAdvice implements ServletHelper<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
+public class JakartaServletApiAdvice extends ServletApiAdvice implements ServletHelper<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
 
     private static JakartaServletTransactionCreationHelper transactionCreationHelper;
     private static JakartaServletApiAdvice helper;
@@ -47,11 +45,6 @@ public class JakartaServletApiAdvice extends BaseServletApiAdvice implements Ser
                                             @Advice.Thrown @Nullable Throwable t,
                                             @Advice.This Object thiz) {
         onExitServlet(servletRequest, servletResponse, transactionOrScopeOrSpan, t, thiz, helper);
-    }
-
-    @Override
-    public Transaction getTransactionAttribute(ServletRequest servletRequest) {
-        return (Transaction) servletRequest.getAttribute(TRANSACTION_ATTRIBUTE);
     }
 
     @Override
@@ -208,11 +201,17 @@ public class JakartaServletApiAdvice extends BaseServletApiAdvice implements Ser
         return httpServletRequest.getUserPrincipal();
     }
 
+    @Nullable
     @Override
-    public Object getAttribute(HttpServletRequest httpServletRequest, String attributeName) {
-        return httpServletRequest.getAttribute(attributeName);
+    public Object getAttribute(ServletRequest servletRequest, String attributeName) {
+        return servletRequest.getAttribute(attributeName);
     }
 
+    @Nullable
+    @Override
+    public Object getHttpAttribute(HttpServletRequest httpServletRequest, String attributeName) {
+        return httpServletRequest.getAttribute(attributeName);
+    }
     @Override
     public Collection<String> getHeaderNames(HttpServletResponse httpServletResponse) {
         return httpServletResponse.getHeaderNames();

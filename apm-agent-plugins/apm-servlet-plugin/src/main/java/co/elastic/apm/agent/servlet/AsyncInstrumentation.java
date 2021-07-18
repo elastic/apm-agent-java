@@ -46,7 +46,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public abstract class CommonAsyncInstrumentation extends AbstractServletInstrumentation {
+public abstract class AsyncInstrumentation extends AbstractServletInstrumentation {
 
     private static final String SERVLET_API_ASYNC_GROUP_NAME = "servlet-api-async";
 
@@ -55,7 +55,7 @@ public abstract class CommonAsyncInstrumentation extends AbstractServletInstrume
         return Arrays.asList(Constants.SERVLET_API, SERVLET_API_ASYNC_GROUP_NAME);
     }
 
-    public abstract static class StartAsyncInstrumentation extends CommonAsyncInstrumentation {
+    public abstract static class StartAsyncInstrumentation extends AsyncInstrumentation {
 
         @Override
         public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -89,7 +89,7 @@ public abstract class CommonAsyncInstrumentation extends AbstractServletInstrume
 
     }
 
-    public abstract static class AsyncContextInstrumentation extends CommonAsyncInstrumentation {
+    public abstract static class AsyncContextInstrumentation extends AsyncInstrumentation {
 
         @Override
         public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {

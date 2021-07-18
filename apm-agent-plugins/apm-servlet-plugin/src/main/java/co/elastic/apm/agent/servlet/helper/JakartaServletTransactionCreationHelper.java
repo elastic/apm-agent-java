@@ -2,11 +2,10 @@ package co.elastic.apm.agent.servlet.helper;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 
-public class JakartaServletTransactionCreationHelper extends CommonServletTransactionCreationHelper<HttpServletRequest, ServletContext> {
+public class JakartaServletTransactionCreationHelper extends ServletTransactionCreationHelper<HttpServletRequest, ServletContext> {
     public JakartaServletTransactionCreationHelper(ElasticApmTracer tracer) {
         super(tracer);
     }

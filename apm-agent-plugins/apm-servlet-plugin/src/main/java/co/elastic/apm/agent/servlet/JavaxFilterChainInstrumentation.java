@@ -1,6 +1,6 @@
 package co.elastic.apm.agent.servlet;
 
-public class JavaxFilterChainInstrumentation extends CommonFilterChainInstrumentation {
+public class JavaxFilterChainInstrumentation extends FilterChainInstrumentation {
     @Override
     String filterChainTypeMatcherClassName() {
         return "javax.servlet.FilterChain";
@@ -14,5 +14,10 @@ public class JavaxFilterChainInstrumentation extends CommonFilterChainInstrument
     @Override
     public String getAdviceClassName() {
         return "co.elastic.apm.agent.servlet.JavaxServletApiAdvice";
+    }
+
+    @Override
+    public String rootClassNameThatClassloaderCanLoad() {
+        return "javax.servlet.AsyncContext";
     }
 }

@@ -6,14 +6,14 @@ import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 
-public abstract class JakartaServletVersionInstrumentation extends CommonServletVersionInstrumentation {
+public abstract class JakartaServletVersionInstrumentation extends ServletVersionInstrumentation {
 
     public static class JakartaInit extends Init {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
         public static void onEnter(@Advice.Argument(0) @Nullable ServletConfig servletConfig) {
-            logServletVersion(() -> JakartaUtil.getInfoFromServletContext(servletConfig));
+            logServletVersion(JakartaUtil.getInfoFromServletContext(servletConfig));
         }
 
         @Override
@@ -36,7 +36,7 @@ public abstract class JakartaServletVersionInstrumentation extends CommonServlet
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.This Servlet servlet) {
-            logServletVersion(() -> JakartaUtil.getInfoFromServletContext(servlet.getServletConfig()));
+            logServletVersion(JakartaUtil.getInfoFromServletContext(servlet.getServletConfig()));
         }
 
         @Override

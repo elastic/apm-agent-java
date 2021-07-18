@@ -9,11 +9,7 @@ import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 
-public class JakartaRequestStreamRecordingInstrumentation extends CommonRequestStreamRecordingInstrumentation {
-    @Override
-    public String rootClassNameThatClassloaderCanLoad() {
-        return "jakarta.servlet.AsyncContext";
-    }
+public class JakartaRequestStreamRecordingInstrumentation extends RequestStreamRecordingInstrumentation {
 
     @Override
     String typeMatcherClassName() {
@@ -28,6 +24,11 @@ public class JakartaRequestStreamRecordingInstrumentation extends CommonRequestS
     @Override
     public String getAdviceClassName() {
         return "co.elastic.apm.agent.servlet.JakartaRequestStreamRecordingInstrumentation$GetInputStreamAdvice";
+    }
+
+    @Override
+    public String rootClassNameThatClassloaderCanLoad() {
+        return "jakarta.servlet.AsyncContext";
     }
 
     public static class GetInputStreamAdvice {

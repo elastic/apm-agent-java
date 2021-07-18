@@ -22,9 +22,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Map;
 
-import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
-
-public class JavaxServletApiAdvice extends BaseServletApiAdvice implements ServletHelper<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
+public class JavaxServletApiAdvice extends ServletApiAdvice implements ServletHelper<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
 
     private static JavaxServletTransactionCreationHelper transactionCreationHelper;
     private static JavaxServletApiAdvice helper;
@@ -47,11 +45,6 @@ public class JavaxServletApiAdvice extends BaseServletApiAdvice implements Servl
                                             @Advice.Thrown @Nullable Throwable t,
                                             @Advice.This Object thiz) {
         onExitServlet(servletRequest, servletResponse, transactionOrScopeOrSpan, t, thiz, helper);
-    }
-
-    @Override
-    public Transaction getTransactionAttribute(ServletRequest servletRequest) {
-        return (Transaction) servletRequest.getAttribute(TRANSACTION_ATTRIBUTE);
     }
 
     @Override
@@ -208,8 +201,15 @@ public class JavaxServletApiAdvice extends BaseServletApiAdvice implements Servl
         return httpServletRequest.getUserPrincipal();
     }
 
+    @Nullable
     @Override
-    public Object getAttribute(HttpServletRequest httpServletRequest, String attributeName) {
+    public Object getAttribute(ServletRequest servletRequest, String attributeName) {
+        return servletRequest.getAttribute(attributeName);
+    }
+
+    @Nullable
+    @Override
+    public Object getHttpAttribute(HttpServletRequest httpServletRequest, String attributeName) {
         return httpServletRequest.getAttribute(attributeName);
     }
 

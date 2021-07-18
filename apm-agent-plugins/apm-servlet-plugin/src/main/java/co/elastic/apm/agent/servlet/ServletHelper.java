@@ -11,9 +11,6 @@ import java.util.Map;
 
 public interface ServletHelper<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
 
-    @Nullable
-    Transaction getTransactionAttribute(ServletRequest servletRequest);
-
     boolean isHttpServletRequest(ServletRequest servletRequest);
 
     boolean isHttpServletResponse(ServletResponse servletResponse);
@@ -67,6 +64,7 @@ public interface ServletHelper<ServletRequest, ServletResponse, HttpServletReque
 
     String getRemoteAddr(HttpServletRequest servletRequest);
 
+    @Nullable
     String getServletPath(HttpServletRequest servletRequest);
 
     String getPathInfo(HttpServletRequest servletRequest);
@@ -81,7 +79,10 @@ public interface ServletHelper<ServletRequest, ServletResponse, HttpServletReque
     Principal getUserPrincipal(HttpServletRequest httpServletRequest);
 
     @Nullable
-    Object getAttribute(HttpServletRequest request, String attributeName);
+    Object getAttribute(ServletRequest request, String attributeName);
+
+    @Nullable
+    Object getHttpAttribute(HttpServletRequest request, String attributeName);
 
     Collection<String> getHeaderNames(HttpServletResponse httpServletResponse);
 

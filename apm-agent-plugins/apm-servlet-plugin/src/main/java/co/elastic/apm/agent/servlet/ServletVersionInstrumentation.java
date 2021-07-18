@@ -8,9 +8,8 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletConfig;
+import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -21,10 +20,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public abstract class CommonServletVersionInstrumentation extends AbstractServletInstrumentation {
+public abstract class ServletVersionInstrumentation extends AbstractServletInstrumentation {
 
-    private static final Logger logger = LoggerFactory.getLogger(CommonServletVersionInstrumentation.class);
-    private static final AtomicBoolean alreadyLogged = GlobalVariables.get(CommonServletVersionInstrumentation.class, "alreadyLogged", new AtomicBoolean(false));
+    private static final Logger logger = LoggerFactory.getLogger(ServletVersionInstrumentation.class);
+    private static final AtomicBoolean alreadyLogged = GlobalVariables.get(ServletVersionInstrumentation.class, "alreadyLogged", new AtomicBoolean(false));
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -44,11 +43,7 @@ public abstract class CommonServletVersionInstrumentation extends AbstractServle
 
     public abstract String servletVersionTypeMatcherClassName();
 
-
-    /**
-     * Instruments {@link javax.servlet.Servlet#init(ServletConfig)}
-     */
-    public static abstract class Init extends CommonServletVersionInstrumentation {
+    public static abstract class Init extends ServletVersionInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -59,7 +54,7 @@ public abstract class CommonServletVersionInstrumentation extends AbstractServle
         abstract String initMethodArgumentClassName();
     }
 
-    public static abstract class Service extends CommonServletVersionInstrumentation {
+    public static abstract class Service extends ServletVersionInstrumentation {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             String[] classNames = getServiceMethodArgumentClassNames();
@@ -71,7 +66,7 @@ public abstract class CommonServletVersionInstrumentation extends AbstractServle
         abstract String[] getServiceMethodArgumentClassNames();
     }
 
-    public static void logServletVersion(Supplier<Object[]> infoFetch) {
+    public static void logServletVersion(@Nullable Object[] infoFromServletContext) {
         if (alreadyLogged.get()) {
             return;
         }
@@ -80,7 +75,6 @@ public abstract class CommonServletVersionInstrumentation extends AbstractServle
         int majorVersion = -1;
         int minorVersion = -1;
         String serverInfo = null;
-        Object[] infoFromServletContext = infoFetch.get();
         if (infoFromServletContext != null && infoFromServletContext.length > 2) {
             if (infoFromServletContext[0] != null) {
                 majorVersion = (int) infoFromServletContext[0];

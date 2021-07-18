@@ -46,8 +46,8 @@ import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.EnumSet;
 
-import static co.elastic.apm.agent.servlet.BaseServletApiAdvice.SPAN_SUBTYPE;
-import static co.elastic.apm.agent.servlet.BaseServletApiAdvice.SPAN_TYPE;
+import static co.elastic.apm.agent.servlet.ServletApiAdvice.SPAN_SUBTYPE;
+import static co.elastic.apm.agent.servlet.ServletApiAdvice.SPAN_TYPE;
 import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.ERROR;
 import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.FORWARD;
 import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.INCLUDE;

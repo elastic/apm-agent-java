@@ -1,11 +1,6 @@
 package co.elastic.apm.agent.servlet;
 
-public class JakartaFilterChainInstrumentation extends CommonFilterChainInstrumentation {
-    @Override
-    public String rootClassNameThatClassloaderCanLoad() {
-        return "jakarta.servlet.AsyncContext";
-    }
-
+public class JakartaFilterChainInstrumentation extends FilterChainInstrumentation {
     @Override
     String filterChainTypeMatcherClassName() {
         return "jakarta.servlet.FilterChain";
@@ -19,5 +14,10 @@ public class JakartaFilterChainInstrumentation extends CommonFilterChainInstrume
     @Override
     public String getAdviceClassName() {
         return "co.elastic.apm.agent.servlet.JakartaServletApiAdvice";
+    }
+
+    @Override
+    public String rootClassNameThatClassloaderCanLoad() {
+        return "jakarta.servlet.AsyncContext";
     }
 }

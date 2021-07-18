@@ -33,7 +33,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
-public abstract class CommonRequestStreamRecordingInstrumentation extends AbstractServletInstrumentation {
+public abstract class RequestStreamRecordingInstrumentation extends AbstractServletInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
