@@ -32,9 +32,18 @@ enum NoopTransaction implements Transaction {
         return this;
     }
 
+
+
     @Nonnull
     @Override
     public Transaction setType(String type) {
+        // noop
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction setFrameworkName(String frameworkName) {
         // noop
         return this;
     }

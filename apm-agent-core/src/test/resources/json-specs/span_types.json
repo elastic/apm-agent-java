@@ -13,6 +13,9 @@
     "subtypes": {
       "inferred": {
         "__description": "Sampling profiler inferred spans"
+      },
+      "handler": {
+        "__description": "http handler"
       }
     }
   },
