@@ -70,7 +70,7 @@ public class JakartaAsyncInstrumentation {
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.servlet.CommonAsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice";
+            return "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice";
         }
 
         @Override

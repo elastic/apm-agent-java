@@ -34,8 +34,6 @@ public class JakartaServletApiAdvice extends ServletApiAdvice implements Servlet
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest) {
-        System.out.println("### JakartaServletApiAdvice#onEnterServletService");
-
         return onServletEnter(servletRequest, helper);
     }
 
@@ -46,7 +44,6 @@ public class JakartaServletApiAdvice extends ServletApiAdvice implements Servlet
                                             @Advice.Enter @Nullable Object transactionOrScopeOrSpan,
                                             @Advice.Thrown @Nullable Throwable t,
                                             @Advice.This Object thiz) {
-        System.out.println("### JakartaServletApiAdvice#onExitServletService");
         onExitServlet(servletRequest, servletResponse, transactionOrScopeOrSpan, t, thiz, helper);
     }
 

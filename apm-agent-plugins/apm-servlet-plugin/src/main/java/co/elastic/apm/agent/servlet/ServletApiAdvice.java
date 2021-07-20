@@ -176,7 +176,9 @@ public abstract class ServletApiAdvice {
                 ServletTransactionHelper.setUsernameIfUnset(userPrincipal != null ? userPrincipal.getName() : null, currentTransaction.getContext());
             }
         }
-        if (transaction != null && helper.isHttpServletRequest(servletRequest) && helper.isHttpServletResponse(servletResponse)) {
+        if (transaction != null &&
+            helper.isHttpServletRequest(servletRequest) &&
+            helper.isHttpServletResponse(servletResponse)) {
 
             final HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
             if (helper.getHttpAttribute(httpServletRequest, ServletTransactionHelper.ASYNC_ATTRIBUTE) != null) {
