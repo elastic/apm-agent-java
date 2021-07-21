@@ -1400,7 +1400,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
 
 If set to `true`,
-transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method unknown route`.
+transaction names of unsupported or partially-supported frameworks will be in the form of `$method $path` instead of just `$method unknown route`.
 
 WARNING: If your URLs contain path parameters like `/user/$userId`,
 you should be very careful when enabling this flag,
@@ -3255,7 +3255,7 @@ The default unit for this option is `ms`.
 # transaction_ignore_user_agents=
 
 # If set to `true`,
-# transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method unknown route`.
+# transaction names of unsupported or partially-supported frameworks will be in the form of `$method $path` instead of just `$method unknown route`.
 # 
 # WARNING: If your URLs contain path parameters like `/user/$userId`,
 # you should be very careful when enabling this flag,

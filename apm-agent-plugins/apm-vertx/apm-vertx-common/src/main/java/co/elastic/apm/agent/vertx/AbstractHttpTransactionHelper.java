@@ -102,10 +102,12 @@ public abstract class AbstractHttpTransactionHelper {
                 transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1 + priorityOffset),
                 webConfiguration.getUrlGroups());
         } else {
-            StringBuilder transactionName = transaction.getAndOverrideName(PRIO_DEFAULT);
-            if (transactionName != null) {
-                transactionName.append(method).append(" unknown route");
-            }
+            TransactionNameUtils.setNameFromHttpRequestPath(
+                method,
+                "unknown route",
+                null,
+                transaction.getAndOverrideName(PRIO_DEFAULT),
+                webConfiguration.getUrlGroups());
         }
     }
 
