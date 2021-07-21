@@ -22,6 +22,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
@@ -151,8 +152,11 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
                     transaction.setFrameworkName(FRAMEWORK_NAME);
                     transaction.setFrameworkVersion(VersionUtils.getVersion(Handler.class, "io.javalin", "javalin"));
                     transaction.withType("request");
-
-                    name.append(handlerType.name()).append(" ").append(ctx.endpointHandlerPath());
+                    TransactionNameUtils.setNameFromHttpRequestPath(
+                        handlerType.name(),
+                        ctx.endpointHandlerPath(),
+                        name
+                    );
                 }
             }
 
