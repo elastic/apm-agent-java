@@ -25,21 +25,16 @@ import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.testcontainers.containers.GenericContainer;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 @RunWith(Parameterized.class)
-public class TomcatIT extends AbstractServletContainerIntegrationTest {
+public class TomcatIT extends AbstractTomcatIT {
 
     public TomcatIT(final String tomcatVersion) {
-        super(new GenericContainer<>("tomcat:" + tomcatVersion),
-            "tomcat-application",
-            "/usr/local/tomcat/webapps",
-            "tomcat");
+        super(tomcatVersion);
     }
 
     @Parameterized.Parameters(name = "Tomcat {0}")
@@ -56,18 +51,6 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
     }
 
     @Override
-    protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer
-            .withEnv("JPDA_ADDRESS", "5005")
-            .withEnv("JPDA_TRANSPORT", "dt_socket");
-    }
-
-    @Nullable
-    protected String getServerLogsPath() {
-        return "/usr/local/tomcat/logs/*";
-    }
-
-    @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
         List<Class<? extends TestApp>> testClasses = new ArrayList<>();
         testClasses.add(ServletApiTestApp.class);
@@ -78,15 +61,5 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
             testClasses.add(JsfServletContainerTestApp.class);
         }
         return testClasses;
-    }
-
-    @Override
-    protected boolean runtimeAttachSupported() {
-        return true;
-    }
-
-    @Override
-    protected String getJavaagentEnvVariable() {
-        return "CATALINA_OPTS";
     }
 }
