@@ -59,6 +59,7 @@ service map and downstream service in the dependencies table - {pull}1898[#1898]
 * Basic support for com.sun.net.httpserver.HttpServer - {pull}1854[#1854]
 * Update to async-profiler 1.8.6 {pull}1907[#1907]
 * Added support for setting the framework using the public api (#1908) - {pull}1909[#1909]
+* Use the resource auto-inference to set `context.destination.service.resource` for JDBC spans - {pull}1928[#1928]
 
 [float]
 ===== Bug fixes
