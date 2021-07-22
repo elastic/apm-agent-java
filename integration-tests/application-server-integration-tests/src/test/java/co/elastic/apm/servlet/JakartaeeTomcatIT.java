@@ -38,8 +38,16 @@ public class JakartaeeTomcatIT extends AbstractTomcatIT {
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
             {"10.0.0-jdk8"},
+            {"10.0.8-jdk8"},
+            {"10.0.8-jdk8-openjdk"},
             {"10.0.0-jdk11"},
-            {"10.0.0-jdk14"}
+            {"10.0.0-jdk11-openjdk"},
+            {"10.0.8-jdk11"},
+            {"10.0.0-jdk14"},
+            {"10.0.0-jdk15"},
+            {"10.0.0-jdk15-openjdk"},
+            {"10.0.8-jdk16"},
+            {"10.0.8-jdk16-openjdk"},
         });
     }
 
