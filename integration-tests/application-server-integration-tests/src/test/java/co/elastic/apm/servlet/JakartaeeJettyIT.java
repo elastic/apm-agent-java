@@ -18,30 +18,27 @@
  */
 package co.elastic.apm.servlet;
 
-import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
-import co.elastic.apm.servlet.tests.JsfServletContainerTestApp;
-import co.elastic.apm.servlet.tests.ServletApiTestApp;
+import co.elastic.apm.servlet.tests.JakartaeeServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
-import java.util.List;
 
 @RunWith(Parameterized.class)
-public class JettyIT extends AbstractJettyIT {
+public class JakartaeeJettyIT extends AbstractJettyIT {
 
-    public JettyIT(final String version) {
+    public JakartaeeJettyIT(final String version) {
         super(version);
     }
 
     @Parameterized.Parameters(name = "Jetty {0}")
     public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{{"9.2"}, {"9.3"}, {"9.4"}, {"10.0.6"}, {"10.0.6-jdk11"}, {"10.0.6-jdk16"}});
+        return Arrays.asList(new Object[][]{{"11.0.6-jdk11"}, {"11.0.6-jdk16"}});
     }
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class, JsfServletContainerTestApp.class, ExternalPluginTestApp.class);
+        return Arrays.asList(JakartaeeServletApiTestApp.class);
     }
 }
