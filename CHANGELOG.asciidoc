@@ -24,6 +24,10 @@ endif::[]
 ==== 1.25.1 - YYYY/MM/DD
 
 [float]
+===== Features
+* When the MANIFEST.MF of the main jar contains the Implementation-Title attribute, it is used as the default service name - {pull}1921[#1921]
+
+[float]
 ===== Bug fixes
 
 [[release-notes-1.x]]
@@ -68,7 +72,6 @@ service map and downstream service in the dependencies table - {pull}1898[#1898]
 * Basic support for `com.sun.net.httpserver.HttpServer` - {pull}1854[#1854]
 * Update to async-profiler 1.8.6 {pull}1907[#1907]
 * Added support for setting the framework using the public api (#1908) - {pull}1909[#1909]
-* When the MANIFEST.MF of the main jar contains the Implementation-Title attribute, it is used as the default service name - {pull}1921[#1921]
 
 [float]
 ===== Bug fixes
