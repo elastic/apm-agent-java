@@ -32,7 +32,7 @@ public class JDBCConfiguration extends ConfigurationOptionProvider {
             " instead of relying on the JDBC instrumentation to set it.\n" +
             "See for https://github.com/elastic/apm/blob/master/specs/agents/tracing-spans-destination.md#contextdestinationserviceresource for the inference algorithm.")
         .dynamic(false)
-        .tags("added[1.25.0]")
+        .tags("added[1.26.0]")
         .buildWithDefault(false);
 
     public boolean getUseJDBCServiceResourceAutoInference() {
