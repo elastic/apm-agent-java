@@ -18,6 +18,17 @@
  */
 package co.elastic.apm.quarkus.jaxrs;
 
-class VertxIT extends AbstractQuarkusJaxRSTest {
+import co.elastic.apm.api.ElasticApm;
 
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+
+@Path("/")
+public class TestApp {
+
+    @GET
+    public String greeting() {
+        ElasticApm.currentTransaction().setUser("id", "email", "username");
+        return "Hello World";
+    }
 }

@@ -18,13 +18,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-java-concurrent-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-vertx4-plugin</artifactId>
+            <artifactId>quarkus-jaxrs-base</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -39,17 +34,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <configuration>
-                    <systemPropertyVariables>
-                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                        <maven.home>${maven.home}</maven.home>
-                        <elastic.apm.enable_experimental_instrumentations>true</elastic.apm.enable_experimental_instrumentations>
-                    </systemPropertyVariables>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>

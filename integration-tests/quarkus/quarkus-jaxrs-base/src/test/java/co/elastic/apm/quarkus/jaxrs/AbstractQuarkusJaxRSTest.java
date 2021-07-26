@@ -18,75 +18,114 @@
  */
 package co.elastic.apm.quarkus.jaxrs;
 
-import co.elastic.apm.agent.MockReporter;
-import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.report.ReporterConfiguration;
-import co.elastic.apm.api.ElasticApm;
-import net.bytebuddy.agent.ByteBuddyAgent;
-import org.junit.jupiter.api.AfterAll;
+import com.jayway.jsonpath.JsonPath;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.stagemonitor.configuration.ConfigurationRegistry;
+import org.mockserver.client.MockServerClient;
+import org.mockserver.model.ClearType;
+import org.mockserver.model.HttpRequest;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
+import java.io.File;
+import java.io.FileFilter;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.when;
+import static org.mockserver.model.HttpRequest.request;
+import static org.mockserver.model.HttpResponse.response;
+import static org.mockserver.model.JsonBody.json;
 
+@Testcontainers
 public abstract class AbstractQuarkusJaxRSTest {
 
-    @Path("/")
-    public static class TestApp {
+    private static final Network NETWORK = Network.newNetwork();
 
-        @GET
-        public String greeting() {
-            ElasticApm.currentTransaction().setUser("id", "email", "username");
-            return "Hello World";
-        }
-    }
+    @Container
+    private static final GenericContainer<?> MOCK_SERVER = new GenericContainer<>(DockerImageName.parse("mockserver/mockserver:mockserver-5.4.1"))
+        .withNetwork(NETWORK)
+        .withNetworkAliases("apm-server")
+        .withExposedPorts(1080)
+        .waitingFor(Wait.forHttp("/mockserver/status").withMethod("PUT").forStatusCode(200));
 
-    private static ConfigurationRegistry config;
-    private static MockReporter reporter;
+    private static MockServerClient MOCK_SERVER_CLIENT;
+
+    @Container
+    final GenericContainer<?> APP = new GenericContainer<>("openjdk:11")
+        .withCommand("java -javaagent:/tmp/elastic-apm-agent.jar -jar /srv/quarkus-app/quarkus-run.jar")
+        .withFileSystemBind(getAgentJar(), "/tmp/elastic-apm-agent.jar")
+        .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
+        .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
+        .withEnv("ELASTIC_APM_DISABLE_METRICS", "true")
+        .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic.apm.quarkus.jaxrs")
+        .withEnv("ELASTIC_APM_ENABLE_EXPERIMENTAL_INSTRUMENTATIONS", "true")
+        .withFileSystemBind("target/quarkus-app", "/srv/quarkus-app")
+        .withEnv("QUARKUS_HTTP_PORT", "8080")
+        .withNetwork(NETWORK)
+        .withExposedPorts(8080)
+        .waitingFor(Wait.forLogMessage(".*Installed features.*", 1))
+        .dependsOn(MOCK_SERVER);
 
     @BeforeAll
-    public static void beforeAll() {
-        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
-        config = mockInstrumentationSetup.getConfig();
-        when(config.getConfig(ReporterConfiguration.class).isReportSynchronously()).thenReturn(true);
-        reporter = mockInstrumentationSetup.getReporter();
-        ElasticApmAgent.initInstrumentation(mockInstrumentationSetup.getTracer(), ByteBuddyAgent.install());
+    static void setUpMockServerClient() {
+        MOCK_SERVER_CLIENT = new MockServerClient(MOCK_SERVER.getContainerIpAddress(), MOCK_SERVER.getMappedPort(1080));
+        MOCK_SERVER_CLIENT.when(request("/")).respond(response().withStatusCode(200).withBody(json("{\"version\": \"7.13.0\"}")));
+        MOCK_SERVER_CLIENT.when(request("/config/v1/agents")).respond(response().withStatusCode(403));
+        MOCK_SERVER_CLIENT.when(request("/intake/v2/events")).respond(response().withStatusCode(200));
     }
 
-    @BeforeEach
-    public void setUp() {
-        reporter.reset();
+    @AfterEach
+    void clearMockServerLog() {
+        MOCK_SERVER_CLIENT.clear(request(), ClearType.LOG);
     }
 
-    @AfterAll
-    public static void afterAll() {
-        ElasticApmAgent.reset();
+    private static String getAgentJar() {
+        File agentBuildDir = new File("../../../elastic-apm-agent/target/");
+        FileFilter fileFilter = file -> file.getName().matches("elastic-apm-agent-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?.jar");
+        return Arrays.stream(agentBuildDir.listFiles(fileFilter))
+            .map(File::getAbsolutePath)
+            .findFirst()
+            .orElse(null);
+    }
+
+    private static List<Map<String, Object>> getReportedTransactions() {
+        return Arrays.stream(MOCK_SERVER_CLIENT.retrieveRecordedRequests(request("/intake/v2/events")))
+            .map(HttpRequest::getBodyAsString)
+            .flatMap(s -> Arrays.stream(s.split("\r?\n")))
+            .map(JsonPath::parse)
+            .flatMap(dc -> ((List<Map<String, Object>>) dc.read("$[?(@.transaction)].transaction")).stream())
+            .collect(Collectors.toList());
     }
 
     @Test
     public void greetingShouldReturnDefaultMessage() {
         given()
-            .when().get("/")
+            .baseUri("http://" + APP.getContainerIpAddress() + ":" + APP.getMappedPort(8080))
+            .when()
+            .get("/")
             .then()
             .statusCode(200)
             .body(is("Hello World"));
 
-        Transaction transaction = reporter.getFirstTransaction(5000);
-        assertThat(transaction.getNameAsString()).isEqualTo("TestApp#greeting");
-        assertThat(transaction.getContext().getUser().getId()).isEqualTo("id");
-        assertThat(transaction.getContext().getUser().getEmail()).isEqualTo("email");
-        assertThat(transaction.getContext().getUser().getUsername()).isEqualTo("username");
-        assertThat(transaction.getFrameworkName()).isEqualTo("JAX-RS");
-        assertThat(transaction.getFrameworkVersion()).isEqualTo("2.0.1.Final");
+        List<Map<String, Object>> transactions = getReportedTransactions();
+        assertThat(transactions).hasSize(1);
+
+        Map<String, Object> transaction = transactions.get(0);
+        assertThat((String) JsonPath.read(transaction, "$.name")).isEqualTo("TestApp#greeting");
+        assertThat((String) JsonPath.read(transaction, "$.context.user.id")).isEqualTo("id");
+        assertThat((String) JsonPath.read(transaction, "$.context.user.email")).isEqualTo("email");
+        assertThat((String) JsonPath.read(transaction, "$.context.user.username")).isEqualTo("username");
+        assertThat((String) JsonPath.read(transaction, "$.context.service.framework.name")).isEqualTo("JAX-RS");
+        assertThat((String) JsonPath.read(transaction, "$.context.service.framework.version")).isEqualTo("2.0.1.Final");
     }
 }

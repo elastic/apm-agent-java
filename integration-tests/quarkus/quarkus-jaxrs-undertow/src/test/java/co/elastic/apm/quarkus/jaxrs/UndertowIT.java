@@ -18,9 +18,6 @@
  */
 package co.elastic.apm.quarkus.jaxrs;
 
-import io.quarkus.test.junit.QuarkusTest;
-
-@QuarkusTest
 class UndertowIT extends AbstractQuarkusJaxRSTest {
 
 }
