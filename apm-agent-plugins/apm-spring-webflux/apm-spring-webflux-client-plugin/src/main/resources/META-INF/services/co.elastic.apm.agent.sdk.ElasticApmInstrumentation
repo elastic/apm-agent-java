@@ -1,0 +1,9 @@
+co.elastic.apm.agent.webflux.client.WebfluxClientInstrumentation$DefaultWebClientConstructor
+co.elastic.apm.agent.webflux.client.WebfluxClientInstrumentation$ExchangeFunctionExchange
+co.elastic.apm.agent.webflux.client.WebfluxClientInstrumentation$DefaultClientResponseBody
+co.elastic.apm.agent.webflux.client.WebfluxClientInstrumentation$BodyInsertersWriteStatic
+
+co.elastic.apm.agent.webflux.client.WebSocketClientInstrumentation$WebSocketClientExecute
+co.elastic.apm.agent.webflux.client.WebSocketClientInstrumentation$WebSocketSessionSendAdvice
+co.elastic.apm.agent.webflux.client.WebSocketClientInstrumentation$WebSocketSessionReceiveAdvice
+co.elastic.apm.agent.webflux.client.WebSocketClientInstrumentation$WebSocketSessionCloseAdvice
