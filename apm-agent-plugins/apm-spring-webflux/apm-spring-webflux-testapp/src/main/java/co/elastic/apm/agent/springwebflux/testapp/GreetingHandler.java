@@ -72,12 +72,35 @@ public class GreetingHandler {
             .delayElements(Duration.ofMillis(delayMillis))
             .map(i -> String.format("child %d", i))
             .doOnNext(name -> {
-                Span span = Objects.requireNonNull(GlobalTracer.requireTracerImpl().currentTransaction()).createSpan();
-                span.withName(String.format("%s id=%s", name, span.getTraceContext().getId()));
-                try {
-                    fakeWork(durationMillis);
-                } finally {
-                    span.end();
+                if (GlobalTracer.requireTracerImpl().currentTransaction() != null) {
+                    Span span = Objects.requireNonNull(GlobalTracer.requireTracerImpl().currentTransaction()).createSpan();
+                    span.withName(String.format("%s id=%s", name, span.getTraceContext().getId()));
+                    try {
+                        fakeWork(durationMillis);
+                    } finally {
+                        span.end();
+                    }
+                }
+
+            });
+    }
+
+    public <I> Flux childSpansGeneric(int count, long delayMillis, long durationMillis) {
+
+        return Flux.range(1, count)
+            .subscribeOn(CHILDREN_SCHEDULER)
+            // initial delay
+            .delayElements(Duration.ofMillis(delayMillis))
+            .map(i -> String.format("child %d", i))
+            .doOnNext(name -> {
+                if (GlobalTracer.requireTracerImpl().currentTransaction() != null) {
+                    Span span = Objects.requireNonNull(GlobalTracer.requireTracerImpl().currentTransaction()).createSpan();
+                    span.withName(String.format("%s id=%s", name, span.getTraceContext().getId()));
+                    try {
+                        fakeWork(durationMillis);
+                    } finally {
+                        span.end();
+                    }
                 }
             });
     }
