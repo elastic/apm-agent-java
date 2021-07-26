@@ -76,7 +76,7 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
 
     protected void setRouteBasedTransactionName(Transaction transaction, RoutingContext routingContext) {
         if (!webConfiguration.isUsePathAsName()) {
-            StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
+            StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK);
             if (transactionName != null) {
                 transactionName.append(routingContext.request().method().name())
                     .append(" ").append(routingContext.currentRoute().getPath());

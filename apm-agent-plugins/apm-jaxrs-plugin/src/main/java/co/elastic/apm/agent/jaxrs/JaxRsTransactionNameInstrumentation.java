@@ -142,7 +142,7 @@ public class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentat
                         transactionName = pathAnnotationValue;
                     }
                 }
-                transaction.withName(transactionName, PRIO_HIGH_LEVEL_FRAMEWORK, true);
+                transaction.withName(transactionName, PRIO_HIGH_LEVEL_FRAMEWORK, false);
                 transaction.setFrameworkName("JAX-RS");
                 transaction.setFrameworkVersion(VersionUtils.getVersion(javax.ws.rs.GET.class, "javax.ws.rs", "javax.ws.rs-api"));
             }
