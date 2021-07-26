@@ -26,6 +26,7 @@
 
     <modules>
         <module>apm-spring-webflux-plugin</module>
+        <module>apm-spring-webflux-client-plugin</module>
         <module>apm-spring-webflux-testapp</module>
     </modules>
 </project>
