@@ -77,20 +77,21 @@ public class HttpClientHelper {
         }
 
         boolean isDefaultPort = false;
-        if ("http".equals(scheme)) {
+        if ("http".equals(scheme) || "ws".equals(scheme)) {
             if (port < 0) {
                 port = 80;
             }
             if (port == 80) {
                 isDefaultPort = true;
             }
-        } else if ("https".equals(scheme)) {
+        } else if ("https".equals(scheme) || "wss".equals(scheme)) {
             if (port < 0) {
                 port = 443;
             }
             if (port == 443) {
                 isDefaultPort = true;
             }
+
         } else {
             return;
         }
