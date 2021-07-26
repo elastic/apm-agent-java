@@ -16,6 +16,7 @@
     <modules>
         <module>quarkus-jaxrs-base</module>
         <module>quarkus-jaxrs-undertow</module>
+        <module>quarkus-jaxrs-vertx</module>
     </modules>
 
     <properties>
