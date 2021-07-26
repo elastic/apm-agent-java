@@ -84,7 +84,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
             .and(not(named("org.apache.felix.resolver.ResolverImpl$DumbExecutor")))
             .and(not(nameContains("jetty")))
             .and(not(nameContains("tomcat")))
-            .and(not(nameContains("jboss")))
+            //.and(not(nameContains("jboss"))) //TODO currently needed for quarkus (without quarkus-undertow)
             .and(not(nameContains("undertow")))
             .and(not(nameContains("netty")))
             .and(not(nameContains("vertx")))
