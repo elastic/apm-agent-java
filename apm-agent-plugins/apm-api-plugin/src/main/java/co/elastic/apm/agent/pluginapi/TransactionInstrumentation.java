@@ -53,6 +53,20 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         return methodMatcher;
     }
 
+    public static class SetFrameworkNameInstrumentation extends TransactionInstrumentation {
+        public SetFrameworkNameInstrumentation() {
+            super(named("setFrameworkName"));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void setFrameworkName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+                                   @Advice.Argument(0) String frameworkName) {
+            if (transaction instanceof Transaction) {
+                ((Transaction) transaction).setUserFrameworkName(frameworkName);
+            }
+        }
+    }
+
     public static class SetUserInstrumentation extends TransactionInstrumentation {
         public SetUserInstrumentation() {
             super(named("setUser"));

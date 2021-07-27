@@ -44,6 +44,13 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
 
     @Nonnull
     @Override
+    public Transaction setFrameworkName(String frameworkName) {
+        // co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetFrameworkNameInstrumentation
+        return this;
+    }
+
+    @Nonnull
+    @Override
     public Transaction setType(String type) {
         doSetType(type);
         return this;
