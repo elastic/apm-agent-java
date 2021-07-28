@@ -335,7 +335,7 @@ pipeline {
                 deleteDir()
                 unstash 'build'
                 dir("${BASE_DIR}"){
-                  sh './mvnw test'
+                  sh(label: "./mvnw test for ${JAVA_VERSION}", script: './mvnw test')
                 }
               }
             }
