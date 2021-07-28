@@ -30,6 +30,10 @@ endif::[]
 [float]
 ===== Features
 * Improved naming for Spring controllers - {pull}1906[#1906]
+* ECS log reformating improvements - {pull}1910[#1910]
+** support `service.node.name` if set in agent configuration
+** add `log_ecs_reformatting_additional_fields` option to support arbitrary fields in logs
+** Automatically serialize markers as tabs where relevant (log4j2 and logback)
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
