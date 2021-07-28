@@ -21,7 +21,7 @@ package co.elastic.apm.agent.httpclient.helper;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
@@ -45,8 +45,6 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
     @Nullable
     private Span span;
 
-    private TextHeaderSetter<HttpRequest> headerSetter;
-
     HttpAsyncRequestProducerWrapper(ApacheHttpAsyncClientHelper helper) {
         this.asyncClientHelper = helper;
     }
@@ -61,11 +59,10 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
      * @param delegate     the original {@link HttpAsyncRequestProducer}
      * @param span         the HTTP span corresponding the given {@link HttpAsyncRequestProducer}
      * @param parent       the active span when this method is called
-     * @param headerSetter facilitates headers setting for trace context propagation
      * @return the {@link HttpAsyncRequestProducer} wrapper
      */
     public HttpAsyncRequestProducerWrapper with(HttpAsyncRequestProducer delegate, @Nullable Span span,
-                                                @Nullable AbstractSpan<?> parent, TextHeaderSetter<HttpRequest> headerSetter) {
+                                                @Nullable AbstractSpan<?> parent) {
         // Order is important due to visibility - write to delegate last on this (initiating) thread
         this.span = span;
         if (parent != null) {
@@ -73,7 +70,6 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
             parent.incrementReferences();
             this.parent = parent;
         }
-        this.headerSetter = headerSetter;
         this.delegate = delegate;
         return this;
     }
@@ -97,9 +93,14 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
                     span.withName(method).appendToName(" ");
                     span.getContext().getHttp().withMethod(method).withUrl(requestLine.getUri());
                 }
-                span.propagateTraceContext(request, headerSetter);
-            } else if (parent != null) {
-                parent.propagateTraceContext(request, headerSetter);
+            }
+
+            if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+                if (span != null) {
+                    span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
+                } else if (parent != null) {
+                    parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
+                }
             }
         }
 
@@ -164,7 +165,6 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
             parent.decrementReferences();
             parent = null;
         }
-        headerSetter = null;
         delegate = null;
     }
 }
