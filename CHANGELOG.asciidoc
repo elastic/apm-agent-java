@@ -34,6 +34,7 @@ endif::[]
 [float]
 ===== Bug fixes
 * Fix failure to parse some forms of the `Implementation-Version` property from jar manifest files - {pull}1931[#1931]
+* Ensure single value for context-propagation header - {pull}1937[#1937]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
