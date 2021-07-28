@@ -93,6 +93,19 @@ class SpringTransactionNameInstrumentationTest extends AbstractInstrumentationTe
         testTransactionName(usePath, expectedContent, expectedName, urlPath);
     }
 
+    @ParameterizedTest(name = "use_path_as_transaction_name = {arguments}")
+    @ValueSource(booleans = {false, true})
+    void testServletWrappingControllerWithoutServletInvocationTransactionName(boolean usePath) throws Exception {
+
+        String expectedContent = "without-servlet-invocation";
+
+        // there is no servlet invocation, thus name should fall back to using path
+        String expectedName = "GET /testControllerWithoutServlet";
+        String urlPath = "/testControllerWithoutServlet";
+
+        testTransactionName(usePath, expectedContent, expectedName, urlPath);
+    }
+
     private void testTransactionName(boolean usePath, String expectedContent, String expectedName, String urlPath) throws Exception {
         doReturn(usePath)
             .when(config.getConfig(WebConfiguration.class))
@@ -124,10 +137,29 @@ class SpringTransactionNameInstrumentationTest extends AbstractInstrumentationTe
         }
 
         @Bean
+        public ServletWrappingController testControllerWithoutServlet () throws Exception {
+            ServletWrappingController controller = new ServletWrappingController() {
+                @Override
+                public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
+                    PrintWriter writer = response.getWriter();
+                    writer.write("without-servlet-invocation");
+                    return new ModelAndView("without-servlet-invocation");
+                }
+            };
+            // required, but won't be invoked because the handleRequest method is overriden
+            // this can happen with spring static resources controllers which do not delegate execution to servlet
+            controller.setServletClass(TestServlet.class);
+            controller.setBeanName("testControllerWithoutServlet");
+            controller.afterPropertiesSet();
+            return controller;
+        }
+
+        @Bean
         public SimpleUrlHandlerMapping controllerMapping () {
             SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
             Properties urlProperties = new Properties();
             urlProperties.put("/testServletController", "testServletController");
+            urlProperties.put("/testControllerWithoutServlet", "testControllerWithoutServlet");
             mapping.setMappings(urlProperties);
             mapping.setOrder(Integer.MAX_VALUE - 2);
             return mapping;
