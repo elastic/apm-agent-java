@@ -27,6 +27,10 @@ endif::[]
 ===== Bug fixes
 * Fix failure to parse some forms of the `Implementation-Version` property from jar manifest files - {pull}1931[#1931]
 
+[float]
+===== Features
+* Improved naming for Spring controllers - {pull}1906[#1906]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 

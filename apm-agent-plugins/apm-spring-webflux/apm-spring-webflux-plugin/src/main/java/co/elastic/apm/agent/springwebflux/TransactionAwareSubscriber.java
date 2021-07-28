@@ -24,10 +24,12 @@ import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.util.SpanConcurrentHashMap;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -49,11 +51,11 @@ import javax.annotation.Nullable;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.net.InetSocketAddress;
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
 /**
@@ -69,7 +71,8 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
     private static final WeakConcurrentMap<TransactionAwareSubscriber<?>, Transaction> transactionMap = SpanConcurrentHashMap.createWeakMap();
 
-    private static final CoreConfiguration config;
+    private static final CoreConfiguration coreConfig;
+    private static final WebConfiguration webConfig;
 
     private final CoreSubscriber<? super T> subscriber;
 
@@ -85,7 +88,8 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
     private boolean activatedOnSubscribe = false;
 
     static {
-        config = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);
+        coreConfig = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);
+        webConfig = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);
     }
 
     /**
@@ -257,18 +261,27 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
             return;
         }
 
-        StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, false);
-        if (name != null) {
-            // set name from matching pattern & unknown
-            name.append(exchange.getRequest().getMethodValue())
-                .append(' ');
-            PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
-            if (pattern != null) {
-                name.append(pattern.getPatternString());
+        int namePriority;
+        String path;
+        PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
+        if (pattern != null) {
+            namePriority = PRIO_HIGH_LEVEL_FRAMEWORK;
+            path = pattern.getPatternString();
+        } else {
+            namePriority = PRIO_LOW_LEVEL_FRAMEWORK + 1;
+            if (webConfig.isUsePathAsName()) {
+                path = exchange.getRequest().getPath().value();
             } else {
-                name.append("unknown route");
+                path = "unknown route";
             }
         }
+
+        TransactionNameUtils.setNameFromHttpRequestPath(
+            exchange.getRequest().getMethodValue(),
+            path,
+            transaction.getAndOverrideName(namePriority, false),
+            webConfig.getUrlGroups()
+        );
 
         // Fill request/response details if they haven't been already by another HTTP plugin (servlet or other).
         if (!transaction.getContext().getRequest().hasContent()) {
@@ -332,7 +345,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
         request.getUrl().fillFrom(serverRequest.getURI());
 
-        if (config.isCaptureHeaders()) {
+        if (coreConfig.isCaptureHeaders()) {
             copyHeaders(serverRequest.getHeaders(), request.getHeaders());
             copyCookies(serverRequest.getCookies(), request.getCookies());
         }
@@ -349,7 +362,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
         Response response = transaction.getContext().getResponse();
 
-        if (config.isCaptureHeaders()) {
+        if (coreConfig.isCaptureHeaders()) {
             copyHeaders(serverResponse.getHeaders(), response.getHeaders());
         }
 
