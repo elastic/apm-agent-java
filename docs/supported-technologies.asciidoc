@@ -164,6 +164,11 @@ rendering
 |Captures incoming HTTP requests as transactions
 |1.25.0 (experimental)
 
+|Javalin
+|3.13.8+
+|
+|1.25.0
+
 |===
 
 

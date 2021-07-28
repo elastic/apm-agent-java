@@ -3,6 +3,7 @@ co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$StartTransactionWith
 co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$CurrentTransactionInstrumentation
 co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$CurrentSpanInstrumentation
 co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$CaptureExceptionInstrumentation
+co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetFrameworkNameInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetUserInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$EnsureParentIdInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetResultInstrumentation

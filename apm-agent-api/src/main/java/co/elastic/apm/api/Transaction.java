@@ -58,6 +58,16 @@ public interface Transaction extends Span {
     Transaction setType(String type);
 
     /**
+     * Provides a way to manually set the {@code service.framework.name} field.
+     * Any value set through this method will take precedence over automatically-set value for supported frameworks.
+
+     * @param frameworkName The name of the framework. {@code null} and empty values will cause the exclusion of the
+     *                      framework name from the transaction context.
+     */
+    @Nonnull
+    Transaction setFrameworkName(String frameworkName);
+
+    /**
      * {@inheritDoc}
      *
      * @deprecated use {@link #addLabel(String, String)} instead
