@@ -1770,7 +1770,7 @@ Valid options: `OFF`, `SHADE`, `REPLACE`, `OVERRIDE`
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-log-ecs-reformatting-additional-fields]]
-==== `log_ecs_reformatting_additional_fields` (added[1.25.0])
+==== `log_ecs_reformatting_additional_fields` (added[1.26.0])
 
 A comma-separated list of key-value pairs that will be added as additional fields to all log events.
  Takes the format `key=value[,key=value[,...]]`, for example: `key1=value1,key2=value2`.

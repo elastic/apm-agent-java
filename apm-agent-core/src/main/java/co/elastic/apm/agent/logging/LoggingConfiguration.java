@@ -195,7 +195,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Map<String, String>> logEcsReformattingAdditionalFields = ConfigurationOption
         .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
         .key("log_ecs_reformatting_additional_fields")
-        .tags("added[1.25.0]")
+        .tags("added[1.26.0]")
         .configurationCategory(LOGGING_CATEGORY)
         .description("A comma-separated list of key-value pairs that will be added as additional fields to all log events.\n " +
             "Takes the format `key=value[,key=value[,...]]`, for example: `key1=value1,key2=value2`.\n " +
