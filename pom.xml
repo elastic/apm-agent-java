@@ -102,7 +102,7 @@
         <version.junit-vintage-engine>5.7.2</version.junit-vintage-engine>
         <version.logback>1.2.3</version.logback>
         <version.okhttp>4.9.1</version.okhttp>
-        <version.slf4j>1.7.31</version.slf4j>
+        <version.slf4j>1.7.32</version.slf4j>
         <!-- this is the last version of log4j that is compatible with Java 7. Due to a known vulnerability
         (https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle), the SMTP appender is
          excluded from the build and not packaged into the agent artifacts -->
