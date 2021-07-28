@@ -76,8 +76,8 @@ public class TransactionNameUtils {
         }
     }
 
-    public static void setNameFromHttpRequestPath(String method, String firstPart, @Nullable StringBuilder transactionName, List<WildcardMatcher> urlGroups) {
-        setNameFromHttpRequestPath(method, firstPart, null, transactionName, urlGroups);
+    public static void setNameFromHttpRequestPath(String method, String path, @Nullable StringBuilder transactionName, List<WildcardMatcher> urlGroups) {
+        setNameFromHttpRequestPath(method, path, null, transactionName, urlGroups);
     }
 
     public static void setNameFromHttpRequestPath(String method, String pathFirstPart, @Nullable String pathSecondPart, @Nullable StringBuilder transactionName, List<WildcardMatcher> urlGroups) {
