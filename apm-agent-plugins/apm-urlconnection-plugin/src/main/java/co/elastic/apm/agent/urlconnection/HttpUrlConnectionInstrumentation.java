@@ -80,12 +80,12 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
             if (span == null && !connected) {
                 final URL url = thiz.getURL();
                 span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
-                if (span != null) {
-                    if (!TraceContext.containsTraceContextTextHeaders(thiz, UrlConnectionPropertyAccessor.instance())) {
+                if (!TraceContext.containsTraceContextTextHeaders(thiz, UrlConnectionPropertyAccessor.instance())) {
+                    if (span != null) {
                         span.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
+                    } else {
+                        parent.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
                     }
-                } else {
-                    parent.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
                 }
             }
             if (span != null) {

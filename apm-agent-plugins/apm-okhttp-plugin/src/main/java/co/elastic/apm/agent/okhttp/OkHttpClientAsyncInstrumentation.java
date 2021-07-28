@@ -22,6 +22,7 @@ import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
@@ -78,15 +79,20 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.getProtocol(),
                 OkHttpClientHelper.computeHostName(url.getHost()), url.getPort());
 
-            Request.Builder builder = originalRequest.newBuilder();
             if (span != null) {
                 span.activate();
-                span.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
-                request = builder.build();
-                callback = CallbackWrapperCreator.INSTANCE.wrap(originalCallback, span);
-            } else {
-                parent.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
-                request = builder.build();
+            }
+
+            if (!TraceContext.containsTraceContextTextHeaders(request, OkHttpRequestHeaderGetter.INSTANCE)) {
+                Request.Builder builder = originalRequest.newBuilder();
+                if (span != null) {
+                    span.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
+                    request = builder.build();
+                    callback = CallbackWrapperCreator.INSTANCE.wrap(originalCallback, span);
+                } else {
+                    parent.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
+                    request = builder.build();
+                }
             }
             return new Object[]{request, callback, span};
         }
