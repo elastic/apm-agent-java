@@ -104,6 +104,10 @@ the JVM arguments.
 |Creates transactions for incoming HTTP requests, supports annotated and functional endpoints.
 |1.24.0 (experimental)
 
+|Spring Webflux Webclient and WebSocketClient
+|5.2.3+
+|Creates spans for every request and subspans for received and sent stream items
+|1.25.1 (experimental)
 
 |JavaServer Faces
 |2.2.x, 2.3.x
