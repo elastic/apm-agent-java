@@ -167,7 +167,7 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "webflux-client");
+        return Arrays.asList("http-client", "spring-webflux", "experimental");
     }
 
 }
