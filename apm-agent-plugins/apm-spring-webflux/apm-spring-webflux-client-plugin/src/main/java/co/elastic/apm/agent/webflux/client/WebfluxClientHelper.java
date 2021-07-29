@@ -58,7 +58,8 @@ public class WebfluxClientHelper {
         return t;
     }
 
-    public static <T> Publisher<T> wrapSubscriber(Publisher<T> publisher, final String subscriberKey, final Tracer tracer, final String prependId) {
+    public static <T> Publisher<T> wrapSubscriber(Publisher<T> publisher, final String subscriberKey, final Tracer tracer,
+                                                  final String prependId) {
 
         Function<? super Publisher<T>, ? extends Publisher<T>> lift = Operators.liftPublisher(
             new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {

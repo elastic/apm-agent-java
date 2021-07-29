@@ -22,14 +22,10 @@ import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.util.SpanConcurrentHashMap;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.CoreSubscriber;
-import reactor.util.function.Tuple2;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,14 +43,10 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T> {
     private String logPrefix;
 
     public WebfluxClientSubscriber(CoreSubscriber<? super T> subscriber, String logPrefix, Tracer tracer, String debugId) {
-
         this.subscriber = subscriber;
         this.logPrefix = logPrefix;
         this.tracer = tracer;
         this.debugPrefix = debugId;
-
-        System.out.println("AdHocSubscriber logprefix="+ WebfluxClientSubscriber.getLogPrefixMap().toString());
-        System.out.println("AdHocSubscriber " + this.hashCode() + " logPrefix=" + logPrefix + " " + debugId + " parentSpan=" + getContext() + " thread=" + Thread.currentThread().getName());
     }
 
 
@@ -112,7 +104,8 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T> {
         context.deactivate();
         if (end) {
 
-            System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " ending ctx=" + context + " on " + Thread.currentThread().getName() + " active=" + tracer.getActive() + " ctx outcome=" + context.getOutcome());
+            System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " ending ctx=" + context + " on "
+                + Thread.currentThread().getName() + " active=" + tracer.getActive() + " ctx outcome=" + context.getOutcome());
             //FIXME:
             System.out.println("exit=" + context.isExit() + " finished=" + context.isFinished() + " discarded=" + context.isDiscarded());
             if(!context.isFinished()){
@@ -138,7 +131,8 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T> {
 
     @Override
     public void onSubscribe(Subscription s) {
-        System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " onSubscribe s=" + s + " thread=" + Thread.currentThread().getName());
+        System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " onSubscribe s=" + s
+            + " thread=" + Thread.currentThread().getName());
 
         AbstractSpan<?> context = getContext();
         boolean hasActivated = doEnter("onSubscribe", context);
@@ -164,7 +158,8 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T> {
         AbstractSpan<?> context = getContext();
         boolean hasActivated = doEnter("onNext", context);
 
-        System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " ctx=" + context + " onNext " + debugPrefix + "lift " + t + " thread=" + Thread.currentThread().getName());
+        System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " ctx=" + context + " onNext " + debugPrefix
+            + "lift " + t + " thread=" + Thread.currentThread().getName());
 
         Throwable thrown = null;
         try {
@@ -172,18 +167,17 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T> {
                 subscriber.onNext(t);
             }
             if (context != null) {
-//            Span itemSpan = subscriberSpan.getTransaction().createSpan()
                 Span itemSpan = context.getTransaction().createSpan()
                     .withName("fluxItem-" + debugPrefix + "-" + t.toString() + " " + t.getClass())
                     .withSubtype("webflux item");
-                System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " starting ctx=" + itemSpan + " on " + Thread.currentThread().getName() + " active=" + tracer.getActive());
+
                 itemSpan.activate();
                 itemSpan.addLabel("item", (String) t.toString());
                 itemSpan.deactivate();
-                System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " ending ctx=" + itemSpan + " on " + Thread.currentThread().getName() + " active=" + tracer.getActive());
                 itemSpan.end();
             } else {
-                System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " ending ctx but ctx is null!=" + context + " on " + Thread.currentThread().getName() + " active=" + tracer.getActive());
+                System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " ending ctx but ctx is null!=" + context
+                    + " on " + Thread.currentThread().getName() + " active=" + tracer.getActive());
             }
         } catch (Throwable e) {
             thrown = e;
@@ -199,7 +193,8 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T> {
 
         AbstractSpan<?> context = getContext();
         boolean hasActivated = doEnter("onError", context);
-        System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " onError " + debugPrefix + " thread=" + Thread.currentThread().getName() + " context=" + context + " hasActivated=" + hasActivated);
+        System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " onError " + debugPrefix
+            + " thread=" + Thread.currentThread().getName() + " context=" + context + " hasActivated=" + hasActivated);
 
         try {
 
@@ -208,7 +203,8 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T> {
             }
             if (context != null) {
                 context = context.withOutcome(Outcome.FAILURE);
-                System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " onError context " + context + " outcome=" + context.getOutcome());
+                System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " onError context "
+                    + context + " outcome=" + context.getOutcome());
             } else {
                 System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " onError context is null!? ctx=" + context);
             }
@@ -223,7 +219,8 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T> {
 
     @Override
     public void onComplete() {
-        System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " onComplete " + debugPrefix + " thread=" + Thread.currentThread().getName());
+        System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " onComplete " + debugPrefix
+            + " thread=" + Thread.currentThread().getName());
         AbstractSpan<?> context = getContext();
         boolean hasActivated = doEnter("onComplete", context);
 
@@ -233,9 +230,11 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T> {
             }
             if (context != null) {
                 context.withOutcome(Outcome.SUCCESS);
-                System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " onComplete ctx=" + context + " " + context.getOutcome());
+                System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " onComplete ctx=" + context + " "
+                    + context.getOutcome());
             } else {
-                System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " onComplete context is null!? ctx=" + context);
+                System.out.println("AdHocSubscriber " + this.hashCode() + " " + debugPrefix + " onComplete context is null!? ctx="
+                    + context);
             }
 
 

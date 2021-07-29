@@ -18,16 +18,17 @@
  */
 package co.elastic.apm.agent.webflux.client;
 
-
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.SpanContext;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
-import co.elastic.apm.agent.util.ExecutorUtils;
 import org.junit.Ignore;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -64,13 +65,6 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
-//@ExtendWith(SpringExtension.class)
-//@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-//@ContextConfiguration
-//@AutoConfigureWebFlux
-//@AutoConfigureWebTestClient
-//@EnableAutoConfiguration
 public class WebFluxClientInstrumentationTest extends AbstractInstrumentationTest {
 
     protected static WebFluxApplication.App app;
@@ -145,7 +139,9 @@ public class WebFluxClientInstrumentationTest extends AbstractInstrumentationTes
         return WebClient.builder().clientConnector(new JettyClientHttpConnector()).baseUrl(s).build();
     };
     static BiFunction<WebClient.RequestHeadersSpec, Class, Flux> bodyToFluxFunction1 = (r, c) -> r.retrieve().bodyToFlux(c);
-    static BiFunction<WebClient.RequestHeadersSpec, Class, Flux> bodyToFluxFunction2 = (r, c) -> ((ClientResponse) r.exchange().block()).bodyToFlux(c);
+    static BiFunction<WebClient.RequestHeadersSpec, Class, Flux> bodyToFluxFunction2 = (r, c) -> ((ClientResponse) r.exchange()
+        .block())
+        .bodyToFlux(c);
 
     static BiFunction<WebClient.RequestHeadersSpec, Class, Stream<Flux>> bodyToFluxStreamFunction1 = (r, c) -> {
         WebClient.ResponseSpec response = r.retrieve();
@@ -614,7 +610,7 @@ public class WebFluxClientInstrumentationTest extends AbstractInstrumentationTes
     public void testNonBodyMultiClientRequest() {
     }
 
-//    @Test
+    //    @Test
     public void testNonBodyMultiRequestRetrieve() throws InterruptedException {
         CountDownLatch countDownLatch = new CountDownLatch(3);
         WebClient wc = WebClient.create("http://localhost:" + app.getPort());
@@ -658,9 +654,9 @@ public class WebFluxClientInstrumentationTest extends AbstractInstrumentationTes
             .subscribe()
         ;
         countDownLatch1.await();
-        try{
+        try {
             Thread.sleep(30000);
-        }catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -676,7 +672,7 @@ public class WebFluxClientInstrumentationTest extends AbstractInstrumentationTes
         }
     }
 
-//    @Test
+    //    @Test
     public void testNonBodyMultiRequestExchange2() throws InterruptedException {
         CountDownLatch countDownLatch = new CountDownLatch(3);
         WebClient wc = WebClient.create("http://localhost:" + app.getPort());
@@ -739,7 +735,7 @@ public class WebFluxClientInstrumentationTest extends AbstractInstrumentationTes
     }
     //Single client multiple successive calls
 
-//    @Test
+    //    @Test
     public void testNonBodyMultiRequest() throws InterruptedException {
         CountDownLatch countDownLatch = new CountDownLatch(3);
         WebClient wc = WebClient.create("http://localhost:" + app.getPort());
@@ -825,13 +821,13 @@ public class WebFluxClientInstrumentationTest extends AbstractInstrumentationTes
         WebClient.RequestBodySpec requestBodySpec1_2 = requestBodySpec1.uri("/annotated/child-flux-stream2");//GET stream2
         //4 requests
 
-        Mono<ClientResponse>  responseSpec2 = requestBodySpec1_1//GET stream
+        Mono<ClientResponse> responseSpec2 = requestBodySpec1_1//GET stream
             .exchange();
-        Mono<ClientResponse>  responseSpec3 = requestBodySpec1_2 //GET stream2 with header
+        Mono<ClientResponse> responseSpec3 = requestBodySpec1_2 //GET stream2 with header
             .header("stuff", "bar")
             .exchange();
         responseSpec3.block().bodyToFlux(String.class);
-        Mono<ClientResponse>  responseSpec4 = requestBodySpec1_2//GET stream2
+        Mono<ClientResponse> responseSpec4 = requestBodySpec1_2//GET stream2
             .exchange();
 /*
         //8 fluxes

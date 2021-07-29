@@ -44,7 +44,10 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static net.bytebuddy.matcher.ElementMatchers.*;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class WebSocketClientInstrumentation extends TracerAwareInstrumentation {
 
@@ -93,7 +96,8 @@ public abstract class WebSocketClientInstrumentation extends TracerAwareInstrume
             if (httpSpan != null && (clientKey != null && !clientKey.isEmpty())) {
                 //FIXME: the httpspan is double entried
                 WebfluxClientSubscriber.getLogPrefixMap().put(clientKey, httpSpan);
-                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) monoResult, clientKey, tracer, "WebSocketClientExecute-" + clientKey)};
+                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) monoResult, clientKey, tracer,
+                    "WebSocketClientExecute-" + clientKey)};
             } else {
                 return new Object[]{};
             }
@@ -123,7 +127,8 @@ public abstract class WebSocketClientInstrumentation extends TracerAwareInstrume
             String logPrefix = (String) thiz.getAttributes().get(APM_PARENT_SPAN);
             if (logPrefix != null && !logPrefix.isBlank()) {
                 messages.subscribe(new WebfluxClientSubscriber(null, logPrefix, tracer, "WebSocketSessionSendAdvice-"));
-                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) sendResultMono, logPrefix, tracer, "WebSocketSessionSendAdviceResult-")};
+                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) sendResultMono, logPrefix, tracer,
+                    "WebSocketSessionSendAdviceResult-")};
             } else {
                 return new Object[]{sendResultMono};
             }
@@ -151,7 +156,8 @@ public abstract class WebSocketClientInstrumentation extends TracerAwareInstrume
         ) {
             String logPrefix = (String) thiz.getAttributes().get(APM_PARENT_SPAN);
             if (logPrefix != null && !logPrefix.isBlank()) {
-                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) receiveReturnFlux, logPrefix, tracer, "WebSocketSessionReceiveAdvice-")};
+                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) receiveReturnFlux, logPrefix, tracer,
+                    "WebSocketSessionReceiveAdvice-")};
             } else {
                 return new Object[]{receiveReturnFlux};
             }

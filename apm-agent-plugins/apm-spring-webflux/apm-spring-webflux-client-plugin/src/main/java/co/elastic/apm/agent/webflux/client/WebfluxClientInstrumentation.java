@@ -35,16 +35,19 @@ import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeFunction;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static net.bytebuddy.matcher.ElementMatchers.*;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.isStatic;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public abstract class WebfluxClientInstrumentation extends TracerAwareInstrumentation {
 
@@ -99,7 +102,8 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
             if (t != null) {
                 AbstractSpan httpSpan = WebfluxClientHelper.createHttpSpan(t, clientRequest.method(), clientRequest.url());
                 WebfluxClientSubscriber.getLogPrefixMap().put(clientRequest.logPrefix(), httpSpan);
-                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) clientResponseMono, clientRequest.logPrefix(), tracer, "ExchangeFunctionsExchange-" + monoKey)};
+                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) clientResponseMono, clientRequest.logPrefix(), tracer,
+                    "ExchangeFunctionsExchange-" + monoKey)};
             } else {
                 return new Object[]{clientResponseMono};
             }
@@ -127,7 +131,8 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
             //FIXME: probably dont need to key to the flux
             String fluxKey = ObjectUtils.getIdentityHexString(result);
             if (result instanceof Publisher) {
-                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) result, logPrefix, tracer, "DefaultClientResponseBodyLift-" + fluxKey)};
+                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) result, logPrefix, tracer,
+                    "DefaultClientResponseBodyLift-" + fluxKey)};
             } else {
                 return new Object[]{result};
             }

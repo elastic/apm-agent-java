@@ -50,7 +50,8 @@ public class WebSocketHandlerWrapper implements WebSocketHandler {
             WebfluxClientSubscriber.getLogPrefixMap().put(logPrefix, parentSpan);
             session.getAttributes().put(APM_PARENT_SPAN, logPrefix);
 
-            return (Mono<Void>)WebfluxClientHelper.wrapSubscriber((Publisher) actual.handle(session), logPrefix, tracer, "WebSocketHandlerHandle-");
+            return (Mono<Void>)WebfluxClientHelper.wrapSubscriber((Publisher) actual.handle(session), logPrefix, tracer,
+                "WebSocketHandlerHandle-");
         } else {
             return actual.handle(session);
         }
