@@ -16,20 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.resttemplate;
+package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import org.springframework.http.HttpRequest;
+import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import com.squareup.okhttp.Headers;
+import com.squareup.okhttp.Request;
 
-public class SpringRestRequestHeaderSetter implements TextHeaderSetter<HttpRequest> {
+import javax.annotation.Nullable;
 
-    public static final SpringRestRequestHeaderSetter INSTANCE = new SpringRestRequestHeaderSetter();
+public class OkHttpRequestHeaderGetter extends AbstractHeaderGetter<String, Request> implements TextHeaderGetter<Request> {
 
+    public static final OkHttpRequestHeaderGetter INSTANCE = new OkHttpRequestHeaderGetter();
+
+    @Nullable
     @Override
-    public void setHeader(String headerName, String headerValue, HttpRequest request) {
-        if (!request.getHeaders().containsKey(headerName)) {
-            // the org.springframework.http.HttpRequest has only be introduced in 3.1.0
-            request.getHeaders().add(headerName, headerValue);
+    public String getFirstHeader(String headerName, Request carrier) {
+        Headers headers = carrier.headers();
+        if (headers == null) {
+            return null;
         }
+        return headers.get(headerName);
     }
 }

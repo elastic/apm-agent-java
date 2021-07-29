@@ -20,11 +20,9 @@ package co.elastic.apm.agent.httpclient.helper;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
-import org.apache.http.HttpRequest;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.protocol.HttpContext;
@@ -66,8 +64,8 @@ public class ApacheHttpAsyncClientHelper {
     }
 
     public HttpAsyncRequestProducer wrapRequestProducer(HttpAsyncRequestProducer requestProducer, @Nullable Span span,
-                                                        @Nullable AbstractSpan<?> parent, TextHeaderSetter<HttpRequest> headerSetter) {
-        return requestProducerWrapperObjectPool.createInstance().with(requestProducer, span, parent, headerSetter);
+                                                        @Nullable AbstractSpan<?> parent) {
+        return requestProducerWrapperObjectPool.createInstance().with(requestProducer, span, parent);
     }
 
     public <T> FutureCallback<T> wrapFutureCallback(FutureCallback<T> futureCallback, HttpContext context, Span span) {

@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -186,18 +187,7 @@ public class ServletTransactionHelper {
         // JSPs don't contain path params and the name is more telling than the generated servlet class
         if (webConfiguration.isUsePathAsName() || ENDS_WITH_JSP.matches(servletPath, pathInfo)) {
             // should override ServletName#doGet
-            StringBuilder transactionName = transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1);
-            if (transactionName != null) {
-                WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(webConfiguration.getUrlGroups(), servletPath, pathInfo);
-                if (groupMatcher != null) {
-                    transactionName.append(method).append(' ').append(groupMatcher.toString());
-                } else {
-                    transactionName.append(method).append(' ').append(servletPath);
-                    if (pathInfo != null) {
-                        transactionName.append(pathInfo);
-                    }
-                }
-            }
+            TransactionNameUtils.setNameFromHttpRequestPath(method, servletPath, pathInfo, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1), webConfiguration.getUrlGroups());
         } else {
             StringBuilder transactionName = transaction.getAndOverrideName(PRIO_DEFAULT);
             if (transactionName != null) {
