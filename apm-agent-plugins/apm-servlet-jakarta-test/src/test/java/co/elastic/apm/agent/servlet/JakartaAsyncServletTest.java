@@ -89,7 +89,7 @@ class JakartaAsyncServletTest extends AbstractServletTest {
     void testAsyncError() throws Exception {
         assertHasOneTransaction("/async-error", body -> true, 500);
 
-        // TODO ERROR HANDLING
+        // TODO ERROR HANDLING FOR JETTY 11(ERROR TYPE SPAN)
 //        assertThat(reporter.getFirstError()).isNotNull();
 //        assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("Testing async servlet error handling");
     }

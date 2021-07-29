@@ -120,7 +120,7 @@ class JakartaServletInstrumentationTest extends AbstractServletTest {
     @Test
     void testClientError() throws Exception {
         callServlet(1, "/unknown", "Hello Error!", 404);
-        // TODO - ERROR NOT CAPTURED
+        // TODO - ERROR NOT CAPTURED(jetty 11)
 //        assertThat(reporter.getSpans().size()).isEqualTo(1);
 //        Span span = reporter.getFirstSpan();
 //        assertThat(span.getType()).isEqualTo(SPAN_TYPE);
