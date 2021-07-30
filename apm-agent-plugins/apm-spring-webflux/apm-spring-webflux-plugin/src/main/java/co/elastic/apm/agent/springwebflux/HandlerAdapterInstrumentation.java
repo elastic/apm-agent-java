@@ -98,29 +98,19 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
                                                  @Advice.Enter @Nullable Object enterTransaction,
                                                  @Advice.Return @Nullable Mono<HandlerResult> resultMono) {
 
-            if (!(enterTransaction instanceof Transaction)) {
+            if (!(enterTransaction instanceof Transaction) || resultMono == null) {
                 return resultMono;
             }
 
             Transaction transaction = (Transaction) enterTransaction;
             transaction.captureException(thrown);
 
-            if (resultMono == null) {
-                return resultMono;
-            }
-
             if (transaction.isNoop()) {
-                // when exception has been disabled within method invocation, we need to properly disable it
-                // without the need to use wrapping
+                // in transaction has been made no-op, we must still deactivate it
                 transaction.deactivate();
-                return resultMono;
             }
-
-            // in case an exception it thrown, it's too early to end transaction
-            // otherwise the status code returned isn't the expected one
-
-            return WebfluxHelper.wrapHandlerAdapter(tracer, resultMono, transaction, exchange);
-
+            // we don't wrap for handler execution, dispatcher will take care of it
+            return resultMono;
         }
     }
 

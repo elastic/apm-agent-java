@@ -75,10 +75,6 @@ public class WebfluxHelper {
         return doWrap(tracer, mono, transaction, exchange, "webflux-dispatcher");
     }
 
-    public static <T> Mono<T> wrapHandlerAdapter(Tracer tracer, Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
-        return doWrap(tracer, mono, transaction, exchange, "webflux-handler-adapter");
-    }
-
     private static <T> Mono<T> doWrap(final Tracer tracer, Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final String description) {
         //noinspection Convert2Lambda,rawtypes,Convert2Diamond,ReactiveStreamsUnusedPublisher
         mono = mono.transform(Operators.liftPublisher(new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {

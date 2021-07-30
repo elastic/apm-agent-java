@@ -69,7 +69,12 @@ public class GreetingAnnotated {
 
     @RequestMapping("/error-handler")
     public Mono<String> handlerError() {
-        return greetingHandler.throwException();
+        // using delayed exception here allows to ensure that the exception handler is properly
+        // executed, as its execution is part of the "dispatch" phase and is outside of "handler"
+        //
+        // this does not apply for functional definitions as the exception handler is directly part of the "handler"
+        // which is wrapped into the "dispatcher" (which we instrument).
+        return greetingHandler.delayedException();
     }
 
     @RequestMapping("/error-mono")
