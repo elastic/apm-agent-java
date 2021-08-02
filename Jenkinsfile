@@ -28,7 +28,7 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger('(?i)(.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:(compatibility|benchmark)\\W+)?tests(?:\\W+please)?.*|^/test(?:\\W+.*)?$)')
+    issueCommentTrigger('(?i)(.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:(compatibility|benchmark|windows)\\W+)?tests(?:\\W+please)?.*|^/test(?:\\W+.*)?$)')
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
@@ -38,6 +38,7 @@ pipeline {
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
     booleanParam(name: 'push_docker', defaultValue: false, description: 'Push Docker image during release stage')
     booleanParam(name: 'compatibility_ci', defaultValue: false, description: 'Enable compatibility tests')
+    booleanParam(name: 'windows_ci', defaultValue: false, description: 'Enable windows build and tests')
   }
   stages {
     stage('Initializing'){
@@ -281,6 +282,55 @@ pipeline {
               }
             }
           }
+        }
+      }
+    }
+    stage('Windows') {
+      options { skipDefaultCheckout() }
+      agent { label 'windows-2019-docker-immutable' }
+      when {
+        beforeAgent true
+        anyOf {
+          not { changeRequest() }
+          expression { return params.windows_ci }
+          expression { return env.GITHUB_COMMENT?.contains('windows tests') }
+        }
+      }
+      stages {
+        stage('Windows Build') {
+          steps {
+            withGithubNotify(context: "Windows build") {
+              deleteDir()
+              unstash 'source'
+              dir("${BASE_DIR}"){
+                retryWithSleep(retries: 5, seconds: 10) {
+                  bat "mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true"
+                }
+              }
+            }
+          }
+        }
+        stage('Windows Verify') {
+          steps {
+            withGithubNotify(context: "Windows verify") {
+              dir("${BASE_DIR}"){
+                bat "mvnw verify"
+              }
+            }
+          }
+          post {
+            always {
+              junit(allowEmptyResults: true, keepLongStdio: true, testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
+            }
+          }
+        }
+      }
+      post {
+        unsuccessful {
+          slackSend(channel: '#apm-agent-java',
+                    color: 'danger',
+                    message: "[${env.REPO}] Windows build failed. (<${env.RUN_DISPLAY_URL}|Open>)",
+                    tokenCredentialId: 'jenkins-slack-integration-token')
         }
       }
     }
