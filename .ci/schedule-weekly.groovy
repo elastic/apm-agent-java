@@ -20,7 +20,7 @@ pipeline {
   stages {
     stage('Run compatibility tests') {
       steps {
-        build(job: 'apm-agent-java/apm-agent-java-mbp',
+        build(job: 'apm-agent-java/apm-agent-java-mbp/master',
           parameters: [
             booleanParam(name: 'Run_As_Master_Branch', value: true),
             booleanParam(name: 'compatibility_ci', value: true)
