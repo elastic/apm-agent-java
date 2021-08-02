@@ -22,6 +22,7 @@ import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -53,23 +54,32 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
         @AssignTo(fields = @AssignTo.Field(index = 0, value = "originalRequest", typing = Assigner.Typing.DYNAMIC))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeExecute(final @Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
-            if (tracer.getActive() == null || !(originalRequest instanceof Request)) {
+
+            final AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null || !(originalRequest instanceof Request)) {
                 return new Object[]{originalRequest, null};
             }
 
-            final AbstractSpan<?> parent = tracer.getActive();
-
             okhttp3.Request request = (okhttp3.Request) originalRequest;
             HttpUrl url = request.url();
+
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
                 OkHttpClientHelper.computeHostName(url.host()), url.port());
+
             if (span != null) {
                 span.activate();
-                Request.Builder builder = ((okhttp3.Request) originalRequest).newBuilder();
-                span.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
-                return new Object[]{builder.build(), span};
             }
-            return new Object[]{originalRequest, null};
+
+            if (!TraceContext.containsTraceContextTextHeaders(request, OkHttp3RequestHeaderGetter.INSTANCE)) {
+                Request.Builder builder = ((Request) originalRequest).newBuilder();
+                if (span != null) {
+                    span.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
+                } else {
+                    parent.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
+                }
+                request = builder.build();
+            }
+            return new Object[]{request, span};
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

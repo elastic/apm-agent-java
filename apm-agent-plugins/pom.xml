@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.24.1-SNAPSHOT</version>
+        <version>1.25.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-plugins</artifactId>
@@ -57,11 +57,14 @@
         <module>apm-bootdelegation-plugin</module>
         <module>apm-micrometer-plugin</module>
         <module>apm-jdk-httpclient-plugin</module>
+        <module>apm-jdk-httpserver-plugin</module>
         <module>apm-rabbitmq</module>
         <module>apm-okhttp-test</module>
         <module>apm-cassandra</module>
         <module>apm-struts-plugin</module>
         <module>apm-vertx</module>
+        <module>apm-sparkjava-plugin</module>
+        <module>apm-javalin-plugin</module>
     </modules>
 
     <dependencies>

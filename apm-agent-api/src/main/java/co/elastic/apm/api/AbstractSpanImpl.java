@@ -56,6 +56,17 @@ abstract class AbstractSpanImpl implements Span {
 
     @Nonnull
     @Override
+    public Span startExitSpan(String type, String subtype, @Nullable String action) {
+        Object span = doCreateExitSpan();
+        if (span != null) {
+            doSetTypes(span, type, subtype, action);
+            return new SpanImpl(span);
+        }
+        return NoopSpan.INSTANCE;
+    }
+
+    @Nonnull
+    @Override
     public Span startSpan() {
         Object span = doCreateSpan();
         return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
@@ -71,6 +82,11 @@ abstract class AbstractSpanImpl implements Span {
 
     private Object doCreateSpan() {
         // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
+        return null;
+    }
+
+    private Object doCreateExitSpan() {
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$DoCreateExitSpanInstrumentation.doCreateExitSpan
         return null;
     }
 
