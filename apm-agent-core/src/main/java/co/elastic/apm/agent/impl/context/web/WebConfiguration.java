@@ -98,7 +98,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(HTTP_CATEGORY)
         .tags("experimental", "added[1.0.0,Changing this value at runtime is possible since version 1.22.0]")
         .description("If set to `true`,\n" +
-            "transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method unknown route`.\n" +
+            "transaction names of unsupported or partially-supported frameworks will be in the form of `$method $path` instead of just `$method unknown route`.\n" +
             "\n" +
             "WARNING: If your URLs contain path parameters like `/user/$userId`,\n" +
             "you should be very careful when enabling this flag,\n" +
