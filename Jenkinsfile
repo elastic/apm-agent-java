@@ -28,7 +28,7 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger('(?i)(.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:(matrix|benchmark)\\W+)?tests(?:\\W+please)?.*|^/test(?:\\W+.*)?$)')
+    issueCommentTrigger('(?i)(.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:(compatibility|benchmark)\\W+)?tests(?:\\W+please)?.*|^/test(?:\\W+.*)?$)')
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
@@ -37,6 +37,7 @@ pipeline {
     booleanParam(name: 'smoketests_ci', defaultValue: true, description: 'Enable Smoke tests')
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
     booleanParam(name: 'push_docker', defaultValue: false, description: 'Push Docker image during release stage')
+    booleanParam(name: 'compatibility_ci', defaultValue: false, description: 'Enable compatibility tests')
   }
   stages {
     stage('Initializing'){
@@ -310,8 +311,8 @@ pipeline {
         beforeAgent true
         anyOf {
           not { changeRequest() }
-          expression { return params.Run_As_Master_Branch }
-          expression { return env.GITHUB_COMMENT?.contains('matrix tests') }
+          expression { return params.compatibility_ci }
+          expression { return env.GITHUB_COMMENT?.contains('compatibility tests') }
         }
       }
       matrix {
