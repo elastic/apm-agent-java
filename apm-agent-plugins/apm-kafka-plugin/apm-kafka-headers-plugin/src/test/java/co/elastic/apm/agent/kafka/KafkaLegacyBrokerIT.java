@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.kafka;
 
@@ -107,7 +101,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
 
     @BeforeClass
     public static void setup() {
-        reporter.disableDestinationAddressCheck();
+        reporter.disableCheckDestinationAddress();
 
         // confluent versions 3.2.x correspond Kafka versions 0.10.2.2 -
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
@@ -225,7 +219,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
         when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
         testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
-        reporter.disableDestinationAddressCheck();
+        reporter.disableCheckDestinationAddress();
         sendTwoRecordsAndConsumeReplies();
         verifyTracing();
     }
@@ -322,9 +316,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
         assertThat(pollSpan.getAction()).isEqualTo("poll");
         assertThat(pollSpan.getNameAsString()).isEqualTo("KafkaConsumer#poll");
         Destination.Service service = pollSpan.getContext().getDestination().getService();
-        assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getResource().toString()).isEqualTo("kafka");
-        assertThat(service.getName().toString()).isEqualTo("kafka");
     }
 
     private void verifySendSpanContents(Span sendSpan, String topicName) {
@@ -336,9 +328,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
         Message message = context.getMessage();
         assertThat(message.getQueueName()).isEqualTo(topicName);
         Destination.Service service = context.getDestination().getService();
-        assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getResource().toString()).isEqualTo("kafka/" + topicName);
-        assertThat(service.getName().toString()).isEqualTo("kafka");
     }
 
     private void verifyKafkaTransactionContents(Transaction transaction, @Nullable Span parentSpan,

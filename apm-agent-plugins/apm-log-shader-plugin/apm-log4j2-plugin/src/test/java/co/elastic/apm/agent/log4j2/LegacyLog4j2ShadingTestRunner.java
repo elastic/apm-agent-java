@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.log4j2;
 
@@ -36,7 +30,7 @@ public class LegacyLog4j2ShadingTestRunner {
         List<String> dependencies = List.of(
             "org.apache.logging.log4j:log4j-core:2.6",
             "org.apache.logging.log4j:log4j-api:2.6",
-            "co.elastic.logging:log4j2-ecs-layout:1.0.1"
+            "co.elastic.logging:log4j2-ecs-layout:1.1.0"
         );
         runner = new TestClassWithDependencyRunner(dependencies, LegacyLog4j2ShadingTest.class, Log4j2ShadingTest.class,
             Log4J2EcsReformattingHelper.class, Log4j2ShadingTest.Log4j2LoggerFacade.class);

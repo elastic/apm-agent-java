@@ -110,6 +110,7 @@ Click on a key to get more information.
 ** <<config-transaction-max-spans>>
 ** <<config-sanitize-field-names>>
 ** <<config-disable-instrumentations>>
+** <<config-enable-experimental-instrumentations>>
 ** <<config-unnest-exceptions>>
 ** <<config-ignore-exceptions>>
 ** <<config-capture-body>>
@@ -125,6 +126,7 @@ Click on a key to get more information.
 ** <<config-use-elastic-traceparent-header>>
 ** <<config-span-min-duration>>
 ** <<config-cloud-provider>>
+** <<config-enable-public-api-annotation-inheritance>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
 ** <<config-transaction-ignore-urls>>
@@ -141,6 +143,7 @@ Click on a key to get more information.
 ** <<config-log-file>>
 ** <<config-enable-log-correlation>>
 ** <<config-log-ecs-reformatting>>
+** <<config-log-ecs-reformatting-additional-fields>>
 ** <<config-log-ecs-formatter-allow-list>>
 ** <<config-log-ecs-reformatting-dir>>
 ** <<config-log-file-size>>
@@ -710,8 +713,8 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`.
-If you want to try out experimental features, set the value to an empty string.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `javalin`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`.
+For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
 
@@ -721,7 +724,7 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `experimental` | Collection | true
+| `<none>` | Collection | true
 |============
 
 
@@ -729,6 +732,32 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.disable_instrumentations` | `disable_instrumentations` | `ELASTIC_APM_DISABLE_INSTRUMENTATIONS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-enable-experimental-instrumentations]]
+==== `enable_experimental_instrumentations` (added[1.25.0])
+
+Whether to apply experimental instrumentations.
+
+NOTE: Changing this value at runtime can slow down the application temporarily.
+Setting to `true` will enable instrumentations in the `experimental` group.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enable_experimental_instrumentations` | `enable_experimental_instrumentations` | `ELASTIC_APM_ENABLE_EXPERIMENTAL_INSTRUMENTATIONS`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -811,6 +840,9 @@ capture the textual message body.
 If the HTTP request or the message has a body and this setting is disabled, the body will be shown as [REDACTED].
 
 This option is case-insensitive.
+
+NOTE: Currently, the body length is limited to 10000 characters and it is not configurable. 
+If the body size exceeds the limit, it will be truncated. 
 
 NOTE: Currently, only UTF-8 encoded plain text HTTP content types are supported.
 The option <<config-capture-body-content-types>> determines which content types are captured.
@@ -1240,6 +1272,32 @@ Valid options: `AUTO`, `AWS`, `GCP`, `AZURE`, `NONE`
 | `elastic.apm.cloud_provider` | `cloud_provider` | `ELASTIC_APM_CLOUD_PROVIDER`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-enable-public-api-annotation-inheritance]]
+==== `enable_public_api_annotation_inheritance` (performance)
+
+A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).
+ When set to `false`, a method is instrumented if it is annotated with a public api annotation.
+  When set to `true` methods overriding annotated methods will be instrumented as well.
+ Either way, methods will only be instrumented if they are included in the configured <<config-application-packages>>.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enable_public_api_annotation_inheritance` | `enable_public_api_annotation_inheritance` | `ELASTIC_APM_ENABLE_PUBLIC_API_ANNOTATION_INHERITANCE`
+|============
+
 [[config-http]]
 === HTTP configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1343,7 +1401,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
 
 If set to `true`,
-transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method unknown route`.
+transaction names of unsupported or partially-supported frameworks will be in the form of `$method $path` instead of just `$method unknown route`.
 
 WARNING: If your URLs contain path parameters like `/user/$userId`,
 you should be very careful when enabling this flag,
@@ -1711,6 +1769,32 @@ Valid options: `OFF`, `SHADE`, `REPLACE`, `OVERRIDE`
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[[config-log-ecs-reformatting-additional-fields]]
+==== `log_ecs_reformatting_additional_fields` (added[1.26.0])
+
+A comma-separated list of key-value pairs that will be added as additional fields to all log events.
+ Takes the format `key=value[,key=value[,...]]`, for example: `key1=value1,key2=value2`.
+ Only relevant if <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to any option other than `OFF`.
+
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | Map | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_ecs_reformatting_additional_fields` | `log_ecs_reformatting_additional_fields` | `ELASTIC_APM_LOG_ECS_REFORMATTING_ADDITIONAL_FIELDS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
 [[config-log-ecs-formatter-allow-list]]
 ==== `log_ecs_formatter_allow_list`
 
@@ -1930,7 +2014,7 @@ The <<config-profiling-inferred-spans-sampling-interval, `profiling_inferred_spa
 The inferred spans are created after a profiling session has ended.
 This means there is a delay between the regular and the inferred spans being visible in the UI.
 
-NOTE: This feature is not available on Windows
+NOTE: This feature is not available on Windows and on OpenJ9
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -2829,16 +2913,27 @@ The default unit for this option is `ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`.
-# If you want to try out experimental features, set the value to an empty string.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `javalin`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`.
+# For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: experimental
+# Default value: 
 #
-# disable_instrumentations=experimental
+# disable_instrumentations=
+
+# Whether to apply experimental instrumentations.
+# 
+# NOTE: Changing this value at runtime can slow down the application temporarily.
+# Setting to `true` will enable instrumentations in the `experimental` group.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# enable_experimental_instrumentations=false
 
 # When reporting exceptions,
 # un-nests the exceptions matching the wildcard pattern.
@@ -2885,6 +2980,9 @@ The default unit for this option is `ms`.
 # If the HTTP request or the message has a body and this setting is disabled, the body will be shown as [REDACTED].
 # 
 # This option is case-insensitive.
+# 
+# NOTE: Currently, the body length is limited to 10000 characters and it is not configurable. 
+# If the body size exceeds the limit, it will be truncated. 
 # 
 # NOTE: Currently, only UTF-8 encoded plain text HTTP content types are supported.
 # The option <<config-capture-body-content-types>> determines which content types are captured.
@@ -3120,6 +3218,17 @@ The default unit for this option is `ms`.
 #
 # cloud_provider=AUTO
 
+# A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).
+#  When set to `false`, a method is instrumented if it is annotated with a public api annotation.
+#   When set to `true` methods overriding annotated methods will be instrumented as well.
+#  Either way, methods will only be instrumented if they are included in the configured <<config-application-packages>>.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# enable_public_api_annotation_inheritance=false
+
 ############################################
 # HTTP                                     #
 ############################################
@@ -3173,7 +3282,7 @@ The default unit for this option is `ms`.
 # transaction_ignore_user_agents=
 
 # If set to `true`,
-# transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method unknown route`.
+# transaction names of unsupported or partially-supported frameworks will be in the form of `$method $path` instead of just `$method unknown route`.
 # 
 # WARNING: If your URLs contain path parameters like `/user/$userId`,
 # you should be very careful when enabling this flag,
@@ -3413,6 +3522,17 @@ The default unit for this option is `ms`.
 #
 # log_ecs_reformatting=OFF
 
+# A comma-separated list of key-value pairs that will be added as additional fields to all log events.
+#  Takes the format `key=value[,key=value[,...]]`, for example: `key1=value1,key2=value2`.
+#  Only relevant if <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to any option other than `OFF`.
+# 
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Map
+# Default value: 
+#
+# log_ecs_reformatting_additional_fields=
+
 # Only formatters that match an item on this list will be automatically reformatted to ECS when 
 # <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to any option other than `OFF`. 
 # A formatter is the logging-framework-specific entity that is responsible for the formatting 
@@ -3528,7 +3648,7 @@ The default unit for this option is `ms`.
 # The inferred spans are created after a profiling session has ended.
 # This means there is a delay between the regular and the inferred spans being visible in the UI.
 # 
-# NOTE: This feature is not available on Windows
+# NOTE: This feature is not available on Windows and on OpenJ9
 #
 # This setting can be changed at runtime
 # Type: Boolean

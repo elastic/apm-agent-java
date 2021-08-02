@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,18 +15,17 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.metrics.DoubleSupplier;
-import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.metrics.Timer;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
 
+import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -40,28 +34,32 @@ public class MetricRegistrySerializer {
 
     private static final byte NEW_LINE = '\n';
 
+    private static final int BUFFER_SIZE_LIMIT = 2048;
+
     private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
     private final StringBuilder replaceBuilder = new StringBuilder();
-    private int lastSize = 512;
+    private int maxSerializedSize = 512;
 
-    public JsonWriter serialize(Map<? extends Labels, MetricSet> metricSets) {
-        JsonWriter jw = dslJson.newWriter((int) (lastSize * 1.25));
-        serialize(metricSets, replaceBuilder, jw);
-        lastSize = jw.size();
-        return jw;
-    }
-
-    public static void serialize(Map<? extends Labels, MetricSet> metricSets, StringBuilder replaceBuilder, JsonWriter jw) {
+    /**
+     * Creates a JSON writer, serializes the given metric set into it and returns it. If the serialized metric-set
+     * does not contain samples, the method returns null.
+     * @param metricSet a metric-set to serialize
+     * @return the serialized metric-set or {@code null} if no samples were serialized
+     */
+    @Nullable
+    public JsonWriter serialize(MetricSet metricSet) {
+        JsonWriter jw = dslJson.newWriter(maxSerializedSize);
         final long timestamp = System.currentTimeMillis() * 1000;
-        for (MetricSet metricSet : metricSets.values()) {
-            if (metricSet.hasContent()) {
-                serializeMetricSet(metricSet, timestamp, replaceBuilder, jw);
-                jw.writeByte(NEW_LINE);
-            }
+        boolean hasSamples = serialize(metricSet, timestamp, replaceBuilder, jw);
+        if (hasSamples) {
+            maxSerializedSize = Math.max(Math.min(jw.size(), BUFFER_SIZE_LIMIT), maxSerializedSize);
+            return jw;
         }
+        return null;
     }
 
-    static void serializeMetricSet(MetricSet metricSet, long epochMicros, StringBuilder replaceBuilder, JsonWriter jw) {
+    private static boolean serialize(MetricSet metricSet, long epochMicros, StringBuilder replaceBuilder, JsonWriter jw) {
+        boolean hasSamples;
         jw.writeByte(JsonWriter.OBJECT_START);
         {
             DslJsonSerializer.writeFieldName("metricset", jw);
@@ -73,17 +71,20 @@ public class MetricRegistrySerializer {
                 DslJsonSerializer.serializeLabels(metricSet.getLabels(), replaceBuilder, jw);
                 DslJsonSerializer.writeFieldName("samples", jw);
                 jw.writeByte(JsonWriter.OBJECT_START);
-                boolean hasSamples = serializeGauges(metricSet.getGauges(), jw);
+                hasSamples = serializeGauges(metricSet.getGauges(), jw);
                 hasSamples |= serializeTimers(metricSet.getTimers(), hasSamples, jw);
-                serializeCounters(metricSet.getCounters(), hasSamples, jw);
+                hasSamples |= serializeCounters(metricSet.getCounters(), hasSamples, jw);
                 jw.writeByte(JsonWriter.OBJECT_END);
             }
             jw.writeByte(JsonWriter.OBJECT_END);
         }
         jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(NEW_LINE);
+        return hasSamples;
     }
 
     private static boolean serializeGauges(Map<String, DoubleSupplier> gauges, JsonWriter jw) {
+        boolean hasSamples = false;
         final int size = gauges.size();
         if (size > 0) {
             final Iterator<Map.Entry<String, DoubleSupplier>> iterator = gauges.entrySet().iterator();
@@ -95,6 +96,7 @@ public class MetricRegistrySerializer {
                 value = kv.getValue().get();
                 if (isValid(value)) {
                     serializeValue(kv.getKey(), value, jw);
+                    hasSamples = true;
                 }
             }
 
@@ -107,7 +109,7 @@ public class MetricRegistrySerializer {
                     serializeValue(kv.getKey(), value, jw);
                 }
             }
-            return true;
+            return hasSamples;
         }
         return false;
     }
@@ -126,8 +128,8 @@ public class MetricRegistrySerializer {
                     if (hasSamples) {
                         jw.writeByte(JsonWriter.COMMA);
                     }
-                    hasSamples = true;
                     serializeTimer(kv.getKey(), value, jw);
+                    hasSamples = true;
                 }
             }
 
@@ -144,7 +146,7 @@ public class MetricRegistrySerializer {
         return hasSamples;
     }
 
-    private static void serializeCounters(Map<String, AtomicLong> counters, boolean hasSamples, JsonWriter jw) {
+    private static boolean serializeCounters(Map<String, AtomicLong> counters, boolean hasSamples, JsonWriter jw) {
         final int size = counters.size();
         if (size > 0) {
             final Iterator<Map.Entry<String, AtomicLong>> iterator = counters.entrySet().iterator();
@@ -159,6 +161,7 @@ public class MetricRegistrySerializer {
                         jw.writeByte(JsonWriter.COMMA);
                     }
                     serializeCounter(kv.getKey(), value, jw);
+                    hasSamples = true;
                 }
             }
 
@@ -172,6 +175,7 @@ public class MetricRegistrySerializer {
                 }
             }
         }
+        return hasSamples;
     }
 
     private static void serializeCounter(String key, AtomicLong value, JsonWriter jw) {

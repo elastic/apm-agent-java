@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.23.1-SNAPSHOT</version>
+        <version>1.25.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
@@ -14,6 +14,9 @@
     <properties>
         <elastic.apm.agent>co.elastic.apm.agent.premain.AgentMain</elastic.apm.agent>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+
+        <!-- default value that will be overloaded through commit-id plugin -->
+        <git.commit.id.abbrev>UNKNOWN</git.commit.id.abbrev>
     </properties>
 
     <dependencies>
@@ -251,6 +254,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-spring-webflux-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-spring-webmvc-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -297,6 +305,21 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-vertx4-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-sparkjava-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jdk-httpserver-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-javalin-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -377,6 +400,16 @@
                                         Therefore, we have to manually specify the plugin packages via PluginManager.addPackage
                                         -->
                                         <exclude>**/Log4j2Plugins.dat</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
+                                    <artifact>org.apache.logging.log4j:log4j-core</artifact>
+                                    <!--
+                                    Eliminating exposure to the log4j2 vulnerability related to the SMTP appender -
+                                    https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle
+                                    -->
+                                    <excludes>
+                                        <exclude>org/apache/logging/log4j/core/appender/SmtpAppender.class</exclude>
                                     </excludes>
                                 </filter>
                                 <filter>

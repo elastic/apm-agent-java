@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,12 +15,12 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -77,16 +72,19 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                                  @Advice.FieldValue("connected") boolean connected,
                                  @Advice.Origin String signature) {
 
-            if (tracer.getActive() == null) {
+            AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null) {
                 return null;
             }
             Span span = inFlightSpans.get(thiz);
             if (span == null && !connected) {
                 final URL url = thiz.getURL();
-                span = HttpClientHelper.startHttpClientSpan(tracer.getActive(), thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
-                if (span != null) {
-                    if (!TraceContext.containsTraceContextTextHeaders(thiz, UrlConnectionPropertyAccessor.instance())) {
+                span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
+                if (!TraceContext.containsTraceContextTextHeaders(thiz, UrlConnectionPropertyAccessor.instance())) {
+                    if (span != null) {
                         span.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
+                    } else {
+                        parent.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
                     }
                 }
             }

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
 
@@ -37,10 +31,7 @@ import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.HdrHistogram.WriterReaderPhaser;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
@@ -98,6 +89,8 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     @Nullable
     private String frameworkName;
+
+    private boolean frameworkNameSetByUser;
 
     @Nullable
     private String frameworkVersion;
@@ -325,7 +318,19 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     public void setFrameworkName(@Nullable String frameworkName) {
+        if (frameworkNameSetByUser) {
+            return;
+        }
         this.frameworkName = frameworkName;
+    }
+
+    public void setUserFrameworkName(@Nullable String frameworkName) {
+        if (frameworkName != null && frameworkName.isEmpty()) {
+            this.frameworkName = null;
+        } else {
+            this.frameworkName = frameworkName;
+        }
+        this.frameworkNameSetByUser = true;
     }
 
     @Nullable

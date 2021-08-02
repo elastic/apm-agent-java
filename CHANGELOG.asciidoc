@@ -20,8 +20,77 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.23.1]]
-==== 1.23.1 - YYYY/MM/DD
+[[release-notes-1.26.0]]
+==== 1.26.0 - YYYY/MM/DD
+
+[float]
+===== Features
+* Improved naming for Spring controllers - {pull}1906[#1906]
+* ECS log reformatting improvements - {pull}1910[#1910]
+** Automatically sets `service.node.name` in all log events if set through agent configuration
+** Add `log_ecs_reformatting_additional_fields` option to support arbitrary fields in logs
+** Automatically serialize markers as tags where relevant (log4j2 and logback)
+
+[float]
+===== Bug fixes
+* Fix failure to parse some forms of the `Implementation-Version` property from jar manifest files - {pull}1931[#1931]
+* Ensure single value for context-propagation header - {pull}1937[#1937]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.25.0]]
+==== 1.25.0 - 2021/07/22
+
+[float]
+===== Potentially breaking changes
+* If you rely on instrumentations that are in the `experimental` group, you must now set `enable_experimental_instrumentations=true` otherwise
+the experimental instrumentations will be disabled by default. Up to version `1.24.0` using an empty value for `disable_instrumentations` was
+the recommended way to override the default `disable_instrumentations=experimental`.
+
+[float]
+===== Features
+* Support for inheritance of public API annotations - {pull}1805[#1805]
+* JDBC instrumentation sets `context.db.instance` - {pull}1820[#1820]
+* Add support for Vert.x web client- {pull}1824[#1824]
+* Avoid recycling of spans and transactions that are using through the public API, so to avoid
+reference-counting-related errors - {pull}1859[#1859]
+* Add <<config-enable-experimental-instrumentations>> configuration option to enable experimental features - {pull}1863[#1863]
+** Previously, when adding an instrumentation group to `disable_instrumentations`, we had to make sure to not forget the
+default `experimental` value, for example when disabling `jdbc` instrumentation we had to set `disable_instrumentations=experimental,jdbc` otherwise
+setting `disable_instrumentations=jdbc` would disable jdbc and also enable experimental features, which would not be the desired effect.
+** Previously, by default `disable_instrumentations` contained `experimental`
+** Now by default `disable_instrumentations` is empty and `enable_experimental_instrumentations=false`
+** Set `enable_experimental_instrumentations=true` to enable experimental instrumentations
+* Eliminating concerns related to log4j2 vulnerability - https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle.
+We cannot upgrade to version above 2.12.1 because this is the last version of log4j that is compatible with Java 7.
+Instead, we exclude the SMTP appender (which is the vulnerable one) from our artifacts. Note that older versions of
+our agent are not vulnerable as well, as the SMTP appender was never used, this is only to further reduce our users' concerns.
+* Adding public APIs for setting `destination.service.resource`, `destination.address` and `destination.port` fields
+for exit spans - {pull}1788[#1788]
+* Only use emulated runtime attachment as fallback, remove the `--without-emulated-attach` option - {pull}1865[#1865]
+* Instrument `javax.servlet.Filter` the same way as `javax.servlet.FilterChain` - {pull}1858[#1858]
+* Propagate trace context headers in HTTP calls occurring from within traced exit points, for example - when using
+Elasticsearch's REST client - {pull}1883[#1883]
+* Added support for naming sparkjava (not Apache Spark) transactions {pull}1894[#1894]
+* Added the ability to manually create exit spans, which will result with the auto creation of service nodes in the
+service map and downstream service in the dependencies table - {pull}1898[#1898]
+* Basic support for `com.sun.net.httpserver.HttpServer` - {pull}1854[#1854]
+* Update to async-profiler 1.8.6 {pull}1907[#1907]
+* Added support for setting the framework using the public api (#1908) - {pull}1909[#1909]
+
+[float]
+===== Bug fixes
+* Fix NPE with `null` binary header values + properly serialize them - {pull}1842[#1842]
+* Fix `ListenerExecutionFailedException` when using Spring AMQP's ReplyTo container - {pull}1872[#1872]
+* Enabling log ECS reformatting when using Logback configured with `LayoutWrappingEncoder` and a pattern layout - {pull}1879[#1879]
+* Fix NPE with Webflux + context propagation headers - {pull}1871[#1871]
+* Fix `ClassCastException` with `ConnnectionMetaData` and multiple classloaders - {pull}1864[#1864]
+* Fix NPE in `co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper.getClassloader` - {pull}1861[#1861]
+* Fix for Jboss JMX unexpected notifications - {pull}1895[#1895]
+
+[[release-notes-1.24.0]]
+==== 1.24.0 - 2021/05/31
 
 [float]
 ===== Features
@@ -30,19 +99,23 @@ endif::[]
 events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted automatically as well - {pull}1793[#1793]
 * Instrumentation for Vert.x Web {pull}1697[#1697]
 * Changed log level of vm arguments to debug
+* Giving precedence for the W3C `tracecontext` header over the `elastic-apm-traceparent` header - {pull}1821[#1821]
+* Add instrumentation for Webflux - {pull}1305[#1305]
+* Add instrumentation for Javalin {pull}1822[#1822]
 
 [float]
 ===== Bug fixes
 * Fix another error related to instrumentation plugins loading on Windows - {pull}1785[#1785]
 * Load Spring AMQP plugin- {pull}1784[#1784]
 * Avoid `IllegalStateException` when multiple `tracestate` headers are used - {pull}1808[#1808]
+* Ensure CLI attach avoids `sudo` only when required and avoid blocking - {pull}1819[#1819]
+* Avoid sending metric-sets without samples, so to adhere to the intake API - {pull}1826[#1826]
+* Fixing our type-pool cache, so that it can't cause OOM (softly-referenced), and it gets cleared when not used for
+a while - {pull}1828[#1828]
 
 [float]
 ===== Refactors
 * Remove single-package limitation for embedded plugins - {pull}1780[#1780]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.23.0]]
 ==== 1.23.0 - 2021/04/22
@@ -55,7 +128,7 @@ events. With the new `OVERRIDE` option, non-file logs can be ECS-reformatted aut
 [float]
 ===== Features
 * Overhaul of the <<setup-attach-cli,attacher cli>> application that allows to attach the agent to running JVMs - {pull}1667[#1667]
-** The artifact of the standalone cli applicaiton is now called `apm-agent-attach-cli`. The attacher API is still called `apm-agent-attach`.
+** The artifact of the standalone cli application is now called `apm-agent-attach-cli`. The attacher API is still called `apm-agent-attach`.
 ** There is also a slim version of the cli application that does not bundle the Java agent.
 It requires the `--agent-jar` option to be set.
 ** Improved logging +

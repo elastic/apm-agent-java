@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 /*
  * Copyright 2018 Andrei Pangin
@@ -39,6 +33,7 @@
  */
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
+import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import co.elastic.apm.agent.util.IOUtils;
 
 import javax.annotation.Nullable;
@@ -71,6 +66,10 @@ public class AsyncProfiler {
         }
         synchronized (AsyncProfiler.class) {
             if (instance == null) {
+                if (JvmRuntimeInfo.ofCurrentVM().isJ9VM()) {
+                    throw new IllegalStateException("OpenJ9 JVMs are not supported by async profiler. Please set " +
+                        "profiling_inferred_spans_enabled to false");
+                }
                 try {
                     loadNativeLibrary(profilerLibDirectory);
                 } catch (UnsatisfiedLinkError e) {

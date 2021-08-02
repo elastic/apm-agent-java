@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent;
 
@@ -32,6 +26,7 @@ import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -88,6 +83,9 @@ public abstract class AbstractInstrumentationTest {
     @After
     @AfterEach
     public final void cleanUp() {
+        // re-enable all reporter checks
+        reporter.resetChecks();
+
         SpyConfiguration.reset(config);
         try {
             if (validateRecycling) {
@@ -139,7 +137,30 @@ public abstract class AbstractInstrumentationTest {
      * @return root transaction
      */
     protected Transaction startTestRootTransaction() {
-        return startTestRootTransaction("test transaction");
+        return startTestRootTransaction("test root transaction");
     }
 
+    /**
+     * Triggers a GC + stale entry cleanup in order to trigger GC-based expiration
+     *
+     * @param map   map to flush
+     * @param count number of cleanup loops to execute
+     */
+    protected static void flushGcExpiry(WeakConcurrentMap<?, ?> map, int count) {
+        // note: we can't rely on map size as it might report zero when not empty
+        int left = count;
+        do {
+            System.out.printf("flushGcExpiry - before gc execution%n");
+            long start = System.currentTimeMillis();
+            System.gc();
+            long duration = System.currentTimeMillis() - start;
+            System.out.printf("flushGcExpiry - after gc execution %d ms%n", duration);
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                // silently ignored
+            }
+            map.expungeStaleEntries();
+        } while (left-- > 0);
+    }
 }

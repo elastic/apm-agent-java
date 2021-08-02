@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.logback;
 
@@ -29,14 +23,19 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.FileAppender;
 import ch.qos.logback.core.OutputStreamAppender;
 import ch.qos.logback.core.encoder.Encoder;
+import ch.qos.logback.core.encoder.LayoutWrappingEncoder;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import co.elastic.apm.agent.log.shader.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.logging.AdditionalField;
 import co.elastic.logging.logback.EcsEncoder;
 
 import javax.annotation.Nullable;
+import java.util.List;
+import java.util.Map;
 
 class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputStreamAppender<ILoggingEvent>, Encoder<ILoggingEvent>> {
 
@@ -59,18 +58,35 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
     }
 
     @Override
+    protected boolean isAllowedFormatter(Encoder<ILoggingEvent> formatter, List<WildcardMatcher> allowList) {
+        if (formatter instanceof LayoutWrappingEncoder<?>) {
+            return WildcardMatcher.anyMatch(allowList, ((LayoutWrappingEncoder<?>) formatter).getLayout().getClass().getName()) != null;
+        }
+        return super.isAllowedFormatter(formatter, allowList);
+    }
+
+    @Override
     protected String getAppenderName(OutputStreamAppender<ILoggingEvent> appender) {
         return appender.getName();
     }
 
     @Override
-    protected Encoder<ILoggingEvent> createEcsFormatter(String eventDataset, @Nullable String serviceName) {
+    protected Encoder<ILoggingEvent> createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName,
+                                                        @Nullable Map<String, String> additionalFields, Encoder<ILoggingEvent> originalFormatter) {
         EcsEncoder ecsEncoder = new EcsEncoder();
         ecsEncoder.setServiceName(serviceName);
+        ecsEncoder.setServiceNodeName(serviceNodeName);
         ecsEncoder.setEventDataset(eventDataset);
-        ecsEncoder.setIncludeMarkers(false);
+        ecsEncoder.setIncludeMarkers(true);
         ecsEncoder.setIncludeOrigin(false);
         ecsEncoder.setStackTraceAsArray(false);
+
+        if (additionalFields != null) {
+            for (Map.Entry<String, String> keyValuePair : additionalFields.entrySet()) {
+                ecsEncoder.addAdditionalField(new AdditionalField(keyValuePair.getKey(), keyValuePair.getValue()));
+            }
+        }
+
         return ecsEncoder;
     }
 

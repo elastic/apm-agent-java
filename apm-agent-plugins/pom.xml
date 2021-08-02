@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.23.1-SNAPSHOT</version>
+        <version>1.25.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-plugins</artifactId>
@@ -24,6 +24,8 @@
         <module>apm-opentracing-plugin</module>
         <module>apm-servlet-plugin</module>
         <module>apm-spring-webmvc-plugin</module>
+        <module>apm-spring-webflux</module>
+        <module>apm-reactor-plugin</module>
         <module>apm-api-plugin</module>
         <module>apm-apache-httpclient-plugin</module>
         <module>apm-spring-resttemplate</module>
@@ -55,11 +57,14 @@
         <module>apm-bootdelegation-plugin</module>
         <module>apm-micrometer-plugin</module>
         <module>apm-jdk-httpclient-plugin</module>
+        <module>apm-jdk-httpserver-plugin</module>
         <module>apm-rabbitmq</module>
         <module>apm-okhttp-test</module>
         <module>apm-cassandra</module>
         <module>apm-struts-plugin</module>
         <module>apm-vertx</module>
+        <module>apm-sparkjava-plugin</module>
+        <module>apm-javalin-plugin</module>
     </modules>
 
     <dependencies>
@@ -71,9 +76,20 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>
-            <type>test-jar</type>
             <version>${project.version}</version>
+            <type>test-jar</type>
             <scope>test</scope>
+            <exclusions>
+                <!-- exclude jetty server, otherwise jetty is available in every module test classpath -->
+                <exclusion>
+                    <groupId>org.eclipse.jetty</groupId>
+                    <artifactId>jetty-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.eclipse.jetty</groupId>
+                    <artifactId>jetty-util</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 

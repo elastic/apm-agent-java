@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.logging;
 
@@ -34,12 +28,16 @@ import org.apache.logging.log4j.status.StatusLogger;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
+import org.stagemonitor.configuration.converter.MapValueConverter;
+import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Defines configuration options related to logging.
@@ -194,6 +192,17 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(LogEcsReformatting.OFF);
 
+    private final ConfigurationOption<Map<String, String>> logEcsReformattingAdditionalFields = ConfigurationOption
+        .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
+        .key("log_ecs_reformatting_additional_fields")
+        .tags("added[1.26.0]")
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("A comma-separated list of key-value pairs that will be added as additional fields to all log events.\n " +
+            "Takes the format `key=value[,key=value[,...]]`, for example: `key1=value1,key2=value2`.\n " +
+            "Only relevant if <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to any option other than `OFF`.\n")
+        .dynamic(false)
+        .buildWithDefault(Collections.<String, String>emptyMap());
+
     private final ConfigurationOption<List<WildcardMatcher>> logEcsFormatterAllowList = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("log_ecs_formatter_allow_list")
@@ -302,7 +311,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         try {
             Configurator.initialize(new Log4j2ConfigurationFactory(sources, ephemeralId).getConfiguration());
         } catch (Throwable throwable) {
-            System.err.println("Failure during initialization of agent's log4j system: " + throwable.getMessage());
+            System.err.println("[elastic-apm-agent] ERROR Failure during initialization of agent's log4j system: " + throwable.getMessage());
         } finally {
             restoreSystemProperty(INITIAL_LISTENERS_LEVEL, initialListenersLevel);
             restoreSystemProperty(INITIAL_STATUS_LOGGER_LEVEL, initialStatusLoggerLevel);
@@ -337,6 +346,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     public LogEcsReformatting getLogEcsReformatting() {
         return logEcsReformatting.get();
+    }
+
+    public Map<String, String> getLogEcsReformattingAdditionalFields() {
+        return logEcsReformattingAdditionalFields.get();
     }
 
     public List<WildcardMatcher> getLogEcsFormatterAllowList() {

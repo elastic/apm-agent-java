@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report;
 
@@ -74,6 +68,7 @@ public class ApmServerClient {
     private static final String USER_AGENT = "elasticapm-java/" + VersionUtils.getAgentVersion();
     private static final Version VERSION_6_7 = Version.of("6.7.0");
     private static final Version VERSION_7_9 = Version.of("7.9.0");
+    private static final Version VERSION_7_0 = Version.of("7.0.0");
     private final ReporterConfiguration reporterConfiguration;
     @Nullable
     private volatile List<URL> serverUrls;
@@ -323,6 +318,10 @@ public class ApmServerClient {
 
     public boolean supportsLogsEndpoint() {
         return isAtLeast(VERSION_7_9);
+    }
+
+    public boolean supportsNumericUrlPort(){
+        return isAtLeast(VERSION_7_0);
     }
 
     @Nullable
