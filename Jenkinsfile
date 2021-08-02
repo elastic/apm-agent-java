@@ -310,7 +310,6 @@ pipeline {
       when {
         beforeAgent true
         anyOf {
-          not { changeRequest() }
           expression { return params.compatibility_ci }
           expression { return env.GITHUB_COMMENT?.contains('compatibility tests') }
         }
