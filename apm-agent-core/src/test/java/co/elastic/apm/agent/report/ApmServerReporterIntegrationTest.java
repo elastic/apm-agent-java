@@ -242,6 +242,8 @@ class ApmServerReporterIntegrationTest {
             doReturn((i + 1) * TimeUnit.MILLISECONDS.toNanos(reporterConfiguration.getApiRequestTime().getMillis()) + TimeUnit.SECONDS.toNanos(1))
                 .when(clock).nanoTicks();
         }
+        reporter.waitForHardFlush();
+        assertThat(reporter.getReported()).isEqualTo(5);
     }
 
     private void sendTransactionEventAndFlush(int expectedReceivedEvents, int expectedIntakeApiCalls) {

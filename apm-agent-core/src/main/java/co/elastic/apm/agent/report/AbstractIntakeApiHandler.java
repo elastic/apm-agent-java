@@ -168,14 +168,16 @@ public class AbstractIntakeApiHandler {
                 } catch (IOException e1) {
                     long maxRequestTime = TimeUnit.MILLISECONDS.toNanos(reporterConfiguration.getApiRequestTime().getMillis());
                     long significantlyOverApiRequestTime = requestStartedNanos + maxRequestTime + TimeUnit.SECONDS.toNanos(1);
-                    if (pendingFlush && clock.nanoTicks() < significantlyOverApiRequestTime) {
-                        // the request has been open for significantly longer than api_request_time
-                        // it's quite likely that APM Server or a proxy has already closed the connection
-                        // we don't want to trigger a backoff or log an error if we have already flushed all data previously
-                        // note: flushing the OutputStream of a closed connection does not necessarily lead to an exception.
-                        // only when closing the connection, the exception occurrs
-                        // use case: on AWS Lambda, we flush after every request
-                        // and the environment may freeze for a long period of time so that the APM Server closes the connection
+                    // if the request has been open for significantly longer than api_request_time
+                    // it's quite likely that APM Server or a proxy has already closed the connection
+                    // we don't want to trigger a backoff or log an error if we have already flushed all data previously
+                    // note: flushing the OutputStream of a closed connection does not necessarily lead to an exception.
+                    // only when closing the connection, the exception occurrs
+                    // use case: on AWS Lambda, we flush after every request
+                    // and the environment may freeze for a long period of time so that the APM Server closes the connection
+                    if (!pendingFlush || clock.nanoTicks() >= significantlyOverApiRequestTime) {
+                        onRequestSuccess();
+                    } else {
                         onRequestError(-1, connection.getErrorStream(), e);
                     }
                 }
