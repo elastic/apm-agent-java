@@ -318,9 +318,9 @@ pipeline {
         }
         stage('Windows Verify') {
           steps {
-            withGithubNotify(context: 'Windows Tests', tab: 'tests') {
+            withGithubNotify(context: 'Windows Verify', tab: 'tests') {
               dir("${BASE_DIR}"){
-                bat "mvnw test"
+                bat "mvnw verify"
               }
             }
           }
