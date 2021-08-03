@@ -50,6 +50,9 @@ public class JavaConcurrent {
         EXCLUDED_EXECUTABLE_TYPES.add(CallableLambdaWrapper.class.getName());
         // Spring-JMS polling mechanism that translates to passive onMessage handling
         EXCLUDED_EXECUTABLE_TYPES.add("org.springframework.jms.listener.DefaultMessageListenerContainer$AsyncMessageListenerInvoker");
+        // Spring webflux cancellation is created when a transaction might be active and the runnable is defined
+        // but used in a separate execution context
+        EXCLUDED_EXECUTABLE_TYPES.add("co.elastic.apm.agent.springwebflux.HandlerAdapterInstrumentation$HandleAdvice$CancelTask");
     }
 
     private static void removeContext(Object o) {

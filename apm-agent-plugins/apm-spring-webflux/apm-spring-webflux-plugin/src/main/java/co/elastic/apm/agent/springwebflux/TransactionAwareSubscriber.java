@@ -18,45 +18,18 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.util.SpanConcurrentHashMap;
-import co.elastic.apm.agent.util.TransactionNameUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpCookie;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.http.server.reactive.ServerHttpResponse;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.method.HandlerMethod;
-import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.server.ServerWebExchange;
-import org.springframework.web.util.pattern.PathPattern;
 import reactor.core.CoreSubscriber;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.Map;
-
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
-import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
 /**
  * Transaction-aware subscriber that will (optionally) activate transaction and terminate it on error or completion.
@@ -67,12 +40,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
     private static final Logger log = LoggerFactory.getLogger(TransactionAwareSubscriber.class);
 
-    private static final WeakConcurrentMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakMapSupplier.createMap();
-
     private static final WeakConcurrentMap<TransactionAwareSubscriber<?>, Transaction> transactionMap = SpanConcurrentHashMap.createWeakMap();
-
-    private static final CoreConfiguration coreConfig;
-    private static final WebConfiguration webConfig;
 
     private final CoreSubscriber<? super T> subscriber;
 
@@ -86,11 +54,6 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
      * {@literal true} when transaction was activated on subscription
      */
     private boolean activatedOnSubscribe = false;
-
-    static {
-        coreConfig = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);
-        webConfig = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);
-    }
 
     /**
      * @param subscriber  subscriber to wrap
@@ -167,7 +130,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
         try {
             subscriber.onError(t);
         } finally {
-            endTransaction(t, transaction);
+            WebfluxHelper.endTransaction(t, transaction, exchange);
             doExit(true, "onError", transaction);
         }
     }
@@ -184,7 +147,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
         try {
             subscriber.onComplete();
         } finally {
-            endTransaction(null, transaction);
+            WebfluxHelper.endTransaction(null, transaction, exchange);
             doExit(true, "onComplete", transaction);
         }
     }
@@ -218,7 +181,26 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
             }
             transactionMap.remove(this);
         }
+    }
 
+    public void cancelTransaction() {
+        Transaction transaction = getTransaction();
+        debugTrace(true, "cancelTransaction", transaction);
+        try {
+            if (transaction == null) {
+                return;
+            }
+
+            WebfluxHelper.endTransaction(null, transaction, exchange);
+
+            // not 100% sure to understand why it's required, but without it recycling reference count
+            // is always off by one when transaction get cancelled
+            transaction.decrementReferences();
+
+            transactionMap.remove(this);
+        } finally {
+            debugTrace(false, "cancelTransaction", transaction);
+        }
     }
 
     @Nullable
@@ -240,152 +222,6 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
      */
     static WeakConcurrentMap<TransactionAwareSubscriber<?>, Transaction> getTransactionMap() {
         return transactionMap;
-    }
-
-    private void endTransaction(@Nullable Throwable thrown, @Nullable Transaction transaction) {
-        if (transaction == null) {
-            // already discarded
-            return;
-        }
-
-        Object attribute = exchange.getAttributes().remove(WebfluxHelper.TRANSACTION_ATTRIBUTE);
-        if (attribute != transaction) {
-            // transaction might be already terminated due to instrumentation of more than one
-            // dispatcher/handler/invocation-handler class
-            return;
-        }
-
-        if (ignoreTransaction(exchange)) {
-            transaction.ignoreTransaction();
-            transaction.end();
-            return;
-        }
-
-        int namePriority;
-        String path;
-        PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
-        if (pattern != null) {
-            namePriority = PRIO_HIGH_LEVEL_FRAMEWORK;
-            path = pattern.getPatternString();
-        } else {
-            namePriority = PRIO_LOW_LEVEL_FRAMEWORK + 1;
-            if (webConfig.isUsePathAsName()) {
-                path = exchange.getRequest().getPath().value();
-            } else {
-                path = "unknown route";
-            }
-        }
-
-        TransactionNameUtils.setNameFromHttpRequestPath(
-            exchange.getRequest().getMethodValue(),
-            path,
-            transaction.getAndOverrideName(namePriority, false),
-            webConfig.getUrlGroups()
-        );
-
-        // Fill request/response details if they haven't been already by another HTTP plugin (servlet or other).
-        if (!transaction.getContext().getRequest().hasContent()) {
-            fillRequest(transaction, exchange);
-            fillResponse(transaction, exchange);
-        }
-
-        transaction.captureException(thrown);
-
-        // In case transaction has been created by Servlet, we should not terminate it as the Servlet instrumentation
-        // will take care of this.
-        if (!WebfluxHelper.isServletTransaction(exchange)) {
-            transaction.end();
-        }
-
-    }
-
-    private static boolean ignoreTransaction(ServerWebExchange exchange) {
-        // Annotated controllers have the invoked handler method available in exchange
-        // thus we can rely on this to ignore methods that return ServerSideEvents which should not report transactions
-        Object attribute = exchange.getAttribute(HandlerMapping.BEST_MATCHING_HANDLER_ATTRIBUTE);
-        if (!(attribute instanceof HandlerMethod)) {
-            return false;
-        }
-
-        HandlerMethod handlerMethod = (HandlerMethod) attribute;
-        Boolean ignoredCache = ignoredHandlerMethods.get(handlerMethod);
-        if (ignoredCache != null) {
-            return ignoredCache;
-        }
-
-        Type returnType = handlerMethod.getMethod().getGenericReturnType();
-        if (!(returnType instanceof ParameterizedType)) {
-            ignoredHandlerMethods.put(handlerMethod, false);
-            return false;
-        }
-
-        Type[] genReturnTypes = ((ParameterizedType) returnType).getActualTypeArguments();
-        //noinspection ForLoopReplaceableByForEach
-        for (int i = 0; i < genReturnTypes.length; i++) {
-            if (genReturnTypes[i].getTypeName().startsWith(WebfluxHelper.SSE_EVENT_CLASS)) {
-                ignoredHandlerMethods.put(handlerMethod, true);
-                return true;
-            }
-        }
-
-        ignoredHandlerMethods.put(handlerMethod, false);
-        return false;
-    }
-
-    private static void fillRequest(Transaction transaction, ServerWebExchange exchange) {
-        ServerHttpRequest serverRequest = exchange.getRequest();
-        Request request = transaction.getContext().getRequest();
-
-        request.withMethod(serverRequest.getMethodValue());
-
-        InetSocketAddress remoteAddress = serverRequest.getRemoteAddress();
-        request.getSocket()
-            .withRemoteAddress(remoteAddress == null ? null : remoteAddress.getAddress().getHostAddress())
-            .withEncrypted(serverRequest.getSslInfo() != null);
-
-        request.getUrl().fillFrom(serverRequest.getURI());
-
-        if (coreConfig.isCaptureHeaders()) {
-            copyHeaders(serverRequest.getHeaders(), request.getHeaders());
-            copyCookies(serverRequest.getCookies(), request.getCookies());
-        }
-
-    }
-
-
-    private static void fillResponse(Transaction transaction, ServerWebExchange exchange) {
-        ServerHttpResponse serverResponse = exchange.getResponse();
-        HttpStatus statusCode = serverResponse.getStatusCode();
-        int status = statusCode != null ? statusCode.value() : 200;
-
-        transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
-
-        Response response = transaction.getContext().getResponse();
-
-        if (coreConfig.isCaptureHeaders()) {
-            copyHeaders(serverResponse.getHeaders(), response.getHeaders());
-        }
-
-        response
-            .withFinished(true)
-            .withStatusCode(status);
-
-    }
-
-    private static void copyHeaders(HttpHeaders source, PotentiallyMultiValuedMap destination) {
-        for (Map.Entry<String, List<String>> header : source.entrySet()) {
-            for (String value : header.getValue()) {
-                destination.add(header.getKey(), value);
-            }
-        }
-    }
-
-    private static void copyCookies(MultiValueMap<String, HttpCookie> source, PotentiallyMultiValuedMap destination) {
-        for (Map.Entry<String, List<HttpCookie>> cookie : source.entrySet()) {
-            for (HttpCookie value : cookie.getValue()) {
-                destination.add(value.getName(), value.getValue());
-            }
-        }
     }
 
 }
