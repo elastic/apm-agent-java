@@ -123,23 +123,11 @@ public class AgentAttacher {
 
         String downloadAgentVersion = arguments.getDownloadAgentVersion();
         if (downloadAgentVersion != null) {
-            PgpSignatureVerifier pgpSignatureVerifier;
             try {
-                Path targetLibDir = getTargetLibDir(downloadAgentVersion);
-                PgpSignatureVerifierLoader verifierLoader = PgpSignatureVerifierLoader.getInstance("/lib", targetLibDir);
-                pgpSignatureVerifier = verifierLoader.loadPgpSignatureVerifier();
+                downloadAndVerifyAgent(arguments, downloadAgentVersion);
             } catch (Exception e) {
-                throw new IllegalStateException("Failed to load PGP signature verifier implementation", e);
-            }
-
-            try {
-                Path downloadedJarPath = new AgentDownloader(pgpSignatureVerifier).downloadAndVerifyAgent(downloadAgentVersion);
-                if (!Files.isReadable(downloadedJarPath)) {
-                    throw new IllegalStateException(String.format("Cannot read agent jar at %s", downloadedJarPath));
-                }
-                arguments.setAgentJar(downloadedJarPath.toFile());
-            } catch (Exception e) {
-                logger.error("Failed to download requested agent version, please double-check your --download-agent-version setting.", e);
+                logger.error(String.format("Failed to download requested agent version %s, please double-check your " +
+                    "--download-agent-version setting.", downloadAgentVersion), e);
                 System.exit(1);
             }
         }
@@ -158,6 +146,27 @@ public class AgentAttacher {
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
+    }
+
+    private static void downloadAndVerifyAgent(Arguments arguments, String downloadAgentVersion) throws Exception {
+        PgpSignatureVerifier pgpSignatureVerifier;
+        try {
+            Path targetLibDir = getTargetLibDir(downloadAgentVersion);
+            PgpSignatureVerifierLoader verifierLoader = PgpSignatureVerifierLoader.getInstance(
+                "/bc-lib",
+                targetLibDir,
+                "co.elastic.apm.attach.bouncycastle.BouncyCastleVerifier"
+            );
+            pgpSignatureVerifier = verifierLoader.loadPgpSignatureVerifier();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to load PGP signature verifier implementation", e);
+        }
+
+        Path downloadedJarPath = new AgentDownloader(pgpSignatureVerifier).downloadAndVerifyAgent(downloadAgentVersion);
+        if (!Files.isReadable(downloadedJarPath)) {
+            throw new IllegalStateException(String.format("Cannot read agent jar at %s", downloadedJarPath));
+        }
+        arguments.setAgentJar(downloadedJarPath.toFile());
     }
 
     private void handleNewJvmsLoop() throws Exception {

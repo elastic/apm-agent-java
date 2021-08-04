@@ -26,12 +26,14 @@ import java.nio.file.Paths;
 
 class PgpSignatureVerifierLoaderTest {
 
+    // todo - change to some test implementation
     @Disabled
     @Test
     void testPgpVerifierLoader() throws Exception {
         PgpSignatureVerifierLoader pgpSignatureVerifierLoader = PgpSignatureVerifierLoader.getInstance(
-            "/Users/eyal/projects/apm-agent-java/apm-agent-attach-cli/target/classes/lib",
-            Paths.get("/Users/eyal/test/lib")
+            "/Users/eyal/projects/apm-agent-java/apm-agent-attach-cli/target/classes/bc-lib",
+            Paths.get("/Users/eyal/test/lib"),
+            "co.elastic.apm.attach.bouncycastle.BouncyCastleVerifier"
         );
         PgpSignatureVerifier pgpSignatureVerifier = pgpSignatureVerifierLoader.loadPgpSignatureVerifier();
         System.out.println("pgpSignatureVerifier = " + pgpSignatureVerifier);

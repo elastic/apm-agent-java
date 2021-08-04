@@ -56,19 +56,20 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>com.coderplus.maven.plugins</groupId>
-                <artifactId>copy-rename-maven-plugin</artifactId>
-                <version>1.0</version>
+                <artifactId>maven-jar-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>copy-bouncy-castle-verifier</id>
+                        <id>package-bouncy-castle-verifier</id>
                         <phase>prepare-package</phase>
                         <goals>
-                            <goal>rename</goal>
+                            <goal>jar</goal>
                         </goals>
                         <configuration>
-                            <sourceFile>${project.basedir}/target/classes/co/elastic/apm/attach/bouncycastle/BouncyCastleVerifier.class</sourceFile>
-                            <destinationFile>${project.basedir}/target/classes/lib/classes/co/elastic/apm/attach/bouncycastle/BouncyCastleVerifier.class</destinationFile>
+                            <classifier>bc-verifier</classifier>
+                            <includes>
+                                <include>co/elastic/apm/attach/bouncycastle/BouncyCastleVerifier.class</include>
+                            </includes>
+                            <outputDirectory>${project.basedir}/target/classes/bc-lib</outputDirectory>
                         </configuration>
                     </execution>
                 </executions>
@@ -111,7 +112,7 @@
                                     <destFileName>bc-fips.jar</destFileName>
                                 </artifactItem>
                             </artifactItems>
-                            <outputDirectory>${project.basedir}/target/classes/lib</outputDirectory>
+                            <outputDirectory>${project.basedir}/target/classes/bc-lib</outputDirectory>
                         </configuration>
                     </execution>
                 </executions>
@@ -132,6 +133,18 @@
                             <shadedArtifactAttached>false</shadedArtifactAttached>
                             <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
                             <createDependencyReducedPom>true</createDependencyReducedPom>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <!--
+                                        Excluding the Bouncy Castle implementation for PGP signature verification, which
+                                        must be loaded through a dedicated class loader
+                                        -->
+                                        <exclude>co/elastic/apm/attach/bouncycastle/BouncyCastleVerifier.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
@@ -163,6 +176,11 @@
                                     <artifact>*:*</artifact>
                                     <excludes>
                                         <exclude>elastic-apm-agent.jar</exclude>
+                                        <!--
+                                        Excluding the Bouncy Castle implementation for PGP signature verification, which
+                                        must be loaded through a dedicated class loader
+                                        -->
+                                        <exclude>co/elastic/apm/attach/bouncycastle/BouncyCastleVerifier.class</exclude>
                                     </excludes>
                                 </filter>
                                 <filter>

@@ -37,16 +37,15 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Stack;
 
 public class PgpSignatureVerifierLoader extends URLClassLoader {
 
     private final String verifierImplementationName;
 
-    static PgpSignatureVerifierLoader getInstance(final String sourceLib, final Path targetLib) throws Exception {
+    static PgpSignatureVerifierLoader getInstance(final String sourceLib, final Path targetLib, String verifierClassName) throws Exception {
 
         // done lazily so that we create the logger only after proper initialization
-        Logger logger = LogManager.getLogger(PgpSignatureVerifierLoader.class);
+        final Logger logger = LogManager.getLogger(PgpSignatureVerifierLoader.class);
 
         Path libPath;
         // first try to see if the lib is available as a resource available to the current class loader
@@ -75,42 +74,34 @@ public class PgpSignatureVerifierLoader extends URLClassLoader {
             throw new IllegalArgumentException(String.format("%s dir cannot be found", sourceLib));
         }
 
-        final List<String> classes = new ArrayList<>();
         final List<URL> urlList = new ArrayList<>();
-        final Stack<String> packageTree = new Stack<>();
         Files.walkFileTree(libPath, new FileVisitor<Path>() {
             @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                if (dir.endsWith("classes")) {
-                    // we must add a trailing slash so that the URLClassLoader looks for class files within the classes dir
-                    urlList.add(dir.toUri().toURL());
-                } else if (!dir.endsWith(sourceLib)) {
-                    String subPackageName = dir.getFileName().toString();
-                    if (subPackageName.endsWith(System.getProperty("file.separator"))) {
-                        subPackageName = subPackageName.substring(0, subPackageName.length() - 1);
-                    }
-                    packageTree.push(subPackageName);
-                }
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
                 return FileVisitResult.CONTINUE;
             }
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 String fileName = file.getFileName().toString();
-                int indexOfClassExt = fileName.indexOf(".class");
-                if (indexOfClassExt > 0) {
-                    StringBuilder fqcn = new StringBuilder();
-                    for (String subPackage : packageTree) {
-                        fqcn.append(subPackage).append(".");
+                if (fileName.endsWith(".jar")) {
+                    boolean copyJar = true;
+                    Path jarInTargetLib = Paths.get(targetLib.toString(), fileName);
+                    if (Files.exists(jarInTargetLib)) {
+                        logger.trace("{} already exists at {}", fileName, targetLib);
+                        if (Files.isReadable(jarInTargetLib)) {
+                            copyJar = false;
+                        } else {
+                            // quick and dirty - this is a temporary solution until we download agent from the Fleet package registry
+                            logger.info("{} is not readable for the current user, removing and copying new one", jarInTargetLib);
+                            Files.delete(jarInTargetLib);
+                        }
                     }
-                    fqcn.append(fileName, 0, indexOfClassExt);
-                    classes.add(fqcn.toString());
-                } else {
-                    Path jarInLib = Paths.get(targetLib.toString(), fileName);
-                    if (!Files.isReadable(jarInLib)) {
-                        Files.copy(file, jarInLib);
+                    if (copyJar) {
+                        logger.debug("Copying {} to {}", fileName, targetLib);
+                        Files.copy(file, jarInTargetLib);
                     }
-                    urlList.add(jarInLib.toUri().toURL());
+                    urlList.add(jarInTargetLib.toUri().toURL());
                 }
                 return FileVisitResult.CONTINUE;
             }
@@ -121,10 +112,7 @@ public class PgpSignatureVerifierLoader extends URLClassLoader {
             }
 
             @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                if (!dir.endsWith(sourceLib) && !dir.endsWith("classes")) {
-                    packageTree.pop();
-                }
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
                 return FileVisitResult.CONTINUE;
             }
         });
@@ -135,19 +123,7 @@ public class PgpSignatureVerifierLoader extends URLClassLoader {
             logger.debug("{} directory contents: {}", sourceLib, urlList);
         }
 
-        String verifierImplementationName;
-        if (classes.isEmpty()) {
-            throw new IllegalArgumentException(String.format("%s dir must contain an implementation of " +
-                "PgpSignatureVerifier within a \"classes\" directory.", sourceLib));
-        } else if (classes.size() > 1) {
-            throw new IllegalArgumentException(String.format("%s dir contains more than one class file. Only a " +
-                "single class, the PgpSignatureVerifier implementation, should be in the provided dir.", sourceLib));
-        } else {
-            verifierImplementationName = classes.get(0);
-            logger.debug("Found a single class in {} dir: {}", sourceLib, verifierImplementationName);
-        }
-
-        return new PgpSignatureVerifierLoader(urlList.toArray(new URL[0]), verifierImplementationName);
+        return new PgpSignatureVerifierLoader(urlList.toArray(new URL[0]), verifierClassName);
     }
 
     private PgpSignatureVerifierLoader(URL[] urls, String verifierImplementationName) {
