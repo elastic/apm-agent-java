@@ -55,6 +55,12 @@ public class LegacyLog4j2ShadingTest extends Log4j2ShadingTest {
 
     @Test
     @Override
+    public void testMarkers() throws Exception {
+        super.testMarkers();
+    }
+
+    @Test
+    @Override
     public void testShadingIntoOriginalLogsDir() throws Exception {
         super.testShadingIntoOriginalLogsDir();
     }

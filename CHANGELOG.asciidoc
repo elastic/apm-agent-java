@@ -20,15 +20,22 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.25.1]]
-==== 1.25.1 - YYYY/MM/DD
+[[release-notes-1.26.0]]
+==== 1.26.0 - YYYY/MM/DD
 
 [float]
 ===== Features
+* Improved naming for Spring controllers - {pull}1906[#1906]
+* ECS log reformatting improvements - {pull}1910[#1910]
+** Automatically sets `service.node.name` in all log events if set through agent configuration
+** Add `log_ecs_reformatting_additional_fields` option to support arbitrary fields in logs
+** Automatically serialize markers as tags where relevant (log4j2 and logback)
 * Added support for excluding classes from classes_excluded_from_instrumentation_default (#1919) - {pull}1920[#1920]
 
 [float]
 ===== Bug fixes
+* Fix failure to parse some forms of the `Implementation-Version` property from jar manifest files - {pull}1931[#1931]
+* Ensure single value for context-propagation header - {pull}1937[#1937]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
