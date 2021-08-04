@@ -20,6 +20,7 @@ package co.elastic.apm.agent.grails;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import grails.core.GrailsControllerClass;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -27,7 +28,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.grails.web.mapping.mvc.GrailsControllerUrlMappingInfo;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -98,17 +98,7 @@ public class GrailsTransactionNameInstrumentation extends TracerAwareInstrumenta
                 className = handler.getClass().getSimpleName();
                 methodName = null;
             }
-            setName(transaction, className, methodName);
-        }
-
-        private static void setName(Transaction transaction, String className, @Nullable String methodName) {
-            final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
-            if (name != null) {
-                name.append(className);
-                if (methodName != null) {
-                    name.append('#').append(methodName);
-                }
-            }
+            TransactionNameUtils.setNameFromClassAndMethod(className, methodName, transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
         }
     }
 }
