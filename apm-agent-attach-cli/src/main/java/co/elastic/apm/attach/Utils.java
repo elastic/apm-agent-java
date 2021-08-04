@@ -26,20 +26,40 @@ import java.nio.file.Paths;
 
 public class Utils {
 
-    private static final String AGENT_SUBDIR_NAME = "agent";
+    private static final String AGENT_BASE_DIR = "agent";
+
+    private static Path agentDir = null;
 
     public static Path getTargetAgentDir(String agentVersion) throws IOException {
+        // also checks if dir exists
+        if (agentDir != null && Files.isWritable(agentDir) && Files.isReadable(agentDir)) {
+            return agentDir;
+        }
+
+        if (agentDir != null && Files.exists(agentDir)) {
+            // probably a different user is running the CLI, we will just create a new one
+            Files.delete(agentDir);
+        }
+
         URL jarLocation = Utils.class.getProtectionDomain().getCodeSource().getLocation();
         Path attacherCliDir = Paths.get(jarLocation.getPath()).getParent();
-        Path agentDir = attacherCliDir.resolve(AGENT_SUBDIR_NAME);
-        if (!Files.exists(agentDir)) {
-            Files.createDirectory(agentDir);
+
+        Path agentBaseDir;
+        if (Files.isWritable(attacherCliDir)) {
+            agentBaseDir = attacherCliDir.resolve(AGENT_BASE_DIR);
+            if (!Files.exists(agentBaseDir)) {
+                Files.createDirectory(agentBaseDir);
+            }
+        } else {
+            agentBaseDir = Files.createTempDirectory(Paths.get(System.getProperty("java.io.tmpdir")), AGENT_BASE_DIR);
         }
-        Path agentVersionDir = agentDir.resolve(agentVersion.replace('.', '_'));
+
+        Path agentVersionDir = agentBaseDir.resolve(agentVersion.replace('.', '_'));
         if (!Files.exists(agentVersionDir)) {
             Files.createDirectory(agentVersionDir);
         }
-        return agentVersionDir;
+        agentDir = agentVersionDir;
+        return agentDir;
     }
 
     public static Path getTargetLibDir(String agentVersion) throws IOException {
