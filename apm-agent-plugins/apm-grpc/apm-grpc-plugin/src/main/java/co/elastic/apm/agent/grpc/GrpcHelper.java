@@ -26,6 +26,7 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
@@ -350,7 +351,10 @@ public class GrpcHelper {
 
         clientCallListenerSpans.put(listener, span);
 
-        span.propagateTraceContext(headers, headerSetter);
+        if (!TraceContext.containsTraceContextTextHeaders(headers, headerGetter)) {
+            span.propagateTraceContext(headers, headerSetter);
+        }
+
         return span;
     }
 
