@@ -20,7 +20,6 @@ package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.helper.ApacheHttpAsyncClientHelper;
-import co.elastic.apm.agent.httpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
@@ -102,11 +101,11 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
                     .withSubtype(HttpClientHelper.HTTP_SUBTYPE)
                     .activate();
 
-                wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, span, null, RequestHeaderAccessor.INSTANCE);
+                wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, span, null);
                 wrappedFutureCallback = asyncHelper.wrapFutureCallback(futureCallback, context, span);
                 responseFutureWrapped = true;
             } else {
-                wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, null, parent, RequestHeaderAccessor.INSTANCE);
+                wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, null, parent);
             }
             return new Object[]{wrappedProducer, wrappedFutureCallback, responseFutureWrapped, span};
         }

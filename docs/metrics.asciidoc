@@ -161,6 +161,54 @@ The maximum amount of heap memory in bytes that can be used for memory managemen
 If the maximum memory size is undefined, the value is `-1`.
 --
 
+*`jvm.memory.heap.pool.used`*::
++
+--
+type: long
+
+format: bytes
+
+The amount of used memory in bytes of the memory pool specified by the `name` label
+
+labels
+
+* name: The name representing this memory pool
+
+--
+
+
+*`jvm.memory.heap.pool.committed`*::
++
+--
+type: long
+
+format: bytes
+
+The amount of memory in bytes that is committed for the memory pool specified by the `name` label.
+This amount of memory is guaranteed for this specific pool.
+
+labels
+
+* name: The name representing this memory pool
+
+--
+
+
+*`jvm.memory.heap.pool.max`*::
++
+--
+type: long
+
+format: bytes
+
+The maximum amount of memory in bytes that can be used for the memory pool specified by the `name` label.
+
+labels
+
+* name: The name representing this memory pool
+
+--
+
 
 *`jvm.memory.non_heap.used`*::
 +

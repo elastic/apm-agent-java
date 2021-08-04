@@ -59,13 +59,20 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
                 return null;
             }
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
+
             if (span != null) {
                 span.activate();
-                span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
-            } else if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
-                // re-adds the header on redirects
-                parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
             }
+
+            if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+                if (span != null) {
+                    span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
+                } else if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+                    // re-adds the header on redirects
+                    parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
+                }
+            }
+
             return span;
         }
 
