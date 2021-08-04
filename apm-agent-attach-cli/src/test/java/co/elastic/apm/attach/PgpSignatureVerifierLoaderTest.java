@@ -19,23 +19,27 @@
 package co.elastic.apm.attach;
 
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import java.nio.file.Paths;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PgpSignatureVerifierLoaderTest {
 
-    // todo - change to some test implementation
-    @Disabled
     @Test
     void testPgpVerifierLoader() throws Exception {
+        String verifierClassName = "co.elastic.apm.attach.clitest.TestPgpSignatureVerifier";
+
         PgpSignatureVerifierLoader pgpSignatureVerifierLoader = PgpSignatureVerifierLoader.getInstance(
-            "/Users/eyal/projects/apm-agent-java/apm-agent-attach-cli/target/classes/bc-lib",
-            Paths.get("/Users/eyal/test/lib"),
-            "co.elastic.apm.attach.bouncycastle.BouncyCastleVerifier"
+            "/verifier-loader-test/lib",
+            Utils.getTargetLibDir("1.25.0"),
+            verifierClassName
         );
         PgpSignatureVerifier pgpSignatureVerifier = pgpSignatureVerifierLoader.loadPgpSignatureVerifier();
         System.out.println("pgpSignatureVerifier = " + pgpSignatureVerifier);
+        assertThat(pgpSignatureVerifier.verifyPgpSignature(null, null, null, null)).isTrue();
+
+        // verify that this class is not available otherwise
+        assertThatThrownBy(() -> Class.forName(verifierClassName)).isInstanceOf(ClassNotFoundException.class);
     }
 }
