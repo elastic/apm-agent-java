@@ -19,9 +19,12 @@
 package co.elastic.apm.agent.javalin;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
@@ -81,6 +84,8 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
     }
 
     public static class HandlerAdapterAdvice {
+
+        private static final WebConfiguration webConfig = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);
 
         // never invoked, only used to cache the fact that the io.javalin.http.Context#handlerType() method is unavailable in this Javalin version
         private static final MethodHandle NOOP = MethodHandles.constant(String.class, "Non-supported Javalin version");
@@ -151,8 +156,12 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
                     transaction.setFrameworkName(FRAMEWORK_NAME);
                     transaction.setFrameworkVersion(VersionUtils.getVersion(Handler.class, "io.javalin", "javalin"));
                     transaction.withType("request");
-
-                    name.append(handlerType.name()).append(" ").append(ctx.endpointHandlerPath());
+                    TransactionNameUtils.setNameFromHttpRequestPath(
+                        handlerType.name(),
+                        ctx.endpointHandlerPath(),
+                        name,
+                        webConfig.getUrlGroups()
+                    );
                 }
             }
 

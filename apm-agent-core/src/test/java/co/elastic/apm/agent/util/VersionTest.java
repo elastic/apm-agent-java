@@ -26,7 +26,14 @@ class VersionTest {
 
     @Test
     void testVersion() {
-        assertThat(Version.of("1.2.3")).isGreaterThan(Version.of("1.2.2"));
-        assertThat(Version.of("1.2.3-SNAPSHOT")).isGreaterThan(Version.of("1.2.2"));
+        assertThat(Version.of("1.2.3")).isEqualByComparingTo(Version.of("1.2.3"));
+        assertThat(Version.of("1.2.3-SNAPSHOT")).isEqualByComparingTo(Version.of("1.2.3"));
+        assertThat(Version.of("4.5.13")).isEqualByComparingTo(Version.of("4.5.13"));
+        assertThat(Version.of("4.5.13.redhat-00001")).isEqualByComparingTo(Version.of("4.5.13"));
+        assertThat(Version.of("httpclient-4.5.13")).isEqualByComparingTo(Version.of("4.5.13"));
+        assertThat(Version.of("httpclient-4.5.13.redhat-00001")).isEqualByComparingTo(Version.of("4.5.13"));
+        assertThat(Version.of("httpclient.4.5.13.redhat-00001")).isEqualByComparingTo(Version.of("4.5.13"));
+        assertThat(Version.of("httpclient.4.5.13.redhat")).isEqualByComparingTo(Version.of("4.5.13"));
+        assertThat(Version.of("httpclient.4.5.13-redhat")).isEqualByComparingTo(Version.of("4.5.13"));
     }
 }
