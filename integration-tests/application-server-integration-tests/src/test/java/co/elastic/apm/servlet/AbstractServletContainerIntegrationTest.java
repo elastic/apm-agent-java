@@ -90,13 +90,12 @@ public abstract class AbstractServletContainerIntegrationTest {
     static boolean ENABLE_DEBUGGING = false;
     static boolean ENABLE_RUNTIME_ATTACH = true;
 
-    // todo - set to null to disable by default
     /**
      * Set to a specific version to test downloading of agent from maven central using the slim cli tool.
      * Only relevant if {@link #ENABLE_RUNTIME_ATTACH} is set to {@code true}.
      */
     @Nullable
-    private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = "1.25.0";
+    private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
 
     private static MockServerContainer mockServerContainer = new MockServerContainer()
         //.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(MockServerContainer.class)))
