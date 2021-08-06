@@ -45,6 +45,7 @@
         <module>apm-hibernate-search-plugin</module>
         <module>apm-redis-plugin</module>
         <module>apm-scala-concurrent-plugin</module>
+        <module>apm-kotlin-concurrent-plugin</module>
         <module>apm-error-logging-plugin</module>
         <module>apm-jmx-plugin</module>
         <module>apm-mongoclient-plugin</module>

@@ -1,0 +1,3 @@
+co.elastic.apm.agent.kotlinconcurrent.CoroutineConstructorInstrumentation
+co.elastic.apm.agent.kotlinconcurrent.CoroutineOnCompletedInstrumentation
+co.elastic.apm.agent.kotlinconcurrent.CoroutineOnCancelledInstrumentation
