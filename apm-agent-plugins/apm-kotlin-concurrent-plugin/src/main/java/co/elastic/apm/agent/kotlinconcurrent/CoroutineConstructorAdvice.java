@@ -30,7 +30,6 @@ import net.bytebuddy.description.modifier.Visibility;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 import net.bytebuddy.implementation.FieldAccessor;
 import net.bytebuddy.implementation.MethodCall;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
 import java.lang.reflect.InvocationTargetException;
 
