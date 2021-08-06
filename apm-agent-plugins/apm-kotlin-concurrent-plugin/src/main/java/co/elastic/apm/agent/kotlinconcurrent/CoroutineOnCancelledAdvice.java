@@ -24,21 +24,18 @@ import kotlin.coroutines.CoroutineContext;
 import kotlinx.coroutines.AbstractCoroutine;
 import net.bytebuddy.asm.Advice;
 
-import java.lang.reflect.InvocationTargetException;
-
-
 public abstract class CoroutineOnCancelledAdvice {
 
     private CoroutineOnCancelledAdvice() {
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onEnter(@Advice.This AbstractCoroutine<?> abstractCoroutine)
-        throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, NoSuchFieldException {
-
-        ContinuationInterceptor continuationInterceptor = (ContinuationInterceptor) abstractCoroutine.getCoroutineContext().get((CoroutineContext.Key) ContinuationInterceptor.Key);
+    public static void onEnter(@Advice.This AbstractCoroutine<?> abstractCoroutine) throws IllegalAccessException, NoSuchFieldException {
+        ContinuationInterceptor continuationInterceptor = (ContinuationInterceptor) abstractCoroutine.getCoroutineContext()
+            .get((CoroutineContext.Key) ContinuationInterceptor.Key);
         if (continuationInterceptor != null) {
-            AbstractSpan<?> context = (AbstractSpan<?>) continuationInterceptor.getClass().getDeclaredField("span").get(continuationInterceptor);
+            AbstractSpan<?> context = (AbstractSpan<?>) continuationInterceptor.getClass().getDeclaredField("span")
+                .get(continuationInterceptor);
             if (context != null) {
                 context.decrementReferences();
             }

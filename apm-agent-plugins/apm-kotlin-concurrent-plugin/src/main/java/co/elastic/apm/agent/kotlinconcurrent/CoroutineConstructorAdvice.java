@@ -121,25 +121,28 @@ public abstract class CoroutineConstructorAdvice {
                                     .andThen(FieldAccessor.ofField("span").setsArgumentAt(0))
                                     .andThen(FieldAccessor.ofField("dispatcher").setsArgumentAt(1))
                             )
-
-
                             .method(named("interceptContinuation"))
                             .intercept(
-
-
-                                MethodCall.invoke(ContinuationInterceptor.class.getDeclaredMethod("interceptContinuation", Continuation.class))
+                                MethodCall.invoke(
+                                    ContinuationInterceptor.class.getDeclaredMethod("interceptContinuation", Continuation.class)
+                                )
                                     .onField("dispatcher")
                                     .withMethodCall(
-                                        MethodCall.construct(continuationTracingWrapperClass.getConstructor(AbstractSpan.class, Continuation.class))
+                                        MethodCall.construct(
+                                            continuationTracingWrapperClass.getConstructor(AbstractSpan.class, Continuation.class)
+                                        )
                                             .withField("span")
                                             .withArgument(0)
                                     )
-                                    .withAssigner(Assigner.DEFAULT, Assigner.Typing.DYNAMIC)
-
                             )
                             .method(named("releaseInterceptedContinuation"))
                             .intercept(
-                                MethodCall.invoke(ContinuationInterceptor.class.getDeclaredMethod("releaseInterceptedContinuation", Continuation.class))
+                                MethodCall.invoke(
+                                    ContinuationInterceptor.class.getDeclaredMethod(
+                                        "releaseInterceptedContinuation",
+                                        Continuation.class
+                                    )
+                                )
                                     .onField("dispatcher")
                                     .withArgument(0)
                             )

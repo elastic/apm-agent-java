@@ -375,6 +375,13 @@ NOTE: To enable Scala Future support, you need to enable experimental plugins.
 |The agent propagates the context for `Flux` and `Mono`.
 |1.24.0 (experimental)
 
+|Kotlin Coroutines
+|1.4.32
+|The agent propagates the context when using any coroutine extending `kotlinx.coroutines.AbstractCoroutine`
+(which is basically any coroutine)
+NOTE: To enable Kotlin Coroutines support, you need to enable experimental plugins.
+|1.26.0
+
 
 
 |===
