@@ -21,7 +21,7 @@ object KotlinRunner {
         val builder = ProcessBuilder(command)
         builder.environment()["ELASTIC_APM_ENABLE_EXPERIMENTAL_INSTRUMENTATIONS"] = "true"
         val process = builder.inheritIO().start()
-        if (!process.waitFor(20, TimeUnit.SECONDS)) {
+        if (!process.waitFor(10, TimeUnit.SECONDS)) {
             process.destroyForcibly()
         }
         return process.exitValue()
