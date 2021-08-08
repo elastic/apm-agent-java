@@ -30,111 +30,143 @@ import javax.annotation.Nullable;
 
 class NoopTracer implements Tracer {
 
-    static final Tracer INSTANCE = new NoopTracer();
+    private static final String NON_INITIALIZED_ERROR_MESSAGE = "Attempting to trace using an uninitialized tracer. " +
+        "Make sure to remove any classpath reference or explicit dependency of the agent. The agent should only be " +
+        "attached using the documented methods and never referenced otherwise.";
 
-    private NoopTracer() {
+    private final TracerState tracerState;
+
+    NoopTracer(TracerState tracerState) {
+        this.tracerState = tracerState;
+    }
+
+    /**
+     * Throwing an error if the tracer was not yet initialized.
+     * This can support future capability to stop and reset the tracer after it was initialized, but assumes that no
+     * instrumentation should attempt to invoke any actual tracer operations prior to the first tracer initialization.
+     */
+    private void throwExceptionIfNotInitialized() {
+        if (tracerState == TracerState.UNINITIALIZED) {
+            throw new IllegalStateException(NON_INITIALIZED_ERROR_MESSAGE);
+        }
     }
 
     @Nullable
     @Override
     public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
+        throwExceptionIfNotInitialized();
         return null;
     }
 
     @Nullable
     @Override
     public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, long epochMicro) {
+        throwExceptionIfNotInitialized();
         return null;
     }
 
     @Nullable
     @Override
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+        throwExceptionIfNotInitialized();
         return null;
     }
 
     @Nullable
     @Override
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        throwExceptionIfNotInitialized();
         return null;
     }
 
     @Nullable
     @Override
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros) {
+        throwExceptionIfNotInitialized();
         return null;
     }
 
     @Nullable
     @Override
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+        throwExceptionIfNotInitialized();
         return null;
     }
 
     @Nullable
     @Override
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        throwExceptionIfNotInitialized();
         return null;
     }
 
     @Nullable
     @Override
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+        throwExceptionIfNotInitialized();
         return null;
     }
 
     @Nullable
     @Override
     public Transaction currentTransaction() {
+        throwExceptionIfNotInitialized();
         return null;
     }
 
     @Nullable
     @Override
     public AbstractSpan<?> getActive() {
+        throwExceptionIfNotInitialized();
         return null;
     }
 
     @Nullable
     @Override
     public Span getActiveSpan() {
+        throwExceptionIfNotInitialized();
         return null;
     }
 
     @Override
     public void captureAndReportException(@Nullable Throwable e, ClassLoader initiatingClassLoader) {
-
+        throwExceptionIfNotInitialized();
     }
 
     @Nullable
     @Override
     public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent) {
+        throwExceptionIfNotInitialized();
         return null;
     }
 
     @Nullable
     @Override
     public ErrorCapture captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+        throwExceptionIfNotInitialized();
         return null;
     }
 
     @Nullable
     @Override
     public Span getActiveExitSpan() {
+        throwExceptionIfNotInitialized();
         return null;
     }
 
     @Override
     public TracerState getState() {
-        return TracerState.UNINITIALIZED;
+        return tracerState;
     }
 
     @Override
     public void overrideServiceNameForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName) {
+        throwExceptionIfNotInitialized();
     }
 
     @Override
     public void stop() {
+        throw new UnsupportedOperationException("Cannot stop a noop tracer");
     }
 
     @Override
@@ -145,6 +177,7 @@ class NoopTracer implements Tracer {
     @Nullable
     @Override
     public Span createExitChildSpan() {
+        throwExceptionIfNotInitialized();
         return null;
     }
 }

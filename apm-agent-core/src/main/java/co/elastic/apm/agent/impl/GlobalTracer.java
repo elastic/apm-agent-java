@@ -32,7 +32,7 @@ import java.util.Objects;
 public class GlobalTracer implements Tracer {
 
     private static final GlobalTracer INSTANCE = new GlobalTracer();
-    private volatile Tracer tracer = NoopTracer.INSTANCE;
+    private volatile Tracer tracer = new NoopTracer(TracerState.UNINITIALIZED);
 
     private GlobalTracer() {
     }
@@ -51,7 +51,9 @@ public class GlobalTracer implements Tracer {
     }
 
     public static ElasticApmTracer requireTracerImpl() {
-        return Objects.requireNonNull(getTracerImpl(), "Registered tracer is not an instance of ElasticApmTracer");
+        return Objects.requireNonNull(getTracerImpl(), "Elastic APM Agent is not initialized. Make sure to remove " +
+            "any classpath reference or explicit dependency of the agent. The agent should only be attached using the " +
+            "documented methods and never referenced otherwise.");
     }
 
     public static synchronized void setNoop() {
@@ -59,7 +61,7 @@ public class GlobalTracer implements Tracer {
         if (currentTracerState != TracerState.UNINITIALIZED && currentTracerState != TracerState.STOPPED) {
              throw new IllegalStateException("Can't override tracer as current tracer is already running");
         }
-        INSTANCE.tracer = NoopTracer.INSTANCE;
+        INSTANCE.tracer = new NoopTracer(currentTracerState);
     }
 
     public static synchronized void init(Tracer tracer) {
@@ -70,7 +72,7 @@ public class GlobalTracer implements Tracer {
     }
 
     public static boolean isNoop() {
-        return INSTANCE.tracer == NoopTracer.INSTANCE;
+        return INSTANCE.tracer instanceof NoopTracer;
     }
 
     @Nullable
