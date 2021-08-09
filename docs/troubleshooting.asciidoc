@@ -10,6 +10,10 @@ Here are some guidelines how to find out what's going wrong.
 
 As a first step, please check if your stack is compatible with the currently <<supported-technologies,supported technologies>>.
 
+The most common source for tracing issues is an improper setup. Take the time to go over the <<setup, setup guidelines>>
+again and verify everything is configured as it should. In particular, make sure you are not referencing the agent jar
+from anywhere in your application's classpath and not using it as a "regular" dependency.
+
 Don't worry if you can't figure out what the problem is.
 Open a topic in the https://discuss.elastic.co/c/apm[APM discuss forum]
 and we will help you out.
