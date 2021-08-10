@@ -35,7 +35,6 @@ import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
  * Instruments {@link Channel#newCall(MethodDescriptor, CallOptions)} to add channel authority (host+port) to the span
@@ -45,12 +44,7 @@ public class ChannelInstrumentation extends BaseInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("io.grpc")
-            .and(nameContains("Channel"))
-            // for recent versions (found with 1.35), this implementation creates extra spans
-            // that are not necessary. As those aren't nested, the "active" and "exit span" do not allow to properly
-            // ignore those internal spans
-            .and(not(nameContains("io.grpc.internal.ManagedChannelImpl$RealChannel")));
+        return nameStartsWith("io.grpc").and(nameContains("Channel"));
     }
 
     @Override
