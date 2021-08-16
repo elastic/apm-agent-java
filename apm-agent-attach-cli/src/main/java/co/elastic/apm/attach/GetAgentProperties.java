@@ -23,8 +23,11 @@ import net.bytebuddy.agent.VirtualMachine;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Properties;
+
+import co.elastic.apm.attach.UserRegistry.CommandOutput;
 
 public class GetAgentProperties {
 
@@ -63,13 +66,13 @@ public class GetAgentProperties {
     }
 
     static Properties getAgentAndSystemPropertiesSwitchUser(String pid, UserRegistry.User user) throws IOException, InterruptedException {
-        Process process = user.runAsUserWithCurrentClassPath(GetAgentProperties.class, Arrays.asList(pid, user.getUsername())).start();
-        if (process.waitFor() == 0) {
+        CommandOutput output = user.executeAsUserWithCurrentClassPath(GetAgentProperties.class, Arrays.asList(pid, user.getUsername()));
+        if (output.getExitCode() == 0) {
             Properties properties = new Properties();
-            properties.load(process.getInputStream());
+            properties.load(new StringReader(output.getOutput().toString()));
             return properties;
         } else {
-            throw new RuntimeException(AgentAttacher.toString(process.getErrorStream()));
+            throw new RuntimeException(output.getOutput().toString());
         }
     }
 
