@@ -149,7 +149,9 @@ public class GreetingAnnotated {
     public Mono<String> customTransactionName() {
         log.debug("enter customTransactionName");
         try {
-            // transaction should be active, even if we are outside of the Mono/Flux execution
+            // Transaction should be active, even if we are outside of Mono/Flux execution
+            // In practice, it's called after onSubscribe and before onNext, thus the active context is not provided
+            // by reactor plugin, but only by the webflux plugin that keeps the transaction active.
             ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
             Transaction transaction = Objects.requireNonNull(tracer.currentTransaction(), "active transaction is required");
             // This mimics setting the name through the public API. We cannot use the public API if we want to test span recycling
