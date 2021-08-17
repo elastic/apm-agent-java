@@ -89,7 +89,7 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
                 return returnValue;
             }
 
-            return WebfluxHelper.wrapDispatcher(tracer, returnValue, transaction, exchange);
+            return WebfluxHelper.wrapDispatcher(returnValue, transaction, exchange);
         }
     }
 

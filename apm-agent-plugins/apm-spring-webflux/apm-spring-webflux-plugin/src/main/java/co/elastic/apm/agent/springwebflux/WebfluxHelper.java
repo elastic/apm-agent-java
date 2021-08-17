@@ -53,7 +53,6 @@ import java.lang.reflect.Type;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
@@ -65,7 +64,7 @@ public class WebfluxHelper {
     private static final Logger log = LoggerFactory.getLogger(WebfluxHelper.class);
 
     public static final String TRANSACTION_ATTRIBUTE = WebfluxHelper.class.getName() + ".transaction";
-    public static final String SUBSCRIBER_ATTRIBUTE = WebfluxHelper.class.getName() + ".wrapped_subscriber";
+    private static final String SUBSCRIBER_ATTRIBUTE = WebfluxHelper.class.getName() + ".wrapped_subscriber";
 
     private static final String SERVLET_TRANSACTION = WebfluxHelper.class.getName() + ".servlet_transaction";
     public static final String SSE_EVENT_CLASS = "org.springframework.http.codec.ServerSentEvent";
@@ -111,13 +110,13 @@ public class WebfluxHelper {
         return Boolean.TRUE == exchange.getAttributes().get(SERVLET_TRANSACTION);
     }
 
-    public static <T> Mono<T> wrapDispatcher(Tracer tracer, Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
-        return doWrap(tracer, mono, transaction, exchange, "webflux-dispatcher");
+    public static <T> Mono<T> wrapDispatcher(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
+        return doWrap(mono, transaction, exchange, "webflux-dispatcher");
     }
 
 
-    private static <T> Mono<T> doWrap(final Tracer tracer, Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final String description) {
-        //noinspection Convert2Lambda,rawtypes,Convert2Diamond,ReactiveStreamsUnusedPublisher
+    private static <T> Mono<T> doWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final String description) {
+        //noinspection Convert2Lambda,rawtypes,Convert2Diamond
         mono = mono.transform(Operators.liftPublisher(new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
             @Override // liftPublisher too (or whole transform param)
             public CoreSubscriber<? super T> apply(Publisher publisher, CoreSubscriber<? super T> subscriber) {
@@ -126,7 +125,7 @@ public class WebfluxHelper {
                 // If there is already an active transaction, it's tempting to avoid wrapping as the context propagation
                 // would be already provided through reactor instrumentation. However, we can't as the transaction
                 // name would not be properly set to match Webflux annotated controllers/router definitions.
-                TransactionAwareSubscriber<T> wrappedSubscriber = new TransactionAwareSubscriber<>(subscriber, tracer, transaction, exchange, description);
+                TransactionAwareSubscriber<T> wrappedSubscriber = new TransactionAwareSubscriber<>(subscriber, transaction, exchange, description);
 
                 // we should only have a single level of subscriber wrapping per exchange thus we can use it for storing
                 // back-references used when request processing is cancelled
