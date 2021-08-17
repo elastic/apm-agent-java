@@ -72,7 +72,7 @@ public class GetAgentProperties {
             properties.load(new StringReader(output.getOutput().toString()));
             return properties;
         } else {
-            throw new RuntimeException(output.getOutput().toString());
+            throw new RuntimeException(output.getOutput().toString(), output.exceptionThrown);
         }
     }
 

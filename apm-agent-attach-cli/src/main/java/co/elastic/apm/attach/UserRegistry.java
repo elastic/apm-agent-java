@@ -256,7 +256,7 @@ public class UserRegistry {
             buildTheProcess.redirectErrorStream(true);
             Process spawnedProcess = null;
             int exitValue = -1;
-            Exception exception = null;
+            Throwable exception = null;
             StringBuilder commandOutput = new StringBuilder();
             try {
                 spawnedProcess = buildTheProcess.start();
@@ -276,11 +276,12 @@ public class UserRegistry {
                         try {
                             Thread.sleep(50);
                         } catch (InterruptedException e) {
-                            //no action, just means the next loop iteration is earlier
+                            //no action, just means the next loop iteration checking
+                            //for timeout or process dead, is earlier
                         }
                         now = System.currentTimeMillis();
                         // if it's not alive but there is still readable input, then continue reading
-                        isAlive = spawnedProcess.isAlive() || in.available() > 0;
+                        isAlive = processIsAlive(spawnedProcess) || in.available() > 0;
                     }
                 }
                 //would like to call waitFor(TIMEOUT) here, but that is 1.8+
@@ -288,21 +289,14 @@ public class UserRegistry {
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
-                    //no action, just means the next loop iteration is earlier
-                }
-                try {
-                    exitValue = spawnedProcess.exitValue();
-                } catch (IllegalThreadStateException e2) {
-                    //ignore and let the finally block have the last say
+                    //no action, just means the exit is earlier
                 }
 
-                return new CommandOutput(commandOutput, exitValue, exception);
-            } catch (IOException e1) {
+            } catch (Throwable e1) {
                 exception = e1;
-                return new CommandOutput(commandOutput, exitValue, exception);
             } finally {
                 // Cleanup as well as we can
-                if (spawnedProcess != null && spawnedProcess.isAlive()) {
+                if (spawnedProcess != null && processIsAlive(spawnedProcess)) {
                     spawnedProcess.destroy();
                     try {
                         Thread.sleep(50);
@@ -318,8 +312,22 @@ public class UserRegistry {
                 try {
                     exitValue = spawnedProcess.exitValue();
                 } catch (IllegalThreadStateException e2) {
-                    exception = e2;
+                    if (exception == null) {
+                        exception = e2;
+                    }
                 }
+            }
+            return new CommandOutput(commandOutput, exitValue, exception);
+        }
+
+        public static boolean processIsAlive(Process proc) {
+            //1.7 doesn't have Process.isAlive() so need to implement it
+            //This implementation is essentially what it does in 1.8
+            try {
+                proc.exitValue();
+                return false;
+            } catch (IllegalThreadStateException e) {
+                return true;
             }
         }
     }
@@ -327,9 +335,9 @@ public class UserRegistry {
     public static class CommandOutput {
         StringBuilder output;
         int exitCode;
-        Exception exceptionThrown;
+        Throwable exceptionThrown;
 
-        public CommandOutput(StringBuilder output, int exitCode, Exception exception) {
+        public CommandOutput(StringBuilder output, int exitCode, Throwable exception) {
             super();
             this.output = output;
             this.exitCode = exitCode;
@@ -343,7 +351,7 @@ public class UserRegistry {
         public int getExitCode() {
             return exitCode;
         }
-        public Exception getExceptionThrown() {
+        public Throwable getExceptionThrown() {
             return exceptionThrown;
         }
         public String toString() {
