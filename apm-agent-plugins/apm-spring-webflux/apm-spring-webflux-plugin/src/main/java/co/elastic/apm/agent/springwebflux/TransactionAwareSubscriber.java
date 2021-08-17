@@ -188,15 +188,6 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
             WebfluxHelper.endTransaction(null, transaction, exchange);
 
-            // Because we keep the transaction active between onSubscribe and either onComplete or onError,
-            // the transaction is not properly deactivated when cancelled. As a result, we have to decrement the reference
-            // count as the decrement on de-activation is never executed.
-            //
-            // This would not be required if the transaction wasn't kept active between methods and only within method
-            // bodies, which is currently required for proper webflux instrumentation (for example custom transaction
-            // name test relies on this to work).
-            transaction.decrementReferences();
-
             transactionMap.remove(this);
         } finally {
             debugTrace(false, "cancelTransaction", transaction);
