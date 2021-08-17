@@ -143,13 +143,6 @@ public class WebfluxHelper {
         return mono;
     }
 
-    public static void endCancelledTransaction(ServerWebExchange exchange) {
-        TransactionAwareSubscriber<?> subscriber = exchange.getAttribute(SUBSCRIBER_ATTRIBUTE);
-        if (null != subscriber) {
-            subscriber.cancelTransaction();
-        }
-    }
-
     public static void endTransaction(@Nullable Throwable thrown, @Nullable Transaction transaction, ServerWebExchange exchange) {
         if (transaction == null) {
             // already discarded

@@ -110,23 +110,7 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
                 transaction.deactivate();
             }
             // we don't wrap for handler execution, dispatcher will take care of it
-            // however, in case it gets cancelled, we have to ensure that transaction is properly ended
-            return resultMono.doOnCancel(new CancelTask(exchange));
-        }
-
-        // using a named class on purpose so we can exclude it by name from context-propagation
-        private static class CancelTask implements Runnable {
-
-            private final ServerWebExchange exchange;
-
-            private CancelTask(ServerWebExchange exchange) {
-                this.exchange = exchange;
-            }
-
-            @Override
-            public void run() {
-                WebfluxHelper.endCancelledTransaction(exchange);
-            }
+            return resultMono;
         }
 
     }

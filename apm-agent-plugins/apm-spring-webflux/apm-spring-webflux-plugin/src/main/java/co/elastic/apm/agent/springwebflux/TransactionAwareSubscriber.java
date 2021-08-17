@@ -37,7 +37,7 @@ import javax.annotation.Nullable;
  *
  * @param <T>
  */
-class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
+class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
 
     private static final Logger log = LoggerFactory.getLogger(TransactionAwareSubscriber.class);
 
@@ -50,6 +50,8 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
     private final String description;
 
     private final Context context;
+
+    private Subscription subscription;
 
     /**
      * @param subscriber  subscriber to wrap
@@ -78,6 +80,17 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
         return context;
     }
 
+    @Override
+    public void request(long n) {
+        subscription.request(n);
+    }
+
+    @Override
+    public void cancel() {
+        subscription.cancel();
+        cancelTransaction();
+    }
+
     /**
      * Wraps {@link Subscriber#onSubscribe(Subscription)} for context propagation, executed in "subscribe scheduler".
      * Might activate transaction if not already active. When activating the transaction is kept active after method execution.
@@ -85,11 +98,12 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
      */
     @Override
     public void onSubscribe(Subscription s) {
+        this.subscription = s;
         Transaction transaction = getTransaction();
         doEnter("onSubscribe", transaction);
         Throwable thrown = null;
         try {
-            subscriber.onSubscribe(s);
+            subscriber.onSubscribe(this);
         } catch (Throwable e) {
             thrown = e;
             throw e;
@@ -178,7 +192,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
         }
     }
 
-    public void cancelTransaction() {
+    private void cancelTransaction() {
         Transaction transaction = getTransaction();
         debugTrace(true, "cancelTransaction", transaction);
         try {
