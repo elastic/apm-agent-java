@@ -54,13 +54,25 @@
     </dependencies>
 
     <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources/META-INF</directory>
-                <targetPath>META-INF</targetPath>
-            </resource>
-        </resources>
         <plugins>
+            <plugin>
+                <groupId>com.coderplus.maven.plugins</groupId>
+                <artifactId>copy-rename-maven-plugin</artifactId>
+                <version>1.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-file</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <sourceFile>${project.basedir}/Bouncy-Castle-NOTICE</sourceFile>
+                            <destinationFile>target/classes/META-INF/Bouncy-Castle-NOTICE</destinationFile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
                 <executions>
