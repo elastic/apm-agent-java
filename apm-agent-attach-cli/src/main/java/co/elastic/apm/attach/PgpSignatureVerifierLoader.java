@@ -38,10 +38,24 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * A dedicated class loader for the PGP signature verifier implementation and its dependencies.
+ */
 public class PgpSignatureVerifierLoader extends URLClassLoader {
 
     private final String verifierImplementationName;
 
+    /**
+     * Copies all required dependencies from a source directory to a target directory if they are not there already, or
+     * if they are there but not readable for the current user, and creates a class loader that can load the provided
+     * {@link PgpSignatureVerifier} implementation.
+     * @param sourceLib             a path for a directory containing the {@link PgpSignatureVerifier} implementation
+     *                              and all its dependencies. The source directory can be within a jar file or not.
+     * @param targetLib             a path of the target directory in which all dependencies are to be copied to
+     * @param verifierClassName     the fully class name of the {@link PgpSignatureVerifier} implementation
+     * @return                      a {@link PgpSignatureVerifierLoader} instance
+     * @throws Exception            error related to the {@link PgpSignatureVerifierLoader} instance setup, not to class loading
+     */
     static PgpSignatureVerifierLoader getInstance(final String sourceLib, final Path targetLib, String verifierClassName) throws Exception {
 
         // done lazily so that we create the logger only after proper initialization
