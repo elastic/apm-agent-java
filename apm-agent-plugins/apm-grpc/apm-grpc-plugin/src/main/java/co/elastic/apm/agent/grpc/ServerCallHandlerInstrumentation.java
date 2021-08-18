@@ -19,6 +19,8 @@
 package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.DynamicTransformer;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import net.bytebuddy.asm.Advice;
@@ -29,6 +31,10 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -38,6 +44,16 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * transaction.
  */
 public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
+
+    private static final Collection<Class<? extends ElasticApmInstrumentation>> SERVER_CALL_INSTRUMENTATION =
+        Collections.<Class<? extends ElasticApmInstrumentation>>singletonList(ServerCallInstrumentation.class);
+
+    private static final Collection<Class<? extends ElasticApmInstrumentation>> SERVER_CALL_LISTENER_INSTRUMENTATIONS =
+        Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
+            ServerCallListenerInstrumentation.OnCancel.class,
+            ServerCallListenerInstrumentation.OnComplete.class,
+            ServerCallListenerInstrumentation.OtherMethod.class
+        );
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -81,10 +97,9 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
         }
 
         if (listener != null) {
+            DynamicTransformer.Accessor.get().ensureInstrumented(serverCall.getClass(), SERVER_CALL_INSTRUMENTATION);
+            DynamicTransformer.Accessor.get().ensureInstrumented(listener.getClass(), SERVER_CALL_LISTENER_INSTRUMENTATIONS);
             GrpcHelper.getInstance().registerTransaction(serverCall, listener, transaction);
         }
-
-
     }
-
 }

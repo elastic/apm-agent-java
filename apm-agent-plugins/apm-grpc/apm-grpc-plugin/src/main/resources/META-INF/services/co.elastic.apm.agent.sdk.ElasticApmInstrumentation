@@ -1,12 +1,8 @@
 # gRPC server part
-co.elastic.apm.agent.grpc.ServerCallListenerInstrumentation$OtherMethod
-co.elastic.apm.agent.grpc.ServerCallListenerInstrumentation$OnCancel
-co.elastic.apm.agent.grpc.ServerCallListenerInstrumentation$OnComplete
-
-
 co.elastic.apm.agent.grpc.ServerCallHandlerInstrumentation
-co.elastic.apm.agent.grpc.ServerCallInstrumentation
 
 # gRPC client part
 co.elastic.apm.agent.grpc.ChannelInstrumentation
 co.elastic.apm.agent.grpc.DelayedClientCallInstrumentation
+
+# All other instrumentations are applied through ensureInstrumented
