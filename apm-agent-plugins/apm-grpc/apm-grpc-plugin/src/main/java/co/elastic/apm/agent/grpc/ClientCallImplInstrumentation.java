@@ -23,7 +23,6 @@ import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import io.grpc.ClientCall;
 import io.grpc.Metadata;
-import io.grpc.Status;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -43,16 +42,16 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * full call lifecycle is split in few sub-implementations:
  * <ul>
  *     <li>{@link Start} for client span start</li>
- *     <li>{@link ListenerClose} for {@link ClientCall.Listener#onClose} for client span end</li>
- *     <li>{@link OtherListenerMethod} for other methods of {@link ClientCall.Listener}.
+ *     <li>{@link ClientCallListenerInstrumentation.Close} for {@link ClientCall.Listener#onClose} for client span end</li>
+ *     <li>{@link ClientCallListenerInstrumentation.OtherListenerMethod} for other methods of {@link ClientCall.Listener}.
  * </ul>
  */
 public abstract class ClientCallImplInstrumentation extends BaseInstrumentation {
 
     private static final Collection<Class<? extends ElasticApmInstrumentation>> RESPONSE_LISTENER_INSTRUMENTATIONS =
         Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
-            ListenerClose.class,
-            OtherListenerMethod.class
+            ClientCallListenerInstrumentation.Close.class,
+            ClientCallListenerInstrumentation.OtherListenerMethod.class
         );
 
     /**
@@ -69,102 +68,35 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
      */
     public static class Start extends ClientCallImplInstrumentation {
 
-
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("start");
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.This ClientCall<?, ?> clientCall,
-                                     @Advice.Argument(0) ClientCall.Listener<?> listener,
-                                     @Advice.Argument(1) Metadata headers) {
-
-            DynamicTransformer.Accessor.get().ensureInstrumented(listener.getClass(), RESPONSE_LISTENER_INSTRUMENTATIONS);
-            return GrpcHelper.getInstance().clientCallStartEnter(clientCall, listener, headers);
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Advice.Argument(0) ClientCall.Listener<?> listener,
-                                  @Advice.Thrown @Nullable Throwable thrown,
-                                  @Advice.Enter @Nullable Object span) {
-
-            GrpcHelper.getInstance().clientCallStartExit((Span) span, listener, thrown);
-        }
-    }
-
-    // response listener instrumentation
-
-    public static abstract class ListenerInstrumentation extends BaseInstrumentation {
-
-        /**
-         * Overridden in {@link DynamicTransformer#ensureInstrumented(Class, Collection)},
-         * based on the type of the {@linkplain ClientCall.Listener} implementation class.
-         */
         @Override
-        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return any();
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.grpc.ClientCallImplInstrumentation$Start$StartAdvice";
         }
 
-    }
+        public static class StartAdvice {
 
-    /**
-     * Instruments {@link ClientCall.Listener#onClose(Status, Metadata)} )} to capture any thrown exception and end current span
-     */
-    public static class ListenerClose extends ListenerInstrumentation {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object onEnter(@Advice.This ClientCall<?, ?> clientCall,
+                                         @Advice.Argument(0) ClientCall.Listener<?> listener,
+                                         @Advice.Argument(1) Metadata headers) {
 
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("onClose");
-        }
+                DynamicTransformer.Accessor.get().ensureInstrumented(listener.getClass(), RESPONSE_LISTENER_INSTRUMENTATIONS);
+                return GrpcHelper.getInstance().clientCallStartEnter(clientCall, listener, headers);
+            }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.This ClientCall.Listener<?> listener) {
-            return GrpcHelper.getInstance().enterClientListenerMethod(listener);
-        }
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onExit(@Advice.Argument(0) ClientCall.Listener<?> listener,
+                                      @Advice.Thrown @Nullable Throwable thrown,
+                                      @Advice.Enter @Nullable Object span) {
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Advice.This ClientCall.Listener<?> listener,
-                                  @Advice.Argument(0) Status status,
-                                  @Advice.Thrown @Nullable Throwable thrown,
-                                  @Advice.Enter @Nullable Object span) {
-
-            GrpcHelper.getInstance().exitClientListenerMethod(thrown, listener, (Span) span, status);
-        }
-    }
-
-    /**
-     * Generic call listener method to handle span activation and capturing exceptions.
-     * Instruments:
-     * <ul>
-     *     <li>{@link ClientCall.Listener#onMessage(Object)}</li>
-     *     <li>{@link ClientCall.Listener#onHeaders}</li>
-     *     <li>{@link ClientCall.Listener#onReady}</li>
-     * </ul>
-     */
-    public static class OtherListenerMethod extends ListenerInstrumentation {
-
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("onMessage")
-                .or(named("onHeaders"))
-                .or(named("onReady"));
-        }
-
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.This ClientCall.Listener<?> listener) {
-            return GrpcHelper.getInstance().enterClientListenerMethod(listener);
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Advice.This ClientCall.Listener<?> listener,
-                                  @Advice.Thrown @Nullable Throwable thrown,
-                                  @Advice.Enter @Nullable Object span) {
-
-            GrpcHelper.getInstance().exitClientListenerMethod(thrown, listener, (Span) span, null);
+                GrpcHelper.getInstance().clientCallStartExit((Span) span, listener, thrown);
+            }
         }
     }
 }

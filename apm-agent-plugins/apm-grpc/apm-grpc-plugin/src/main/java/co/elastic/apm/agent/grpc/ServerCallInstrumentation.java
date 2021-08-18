@@ -54,11 +54,19 @@ public class ServerCallInstrumentation extends BaseInstrumentation {
         return named("close");
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
-                              @Advice.This ServerCall<?, ?> serverCall,
-                              @Advice.Argument(0) Status status) {
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.grpc.ServerCallInstrumentation$ServerCallAdvice";
+    }
 
-        GrpcHelper.getInstance().exitServerCall(status, thrown, serverCall);
+    public static class ServerCallAdvice {
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                  @Advice.This ServerCall<?, ?> serverCall,
+                                  @Advice.Argument(0) Status status) {
+
+            GrpcHelper.getInstance().exitServerCall(status, thrown, serverCall);
+        }
     }
 }

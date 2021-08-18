@@ -65,21 +65,29 @@ public class ChannelInstrumentation extends BaseInstrumentation {
         return named("newCall");
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onEnter(@Advice.This Channel channel,
-                                 @Advice.Argument(0) MethodDescriptor<?, ?> method) {
-
-        return GrpcHelper.getInstance().onClientCallCreationEntry(tracer.getActive(), method, channel.authority());
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.grpc.ChannelInstrumentation$ChannelAdvice";
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExit(@Advice.Return @Nullable ClientCall<?, ?> clientCall,
-                              @Advice.Enter @Nullable Object span) {
+    public static class ChannelAdvice {
 
-        if (clientCall != null) {
-            DynamicTransformer.Accessor.get().ensureInstrumented(clientCall.getClass(), CLIENT_CALL_INSTRUMENTATION);
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.This Channel channel,
+                                     @Advice.Argument(0) MethodDescriptor<?, ?> method) {
+
+            return GrpcHelper.getInstance().onClientCallCreationEntry(tracer.getActive(), method, channel.authority());
         }
-        GrpcHelper.getInstance().onClientCallCreationExit(clientCall, (Span) span);
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Return @Nullable ClientCall<?, ?> clientCall,
+                                  @Advice.Enter @Nullable Object span) {
+
+            if (clientCall != null) {
+                DynamicTransformer.Accessor.get().ensureInstrumented(clientCall.getClass(), CLIENT_CALL_INSTRUMENTATION);
+            }
+            GrpcHelper.getInstance().onClientCallCreationExit(clientCall, (Span) span);
+        }
     }
 }
