@@ -72,7 +72,7 @@ public class UserRegistry {
     /**
      * Prints the temp dir of the current user to the console.
      * <p>
-     * Executed within {@link User#runAsUserWithCurrentClassPath(java.lang.Class)}, to discover the temp dir of a given user in macOS.
+     * Executed within {@link User#executeAsUserWithCurrentClassPath(java.lang.Class,java.util.List)}, to discover the temp dir of a given user in macOS.
      * Forks a new JVM that runs in the context of a given user and runs this main method.
      * This indirection is needed as each user has their own temp directory in macOS.
      * </p>
@@ -99,10 +99,9 @@ public class UserRegistry {
             // every user has their own temp folder on MacOS
             // to discover it, we're starting a simple Java program in the context of the user
             // that outputs the value of the java.io.tmpdir system property
-            Process process = user.runAsUserWithCurrentClassPath(UserRegistry.class).start();
-            process.waitFor();
-            if (process.exitValue() == 0) {
-                return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
+            CommandOutput output = user.executeAsUserWithCurrentClassPath(UserRegistry.class, Collections.<String>emptyList());
+            if (output.exitedNormally()) {
+                return output.getOutput().toString().trim();
             }
         }
         return null;
@@ -168,21 +167,6 @@ public class UserRegistry {
                 (Platform.isWindows() ? ".exe" : "");
         }
 
-
-        public ProcessBuilder runAsUserWithCurrentClassPath(Class<?> mainClass) {
-            return runAsUserWithCurrentClassPath(mainClass, Collections.<String>emptyList());
-        }
-
-        public ProcessBuilder runAsUserWithCurrentClassPath(Class<?> mainClass, List<String> args) {
-            List<String> cmd = new ArrayList<>();
-            cmd.add(getCurrentJvm());
-            cmd.add("-cp");
-            cmd.add(System.getProperty("java.class.path"));
-            cmd.add(mainClass.getName());
-            cmd.addAll(args);
-            return runAs(cmd);
-        }
-
         public CommandOutput executeAsUserWithCurrentClassPath(Class<?> mainClass, List<String> args) {
             List<String> cmd = new ArrayList<>();
             cmd.add(getCurrentJvm());
@@ -191,20 +175,6 @@ public class UserRegistry {
             cmd.add(mainClass.getName());
             cmd.addAll(args);
             return executeAs(cmd);
-        }
-
-        public ProcessBuilder runAs(List<String> cmd) {
-            if (!canSwitchToUser) {
-                throw new IllegalStateException(String.format("Cannot run as user %s", username));
-            }
-            if (!isCurrentUser()) {
-                if (Platform.isWindows()) {
-                    throw new IllegalStateException(String.format("Cannot run as user %s on Windows", username));
-                }
-                // sudo only when required
-                cmd = sudoCmd(username, cmd);
-            }
-            return new ProcessBuilder(cmd);
         }
 
         public CommandOutput executeAs(List<String> cmd) {
@@ -265,7 +235,7 @@ public class UserRegistry {
                 long start = System.currentTimeMillis();
                 long now = start;
                 boolean isAlive = true;
-                byte[] buffer = new byte[64 * 1000];
+                byte[] buffer = new byte[4 * 1000];
                 try (InputStream in = spawnedProcess.getInputStream()) {
                     // stop trying if the time elapsed exceeds the timeout
                     while (isAlive && (now - start) < timeout) {
@@ -309,11 +279,13 @@ public class UserRegistry {
                     // p.destroyForcibly();
                     // }
                 }
-                try {
-                    exitValue = spawnedProcess.exitValue();
-                } catch (IllegalThreadStateException e2) {
-                    if (exception == null) {
-                        exception = e2;
+                if (spawnedProcess != null) {
+                    try {
+                        exitValue = spawnedProcess.exitValue();
+                    } catch (IllegalThreadStateException e2) {
+                        if (exception == null) {
+                            exception = e2;
+                        }
                     }
                 }
             }
@@ -348,12 +320,18 @@ public class UserRegistry {
             return output;
         }
 
+        public boolean exitedNormally() {
+            return getExceptionThrown() == null && exitCode == 0;
+        }
+
         public int getExitCode() {
             return exitCode;
         }
+
         public Throwable getExceptionThrown() {
             return exceptionThrown;
         }
+
         public String toString() {
             if (this.exceptionThrown != null) {
                 return "Exit Code: " + this.exitCode + "; Output: " + this.output.toString() +

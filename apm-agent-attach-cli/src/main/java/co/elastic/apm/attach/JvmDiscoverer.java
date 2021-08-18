@@ -161,9 +161,11 @@ public interface JvmDiscoverer {
         @Override
         public Collection<JvmInfo> discoverJvms() throws Exception {
             Collection<JvmInfo> jvms = new ArrayList<>();
-            Process process = Platform.isWindows() ?
-                    new ProcessBuilder("tasklist", "/FO", "CSV", "/V").start() :
-                    new ProcessBuilder("ps", "aux").start();
+            ProcessBuilder builder = Platform.isWindows() ?
+                    new ProcessBuilder("tasklist", "/FO", "CSV", "/V") :
+                    new ProcessBuilder("ps", "aux");
+            builder.redirectErrorStream(true);
+            Process process = builder.start();
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             for (String line = reader.readLine(); line != null; line = reader.readLine()) {
                 if (line.contains("java")) {
@@ -210,7 +212,7 @@ public interface JvmDiscoverer {
                             // attachment under hotspot involves executing a kill -3
                             // this would terminate false positive matching processes (ps aux | grep java)
                             JvmInfo.isJ9()
-                            && new ProcessBuilder("ps", "aux").start().waitFor() == 0;
+                            && UserRegistry.User.executeCommand(List.of("ps", "aux")).exitedNormally();
                 }
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
