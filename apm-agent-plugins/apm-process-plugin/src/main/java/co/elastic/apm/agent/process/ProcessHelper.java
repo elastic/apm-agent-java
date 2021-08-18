@@ -75,7 +75,7 @@ class ProcessHelper {
     }
 
     private static String getBinaryName(String processName) {
-        int lastSeparator = processName.lastIndexOf(File.separatorChar);
+        int lastSeparator = processName.lastIndexOf(System.getProperty("file.separator"));
         return lastSeparator < 0 ? processName : processName.substring(lastSeparator + 1);
     }
 
