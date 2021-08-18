@@ -9,4 +9,4 @@ co.elastic.apm.agent.grpc.ServerCallInstrumentation
 
 # gRPC client part
 co.elastic.apm.agent.grpc.ChannelInstrumentation
-co.elastic.apm.agent.grpc.ClientCallImplInstrumentation$Start
+co.elastic.apm.agent.grpc.DelayedClientCallInstrumentation

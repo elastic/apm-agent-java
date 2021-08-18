@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package io.grpc.elastic.test;
+package co.elastic.apm.agent.grpc.testapp;
 
 import io.grpc.Attributes;
 import io.grpc.ClientCall;
@@ -38,7 +38,7 @@ public class TestClientCallImpl<ReqT, RespT> extends ClientCall<ReqT, RespT> {
     }
 
     @Override
-    public void start(Listener<RespT> listener, Metadata headers) {
+    public void start(final Listener<RespT> listener, Metadata headers) {
         throwExceptionIfRequired("start");
         clientCall.start(new TestListener(listener), headers);
     }

@@ -25,7 +25,6 @@ import io.grpc.ClientCall;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -35,16 +34,12 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
  * Instruments gRPC client calls by relying on {@link ClientCall} internal implementation {@code io.grpc.internal.ClientCallImpl},
  * which provides the full client call lifecycle in a single object instance.
  * <br>
- * <p>
  * full call lifecycle is split in few sub-implementations:
  * <ul>
  *     <li>{@link Start} for client span start</li>
@@ -54,22 +49,19 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  */
 public abstract class ClientCallImplInstrumentation extends BaseInstrumentation {
 
-    private static final Collection<Class<? extends ElasticApmInstrumentation>> RESPONSE_LISTENER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
-        ListenerClose.class,
-        OtherListenerMethod.class
-    );
+    private static final Collection<Class<? extends ElasticApmInstrumentation>> RESPONSE_LISTENER_INSTRUMENTATIONS =
+        Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
+            ListenerClose.class,
+            OtherListenerMethod.class
+        );
 
-    @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("io.grpc")
-            // matches all the implementations of ClientCall available in io.grpc package
-            .and(nameEndsWith("ClientCallImpl"));
-    }
-
+    /**
+     * Overridden in {@link DynamicTransformer#ensureInstrumented(Class, Collection)},
+     * based on the type of the {@linkplain ClientCall} implementation class.
+     */
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        // pre-filtering is used to make this quite fast and limited to gRPC packages
-        return hasSuperType(named("io.grpc.ClientCall"));
+        return any();
     }
 
     /**
@@ -90,7 +82,6 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
                                      @Advice.Argument(1) Metadata headers) {
 
             DynamicTransformer.Accessor.get().ensureInstrumented(listener.getClass(), RESPONSE_LISTENER_INSTRUMENTATIONS);
-
             return GrpcHelper.getInstance().clientCallStartEnter(clientCall, listener, headers);
         }
 
@@ -99,11 +90,8 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
                                   @Advice.Thrown @Nullable Throwable thrown,
                                   @Advice.Enter @Nullable Object span) {
 
-            if (span != null) {
-                GrpcHelper.getInstance().clientCallStartExit(listener, thrown);
-            }
+            GrpcHelper.getInstance().clientCallStartExit((Span) span, listener, thrown);
         }
-
     }
 
     // response listener instrumentation
@@ -143,11 +131,8 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
                                   @Advice.Thrown @Nullable Throwable thrown,
                                   @Advice.Enter @Nullable Object span) {
 
-            if (span instanceof Span) {
-                GrpcHelper.getInstance().exitClientListenerMethod(thrown, listener, (Span) span, status);
-            }
+            GrpcHelper.getInstance().exitClientListenerMethod(thrown, listener, (Span) span, status);
         }
-
     }
 
     /**
@@ -179,11 +164,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
                                   @Advice.Thrown @Nullable Throwable thrown,
                                   @Advice.Enter @Nullable Object span) {
 
-            if (span instanceof Span) {
-                GrpcHelper.getInstance().exitClientListenerMethod(thrown, listener, (Span) span, null);
-            }
+            GrpcHelper.getInstance().exitClientListenerMethod(thrown, listener, (Span) span, null);
         }
-
     }
-
 }

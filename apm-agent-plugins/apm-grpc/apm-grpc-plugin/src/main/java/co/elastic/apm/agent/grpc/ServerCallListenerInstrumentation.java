@@ -22,6 +22,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.grpc.ServerCall;
 import io.grpc.Status;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -29,6 +30,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -44,6 +46,11 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * </ul>
  */
 public abstract class ServerCallListenerInstrumentation extends BaseInstrumentation {
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameStartsWith("io.grpc");
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -86,11 +93,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
     }
 
     /**
-     * Instruments implementations of {@link ServerCall.Listener}
-     * <ul>
-     *     <li>{@link ServerCall.Listener#onCancel()}</li>
-     * </ul>
-     * <p>
+     * Instruments {@link ServerCall.Listener#onCancel()}
      */
     public static class OnCancel extends ServerCallListenerInstrumentation {
 
@@ -117,11 +120,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
     }
 
     /**
-     * Instruments implementations of {@link ServerCall.Listener}
-     * <ul>
-     *     <li>{@link ServerCall.Listener#onComplete()}</li>
-     * </ul>
-     * <p>
+     * Instruments {@link ServerCall.Listener#onComplete()}
      */
     public static class OnComplete extends ServerCallListenerInstrumentation {
 

@@ -19,6 +19,8 @@
 package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.sdk.DynamicTransformer;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientCall;
@@ -31,6 +33,9 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -41,6 +46,9 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * linked to the returned client call instance (if any).
  */
 public class ChannelInstrumentation extends BaseInstrumentation {
+
+    private static final Collection<Class<? extends ElasticApmInstrumentation>> CLIENT_CALL_INSTRUMENTATION =
+        Collections.<Class<? extends ElasticApmInstrumentation>>singletonList(ClientCallImplInstrumentation.Start.class);
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -62,16 +70,16 @@ public class ChannelInstrumentation extends BaseInstrumentation {
     public static Object onEnter(@Advice.This Channel channel,
                                  @Advice.Argument(0) MethodDescriptor<?, ?> method) {
 
-        return GrpcHelper.getInstance().startSpan(tracer.getActive(), method, channel.authority());
+        return GrpcHelper.getInstance().onClientCallCreationEntry(tracer.getActive(), method, channel.authority());
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static void onExit(@Advice.Return @Nullable ClientCall<?, ?> clientCall,
                               @Advice.Enter @Nullable Object span) {
 
-        if (span instanceof Span) {
-            GrpcHelper.getInstance().registerSpan(clientCall, (Span) span);
+        if (clientCall != null) {
+            DynamicTransformer.Accessor.get().ensureInstrumented(clientCall.getClass(), CLIENT_CALL_INSTRUMENTATION);
         }
+        GrpcHelper.getInstance().onClientCallCreationExit(clientCall, (Span) span);
     }
-
 }
