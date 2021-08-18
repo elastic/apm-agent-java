@@ -253,13 +253,19 @@ public class UserRegistry {
                         // if it's not alive but there is still readable input, then continue reading
                         isAlive = processIsAlive(spawnedProcess) || in.available() > 0;
                     }
-                }
-                //would like to call waitFor(TIMEOUT) here, but that is 1.8+
-                //so will pause then have a go at getting the exit value
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    //no action, just means the exit is earlier
+                    //would like to call waitFor(TIMEOUT) here, but that is 1.8+
+                    //so pause for a bit, and just ensure that the output buffers are empty
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        //no action, just means the exit is earlier
+                    }
+                    //handle edge case where process terminated but still has unread IO
+                    //and in.available() could have returned 0 from IO buffering
+                    while (in.available() > 0) {
+                        int lengthRead = in.read(buffer, 0, buffer.length);
+                        commandOutput.append(new String(buffer, 0, lengthRead));
+                    }
                 }
 
             } catch (Throwable e1) {

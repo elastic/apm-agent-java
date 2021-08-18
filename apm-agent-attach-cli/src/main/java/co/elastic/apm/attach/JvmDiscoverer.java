@@ -208,11 +208,14 @@ public interface JvmDiscoverer {
                     //tasklist is always available, so no check for it
                     return JvmInfo.isJ9();
                 } else {
+                    List<String> args = new ArrayList<>();
+                    args.add("ps");
+                    args.add("aux");
                     return 
                             // attachment under hotspot involves executing a kill -3
                             // this would terminate false positive matching processes (ps aux | grep java)
                             JvmInfo.isJ9()
-                            && UserRegistry.User.executeCommand(List.of("ps", "aux")).exitedNormally();
+                            && UserRegistry.User.executeCommand(args).exitedNormally();
                 }
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
