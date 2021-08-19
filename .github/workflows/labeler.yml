@@ -14,7 +14,7 @@ jobs:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
         configuration-path: .github/labeler-config.yml
         enable-versioned-regex: 0
-    - uses: AlexanderWert/get-user-teams-membership@v1.0.2
+    - uses: AlexanderWert/get-user-teams-membership@v1.0.3
       id: checkUserMember
       with:
         username: ${{ github.actor }}
