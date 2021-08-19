@@ -89,8 +89,6 @@ public class Url implements Recyclable {
 
     /**
      * Updates full URL from current state of {@literal this}. Must be called after all other Url fields are set.
-     *
-     * @return url
      */
     private void updateFull() {
         // inspired by org.apache.catalina.connector.Request.getRequestURL

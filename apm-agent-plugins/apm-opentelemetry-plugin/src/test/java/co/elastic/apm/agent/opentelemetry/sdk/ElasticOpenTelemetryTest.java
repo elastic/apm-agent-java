@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.opentelemetry.sdk;
 
@@ -336,11 +330,10 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getFirstSpan().getContext().getDestination().getPort()).isEqualTo(80);
-        assertThat(reporter.getFirstSpan().getContext().getHttp()).isIn("http://example.com/foo?bar", "http://example.com:80/foo?bar");
+        assertThat(reporter.getFirstSpan().getContext().getHttp().getUrl().toString()).isIn("http://example.com/foo?bar", "http://example.com:80/foo?bar");
         assertThat(reporter.getFirstSpan().getContext().getDestination().getAddress().toString()).isEqualTo("example.com");
         assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getName().toString()).isEqualTo("http://example.com");
         assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getResource().toString()).isEqualTo("example.com:80");
-        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getType()).isEqualTo("external");
         reporter.resetWithoutRecycling();
     }
 
