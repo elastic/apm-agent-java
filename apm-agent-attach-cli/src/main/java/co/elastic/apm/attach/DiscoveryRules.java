@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,11 +15,11 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.attach;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -117,6 +112,13 @@ class DiscoveryRules {
         return excludeRules;
     }
 
+    @Override
+    public String toString() {
+        return "DiscoveryRules{" +
+            "discoveryRules=" + Arrays.toString(discoveryRules.toArray()) +
+            '}';
+    }
+
     public static class DiscoveryRule implements Matcher {
 
         private final Matcher matcher;
@@ -175,6 +177,11 @@ class DiscoveryRules {
             return matches;
         }
 
+
+        @Override
+        public String toString() {
+            return matches ? "all" : "none";
+        }
     }
 
     private static class MainClassMatcher implements Matcher {

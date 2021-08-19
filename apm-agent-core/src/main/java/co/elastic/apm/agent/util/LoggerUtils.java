@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -11,16 +6,15 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.util;
 
@@ -48,9 +42,16 @@ public class LoggerUtils {
             return delegate.getName();
         }
 
+        private boolean isEnabled(boolean delegateEnabled) {
+            if (alreadyLogged.get()) {
+                return false;
+            }
+            return delegateEnabled;
+        }
+
         @Override
         public boolean isTraceEnabled() {
-            return delegate.isTraceEnabled();
+            return isEnabled(delegate.isTraceEnabled());
         }
 
         @Override
@@ -90,7 +91,7 @@ public class LoggerUtils {
 
         @Override
         public boolean isTraceEnabled(Marker marker) {
-            return delegate.isTraceEnabled(marker);
+            return isEnabled(delegate.isTraceEnabled(marker));
         }
 
         @Override
@@ -130,7 +131,7 @@ public class LoggerUtils {
 
         @Override
         public boolean isDebugEnabled() {
-            return delegate.isDebugEnabled();
+            return isEnabled(delegate.isDebugEnabled());
         }
 
         @Override
@@ -170,7 +171,7 @@ public class LoggerUtils {
 
         @Override
         public boolean isDebugEnabled(Marker marker) {
-            return delegate.isDebugEnabled(marker);
+            return isEnabled(delegate.isDebugEnabled(marker));
         }
 
         @Override
@@ -210,7 +211,7 @@ public class LoggerUtils {
 
         @Override
         public boolean isInfoEnabled() {
-            return delegate.isInfoEnabled();
+            return isEnabled(delegate.isInfoEnabled());
         }
 
         @Override
@@ -250,7 +251,7 @@ public class LoggerUtils {
 
         @Override
         public boolean isInfoEnabled(Marker marker) {
-            return delegate.isInfoEnabled(marker);
+            return isEnabled(delegate.isInfoEnabled(marker));
         }
 
         @Override
@@ -290,7 +291,7 @@ public class LoggerUtils {
 
         @Override
         public boolean isWarnEnabled() {
-            return delegate.isWarnEnabled();
+            return isEnabled(delegate.isWarnEnabled());
         }
 
         @Override
@@ -330,7 +331,7 @@ public class LoggerUtils {
 
         @Override
         public boolean isWarnEnabled(Marker marker) {
-            return delegate.isWarnEnabled(marker);
+            return isEnabled(delegate.isWarnEnabled(marker));
         }
 
         @Override
@@ -370,7 +371,7 @@ public class LoggerUtils {
 
         @Override
         public boolean isErrorEnabled() {
-            return delegate.isErrorEnabled();
+            return isEnabled(delegate.isErrorEnabled());
         }
 
         @Override
@@ -410,7 +411,7 @@ public class LoggerUtils {
 
         @Override
         public boolean isErrorEnabled(Marker marker) {
-            return delegate.isErrorEnabled(marker);
+            return isEnabled(delegate.isErrorEnabled(marker));
         }
 
         @Override

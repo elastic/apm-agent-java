@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.springwebflux;
 
@@ -28,7 +22,9 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.reactor.TracedSubscriber;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
@@ -47,6 +43,7 @@ import reactor.test.StepVerifier;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.function.Predicate;
 
@@ -168,6 +165,23 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
             .verify();
 
         Transaction transaction = checkTransaction(getFirstTransaction(), "GET unknown route", "GET", 404);
+
+        assertThat(transaction.getResult()).isEqualTo("HTTP 4xx");
+        assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo("GET");
+        assertThat(transaction.getContext().getResponse().getStatusCode()).isEqualTo(404);
+    }
+
+    @Test
+    void dispatch404_usePathAsName() {
+        doReturn(true).when(getConfig().getConfig(WebConfiguration.class)).isUsePathAsName();
+        // Testing that the `url_group` config is applied as well
+        doReturn(List.of(WildcardMatcher.valueOf("/*/error-404"))).when(config.getConfig(WebConfiguration.class)).getUrlGroups();
+
+        StepVerifier.create(client.getMappingError404())
+            .expectErrorMatches(expectClientError(404))
+            .verify();
+
+        Transaction transaction = checkTransaction(getFirstTransaction(), "GET /*/error-404", "GET", 404);
 
         assertThat(transaction.getResult()).isEqualTo("HTTP 4xx");
         assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo("GET");

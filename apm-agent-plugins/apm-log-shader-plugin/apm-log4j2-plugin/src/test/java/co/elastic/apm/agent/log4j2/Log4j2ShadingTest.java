@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.log4j2;
 
@@ -28,6 +22,8 @@ import co.elastic.apm.agent.log.shader.LogShadingInstrumentationTest;
 import co.elastic.apm.agent.log.shader.LoggerFacade;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.Marker;
+import org.apache.logging.log4j.MarkerManager;
 import org.apache.logging.log4j.ThreadContext;
 import org.apache.logging.log4j.core.appender.RandomAccessFileAppender;
 
@@ -37,9 +33,16 @@ import java.util.Objects;
 
 public class Log4j2ShadingTest extends LogShadingInstrumentationTest {
 
+    private static final Marker TEST_MARKER = MarkerManager.getMarker("TEST");
+
     @Override
     protected LoggerFacade createLoggerFacade() {
         return new Log4j2LoggerFacade();
+    }
+
+    @Override
+    protected boolean markersSupported() {
+        return true;
     }
 
     @Override
@@ -89,6 +92,11 @@ public class Log4j2ShadingTest extends LogShadingInstrumentationTest {
         @Override
         public void debug(String message) {
             log4j2Logger.debug(message);
+        }
+
+        @Override
+        public void debugWithMarker(String message) {
+            log4j2Logger.debug(TEST_MARKER, message);
         }
 
         @Override

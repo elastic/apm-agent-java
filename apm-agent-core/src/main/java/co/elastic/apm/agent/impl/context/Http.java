@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,15 +15,12 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
-import java.net.URI;
-import java.net.URISyntaxException;
 
 public class Http implements Recyclable {
 
@@ -51,12 +43,16 @@ public class Http implements Recyclable {
     /**
      * URL used for the outgoing HTTP call
      */
-    @Nullable
-    public String getFullUrl() {
-        return url.getFull().toString();
+    public CharSequence getUrl() {
+        // note: do not expose the underlying Url object, as it might not have
+        // all it's properties set due to providing the full URL as-is
+        return url.getFull();
     }
 
-    public Url getUrl() {
+    /**
+     * @return internal {@link Url} instance
+     */
+    public Url getInternalUrl() {
         return url;
     }
 
@@ -74,30 +70,9 @@ public class Http implements Recyclable {
      */
     public Http withUrl(@Nullable String url) {
         if (url != null) {
-            String sanitized = sanitize(url);
-            if (sanitized != null) {
-                this.url.appendToFull(sanitized);
-            }
+            this.url.withFull(url);
         }
         return this;
-    }
-
-    @Nullable
-    private static String sanitize(String uriString) {
-        if (uriString.indexOf('@') < 0) {
-            return uriString;
-        }
-        final URI uri;
-        try {
-            uri = new URI(uriString);
-            if (uri.getUserInfo() != null) {
-                return new URI(uri.getScheme(), null, uri.getHost(), uri.getPort(), uri.getPath(), uri.getQuery(), uri.getFragment()).toString();
-            } else {
-                return uri.toString();
-            }
-        } catch (URISyntaxException e) {
-            return null;
-        }
     }
 
     public Http withMethod(String method) {
