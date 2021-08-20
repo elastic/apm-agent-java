@@ -34,7 +34,7 @@ public class OpenTelemetryVersionIT {
         List<String> dependencies = List.of(
             "io.opentelemetry:opentelemetry-api:" + version,
             "io.opentelemetry:opentelemetry-context:" + version,
-            "io.opentelemetry:opentelemetry-semconv:1.0.0-alpha");
+            "io.opentelemetry:opentelemetry-semconv:" + version + "-alpha");
         runner = new TestClassWithDependencyRunner(dependencies,
             "co.elastic.apm.agent.opentelemetry.sdk.ElasticOpenTelemetryTest",
             "co.elastic.apm.agent.opentelemetry.sdk.ElasticOpenTelemetryTest$MapGetter");
@@ -43,9 +43,12 @@ public class OpenTelemetryVersionIT {
     @Parameterized.Parameters(name= "{0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"0.17.0"},
-            {"0.17.1"},
-            {"1.0.0"},
+            {"1.0.1"},
+            {"1.1.0"},
+            {"1.2.0"},
+            {"1.3.0"},
+            {"1.4.1"},
+            {"1.5.0"},
         });
     }
 
