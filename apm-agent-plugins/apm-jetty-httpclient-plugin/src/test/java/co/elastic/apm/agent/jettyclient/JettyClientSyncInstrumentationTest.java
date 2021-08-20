@@ -17,7 +17,7 @@ public class JettyClientSyncInstrumentationTest extends AbstractHttpClientInstru
     @Override
     protected void performGet(String path) throws Exception {
         httpClient.start();
-        httpClient.newRequest(path).send();
+        httpClient.GET(path);
         httpClient.stop();
     }
 }
