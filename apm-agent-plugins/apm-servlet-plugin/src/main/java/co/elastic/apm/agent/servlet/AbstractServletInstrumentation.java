@@ -25,7 +25,8 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.servlet.ServletInstrumentation.SERVLET_API;
+import static co.elastic.apm.agent.servlet.InstrumentationClassHelper.SERVLET_API;
+
 
 public abstract class AbstractServletInstrumentation extends TracerAwareInstrumentation {
 

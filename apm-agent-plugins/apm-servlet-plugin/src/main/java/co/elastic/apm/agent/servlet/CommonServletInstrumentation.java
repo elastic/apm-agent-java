@@ -43,10 +43,14 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * this makes sure to record a transaction in that case.
  * </p>
  */
-public class ServletInstrumentation extends AbstractServletInstrumentation {
+public abstract class CommonServletInstrumentation extends CommonAbstractServletInstrumentation {
 
     static final String SERVLET_API = "servlet-api";
     static final String SERVLET_API_DISPATCH = "servlet-api-dispatch";
+
+    public CommonServletInstrumentation(InstrumentationClassHelper classHelper) {
+        super(classHelper);
+    }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -61,19 +65,19 @@ public class ServletInstrumentation extends AbstractServletInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(hasSuperType(named("javax.servlet.Servlet")));
+            .and(hasSuperType(named(instrumentationClassHelper.servletClassName())));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("service")
-            .and(takesArgument(0, named("javax.servlet.ServletRequest")))
-            .and(takesArgument(1, named("javax.servlet.ServletResponse")));
+            .and(takesArgument(0, named(instrumentationClassHelper.servletRequestClassName())))
+            .and(takesArgument(1, named(instrumentationClassHelper.servletResponseClassName())));
     }
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.servlet.ServletApiAdvice";
+        return instrumentationClassHelper.servletApiAdviceClassName();
     }
 
 }

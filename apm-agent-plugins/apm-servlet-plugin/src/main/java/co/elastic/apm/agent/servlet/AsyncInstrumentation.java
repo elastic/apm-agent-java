@@ -51,7 +51,7 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(ServletInstrumentation.SERVLET_API, SERVLET_API_ASYNC_GROUP_NAME);
+        return Arrays.asList(InstrumentationClassHelper.SERVLET_API, SERVLET_API_ASYNC_GROUP_NAME);
     }
 
     public interface AsyncContextAdviceHelper<T> {

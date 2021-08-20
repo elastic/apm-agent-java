@@ -33,7 +33,7 @@ import javax.servlet.ServletInputStream;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.servlet.ServletInstrumentation.SERVLET_API;
+import static co.elastic.apm.agent.servlet.InstrumentationClassHelper.SERVLET_API;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;

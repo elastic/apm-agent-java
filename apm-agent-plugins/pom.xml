@@ -64,6 +64,7 @@
         <module>apm-struts-plugin</module>
         <module>apm-vertx</module>
         <module>apm-sparkjava-plugin</module>
+        <module>apm-jetty-httpclient-plugin</module>
     </modules>
 
     <dependencies>

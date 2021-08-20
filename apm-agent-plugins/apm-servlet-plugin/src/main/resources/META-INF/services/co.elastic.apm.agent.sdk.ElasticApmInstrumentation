@@ -1,4 +1,5 @@
-co.elastic.apm.agent.servlet.ServletInstrumentation
+co.elastic.apm.agent.servlet.JavaxServletInstrumentation
+co.elastic.apm.agent.servlet.JakartaServletInstrumentation
 co.elastic.apm.agent.servlet.ServletVersionInstrumentation$Init
 co.elastic.apm.agent.servlet.ServletVersionInstrumentation$Service
 co.elastic.apm.agent.servlet.FilterChainInstrumentation
