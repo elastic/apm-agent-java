@@ -2,7 +2,6 @@ package co.elastic.apm.agent.jettyclient;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.api.ContentResponse;
 import org.junit.Before;
 
 
@@ -14,10 +13,11 @@ public class JettyClientSyncInstrumentationTest extends AbstractHttpClientInstru
     public void setUp() throws Exception {
         httpClient = new HttpClient();
     }
+
     @Override
     protected void performGet(String path) throws Exception {
         httpClient.start();
-        ContentResponse res = httpClient.GET(path);
+        httpClient.newRequest(path).send();
         httpClient.stop();
     }
 }

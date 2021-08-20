@@ -27,7 +27,7 @@ public class SpanResponseCompleteListenerWrapper implements Response.CompleteLis
                 }
                 span.captureException(t);
             } finally {
-                span.deactivate().end();
+                span.end();
             }
         }
     }
