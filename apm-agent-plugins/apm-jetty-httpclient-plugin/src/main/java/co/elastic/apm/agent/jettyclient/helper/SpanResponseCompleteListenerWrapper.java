@@ -22,7 +22,8 @@ public class SpanResponseCompleteListenerWrapper implements Response.CompleteLis
                 Throwable t = result.getFailure();
                 if (response != null) {
                     span.getContext().getHttp().withStatusCode(response.getStatus());
-                } else if (t != null) {
+                }
+                if (t != null) {
                     span.withOutcome(Outcome.FAILURE);
                 }
                 span.captureException(t);

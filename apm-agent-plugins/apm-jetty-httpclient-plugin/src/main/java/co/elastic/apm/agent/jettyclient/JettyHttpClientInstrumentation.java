@@ -10,7 +10,6 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.eclipse.jetty.client.HttpRequest;
-import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
 
 import javax.annotation.Nullable;
@@ -61,13 +60,8 @@ public class JettyHttpClientInstrumentation extends AbstractJettyClientInstrumen
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterSend(@Advice.Enter @Nullable Object spanObject) {
-            Span span = null;
             if (spanObject instanceof Span) {
-                span = (Span) spanObject;
-            }
-            if (span != null) {
-                System.out.println("### after send deactivate");
-                span.deactivate();
+                ((Span) spanObject).deactivate();
             }
         }
     }
