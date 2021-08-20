@@ -19,6 +19,8 @@
         <maven.compiler.release>8</maven.compiler.release>
         <maven.compiler.testRelease>11</maven.compiler.testRelease>
         <animal.sniffer.skip>true</animal.sniffer.skip>
+
+        <version.opentelemetry>1.0.0</version.opentelemetry>
     </properties>
 
     <dependencies>
@@ -29,13 +31,14 @@
             when updating the version, add the old version to OpenTelemetryVersionIT
             to make sure we're compatible with both the old and the new version
             -->
-            <version>1.0.0</version>
+            <version>${version.opentelemetry}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-semconv</artifactId>
-            <version>1.0.0-alpha</version>
+            <version>${version.opentelemetry}-alpha</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

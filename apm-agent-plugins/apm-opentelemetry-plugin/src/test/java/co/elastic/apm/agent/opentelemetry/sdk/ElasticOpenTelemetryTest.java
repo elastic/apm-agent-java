@@ -35,6 +35,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -68,6 +70,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         otelTracer.spanBuilder("transaction")
             .setAttribute("boolean", true)
             .setAttribute("long", 42L)
+            .setAttribute("double", 73D)
             .setAttribute("string", "hello")
             .startSpan()
             .end();
@@ -76,6 +79,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         TransactionContext context = reporter.getFirstTransaction().getContext();
         assertThat(context.getLabel("boolean")).isEqualTo(true);
         assertThat(context.getLabel("long")).isEqualTo(42L);
+        assertThat(context.getLabel("double")).isEqualTo(73D);
         assertThat(context.getLabel("string")).isEqualTo("hello");
     }
 
@@ -189,6 +193,23 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
             transaction.end();
         }
         assertThat(elasticApmHeaders).containsAllEntriesOf(otelHeaders);
+    }
+
+    @Test
+    public void setStartTimestamp() {
+
+        Instant transactionStart = Instant.now();
+
+        otelTracer.spanBuilder("transaction")
+            .setStartTimestamp(transactionStart)
+            .startSpan()
+            .end();
+
+        long transactionStartMicros = ChronoUnit.MICROS.between(Instant.EPOCH, transactionStart);
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getTimestamp()).isEqualTo(transactionStartMicros);
+
     }
 
     @Test
