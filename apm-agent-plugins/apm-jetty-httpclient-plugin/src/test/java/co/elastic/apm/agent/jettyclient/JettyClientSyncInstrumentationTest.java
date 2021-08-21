@@ -2,7 +2,6 @@ package co.elastic.apm.agent.jettyclient;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import org.eclipse.jetty.client.HttpClient;
-import org.junit.After;
 import org.junit.Before;
 
 
