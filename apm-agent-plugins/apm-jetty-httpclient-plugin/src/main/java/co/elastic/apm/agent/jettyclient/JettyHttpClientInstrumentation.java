@@ -9,13 +9,14 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.eclipse.jetty.client.HttpRequest;
+import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class JettyHttpClientInstrumentation extends AbstractJettyClientInstrumentation {
@@ -27,7 +28,7 @@ public class JettyHttpClientInstrumentation extends AbstractJettyClientInstrumen
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("send")
-            .and(takesArgument(0, named("org.eclipse.jetty.client.HttpRequest"))
+            .and(takesArgument(0, namedOneOf("org.eclipse.jetty.client.HttpRequest", "org.eclipse.jetty.client.api.Request"))
                 .and(takesArgument(1, List.class)));
     }
 
@@ -39,19 +40,19 @@ public class JettyHttpClientInstrumentation extends AbstractJettyClientInstrumen
     public static class JettyHttpClientAdvice {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onBeforeSend(@Advice.Argument(0) HttpRequest httpRequest,
+        public static Object onBeforeSend(@Advice.Argument(0) Request request,
                                           @Advice.Argument(1) List<Response.ResponseListener> responseListeners) {
             final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
+            if (parent == null || request == null) {
                 return null;
             }
-            Span span = HttpClientHelper.startHttpClientSpan(parent, httpRequest.getMethod(), httpRequest.getURI(), httpRequest.getHost());
+            Span span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), request.getHost());
             if (span != null) {
                 span.activate();
-                span.propagateTraceContext(httpRequest, HttpFieldAccessor.INSTANCE);
+                span.propagateTraceContext(request, HttpFieldAccessor.INSTANCE);
                 responseListeners.add(new SpanResponseCompleteListenerWrapper(span));
             } else {
-                parent.propagateTraceContext(httpRequest, HttpFieldAccessor.INSTANCE);
+                parent.propagateTraceContext(request, HttpFieldAccessor.INSTANCE);
             }
             return span;
         }
