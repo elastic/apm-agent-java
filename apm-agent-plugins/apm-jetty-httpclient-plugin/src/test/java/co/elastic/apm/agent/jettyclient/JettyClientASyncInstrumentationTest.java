@@ -23,12 +23,9 @@ public class JettyClientASyncInstrumentationTest extends AbstractHttpClientInstr
         httpClient.start();
         final CompletableFuture<Void> future = new CompletableFuture<>();
         httpClient.newRequest(path)
-            .send(new Response.CompleteListener() {
-                @Override
-                public void onComplete(Result result) {
-                    System.out.println(String.format("Got response with status = %s", result.getResponse().getStatus()));
-                    future.complete(null);
-                }
+            .send(result -> {
+                System.out.println(String.format("Got response with status = %s", result.getResponse().getStatus()));
+                future.complete(null);
             });
         future.get();
         httpClient.stop();

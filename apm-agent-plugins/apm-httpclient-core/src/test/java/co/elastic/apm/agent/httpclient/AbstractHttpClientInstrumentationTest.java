@@ -163,8 +163,14 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String baseUrl = String.format("http://%s:%d", host, port);
 
         Http httpContext = span.getContext().getHttp();
+        String actualSpanName = span.getNameAsString();
 
-        assertThat(span.getNameAsString()).isEqualTo(String.format("%s %s", httpContext.getMethod(), host));
+        int addressStartIndex = (host.startsWith("[")) ? 1 : 0;
+        int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
+        String expectedSpan = String.format("%s %s", httpContext.getMethod(), host);
+        String expectedSpan2 = String.format("%s %s", httpContext.getMethod(), host.substring(addressStartIndex, addressEndIndex));
+
+        assertThat(actualSpanName).isIn(expectedSpan, expectedSpan2);
         assertThat(httpContext.getUrl().toString()).isEqualTo(baseUrl + path);
         assertThat(httpContext.getStatusCode()).isEqualTo(status);
 
@@ -179,11 +185,11 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(span.getAction()).isNull();
 
         Destination destination = span.getContext().getDestination();
-        int addressStartIndex = (host.startsWith("[")) ? 1 : 0;
-        int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
         assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
         assertThat(destination.getPort()).isEqualTo(port);
-        assertThat(destination.getService().getResource().toString()).isEqualTo("%s:%d", host, port);
+        String expectedDestinationService = String.format(String.format("%s:%d", host, port));
+        String expectedDestinationService2 = String.format(String.format("%s:%d", host.substring(addressStartIndex, addressEndIndex), port));
+        assertThat(destination.getService().getResource().toString()).isIn(expectedDestinationService, expectedDestinationService2);
 
         if (requestExecuted) {
             verifyTraceContextHeaders(span, path);
