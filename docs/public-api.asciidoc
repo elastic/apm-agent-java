@@ -312,6 +312,24 @@ transaction.setType(Transaction.TYPE_REQUEST);
 * `type`: The type of the transaction
 
 [float]
+[[api-transaction-set-framework-name]]
+==== `Transaction setFrameworkName(String frameworkName)` added[1.25.0]
+Provides a way to manually set the `service.framework.name` field.
+For supported frameworks,
+the framework name is determined automatically,
+and can be overridden using this function.
+`null` or the empty string will make the agent omit this field.
+
+Example:
+
+[source,java]
+----
+transaction.setFrameworkName("My Framework");
+----
+
+* `frameworkName`: The name of the framework
+
+[float]
 [[api-transaction-add-tag]]
 ==== `Transaction setLabel(String key, value)` added[1.5.0 as `addLabel`,Number and boolean labels require APM Server 6.7]
 Labels are used to add *indexed* information to transactions, spans, and errors.

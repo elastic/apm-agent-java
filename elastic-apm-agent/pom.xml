@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.24.1-SNAPSHOT</version>
+        <version>1.25.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
@@ -320,6 +320,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-jdk-httpserver-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-javalin-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 

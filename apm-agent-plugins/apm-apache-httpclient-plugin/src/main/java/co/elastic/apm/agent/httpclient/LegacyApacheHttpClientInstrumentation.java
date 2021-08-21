@@ -62,13 +62,20 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
             HttpUriRequest uriRequest = (HttpUriRequest) request;
             String hostName = (host != null) ? host.getHostName() : null;
             Span span = HttpClientHelper.startHttpClientSpan(parent, uriRequest.getMethod(), uriRequest.getURI(), hostName);
+
             if (span != null) {
                 span.activate();
-                span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
-            } else if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
-                // re-adds the header on redirects
-                parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
             }
+
+            if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+                if (span != null) {
+                    span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
+                } else if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+                    // re-adds the header on redirects
+                    parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
+                }
+            }
+
             return span;
         }
 

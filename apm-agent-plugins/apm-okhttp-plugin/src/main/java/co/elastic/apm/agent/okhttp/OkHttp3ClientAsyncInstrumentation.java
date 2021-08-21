@@ -22,6 +22,7 @@ import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -82,15 +83,20 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
                 OkHttpClientHelper.computeHostName(url.host()), url.port());
 
-            Request.Builder builder = originalRequest.newBuilder();
             if (span != null) {
                 span.activate();
-                span.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
-                request = builder.build();
-                callback = CallbackWrapperCreator.INSTANCE.wrap(callback, span);
-            } else {
-                parent.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
-                request = builder.build();
+            }
+
+            if (!TraceContext.containsTraceContextTextHeaders(request, OkHttp3RequestHeaderGetter.INSTANCE)) {
+                Request.Builder builder = originalRequest.newBuilder();
+                if (span != null) {
+                    span.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
+                    request = builder.build();
+                    callback = CallbackWrapperCreator.INSTANCE.wrap(callback, span);
+                } else {
+                    parent.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
+                    request = builder.build();
+                }
             }
             return new Object[]{request, callback, span};
         }
