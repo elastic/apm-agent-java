@@ -30,6 +30,7 @@ endif::[]
 ** Automatically sets `service.node.name` in all log events if set through agent configuration
 ** Add `log_ecs_reformatting_additional_fields` option to support arbitrary fields in logs
 ** Automatically serialize markers as tags where relevant (log4j2 and logback)
+* Support for Jetty Http Client 9.1.0+ -  {pull}2073[#2073]
 
 [float]
 ===== Bug fixes
