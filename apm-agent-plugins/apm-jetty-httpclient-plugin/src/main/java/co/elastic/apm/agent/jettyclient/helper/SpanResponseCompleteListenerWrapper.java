@@ -16,7 +16,6 @@ public class SpanResponseCompleteListenerWrapper implements Response.CompleteLis
     @Override
     public void onComplete(Result result) {
         if (span != null) {
-            System.out.println("### onComplete");
             try {
                 Response response = result.getResponse();
                 Throwable t = result.getFailure();
