@@ -46,8 +46,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static co.elastic.apm.agent.impl.transaction.TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
@@ -114,14 +116,17 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     public void testContextPropagationFromExitParent() {
         String path = "/";
         Span exitSpan = Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(tracer.currentTransaction()).createExitSpan()));
-        exitSpan.withType("custom").withSubtype("exit");
-        exitSpan.getContext().getDestination().withAddress("test-host").withPort(6000);
-        exitSpan.getContext().getDestination().getService().withResource("test-resource");
-        exitSpan.activate();
-        performGetWithinTransaction(path);
-        verifyTraceContextHeaders(exitSpan, path);
-        assertThat(reporter.getSpans()).isEmpty();
-        exitSpan.deactivate().end();
+        try {
+            exitSpan.withType("custom").withSubtype("exit");
+            exitSpan.getContext().getDestination().withAddress("test-host").withPort(6000);
+            exitSpan.getContext().getDestination().getService().withResource("test-resource");
+            exitSpan.activate();
+            performGetWithinTransaction(path);
+            verifyTraceContextHeaders(exitSpan, path);
+            assertThat(reporter.getSpans()).isEmpty();
+        } finally {
+            exitSpan.deactivate().end();
+        }
     }
 
     @Test
@@ -216,8 +221,20 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
                 assertThat(tmp).isNotEmpty();
             });
         loggedRequests.get().forEach(request -> {
-            assertThat(TraceContext.containsTraceContextTextHeaders(request, new HeaderAccessor())).isTrue();
+            assertThat(TraceContext.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isTrue();
+            AtomicInteger headerCount = new AtomicInteger();
+            HeaderAccessor.INSTANCE.forEach(
+                W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME,
+                request,
+                headerCount,
+                (headerValue, state) -> state.incrementAndGet()
+            );
+            assertThat(headerCount.get()).isEqualTo(1);
             headerMap.forEach((key, value) -> assertThat(request.getHeader(key)).isEqualTo(value));
+            Transaction transaction = tracer.startChildTransaction(request, new HeaderAccessor(), AbstractHttpClientInstrumentationTest.class.getClassLoader());
+            assertThat(transaction).isNotNull();
+            assertThat(transaction.getTraceContext().getTraceId()).isEqualTo(span.getTraceContext().getTraceId());
+            assertThat(transaction.getTraceContext().getParentId()).isEqualTo(span.getTraceContext().getId());
         });
     }
 
@@ -245,7 +262,14 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         Span span = verifyHttpSpan(path);
 
         verifyTraceContextHeaders(span, "/redirect");
-        verifyTraceContextHeaders(span, "/");
+
+        if (isNeedVerifyTraceContextAfterRedirect()) {
+            verifyTraceContextHeaders(span, "/");
+        }
+    }
+
+    protected boolean isNeedVerifyTraceContextAfterRedirect() {
+        return true;
     }
 
     @Test
@@ -266,7 +290,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(reporter.getFirstError().getException().getClass()).isNotNull();
         assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
 
-        verifyTraceContextHeaders(span, "/circular-redirect");
+        if (isNeedVerifyTraceContextAfterRedirect()) {
+            verifyTraceContextHeaders(span, "/circular-redirect");
+        }
     }
 
     protected String getBaseUrl() {
@@ -286,6 +312,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     protected abstract void performGet(String path) throws Exception;
 
     private static class HeaderAccessor implements TextHeaderGetter<LoggedRequest> {
+
+        static final HeaderAccessor INSTANCE = new HeaderAccessor();
+
         @Nullable
         @Override
         public String getFirstHeader(String headerName, LoggedRequest loggedRequest) {

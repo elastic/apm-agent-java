@@ -41,7 +41,7 @@ public class JettyHttpClientInstrumentation extends AbstractJettyClientInstrumen
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeSend(@Advice.Argument(0) HttpRequest httpRequest,
                                           @Advice.Argument(1) List<Response.ResponseListener> responseListeners) {
-            System.out.println("### onBeforeSend");
+            System.out.println("### onBeforeSend " + httpRequest.getURI() + " ;headers = " + httpRequest.getHeaders());
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent == null) {
                 System.out.println("### parent is null");

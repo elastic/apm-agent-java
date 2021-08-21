@@ -2,8 +2,6 @@ package co.elastic.apm.agent.jettyclient;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.api.Response;
-import org.eclipse.jetty.client.api.Result;
 import org.junit.Before;
 
 import java.util.concurrent.CompletableFuture;
@@ -29,5 +27,10 @@ public class JettyClientASyncInstrumentationTest extends AbstractHttpClientInstr
             });
         future.get();
         httpClient.stop();
+    }
+
+    @Override
+    public boolean isNeedVerifyTraceContextAfterRedirect() {
+        return true;
     }
 }

@@ -27,12 +27,9 @@ public class JettyClientHttpClientIT {
             {List.of("org.eclipse.jetty:jetty-client:9.4.43.v20210629", "org.eclipse.jetty:jetty-util:9.4.43.v20210629", "org.eclipse.jetty:jetty-io:9.4.43.v20210629", "org.eclipse.jetty:jetty-http:9.4.43.v20210629")},
             {List.of("org.eclipse.jetty:jetty-client:9.3.29.v20201019", "org.eclipse.jetty:jetty-util:9.3.29.v20201019", "org.eclipse.jetty:jetty-io:9.3.29.v20201019", "org.eclipse.jetty:jetty-http:9.3.29.v20201019")},
             {List.of("org.eclipse.jetty:jetty-client:9.2.16.v20160414", "org.eclipse.jetty:jetty-util:9.2.16.v20160414", "org.eclipse.jetty:jetty-io:9.2.16.v20160414", "org.eclipse.jetty:jetty-http:9.2.16.v20160414")},
-            {List.of("org.eclipse.jetty:jetty-client:9.1.0.v20131115", "org.eclipse.jetty:jetty-util:9.1.0.v20131115", "org.eclipse.jetty:jetty-io:9.1.0.v20131115", "org.eclipse.jetty:jetty-http:9.1.0.v20131115")},
-            {List.of("org.eclipse.jetty:jetty-client:9.0.0.M5", "org.eclipse.jetty:jetty-util:9.0.0.M5", "org.eclipse.jetty:jetty-io:9.0.0.M5", "org.eclipse.jetty:jetty-http:9.0.0.M5")},
-
-//            {List.of("org.eclipse.jetty:jetty-client:8.2.0.v20160908", "org.eclipse.jetty.jetty-util:11.0.6")},
-//            {List.of("org.eclipse.jetty:jetty-client:7.6.21.v20160908", "org.eclipse.jetty.jetty-util:11.0.6")},
-        });
+            {List.of("org.eclipse.jetty:jetty-client:9.1.6.v20160112", "org.eclipse.jetty:jetty-util:9.1.6.v20160112", "org.eclipse.jetty:jetty-io:9.1.6.v20160112", "org.eclipse.jetty:jetty-http:9.1.6.v20160112")},
+//            {List.of("org.eclipse.jetty:jetty-client:9.1.0.v20131115","org.eclipse.jetty:jetty-util:9.1.0.v20131115", "org.eclipse.jetty:jetty-io:9.1.0.v20131115", "org.eclipse.jetty:jetty-http:9.1.0.v20131115")},
+       });
     }
 
     @Test
