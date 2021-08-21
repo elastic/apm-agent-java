@@ -65,6 +65,8 @@
         <module>apm-vertx</module>
         <module>apm-sparkjava-plugin</module>
         <module>apm-javalin-plugin</module>
+        <module>apm-jetty-httpclient-plugin</module>
+        <module>apm-jetty-httpclient-test</module>
     </modules>
 
     <dependencies>
