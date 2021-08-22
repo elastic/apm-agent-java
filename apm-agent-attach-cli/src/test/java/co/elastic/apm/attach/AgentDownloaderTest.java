@@ -58,7 +58,7 @@ class AgentDownloaderTest {
         String agentPgpSignatureFileName = String.format(Locale.ROOT, "%s.asc", agentDownloader.computeAgentJarName(agentVersion));
         String mavenPgpSignatureUrl = agentDownloader.computeFileUrl(mavenAgentBaseUrl, agentPgpSignatureFileName);
         System.out.println("mavenPgpSignatureUrl = " + mavenPgpSignatureUrl);
-        Path targetDir = Utils.getTargetAgentDir(agentVersion);
+        Path targetDir = AgentDownloadUtils.of(agentVersion).getTargetAgentDir();
         String targetFileName = "test.asc";
         final Path localFilePath = targetDir.resolve(targetFileName);
         Files.deleteIfExists(localFilePath);
@@ -67,12 +67,10 @@ class AgentDownloaderTest {
         assertThatThrownBy(() -> agentDownloader.downloadFile(mavenPgpSignatureUrl, localFilePath)).isInstanceOf(FileAlreadyExistsException.class);
     }
 
-    // disabled due to overhead, but very convenient for sanity testing
-    @Disabled
     @Test
     void testDownloadAndVerifyAgent() throws Exception {
         String agentVersion = "1.25.0";
-        Path targetDir = Utils.getTargetAgentDir(agentVersion);
+        Path targetDir = AgentDownloadUtils.of(agentVersion).getTargetAgentDir();
         final Path localAgentPath = targetDir.resolve(agentDownloader.computeAgentJarName(agentVersion));
         System.out.println("localAgentPath = " + localAgentPath);
         Files.deleteIfExists(localAgentPath);
@@ -81,14 +79,12 @@ class AgentDownloaderTest {
         assertThat(Files.isReadable(localAgentPath)).isTrue();
     }
 
-    // disabled due to overhead, but very convenient for sanity testing
-    @Disabled
     @Test
     void testDownloadAgentAndFailVerification() throws Exception {
         AgentDownloader spyAgentDownloader = spy(new AgentDownloader(new BouncyCastleVerifier()));
         doReturn(TEST_KEY_ID).when(spyAgentDownloader).getPublicKeyId();
         String agentVersion = "1.24.0";
-        Path targetDir = Utils.getTargetAgentDir(agentVersion);
+        Path targetDir = AgentDownloadUtils.of(agentVersion).getTargetAgentDir();
         final Path localAgentPath = targetDir.resolve(spyAgentDownloader.computeAgentJarName(agentVersion));
         System.out.println("localAgentPath = " + localAgentPath);
         Files.deleteIfExists(localAgentPath);

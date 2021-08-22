@@ -47,8 +47,6 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
-import static co.elastic.apm.attach.Utils.getTargetLibDir;
-
 /**
  * Attaches the Elastic APM Java agent to a JVM with a specific PID or runs continuously and attaches to all running and starting JVMs which match.
  */
@@ -151,7 +149,7 @@ public class AgentAttacher {
     private static void downloadAndVerifyAgent(Arguments arguments, String downloadAgentVersion) throws Exception {
         PgpSignatureVerifier pgpSignatureVerifier;
         try {
-            Path targetLibDir = getTargetLibDir(downloadAgentVersion);
+            Path targetLibDir = AgentDownloadUtils.of(downloadAgentVersion).getTargetLibDir();
             PgpSignatureVerifierLoader verifierLoader = PgpSignatureVerifierLoader.getInstance(
                 "/bc-lib",
                 targetLibDir,

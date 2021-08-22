@@ -75,6 +75,7 @@ public class PgpSignatureVerifierLoader extends URLClassLoader {
                 }
                 libPath = fileSystem.getPath(sourceLib);
             } else {
+                // this allows unit testing
                 libPath = Paths.get(libUri);
             }
         } else {

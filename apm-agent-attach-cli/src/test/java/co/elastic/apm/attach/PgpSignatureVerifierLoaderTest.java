@@ -32,7 +32,7 @@ class PgpSignatureVerifierLoaderTest {
 
         PgpSignatureVerifierLoader pgpSignatureVerifierLoader = PgpSignatureVerifierLoader.getInstance(
             "/verifier-loader-test/lib",
-            Utils.getTargetLibDir("1.25.0"),
+            AgentDownloadUtils.of("1.25.0").getTargetLibDir(),
             verifierClassName
         );
         PgpSignatureVerifier pgpSignatureVerifier = pgpSignatureVerifierLoader.loadPgpSignatureVerifier();

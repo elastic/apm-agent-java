@@ -76,6 +76,9 @@ import static org.mockserver.model.HttpRequest.request;
  * To debug, add a remote debugging configuration for port 5005 and set {@link #ENABLE_DEBUGGING} to {@code true}.
  * </p>
  * <p>
+ * To test slim CLI tool with any agent version, set {@link #AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN} to the desired version.
+ * </p>
+ * <p>
  * Servlet containers that support runtime attach are being tested with it by default. In order to test those through
  * the `javaagent` route, set {@link #ENABLE_RUNTIME_ATTACH} to {@code false}
  * </p>
@@ -91,11 +94,14 @@ public abstract class AbstractServletContainerIntegrationTest {
     static boolean ENABLE_RUNTIME_ATTACH = true;
 
     /**
-     * Set to a specific version to test downloading of agent from maven central using the slim cli tool.
-     * Only relevant if {@link #ENABLE_RUNTIME_ATTACH} is set to {@code true}.
+     * Set to a specific version to manually test downloading of agent from maven central using the slim cli tool.
+     * Only relevant if {@link #ENABLE_RUNTIME_ATTACH} is set to {@code true} and for Servlet containers for which
+     * {@link #runtimeAttachSupported()} returns {@code true}.
+     *
+     * todo - restore to null
      */
     @Nullable
-    private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
+    private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = "1.25.0";
 
     private static MockServerContainer mockServerContainer = new MockServerContainer()
         //.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(MockServerContainer.class)))

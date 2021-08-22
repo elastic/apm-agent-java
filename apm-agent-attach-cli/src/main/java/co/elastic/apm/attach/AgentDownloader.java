@@ -28,8 +28,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
-
-import static co.elastic.apm.attach.Utils.getTargetAgentDir;
+import java.util.Properties;
 
 /**
  * A utility for downloading any given version of the Elastic APM Java agent from maven central.
@@ -40,9 +39,41 @@ public class AgentDownloader {
 
     private static final String AGENT_GROUP_ID = "co.elastic.apm";
     private static final String AGENT_ARTIFACT_ID = "elastic-apm-agent";
+    private static final String CLI_JAR_VERSION;
+    public static final String USER_AGENT;
+
+    static {
+        CLI_JAR_VERSION = readCliJarVersion();
+        StringBuilder userAgent = new StringBuilder("elastic-apm-agent-java-attach-cli");
+        if (CLI_JAR_VERSION != null) {
+            userAgent.append("/").append(CLI_JAR_VERSION);
+        }
+        USER_AGENT = userAgent.toString();
+    }
 
     // intentionally not static so that we create the logger only after proper initialization
     private final Logger logger = LogManager.getLogger(AgentDownloader.class);
+
+    private static String readCliJarVersion() {
+        String pomPropertiesLocation = "/META-INF/maven/" + AGENT_GROUP_ID + "/" + "apm-agent-attach-cli" + "/pom.properties";
+        Properties pomProperties = null;
+        try (InputStream pomPropertiesStream = AgentDownloader.class.getResourceAsStream(pomPropertiesLocation)) {
+            if (pomPropertiesStream != null) {
+                pomProperties = new Properties();
+                pomProperties.load(pomPropertiesStream);
+            }
+        } catch (Exception exception) {
+            pomProperties = null;
+        }
+        if (pomProperties != null) {
+            return pomProperties.getProperty("version");
+        }
+        return null;
+    }
+
+    public static String getCliJarVersion() {
+        return CLI_JAR_VERSION;
+    }
 
     public AgentDownloader(PgpSignatureVerifier pgpSignatureVerifier) {
         this.pgpSignatureVerifier = pgpSignatureVerifier;
@@ -60,7 +91,7 @@ public class AgentDownloader {
     Path downloadAndVerifyAgent(String agentVersion) throws Exception {
         logger.debug("Requested to download Elastic APM Java agent version {}", agentVersion);
         final String mavenAgentBaseUrl = getAgentMavenBaseUrl(agentVersion);
-        Path targetDir = getTargetAgentDir(agentVersion);
+        Path targetDir = AgentDownloadUtils.of(agentVersion).getTargetAgentDir();
         String agentJarName = computeAgentJarName(agentVersion);
         String mavenAgentJarUrl = computeFileUrl(mavenAgentBaseUrl, agentJarName);
         Path localAgentJarPath = targetDir.resolve(agentJarName);
@@ -104,7 +135,7 @@ public class AgentDownloader {
      */
     String getAgentMavenBaseUrl(String agentVersion) throws Exception {
         final String groupId = AGENT_GROUP_ID.replace(".", "/");
-        final String agentMavenUrl = String.format(Locale.ROOT, "https://repo1.maven.org/maven2/%s/%s/%s", groupId, AGENT_ARTIFACT_ID, agentVersion);
+        final String agentMavenUrl = String.format("https://repo1.maven.org/maven2/%s/%s/%s", groupId, AGENT_ARTIFACT_ID, agentVersion);
         if (!verifyUrl(agentMavenUrl)) {
             throw new IllegalArgumentException(String.format("Cannot find maven URL for version %s, make sure provided version is valid", agentVersion));
         }
@@ -126,7 +157,7 @@ public class AgentDownloader {
     private HttpURLConnection openConnection(String urlString) throws IOException {
         URL url = new URL(urlString);
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-        urlConnection.addRequestProperty("User-Agent", "elastic-apm-agent-java-attach-cli");
+        urlConnection.addRequestProperty("User-Agent", USER_AGENT);
         return urlConnection;
     }
 
@@ -164,7 +195,7 @@ public class AgentDownloader {
         ) {
             if (!pgpSignatureVerifier.verifyPgpSignature(agentJarIS, pgpSignatureIS, publicKeyIS, getPublicKeyId())) {
                 throw new IllegalStateException("Signature verification for " + mavenAgentUrlString +
-                    " failed, downloaded jar may be tampered with.");
+                    " failed, downloaded jar may have been tampered with.");
             }
         }
         logger.info("Elastic APM Java Agent jar PGP signature successfully verified.");

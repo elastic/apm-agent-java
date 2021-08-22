@@ -49,10 +49,10 @@ public class BouncyCastleVerifier implements PgpSignatureVerifier {
      *
      * {@inheritDoc}
      */
-    public boolean verifyPgpSignature(InputStream verifiedFileIS, InputStream expectedPgpSignatureIS,
-                                      InputStream rawPublicKeyIS, String keyID) throws Exception {
+    public boolean verifyPgpSignature(InputStream toVerify, InputStream expectedPgpSignature,
+                                      InputStream rawPublicKey, String keyID) throws Exception {
         // read expected signature
-        final JcaPGPObjectFactory factory = new JcaPGPObjectFactory(PGPUtil.getDecoderStream(expectedPgpSignatureIS));
+        final JcaPGPObjectFactory factory = new JcaPGPObjectFactory(PGPUtil.getDecoderStream(expectedPgpSignature));
         final PGPSignature signature = ((PGPSignatureList) factory.nextObject()).get(0);
 
         // validate the signature has key ID matching our public key ID
@@ -62,12 +62,12 @@ public class BouncyCastleVerifier implements PgpSignatureVerifier {
         }
 
         // compute the signature of the downloaded agent jar
-        final PGPPublicKeyRingCollection collection = new PGPPublicKeyRingCollection(new ArmoredInputStream(rawPublicKeyIS), new JcaKeyFingerprintCalculator());
+        final PGPPublicKeyRingCollection collection = new PGPPublicKeyRingCollection(new ArmoredInputStream(rawPublicKey), new JcaKeyFingerprintCalculator());
         final PGPPublicKey key = collection.getPublicKey(signature.getKeyID());
         signature.init(new JcaPGPContentVerifierBuilderProvider().setProvider(new BouncyCastleFipsProvider()), key);
         final byte[] buffer = new byte[1024];
         int read;
-        while ((read = verifiedFileIS.read(buffer)) != -1) {
+        while ((read = toVerify.read(buffer)) != -1) {
             signature.update(buffer, 0, read);
         }
 

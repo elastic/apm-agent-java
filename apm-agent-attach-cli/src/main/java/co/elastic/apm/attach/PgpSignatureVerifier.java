@@ -25,14 +25,14 @@ public interface PgpSignatureVerifier {
     /**
      * Verifying the given file's PGP signature based on the given public key ID and the expected signature.
      *
-     * @param verifiedFileIS the file to verify
-     * @param expectedPgpSignatureIS the expected PGP signature, based on the public key corresponding the given key ID
-     * @param rawPublicKeyIS PGP public key
+     * @param toVerify the file to verify
+     * @param expectedPgpSignature the expected PGP signature, based on the public key corresponding the given key ID
+     * @param rawPublicKey PGP public key
      * @param keyID PGP public key ID corresponding the {@code publicKeyIS} argument
      * @return {@code true} if the provided file was verified successfully, {@code false} otherwise
      * @throws Exception indication failure to read from any of the given {@link InputStream}s or failure during
      * the execution of PGP verification
      */
-    boolean verifyPgpSignature(InputStream verifiedFileIS, InputStream expectedPgpSignatureIS,
-                               InputStream rawPublicKeyIS, String keyID) throws Exception;
+    boolean verifyPgpSignature(InputStream toVerify, InputStream expectedPgpSignature,
+                               InputStream rawPublicKey, String keyID) throws Exception;
 }
