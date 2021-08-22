@@ -18,12 +18,35 @@
  */
 package co.elastic.apm.agent;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+
+import java.io.IOException;
+import java.nio.CharBuffer;
 
 public class JsonUtils {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper;
+
+    static {
+        objectMapper = new ObjectMapper();
+
+        // using default serializer for CharBuffer will try to make some properties accessible using introspection
+        // which fails with Java 15+ and we don't need in practice, thus using a custom serializer allows to avoid this.
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(CharBuffer.class, new StdSerializer<CharBuffer>(CharBuffer.class) {
+
+            @Override
+            public void serialize(CharBuffer charBuffer, JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException {
+                jsonGenerator.writeString(charBuffer.toString());
+            }
+        });
+        objectMapper.registerModule(module);
+    }
 
     public static JsonNode toJson(Object o) {
         return objectMapper.valueToTree(o);

@@ -30,11 +30,13 @@ endif::[]
 ** Automatically sets `service.node.name` in all log events if set through agent configuration
 ** Add `log_ecs_reformatting_additional_fields` option to support arbitrary fields in logs
 ** Automatically serialize markers as tags where relevant (log4j2 and logback)
+* gRPC spans (client and server) can detect errors or cancellation through custom listeners - {pull}2067[#2067]
 
 [float]
 ===== Bug fixes
 * Fix failure to parse some forms of the `Implementation-Version` property from jar manifest files - {pull}1931[#1931]
 * Ensure single value for context-propagation header - {pull}1937[#1937]
+* Fix gRPC non-terminated (therefore non-reported) client spans - {pull}2067[#2067]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
