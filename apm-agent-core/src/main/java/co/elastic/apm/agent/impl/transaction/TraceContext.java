@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
 
@@ -137,14 +131,14 @@ public class TraceContext implements Recyclable {
                 }
 
                 boolean isValid = false;
-                String traceparent = traceContextHeaderGetter.getFirstHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+                String traceparent = traceContextHeaderGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
                 if (traceparent != null) {
                     isValid = child.asChildOf(traceparent);
                 }
 
                 if (!isValid) {
                     // Look for the legacy Elastic traceparent header (in case this comes from an older agent)
-                    traceparent = traceContextHeaderGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+                    traceparent = traceContextHeaderGetter.getFirstHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
                     if (traceparent != null) {
                         isValid = child.asChildOf(traceparent);
                     }
@@ -737,7 +731,7 @@ public class TraceContext implements Recyclable {
         }
     }
 
-    TraceState getTraceState() {
+    public TraceState getTraceState() {
         return traceState;
     }
 
@@ -792,6 +786,10 @@ public class TraceContext implements Recyclable {
 
     public boolean traceIdAndIdEquals(byte[] serialized) {
         return id.dataEquals(serialized, traceId.getLength()) && traceId.dataEquals(serialized, 0);
+    }
+
+    public byte getFlags() {
+        return flags;
     }
 
     public interface ChildContextCreator<T> {

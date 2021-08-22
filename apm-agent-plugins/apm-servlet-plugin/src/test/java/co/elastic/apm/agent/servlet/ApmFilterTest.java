@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.servlet;
 
@@ -31,14 +25,16 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.Url;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import javax.annotation.Nullable;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -96,7 +92,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         Url url = transactionContext.getRequest().getUrl();
         assertThat(url.getProtocol()).isEqualTo("http");
         assertThat(url.getSearch()).isEqualTo("foo=bar");
-        assertThat(url.getPort().toString()).isEqualTo("80");
+        assertThat(url.getPort()).isEqualTo(80);
         assertThat(url.getHostname()).isEqualTo("localhost");
         assertThat(url.getPathname()).isEqualTo("/foo/bar");
         assertThat(url.getFull().toString()).isEqualTo("http://localhost/foo/bar?foo=bar");
@@ -297,6 +293,21 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         assertThat(response.getHeaders().get("bar")).isEqualTo("baz");
     }
 
+    @Test
+    void filterWithoutFilterChain() {
+        // should create it's own transaction
+        SimpleTestFilter filter = new SimpleTestFilter();
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setMethod("GET");
+        request.setRequestURI("/path/filter");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        filter.doFilter(request, response, null);
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(filter.active).isNotNull();
+    }
+
     public static class TestServlet extends HttpServlet {
     }
 
@@ -317,6 +328,27 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
             Objects.requireNonNull(tracer.currentTransaction()).withName(customName, PRIO_USER_SUPPLIED);
             chain.doFilter(request, response);
+        }
+
+        @Override
+        public void destroy() {
+
+        }
+    }
+
+    private static class SimpleTestFilter implements Filter {
+
+        @Nullable
+        AbstractSpan<?> active = null;
+
+        @Override
+        public void init(FilterConfig filterConfig) {
+
+        }
+
+        @Override
+        public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) {
+            active = tracer.getActive();
         }
 
         @Override

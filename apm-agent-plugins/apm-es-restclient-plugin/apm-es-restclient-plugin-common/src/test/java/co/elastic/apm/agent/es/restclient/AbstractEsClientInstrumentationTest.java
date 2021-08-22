@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.es.restclient;
 
@@ -29,7 +23,6 @@ import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
@@ -64,6 +57,15 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     protected boolean async;
 
+    private boolean checkHttpUrl = true;
+
+    /**
+     * Disables HTTP URL check for the current test method
+     */
+    public void disableHttpUrlCheck() {
+        checkHttpUrl = false;
+    }
+
     @Parameterized.Parameters(name = "Async={0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{{Boolean.FALSE}, {Boolean.TRUE}});
@@ -84,19 +86,17 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     @Before
     public void startTransaction() {
+        // While JUnit does not recycle test class instances between method invocations by default
+        // this test should not be required, but it allows to ensure proper correctness even if that changes
+        assertThat(checkHttpUrl)
+            .describedAs("checking HTTP URLs should be enabled by default")
+            .isTrue();
+
         startTestRootTransaction("ES Transaction");
     }
 
     @After
     public void endTransaction() {
-        int spanCount = reporter.getNumReportedSpans();
-        if (spanCount > 0) {
-            reporter.getSpans().forEach(s -> assertThat(s.getOutcome())
-                .describedAs("span outcome should be either failure or success")
-                .isNotEqualTo(Outcome.UNKNOWN));
-        }
-
-
         Transaction currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
             currentTransaction.deactivate().end();
@@ -104,7 +104,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     public void assertThatErrorsExistWhenDeleteNonExistingIndex() {
-
         List<ErrorCapture> errorCaptures = reporter.getErrors();
         assertThat(errorCaptures).hasSize(1);
         ErrorCapture errorCapture = errorCaptures.get(0);
@@ -129,46 +128,45 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(db.getStatementBuffer().toString()).isEqualTo(statement);
     }
 
-
     protected void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
         validateSpanContentWithoutContext(span, expectedName, statusCode, method);
         validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
         validateDestinationContextContent(span.getContext().getDestination());
-        assertThat(span.getOutcome()).isNotEqualTo(Outcome.UNKNOWN);
     }
 
     private void validateDestinationContextContent(Destination destination) {
         assertThat(destination).isNotNull();
-        assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
-        assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
-        assertThat(destination.getService().getName().toString()).isEqualTo(ELASTICSEARCH);
+
+        if (reporter.checkDestinationAddress()) {
+            assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
+            assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
+        }
+
         assertThat(destination.getService().getResource().toString()).isEqualTo(ELASTICSEARCH);
-        assertThat(destination.getService().getType()).isEqualTo(SPAN_TYPE);
     }
 
     private void validateHttpContextContent(Http http, int statusCode, String method) {
         assertThat(http).isNotNull();
         assertThat(http.getMethod()).isEqualTo(method);
         assertThat(http.getStatusCode()).isEqualTo(statusCode);
-        assertThat(http.getUrl()).isEqualTo("http://" + container.getHttpHostAddress());
+        if (checkHttpUrl) {
+            assertThat(http.getUrl().toString()).isEqualTo("http://" + container.getHttpHostAddress());
+        }
     }
 
     protected void validateSpanContentAfterIndexCreateRequest() {
-
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s", SECOND_INDEX), 200, "PUT");
     }
 
     protected void validateSpanContentAfterIndexDeleteRequest() {
-
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s", SECOND_INDEX), 200, "DELETE");
     }
 
     protected void validateSpanContentAfterBulkRequest() {
-
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         assertThat(spans.get(0).getNameAsString()).isEqualTo("Elasticsearch: POST /_bulk");

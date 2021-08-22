@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
@@ -37,7 +31,6 @@ import java.lang.ref.SoftReference;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Caches {@link TypeDescription}s which speeds up type matching -
@@ -46,7 +39,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * Without a type pool cache those types would have to be re-loaded from the file system if their {@link Class} has not been loaded yet.
  * <p>
  * In order to avoid {@link OutOfMemoryError}s because of this cache,
- * the {@link TypePool.CacheProvider}s are wrapped in a {@link SoftReference}
+ * the {@link TypePool.CacheProvider}s are wrapped in a {@link SoftReference}.
+ * If the underlying cache is being GC'ed, a new one is immediately being created instead, so to both prevent OOME and
+ * enable continuous caching.
+ * Any cache that is not being accessed for some time (configurable through constructor), is being cleared, so that
+ * caches don't occupy heap memory until there is a heap stress. This fits the typical pattern of most type matching
+ * occurring at the beginning of the agent attachment.
  * </p>
  */
 public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCache {
@@ -58,6 +56,7 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
      */
     private final WeakConcurrentMap<ClassLoader, CacheProviderWrapper> cacheProviders =
         new NullSafeWeakConcurrentMap<ClassLoader, CacheProviderWrapper>(false);
+
     private final ElementMatcher<ClassLoader> ignoredClassLoaders;
 
     public SoftlyReferencingTypePoolCache(final TypePool.Default.ReaderMode readerMode,
@@ -80,16 +79,13 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
             return TypePool.CacheProvider.Simple.withObjectType();
         }
         classLoader = classLoader == null ? getBootstrapMarkerLoader() : classLoader;
-        CacheProviderWrapper cacheProviderRef = cacheProviders.get(classLoader);
-        if (cacheProviderRef == null || cacheProviderRef.get() == null) {
-            cacheProviderRef = new CacheProviderWrapper();
-            cacheProviders.put(classLoader, cacheProviderRef);
+        CacheProviderWrapper cacheProviderWrapper = cacheProviders.get(classLoader);
+        if (cacheProviderWrapper == null) {
+            cacheProviders.put(classLoader, new CacheProviderWrapper());
             // accommodate for race condition
-            cacheProviderRef = cacheProviders.get(classLoader);
+            cacheProviderWrapper = cacheProviders.get(classLoader);
         }
-        final TypePool.CacheProvider cacheProvider = cacheProviderRef.get();
-        // guard against edge case when the soft reference has already been cleared since evaluating the loop condition
-        return cacheProvider != null ? cacheProvider : TypePool.CacheProvider.Simple.withObjectType();
+        return cacheProviderWrapper;
     }
 
     /**
@@ -115,8 +111,9 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
      */
     void clearIfNotAccessedSince(long clearIfNotAccessedSinceMinutes) {
         for (Map.Entry<ClassLoader, CacheProviderWrapper> entry : cacheProviders) {
-            if (System.currentTimeMillis() >= entry.getValue().getLastAccess() + TimeUnit.MINUTES.toMillis(clearIfNotAccessedSinceMinutes)) {
-                cacheProviders.remove(entry.getKey());
+            CacheProviderWrapper cacheWrapper = entry.getValue();
+            if (System.currentTimeMillis() >= cacheWrapper.getLastAccess() + TimeUnit.MINUTES.toMillis(clearIfNotAccessedSinceMinutes)) {
+                cacheWrapper.clear();
             }
         }
     }
@@ -125,21 +122,49 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
         return cacheProviders;
     }
 
-    private static class CacheProviderWrapper {
-        private final AtomicLong lastAccess = new AtomicLong(System.currentTimeMillis());
-        private final SoftReference<TypePool.CacheProvider> delegate;
+    private static class CacheProviderWrapper implements TypePool.CacheProvider {
+
+        private volatile long lastAccess = System.currentTimeMillis();
+        private volatile SoftReference<TypePool.CacheProvider> delegate;
 
         private CacheProviderWrapper() {
-            this.delegate = new SoftReference<TypePool.CacheProvider>(new TypePool.CacheProvider.Simple());
+            delegate = new SoftReference<TypePool.CacheProvider>(new Simple());
         }
 
         long getLastAccess() {
-            return lastAccess.get();
+            return lastAccess;
         }
 
+        private TypePool.CacheProvider getDelegate() {
+            TypePool.CacheProvider cacheProvider = delegate.get();
+            if (cacheProvider == null) {
+                synchronized (this) {
+                    cacheProvider = delegate.get();
+                    if (cacheProvider == null) {
+                        cacheProvider = new Simple();
+                        delegate = new SoftReference<TypePool.CacheProvider>(cacheProvider);
+                    }
+                }
+            }
+            return cacheProvider;
+        }
+
+        @Override
         @Nullable
-        TypePool.CacheProvider get() {
-            return delegate.get();
+        public TypePool.Resolution find(String name) {
+            lastAccess = System.currentTimeMillis();
+            return getDelegate().find(name);
+        }
+
+        @Override
+        public TypePool.Resolution register(String name, TypePool.Resolution resolution) {
+            lastAccess = System.currentTimeMillis();
+            return getDelegate().register(name, resolution);
+        }
+
+        @Override
+        public void clear() {
+            getDelegate().clear();
         }
     }
 

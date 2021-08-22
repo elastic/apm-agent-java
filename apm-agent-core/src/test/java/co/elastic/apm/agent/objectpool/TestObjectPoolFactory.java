@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.objectpool;
 
@@ -62,12 +56,33 @@ public class TestObjectPoolFactory extends ObjectPoolFactory {
         assertThat(createdPools)
             .describedAs("at least one object pool should have been created, test object pool factory likely not used whereas it should")
             .isNotEmpty();
-        for (BookkeeperObjectPool<?> pool : createdPools) {
-            Collection<?> toReturn = pool.getRecyclablesToReturn();
-            String pooledItemClass = toReturn.stream().findFirst().map(e -> e.getClass().getName()).orElse("?");
-            assertThat(toReturn)
-                .describedAs("pool should have all its items recycled : instance = %s, class = %s", toReturn, pooledItemClass)
-                .isEmpty();
+
+        // retry loop added to prevent test failures due to asynchronous/un-synchronized pooling operations
+        // this is fine because the actual failures we look for are when there is a span/transaction that has
+        // not been recycled at all due to improper activation lifecycle.
+        int retry = 5;
+        boolean hasSomethingLeft;
+        do {
+            hasSomethingLeft = false;
+            for (BookkeeperObjectPool<?> pool : createdPools) {
+                Collection<?> toReturn = pool.getRecyclablesToReturn();
+                hasSomethingLeft = hasSomethingLeft || toReturn.size() > 0;
+            }
+            if (hasSomethingLeft) {
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    // silently ignored
+                }
+            }
+        } while (retry-- > 0 && hasSomethingLeft);
+
+        if (retry == 0 && hasSomethingLeft) {
+            for (BookkeeperObjectPool<?> pool : createdPools) {
+                assertThat(pool.getRecyclablesToReturn())
+                    .describedAs("pool should have all its items recycled")
+                    .isEmpty();
+            }
         }
     }
 

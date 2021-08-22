@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.log4j2;
 
@@ -43,7 +37,7 @@ public class LegacyLog4j2ShadingTest extends Log4j2ShadingTest {
 
     @Before
     @Override
-    public void setup() {
+    public void setup() throws Exception {
         super.setup();
     }
 
@@ -61,20 +55,44 @@ public class LegacyLog4j2ShadingTest extends Log4j2ShadingTest {
 
     @Test
     @Override
+    public void testMarkers() throws Exception {
+        super.testMarkers();
+    }
+
+    @Test
+    @Override
     public void testShadingIntoOriginalLogsDir() throws Exception {
         super.testShadingIntoOriginalLogsDir();
     }
 
     @Test
     @Override
-    public void testLogShadingDisabled() throws Exception {
-        super.testLogShadingDisabled();
+    public void testLazyShadeFileCreation() throws Exception {
+        super.testLazyShadeFileCreation();
     }
 
     @Test
     @Override
     public void testLogShadingReplaceOriginal() throws IOException {
         super.testLogShadingReplaceOriginal();
+    }
+
+    @Test
+    @Override
+    public void testDynamicConfiguration() throws Exception {
+        super.testDynamicConfiguration();
+    }
+
+    @Test
+    @Override
+    public void testLogOverride() throws IOException {
+        super.testLogOverride();
+    }
+
+    @Test
+    @Override
+    public void testEmptyFormatterAllowList() throws Exception {
+        super.testEmptyFormatterAllowList();
     }
 
     @Test

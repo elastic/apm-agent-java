@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,12 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.resttemplate;
 
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import org.springframework.http.HttpMessage;
 import org.springframework.http.HttpRequest;
 
 public class SpringRestRequestHeaderSetter implements TextHeaderSetter<HttpRequest> {
@@ -34,7 +27,9 @@ public class SpringRestRequestHeaderSetter implements TextHeaderSetter<HttpReque
 
     @Override
     public void setHeader(String headerName, String headerValue, HttpRequest request) {
-        // the org.springframework.http.HttpRequest has only be introduced in 3.1.0
-        request.getHeaders().add(headerName, headerValue);
+        if (!request.getHeaders().containsKey(headerName)) {
+            // the org.springframework.http.HttpRequest has only be introduced in 3.1.0
+            request.getHeaders().add(headerName, headerValue);
+        }
     }
 }

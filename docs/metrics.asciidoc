@@ -24,8 +24,8 @@ When multiple JVMs are running on the same host and report data for the same ser
 * <<metrics-cgroup, cgroup metrics>>
 * <<metrics-jvm>>
 * <<metrics-application>>
-* <<metrics-micrometer>>
 * <<metrics-only-mode>>
+* <<metrics-micrometer>>
 
 [float]
 [[metrics-system]]
@@ -161,6 +161,54 @@ The maximum amount of heap memory in bytes that can be used for memory managemen
 If the maximum memory size is undefined, the value is `-1`.
 --
 
+*`jvm.memory.heap.pool.used`*::
++
+--
+type: long
+
+format: bytes
+
+The amount of used memory in bytes of the memory pool specified by the `name` label
+
+labels
+
+* name: The name representing this memory pool
+
+--
+
+
+*`jvm.memory.heap.pool.committed`*::
++
+--
+type: long
+
+format: bytes
+
+The amount of memory in bytes that is committed for the memory pool specified by the `name` label.
+This amount of memory is guaranteed for this specific pool.
+
+labels
+
+* name: The name representing this memory pool
+
+--
+
+
+*`jvm.memory.heap.pool.max`*::
++
+--
+type: long
+
+format: bytes
+
+The maximum amount of memory in bytes that can be used for the memory pool specified by the `name` label.
+
+labels
+
+* name: The name representing this memory pool
+
+--
+
 
 *`jvm.memory.non_heap.used`*::
 +
@@ -262,7 +310,7 @@ This timer tracks the duration of transactions and allows for the creation of gr
 
 Fields:
 
-* `sum.us`: The sum of all transaction durations in ms since the last report (the delta)
+* `sum.us`: The sum of all transaction durations in microseconds since the last report (the delta)
 * `count`: The count of all transactions since the last report (the delta)
 
 You can filter and group by these dimensions:
@@ -300,7 +348,7 @@ This timer tracks the span self-times and is the basis of the transaction breakd
 
 Fields:
 
-* `sum.us`: The sum of all span self-times in ms since the last report (the delta)
+* `sum.us`: The sum of all span self-times in microseconds since the last report (the delta)
 * `count`: The count of all span self-times since the last report (the delta)
 
 You can filter and group by these dimensions:
@@ -312,10 +360,19 @@ You can filter and group by these dimensions:
 
 --
 
+[float]
+[[metrics-only-mode]]
+=== Use the agent for metrics collection only
+
+There are cases where you would want to use the agent only to collect and ship metrics, without tracing any Java code.
+In such cases, you may set the <<config-instrument, `instrument`>> config option to `false`. By doing so, the agent will
+minimize its effect on the application, while still collecting and sending metrics to the APM Server.
 
 [float]
 [[metrics-micrometer]]
-=== Custom metrics using Micrometer (beta)
+=== Micrometer metrics
+
+beta::[]
 
 The Elastic APM Java agent lets you use the popular metrics collection framework https://micrometer.io/[Micrometer] to track custom application metrics.
 
@@ -324,30 +381,41 @@ However, you can also track business-related metrics such as revenue and correla
 Metrics registered to a Micrometer `MeterRegistry` are aggregated in memory and reported every <<config-metrics-interval, `metrics_interval`>>.
 Based on the metadata about the service and the timestamp, you can correlate metrics with traces.
 The advantage is that the metrics won't be affected by the
-<<config-transaction-sample-rate, sampling rate>> and that they usually take up less space.
+<<config-transaction-sample-rate, sampling rate>> and usually take up less space.
 That is because not every event is stored individually.
 
 The limitation of tracking metrics is that you won't be able to attribute a value to a specific transaction.
-If you'd like to do that, <<api-transaction-add-tag, add labels>> to your transaction instead of tracking the metric with micrometer.
+If you'd like to do that, <<api-transaction-add-tag, add labels>> to your transaction instead of tracking the metric with Micrometer.
 The tradeoff here is that you either have to do 100% sampling or account for the missing events.
 The reason for that is that if you set your sampling rate to 10%, for example,
 you'll only be storing one out of 10 requests.
 The labels you set on non-sampled transactions will be lost.
 
+* <<metrics-micrometer-beta-caveats>>
+* <<metrics-micrometer-get-started-existing>>
+* <<metrics-micrometer-get-started-from-scratch>>
+* <<metrics-micrometer-spring-boot>>
+* <<metrics-micrometer-fields>>
 
 [float]
 [[metrics-micrometer-beta-caveats]]
-==== Beta caveats
-* To fix some of the caveats listed here, we may have to introduce breaking changes.
-  So please watch release notes Micrometer-related changes before updating.
-* Metrics with dots in their name can result in mapping conflicts.
-See https://github.com/elastic/apm/issues/347[elastic/apm#347]
-* Histograms aren't supported yet
+==== Caveats
+
+To fix some of the caveats listed here, we may have to introduce breaking changes.
+Please look for Micrometer-related release notes before updating.
+
+* Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts.
+De-dotting can be disabled via <<config-dedot-custom-metrics, `dedot_custom_metrics`>>.
+* Histograms (https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/DistributionSummary.html[DistributionSummary],
+https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/Timer.html[Timer],
+and https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/LongTaskTimer.html[LongTaskTimer])
+are partially supported by converting the histogram metric into two derived metrics: a counter of the values and the sum of the values.
+For example, `DistributionSummary.builder("order").register(...).record(orderPrice)` will create two metrics: `order.sum` and `order.count`.
 * When multiple `MeterRegistry` s are used, the metrics are de-duplicated based on their meter id.
   However, it is non-deterministic which metrics are favored if multiple meter registries are used within a compound meter registry.
 See https://github.com/elastic/apm-agent-java/issues/1476[#1476]
 * When using `CountingMode.STEP`, the step duration has to be aligned with <<config-metrics-interval, `metrics_interval`>>.
-  But even if doing that there can be missing values. - see https://github.com/elastic/apm-agent-java/issues/1476[#1476]
+  But even if doing that there can be missing values. See https://github.com/elastic/apm-agent-java/issues/1476[#1476]
 * When using `CountingMode.CUMULATIVE`, you can use TSVB's "Positive Rate" aggregation to convert the counter to a rate.
   But you have to remember to group by a combination of dimensions that uniquely identify the time series.
   This may be a combination of `host.name` and `service.name`, or the `kubernetes.pod.id`.
@@ -356,28 +424,60 @@ See https://github.com/elastic/apm-agent-java/issues/1476[#1476]
 [[metrics-micrometer-get-started-existing]]
 ==== Get started with existing Micrometer setup
 
-You only have to attach the agent, and you're done.
-The agent automatically detects all `MeterRegistry` instances and reports all metrics to APM Server in addition to where they originally report.
-When attaching the agent after the application has already started,
-the agent detects a `MeterRegistry` when calling any public method on it.
-If you are using multiple registries within a `CompoundMeterRegistry`,
-the agent makes sure to only report the metrics once.
+Attach the agent, and you’re done!
+The agent automatically detects all `MeterRegistry` instances and reports all metrics to APM Server (in addition to where they originally report).
+When attaching the agent after the application has already started, the agent detects a `MeterRegistry` when calling any public method on it.
+If you are using multiple registries within a `CompoundMeterRegistry`, the agent only reports the metrics once.
+
+[float]
+[[verify-micrometer-data]]
+==== Verify Micrometer data
+
+Use Discover to validate that metrics are successfully reported to Kibana.
+
+. Launch {kib}.
+. Open the main menu, then click *Discover*.
+. Select `apm-*` as your index pattern.
+. Filter the data to only show documents with metrics: `processor.name :"metric"`
+. Optionally, apply additional filters by service or host names if Micrometer was only instrumented on a subset of your environment.
+
+You should now see documents containing both metrics collected by the APM agent and custom metrics from Micrometer.
+Narrow your search with a known Micrometer metric field.
+For example, if you know you have registered the metric name `cache.puts` in the Micrometer `MeterRegistry`, add `cache_puts: *` (dots are replaced with underscores) to your search to return only Micrometer metrics documents.
+
+[float]
+[[visualize-micrometer-data]]
+==== Visualize Micrometer data
+
+NOTE: Monotonically increased counters and Positive rate aggregations are not fully supported in the current version.
+
+{kibana-ref}/tsvb.html[TSVB] is the recommended visualization for Micrometer metrics.
+First, make sure to select the right aggregation. The most common options are:
+
+* Sum: Useful for business metrics
+* Average: Usually used for performance-related metrics
+
+It's common to group metrics by attributes, including Micrometer labels or attributes already collected by APM agents. This could be service versions, runtime versions, or even cloud metadata.
+
+TIP: See the https://www.elastic.co/blog/visualizing-observability-with-kibana-event-rates-and-rate-of-change-in-tsvb[Event rates and rate of change in TSVB] blog post for more information.
 
 [float]
 [[metrics-micrometer-get-started-from-scratch]]
 ==== Get started from scratch
 
 Declare a dependency to Micrometer:
-```xml
+[source,xml]
+----
 <dependency>
     <groupId>io.micrometer</groupId>
     <artifactId>micrometer-core</artifactId>
     <version>${micrometer.version}</version>
 </dependency>
-```
+----
 
 Create a Micrometer `MeterRegistry`.
-```java
+[source,java]
+----
 MeterRegistry registry = new SimpleMeterRegistry(new SimpleConfig() {
 
         @Override
@@ -398,16 +498,23 @@ MeterRegistry registry = new SimpleMeterRegistry(new SimpleConfig() {
             return null;
         }
     }, Clock.SYSTEM);
+----
 
-```
+[float]
+[[metrics-micrometer-spring-boot]]
+==== Get started with Spring Boot
 
-When using Spring Boot, you can use the `management.metrics.export.simple` prefix to configure via `application.properties`
+The easiest way to get started with Spring Boot is to add a dependency to https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html[Spring Boot Actuator].
+Spring Boot Actuator provides dependency management and auto-configuration for Micrometer.
 
-```
+Use the `management.metrics.export.simple` prefix to configure via `application.properties`
+
+[source,properties]
+----
 management.metrics.export.simple.enabled=true
 management.metrics.export.simple.step=30s
 management.metrics.export.simple.mode=STEP
-```
+----
 
 [float]
 [[metrics-micrometer-fields]]
@@ -425,7 +532,7 @@ Micrometer tags are nested under `labels`. Example:
 }
 ----
 
-Labels are great to break down metrics by different dimensions.
+Labels are great for breaking down metrics by different dimensions.
 Although there is no upper limit, note that a high number of distinct values per label (aka high cardinality) may lead to higher memory usage,
 higher index sizes, and slower queries.
 Also, make sure the number of distinct tag keys is limited to avoid {ref}/mapping.html#mapping-limit-settings[mapping explosions].
@@ -504,11 +611,3 @@ Fields:
 
 * `${name}`: The value of `functionCounter.count()` (the delta when using `CountingMode.STEP`).
 --
-
-[float]
-[[metrics-only-mode]]
-=== Using the agent only for metrics collection
-
-There are cases where you would want to use the agent only to collect and ship metrics, without tracing any Java code.
-In such cases, you may set the <<config-instrument, `instrument`>> config option to `false`. By doing so, the agent will
-minimize its effect on the application, while still collecting and sending metrics to the APM Server.

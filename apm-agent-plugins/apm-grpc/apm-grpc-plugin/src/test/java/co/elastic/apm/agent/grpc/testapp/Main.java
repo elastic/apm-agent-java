@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.grpc.testapp;
 
@@ -58,14 +52,14 @@ public class Main {
             HelloClient<?, ?> client = app.getClient();
 
             if (isBench) {
-                System.out.println(String.format("benchmark warmup with count = %d", warmCount));
+                System.out.printf("benchmark warmup with count = %d%n", warmCount);
                 execute(client, true, warmCount);
                 System.out.println("benchmark warmup completed");
 
                 if (waitForKeystroke) {
                     waitForKey();
                 }
-                System.out.println(String.format("benchmark with count = %d", count));
+                System.out.printf("benchmark with count = %d%n", count);
             }
 
             execute(client, isBench, count);
@@ -80,7 +74,7 @@ public class Main {
 
             long clientErrors = client.getErrorCount();
             if (clientErrors > 0) {
-                System.out.println(String.format("WARNING: client has reported %d errors, results might be incorrect", clientErrors));
+                System.out.printf("WARNING: client has reported %d errors, results might be incorrect%n", clientErrors);
             }
 
         } catch (IOException | InterruptedException | ExecutionException e) {
@@ -122,20 +116,19 @@ public class Main {
                 long now = System.currentTimeMillis();
                 long timeSpent = now - timeLastUpdate;
                 int countSinceLastUpdate = i - countLastUpdate;
-                System.out.println(
-                    String.format("progress = %1$6.02f %% (%2$d), count = %3$d in %4$d ms, average = %5$.02f ms",
-                        i * 100d / count,
-                        i,
-                        countSinceLastUpdate,
-                        timeSpent,
-                        timeSpent * 1d / countSinceLastUpdate
-                    ));
+                System.out.printf("progress = %1$6.02f %% (%2$d), count = %3$d in %4$d ms, average = %5$.02f ms%n",
+                    i * 100d / count,
+                    i,
+                    countSinceLastUpdate,
+                    timeSpent,
+                    timeSpent * 1d / countSinceLastUpdate
+                );
                 timeLastUpdate = now;
                 countLastUpdate = i;
 
                 if (i == count) {
                     long totalTime = System.currentTimeMillis() - start;
-                    System.out.println(String.format("total count = %d in %d ms, average = %.02f", count, totalTime, 1.0D * totalTime / count));
+                    System.out.printf("total count = %d in %d ms, average = %.02f%n", count, totalTime, 1.0D * totalTime / count);
                 }
             }
         }

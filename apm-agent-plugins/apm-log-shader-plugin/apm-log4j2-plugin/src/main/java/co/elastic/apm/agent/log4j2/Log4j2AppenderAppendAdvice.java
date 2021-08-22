@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,33 +15,31 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.log4j2;
 
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
+import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender;
 
 public class Log4j2AppenderAppendAdvice {
 
+    private static final Log4J2EcsReformattingHelper helper = new Log4J2EcsReformattingHelper();
+
     @SuppressWarnings("unused")
     @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
-    public static boolean shadeAndSkipIfOverrideEnabled(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogEvent eventObject,
-                                                        @Advice.This(typing = Assigner.Typing.DYNAMIC) AbstractOutputStreamAppender<?> thisAppender) {
-        return Log4j2LogShadingHelper.instance().shouldSkipAppend(thisAppender);
+    public static boolean shadeAndSkipIfReplaceEnabled(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogEvent eventObject,
+                                                       @Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender) {
+        return helper.onAppendEnter(thisAppender);
     }
 
     @SuppressWarnings({"unused"})
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
     public static void shadeLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogEvent eventObject,
-                                         @Advice.This(typing = Assigner.Typing.DYNAMIC) AbstractOutputStreamAppender<?> thisAppender) {
+                                         @Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender) {
 
-        if (!Log4j2LogShadingHelper.instance().isShadingEnabled()) {
-            return;
-        }
-        AbstractOutputStreamAppender<?> shadeAppender = Log4j2LogShadingHelper.instance().getOrCreateShadeAppenderFor(thisAppender);
+        Appender shadeAppender = helper.onAppendExit(thisAppender);
         if (shadeAppender != null) {
             shadeAppender.append(eventObject);
         }

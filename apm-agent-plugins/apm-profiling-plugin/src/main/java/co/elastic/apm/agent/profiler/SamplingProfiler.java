@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.profiler;
 
@@ -181,6 +175,8 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     private final ObjectPool<CallTree> callTreePool;
     private final TraceContext contextForLogging;
 
+    private boolean previouslyEnabled = false;
+
     /**
      * Creates a sampling profiler using temporary files
      *
@@ -332,20 +328,31 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
 
     @Override
     public void run() {
-        if (!config.isProfilingEnabled() || !tracer.isRunning()) {
+
+        boolean enabled = config.isProfilingEnabled() && tracer.isRunning();
+        boolean hasBeenDisabled = previouslyEnabled && !enabled;
+        previouslyEnabled = enabled;
+
+        if (!enabled) {
             if (jfrParser != null) {
                 jfrParser = null;
             }
             if (!scheduler.isShutdown()) {
                 scheduler.schedule(this, config.getProfilingInterval().getMillis(), TimeUnit.MILLISECONDS);
             }
-            try {
-                clear();
-            } catch (Throwable throwable) {
-                logger.error("Error while trying to clear profiler constructs", throwable);
+
+            if (hasBeenDisabled) {
+                // only clear when going from enabled -> disabled state
+                try {
+                    clear();
+                } catch (Throwable throwable) {
+                    logger.error("Error while trying to clear profiler constructs", throwable);
+                }
             }
+
             return;
         }
+
 
         // lazily create temporary files
         try {
@@ -379,7 +386,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         boolean continueProfilingSession = config.isNonStopProfiling() && !interrupted && config.isProfilingEnabled() && postProcessingEnabled;
         setProfilingSessionOngoing(continueProfilingSession);
 
-        if (!interrupted) {
+        if (!interrupted && !scheduler.isShutdown()) {
             long delay = config.getProfilingInterval().getMillis() - profilingDuration.getMillis();
             scheduler.schedule(this, delay, TimeUnit.MILLISECONDS);
         }

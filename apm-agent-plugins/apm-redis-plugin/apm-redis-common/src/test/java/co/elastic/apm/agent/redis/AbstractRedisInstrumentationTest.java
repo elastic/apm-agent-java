@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.redis;
 
@@ -68,6 +62,8 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
     public final void initRedis() throws IOException {
         redisPort = getAvailablePort();
         server = RedisServer.builder()
+            // workaround https://github.com/kstyrc/embedded-redis/issues/51
+            .setting("maxmemory 128M")
             .setting("bind 127.0.0.1")
             .port(redisPort)
             .build();
@@ -104,9 +100,7 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
                 assertThat(destination.getPort()).isEqualTo(redisPort);
             }
             Destination.Service service = destination.getService();
-            assertThat(service.getName().toString()).isEqualTo("redis");
             assertThat(service.getResource().toString()).isEqualTo("redis");
-            assertThat(service.getType()).isEqualTo("db");
         }
     }
 

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.util;
 
@@ -46,14 +40,14 @@ import java.security.NoSuchAlgorithmException;
 
 @VisibleForAdvice
 public class IOUtils {
-    static final int BYTE_BUFFER_CAPACITY = 2048;
-    private static final ThreadLocal<ByteBuffer> threadLocalByteBuffer = new ThreadLocal<ByteBuffer>() {
+    protected static final int BYTE_BUFFER_CAPACITY = 2048;
+    protected static final ThreadLocal<ByteBuffer> threadLocalByteBuffer = new ThreadLocal<ByteBuffer>() {
         @Override
         protected ByteBuffer initialValue() {
             return ByteBuffer.allocate(BYTE_BUFFER_CAPACITY);
         }
     };
-    private static final ThreadLocal<CharsetDecoder> threadLocalCharsetDecoder = new ThreadLocal<CharsetDecoder>() {
+    protected static final ThreadLocal<CharsetDecoder> threadLocalCharsetDecoder = new ThreadLocal<CharsetDecoder>() {
         @Override
         protected CharsetDecoder initialValue() {
             return StandardCharsets.UTF_8.newDecoder();
@@ -198,7 +192,7 @@ public class IOUtils {
         return decode(charBuffer, buffer);
     }
 
-    private static CoderResult decode(CharBuffer charBuffer, ByteBuffer buffer) {
+    protected static CoderResult decode(CharBuffer charBuffer, ByteBuffer buffer) {
         final CharsetDecoder charsetDecoder = threadLocalCharsetDecoder.get();
         try {
             final CoderResult coderResult = charsetDecoder.decode(buffer, charBuffer, true);

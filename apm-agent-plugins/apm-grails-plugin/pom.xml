@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.23.1-SNAPSHOT</version>
+        <version>1.25.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-grails-plugin</artifactId>
@@ -19,7 +19,7 @@
         <dependency>
             <groupId>org.grails</groupId>
             <artifactId>grails-web-mvc</artifactId>
-            <version>4.0.3</version>
+            <version>4.1.0.M4</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
@@ -27,7 +27,7 @@
     <repositories>
         <repository>
             <id>grails</id>
-            <url>https://repo.grails.org/grails/core</url>
+            <url>https://repo.grails.org/artifactory/core</url>
         </repository>
     </repositories>
 
