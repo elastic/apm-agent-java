@@ -97,11 +97,9 @@ public abstract class AbstractServletContainerIntegrationTest {
      * Set to a specific version to manually test downloading of agent from maven central using the slim cli tool.
      * Only relevant if {@link #ENABLE_RUNTIME_ATTACH} is set to {@code true} and for Servlet containers for which
      * {@link #runtimeAttachSupported()} returns {@code true}.
-     *
-     * todo - restore to null
      */
     @Nullable
-    private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = "1.25.0";
+    private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
 
     private static MockServerContainer mockServerContainer = new MockServerContainer()
         //.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(MockServerContainer.class)))
