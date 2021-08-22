@@ -31,6 +31,8 @@ endif::[]
 ** Add `log_ecs_reformatting_additional_fields` option to support arbitrary fields in logs
 ** Automatically serialize markers as tags where relevant (log4j2 and logback)
 * gRPC spans (client and server) can detect errors or cancellation through custom listeners - {pull}2067[#2067]
+* Add `-download-agent-version` to the agent <<setup-attach-cli-usage-options, attach CLI tool options>>, allowing the
+user to configure an arbitrary agent version that will be downloaded from maven and attached - {pull}1959[#1959]
 
 [float]
 ===== Bug fixes
