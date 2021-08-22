@@ -334,6 +334,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |
 | 1.25.0
 
+| Jetty HttpClient
+| 9.1+
+|
+| 1.26.0
+
 |===
 
 
