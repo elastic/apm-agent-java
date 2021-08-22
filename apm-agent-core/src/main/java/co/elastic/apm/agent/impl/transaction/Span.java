@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,13 +15,16 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.SpanContext;
+import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
@@ -252,6 +250,35 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                 outcome = hasCapturedExceptions() ? Outcome.FAILURE : Outcome.SUCCESS;
             }
             withOutcome(outcome);
+        }
+
+        // auto-infer context.destination.service.resource as per spec:
+        // https://github.com/elastic/apm/blob/master/specs/agents/tracing-spans-destination.md#contextdestinationserviceresource
+        Destination.Service service = getContext().getDestination().getService();
+        StringBuilder serviceResource = service.getResource();
+        if (isExit() && serviceResource.length() == 0 && !service.isResourceSetByUser()) {
+            String resourceType = (subtype != null) ? subtype : type;
+            Db db = context.getDb();
+            Message message = context.getMessage();
+            Url internalUrl = context.getHttp().getInternalUrl();
+            if (db.hasContent()) {
+                serviceResource.append(resourceType);
+                if (db.getInstance() != null) {
+                    serviceResource.append('/').append(db.getInstance());
+                }
+            } else if (message.hasContent()) {
+                serviceResource.append(resourceType);
+                if (message.getQueueName() != null) {
+                    serviceResource.append('/').append(message.getQueueName());
+                }
+            } else if (internalUrl.hasContent()) {
+                serviceResource.append(internalUrl.getHostname());
+                if (internalUrl.getPort() > 0) {
+                    serviceResource.append(':').append(internalUrl.getPort());
+                }
+            } else {
+                serviceResource.append(resourceType);
+            }
         }
 
         if (transaction != null) {

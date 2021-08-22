@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.vertx;
 
@@ -29,10 +23,10 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,23 +95,19 @@ public abstract class AbstractHttpTransactionHelper {
         // JSPs don't contain path params and the name is more telling than the generated servlet class
         if (webConfiguration.isUsePathAsName() || ENDS_WITH_JSP.matches(pathFirstPart, pathSecondPart)) {
             // should override ServletName#doGet
-            StringBuilder transactionName = transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1 + priorityOffset);
-            if (transactionName != null) {
-                WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(webConfiguration.getUrlGroups(), pathFirstPart, pathSecondPart);
-                if (groupMatcher != null) {
-                    transactionName.append(method).append(' ').append(groupMatcher.toString());
-                } else {
-                    transactionName.append(method).append(' ').append(pathFirstPart);
-                    if (pathSecondPart != null) {
-                        transactionName.append(pathSecondPart);
-                    }
-                }
-            }
+            TransactionNameUtils.setNameFromHttpRequestPath(
+                method,
+                pathFirstPart,
+                pathSecondPart,
+                transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1 + priorityOffset),
+                webConfiguration.getUrlGroups());
         } else {
-            StringBuilder transactionName = transaction.getAndOverrideName(PRIO_DEFAULT);
-            if (transactionName != null) {
-                transactionName.append(method).append(" unknown route");
-            }
+            TransactionNameUtils.setNameFromHttpRequestPath(
+                method,
+                "unknown route",
+                null,
+                transaction.getAndOverrideName(PRIO_DEFAULT),
+                webConfiguration.getUrlGroups());
         }
     }
 
@@ -169,7 +159,7 @@ public abstract class AbstractHttpTransactionHelper {
     }
 
     protected void fillRequest(Request request, String protocol, String method, boolean secure, @Nullable String remoteAddr) {
-        request.withHttpVersion(getHttpVersion(protocol));
+        request.withHttpVersion(protocol);
         request.withMethod(method);
 
         request.getSocket()
@@ -185,54 +175,6 @@ public abstract class AbstractHttpTransactionHelper {
             .withPort(serverPort)
             .withPathname(requestURI)
             .withSearch(queryString);
-
-        fillFullUrl(request.getUrl(), scheme, serverPort, serverName, requestURI, queryString);
-    }
-
-    // inspired by org.apache.catalina.connector.Request.getRequestURL
-    protected void fillFullUrl(Url url, @Nullable String scheme, int port, @Nullable String serverName, @Nullable String requestURI, @Nullable String queryString) {
-        // using a StringBuilder to avoid allocations when constructing the full URL
-        final StringBuilder fullUrl = url.getFull();
-
-        if (serverName != null) {
-            if (scheme != null) {
-                fullUrl.append(scheme);
-                fullUrl.append("://");
-            }
-            fullUrl.append(serverName);
-            if (port < 0) {
-                port = 80; // Work around java.net.URL bug
-            }
-        }
-        if (port > 0) {
-            if (scheme == null || (scheme.equals("http") && (port != 80)) ||
-                (scheme.equals("https") && (port != 443))) {
-                fullUrl.append(':');
-                fullUrl.append(port);
-            }
-        }
-
-        if (requestURI != null) {
-            fullUrl.append(requestURI);
-        }
-
-        if (queryString != null) {
-            fullUrl.append('?').append(queryString);
-        }
-    }
-
-    private String getHttpVersion(String protocol) {
-        // don't allocate new strings in the common cases
-        switch (protocol) {
-            case "HTTP/1.0":
-                return "1.0";
-            case "HTTP/1.1":
-                return "1.1";
-            case "HTTP/2.0":
-                return "2.0";
-            default:
-                return protocol.replace("HTTP/", "");
-        }
     }
 
     public boolean isCaptureHeaders() {

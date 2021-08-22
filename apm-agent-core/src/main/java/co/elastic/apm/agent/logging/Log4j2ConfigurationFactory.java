@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.logging;
 
@@ -100,7 +94,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         }
         if (logFile.contains(AGENT_HOME_PLACEHOLDER)) {
             if (agentHome == null) {
-                System.err.println("[elastic-apm-agent] WARN - Could not resolve " + AGENT_HOME_PLACEHOLDER + ". Falling back to System.out.");
+                System.err.println("[elastic-apm-agent] WARN Could not resolve " + AGENT_HOME_PLACEHOLDER + ". Falling back to System.out.");
                 return SYSTEM_OUT;
             } else {
                 logFile = logFile.replace(AGENT_HOME_PLACEHOLDER, agentHome);
@@ -112,7 +106,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
             logDir.mkdirs();
         }
         if (!logDir.canWrite()) {
-            System.err.println("[elastic-apm-agent] WARN - Log file " + logFile + " is not writable. Falling back to System.out.");
+            System.err.println("[elastic-apm-agent] WARN Log file " + logFile + " is not writable. Falling back to System.out.");
             return SYSTEM_OUT;
         }
         return logFile;

@@ -154,6 +154,21 @@ rendering
 |Captures incoming HTTP requests as transactions
 |1.24.0 (experimental)
 
+|Sparkjava (not Apache Spark)
+|2.x
+|The transactions are named based on your route (`GET /foo/:bar`).
+|1.25.0
+
+|com.sun.net.httpserver.HttpServer
+|1.7+
+|Captures incoming HTTP requests as transactions
+|1.25.0 (experimental)
+
+|Javalin
+|3.13.8+
+|
+|1.25.0
+
 |===
 
 
@@ -313,6 +328,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |
 |
 | 1.18.0
+
+|Vert.x WebClient
+| 3.6+
+|
+| 1.25.0
 
 |===
 

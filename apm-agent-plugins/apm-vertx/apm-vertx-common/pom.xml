@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-vertx</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.24.1-SNAPSHOT</version>
+        <version>1.25.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-vertx-common</artifactId>
@@ -34,6 +34,24 @@
             <artifactId>vertx-web</artifactId>
             <version>${version.vertx}</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web-client</artifactId>
+            <version>${version.vertx}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-httpclient-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-httpclient-core</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

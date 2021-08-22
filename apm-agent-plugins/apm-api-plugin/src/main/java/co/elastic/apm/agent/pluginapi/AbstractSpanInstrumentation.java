@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.pluginapi;
 
@@ -129,6 +123,35 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             } else {
                 return returnValue;
             }
+        }
+    }
+
+    public static class DoCreateExitSpanInstrumentation extends AbstractSpanInstrumentation {
+        public DoCreateExitSpanInstrumentation() {
+            super(named("doCreateExitSpan"));
+        }
+
+        @Nullable
+        @AssignTo.Return
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static Object doCreateExitSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                              @Advice.Return @Nullable Object returnValue) {
+            if (context instanceof AbstractSpan<?>) {
+                return ((AbstractSpan<?>) context).createExitSpan();
+            } else {
+                return returnValue;
+            }
+        }
+    }
+
+    public static class InitializeInstrumentation extends AbstractSpanInstrumentation {
+        public InitializeInstrumentation() {
+            super(named("initialize").and(takesArgument(0, Object.class)));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void incrementReferences(@Advice.Argument(0) Object span) {
+            ((AbstractSpan<?>) span).incrementReferences();
         }
     }
 
@@ -366,6 +389,39 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
                                               @Advice.Argument(1) @Nullable Object headerInjector) {
             if (headerInjector != null && context instanceof AbstractSpan) {
                 ((AbstractSpan<?>) context).propagateTraceContext(headerInjector, HeaderInjectorBridge.get(addHeaderMethodHandle));
+            }
+        }
+    }
+
+    public static class SetDestinationAddressInstrumentation extends AbstractSpanInstrumentation {
+
+        public SetDestinationAddressInstrumentation() {
+            super(named("doSetDestinationAddress"));
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void setDestinationAddress(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                                 @Advice.Argument(0) @Nullable String address,
+                                                 @Advice.Argument(1) int port) {
+            if (context instanceof Span) {
+                ((Span) context).getContext().getDestination()
+                    .withUserAddress(address)
+                    .withUserPort(port);
+            }
+        }
+    }
+
+    public static class SetDestinationServiceInstrumentation extends AbstractSpanInstrumentation {
+
+        public SetDestinationServiceInstrumentation() {
+            super(named("doSetDestinationService"));
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void setDestinationService(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                                 @Advice.Argument(0) @Nullable String resource) {
+            if (context instanceof Span) {
+                ((Span) context).getContext().getDestination().getService().withUserResource(resource);
             }
         }
     }

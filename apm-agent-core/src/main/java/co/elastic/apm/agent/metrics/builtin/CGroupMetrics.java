@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.metrics.builtin;
 
@@ -179,13 +173,13 @@ public class CGroupMetrics extends AbstractLifecycleListener {
     private CgroupFiles createCgroup2Files(String cgroupLine, File rootCgroupFsPath) throws IOException {
         final String[] cgroupLineParts = StringUtils.split(cgroupLine, ':');
         String sliceSubdir = cgroupLineParts[cgroupLineParts.length - 1];
-        File maxMemoryFile = new File(rootCgroupFsPath, sliceSubdir + File.separatorChar + CGROUP2_MAX_MEMORY);
+        File maxMemoryFile = new File(rootCgroupFsPath, sliceSubdir + System.getProperty("file.separator") + CGROUP2_MAX_MEMORY);
         if (maxMemoryFile.canRead()) {
             maxMemoryFile = getMaxMemoryFile(maxMemoryFile, CGROUP2_UNLIMITED);
             return new CgroupFiles(
                 maxMemoryFile,
-                new File(rootCgroupFsPath, sliceSubdir + File.separator + CGROUP2_USED_MEMORY),
-                new File(rootCgroupFsPath, sliceSubdir + File.separator + CGROUP_MEMORY_STAT)
+                new File(rootCgroupFsPath, sliceSubdir + System.getProperty("file.separator") + CGROUP2_USED_MEMORY),
+                new File(rootCgroupFsPath, sliceSubdir + System.getProperty("file.separator") + CGROUP_MEMORY_STAT)
             );
         }
         return null;

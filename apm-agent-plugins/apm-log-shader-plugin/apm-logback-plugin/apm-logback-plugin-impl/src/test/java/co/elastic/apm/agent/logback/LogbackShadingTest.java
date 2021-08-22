@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.logback;
 
@@ -32,14 +26,23 @@ import ch.qos.logback.core.joran.spi.JoranException;
 import co.elastic.apm.agent.log.shader.LogShadingInstrumentationTest;
 import co.elastic.apm.agent.log.shader.LoggerFacade;
 import org.slf4j.MDC;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
 import java.net.URL;
 
 public class LogbackShadingTest extends LogShadingInstrumentationTest {
 
+    private static final Marker TEST_MARKER = MarkerFactory.getMarker("TEST");
+
     @Override
     protected LoggerFacade createLoggerFacade() {
         return new LogbackLoggerFacade();
+    }
+
+    @Override
+    protected boolean markersSupported() {
+        return true;
     }
 
     @Override
@@ -91,6 +94,11 @@ public class LogbackShadingTest extends LogShadingInstrumentationTest {
         @Override
         public void debug(String message) {
             logbackLogger.debug(message);
+        }
+
+        @Override
+        public void debugWithMarker(String message) {
+            logbackLogger.debug(TEST_MARKER, message);
         }
 
         @Override

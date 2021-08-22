@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,12 +15,12 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.AbstractApiTest;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.api.AbstractSpanImplAccessor;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Outcome;
 import co.elastic.apm.api.Span;
@@ -33,12 +28,15 @@ import co.elastic.apm.api.Transaction;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import javax.annotation.Nullable;
 import java.security.SecureRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class TransactionInstrumentationTest extends AbstractInstrumentationTest {
+class TransactionInstrumentationTest extends AbstractApiTest {
 
     private static final SecureRandom random = new SecureRandom();
 
@@ -61,6 +59,44 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     void testFrameworkName() {
         endTransaction();
         assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
+    }
+
+    @Test
+    void testSetUserFrameworkValidNameBeforeSetByInternalAPI() {
+        transaction.setFrameworkName("foo");
+        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName("bar");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("foo");
+    }
+
+    @Test
+    void testSetUserFrameworkValidNameAfterSetByInternalAPI() {
+        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName("bar");
+        transaction.setFrameworkName("foo");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("foo");
+    }
+
+    static String[] invalidFrameworkNames() {
+        return new String[]{null, ""};
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidFrameworkNames")
+    void testSetUserFrameworkInvalidNameBeforeSetByInternalAPI(@Nullable String frameworkName) {
+        transaction.setFrameworkName(frameworkName);
+        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName("bar");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isNull();
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidFrameworkNames")
+    void testSetUserFrameworkInvalidNameAfterSetByInternalAPI(@Nullable String frameworkName) {
+        AbstractSpanImplAccessor.accessTransaction(transaction).setFrameworkName("bar");
+        transaction.setFrameworkName(frameworkName);
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isNull();
     }
 
     @Test
@@ -135,7 +171,6 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     }
 
 
-
     @Test
     void testChaining() {
         int randomInt = random.nextInt();
@@ -193,7 +228,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     public void testAgentPaused() {
         // end current transaction first
         endTransaction();
-        reporter.reset();
+        reporter.resetWithoutRecycling();
 
         TracerInternalApiUtils.pauseTracer(tracer);
         int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
