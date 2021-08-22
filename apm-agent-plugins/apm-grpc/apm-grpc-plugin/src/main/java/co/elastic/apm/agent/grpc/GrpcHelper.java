@@ -372,8 +372,8 @@ public class GrpcHelper {
      *     </li>
      *     <li>
      *         a single span was created and either mapped for both the placeholder and the real call (theoretical),
-     *         in which case we need to do nothing, or mapped only to the placeholder, in which to add a mapping for
-     *         the real client call
+     *         in which case we need to do nothing, or mapped only to the placeholder, in which case we need to add a
+     *         span mapping for the real client call
      *     </li>
      * </ul>
      *
