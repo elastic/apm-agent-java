@@ -3,7 +3,6 @@ package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.rabbitmq.header.SpringRabbitMQTextHeaderGetter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
@@ -17,9 +16,9 @@ public class MessageBatchIteratorWrapper implements Iterator<Message> {
 
     private final Iterator<Message> delegate;
     private final ElasticApmTracer tracer;
-    private final SpringAmqpTransactionHelperImpl transactionHelper;
+    private final SpringAmqpTransactionHelper transactionHelper;
 
-    public MessageBatchIteratorWrapper(Iterator<Message> delegate, ElasticApmTracer tracer, SpringAmqpTransactionHelperImpl transactionHelper) {
+    public MessageBatchIteratorWrapper(Iterator<Message> delegate, ElasticApmTracer tracer, SpringAmqpTransactionHelper transactionHelper) {
         this.delegate = delegate;
         this.tracer = tracer;
         this.transactionHelper = transactionHelper;

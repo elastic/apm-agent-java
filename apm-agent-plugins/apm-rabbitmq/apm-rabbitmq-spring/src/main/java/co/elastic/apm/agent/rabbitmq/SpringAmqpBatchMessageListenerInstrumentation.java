@@ -31,7 +31,7 @@ public class SpringAmqpBatchMessageListenerInstrumentation extends SpringBaseIns
 
         static {
             ElasticApmTracer elasticApmTracer = GlobalTracer.requireTracerImpl();
-            messageBatchHelper = new MessageBatchHelperImpl(elasticApmTracer, transactionHelper);
+            messageBatchHelper = new MessageBatchHelper(elasticApmTracer, transactionHelper);
         }
 
         @Nullable

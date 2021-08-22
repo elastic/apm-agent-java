@@ -13,9 +13,9 @@ public class MessageBatchListWrapper implements List<Message> {
 
     private final List<Message> delegate;
     private final ElasticApmTracer tracer;
-    private final SpringAmqpTransactionHelperImpl transactionHelper;
+    private final SpringAmqpTransactionHelper transactionHelper;
 
-    public MessageBatchListWrapper(List<Message> delegate, ElasticApmTracer tracer, SpringAmqpTransactionHelperImpl transactionHelper) {
+    public MessageBatchListWrapper(List<Message> delegate, ElasticApmTracer tracer, SpringAmqpTransactionHelper transactionHelper) {
         this.delegate = delegate;
         this.tracer = tracer;
         this.transactionHelper = transactionHelper;

@@ -9,11 +9,11 @@ import org.springframework.amqp.core.MessageProperties;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class SpringAmqpTransactionHelperImpl {
+public class SpringAmqpTransactionHelper {
 
     private final ElasticApmTracer tracer;
 
-    public SpringAmqpTransactionHelperImpl(ElasticApmTracer tracer) {
+    public SpringAmqpTransactionHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
     }
 
