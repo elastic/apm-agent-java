@@ -19,20 +19,11 @@
 package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import net.bytebuddy.description.NamedElement;
-import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
 import java.util.Collections;
 
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
-
 public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
-
-    @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("io.grpc");
-    }
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
