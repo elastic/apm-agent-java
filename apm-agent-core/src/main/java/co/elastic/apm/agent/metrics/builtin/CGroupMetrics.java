@@ -173,13 +173,13 @@ public class CGroupMetrics extends AbstractLifecycleListener {
     private CgroupFiles createCgroup2Files(String cgroupLine, File rootCgroupFsPath) throws IOException {
         final String[] cgroupLineParts = StringUtils.split(cgroupLine, ':');
         String sliceSubdir = cgroupLineParts[cgroupLineParts.length - 1];
-        File maxMemoryFile = new File(rootCgroupFsPath, sliceSubdir + File.separatorChar + CGROUP2_MAX_MEMORY);
+        File maxMemoryFile = new File(rootCgroupFsPath, sliceSubdir + System.getProperty("file.separator") + CGROUP2_MAX_MEMORY);
         if (maxMemoryFile.canRead()) {
             maxMemoryFile = getMaxMemoryFile(maxMemoryFile, CGROUP2_UNLIMITED);
             return new CgroupFiles(
                 maxMemoryFile,
-                new File(rootCgroupFsPath, sliceSubdir + File.separator + CGROUP2_USED_MEMORY),
-                new File(rootCgroupFsPath, sliceSubdir + File.separator + CGROUP_MEMORY_STAT)
+                new File(rootCgroupFsPath, sliceSubdir + System.getProperty("file.separator") + CGROUP2_USED_MEMORY),
+                new File(rootCgroupFsPath, sliceSubdir + System.getProperty("file.separator") + CGROUP_MEMORY_STAT)
             );
         }
         return null;

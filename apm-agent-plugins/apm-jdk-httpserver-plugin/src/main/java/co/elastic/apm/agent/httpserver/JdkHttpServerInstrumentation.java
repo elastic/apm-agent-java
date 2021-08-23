@@ -27,6 +27,6 @@ public abstract class JdkHttpServerInstrumentation extends ElasticApmInstrumenta
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("jdk-httpserver", "experimental");
+        return Arrays.asList("jdk-httpserver");
     }
 }
