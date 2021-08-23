@@ -160,9 +160,9 @@ public class UserRegistry {
 
         public static String getCurrentJvm() {
             return System.getProperty("java.home") +
-                File.separator +
+                System.getProperty("file.separator")  +
                 "bin" +
-                File.separator +
+                System.getProperty("file.separator") +
                 "java" +
                 (Platform.isWindows() ? ".exe" : "");
         }

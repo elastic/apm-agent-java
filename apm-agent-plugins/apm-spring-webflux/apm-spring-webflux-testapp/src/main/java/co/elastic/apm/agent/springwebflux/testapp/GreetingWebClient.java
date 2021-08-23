@@ -233,7 +233,7 @@ public class GreetingWebClient {
         headers.add(name, value);
     }
 
-    public void setCookie(String name, String value){
+    public void setCookie(String name, String value) {
         cookies.add(name, value);
     }
 }
