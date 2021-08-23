@@ -18,7 +18,7 @@ pipeline {
     OPBEANS_REPO = 'opbeans-java'
   }
   options {
-    timeout(time: 1, unit: 'HOURS')
+    timeout(time: 90, unit: 'MINUTES')
     buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '20', daysToKeepStr: '30'))
     timestamps()
     ansiColor('xterm')

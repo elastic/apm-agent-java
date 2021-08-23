@@ -113,7 +113,7 @@
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.json-schema-validator>1.0.57</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.11.9</version.byte-buddy>
+        <version.byte-buddy>1.11.12</version.byte-buddy>
         <version.asm>9.2</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
@@ -356,6 +356,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.7</version>
                 <executions>
                     <execution>
                         <goals>
