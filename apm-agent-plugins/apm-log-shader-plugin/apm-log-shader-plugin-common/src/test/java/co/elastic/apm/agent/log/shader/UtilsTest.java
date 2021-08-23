@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
 
 public class UtilsTest extends AbstractInstrumentationTest {
 
-    private static final String fileSeparator = File.separator;
+    private static final String fileSeparator = System.getProperty("file.separator");
 
     @Nullable
     private final String logEcsFormattingDestinationDir = config.getConfig(LoggingConfiguration.class).getLogEcsFormattingDestinationDir();

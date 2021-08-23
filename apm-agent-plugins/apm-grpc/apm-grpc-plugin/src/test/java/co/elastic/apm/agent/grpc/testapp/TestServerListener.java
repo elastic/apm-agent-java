@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package io.grpc.elastic.test;
+package co.elastic.apm.agent.grpc.testapp;
 
 import io.grpc.ServerCall;
 
