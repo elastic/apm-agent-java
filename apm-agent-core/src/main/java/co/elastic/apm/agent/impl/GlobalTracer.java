@@ -38,6 +38,7 @@ public class GlobalTracer implements Tracer {
 
     private static final GlobalTracer INSTANCE = new GlobalTracer();
     private volatile Tracer tracer = NoopTracer.INSTANCE;
+    private static volatile boolean classloaderCheckOk = false;
 
     private GlobalTracer() {
     }
@@ -66,11 +67,24 @@ public class GlobalTracer implements Tracer {
     private static void checkClassloader() {
         ClassLoader cl = GlobalTracer.class.getClassLoader();
 
-        if (classloaderCheck(cl)) {
+        // agent currently loaded in the bootstrap CL, which is the current correct location
+        if (cl == null) {
             return;
         }
 
-        throw new IllegalStateException("Agent setup error: must be loaded in bootstap classloader, should not be included in application dependencies. Classloader : " + cl);
+        if (classloaderCheckOk) {
+            return;
+        }
+
+        String agentLocation = GlobalTracer.class.getProtectionDomain().getCodeSource().getLocation().getFile();
+        if (!agentLocation.endsWith(".jar")) {
+            // agent is not packaged, thus we assume running tests
+            classloaderCheckOk = true;
+            return;
+        }
+
+        throw new IllegalStateException(String.format("Agent setup error: agent jar file \"%s\"  likely referenced in JVM or application classpath", agentLocation));
+
     }
 
     private static boolean classloaderCheck(@Nullable ClassLoader cl) {
