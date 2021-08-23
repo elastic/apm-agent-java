@@ -16,17 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.httpserver;
+package co.elastic.apm.attach.clitest;
 
-import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-
-import java.util.Arrays;
-import java.util.Collection;
-
-public abstract class JdkHttpServerInstrumentation extends ElasticApmInstrumentation {
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("jdk-httpserver");
-    }
+public class ExternalDependency {
+    public void someMethod() {};
 }
