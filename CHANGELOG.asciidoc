@@ -39,6 +39,7 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 * Fix failure to parse some forms of the `Implementation-Version` property from jar manifest files - {pull}1931[#1931]
 * Ensure single value for context-propagation header - {pull}1937[#1937]
 * Fix gRPC non-terminated (therefore non-reported) client spans - {pull}2067[#2067]
+* Fix Webflux response status code - {pull}1948[#1948]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
