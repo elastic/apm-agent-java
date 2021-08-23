@@ -27,7 +27,12 @@ import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.net.URL;
+import java.util.Enumeration;
 import java.util.Objects;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 
 public class GlobalTracer implements Tracer {
 
@@ -35,6 +40,10 @@ public class GlobalTracer implements Tracer {
     private volatile Tracer tracer = NoopTracer.INSTANCE;
 
     private GlobalTracer() {
+    }
+
+    static {
+        checkClassloader();
     }
 
     public static Tracer get() {
@@ -54,17 +63,52 @@ public class GlobalTracer implements Tracer {
         return Objects.requireNonNull(getTracerImpl(), "Registered tracer is not an instance of ElasticApmTracer");
     }
 
+    private static void checkClassloader() {
+        ClassLoader cl = GlobalTracer.class.getClassLoader();
+
+        if (classloaderCheck(cl)) {
+            return;
+        }
+
+        throw new IllegalStateException("Agent setup error: must be loaded in bootstap classloader, should not be included in application dependencies. Classloader : " + cl);
+    }
+
+    private static boolean classloaderCheck(@Nullable ClassLoader cl) {
+        if (cl == null) {
+            // agent currently loaded in the bootstrap CL, which is the current correct location
+            return true;
+        }
+
+        // when not in the bootstrap CL, it might be either:
+        // - when executing tests, without a packaged agent
+        // - in production when there is a setup error, with a packaged agent that has a manifest
+        try {
+            Enumeration<URL> resources = cl.getResources("META-INF/MANIFEST.MF");
+            while (resources.hasMoreElements()) {
+                Manifest manifest = new Manifest(resources.nextElement().openStream());
+                Attributes attributes = manifest.getMainAttributes();
+                String preMain = attributes.getValue("Premain-Class");
+                if (preMain != null && preMain.startsWith("co.elastic.apm.agent")) {
+                    return false;
+                }
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+        return true;
+    }
+
     public static synchronized void setNoop() {
         TracerState currentTracerState = INSTANCE.tracer.getState();
         if (currentTracerState != TracerState.UNINITIALIZED && currentTracerState != TracerState.STOPPED) {
-             throw new IllegalStateException("Can't override tracer as current tracer is already running");
+            throw new IllegalStateException("Can't override tracer as current tracer is already running");
         }
         INSTANCE.tracer = NoopTracer.INSTANCE;
     }
 
     public static synchronized void init(Tracer tracer) {
         if (!isNoop()) {
-             throw new IllegalStateException("Tracer is already initialized");
+            throw new IllegalStateException("Tracer is already initialized");
         }
         INSTANCE.tracer = tracer;
     }
