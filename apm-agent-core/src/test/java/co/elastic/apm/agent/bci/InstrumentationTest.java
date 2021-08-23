@@ -43,6 +43,8 @@ import org.apache.commons.pool2.impl.CallStackUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnJre;
+import org.junit.jupiter.api.condition.JRE;
 import org.slf4j.event.SubstituteLoggingEvent;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -292,6 +294,7 @@ class InstrumentationTest {
     }
 
     @Test
+    @DisabledOnJre(JRE.JAVA_15) // https://github.com/elastic/apm-agent-java/issues/1944
     void testPatchClassFileVersionJava5ToJava7() {
         // loading classes compiled with bytecode level 49 (Java 6)
         new org.slf4j.event.SubstituteLoggingEvent();
@@ -311,6 +314,7 @@ class InstrumentationTest {
     }
 
     @Test
+    @DisabledOnJre(JRE.JAVA_15) // https://github.com/elastic/apm-agent-java/issues/1944
     void testPatchClassFileVersionJava5ToJava7CommonsMath() {
         org.apache.commons.math3.stat.StatUtils.max(new double[]{3.14});
 
@@ -329,6 +333,7 @@ class InstrumentationTest {
     }
 
     @Test
+    @DisabledOnJre(JRE.JAVA_15) // https://github.com/elastic/apm-agent-java/issues/1944
     void testPatchClassFileVersionJava4ToJava7CommonsMath() {
         org.apache.log4j.LogManager.exists("not");
 

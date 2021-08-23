@@ -35,6 +35,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -110,15 +112,29 @@ public class AgentAttacher {
                 Arguments.printHelp(System.out);
                 return;
             }
-            if (arguments.getAgentJar() == null) {
-                throw new IllegalArgumentException("When using the slim jar, the --agent-jar argument is required");
-            }
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
             Arguments.printHelp(System.out);
             return;
         }
         Logger logger = initLogging(arguments);
+
+        String downloadAgentVersion = arguments.getDownloadAgentVersion();
+        if (downloadAgentVersion != null) {
+            try {
+                downloadAndVerifyAgent(arguments, downloadAgentVersion);
+            } catch (Exception e) {
+                logger.error(String.format("Failed to download requested agent version %s, please double-check your " +
+                    "--download-agent-version setting.", downloadAgentVersion), e);
+                System.exit(1);
+            }
+        }
+
+        if (arguments.getAgentJar() == null) {
+            logger.error("Cannot find agent jar. When using the slim jar, either the --agent-jar or the " +
+                "--download-agent-version arguments are required");
+            System.exit(1);
+        }
 
         if (logger.isDebugEnabled()) {
             logger.debug("attacher arguments : {}", arguments);
@@ -128,6 +144,27 @@ public class AgentAttacher {
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
+    }
+
+    private static void downloadAndVerifyAgent(Arguments arguments, String downloadAgentVersion) throws Exception {
+        PgpSignatureVerifier pgpSignatureVerifier;
+        try {
+            Path targetLibDir = AgentDownloadUtils.of(downloadAgentVersion).getTargetLibDir();
+            PgpSignatureVerifierLoader verifierLoader = PgpSignatureVerifierLoader.getInstance(
+                "/bc-lib",
+                targetLibDir,
+                "co.elastic.apm.attach.bouncycastle.BouncyCastleVerifier"
+            );
+            pgpSignatureVerifier = verifierLoader.loadPgpSignatureVerifier();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to load PGP signature verifier implementation", e);
+        }
+
+        Path downloadedJarPath = new AgentDownloader(pgpSignatureVerifier).downloadAndVerifyAgent(downloadAgentVersion);
+        if (!Files.isReadable(downloadedJarPath)) {
+            throw new IllegalStateException(String.format("Cannot read agent jar at %s", downloadedJarPath));
+        }
+        arguments.setAgentJar(downloadedJarPath.toFile());
     }
 
     private void handleNewJvmsLoop() throws Exception {
@@ -274,9 +311,12 @@ public class AgentAttacher {
         private final Level logLevel;
         private final String logFile;
         private final boolean listVmArgs;
-        private final File agentJar;
+        private final String downloadAgentVersion;
+        private File agentJar;
 
-        private Arguments(DiscoveryRules rules, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean listVmArgs, boolean continuous, Level logLevel, String logFile, String agentJarString) {
+        private Arguments(DiscoveryRules rules, Map<String, String> config, String argsProvider, boolean help,
+                          boolean list, boolean listVmArgs, boolean continuous, Level logLevel, String logFile,
+                          String agentJarString, String downloadAgentVersion) {
             this.rules = rules;
             this.help = help;
             this.list = list;
@@ -284,6 +324,7 @@ public class AgentAttacher {
             this.continuous = continuous;
             this.logLevel = logLevel;
             this.logFile = logFile;
+            this.downloadAgentVersion = downloadAgentVersion;
             if (agentJarString != null) {
                 agentJar = new File(agentJarString);
                 if (!agentJar.exists()) {
@@ -314,6 +355,7 @@ public class AgentAttacher {
             Level logLevel = Level.INFO;
             String logFile = null;
             String agentJar = null;
+            String downloadedAgentVersion = null;
             for (String arg : normalize(args)) {
                 if (arg.startsWith("-")) {
                     currentArg = arg;
@@ -351,6 +393,7 @@ public class AgentAttacher {
                         case "--log-level":
                         case "--log-file":
                         case "--agent-jar":
+                        case "--download-agent-version":
                             break;
                         default:
                             throw new IllegalArgumentException("Illegal argument: " + arg);
@@ -396,12 +439,15 @@ public class AgentAttacher {
                         case "--agent-jar":
                             agentJar = arg;
                             break;
+                        case "--download-agent-version":
+                            downloadedAgentVersion = arg;
+                            break;
                         default:
                             throw new IllegalArgumentException("Illegal argument: " + arg);
                     }
                 }
             }
-            return new Arguments(rules, config, argsProvider, help, list, listVmArgs, continuous, logLevel, logFile, agentJar);
+            return new Arguments(rules, config, argsProvider, help, list, listVmArgs, continuous, logLevel, logFile, agentJar, downloadedAgentVersion);
         }
 
         // -ab -> -a -b
@@ -490,6 +536,9 @@ public class AgentAttacher {
             out.println();
             out.println("    --agent-jar <file>");
             out.println("        Instead of the bundled agent jar, attach the provided agent to the target JVMs.");
+            out.println();
+            out.println("    --download-agent-version <agent-version>");
+            out.println("        Instead of the bundled agent jar, download and attach the specified agent version from maven.");
         }
 
         Map<String, String> getConfig() {
@@ -526,6 +575,14 @@ public class AgentAttacher {
 
         public boolean isLogToConsole() {
             return logFile == null;
+        }
+
+        public String getDownloadAgentVersion() {
+            return downloadAgentVersion;
+        }
+
+        public void setAgentJar(File agentJar) {
+            this.agentJar = agentJar;
         }
 
         public File getAgentJar() {
