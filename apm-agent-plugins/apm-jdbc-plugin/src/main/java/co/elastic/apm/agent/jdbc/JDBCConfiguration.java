@@ -25,17 +25,15 @@ public class JDBCConfiguration extends ConfigurationOptionProvider {
 
     private static final String JDBC_CATEGORY = "JDBC";
 
-    private final ConfigurationOption<Boolean> use_service_resource_auto_inference = ConfigurationOption.booleanOption()
-        .key("use_jdbc_service_resource_auto_inference")
+    private final ConfigurationOption<Boolean> use_instance_for_db_resource = ConfigurationOption.booleanOption()
+        .key("use_instance_for_db_resource")
         .configurationCategory(JDBC_CATEGORY)
-        .description("If set to `true`, the agent uses `type`, `subtype` and `db.instance` of a JDBC span to infer its `destination.service.resource`" +
-            " instead of relying on the JDBC instrumentation to set it.\n" +
-            "See for https://github.com/elastic/apm/blob/master/specs/agents/tracing-spans-destination.md#contextdestinationserviceresource for the inference algorithm.")
+        .description("If set to `true`, the agent adds the db instance name to `destination.service.resource` of a JDBC span.")
         .dynamic(false)
-        .tags("added[1.26.0]")
+        .tags("added[1.26.0]", "internal")
         .buildWithDefault(false);
 
-    public boolean getUseJDBCServiceResourceAutoInference() {
-        return use_service_resource_auto_inference.get();
+    public boolean getUseInstanceForDbResource() {
+        return use_instance_for_db_resource.get();
     }
 }

@@ -424,7 +424,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         }
 
         Destination.Service service = destination.getService();
-        if (tracer.getConfig(JDBCConfiguration.class).getUseJDBCServiceResourceAutoInference() && expectedDbInstance != null) {
+        if (tracer.getConfig(JDBCConfiguration.class).getUseInstanceForDbResource() && expectedDbInstance != null) {
             assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor + "/" + expectedDbInstance);
         } else {
             assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor);

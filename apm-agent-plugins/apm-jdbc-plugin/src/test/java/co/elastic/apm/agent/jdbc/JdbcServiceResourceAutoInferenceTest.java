@@ -28,7 +28,7 @@ public class JdbcServiceResourceAutoInferenceTest extends AbstractJdbcInstrument
 
     @BeforeClass
     public static void setUseJDBCServiceResourceAutoInference() {
-        when(config.getConfig(JDBCConfiguration.class).getUseJDBCServiceResourceAutoInference()).thenReturn(true);
+        when(config.getConfig(JDBCConfiguration.class).getUseInstanceForDbResource()).thenReturn(true);
     }
 
     public JdbcServiceResourceAutoInferenceTest() throws Exception {

@@ -46,9 +46,9 @@ public class JdbcHelper {
     public static final String DB_SPAN_TYPE = "db";
     public static final String DB_SPAN_ACTION = "query";
 
-    private static final boolean useJDBCServiceResourceAutoInference = GlobalTracer.getTracerImpl()
+    private static final boolean useInstanceForDbResource = GlobalTracer.getTracerImpl()
         .getConfig(JDBCConfiguration.class)
-        .getUseJDBCServiceResourceAutoInference();
+        .getUseInstanceForDbResource();
 
     private static final JdbcHelper INSTANCE = new JdbcHelper();
 
@@ -129,8 +129,11 @@ public class JdbcHelper {
                 .withName(vendor)
                 .withType(DB_SPAN_TYPE);
 
-            if(!useJDBCServiceResourceAutoInference) {
-                destination.getService().withResource(vendor);
+            destination.getService().withResource(vendor);
+            if (useInstanceForDbResource && connectionMetaData.getInstance() != null) {
+                destination.getService().getResource()
+                    .append('/')
+                    .append(connectionMetaData.getInstance());
             }
         }
         span.withSubtype(vendor).withAction(DB_SPAN_ACTION);
