@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.attach;
 
+import co.elastic.apm.attach.UserRegistry.CommandOutput;
 import co.elastic.logging.log4j2.EcsLayout;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -273,9 +274,8 @@ public class AgentAttacher {
             args.add("--log-file");
             args.add(arguments.getLogFile());
         }
-        Process process = user.runAsUserWithCurrentClassPath(AgentAttacher.class, args).inheritIO().start();
-        process.waitFor();
-        return process.exitValue() == 0;
+        CommandOutput output = user.executeAsUserWithCurrentClassPath(AgentAttacher.class, args);
+        return output.exitedNormally();
     }
 
     private Map<String, String> getAgentArgs(JvmInfo jvmInfo) throws IOException, InterruptedException {
