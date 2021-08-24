@@ -29,12 +29,7 @@ import co.elastic.apm.agent.util.VersionUtils;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.util.Enumeration;
 import java.util.Objects;
-import java.util.jar.Attributes;
-import java.util.jar.Manifest;
 
 public class GlobalTracer implements Tracer {
 
@@ -93,37 +88,16 @@ public class GlobalTracer implements Tracer {
         }
 
         if (premainClass.startsWith("co.elastic.apm.agent")) {
+            // premain class will only be present when packaged as an agent jar
             classloaderCheckOk = true;
             return;
         }
 
+        // A packaged agent class has been loaded outside of bootstrap classloader, we are not in the context of
+        // unit/integration tests, that's likely a setup issue where the agent jar has been added to application
+        // classpath.
         throw new IllegalStateException(String.format("Agent setup error: agent jar file \"%s\"  likely referenced in JVM or application classpath", agentLocation));
 
-    }
-
-    private static boolean classloaderCheck(@Nullable ClassLoader cl) {
-        if (cl == null) {
-            // agent currently loaded in the bootstrap CL, which is the current correct location
-            return true;
-        }
-
-        // when not in the bootstrap CL, it might be either:
-        // - when executing tests, without a packaged agent
-        // - in production when there is a setup error, with a packaged agent that has a manifest
-        try {
-            Enumeration<URL> resources = cl.getResources("META-INF/MANIFEST.MF");
-            while (resources.hasMoreElements()) {
-                Manifest manifest = new Manifest(resources.nextElement().openStream());
-                Attributes attributes = manifest.getMainAttributes();
-                String preMain = attributes.getValue("Premain-Class");
-                if (preMain != null && preMain.startsWith("co.elastic.apm.agent")) {
-                    return false;
-                }
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-        return true;
     }
 
     public static synchronized void setNoop() {
