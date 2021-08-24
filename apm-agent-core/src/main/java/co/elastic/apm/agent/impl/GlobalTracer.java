@@ -25,8 +25,10 @@ import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.VersionUtils;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Enumeration;
@@ -79,6 +81,18 @@ public class GlobalTracer implements Tracer {
         String agentLocation = GlobalTracer.class.getProtectionDomain().getCodeSource().getLocation().getFile();
         if (!agentLocation.endsWith(".jar")) {
             // agent is not packaged, thus we assume running tests
+            classloaderCheckOk = true;
+            return;
+        }
+
+        String premainClass = VersionUtils.getManifestEntry(new File(agentLocation), "Premain-Class");
+        if (null == premainClass) {
+            // packaged within a .jar, but not within an agent jar, thus we assume it's still for testing
+            classloaderCheckOk = true;
+            return;
+        }
+
+        if (premainClass.startsWith("co.elastic.apm.agent")) {
             classloaderCheckOk = true;
             return;
         }
