@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.spring.boot;
 
@@ -104,6 +98,7 @@ public abstract class AbstractSpringBootTest {
         // which is before the transaction has ended
         final Transaction transaction = reporter.getFirstTransaction(500);
         assertThat(transaction.getNameAsString()).isEqualTo("TestApp#greeting");
+        assertThat(transaction.getContext().getUser().getDomain()).isEqualTo("domain");
         assertThat(transaction.getContext().getUser().getId()).isEqualTo("id");
         assertThat(transaction.getContext().getUser().getEmail()).isEqualTo("email");
         assertThat(transaction.getContext().getUser().getUsername()).isEqualTo("username");
@@ -133,7 +128,7 @@ public abstract class AbstractSpringBootTest {
 
         @GetMapping("/")
         public String greeting() {
-            ElasticApm.currentTransaction().setUser("id", "email", "username");
+            ElasticApm.currentTransaction().setUser("id", "email", "username", "domain");
             return "Hello World";
         }
 

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.httpclient;
 
@@ -56,7 +50,7 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
     public static class LegacyApacheHttpClientAdvice {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onBeforeExecute(@Advice.Argument(0) HttpHost host,
+        public static Object onBeforeExecute(@Advice.Argument(0) @Nullable HttpHost host,
                                              @Advice.Argument(1) HttpRequest request) {
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent == null) {
@@ -66,14 +60,22 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                 return null;
             }
             HttpUriRequest uriRequest = (HttpUriRequest) request;
-            Span span = HttpClientHelper.startHttpClientSpan(parent, uriRequest.getMethod(), uriRequest.getURI(), host.getHostName());
+            String hostName = (host != null) ? host.getHostName() : null;
+            Span span = HttpClientHelper.startHttpClientSpan(parent, uriRequest.getMethod(), uriRequest.getURI(), hostName);
+
             if (span != null) {
                 span.activate();
-                span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
-            } else if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
-                // re-adds the header on redirects
-                parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
             }
+
+            if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+                if (span != null) {
+                    span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
+                } else if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+                    // re-adds the header on redirects
+                    parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
+                }
+            }
+
             return span;
         }
 
@@ -104,8 +106,8 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return LegacyApacheHttpClientAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.httpclient.LegacyApacheHttpClientInstrumentation$LegacyApacheHttpClientAdvice";
     }
 
     @Override

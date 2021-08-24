@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.es.restclient.v5_6;
 
@@ -72,7 +66,7 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 @RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientInstrumentationTest {
 
-    protected static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:5.6.0";
+    private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:5.6.0";
     protected static final String USER_NAME = "elastic";
     protected static final String PASSWORD = "changeme";
 
@@ -88,8 +82,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
         // Start the container
-        container = new ElasticsearchContainer(ELASTICSEARCH_CONTAINER_VERSION);
-        container.start();
+        startContainer(ELASTICSEARCH_CONTAINER_VERSION);
 
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(USER_NAME, PASSWORD));
@@ -106,7 +99,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
     @AfterClass
     public static void stopElasticsearchContainerAndClient() throws IOException {
         lowLevelClient.performRequest("DELETE", "/" + INDEX);
-        container.stop();
         lowLevelClient.close();
     }
 

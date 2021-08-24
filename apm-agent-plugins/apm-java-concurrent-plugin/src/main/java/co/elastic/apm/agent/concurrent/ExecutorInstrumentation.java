@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.concurrent;
 
@@ -93,6 +87,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
             .and(not(nameContains("jboss")))
             .and(not(nameContains("undertow")))
             .and(not(nameContains("netty")))
+            .and(not(nameContains("vertx")))
             // hazelcast tries to serialize the Runnables/Callables to execute them on remote JVMs
             .and(not(nameStartsWith("com.hazelcast")))
             .and(not(isProxy()));
@@ -122,7 +117,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
-                                   @Advice.Argument(value = 0) @Nullable Runnable runnable) {
+                                  @Advice.Argument(value = 0) @Nullable Runnable runnable) {
             JavaConcurrent.doFinally(thrown, runnable);
         }
 
@@ -139,7 +134,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
             return named("execute").and(returns(void.class)).and(takesArguments(Runnable.class))
                 .or(named("submit").and(returns(hasSuperType(is(Future.class)))).and(takesArguments(Runnable.class)))
                 .or(named("submit").and(returns(hasSuperType(is(Future.class)))).and(takesArguments(Runnable.class, Object.class)))
-                .or(named("schedule").and(returns(ScheduledFuture.class)).and(takesArguments(Runnable.class, long.class, TimeUnit.class)));
+                .or(named("schedule").and(returns(hasSuperType(is(ScheduledFuture.class)))).and(takesArguments(Runnable.class, long.class, TimeUnit.class)));
         }
     }
 
@@ -158,7 +153,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
-                                   @Advice.Argument(0) @Nullable Callable<?> callable) {
+                                  @Advice.Argument(0) @Nullable Callable<?> callable) {
             JavaConcurrent.doFinally(thrown, callable);
         }
 
@@ -171,7 +166,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("submit").and(returns(hasSuperType(is(Future.class)))).and(takesArguments(Callable.class))
-                .or(named("schedule").and(returns(ScheduledFuture.class)).and(takesArguments(Callable.class, long.class, TimeUnit.class)));
+                .or(named("schedule").and(returns(hasSuperType(is(ScheduledFuture.class)))).and(takesArguments(Callable.class, long.class, TimeUnit.class)));
         }
 
     }
@@ -197,7 +192,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
         @AssignTo.Argument(0)
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static <T> Collection<? extends Callable<T>> onEnter(@Advice.This Executor thiz,
-                                    @Nullable @Advice.Argument(0) Collection<? extends Callable<T>> callables) {
+                                                                    @Nullable @Advice.Argument(0) Collection<? extends Callable<T>> callables) {
             if (ExecutorInstrumentation.isExcluded(thiz)) {
                 return callables;
             }
@@ -206,7 +201,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
-                                   @Nullable @Advice.Argument(0) Collection<? extends Callable<?>> callables) {
+                                  @Nullable @Advice.Argument(0) Collection<? extends Callable<?>> callables) {
             JavaConcurrent.doFinally(thrown, callables);
         }
 
@@ -233,7 +228,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("execute").and(returns(void.class)).and(takesArguments(ForkJoinTask.class))
-                .or(named("submit").and(returns(ForkJoinTask.class)).and(takesArguments(ForkJoinTask.class)))
+                .or(named("submit").and(returns(hasSuperType(is(ForkJoinTask.class)))).and(takesArguments(ForkJoinTask.class)))
                 .or(named("invoke").and(returns(Object.class)).and(takesArguments(ForkJoinTask.class)));
         }
 
@@ -241,7 +236,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
         @AssignTo.Argument(0)
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static ForkJoinTask<?> onExecute(@Advice.This Executor thiz,
-                                     @Advice.Argument(0) @Nullable ForkJoinTask<?> task) {
+                                                @Advice.Argument(0) @Nullable ForkJoinTask<?> task) {
             if (ExecutorInstrumentation.isExcluded(thiz)) {
                 return task;
             }
@@ -250,7 +245,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
-                                   @Advice.Argument(value = 0) @Nullable ForkJoinTask<?> task) {
+                                  @Advice.Argument(value = 0) @Nullable ForkJoinTask<?> task) {
             JavaConcurrent.doFinally(thrown, task);
         }
 

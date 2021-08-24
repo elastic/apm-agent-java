@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.httpclient;
 
@@ -57,7 +51,7 @@ public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrument
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("sendAsync")
-            .and(returns(named("java.util.concurrent.CompletableFuture")))
+            .and(returns(hasSuperType(named("java.util.concurrent.CompletableFuture"))))
             .and(takesArguments(3));
     }
 

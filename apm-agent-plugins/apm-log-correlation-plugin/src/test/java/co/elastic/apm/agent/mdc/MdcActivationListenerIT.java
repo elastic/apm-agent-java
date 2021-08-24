@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.mdc;
 
@@ -82,6 +76,7 @@ class MdcActivationListenerIT {
         MDC.clear();
         org.apache.log4j.MDC.clear();
         ThreadContext.clearAll();
+        org.jboss.logging.MDC.clear();
         loggingConfiguration = config.getConfig(LoggingConfiguration.class);
     }
 
@@ -158,11 +153,13 @@ class MdcActivationListenerIT {
     private void assertMdcErrorIdIsEmpty() {
         assertThat(MDC.get("error.id")).isNull();
         assertThat(org.apache.log4j.MDC.get("error.id")).isNull();
+        assertThat(org.jboss.logging.MDC.get("error.id")).isNull();
     }
 
     private Answer<Void> assertMdcErrorIdIsNotEmpty() {
         assertThat(MDC.get("error.id")).isNotBlank();
         assertThat(org.apache.log4j.MDC.get("error.id")).isNotNull();
+        assertThat(org.jboss.logging.MDC.get("error.id")).isNotNull();
         return null;
     }
 }

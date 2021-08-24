@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.profiler;
 
@@ -55,7 +49,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "The inferred spans are created after a profiling session has ended.\n" +
             "This means there is a delay between the regular and the inferred spans being visible in the UI.\n" +
             "\n" +
-            "NOTE: This feature is not available on Windows")
+            "NOTE: This feature is not available on Windows and on OpenJ9")
         .dynamic(true)
         .tags("added[1.15.0]", "experimental")
         .buildWithDefault(false);

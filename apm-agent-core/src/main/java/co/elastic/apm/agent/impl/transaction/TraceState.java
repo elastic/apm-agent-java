@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,18 +15,21 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.converter.RoundedDoubleConverter;
 import co.elastic.apm.agent.objectpool.Recyclable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
 public class TraceState implements Recyclable {
+
+    private static final Logger log = LoggerFactory.getLogger(TraceState.class);
 
     private static final int DEFAULT_SIZE_LIMIT = 4096;
 
@@ -72,52 +70,101 @@ public class TraceState implements Recyclable {
         rewriteBuffer.setLength(0);
     }
 
+    public List<String> getTracestate() {
+        return tracestate;
+    }
 
     public void addTextHeader(String headerValue) {
-        int elasticEntryStartIndex = headerValue.indexOf(VENDOR_PREFIX);
+        int vendorStart = headerValue.indexOf(VENDOR_PREFIX);
 
-        if (elasticEntryStartIndex >= 0) {
-            // parsing (and maybe fixing) current tracestate required
-            int entriesStart = headerValue.indexOf(SAMPLE_RATE_PREFIX, elasticEntryStartIndex);
-            if (entriesStart >= 0) {
-                int valueStart = entriesStart + 2;
-                int valueEnd = valueStart;
-                if (valueEnd < headerValue.length()) {
-                    char c = headerValue.charAt(valueEnd);
-                    while (valueEnd < headerValue.length() && c != VENDOR_SEPARATOR && c != ENTRY_SEPARATOR) {
-                        c = headerValue.charAt(valueEnd++);
-                    }
-                    if (valueEnd < headerValue.length()) {
-                        // end due to separator char that needs to be trimmed
-                        valueEnd--;
-                    }
-                }
-                double value;
-                try {
-                    value = Double.parseDouble(headerValue.substring(valueStart, valueEnd));
-                    if (0 <= value && value <= 1.0) {
-                        // ensure proper rounding of sample rate to minimize storage
-                        // even if configuration should not allow this, any upstream value might require rounding
-                        double rounded = DOUBLE_CONVERTER.round(value);
-                        if (rounded != value) {
-                            // value needs to be re-written due to rounding
+        if (vendorStart < 0) {
+            // no ES entry
+            tracestate.add(headerValue);
+            return;
+        }
 
-                            rewriteBuffer.setLength(0);
-                            rewriteBuffer.append(headerValue, 0, valueStart);
-                            rewriteBuffer.append(rounded);
-                            rewriteBuffer.append(headerValue, valueEnd, headerValue.length());
-                            // we don't minimize allocation as re-writing should be an exception
-                            headerValue = rewriteBuffer.toString();
-                        }
-                        sampleRate = rounded;
-                    }
-                } catch (NumberFormatException e) {
-                    // silently ignored
+        int vendorEnd = headerValue.indexOf(VENDOR_SEPARATOR, vendorStart);
+        if (vendorEnd < 0) {
+            vendorEnd = headerValue.length();
+        }
+
+        int sampleRateStart = headerValue.indexOf(SAMPLE_RATE_PREFIX, vendorStart);
+        if (sampleRateStart < 0) {
+            // no sample rate, rewrite
+            log.warn("invalid header, no sample rate {}", headerValue);
+            headerValue = rewriteRemoveInvalidHeader(headerValue, vendorStart, vendorEnd);
+            if (headerValue.length() > 0) {
+                tracestate.add(headerValue);
+            }
+            return;
+        }
+
+        int valueStart = sampleRateStart + 2;
+        int valueEnd = valueStart;
+        if (valueEnd < headerValue.length()) {
+            char c = headerValue.charAt(valueEnd);
+            while (valueEnd < headerValue.length() && c != VENDOR_SEPARATOR && c != ENTRY_SEPARATOR) {
+                c = headerValue.charAt(valueEnd++);
+            }
+            if (valueEnd < headerValue.length()) {
+                // end due to separator char that needs to be trimmed
+                valueEnd--;
+            }
+        }
+
+        String headerValueString = headerValue.substring(valueStart, valueEnd);
+        double value = Double.NaN;
+        try {
+            value = Double.parseDouble(headerValueString);
+        } catch (NumberFormatException e) {
+            // silently ignored
+        }
+
+        if (Double.isNaN(value) || value < 0 || value > 1) {
+            log.warn("invalid sample rate header {}", headerValueString);
+            headerValue = rewriteRemoveInvalidHeader(headerValue, vendorStart, vendorEnd);
+        } else {
+            if (!Double.isNaN(sampleRate)) {
+                log.warn("sample rate already set to {}, trying to set it to {} through header will be ignored", sampleRate, value);
+                headerValue = rewriteRemoveInvalidHeader(headerValue, vendorStart, vendorEnd);
+            } else {
+                // ensure proper rounding of sample rate to minimize storage
+                // even if configuration should not allow this, any upstream value might require rounding
+                double rounded = DOUBLE_CONVERTER.round(value);
+                if (rounded != value) {
+                    // value needs to be re-written due to rounding
+                    headerValue = rewriteRoundedHeader(headerValue, valueStart, valueEnd, rounded);
+                    sampleRate = rounded;
+                } else {
+                    sampleRate = value;
                 }
             }
         }
 
-        tracestate.add(headerValue);
+        if (!headerValue.isEmpty()) {
+            tracestate.add(headerValue);
+        }
+
+    }
+
+    private String rewriteRoundedHeader(String fullHeader, int valueStart, int valueEnd, double rounded) {
+        // we don't minimize allocation as re-writing should be an exception
+        rewriteBuffer.setLength(0);
+        rewriteBuffer.append(fullHeader, 0, valueStart);
+        rewriteBuffer.append(DOUBLE_CONVERTER.toString(rounded));
+        rewriteBuffer.append(fullHeader, valueEnd, fullHeader.length());
+        return rewriteBuffer.toString();
+    }
+
+    private String rewriteRemoveInvalidHeader(String fullHeader, int start, int end) {
+        rewriteBuffer.setLength(0);
+        if (start > 0) {
+            rewriteBuffer.append(fullHeader, 0, start);
+        }
+        if (end < fullHeader.length()) {
+            rewriteBuffer.append(fullHeader, end + 1, fullHeader.length());
+        }
+        return rewriteBuffer.toString();
     }
 
     /**
@@ -125,15 +172,11 @@ public class TraceState implements Recyclable {
      *
      * @param rate        sample rate
      * @param headerValue header value, as provided by a call to {@link #getHeaderValue(double)}
-     * @throws IllegalStateException    if sample rate has already been set
-     * @throws IllegalArgumentException if rate has an invalid value
+     * @throws IllegalStateException if sample rate has already been set
      */
     public void set(double rate, String headerValue) {
         if (!Double.isNaN(sampleRate)) {
-            // sample rate is set either explicitly from this method (for root transactions)
-            // or through upstream header, thus there is no need to change after. This allows to only
-            // write/rewrite headers once
-            throw new IllegalStateException("sample rate has already been set from headers");
+            throw new IllegalStateException(String.format("sample rate already set to %f, trying to set it to %f", sampleRate, rate));
         }
 
         sampleRate = rate;
@@ -148,7 +191,10 @@ public class TraceState implements Recyclable {
      * @return header value
      */
     public static String getHeaderValue(double sampleRate) {
-        return FULL_PREFIX + sampleRate;
+        if (Double.isNaN(sampleRate) || sampleRate < 0 || sampleRate > 1) {
+            throw new IllegalArgumentException("invalid sample rate " + sampleRate);
+        }
+        return FULL_PREFIX + DOUBLE_CONVERTER.toString(DOUBLE_CONVERTER.round(sampleRate));
     }
 
     /**

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,13 +15,14 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.configuration.converter;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -71,4 +67,21 @@ class RoundedDoubleConverterTest {
         assertThat(converted).isEqualTo(expected);
     }
 
+    @Test
+    void testNonEnglishLocale() {
+        Locale defaultLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.GERMAN);
+
+            RoundedDoubleConverter converter = new RoundedDoubleConverter(4);
+
+            Double expected = Double.valueOf("0.0001");
+            Double converted = converter.convert("0.0001");
+
+            assertThat(converted).isEqualTo(expected);
+            assertThat(converter.toString(converted)).isEqualTo("0.0001");
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
+    }
 }

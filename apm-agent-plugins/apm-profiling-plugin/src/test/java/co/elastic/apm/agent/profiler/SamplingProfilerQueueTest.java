@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.profiler;
 
@@ -29,6 +23,8 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -37,10 +33,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SamplingProfilerQueueTest {
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void testFillQueue() throws Exception {
-        ElasticApmTracer tracer = MockTracer.create();
+        System.out.println(System.getProperty("os.name"));
 
-        ScheduledThreadPoolExecutor scheduler = ExecutorUtils.createSingleThreadSchedulingDaemonPool("sampling-profiler");
+        ElasticApmTracer tracer = MockTracer.create();
 
         SamplingProfiler profiler = new SamplingProfiler(tracer, new SystemNanoClock());
 

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.servlet;
 
@@ -90,7 +84,7 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return isPublic()
                 .and(named("startAsync"))
-                .and(returns(named("javax.servlet.AsyncContext")))
+                .and(returns(hasSuperType(named("javax.servlet.AsyncContext"))))
                 .and(takesArguments(0)
                     .or(
                         takesArgument(0, named("javax.servlet.ServletRequest"))
@@ -100,12 +94,12 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return StartAsyncAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.servlet.AsyncInstrumentation$StartAsyncInstrumentation$StartAsyncAdvice";
         }
 
         public static class StartAsyncAdvice {
-            private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper = new AsyncContextAdviceHelperImpl(GlobalTracer.requireTracerImpl());
+            private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper = new AsyncContextAdviceHelperImpl(GlobalTracer.requireTracerImpl());;
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void onExitStartAsync(@Advice.Return @Nullable AsyncContext asyncContext) {
@@ -138,8 +132,8 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return AsyncContextStartAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice";
         }
 
         public static class AsyncContextStartAdvice {

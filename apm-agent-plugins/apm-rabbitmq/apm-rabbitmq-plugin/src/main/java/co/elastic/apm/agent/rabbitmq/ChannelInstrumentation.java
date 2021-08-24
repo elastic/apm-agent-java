@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,11 +15,9 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -45,6 +38,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import java.net.InetAddress;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -63,7 +57,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 /**
  * Instruments implementations of {@link com.rabbitmq.client.Channel}
  */
-public abstract class ChannelInstrumentation extends BaseInstrumentation {
+public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -148,8 +142,9 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
 
             properties = propagateTraceContext(exitSpan, properties);
 
-            captureMessage(exchange, properties, exitSpan);
-            captureDestination(exchange, channel, exitSpan);
+            captureMessage(exchange, getTimestamp(properties.getTimestamp()), exitSpan);
+            Connection connection = channel.getConnection();
+            captureDestination(exchange, connection.getAddress(), connection.getPort(), exitSpan);
 
             return new Object[]{properties, exitSpan};
         }
@@ -247,8 +242,9 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
                 span.requestDiscarding();
             }
 
-            captureMessage(queue, properties, span);
-            captureDestination(exchange, channel, span);
+            captureMessage(queue, getTimestamp(properties != null ? properties.getTimestamp() : null), span);
+            Connection connection = channel.getConnection();
+            captureDestination(exchange, connection.getAddress(), connection.getPort(), span);
 
             span.captureException(thrown)
                 .deactivate()
@@ -281,11 +277,12 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
     /**
      * Updates span destination
      *
-     * @param exchange normalized exchange name
-     * @param channel  channel
-     * @param span     span
+     * @param exchange      normalized exchange name
+     * @param brokerAddress broker address
+     * @param port          broker port
+     * @param span          span
      */
-    private static void captureDestination(String exchange, Channel channel, Span span) {
+    private static void captureDestination(String exchange, InetAddress brokerAddress, int port, Span span) {
         Destination destination = span.getContext().getDestination();
 
         Destination.Service service = destination.getService();
@@ -296,8 +293,7 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
 
         service.getResource().append("/").append(exchange);
 
-        Connection connection = channel.getConnection();
-        destination.withAddress(connection.getAddress().getHostName());
-        destination.withPort(connection.getPort());
+        destination.withInetAddress(brokerAddress);
+        destination.withPort(port);
     }
 }

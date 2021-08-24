@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.jms;
 
@@ -129,24 +123,20 @@ public class JmsInstrumentationHelper {
             .withAction("send")
             .activate();
 
-        try {
-            span.propagateTraceContext(message, JmsMessagePropertyAccessor.instance());
-            if (span.isSampled()) {
-                span.getContext().getDestination().getService()
-                    .withName("jms")
-                    .withResource("jms")
-                    .withType(MESSAGING_TYPE);
-                if (destinationName != null) {
-                    span.getContext().getDestination().getService().getResource().append("/").append(destinationName);
-                    span.withName("JMS SEND to ");
-                    addDestinationDetails(null, destination, destinationName, span);
-                    if (isDestinationNameComputed) {
-                        message.setStringProperty(JMS_DESTINATION_NAME_PROPERTY, destinationName);
-                    }
+        span.propagateTraceContext(message, JmsMessagePropertyAccessor.instance());
+        if (span.isSampled()) {
+            span.getContext().getDestination().getService()
+                .withName("jms")
+                .withResource("jms")
+                .withType(MESSAGING_TYPE);
+            if (destinationName != null) {
+                span.getContext().getDestination().getService().getResource().append("/").append(destinationName);
+                span.withName("JMS SEND to ");
+                addDestinationDetails(destination, destinationName, span);
+                if (isDestinationNameComputed) {
+                    JmsMessagePropertyAccessor.instance().setHeader(JMS_DESTINATION_NAME_PROPERTY, destinationName, message);
                 }
             }
-        } catch (JMSException e) {
-            logger.error("Failed to capture JMS span", e);
         }
         return span;
     }
@@ -191,11 +181,7 @@ public class JmsInstrumentationHelper {
     public String extractDestinationName(@Nullable Message message, Destination destination) {
         String destinationName = null;
         if (message != null) {
-            try {
-                destinationName = message.getStringProperty(JMS_DESTINATION_NAME_PROPERTY);
-            } catch (JMSException e) {
-                logger.warn("Failed to get destination name from message property", e);
-            }
+            destinationName = JmsMessagePropertyAccessor.instance().getFirstHeader(JMS_DESTINATION_NAME_PROPERTY, message);
         }
         if (destinationName == null) {
             try {
@@ -212,42 +198,47 @@ public class JmsInstrumentationHelper {
     }
 
     private boolean isTempDestination(Destination destination, @Nullable String extractedDestinationName) {
-        return destination instanceof TemporaryQueue || destination instanceof TemporaryTopic ||
-            (extractedDestinationName != null && extractedDestinationName.startsWith(TIBCO_TMP_QUEUE_PREFIX));
+        return destination instanceof TemporaryQueue
+            || destination instanceof TemporaryTopic
+            || (extractedDestinationName != null && extractedDestinationName.startsWith(TIBCO_TMP_QUEUE_PREFIX));
     }
 
     public boolean ignoreDestination(@Nullable String destinationName) {
         return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), destinationName);
     }
 
-    public void addDestinationDetails(@Nullable Message message, Destination destination, String destinationName,
-                                      AbstractSpan span) {
+    public void addDestinationDetails(Destination destination,
+                                      String destinationName,
+                                      AbstractSpan<?> span) {
+
+        String prefix = null;
         if (destination instanceof Queue) {
-            span.appendToName("queue ").appendToName(destinationName)
-                .getContext().getMessage().withQueue(destinationName);
+            prefix = "queue ";
         } else if (destination instanceof Topic) {
-            span.appendToName("topic ").appendToName(destinationName)
+            prefix = "topic ";
+        }
+
+        if (prefix != null) {
+            span.appendToName(prefix).appendToName(destinationName)
                 .getContext().getMessage().withQueue(destinationName);
         }
     }
 
-    public void setMessageAge(Message message, AbstractSpan span) {
+    public void setMessageAge(Message message, AbstractSpan<?> span) {
+        long messageTimestamp = -1L;
         try {
-            long messageTimestamp = message.getJMSTimestamp();
-            if (messageTimestamp > 0) {
-                long now = System.currentTimeMillis();
-                if (now > messageTimestamp) {
-                    span.getContext().getMessage().withAge(now - messageTimestamp);
-                } else {
-                    span.getContext().getMessage().withAge(0);
-                }
-            }
+            messageTimestamp = message.getJMSTimestamp();
         } catch (JMSException e) {
             logger.warn("Failed to get message timestamp", e);
         }
+        if (messageTimestamp > 0) {
+            long now = System.currentTimeMillis();
+            long age = now > messageTimestamp ? now - messageTimestamp : 0;
+            span.getContext().getMessage().withAge(age);
+        }
     }
 
-    public void addMessageDetails(@Nullable Message message, AbstractSpan span) {
+    public void addMessageDetails(@Nullable Message message, AbstractSpan<?> span) {
         if (message == null) {
             return;
         }

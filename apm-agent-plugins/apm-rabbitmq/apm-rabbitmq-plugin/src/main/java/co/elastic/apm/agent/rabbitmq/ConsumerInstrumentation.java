@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,11 +15,9 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
@@ -32,6 +25,7 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.Envelope;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -41,6 +35,7 @@ import javax.annotation.Nullable;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
@@ -50,7 +45,13 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
  *     <li>{@link com.rabbitmq.client.Consumer#handleDelivery}</li>
  * </ul>
  */
-public class ConsumerInstrumentation extends BaseInstrumentation {
+public class ConsumerInstrumentation extends RabbitmqBaseInstrumentation {
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        // Spring RabbitMQ is supported through Spring interfaces, rather than the RabbitMQ API (apm-rabbitmq-spring module)
+        return not(nameStartsWith("org.springframework."));
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -70,8 +71,8 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return RabbitConsumerAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.rabbitmq.ConsumerInstrumentation$RabbitConsumerAdvice";
     }
 
     public static class RabbitConsumerAdvice {
@@ -88,7 +89,6 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
             if (!tracer.isRunning()) {
                 return null;
             }
-
             String exchange = envelope != null ? envelope.getExchange() : null;
 
             if (null == exchange || isIgnored(exchange)) {
@@ -110,13 +110,12 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
 
             transaction.setFrameworkName("RabbitMQ");
 
-            Message message = captureMessage(exchange, properties, transaction);
+            Message message = captureMessage(exchange, getTimestamp(properties != null ? properties.getTimestamp() : null), transaction);
             // only capture incoming messages headers for now (consistent with other messaging plugins)
-            captureHeaders(properties, message);
-
+            if (properties != null) {
+                captureHeaders(properties.getHeaders(), message);
+            }
             return transaction.activate();
-
-
         }
 
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)

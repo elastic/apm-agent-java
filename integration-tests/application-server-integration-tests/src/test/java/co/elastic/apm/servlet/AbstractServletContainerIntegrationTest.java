@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,11 +15,11 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.servlet.tests.TestApp;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -81,16 +76,31 @@ import static org.mockserver.model.HttpRequest.request;
  * To debug, add a remote debugging configuration for port 5005 and set {@link #ENABLE_DEBUGGING} to {@code true}.
  * </p>
  * <p>
+ * To test slim CLI tool with any agent version, set {@link #AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN} to the desired version.
+ * </p>
+ * <p>
  * Servlet containers that support runtime attach are being tested with it by default. In order to test those through
  * the `javaagent` route, set {@link #ENABLE_RUNTIME_ATTACH} to {@code false}
  * </p>
  */
 public abstract class AbstractServletContainerIntegrationTest {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
+
     private static final String pathToJavaagent;
     private static final String pathToAttach;
-    private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
+    private static final String pathToSlimAttach;
+
     static boolean ENABLE_DEBUGGING = false;
     static boolean ENABLE_RUNTIME_ATTACH = true;
+
+    /**
+     * Set to a specific version to manually test downloading of agent from maven central using the slim cli tool.
+     * Only relevant if {@link #ENABLE_RUNTIME_ATTACH} is set to {@code true} and for Servlet containers for which
+     * {@link #runtimeAttachSupported()} returns {@code true}.
+     */
+    @Nullable
+    private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
+
     private static MockServerContainer mockServerContainer = new MockServerContainer()
         //.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(MockServerContainer.class)))
         .withNetworkAliases("apm-server")
@@ -109,12 +119,14 @@ public abstract class AbstractServletContainerIntegrationTest {
             .build();
         pathToJavaagent = AgentFileIT.getPathToJavaagent();
         pathToAttach = AgentFileIT.getPathToAttacher();
+        pathToSlimAttach = AgentFileIT.getPathToSlimAttacher();
         checkFilePresent(pathToJavaagent);
         checkFilePresent(pathToAttach);
+        checkFilePresent(pathToSlimAttach);
     }
 
     private final MockReporter mockReporter = new MockReporter();
-    private final GenericContainer servletContainer;
+    private final GenericContainer<?> servletContainer;
     private final int webPort;
     private final String expectedDefaultServiceName;
     private final String containerName;
@@ -157,7 +169,8 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withFileSystemBind(pathToAttach, "/apm-agent-attach-standalone.jar")
+            .withFileSystemBind(pathToAttach, "/apm-agent-attach-cli.jar")
+            .withFileSystemBind(pathToSlimAttach, "/apm-agent-attach-cli-slim.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
         for (TestApp testApp : getTestApps()) {
             testApp.getAdditionalEnvVariables().forEach(servletContainer::withEnv);
@@ -177,10 +190,17 @@ public abstract class AbstractServletContainerIntegrationTest {
                 servletContainer.withFileSystemBind(pathToAppFile, deploymentPath + "/" + testApp.getAppFileName());
             }
         }
+        this.servletContainer.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
         this.servletContainer.start();
         if (runtimeAttachSupported() && ENABLE_RUNTIME_ATTACH) {
             try {
-                Container.ExecResult result = this.servletContainer.execInContainer("java", "-jar", "/apm-agent-attach-standalone.jar", "--config");
+                String[] cliArgs;
+                if (AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN != null) {
+                    cliArgs = new String[]{"java", "-jar", "/apm-agent-attach-cli-slim.jar", "--download-agent-version", AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN, "--include-all"};
+                } else {
+                    cliArgs = new String[]{"java", "-jar", "/apm-agent-attach-cli.jar", "--include-all"};
+                }
+                Container.ExecResult result = this.servletContainer.execInContainer(cliArgs);
                 System.out.println(result.getStdout());
                 System.out.println(result.getStderr());
             } catch (Exception e) {

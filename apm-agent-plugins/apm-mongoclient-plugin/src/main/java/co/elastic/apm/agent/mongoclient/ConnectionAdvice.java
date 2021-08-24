@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,11 +15,9 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.mongoclient;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -41,12 +34,11 @@ import javax.annotation.Nullable;
 
 public class ConnectionAdvice {
 
-    @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ConnectionAdvice.class);
 
     @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static Span onEnter(@Advice.This Connection thiz,
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static Object onEnter(@Advice.This Connection thiz,
                                @Advice.Argument(0) Object databaseOrMongoNamespace,
                                @Advice.Argument(1) BsonDocument command) {
         Span span = null;
@@ -113,9 +105,10 @@ public class ConnectionAdvice {
         return span;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onExit(@Nullable @Advice.Enter Span span, @Advice.Thrown Throwable thrown, @Advice.Origin("#m") String methodName) {
-        if (span != null) {
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+    public static void onExit(@Nullable @Advice.Enter Object spanObj, @Advice.Thrown Throwable thrown, @Advice.Origin("#m") String methodName) {
+        if (spanObj instanceof Span) {
+            Span span = (Span) spanObj;
             span.deactivate().captureException(thrown);
             if (!methodName.endsWith("Async")) {
                 span.end();

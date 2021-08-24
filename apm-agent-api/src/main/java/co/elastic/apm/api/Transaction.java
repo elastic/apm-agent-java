@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.api;
 
@@ -62,6 +56,16 @@ public interface Transaction extends Span {
      */
     @Nonnull
     Transaction setType(String type);
+
+    /**
+     * Provides a way to manually set the {@code service.framework.name} field.
+     * Any value set through this method will take precedence over automatically-set value for supported frameworks.
+
+     * @param frameworkName The name of the framework. {@code null} and empty values will cause the exclusion of the
+     *                      framework name from the transaction context.
+     */
+    @Nonnull
+    Transaction setFrameworkName(String frameworkName);
 
     /**
      * {@inheritDoc}
@@ -180,6 +184,23 @@ public interface Transaction extends Span {
      * @param username The user's name or {@code null}, if not applicable.
      */
     Transaction setUser(String id, String email, String username);
+
+    /**
+     * Call this to enrich collected performance data and errors with information about the user/client.
+     * <p>
+     * This method can be called at any point during the request/response life cycle (i.e. while a transaction is active).
+     * The given context will be added to the active transaction.
+     * </p>
+     * <p>
+     * If an error is captured, the context from the active transaction is used as context for the captured error.
+     * </p>
+     *
+     * @param id       The user's id or {@code null}, if not applicable.
+     * @param email    The user's email address or {@code null}, if not applicable.
+     * @param username The user's name or {@code null}, if not applicable.
+     * @param domain   The user's domain or {@code null}, if not applicable.
+     */
+    Transaction setUser(String id, String email, String username, String domain);
 
     /**
      * A string describing the result of the transaction.

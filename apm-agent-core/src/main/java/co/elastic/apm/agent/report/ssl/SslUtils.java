@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report.ssl;
 
@@ -37,13 +31,34 @@ import javax.net.ssl.X509TrustManager;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
+import java.util.Objects;
 
 // based on https://gist.github.com/mefarazath/c9b588044d6bffd26aac3c520660bf40
 public class SslUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(SslUtils.class);
 
-    private static final HostnameVerifier hostnameVerifier;
+    private static final X509TrustManager X_509_TRUST_ALL = new X509TrustManager() {
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) {
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) {
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    };
+
+    private static final HostnameVerifier TRUST_ALL_HOSTNAME_VERIFIER = new HostnameVerifier() {
+        @Override
+        public boolean verify(String hostname, SSLSession session) {
+            return true;
+        }
+    };
 
     private static boolean warningLogged = false;
 
@@ -69,8 +84,7 @@ public class SslUtils {
         tmpSocketFactory = null;
         // without certificate validation
         try {
-            X509TrustManager trustAllTrustManager = createTrustAllTrustManager();
-            tmpSocketFactory = TLSFallbackSSLSocketFactory.wrapFactory(createSocketFactory(new TrustManager[]{trustAllTrustManager}));
+            tmpSocketFactory = TLSFallbackSSLSocketFactory.wrapFactory(createSocketFactory(new TrustManager[]{X_509_TRUST_ALL}));
         } catch (Exception e) {
             logger.info("Failed to construct a trust-all Socket factory with the following error: \"{}\". Agent communication " +
                 "with the APM Server must verify the server certificate, meaning - the \"verify_server_cert\" configuration " +
@@ -78,17 +92,6 @@ public class SslUtils {
             logger.debug("Socket factory creation error stack trace: ", e);
         }
         trustAllSocketFactory = tmpSocketFactory;
-
-        hostnameVerifier = new HostnameVerifier() {
-            @Override
-            public boolean verify(String hostname, SSLSession session) {
-                return true;
-            }
-        };
-    }
-
-    public static HostnameVerifier getTrustAllHostnameVerifyer() {
-        return hostnameVerifier;
     }
 
     @Nullable
@@ -117,21 +120,16 @@ public class SslUtils {
         return sslContext.getSocketFactory();
     }
 
-    private static X509TrustManager createTrustAllTrustManager() {
-        return new X509TrustManager() {
-            @Override
-            public void checkClientTrusted(X509Certificate[] chain, String authType) {
-            }
+    public static SSLSocketFactory createTrustAllSocketFactory() throws NoSuchAlgorithmException, KeyManagementException {
+        return Objects.requireNonNull(createSocketFactory(new TrustManager[]{X_509_TRUST_ALL}));
+    }
 
-            @Override
-            public void checkServerTrusted(X509Certificate[] chain, String authType) {
-            }
+    public static HostnameVerifier getTrustAllHostnameVerifier() {
+        return TRUST_ALL_HOSTNAME_VERIFIER;
+    }
 
-            @Override
-            public X509Certificate[] getAcceptedIssuers() {
-                return new X509Certificate[0];
-            }
-        };
+    public static X509TrustManager getTrustAllManager() {
+        return X_509_TRUST_ALL;
     }
 
 }

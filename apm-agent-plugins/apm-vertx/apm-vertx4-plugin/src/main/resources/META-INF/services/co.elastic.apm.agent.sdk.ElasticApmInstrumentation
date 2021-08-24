@@ -1,0 +1,16 @@
+# vertx core
+co.elastic.apm.agent.vertx.v4.TaskQueueInstrumentation
+co.elastic.apm.agent.vertx.v4.EventLoopInstrumentation$ExecuteBlockingInstrumentation
+co.elastic.apm.agent.vertx.v4.EventLoopInstrumentation$OnContextInstrumentation
+co.elastic.apm.agent.vertx.v4.EventLoopInstrumentation$SetTimerInstrumentation
+# vertx web
+co.elastic.apm.agent.vertx.v4.web.WebInstrumentation$RouteInstrumentation
+co.elastic.apm.agent.vertx.v4.web.WebInstrumentation$VertxTracerReceiveRequestInstrumentation
+co.elastic.apm.agent.vertx.v4.web.WebInstrumentation$VertxTracerSendResponseInstrumentation
+co.elastic.apm.agent.vertx.v4.web.WebInstrumentation$ContextImplTracerInstrumentation
+co.elastic.apm.agent.vertx.v4.web.WebInstrumentation$RequestBufferInstrumentation
+# vertx webclient
+co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextPrepareRequestInstrumentation
+co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextSendRequestInstrumentation
+co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextDispatchResponseInstrumentation
+co.elastic.apm.agent.vertx.v4.webclient.HttpContextInstrumentation$HttpContextFailInstrumentation

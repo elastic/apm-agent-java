@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.bci.methodmatching;
 
@@ -43,6 +37,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.matches;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
@@ -104,12 +99,8 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return matches(methodMatcher.getClassMatcher())
+            .and(not(isProxy()))
             .and(methodMatcher.getAnnotationMatcher())
-            .and(not(nameContains("$JaxbAccessor")))
-            .and(not(nameContains("$$")))
-            .and(not(nameContains("CGLIB")))
-            .and(not(nameContains("EnhancerBy")))
-            .and(not(nameContains("$Proxy")))
             .and(declaresMethod(matches(methodMatcher.getMethodMatcher())));
     }
 

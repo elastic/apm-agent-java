@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,10 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.grpc;
 
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
@@ -32,9 +27,11 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import io.grpc.CallOptions;
 import io.grpc.ClientCall;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
@@ -48,14 +45,28 @@ import javax.annotation.Nullable;
  */
 public class GrpcHelper {
 
+    // todo - replace all accesses to active span with usages of GlobalTracer
+    // todo - replace all maps with values of type Span to SpanConcurrentHashMap
+
     static String GRPC = "grpc";
 
     private static final String FRAMEWORK_NAME = "gRPC";
+
+    private static final GrpcHelper INSTANCE = new GrpcHelper();
+
+    public static GrpcHelper getInstance() {
+        return INSTANCE;
+    }
 
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall} instance as key.
      */
     private final WeakConcurrentMap<ClientCall<?, ?>, Span> clientCallSpans;
+
+    /**
+     * Map of all in-flight {@link Span} with {@link ClientCall} instance as key.
+     */
+    private final WeakConcurrentMap<ClientCall<?, ?>, Span> delayedClientCallSpans;
 
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall.Listener} instance as key.
@@ -82,6 +93,7 @@ public class GrpcHelper {
 
     public GrpcHelper() {
         clientCallSpans = WeakMapSupplier.createMap();
+        delayedClientCallSpans = WeakMapSupplier.createMap();
         clientCallListenerSpans = WeakMapSupplier.createMap();
 
         serverListenerTransactions = WeakMapSupplier.createMap();
@@ -142,7 +154,6 @@ public class GrpcHelper {
     public void registerTransaction(ServerCall<?, ?> serverCall, ServerCall.Listener<?> listener, Transaction transaction) {
         serverCallTransactions.put(serverCall, transaction);
         serverListenerTransactions.put(listener, transaction);
-
         transaction.deactivate();
     }
 
@@ -176,7 +187,7 @@ public class GrpcHelper {
     }
 
     public static Outcome toClientOutcome(@Nullable Status status) {
-        if( status == null || !status.isOk()){
+        if (status == null || !status.isOk()) {
             return Outcome.FAILURE;
         } else {
             return Outcome.SUCCESS;
@@ -265,9 +276,10 @@ public class GrpcHelper {
     // exit span management (client part)
 
     /**
+     * Called at the entry to {@link io.grpc.Channel#newCall(MethodDescriptor, CallOptions)}.
      * Starts a client exit span.
      * <br>
-     * This is the first method called during a client call execution, the next is {@link #registerSpan(ClientCall, Span)}.
+     * This is the first method called during a client call execution, the next is {@link #onClientCallCreationExit(ClientCall, Span)}.
      *
      * @param parent    parent transaction, or parent span provided by {@link Tracer#getActive()}.
      * @param method    method descriptor
@@ -275,9 +287,9 @@ public class GrpcHelper {
      * @return client call span (activated) or {@literal null} if not within an exit span.
      */
     @Nullable
-    public Span startSpan(@Nullable AbstractSpan<?> parent,
-                          @Nullable MethodDescriptor<?, ?> method,
-                          @Nullable String authority) {
+    public Span onClientCallCreationEntry(@Nullable AbstractSpan<?> parent,
+                                          @Nullable MethodDescriptor<?, ?> method,
+                                          @Nullable String authority) {
 
         if (null == parent) {
             return null;
@@ -311,25 +323,83 @@ public class GrpcHelper {
     }
 
     /**
+     * Called at the exit from {@link io.grpc.Channel#newCall(MethodDescriptor, CallOptions)}.
      * Registers (and deactivates) span in internal storage for lookup by client call.
      * <br>
-     * This is the 2cnd method called during client call execution, the next is {@link #clientCallStartEnter(ClientCall, ClientCall.Listener, Metadata)}.
+     * This is the 2nd method called during client call execution, the next is {@link #clientCallStartEnter(ClientCall, ClientCall.Listener, Metadata)}.
      *
-     * @param clientCall client call
-     * @param span       span
+     * @param clientCall    client call
+     * @param spanFromEntry span created at {@link #onClientCallCreationEntry(AbstractSpan, MethodDescriptor, String)}
      */
-    public void registerSpan(@Nullable ClientCall<?, ?> clientCall, Span span) {
+    public void onClientCallCreationExit(@Nullable ClientCall<?, ?> clientCall, @Nullable Span spanFromEntry) {
         if (clientCall != null) {
-            clientCallSpans.put(clientCall, span);
+            Span spanToMap = spanFromEntry;
+            if (spanToMap == null) {
+                // handling nested newCall() invocations - we still want to map the client call to the same span
+                Span tmp = GlobalTracer.get().getActiveSpan();
+                if (tmp != null && tmp.getSubtype() != null && tmp.getSubtype().equals(GRPC) && tmp.isExit()) {
+                    spanToMap = tmp;
+                }
+            }
+
+            if (spanToMap != null && !spanToMap.isDiscarded()) {
+                // io.grpc.internal.DelayedClientCall was introduced in 1.32 as a temporary placeholder for client calls
+                // that eventually refer to the real client call, but when they are first created
+                Class<?> clientCallClass = clientCall.getClass();
+                if (clientCallClass.getName().equals("io.grpc.internal.DelayedClientCall") ||
+                    clientCallClass.getSuperclass().getName().equals("io.grpc.internal.DelayedClientCall")) {
+                    delayedClientCallSpans.put(clientCall, spanToMap);
+                } else {
+                    clientCallSpans.put(clientCall, spanToMap);
+                }
+            }
         }
-        span.deactivate();
+
+        if (spanFromEntry != null) {
+            spanFromEntry.deactivate();
+        }
+    }
+
+    /**
+     * Fixes the span mapping for the "real" client call based on the span that is already mapped to the corresponding
+     * placeholder {@code io.grpc.internal.DelayedClientCall}.
+     * <br>
+     * This replacement must take into account two options:
+     * <ul>
+     *     <li>
+     *         a span was created for each the placeholder and the real call, in which case we use the placeholder span
+     *         (which was created first) and discard the one created for the real call
+     *     </li>
+     *     <li>
+     *         a single span was created and either mapped for both the placeholder and the real call (theoretical),
+     *         in which case we need to do nothing, or mapped only to the placeholder, in which case we need to add a
+     *         span mapping for the real client call
+     *     </li>
+     * </ul>
+     *
+     * @param placeholderClientCall may be created as part of the gRPC channel implementation to be replaced later with
+     *                              the real client call
+     * @param realClientCall        the client call instance that represents the actual client call
+     */
+    public void replaceClientCallRegistration(ClientCall<?, ?> placeholderClientCall, ClientCall<?, ?> realClientCall) {
+        Span spanOfPlaceholder = delayedClientCallSpans.remove(placeholderClientCall);
+        if (spanOfPlaceholder != null) {
+            Span spanOfRealClientCall = clientCallSpans.remove(realClientCall);
+            if (spanOfRealClientCall != spanOfPlaceholder) {
+                spanOfRealClientCall
+                    .requestDiscarding()
+                    // no need to deactivate
+                    .end();
+            }
+            clientCallSpans.put(realClientCall, spanOfPlaceholder);
+        }
     }
 
     /**
      * Starts client call and switch to client call listener instrumentation.
      * <br>
      * This is the 3rd method called during client call execution, the next in sequence is
-     * {@link #clientCallStartExit(ClientCall.Listener, Throwable)}.
+     * {@link #clientCallStartExit(Span, ClientCall.Listener, Throwable)}.
      *
      * @param clientCall client call
      * @param listener   client call listener
@@ -350,25 +420,31 @@ public class GrpcHelper {
 
         clientCallListenerSpans.put(listener, span);
 
-        span.propagateTraceContext(headers, headerSetter);
-        return span;
+        if (!TraceContext.containsTraceContextTextHeaders(headers, headerGetter)) {
+            span.propagateTraceContext(headers, headerSetter);
+        }
+
+        return span.activate();
     }
 
     /**
      * Performs client call start cleanup in case of exception
      *
-     * @param listener client call listener
-     * @param thrown   thrown exception
+     * @param spanFromEntry span created by {@link #clientCallStartEnter(ClientCall, ClientCall.Listener, Metadata)}
+     * @param listener      client call listener
+     * @param thrown        thrown exception
      */
-    public void clientCallStartExit(ClientCall.Listener<?> listener, @Nullable Throwable thrown) {
-        if (thrown == null) {
-            return;
+    public void clientCallStartExit(@Nullable Span spanFromEntry, ClientCall.Listener<?> listener, @Nullable Throwable thrown) {
+        if (spanFromEntry != null) {
+            spanFromEntry.deactivate();
         }
-        // when there is an exception, we have to end span and perform some cleanup
-        Span span = clientCallListenerSpans.remove(listener);
-        if (span != null) {
-            span.withOutcome(Outcome.FAILURE)
-                .end();
+        if (thrown != null) {
+            // when there is an exception, we have to end span and perform some cleanup
+            clientCallListenerSpans.remove(listener);
+            if (spanFromEntry != null) {
+                spanFromEntry.withOutcome(Outcome.FAILURE)
+                    .end();
+            }
         }
     }
 
@@ -382,7 +458,12 @@ public class GrpcHelper {
     public Span enterClientListenerMethod(ClientCall.Listener<?> listener) {
         Span span = clientCallListenerSpans.get(listener);
         if (span != null) {
-            span.activate();
+            if (span == GlobalTracer.get().getActiveSpan()) {
+                // avoid duplicated activation and invocation on nested listener method calls
+                span = null;
+            } else {
+                span.activate();
+            }
         }
         return span;
     }
@@ -416,7 +497,6 @@ public class GrpcHelper {
         if (lastCall) {
             clientCallListenerSpans.remove(listener);
         }
-
     }
 
     private class GrpcHeaderSetter implements TextHeaderSetter<Metadata> {
@@ -425,7 +505,6 @@ public class GrpcHelper {
         public void setHeader(String headerName, String headerValue, Metadata carrier) {
             carrier.put(getHeader(headerName), headerValue);
         }
-
     }
 
     private class GrpcHeaderGetter extends AbstractHeaderGetter<String, Metadata> implements TextHeaderGetter<Metadata> {

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.bci;
 
@@ -54,7 +48,8 @@ public class IndyPluginClassLoaderFactory {
      * The agent class loader is currently the bootstrap CL but in the future it will be an isolated CL that is a child of the bootstrap CL.
      */
     public synchronized static ClassLoader getOrCreatePluginClassLoader(@Nullable ClassLoader targetClassLoader,
-                                                                        List<String> classesToInject, ClassLoader agentClassLoader,
+                                                                        List<String> classesToInject,
+                                                                        ClassLoader agentClassLoader,
                                                                         ClassFileLocator classFileLocator,
                                                                         ElementMatcher<? super TypeDescription> exclusionMatcher) throws Exception {
         classesToInject = new ArrayList<>(classesToInject);
@@ -73,7 +68,14 @@ public class IndyPluginClassLoaderFactory {
         TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, classFileLocator, TypePool.Default.ReaderMode.FAST);
         for (Iterator<String> iterator = classesToInject.iterator(); iterator.hasNext(); ) {
             String className = iterator.next();
-            if (!exclusionMatcher.matches(pool.describe(className).resolve())) {
+            boolean excluded;
+            try {
+                excluded = exclusionMatcher.matches(pool.describe(className).resolve());
+            } catch (Exception e) {
+                // in case a matcher fails, for example because it can't resolve a type description
+                excluded = false;
+            }
+            if (!excluded) {
                 classesToInjectCopy.add(className);
             }
         }

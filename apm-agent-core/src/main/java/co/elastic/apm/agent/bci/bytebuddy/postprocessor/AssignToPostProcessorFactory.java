@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.bci.bytebuddy.postprocessor;
 
@@ -129,7 +123,7 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
                 } else {
                     final StackManipulation assign = assigner.assign(adviceMethod.getReturnType(), instrumentedMethod.getReturnType(), assignToReturn.typing());
                     if (!assign.isValid()) {
-                        throw new IllegalStateException("Cannot assign " + adviceMethod.getReturnType() + " to " + instrumentedMethod.getReturnType());
+                        throw new IllegalStateException("Cannot assign " + adviceMethod.getReturnType() + " to " + instrumentedMethod.getReturnType() + " in advice method " + adviceMethod.toGenericString());
                     }
                     return new StackManipulation.Compound(
                         MethodVariableAccess.of(adviceMethod.getReturnType()).loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter()),

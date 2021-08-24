@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,14 +15,11 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.jdbc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -35,27 +27,9 @@ public abstract class JdbcInstrumentation extends TracerAwareInstrumentation {
 
     private static final Collection<String> JDBC_GROUPS = Collections.singleton("jdbc");
 
-    @Nullable
-    private static volatile JdbcHelper jdbcHelper;
-
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
         return JDBC_GROUPS;
     }
 
-    protected static JdbcHelper getJdbcHelper() {
-        // lazily initialize helper to prevent trying to load classes in java.sql package with the bootstrap classloader
-        // this method should only be called from advices
-        JdbcHelper local = jdbcHelper;
-        if (local != null) {
-            return local;
-        }
-        synchronized (JdbcHelper.class) {
-            local = jdbcHelper;
-            if (local == null) {
-                local = jdbcHelper = new JdbcHelper();
-            }
-            return local;
-        }
-    }
 }

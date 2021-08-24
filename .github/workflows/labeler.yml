@@ -1,9 +1,11 @@
 name: "Issue Labeler"
 on:
   issues:
-    types: [opened, edited]
+    types: [opened]
   pull_request_target:
     types: [opened]
+env:
+  MY_GITHUB_TOKEN: ${{ secrets.APM_TECH_USER_TOKEN }}
 
 jobs:
   triage:
@@ -14,3 +16,25 @@ jobs:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
         configuration-path: .github/labeler-config.yml
         enable-versioned-regex: 0
+    - uses: elastic/get-user-teams-membership@v1.0.4
+      id: checkUserMember
+      with:
+        username: ${{ github.actor }}
+        team: 'apm'
+        usernamesToExclude: |
+          apmmachine
+          dependabot
+        GITHUB_TOKEN: ${{ secrets.APM_TECH_USER_TOKEN }}
+    - if: ${{ steps.checkUserMember.outputs.isTeamMember != 'true' }} && ${{ steps.checkUserMember.outputs.isExcluded != 'true' }}
+      uses: AlexanderWert/issue-labeler@v2.3
+      with:
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        configuration-path: .github/community-label.yml
+        enable-versioned-regex: 0    
+    - name: Assign new internal pull requests to project
+      uses: elastic/assign-one-project-github-action@1.2.2
+      if: (${{ steps.checkUserMember.outputs.isTeamMember == 'true' }} || ${{ steps.checkUserMember.outputs.isExcluded == 'true' }}) && github.event.action == 'opened' && github.event.pull_request
+      with:
+        project: 'https://github.com/orgs/elastic/projects/454'
+        project_id: '5882982'
+        column_name: 'In Progress'

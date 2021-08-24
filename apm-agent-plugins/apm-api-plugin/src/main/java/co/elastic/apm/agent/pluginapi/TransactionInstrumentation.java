@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.pluginapi;
 
@@ -59,6 +53,20 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         return methodMatcher;
     }
 
+    public static class SetFrameworkNameInstrumentation extends TransactionInstrumentation {
+        public SetFrameworkNameInstrumentation() {
+            super(named("setFrameworkName"));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void setFrameworkName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+                                   @Advice.Argument(0) String frameworkName) {
+            if (transaction instanceof Transaction) {
+                ((Transaction) transaction).setUserFrameworkName(frameworkName);
+            }
+        }
+    }
+
     public static class SetUserInstrumentation extends TransactionInstrumentation {
         public SetUserInstrumentation() {
             super(named("setUser"));
@@ -66,9 +74,9 @@ public class TransactionInstrumentation extends ApiInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void setUser(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
-                                   @Advice.Argument(0) String id, @Advice.Argument(1) String email, @Advice.Argument(2) String username) {
+                                   @Advice.Argument(0) String id, @Advice.Argument(1) String email, @Advice.Argument(2) String username, @Advice.Argument(value = 3, optional = true) String domain) {
             if (transaction instanceof Transaction) {
-                ((Transaction) transaction).setUser(id, email, username);
+                ((Transaction) transaction).setUser(id, email, username, domain);
             }
         }
     }

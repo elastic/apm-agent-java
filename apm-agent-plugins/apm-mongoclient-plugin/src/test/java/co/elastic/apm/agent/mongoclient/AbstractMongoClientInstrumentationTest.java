@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.mongoclient;
 
@@ -29,6 +23,7 @@ import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.bson.Document;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -51,7 +46,9 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
     @BeforeClass
     public static void startContainer() {
-        container = new GenericContainer("mongo:3.4").withExposedPorts(PORT);
+        container = new GenericContainer<>("mongo:3.4")
+            .withExposedPorts(PORT)
+            .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048));
         container.start();
     }
 
@@ -209,9 +206,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
         assertThat(destination.getPort()).isEqualTo(container.getMappedPort(PORT));
 
         Destination.Service service = destination.getService();
-        assertThat(service.getName().toString()).isEqualTo("mongodb");
         assertThat(service.getResource().toString()).isEqualTo("mongodb");
-        assertThat(service.getType()).isEqualTo("db");
     }
 
     private static String getSpanName(String operation) {

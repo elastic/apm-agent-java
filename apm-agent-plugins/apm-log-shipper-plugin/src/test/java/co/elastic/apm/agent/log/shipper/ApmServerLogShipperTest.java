@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.log.shipper;
 
@@ -32,14 +26,15 @@ import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.assertj.core.util.Lists;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.BufferedReader;
@@ -64,21 +59,22 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ApmServerLogShipperTest {
+@DisabledOnOs(OS.WINDOWS)
+class ApmServerLogShipperTest {
 
-    @Rule
-    public WireMockRule mockApmServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    public WireMockServer mockApmServer = new WireMockServer(WireMockConfiguration.wireMockConfig().dynamicPort());
     private TailableFile tailableFile;
     private ApmServerLogShipper logShipper;
     private File logFile;
     private final ByteBuffer buffer = ByteBuffer.allocate(1024);
     private ApmServerClient apmServerClient;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void setUp() throws Exception {
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         mockApmServer.stubFor(post("/intake/v2/logs").willReturn(ok()));
         mockApmServer.stubFor(get("/").willReturn(ok()));
+        mockApmServer.start();
 
         apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class));
         startClientWithValidUrls();
@@ -93,15 +89,17 @@ public class ApmServerLogShipperTest {
         apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
+        mockApmServer.stop();
+
         if (!logFile.delete()) {
             logFile.deleteOnExit();
         }
     }
 
     @Test
-    public void testSendLogs() throws Exception {
+    void testSendLogs() throws Exception {
         Files.write(logFile.toPath(), List.of("foo"));
         assertThat(tailableFile.tail(buffer, logShipper, 100)).isEqualTo(1);
         logShipper.endRequest();
@@ -115,7 +113,7 @@ public class ApmServerLogShipperTest {
     }
 
     @Test
-    public void testSendLogsAfterServerUrlsSet() throws Exception {
+    void testSendLogsAfterServerUrlsSet() throws Exception {
         apmServerClient.start(Lists.emptyList());
         Files.write(logFile.toPath(), List.of("foo"));
         assertThat(logShipper.getErrorCount()).isEqualTo(0);

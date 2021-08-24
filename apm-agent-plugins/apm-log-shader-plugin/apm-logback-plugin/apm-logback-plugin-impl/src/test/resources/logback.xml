@@ -1,0 +1,57 @@
+<configuration debug="true">
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- encoders are assigned the type
+             ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="co.elastic.apm.agent" level="TRACE">
+        <appender-ref ref="STDOUT" />
+    </logger>
+
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>target/logback.log</file>
+        <append>false</append>
+        <immediateFlush>true</immediateFlush>
+        <!-- Allows testing the special logic for LayoutWrappingEncoder -->
+        <!--
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z'} %thread %-5level %logger{36} %msg%n</pattern>
+            </layout>
+        </encoder>
+        -->
+        <encoder>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z'} %thread %-5level %logger{36} %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="Test-File-Logger" level="TRACE">
+        <appender-ref ref="FILE" />
+    </logger>
+
+    <appender name="ROLLING_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>target/logback.append.log</file>
+        <immediateFlush>false</immediateFlush>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${LOG_FILE}.%i</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>1</maxIndex>
+        </rollingPolicy>
+
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>5MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>%-4relative [%thread] %-5level %logger{35} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="Test-Rolling-File-Logger" level="TRACE">
+        <appender-ref ref="ROLLING_FILE" />
+    </logger>
+
+</configuration>

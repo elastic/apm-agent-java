@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report;
 
@@ -113,8 +107,8 @@ public class AbstractIntakeApiHandler {
                 payloadSerializer.appendMetaDataNdJsonToStream();
                 payloadSerializer.flushToOutputStream();
             } catch (IOException e) {
-                logger.error("Error trying to connect to APM Server. Some details about SSL configurations corresponding " +
-                    "the current connection are logged at INFO level.");
+                logger.error("Error trying to connect to APM Server at {}. Some details about SSL configurations corresponding " +
+                    "the current connection are logged at INFO level.", connection.getURL());
                 if (logger.isInfoEnabled() && connection instanceof HttpsURLConnection) {
                     HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
                     try {

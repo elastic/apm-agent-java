@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.configuration.converter;
 
@@ -28,7 +22,9 @@ import org.stagemonitor.configuration.converter.AbstractValueConverter;
 import org.stagemonitor.configuration.converter.DoubleValueConverter;
 
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
+import java.util.Locale;
 
 public class RoundedDoubleConverter extends AbstractValueConverter<Double> {
 
@@ -51,7 +47,7 @@ public class RoundedDoubleConverter extends AbstractValueConverter<Double> {
         for (int i = 0; i < precisionDigits; i++) {
             format.append("#");
         }
-        this.numberFormat = new DecimalFormat(format.toString());
+        this.numberFormat = new DecimalFormat(format.toString(), DecimalFormatSymbols.getInstance(Locale.ENGLISH));
         this.precisionFactor = Math.pow(10, precisionDigits);
     }
 

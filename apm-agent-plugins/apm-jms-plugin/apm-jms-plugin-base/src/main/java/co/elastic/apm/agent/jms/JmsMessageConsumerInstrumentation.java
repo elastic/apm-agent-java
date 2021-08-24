@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.jms;
 
@@ -83,8 +77,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return MessageConsumerAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.jms.JmsMessageConsumerInstrumentation$ReceiveInstrumentation$MessageConsumerAdvice";
         }
 
         public static class MessageConsumerAdvice extends BaseAdvice {
@@ -193,7 +187,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         } else if (addDetails) {
                             if (message != null && destinationName != null) {
                                 abstractSpan.appendToName(" from ");
-                                helper.addDestinationDetails(message, destination, destinationName, abstractSpan);
+                                helper.addDestinationDetails(destination, destinationName, abstractSpan);
                                 helper.setMessageAge(message, abstractSpan);
                             }
                             abstractSpan.captureException(throwable);
@@ -215,7 +209,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
                         if (destinationName != null) {
                             messageHandlingTransaction.appendToName(" from ");
-                            helper.addDestinationDetails(message, destination, destinationName, messageHandlingTransaction);
+                            helper.addDestinationDetails(destination, destinationName, messageHandlingTransaction);
                             helper.addMessageDetails(message, messageHandlingTransaction);
                             helper.setMessageAge(message, messageHandlingTransaction);
                         }
@@ -235,8 +229,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return ListenerWrappingAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.jms.JmsMessageConsumerInstrumentation$SetMessageListenerInstrumentation$ListenerWrappingAdvice";
         }
 
         public static class ListenerWrappingAdvice extends BaseAdvice {

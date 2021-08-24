@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.dubbo;
 
@@ -33,6 +27,7 @@ import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -57,14 +52,14 @@ public class ApacheMonitorFilterInstrumentation extends AbstractDubboInstrumenta
             .and(takesArgument(0, named("org.apache.dubbo.rpc.Invoker")))
             .and(takesArgument(1, named("org.apache.dubbo.rpc.Invocation")))
             // makes sure we only instrument Dubbo 2.7.3+ which introduces this method
-            .and(returns(named("org.apache.dubbo.rpc.Result")
+            .and(returns(hasSuperType(named("org.apache.dubbo.rpc.Result"))
                 .and(declaresMethod(named("whenCompleteWithContext")
                     .and(takesArgument(0, named("java.util.function.BiConsumer")))))));
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ApacheMonitorFilterAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.dubbo.advice.ApacheMonitorFilterAdvice";
     }
 
 }

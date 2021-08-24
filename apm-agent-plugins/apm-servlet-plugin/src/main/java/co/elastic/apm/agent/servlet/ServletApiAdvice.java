@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.servlet;
 
@@ -92,88 +86,92 @@ public class ServletApiAdvice {
             return transactionAttr.activateInScope();
         }
 
-        if (tracer.isRunning() && servletRequest instanceof HttpServletRequest) {
-            final HttpServletRequest request = (HttpServletRequest) servletRequest;
-            DispatcherType dispatcherType = servletRequest.getDispatcherType();
-            CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
+        if (!tracer.isRunning() || !(servletRequest instanceof HttpServletRequest)) {
+            return null;
+        }
 
-            if (dispatcherType == DispatcherType.REQUEST) {
-                if (Boolean.TRUE != excluded.get()) {
-                    ServletContext servletContext = servletRequest.getServletContext();
-                    if (servletContext != null) {
-                        ClassLoader servletCL = servletTransactionCreationHelper.getClassloader(servletContext);
-                        // this makes sure service name discovery also works when attaching at runtime
-                        determineServiceName(servletContext.getServletContextName(), servletCL, servletContext.getContextPath());
+        final HttpServletRequest request = (HttpServletRequest) servletRequest;
+        DispatcherType dispatcherType = servletRequest.getDispatcherType();
+        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
 
-                    }
+        if (dispatcherType == DispatcherType.REQUEST) {
+            if (Boolean.TRUE == excluded.get()) {
+                return null;
+            }
 
-                    Transaction transaction = servletTransactionCreationHelper.createAndActivateTransaction(request);
+            ServletContext servletContext = servletRequest.getServletContext();
+            if (servletContext != null) {
+                ClassLoader servletCL = servletTransactionCreationHelper.getClassloader(servletContext);
+                // this makes sure service name discovery also works when attaching at runtime
+                determineServiceName(servletContext.getServletContextName(), servletCL, servletContext.getContextPath());
+            }
 
-                    if (transaction == null) {
-                        // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
-                        excluded.set(Boolean.TRUE);
-                    } else {
-                        final Request req = transaction.getContext().getRequest();
-                        if (transaction.isSampled() && coreConfig.isCaptureHeaders()) {
-                            if (request.getCookies() != null) {
-                                for (Cookie cookie : request.getCookies()) {
-                                    req.addCookie(cookie.getName(), cookie.getValue());
-                                }
-                            }
-                            final Enumeration<String> headerNames = request.getHeaderNames();
-                            if (headerNames != null) {
-                                while (headerNames.hasMoreElements()) {
-                                    final String headerName = headerNames.nextElement();
-                                    req.addHeader(headerName, request.getHeaders(headerName));
-                                }
-                            }
-                        }
-                        transaction.setFrameworkName(FRAMEWORK_NAME);
+            Transaction transaction = servletTransactionCreationHelper.createAndActivateTransaction(request);
 
-                        servletTransactionHelper.fillRequestContext(transaction, request.getProtocol(), request.getMethod(), request.isSecure(),
-                            request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),
-                            request.getRemoteAddr(), request.getHeader("Content-Type"));
+            if (transaction == null) {
+                // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
+                excluded.set(Boolean.TRUE);
+                return null;
+            }
 
-                        ret = transaction;
+            final Request req = transaction.getContext().getRequest();
+            if (transaction.isSampled() && coreConfig.isCaptureHeaders()) {
+                if (request.getCookies() != null) {
+                    for (Cookie cookie : request.getCookies()) {
+                        req.addCookie(cookie.getName(), cookie.getValue());
                     }
                 }
-            } else if (dispatcherType != DispatcherType.ASYNC &&
-                !coreConfig.getDisabledInstrumentations().contains(ServletInstrumentation.SERVLET_API_DISPATCH)) {
-                final AbstractSpan<?> parent = tracer.getActive();
-                if (parent != null) {
-                    Object servletPath = null;
-                    Object pathInfo = null;
-                    RequestDispatcherSpanType spanType = null;
-                    if (dispatcherType == DispatcherType.FORWARD) {
-                        spanType = RequestDispatcherSpanType.FORWARD;
-                        servletPath = request.getServletPath();
-                        pathInfo = request.getPathInfo();
-                    } else if (dispatcherType == DispatcherType.INCLUDE) {
-                        spanType = RequestDispatcherSpanType.INCLUDE;
-                        servletPath = request.getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
-                        pathInfo = request.getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
-                    } else if (dispatcherType == DispatcherType.ERROR) {
-                        spanType = RequestDispatcherSpanType.ERROR;
-                        servletPath = request.getServletPath();
+                final Enumeration<String> headerNames = request.getHeaderNames();
+                if (headerNames != null) {
+                    while (headerNames.hasMoreElements()) {
+                        final String headerName = headerNames.nextElement();
+                        req.addHeader(headerName, request.getHeaders(headerName));
                     }
+                }
+            }
+            transaction.setFrameworkName(FRAMEWORK_NAME);
 
-                    if (spanType != null && (areNotEqual(servletPathTL.get(), servletPath) || areNotEqual(pathInfoTL.get(), pathInfo))) {
-                        ret = parent.createSpan()
-                            .appendToName(spanType.getNamePrefix())
-                            .withAction(spanType.getAction())
-                            .withType(SPAN_TYPE)
-                            .withSubtype(SPAN_SUBTYPE);
+            servletTransactionHelper.fillRequestContext(transaction, request.getProtocol(), request.getMethod(), request.isSecure(),
+                request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),
+                request.getRemoteAddr(), request.getHeader("Content-Type"));
 
-                        if (servletPath != null) {
-                            ret.appendToName(servletPath.toString());
-                            servletPathTL.set(servletPath);
-                        }
-                        if (pathInfo != null) {
-                            ret.appendToName(pathInfo.toString());
-                            pathInfoTL.set(pathInfo);
-                        }
-                        ret.activate();
+            ret = transaction;
+        } else if (dispatcherType != DispatcherType.ASYNC &&
+            !coreConfig.getDisabledInstrumentations().contains(ServletInstrumentation.SERVLET_API_DISPATCH)) {
+            final AbstractSpan<?> parent = tracer.getActive();
+            if (parent != null) {
+                Object servletPath = null;
+                Object pathInfo = null;
+                RequestDispatcherSpanType spanType = null;
+                if (dispatcherType == DispatcherType.FORWARD) {
+                    spanType = RequestDispatcherSpanType.FORWARD;
+                    servletPath = request.getServletPath();
+                    pathInfo = request.getPathInfo();
+                } else if (dispatcherType == DispatcherType.INCLUDE) {
+                    spanType = RequestDispatcherSpanType.INCLUDE;
+                    servletPath = request.getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
+                    pathInfo = request.getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
+                } else if (dispatcherType == DispatcherType.ERROR) {
+                    spanType = RequestDispatcherSpanType.ERROR;
+                    servletPath = request.getServletPath();
+                }
+
+                if (spanType != null && (areNotEqual(servletPathTL.get(), servletPath) || areNotEqual(pathInfoTL.get(), pathInfo))) {
+                    ret = parent.createSpan()
+                        .appendToName(spanType.getNamePrefix())
+                        .withAction(spanType.getAction())
+                        .withType(SPAN_TYPE)
+                        .withSubtype(SPAN_SUBTYPE);
+
+                    if (servletPath != null) {
+                        ret.appendToName(servletPath.toString());
+                        servletPathTL.set(servletPath);
                     }
+                    if (pathInfo != null) {
+                        ret.appendToName(pathInfo.toString());
+                        pathInfoTL.set(pathInfo);
+                    }
+                    ret.activate();
                 }
             }
         }

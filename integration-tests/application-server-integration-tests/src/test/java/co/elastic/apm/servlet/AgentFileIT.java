@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.servlet;
 
@@ -39,17 +33,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class AgentFileIT {
 
     static String getPathToJavaagent() {
-        return getTargetJar("elastic-apm-agent", "");
+        return getTargetJar("elastic-apm-agent");
     }
 
     static String getPathToAttacher() {
-        return getTargetJar("apm-agent-attach", "-standalone");
+        return getTargetJar("apm-agent-attach-cli");
+    }
+
+    static String getPathToSlimAttacher() {
+        return getTargetJar("apm-agent-attach-cli", "-slim.jar");
     }
 
     @Nullable
-    private static String getTargetJar(String project, String classifier) {
+    private static String getTargetJar(String project) {
+        return getTargetJar(project, ".jar");
+    }
+
+    @Nullable
+    private static String getTargetJar(String project, String extension) {
         File agentBuildDir = new File("../../" + project + "/target/");
-        FileFilter fileFilter = file -> file.getName().matches(project + "-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?" + classifier + ".jar");
+        FileFilter fileFilter = file -> file.getName().matches(project + "-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?" + extension);
         return Arrays.stream(agentBuildDir.listFiles(fileFilter)).findFirst()
             .map(File::getAbsolutePath)
             .orElse(null);

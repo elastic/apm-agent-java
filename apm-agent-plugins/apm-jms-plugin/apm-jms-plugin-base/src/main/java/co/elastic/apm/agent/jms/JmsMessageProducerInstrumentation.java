@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.jms;
 
@@ -79,8 +73,8 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return MessageProducerNoDestinationAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.jms.JmsMessageProducerInstrumentation$JmsMessageProducerNoDestinationInstrumentation$MessageProducerNoDestinationAdvice";
         }
 
         public static class MessageProducerNoDestinationAdvice extends BaseAdvice {
@@ -122,8 +116,8 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return MessageProducerWithDestinationAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.jms.JmsMessageProducerInstrumentation$JmsMessageProducerWithDestinationInstrumentation$MessageProducerWithDestinationAdvice";
         }
 
         public static class MessageProducerWithDestinationAdvice extends BaseAdvice {

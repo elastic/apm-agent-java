@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,12 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.bci.subpackage.AdviceInSubpackageInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -50,6 +43,8 @@ import org.apache.commons.pool2.impl.CallStackUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnJre;
+import org.junit.jupiter.api.condition.JRE;
 import org.slf4j.event.SubstituteLoggingEvent;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -299,6 +294,7 @@ class InstrumentationTest {
     }
 
     @Test
+    @DisabledOnJre(JRE.JAVA_15) // https://github.com/elastic/apm-agent-java/issues/1944
     void testPatchClassFileVersionJava5ToJava7() {
         // loading classes compiled with bytecode level 49 (Java 6)
         new org.slf4j.event.SubstituteLoggingEvent();
@@ -318,6 +314,7 @@ class InstrumentationTest {
     }
 
     @Test
+    @DisabledOnJre(JRE.JAVA_15) // https://github.com/elastic/apm-agent-java/issues/1944
     void testPatchClassFileVersionJava5ToJava7CommonsMath() {
         org.apache.commons.math3.stat.StatUtils.max(new double[]{3.14});
 
@@ -336,6 +333,7 @@ class InstrumentationTest {
     }
 
     @Test
+    @DisabledOnJre(JRE.JAVA_15) // https://github.com/elastic/apm-agent-java/issues/1944
     void testPatchClassFileVersionJava4ToJava7CommonsMath() {
         org.apache.log4j.LogManager.exists("not");
 
@@ -425,33 +423,19 @@ class InstrumentationTest {
 
     @Test
     void testInlinedIndyAdvice() {
-        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new InlinedIndyAdviceInstrumentation())))
-            .isInstanceOf(IllegalStateException.class);
-    }
-
-    @Test
-    void testAdviceInSubpackage() {
-        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new AdviceInSubpackageInstrumentation())))
+        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(InlinedIndyAdviceInstrumentation.class))
             .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void testAdviceWithAgentReturnType() {
-        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new AgentTypeReturnInstrumentation())))
+        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(AgentTypeReturnInstrumentation.class))
             .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void testAdviceWithAgentParameterType() {
-        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new AgentTypeParameterInstrumentation())))
+        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(AgentTypeParameterInstrumentation.class))
             .isInstanceOf(IllegalStateException.class);
     }
 

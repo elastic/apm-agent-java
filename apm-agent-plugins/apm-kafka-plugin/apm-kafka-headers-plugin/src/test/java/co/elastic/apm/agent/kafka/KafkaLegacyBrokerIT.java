@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.kafka;
 
@@ -35,6 +29,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -106,11 +101,12 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
 
     @BeforeClass
     public static void setup() {
-        reporter.disableDestinationAddressCheck();
+        reporter.disableCheckDestinationAddress();
 
         // confluent versions 3.2.x correspond Kafka versions 0.10.2.2 -
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
         kafka = new KafkaContainer("3.2.2");
+        kafka.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
         kafka.start();
         bootstrapServers = kafka.getBootstrapServers();
         consumerThread = new Consumer();
@@ -223,7 +219,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
         when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
         testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
-        reporter.disableDestinationAddressCheck();
+        reporter.disableCheckDestinationAddress();
         sendTwoRecordsAndConsumeReplies();
         verifyTracing();
     }
@@ -320,9 +316,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
         assertThat(pollSpan.getAction()).isEqualTo("poll");
         assertThat(pollSpan.getNameAsString()).isEqualTo("KafkaConsumer#poll");
         Destination.Service service = pollSpan.getContext().getDestination().getService();
-        assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getResource().toString()).isEqualTo("kafka");
-        assertThat(service.getName().toString()).isEqualTo("kafka");
     }
 
     private void verifySendSpanContents(Span sendSpan, String topicName) {
@@ -334,9 +328,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
         Message message = context.getMessage();
         assertThat(message.getQueueName()).isEqualTo(topicName);
         Destination.Service service = context.getDestination().getService();
-        assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getResource().toString()).isEqualTo("kafka/" + topicName);
-        assertThat(service.getName().toString()).isEqualTo("kafka");
     }
 
     private void verifyKafkaTransactionContents(Transaction transaction, @Nullable Span parentSpan,

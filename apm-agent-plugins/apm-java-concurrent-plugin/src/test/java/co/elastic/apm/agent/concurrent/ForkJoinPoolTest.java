@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.concurrent;
 
@@ -94,7 +88,7 @@ public class ForkJoinPoolTest extends AbstractInstrumentationTest {
             .parallel()
             .<AbstractSpan<?>>map(s -> tracer.getActive())
             .distinct())
-        .containsExactly(transaction);
+            .containsExactly(transaction);
     }
 
     public static class AdaptedSupplier<V> extends ForkJoinTask<V> implements Runnable {
@@ -127,7 +121,9 @@ public class ForkJoinPoolTest extends AbstractInstrumentationTest {
         }
 
         @Override
-        public final void run() { invoke(); }
+        public final void run() {
+            invoke();
+        }
 
     }
 }

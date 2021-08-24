@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl;
 
@@ -167,6 +161,12 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     @Nullable
+    public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, long epochMicro) {
+        return startRootTransaction(sampler, epochMicro, initiatingClassLoader);
+    }
+
+    @Override
+    @Nullable
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;
         if (isRunning()) {
@@ -180,6 +180,12 @@ public class ElasticApmTracer implements Tracer {
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return startChildTransaction(headerCarrier, textHeadersGetter, sampler, -1, initiatingClassLoader);
+    }
+
+    @Override
+    @Nullable
+    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros) {
+        return startChildTransaction(headerCarrier, textHeadersGetter, sampler, epochMicros, initiatingClassLoader);
     }
 
     @Override
@@ -434,6 +440,9 @@ public class ElasticApmTracer implements Tracer {
         ExecutorUtils.shutdownAndWaitTermination(sharedPool);
         tracerState = TracerState.STOPPED;
         logger.info("Tracer switched to STOPPED state");
+        if (logger.isDebugEnabled()) {
+            logger.debug("Tracer stop stack trace: ", new Throwable("Expected - for debugging purposes"));
+        }
 
         try {
             configurationRegistry.close();
@@ -526,7 +535,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     private boolean shouldDelayOnPremain() {
-        return JvmRuntimeInfo.getMajorVersion() <= 8 &&
+        return JvmRuntimeInfo.ofCurrentVM().getMajorVersion() <= 8 &&
             ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
     }
 
@@ -635,6 +644,16 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public boolean isRunning() {
         return tracerState == TracerState.RUNNING;
+    }
+
+    @Override
+    @Nullable
+    public Span createExitChildSpan() {
+        AbstractSpan<?> active = getActive();
+        if (active == null) {
+            return null;
+        }
+        return active.createExitSpan();
     }
 
     @Override

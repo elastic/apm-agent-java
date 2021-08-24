@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.util;
 
@@ -197,15 +191,19 @@ public final class ExecutorUtils {
      * Implementation adapted form the {@link ExecutorService} Javadoc
      */
     public static void shutdownAndWaitTermination(ExecutorService executor) {
+        shutdownAndWaitTermination(executor, 1, TimeUnit.SECONDS);
+    }
+
+    public static void shutdownAndWaitTermination(ExecutorService executor, long timeout, TimeUnit unit){
         // Disable new tasks from being submitted
         executor.shutdown();
         try {
             // Wait a while for existing tasks to terminate
-            if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(timeout, unit)) {
                 // Cancel currently executing tasks
                 executor.shutdownNow();
                 // Wait a while for tasks to respond to being cancelled
-                if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
+                if (!executor.awaitTermination(timeout, unit)) {
                     logger.warn("Thread pool did not terminate in time " + executor);
                 }
             }

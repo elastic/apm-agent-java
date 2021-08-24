@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.logging;
 
@@ -31,6 +25,7 @@ import org.apache.logging.log4j.core.appender.ConsoleAppender;
 import org.apache.logging.log4j.core.appender.RollingFileAppender;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.layout.PatternLayout;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
@@ -45,13 +40,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class Log4j2ConfigurationFactoryTest {
 
+    private Appender appender;
+
+    @AfterEach
+    public void stopRollingAppender() {
+        if (appender != null) {
+            appender.stop();
+        }
+    }
+
     @Test
     void testLogFileJson(@TempDir Path tempDir) {
         String logFile = tempDir.resolve("agent.json").toString();
         Configuration configuration = getLogConfig(Map.of("log_file", logFile, "log_format_file", "json"));
 
         assertThat(configuration.getAppenders().values()).hasSize(1);
-        Appender appender = configuration.getAppenders().values().iterator().next();
+        appender = configuration.getAppenders().values().iterator().next();
 
         assertThat(appender).isInstanceOf(RollingFileAppender.class);
         assertThat(((RollingFileAppender) appender).getFileName()).isEqualTo(logFile);
@@ -64,7 +68,7 @@ class Log4j2ConfigurationFactoryTest {
         Configuration configuration = getLogConfig(Map.of("log_file", logFile));
 
         assertThat(configuration.getAppenders().values()).hasSize(1);
-        Appender appender = configuration.getAppenders().values().iterator().next();
+        appender = configuration.getAppenders().values().iterator().next();
 
         assertThat(appender).isInstanceOf(RollingFileAppender.class);
         assertThat(((RollingFileAppender) appender).getFileName()).isEqualTo(logFile);

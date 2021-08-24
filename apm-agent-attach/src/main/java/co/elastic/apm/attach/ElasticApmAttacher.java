@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.attach;
 
@@ -38,7 +32,6 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
@@ -110,6 +103,10 @@ public class ElasticApmAttacher {
      * @throws IllegalStateException if there was a problem while attaching the agent to this VM
      */
     public static void attach(Map<String, String> configuration) {
+        // optimization, this is checked in AgentMain#init again
+        if (Boolean.getBoolean("ElasticApm.attached")) {
+            return;
+        }
         attach(ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE.resolve(), configuration);
     }
 
@@ -141,18 +138,6 @@ public class ElasticApmAttacher {
         return tempFile;
     }
 
-    static String toAgentArgs(Map<String, String> configuration) {
-        StringBuilder args = new StringBuilder();
-        for (Iterator<Map.Entry<String, String>> iterator = configuration.entrySet().iterator(); iterator.hasNext(); ) {
-            Map.Entry<String, String> entry = iterator.next();
-            args.append(entry.getKey()).append('=').append(entry.getValue());
-            if (iterator.hasNext()) {
-                args.append(';');
-            }
-        }
-        return args.toString();
-    }
-
     /**
      * Attaches the agent to a remote JVM
      *
@@ -160,14 +145,21 @@ public class ElasticApmAttacher {
      * @param configuration the agent configuration
      */
     public static void attach(String pid, Map<String, String> configuration) {
-        // optimization, this is checked in AgentMain#init again
-        if (Boolean.getBoolean("ElasticApm.attached")) {
-            return;
-        }
+        attach(pid, configuration, AgentJarFileHolder.INSTANCE.agentJarFile);
+    }
+
+    /**
+     * Attaches the agent to a remote JVM
+     *
+     * @param pid           the PID of the JVM the agent should be attached on
+     * @param configuration the agent configuration
+     * @param agentJarFile
+     */
+    public static void attach(String pid, Map<String, String> configuration, File agentJarFile) {
         File tempFile = createTempProperties(configuration);
         String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();
 
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
+        ByteBuddyAgent.attach(agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
         if (tempFile != null) {
             if (!tempFile.delete()) {
                 tempFile.deleteOnExit();
@@ -187,6 +179,10 @@ public class ElasticApmAttacher {
         ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
     }
 
+    public static File getBundledAgentJarFile() {
+        return AgentJarFileHolder.INSTANCE.agentJarFile;
+    }
+
     private enum AgentJarFileHolder {
         INSTANCE;
 
@@ -199,10 +195,15 @@ public class ElasticApmAttacher {
         private static File getAgentJarFile() {
             try (InputStream agentJar = ElasticApmAttacher.class.getResourceAsStream("/elastic-apm-agent.jar")) {
                 if (agentJar == null) {
-                    throw new IllegalStateException("Agent jar not found");
+                    return null;
                 }
                 String hash = md5Hash(ElasticApmAttacher.class.getResourceAsStream("/elastic-apm-agent.jar"));
-                File tempAgentJar = new File(System.getProperty("java.io.tmpdir"), "elastic-apm-agent-" + hash + ".jar");
+
+                // we have to include current user name as multiple copies of the same agent could be attached
+                // to multiple JVMs, each running under a different user. Also, we have to make it path-friendly.
+                String user = md5Hash(System.getProperty("user.name"));
+
+                File tempAgentJar = new File(System.getProperty("java.io.tmpdir"), String.format("elastic-apm-agent-%s-%s.jar", user, hash));
                 if (!tempAgentJar.exists()) {
                     try (FileOutputStream out = new FileOutputStream(tempAgentJar)) {
                         FileChannel channel = out.getChannel();
@@ -237,5 +238,11 @@ public class ElasticApmAttacher {
             }
             return String.format("%032x", new BigInteger(1, md.digest()));
         }
+    }
+
+    static String md5Hash(String s) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        md.update(s.getBytes());
+        return String.format("%032x", new BigInteger(1, md.digest()));
     }
 }

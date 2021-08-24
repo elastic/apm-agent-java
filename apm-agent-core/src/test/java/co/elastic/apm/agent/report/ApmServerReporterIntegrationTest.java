@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report;
 
@@ -52,8 +46,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class ApmServerReporterIntegrationTest {
 
@@ -94,7 +88,7 @@ class ApmServerReporterIntegrationTest {
         receivedIntakeApiCalls.set(0);
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
-        when(reporterConfiguration.getServerUrls()).thenReturn(Collections.singletonList(new URL("http://localhost:" + port)));
+        doReturn(Collections.singletonList(new URL("http://localhost:" + port))).when(reporterConfiguration).getServerUrls();
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         final Service service = new Service();
         final ProcessInfo title = new ProcessInfo("title");
@@ -132,7 +126,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testSecretToken() throws ExecutionException, InterruptedException {
-        when(reporterConfiguration.getSecretToken()).thenReturn("token");
+        doReturn("token").when(reporterConfiguration).getSecretToken();
         handler = exchange -> {
             if (exchange.getRequestPath().equals("/intake/v2/events")) {
                 assertThat(exchange.getRequestHeaders().get("Authorization").getFirst()).isEqualTo("Bearer token");

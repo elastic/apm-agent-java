@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.springwebmvc.template;
 
@@ -95,7 +89,7 @@ abstract class AbstractViewRenderingInstrumentationTest {
     void verifySpanCapture(String spanSubType, String spanSuffix, MockHttpServletResponse response, @Nullable String messageContent) throws UnsupportedEncodingException {
         assertEquals(200, response.getStatus());
         String responseString = response.getContentAsString();
-        assertEquals(messageContent, responseString.trim());
+        assertEquals(messageContent, responseString.trim().replaceAll("\r\n", "\n"));
         assertEquals(1, reporter.getSpans().size());
         Span firstSpan = reporter.getSpans().get(0);
         assertEquals("template", firstSpan.getType());

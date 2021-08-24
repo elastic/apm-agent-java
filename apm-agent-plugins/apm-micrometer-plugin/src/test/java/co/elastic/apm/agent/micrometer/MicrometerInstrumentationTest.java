@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.micrometer;
 
@@ -42,7 +36,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 class MicrometerInstrumentationTest {
 
@@ -54,7 +48,7 @@ class MicrometerInstrumentationTest {
     @BeforeEach
     void setUp() {
         config = SpyConfiguration.createSpyConfig();
-        when(config.getConfig(ReporterConfiguration.class).getMetricsIntervalMs()).thenReturn(50L);
+        doReturn(50L).when(config.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
         reporter = new MockReporter();
         lastMeasuredMetricSetNumber = 0;
         lastFooSamples = 0;
@@ -75,11 +69,11 @@ class MicrometerInstrumentationTest {
 
     @Test
     void testReportedWhenInstrumentConfigDisabled() {
-        when(config.getConfig(CoreConfiguration.class).isInstrument()).thenReturn(false);
+        doReturn(false).when(config.getConfig(CoreConfiguration.class)).isInstrument();
         ElasticApmAgent.initInstrumentation(MockTracer.createRealTracer(reporter, config), ByteBuddyAgent.install());
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         registry.counter("foo").increment();
-        reporter.awaitUntilAsserted(() -> assertThat(countFooSamples()).isGreaterThanOrEqualTo(1));
+        reporter.awaitUntilAsserted(3000, () -> assertThat(countFooSamples()).isGreaterThanOrEqualTo(1));
     }
 
     private int countFooSamples() {

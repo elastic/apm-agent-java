@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.concurrent;
 
@@ -43,6 +37,18 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
  * Instruments {@link ForkJoinTask#fork()} to support parallel streams.
  */
 public class ForkJoinTaskInstrumentation extends TracerAwareInstrumentation {
+
+    static {
+        if (Boolean.parseBoolean(System.getProperty("intellij.debug.agent"))) {
+            // InteliJ debugger also instrument some java.util.concurrent classes and changes the class structure.
+            // However, the changes are not re-applied when re-transforming already loaded classes, which makes our
+            // agent unable to see those structural changes and try to load classes with their original bytecode
+            //
+            // Go to the following to enable/disable: File | Settings | Build, Execution, Deployment | Debugger | Async Stack Traces
+            throw new IllegalStateException("InteliJ debug agent detected, disable it to prevent unexpected instrumentation errors. See https://github.com/elastic/apm-agent-java/issues/1673");
+        }
+    }
+
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return is(ForkJoinTask.class);

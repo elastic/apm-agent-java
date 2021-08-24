@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.premain;
 
@@ -75,30 +69,8 @@ public class AgentMain {
             return;
         }
 
-        if (!JvmRuntimeInfo.isJavaVersionSupported()) {
-            // Gracefully abort agent startup is better than unexpected failure down the road when we known a given JVM
-            // version is not supported. Agent might trigger known JVM bugs causing JVM crashes, notably on early Java 8
-            // versions (but fixed in later versions), given those versions are obsolete and agent can't have workarounds
-            // for JVM internals, there is no other option but to use an up-to-date JVM instead.
-
-            String msgTemplate;
-
-            boolean doDisable;
-            if (Boolean.parseBoolean(System.getProperty("elastic.apm.disable_bootstrap_checks"))) {
-                // safety check disabled, warn end user that it might
-                doDisable = false;
-                msgTemplate = "WARNING : JVM version unknown or not supported, safety check disabled - %s %s %s";
-            } else {
-                doDisable = true;
-                msgTemplate = "Failed to start agent - JVM version not supported: %s %s %s.\nTo override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.";
-            }
-
-            System.err.println(String.format(msgTemplate,
-                JvmRuntimeInfo.getJavaVersion(), JvmRuntimeInfo.getJavaVmName(), JvmRuntimeInfo.getJavaVmVersion()));
-
-            if (doDisable) {
-                return;
-            }
+        if (!BootstrapChecks.defaults().isPassing()) {
+            return;
         }
 
         // workaround for classloader deadlock https://bugs.openjdk.java.net/browse/JDK-8194653
@@ -110,7 +82,7 @@ public class AgentMain {
             try {
                 delayAgentInitMs = Long.parseLong(delayAgentInitMsProperty.trim());
             } catch (NumberFormatException numberFormatException) {
-                System.err.println("The value of the \"elastic.apm.delay_agent_premain_ms\" System property must be a number");
+                System.err.println("[elastic-apm-agent] WARN The value of the \"elastic.apm.delay_agent_premain_ms\" System property must be a number");
             }
         }
         if (premain && shouldDelayOnPremain()) {
@@ -130,18 +102,19 @@ public class AgentMain {
      * @return {@code true} for any Java 7 and early Java 8 HotSpot JVMs, {@code false} for all others
      */
     static boolean shouldDelayOnPremain() {
-        int majorVersion = JvmRuntimeInfo.getMajorVersion();
+        JvmRuntimeInfo runtimeInfo = JvmRuntimeInfo.ofCurrentVM();
+        int majorVersion = runtimeInfo.getMajorVersion();
         return
             (majorVersion == 7) ||
             // In case bootstrap checks were disabled
-            (majorVersion == 8 && JvmRuntimeInfo.isHpUx() && JvmRuntimeInfo.getUpdateVersion() < 2) ||
-            (majorVersion == 8 && JvmRuntimeInfo.isHotSpot() && JvmRuntimeInfo.getUpdateVersion() < 40);
+            (majorVersion == 8 && runtimeInfo.isHotSpot() && runtimeInfo.getUpdateVersion() < 2) ||
+            (majorVersion == 8 && runtimeInfo.isHotSpot() && runtimeInfo.getUpdateVersion() < 40);
     }
 
     private static void delayAndInitAgentAsync(final String agentArguments, final Instrumentation instrumentation,
                                                final boolean premain, final long delayAgentInitMs) {
 
-        System.out.println("Delaying Elastic APM Agent initialization by " + delayAgentInitMs + " milliseconds.");
+        System.out.println("[elastic-apm-agent] INFO Delaying Elastic APM Agent initialization by " + delayAgentInitMs + " milliseconds.");
         Thread initThread = new Thread(ThreadUtils.addElasticApmThreadPrefix("agent-initialization")) {
             @Override
             public void run() {
@@ -151,10 +124,10 @@ public class AgentMain {
                         loadAndInitializeAgent(agentArguments, instrumentation, premain);
                     }
                 } catch (InterruptedException e) {
-                    System.err.println(getName() + " thread was interrupted, the agent will not be attached to this JVM.");
+                    System.err.println("[elastic-apm-agent] ERROR " + getName() + " thread was interrupted, the agent will not be attached to this JVM.");
                     e.printStackTrace();
                 } catch (Throwable throwable) {
-                    System.err.println("Error during Elastic APM Agent initialization: " + throwable.getMessage());
+                    System.err.println("[elastic-apm-agent] ERROR Elastic APM Agent initialization failed: " + throwable.getMessage());
                     throwable.printStackTrace();
                 }
             }
@@ -176,7 +149,7 @@ public class AgentMain {
                 .invoke(null, agentArguments, instrumentation, agentJarFile, premain);
             System.setProperty("ElasticApm.attached", Boolean.TRUE.toString());
         } catch (Exception | LinkageError e) {
-            System.err.println("Failed to start agent");
+            System.err.println("[elastic-apm-agent] ERROR Failed to start agent");
             e.printStackTrace();
         }
     }
@@ -197,4 +170,5 @@ public class AgentMain {
         }
         return agentJar.getAbsoluteFile();
     }
+
 }

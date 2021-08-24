@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,11 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.api;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.AbstractApiTest;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -39,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class BlockingQueueContextPropagationTest extends AbstractInstrumentationTest {
+public class BlockingQueueContextPropagationTest extends AbstractApiTest {
 
     private static BlockingQueue<ElasticApmQueueElementWrapper<CompletableFuture<String>>> blockingQueue;
     private static ExecutorService executorService;
@@ -106,6 +100,9 @@ public class BlockingQueueContextPropagationTest extends AbstractInstrumentation
 
     @Test
     public void testAsyncSpanDelegation() throws ExecutionException, InterruptedException {
+        // span type/subtype 'async/blocking-queue' is not part of shared spec
+        reporter.disableCheckStrictSpanType();
+
         Transaction transaction = ElasticApm.startTransaction();
         long startTime = TimeUnit.NANOSECONDS.toMicros(nanoTimeOffsetToEpoch + System.nanoTime());
         transaction.setStartTimestamp(startTime);
@@ -136,6 +133,7 @@ public class BlockingQueueContextPropagationTest extends AbstractInstrumentation
         assertThat(reportedSpan.getTraceContext().getTraceId()).isEqualTo(reportedTransaction.getTraceContext().getTraceId());
         assertThat(reportedSpan).isNotNull();
         assertThat(reportedSpan.getType()).isEqualTo("async");
+        assertThat(reportedSpan.getSubtype()).isEqualTo("blocking-queue");
         assertThat(reportedSpan.getTimestamp() - transactionTimestamp).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toMicros(100));
         assertThat(reportedSpan.getDuration()).isBetween(
             TimeUnit.MILLISECONDS.toMicros(10),

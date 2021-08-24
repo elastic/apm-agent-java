@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,15 +15,15 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.jdbc.helper;
 
+import co.elastic.apm.agent.db.signature.Scanner;
+import co.elastic.apm.agent.db.signature.SignatureParser;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.jdbc.signature.SignatureParser;
-import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
+import co.elastic.apm.agent.jdbc.JdbcFilter;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,10 +33,9 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.Callable;
 
-import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.connectionSupported;
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metaDataMap;
-import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metadataSupported;
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.statementSqlMap;
 
 public class JdbcHelper {
@@ -50,12 +44,18 @@ public class JdbcHelper {
     public static final String DB_SPAN_TYPE = "db";
     public static final String DB_SPAN_ACTION = "query";
 
-    private final DetachedThreadLocal<SignatureParser> SIGNATURE_PARSER_THREAD_LOCAL = new DetachedThreadLocal<SignatureParser>(DetachedThreadLocal.Cleaner.INLINE) {
+    private static final JdbcHelper INSTANCE = new JdbcHelper();
+
+    public static JdbcHelper get() {
+        return INSTANCE;
+    }
+
+    private final SignatureParser signatureParser = new SignatureParser(new Callable<Scanner>() {
         @Override
-        protected SignatureParser initialValue(Thread thread) {
-            return new SignatureParser();
+        public Scanner call() {
+            return new Scanner(new JdbcFilter());
         }
-    };
+    });
 
     /**
      * Maps the provided sql to the provided Statement object
@@ -93,7 +93,7 @@ public class JdbcHelper {
         } else if (span.isSampled()) {
             StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
             if (spanName != null) {
-                SIGNATURE_PARSER_THREAD_LOCAL.get().querySignature(sql, spanName, preparedStatement);
+                signatureParser.querySignature(sql, spanName, preparedStatement);
             }
         }
         // setting the type here is important
@@ -108,20 +108,23 @@ public class JdbcHelper {
             .withType("sql");
 
         Connection connection = safeGetConnection((Statement) statement);
-        ConnectionMetaData connectionMetaData = connection == null ? null : getConnectionMetaData(connection);
+        ConnectionMetaData connectionMetaData = getConnectionMetaData(connection);
+
+        String vendor = "unknown";
         if (connectionMetaData != null) {
-            span.withSubtype(connectionMetaData.getDbVendor())
-                .withAction(DB_SPAN_ACTION);
+            vendor = connectionMetaData.getDbVendor();
             span.getContext().getDb()
+                .withInstance(connectionMetaData.getInstance())
                 .withUser(connectionMetaData.getUser());
             Destination destination = span.getContext().getDestination()
                 .withAddress(connectionMetaData.getHost())
                 .withPort(connectionMetaData.getPort());
             destination.getService()
-                .withName(connectionMetaData.getDbVendor())
-                .withResource(connectionMetaData.getDbVendor())
+                .withName(vendor)
+                .withResource(vendor)
                 .withType(DB_SPAN_TYPE);
         }
+        span.withSubtype(vendor).withAction(DB_SPAN_ACTION);
 
         return span;
     }
@@ -141,26 +144,30 @@ public class JdbcHelper {
     }
 
     @Nullable
-    private ConnectionMetaData getConnectionMetaData(Connection connection) {
+    private ConnectionMetaData getConnectionMetaData(@Nullable Connection connection) {
+        if (null == connection) {
+            return null;
+        }
+
         ConnectionMetaData connectionMetaData = metaDataMap.get(connection);
         if (connectionMetaData != null) {
             return connectionMetaData;
         }
 
         Class<?> type = connection.getClass();
-        Boolean supported = isSupported(metadataSupported, type);
+        Boolean supported = isSupported(JdbcFeature.METADATA, type);
         if (supported == Boolean.FALSE) {
             return null;
         }
 
         try {
             DatabaseMetaData metaData = connection.getMetaData();
-            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), metaData.getUserName());
+            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), connection.getCatalog(), metaData.getUserName());
             if (supported == null) {
-                markSupported(metadataSupported, type);
+                markSupported(JdbcFeature.METADATA, type);
             }
         } catch (SQLException e) {
-            markNotSupported(metadataSupported, type, e);
+            markNotSupported(JdbcFeature.METADATA, type, e);
         }
 
         if (connectionMetaData != null) {
@@ -173,7 +180,7 @@ public class JdbcHelper {
     private Connection safeGetConnection(Statement statement) {
         Connection connection = null;
         Class<?> type = statement.getClass();
-        Boolean supported = isSupported(connectionSupported, type);
+        Boolean supported = isSupported(JdbcFeature.CONNECTION, type);
         if (supported == Boolean.FALSE) {
             return null;
         }
@@ -181,28 +188,48 @@ public class JdbcHelper {
         try {
             connection = statement.getConnection();
             if (supported == null) {
-                markSupported(connectionSupported, type);
+                markSupported(JdbcFeature.CONNECTION, type);
             }
         } catch (SQLException e) {
-            markNotSupported(connectionSupported, type, e);
+            markNotSupported(JdbcFeature.CONNECTION, type, e);
         }
 
         return connection;
     }
 
     @Nullable
-    private static Boolean isSupported(WeakConcurrentMap<Class<?>, Boolean> featureMap, Class<?> type) {
-        return featureMap.get(type);
+    private static Boolean isSupported(JdbcFeature feature, Class<?> type) {
+        return feature.classSupport.get(type);
     }
 
-    private static void markSupported(WeakConcurrentMap<Class<?>, Boolean> map, Class<?> type) {
-        map.put(type, Boolean.TRUE);
+    private static void markSupported(JdbcFeature feature, Class<?> type) {
+        feature.classSupport.put(type, Boolean.TRUE);
     }
 
-    private static void markNotSupported(WeakConcurrentMap<Class<?>, Boolean> map, Class<?> type, SQLException e) {
-        Boolean previous = map.put(type, Boolean.FALSE);
+    private static void markNotSupported(JdbcFeature feature, Class<?> type, SQLException e) {
+        Boolean previous = feature.classSupport.put(type, Boolean.FALSE);
         if (previous == null) {
             logger.warn("JDBC feature not supported on class " + type, e);
+        }
+    }
+
+    /**
+     * Represent JDBC features for which availability has to be checked at runtime
+     */
+    private enum JdbcFeature {
+        /**
+         * {@link Connection#getMetaData()}
+         */
+        METADATA(JdbcGlobalState.metadataSupported),
+        /**
+         * {@link Statement#getConnection()}
+         */
+        CONNECTION(JdbcGlobalState.connectionSupported);
+
+        private final WeakConcurrentMap<Class<?>, Boolean> classSupport;
+
+        JdbcFeature(WeakConcurrentMap<Class<?>, Boolean> map) {
+            this.classSupport = map;
         }
     }
 
