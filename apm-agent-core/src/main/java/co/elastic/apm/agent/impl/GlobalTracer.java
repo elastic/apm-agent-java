@@ -25,16 +25,23 @@ import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.VersionUtils;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.util.Objects;
 
 public class GlobalTracer implements Tracer {
 
     private static final GlobalTracer INSTANCE = new GlobalTracer();
     private volatile Tracer tracer = NoopTracer.INSTANCE;
+    private static volatile boolean classloaderCheckOk = false;
 
     private GlobalTracer() {
+    }
+
+    static {
+        checkClassloader();
     }
 
     public static Tracer get() {
@@ -54,17 +61,56 @@ public class GlobalTracer implements Tracer {
         return Objects.requireNonNull(getTracerImpl(), "Registered tracer is not an instance of ElasticApmTracer");
     }
 
+    private static void checkClassloader() {
+        ClassLoader cl = GlobalTracer.class.getClassLoader();
+
+        // agent currently loaded in the bootstrap CL, which is the current correct location
+        if (cl == null) {
+            return;
+        }
+
+        if (classloaderCheckOk) {
+            return;
+        }
+
+        String agentLocation = GlobalTracer.class.getProtectionDomain().getCodeSource().getLocation().getFile();
+        if (!agentLocation.endsWith(".jar")) {
+            // agent is not packaged, thus we assume running tests
+            classloaderCheckOk = true;
+            return;
+        }
+
+        String premainClass = VersionUtils.getManifestEntry(new File(agentLocation), "Premain-Class");
+        if (null == premainClass) {
+            // packaged within a .jar, but not within an agent jar, thus we assume it's still for testing
+            classloaderCheckOk = true;
+            return;
+        }
+
+        if (premainClass.startsWith("co.elastic.apm.agent")) {
+            // premain class will only be present when packaged as an agent jar
+            classloaderCheckOk = true;
+            return;
+        }
+
+        // A packaged agent class has been loaded outside of bootstrap classloader, we are not in the context of
+        // unit/integration tests, that's likely a setup issue where the agent jar has been added to application
+        // classpath.
+        throw new IllegalStateException(String.format("Agent setup error: agent jar file \"%s\"  likely referenced in JVM or application classpath", agentLocation));
+
+    }
+
     public static synchronized void setNoop() {
         TracerState currentTracerState = INSTANCE.tracer.getState();
         if (currentTracerState != TracerState.UNINITIALIZED && currentTracerState != TracerState.STOPPED) {
-             throw new IllegalStateException("Can't override tracer as current tracer is already running");
+            throw new IllegalStateException("Can't override tracer as current tracer is already running");
         }
         INSTANCE.tracer = NoopTracer.INSTANCE;
     }
 
     public static synchronized void init(Tracer tracer) {
         if (!isNoop()) {
-             throw new IllegalStateException("Tracer is already initialized");
+            throw new IllegalStateException("Tracer is already initialized");
         }
         INSTANCE.tracer = tracer;
     }
