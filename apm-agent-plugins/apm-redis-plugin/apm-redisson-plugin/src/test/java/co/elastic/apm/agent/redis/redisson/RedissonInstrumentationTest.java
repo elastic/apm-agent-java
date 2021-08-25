@@ -146,6 +146,6 @@ class RedissonInstrumentationTest extends AbstractRedisInstrumentationTest {
         lock.lock();
         lock.unlock();
 
-        assertTransactionWithRedisSpans("EVAL", "EVAL");
+        assertTransactionWithRedisSpans("EVAL... [bulk]", "EVAL... [bulk]");
     }
 }
