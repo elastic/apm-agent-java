@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Request;
+import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.Agent;
 import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
@@ -116,6 +117,32 @@ class DslJsonSerializerTest {
 
         when(apmServerClient.supportsNonStringLabels()).thenReturn(false);
         assertThat(serializeTags(Map.of("foo", true))).isEqualTo(toJson(Collections.singletonMap("foo", null)));
+    }
+
+    @Test
+    void serializeUrlPort() {
+        serializeUrlPort(true);
+        serializeUrlPort(false);
+    }
+
+    private void serializeUrlPort(boolean useNumericPort) {
+        when(apmServerClient.supportsNumericUrlPort()).thenReturn(useNumericPort);
+
+        Url url = new Url()
+            .withPort(42)
+            .withHostname("hostname")
+            .withProtocol("http")
+            .withPathname("/hello").withSearch("search");
+        serializer.serializeUrl(url);
+        JsonNode json = readJsonString(getAndResetSerializerJson());
+        if (useNumericPort) {
+            assertThat(json.get("port").asInt()).isEqualTo(42);
+        } else {
+            assertThat(json.get("port").asText()).isEqualTo("42");
+        }
+        assertThat(json.get("full").asText()).isEqualTo("http://hostname:42/hello?search");
+        assertThat(json.get("search").asText()).isEqualTo("search");
+        assertThat(json.get("protocol").asText()).isEqualTo("http");
     }
 
     @Test
@@ -1166,6 +1193,10 @@ class DslJsonSerializerTest {
             }
         }
         serializer.serializeLabels(context);
+        return getAndResetSerializerJson();
+    }
+
+    private String getAndResetSerializerJson() {
         final String jsonString = serializer.jw.toString();
         serializer.jw.reset();
         return jsonString;

@@ -1163,7 +1163,9 @@ public class DslJsonSerializer implements PayloadSerializer {
                 }
             }
             if (request.getUrl().hasContent()) {
+                writeFieldName("url");
                 serializeUrl(request.getUrl());
+                jw.writeByte(COMMA);
             }
             if (request.getSocket().hasContent()) {
                 serializeSocket(request.getSocket());
@@ -1174,8 +1176,8 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private void serializeUrl(final Url url) {
-        writeFieldName("url");
+    // visible for testing
+    void serializeUrl(final Url url) {
         jw.writeByte(OBJECT_START);
         writeField("full", url.getFull());
         writeField("hostname", url.getHostname());
@@ -1195,7 +1197,6 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("search", url.getSearch());
         writeLastField("protocol", url.getProtocol());
         jw.writeByte(OBJECT_END);
-        jw.writeByte(COMMA);
     }
 
     private void serializeSocket(final Socket socket) {
