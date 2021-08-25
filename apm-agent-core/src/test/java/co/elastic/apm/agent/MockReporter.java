@@ -100,13 +100,13 @@ public class MockReporter implements Reporter {
     static {
         transactionSchemas = Arrays.asList(
             getSchema("/apm-server-schema/current/transaction.json"),
-            getSchema("/apm-server-schema/v6_7/transactions/transaction.json"));
+            getSchema("/apm-server-schema/v6_5/transactions/transaction.json"));
         spanSchemas = Arrays.asList(
             getSchema("/apm-server-schema/current/span.json"),
-            getSchema("/apm-server-schema/v6_7/transactions/span.json"));
+            getSchema("/apm-server-schema/v6_5/transactions/span.json"));
         errorSchemas = Arrays.asList(
             getSchema("/apm-server-schema/current/error.json"),
-            getSchema("/apm-server-schema/v6_7/errors/error.json"));
+            getSchema("/apm-server-schema/v6_5/errors/error.json"));
         ApmServerClient apmServerClient = mock(ApmServerClient.class);
         when(apmServerClient.isAtLeast(any())).thenReturn(true);
         ConfigurationRegistry spyConfig = SpyConfiguration.createSpyConfig();
