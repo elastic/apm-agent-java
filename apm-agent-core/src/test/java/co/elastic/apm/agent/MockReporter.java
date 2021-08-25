@@ -81,6 +81,11 @@ public class MockReporter implements Reporter {
     // Allows optional opt-out from strick span type/sub-type checking
     private boolean checkStrictSpanType = true;
 
+    /**
+     * If set to {@code true}, the reporter will attempt to execute gc when asserting that all objects were properly
+     * recycled. This is useful for tests that use weak maps and rely on GC to clear reference and recycle objects.
+     */
+    private boolean gcWhenAssertingRecycling;
 
     private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
     private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
@@ -123,14 +128,16 @@ public class MockReporter implements Reporter {
     }
 
     /**
-     * Sets all optional checks to their default value (enabled), should be used as a shortcut to reset mock reporter state
-     * after/before using it for a single test execution
+     * Resets checks to be executed based on the default behaviour.
+     * All optional checks are enabled and special requested behaviour is disabled.
+     * Should be used as a shortcut to reset mock reporter state after/before using it for a single test execution.
      */
     public void resetChecks() {
         checkDestinationAddress = true;
         checkDestinationService = true;
         checkUnknownOutcomes = true;
         checkStrictSpanType = true;
+        gcWhenAssertingRecycling = false;
     }
 
     /**
@@ -163,6 +170,14 @@ public class MockReporter implements Reporter {
      */
     public void disableCheckStrictSpanType() {
         checkStrictSpanType = false;
+    }
+
+    /**
+     * If invoked, the reporter will attempt to execute gc when asserting that all objects were properly
+     * recycled. This is useful for tests that use weak maps and rely on GC to clear reference and recycle objects.
+     */
+    public void enableGcWhenAssertingObjectRecycling() {
+        gcWhenAssertingRecycling = true;
     }
 
     @Override
@@ -500,6 +515,9 @@ public class MockReporter implements Reporter {
         transactionsToFlush.forEach(Transaction::decrementReferences);
         spansToFlush.forEach(Span::decrementReferences);
 
+        if (gcWhenAssertingRecycling) {
+            System.gc();
+        }
         awaitUntilAsserted(() -> {
             spans.forEach(s -> {
                 assertThat(s.isReferenced())

@@ -83,8 +83,6 @@ public abstract class AbstractInstrumentationTest {
     @After
     @AfterEach
     public final void cleanUp() {
-        // re-enable all reporter checks
-        reporter.resetChecks();
 
         SpyConfiguration.reset(config);
         try {
@@ -103,6 +101,9 @@ public abstract class AbstractInstrumentationTest {
             }
         }
         tracer.resetServiceNameOverrides();
+
+        // reset reporter to default behaviour on all checks
+        reporter.resetChecks();
 
         assertThat(tracer.getActive())
             .describedAs("nothing should be left active at end of test, failure will likely indicate a span/transaction still active")
