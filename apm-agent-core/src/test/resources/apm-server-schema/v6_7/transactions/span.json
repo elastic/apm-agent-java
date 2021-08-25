@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "id": "resource:/schema/transactions/span.json",
+    "id": "resource:/apm-server-schema/v6_7/transactions/span.json",
     "type": "object",
     "properties": {
         "id": {

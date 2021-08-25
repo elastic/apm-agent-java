@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "id": "resource:/schema/errors/payload.json",
+    "id": "resource:/apm-server-schema/v6_7/errors/payload.json",
     "title": "Errors payload",
     "description": "List of errors wrapped in an object containing some other attributes normalized away from the errors themselves",
     "type": "object",

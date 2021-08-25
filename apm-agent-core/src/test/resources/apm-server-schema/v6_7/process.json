@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "id": "resource:/schema/process.json",
+  "id": "resource:/apm-server-schema/v6_7/process.json",
   "title": "Process",
   "type": ["object", "null"],
   "properties": {

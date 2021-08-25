@@ -42,11 +42,14 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import specs.TestJsonSpec;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -58,14 +61,15 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.in;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class MockReporter implements Reporter {
-    private static final JsonSchema transactionSchema;
-    private static final JsonSchema errorSchema;
-    private static final JsonSchema spanSchema;
+    private static final List<JsonSchema> transactionSchemas;
+    private static final List<JsonSchema> errorSchemas;
+    private static final List<JsonSchema> spanSchemas;
     private static final DslJsonSerializer dslJsonSerializer;
 
     // A set of exit span subtypes that do not support address and port discovery
@@ -94,9 +98,15 @@ public class MockReporter implements Reporter {
     private static final JsonNode SPAN_TYPES_SPEC = TestJsonSpec.getJson("span_types.json");
 
     static {
-        transactionSchema = getSchema("/schema/transactions/transaction.json");
-        spanSchema = getSchema("/schema/transactions/span.json");
-        errorSchema = getSchema("/schema/errors/error.json");
+        transactionSchemas = Arrays.asList(
+            getSchema("/apm-server-schema/current/transaction.json"),
+            getSchema("/apm-server-schema/v6_7/transactions/transaction.json"));
+        spanSchemas = Arrays.asList(
+            getSchema("/apm-server-schema/current/span.json"),
+            getSchema("/apm-server-schema/v6_7/transactions/span.json"));
+        errorSchemas = Arrays.asList(
+            getSchema("/apm-server-schema/current/error.json"),
+            getSchema("/apm-server-schema/v6_7/errors/error.json"));
         ApmServerClient apmServerClient = mock(ApmServerClient.class);
         when(apmServerClient.isAtLeast(any())).thenReturn(true);
         ConfigurationRegistry spyConfig = SpyConfiguration.createSpyConfig();
@@ -119,7 +129,9 @@ public class MockReporter implements Reporter {
     }
 
     private static JsonSchema getSchema(String resource) {
-        return JsonSchemaFactory.getInstance().getSchema(MockReporter.class.getResourceAsStream(resource));
+        InputStream input = MockReporter.class.getResourceAsStream(resource);
+        input = Objects.requireNonNull(input, "missing resource " + resource);
+        return JsonSchemaFactory.getInstance().getSchema(input);
     }
 
     /**
@@ -267,21 +279,23 @@ public class MockReporter implements Reporter {
     }
 
     public void verifyTransactionSchema(JsonNode jsonNode) {
-        verifyJsonSchema(transactionSchema, jsonNode);
+        verifyJsonSchemas(transactionSchemas, jsonNode);
     }
 
     public void verifySpanSchema(JsonNode jsonNode) {
-        verifyJsonSchema(spanSchema, jsonNode);
+        verifyJsonSchemas(spanSchemas, jsonNode);
     }
 
     public void verifyErrorSchema(JsonNode jsonNode) {
-        verifyJsonSchema(errorSchema, jsonNode);
+        verifyJsonSchemas(errorSchemas, jsonNode);
     }
 
-    private void verifyJsonSchema(JsonSchema schema, JsonNode jsonNode) {
+    private void verifyJsonSchemas(List<JsonSchema> schemas, JsonNode jsonNode) {
         if (verifyJsonSchema) {
-            Set<ValidationMessage> errors = schema.validate(jsonNode);
-            assertThat(errors).withFailMessage("%s\n%s", errors, jsonNode).isEmpty();
+            for (JsonSchema schema : schemas) {
+                Set<ValidationMessage> errors = schema.validate(jsonNode);
+                assertThat(errors).withFailMessage("%s\n%s\n%s", errors, jsonNode, schema.getSchemaPath()).isEmpty();
+            }
         }
     }
 
