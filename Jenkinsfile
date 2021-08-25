@@ -32,11 +32,10 @@ pipeline {
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
-    booleanParam(name: 'Run_As_Master_Branch', defaultValue: false, description: 'Allow to run any steps on a PR, some steps normally only run on master branch.')
-    booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
+    booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable Unit tests')
     booleanParam(name: 'smoketests_ci', defaultValue: true, description: 'Enable Smoke tests')
+    booleanParam(name: 'integrationtests_ci', defaultValue: true, description: 'Enable Integration tests')
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
-    booleanParam(name: 'push_docker', defaultValue: false, description: 'Push Docker image during release stage')
     booleanParam(name: 'compatibility_ci', defaultValue: false, description: 'Enable JDK compatibility tests')
   }
   stages {
@@ -224,7 +223,6 @@ pipeline {
                 branch "\\d+\\.\\d+"
                 branch "v\\d?"
                 tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
-                expression { return params.Run_As_Master_Branch }
                 expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
               }
               expression { return params.bench_ci }
@@ -291,7 +289,8 @@ pipeline {
           expression { return env.ONLY_DOCS == "false" }
           anyOf {
             changeRequest()
-            expression { return !params.Run_As_Master_Branch }
+            expression { return params.integrationtests_ci }
+            expression { return env.GITHUB_COMMENT?.contains('integration tests') }
           }
         }
       }
@@ -305,13 +304,16 @@ pipeline {
         githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
       }
     }
-    stage('Unit Tests') {
+    stage('JDK Compatibility Tests') {
       options { skipDefaultCheckout() }
       when {
         beforeAgent true
-        anyOf {
-          expression { return params.compatibility_ci }
-          expression { return env.GITHUB_COMMENT?.contains('compatibility tests') }
+        allOf {
+          expression { return env.ONLY_DOCS == "false" }
+          anyOf {
+            expression { return params.compatibility_ci }
+            expression { return env.GITHUB_COMMENT?.contains('compatibility tests') }
+          }
         }
       }
       matrix {
