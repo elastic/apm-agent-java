@@ -33,6 +33,7 @@ endif::[]
 * gRPC spans (client and server) can detect errors or cancellation through custom listeners - {pull}2067[#2067]
 * Add `-download-agent-version` to the agent <<setup-attach-cli-usage-options, attach CLI tool options>>, allowing the
 user to configure an arbitrary agent version that will be downloaded from maven and attached - {pull}1959[#1959]
+* Add extra check to detect improper agent setup - {pull}2076[#2076]
 * Add the instance name to `context.destination.service.resource` to JDBC spans, if use_jdbc_service_resource_auto_inference is set to true - {pull}1928[#1928]
 
 [float]
