@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -47,6 +48,7 @@ import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 public class ElasticsearchRestClientInstrumentationHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelper.class);
+    private static final ElasticsearchRestClientInstrumentationHelper INSTANCE = new ElasticsearchRestClientInstrumentationHelper(GlobalTracer.requireTracerImpl());
 
     public static final List<WildcardMatcher> QUERY_WILDCARD_MATCHERS = Arrays.asList(
         WildcardMatcher.valueOf("*_search"),
@@ -62,7 +64,11 @@ public class ElasticsearchRestClientInstrumentationHelper {
 
     private final ObjectPool<ResponseListenerWrapper> responseListenerObjectPool;
 
-    public ElasticsearchRestClientInstrumentationHelper(ElasticApmTracer tracer) {
+    public static ElasticsearchRestClientInstrumentationHelper get() {
+        return INSTANCE;
+    }
+
+    private ElasticsearchRestClientInstrumentationHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
         responseListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
             AtomicQueueFactory.<ResponseListenerWrapper>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),

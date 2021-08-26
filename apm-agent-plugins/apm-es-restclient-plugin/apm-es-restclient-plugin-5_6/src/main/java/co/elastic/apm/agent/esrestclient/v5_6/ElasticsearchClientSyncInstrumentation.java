@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.esrestclient.v5_6;
 
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
+import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -38,6 +39,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestClientInstrumentation {
 
     public static class ElasticsearchRestClientAdvice {
+
+        private static final ElasticsearchRestClientInstrumentationHelper helper = ElasticsearchRestClientInstrumentationHelper.get();
+
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) String method,

@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.esrestclient.v6_4;
 
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
+import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
@@ -56,6 +57,8 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
 
     public static class ElasticsearchRestClientAsyncAdvice {
 
+        private static final ElasticsearchRestClientInstrumentationHelper helper = ElasticsearchRestClientInstrumentationHelper.get();
+
         @Nullable
         @AssignTo.Argument(index = 1, value = 1)
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -65,7 +68,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
             if (span != null) {
                 Object[] ret = new Object[2];
                 ret[0] = span;
-                ret[1] = helper.<ResponseListener>wrapResponseListener(responseListener, span);
+                ret[1] = helper.wrapResponseListener(responseListener, span);
                 return ret;
             }
             return null;

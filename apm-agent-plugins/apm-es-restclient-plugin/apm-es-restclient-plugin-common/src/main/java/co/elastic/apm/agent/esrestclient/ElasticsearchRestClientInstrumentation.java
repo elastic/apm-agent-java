@@ -19,15 +19,12 @@
 package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.GlobalTracer;
 
 import java.util.Collection;
 import java.util.Collections;
 
 
 public abstract class ElasticsearchRestClientInstrumentation extends TracerAwareInstrumentation {
-
-    public static final ElasticsearchRestClientInstrumentationHelper helper = new ElasticsearchRestClientInstrumentationHelper(GlobalTracer.requireTracerImpl());
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
