@@ -44,7 +44,7 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 
 [float]
 ===== Refactorings
-* Migrate Redis plugins to indy dispatcher {pull}2089[#2089]
+* Migrate Redis plugins to indy dispatcher {pull}2090[#2090]
 
 
 [[release-notes-1.x]]
