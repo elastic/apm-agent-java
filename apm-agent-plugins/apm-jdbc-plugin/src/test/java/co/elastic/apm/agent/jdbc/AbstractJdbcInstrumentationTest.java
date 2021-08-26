@@ -305,6 +305,9 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         reporter.reset();
         // unique key violation
         assertThatThrownBy(() -> statementConsumer.withStatement(statement)).isInstanceOf(SQLException.class);
+        assertThat(JdbcGlobalState.statementSqlMap.containsKey(statement)).isTrue();
+        statement.close();
+        assertThat(JdbcGlobalState.statementSqlMap.containsKey(statement)).isFalse();
         Span span = assertSpanRecorded(insert, false, -1);
         assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
     }
