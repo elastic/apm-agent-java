@@ -18,11 +18,15 @@
  */
 package co.elastic.apm.agent.dubbo.helper;
 
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import com.alibaba.dubbo.rpc.Invocation;
 
 import javax.annotation.Nullable;
 
-public class AlibabaDubboAttachmentHelperImpl implements AlibabaDubboAttachmentHelper {
+public enum AlibabaDubboTextMapPropagator implements TextHeaderGetter<Invocation>, TextHeaderSetter<Invocation> {
+
+    INSTANCE;
 
     @Nullable
     @Override
