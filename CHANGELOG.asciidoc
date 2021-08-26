@@ -36,6 +36,10 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 * Add extra check to detect improper agent setup - {pull}2076[#2076]
 
 [float]
+===== Performance improvements
+* Reduce GC time overhead caused by WeakReferences {pull}2086[2086]
+
+[float]
 ===== Bug fixes
 * Fix failure to parse some forms of the `Implementation-Version` property from jar manifest files - {pull}1931[#1931]
 * Ensure single value for context-propagation header - {pull}1937[#1937]
