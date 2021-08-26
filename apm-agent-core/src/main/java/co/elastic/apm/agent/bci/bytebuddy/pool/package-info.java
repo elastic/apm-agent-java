@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.util;
+@NonnullApi
+package co.elastic.apm.agent.bci.bytebuddy.pool;
 
-import javax.annotation.Nullable;
-
-public class ObjectUtils {
-
-    public static <T> T defaultIfNull(@Nullable T obj, T defaultIfNull) {
-        return obj != null ? obj : defaultIfNull;
-    }
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

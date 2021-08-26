@@ -26,7 +26,7 @@ import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.agent.bci.bytebuddy.SoftlyReferencingTypePoolCache;
+import co.elastic.apm.agent.bci.bytebuddy.LruTypePoolCache;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToPostProcessorFactory;
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
@@ -39,9 +39,9 @@ import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
+import co.elastic.apm.agent.util.ClassLoaderUtils;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.util.ObjectUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
@@ -133,22 +133,27 @@ public class ElasticApmAgent {
      * @param agentJarFile    a reference to the agent jar on the file system
      */
     @SuppressWarnings("unused") // called through reflection
-    public static void initialize(@Nullable String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
+    public static void initialize(@Nullable final String agentArguments, final Instrumentation instrumentation, final File agentJarFile, final boolean premain) {
         ElasticApmAgent.agentJarFile = agentJarFile;
 
-        // silently early abort when agent is disabled to minimize the number of loaded classes
-        List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources(agentArguments);
-        for (ConfigurationSource configSource : configSources) {
-            String enabled = configSource.getValue(CoreConfiguration.ENABLED_KEY);
-            if (enabled != null && !Boolean.parseBoolean(enabled)) {
-                return;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // silently early abort when agent is disabled to minimize the number of loaded classes
+                List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources(agentArguments);
+                for (ConfigurationSource configSource : configSources) {
+                    String enabled = configSource.getValue(CoreConfiguration.ENABLED_KEY);
+                    if (enabled != null && !Boolean.parseBoolean(enabled)) {
+                        return;
+                    }
+
+                }
+
+                ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources).build();
+                initInstrumentation(tracer, instrumentation, premain);
+                tracer.start(premain);
             }
-
-        }
-
-        ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources).build();
-        initInstrumentation(tracer, instrumentation, premain);
-        tracer.start(premain);
+        }).start();
     }
 
     public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation) {
@@ -241,7 +246,7 @@ public class ElasticApmAgent {
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
             adviceClassName2instrumentationClassLoader.put(
                 apmInstrumentation.getAdviceClassName(),
-                ObjectUtils.systemClassLoaderIfNull(apmInstrumentation.getClass().getClassLoader()));
+                ClassLoaderUtils.systemClassLoaderIfNull(apmInstrumentation.getClass().getClassLoader()));
         }
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
             @Override
@@ -656,7 +661,7 @@ public class ElasticApmAgent {
             .with(new ErrorLoggingListener())
             // ReaderMode.FAST as we don't need to read method parameter names
             .with(useTypePoolCache
-                ? new SoftlyReferencingTypePoolCache(TypePool.Default.ReaderMode.FAST, 1, isReflectionClassLoader())
+                ? new LruTypePoolCache(TypePool.Default.ReaderMode.FAST).scheduleEntryEviction(TimeUnit.SECONDS.toMillis(20))
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
@@ -744,7 +749,7 @@ public class ElasticApmAgent {
                         ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
                         adviceClassName2instrumentationClassLoader.put(
                             apmInstrumentation.getAdviceClassName(),
-                            ObjectUtils.systemClassLoaderIfNull(instrumentationClass.getClassLoader()));
+                            ClassLoaderUtils.systemClassLoaderIfNull(instrumentationClass.getClassLoader()));
                         ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
                         if (typeMatcher != null && isIncluded(apmInstrumentation, config)) {
                             agentBuilder = applyAdvice(tracer, agentBuilder, apmInstrumentation, typeMatcher.and(apmInstrumentation.getTypeMatcher()));
@@ -835,7 +840,7 @@ public class ElasticApmAgent {
         // also, we want to return a no-null CL from here
         // in tests, the agent CL is the system CL
         // in the future, the agent will be loaded from an isolated CL in production
-        return ObjectUtils.systemClassLoaderIfNull(ElasticApmAgent.class.getClassLoader());
+        return ClassLoaderUtils.systemClassLoaderIfNull(ElasticApmAgent.class.getClassLoader());
     }
 
     /**
