@@ -42,6 +42,10 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 * Fix gRPC non-terminated (therefore non-reported) client spans - {pull}2067[#2067]
 * Fix Webflux response status code - {pull}1948[#1948]
 
+[float]
+===== Refactorings
+* Migrate Dubbo plugin to indy dispatcher {pull}2087[#2087]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
