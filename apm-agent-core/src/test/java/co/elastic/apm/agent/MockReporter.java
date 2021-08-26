@@ -256,7 +256,7 @@ public class MockReporter implements Reporter {
      * @param transaction transaction to serialize
      */
     public void verifyTransactionSchema(Transaction transaction) {
-        verifyJsonSchemas(dsl -> dsl.toJsonString(transaction), si -> si.transactionSchema);
+        verifyJsonSchemas(dsl -> dsl.toJsonString(transaction), si -> si.transactionSchema, si -> si.transactionSchemaPath);
     }
 
     /**
@@ -264,16 +264,15 @@ public class MockReporter implements Reporter {
      * @param span span to serialize
      */
     public void verifySpanSchema(Span span) {
-        verifyJsonSchemas(dsl -> dsl.toJsonString(span), si -> si.spanSchema);
+        verifyJsonSchemas(dsl -> dsl.toJsonString(span), si -> si.spanSchema, si -> si.spanSchemaPath);
     }
-
 
     /**
      * Checks the error serialization against all available schemas
      * @param error error to serialize
      */
     public void verifyErrorSchema(ErrorCapture error){
-        verifyJsonSchemas(dsl -> dsl.toJsonString(error), si -> si.errorSchema);
+        verifyJsonSchemas(dsl -> dsl.toJsonString(error), si -> si.errorSchema, si -> si.errorSchemaPath);
     }
 
     /**
@@ -281,7 +280,7 @@ public class MockReporter implements Reporter {
      * @param jsonNode serialized transaction json
      */
     public void verifyTransactionSchema(JsonNode jsonNode) {
-        verifyJsonSchema(jsonNode, SchemaInstance.CURRENT.transactionSchema);
+        verifyJsonSchema(jsonNode, SchemaInstance.CURRENT.transactionSchema, SchemaInstance.CURRENT.transactionSchemaPath);
     }
 
     /**
@@ -289,7 +288,7 @@ public class MockReporter implements Reporter {
      * @param jsonNode serialized span json
      */
     public void verifySpanSchema(JsonNode jsonNode) {
-        verifyJsonSchema(jsonNode, SchemaInstance.CURRENT.spanSchema);
+        verifyJsonSchema(jsonNode, SchemaInstance.CURRENT.spanSchema, SchemaInstance.CURRENT.spanSchemaPath);
     }
 
     /**
@@ -297,11 +296,12 @@ public class MockReporter implements Reporter {
      * @param jsonNode serialized error json
      */
     public void verifyErrorSchema(JsonNode jsonNode) {
-        verifyJsonSchema(jsonNode, SchemaInstance.CURRENT.errorSchema);
+        verifyJsonSchema(jsonNode, SchemaInstance.CURRENT.errorSchema, SchemaInstance.CURRENT.errorSchemaPath);
     }
 
     private void verifyJsonSchemas(Function<DslJsonSerializer, String> serializerFunction,
-                                   Function<SchemaInstance, JsonSchema> schemaFunction) {
+                                   Function<SchemaInstance, JsonSchema> schemaFunction,
+                                   Function<SchemaInstance, String> schemaPathFunction) {
         if (!verifyJsonSchema) {
             return;
         }
@@ -311,13 +311,15 @@ public class MockReporter implements Reporter {
             JsonNode jsonNode = asJson(serializedString);
 
             JsonSchema schema = schemaFunction.apply(schemaInstance);
-            verifyJsonSchema(jsonNode, schema);
+            verifyJsonSchema(jsonNode, schema, schemaPathFunction.apply(schemaInstance));
         }
     }
 
-    private void verifyJsonSchema(JsonNode jsonNode, JsonSchema schema) {
-        Set<ValidationMessage> errors1 = schema.validate(jsonNode);
-        assertThat(errors1).withFailMessage("%s\n%s\n%s", errors1, jsonNode, schema.getSchemaPath()).isEmpty();
+    private void verifyJsonSchema(JsonNode jsonNode, JsonSchema schema, String schemaPath) {
+        Set<ValidationMessage> errors = schema.validate(jsonNode);
+        assertThat(errors)
+            .withFailMessage("%s\nJSON schema path = %s\n\n%s", errors, schemaPath, jsonNode.toPrettyString())
+            .isEmpty();
     }
 
     private JsonNode asJson(String jsonContent) {
@@ -630,13 +632,19 @@ public class MockReporter implements Reporter {
 
         private final DslJsonSerializer serializer;
         private final JsonSchema transactionSchema;
+        private final String transactionSchemaPath;
         private final JsonSchema spanSchema;
+        private final String spanSchemaPath;
         private final JsonSchema errorSchema;
+        private final String errorSchemaPath;
 
-        private SchemaInstance(String transactionSchema, String spanSchema, String errorSchema, boolean isLatest) {
+        SchemaInstance(String transactionSchema, String spanSchema, String errorSchema, boolean isLatest) {
             this.transactionSchema = getSchema(transactionSchema);
+            this.transactionSchemaPath = transactionSchema;
             this.spanSchema = getSchema(spanSchema);
+            this.spanSchemaPath = spanSchema;
             this.errorSchema = getSchema(errorSchema);
+            this.errorSchemaPath = errorSchema;
 
             ConfigurationRegistry spyConfig = SpyConfiguration.createSpyConfig();
             StacktraceConfiguration stacktraceConfiguration = spyConfig.getConfig(StacktraceConfiguration.class);
@@ -644,6 +652,11 @@ public class MockReporter implements Reporter {
             Future<MetaData> metaData = MetaData.create(spyConfig, null);
             ApmServerClient client = mock(ApmServerClient.class);
             when(client.isAtLeast(any())).thenReturn(isLatest);
+
+            // The oldest server does not support any of those features, the current server supports all of them
+            when(client.supportsNumericUrlPort()).thenReturn(isLatest);
+            when(client.supportsNonStringLabels()).thenReturn(isLatest);
+            when(client.supportsLogsEndpoint()).thenReturn(isLatest);
 
             this.serializer = new DslJsonSerializer(stacktraceConfiguration, client, metaData);
         }
