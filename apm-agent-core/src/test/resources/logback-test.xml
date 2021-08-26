@@ -7,9 +7,4 @@
             </Pattern>
         </layout>
     </appender>
-
-    <!-- make json validation less verbose -->
-    <logger name="com.networknt.schema" level="warn" additivity="false">
-        <appender-ref ref="CONSOLE"/>
-    </logger>
 </configuration>

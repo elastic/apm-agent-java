@@ -37,7 +37,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.awaitility.core.ThrowingRunnable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import specs.TestJsonSpec;
 
@@ -96,6 +99,10 @@ public class MockReporter implements Reporter {
     static {
         SPAN_TYPES_WITHOUT_ADDRESS = Set.of("jms");
         SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"));
+
+        // Make the validation less verbose. We have to set level programatically as the root logger value is
+        // overriden at runtime through agent configuration with log_level
+        Configurator.setLevel("com.networknt.schema", org.apache.logging.log4j.Level.WARN);
     }
 
     public MockReporter() {
