@@ -22,7 +22,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.util.SpanConcurrentHashMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import io.lettuce.core.protocol.RedisCommand;
 import net.bytebuddy.asm.Advice;
@@ -49,7 +49,7 @@ public class Lettuce5StartSpanInstrumentation extends TracerAwareInstrumentation
 
     @VisibleForAdvice
     @SuppressWarnings("WeakerAccess")
-    public static final WeakConcurrentMap<RedisCommand<?, ?, ?>, Span> commandToSpan = WeakMapSupplier.createMap();
+    public static final WeakConcurrentMap<RedisCommand<?, ?, ?>, Span> commandToSpan = SpanConcurrentHashMap.createWeakMap();
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

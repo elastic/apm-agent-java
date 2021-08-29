@@ -21,7 +21,7 @@ package co.elastic.apm.agent.redis.lettuce;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.util.SpanConcurrentHashMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import com.lambdaworks.redis.protocol.RedisCommand;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -34,7 +34,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 public abstract class Lettuce34Instrumentation extends TracerAwareInstrumentation {
     @VisibleForAdvice
     @SuppressWarnings("WeakerAccess")
-    public static final WeakConcurrentMap<RedisCommand<?, ?, ?>, Span> commandToSpan = WeakMapSupplier.createMap();
+    public static final WeakConcurrentMap<RedisCommand<?, ?, ?>, Span> commandToSpan = SpanConcurrentHashMap.createWeakMap();
 
     /**
      * We don't support Lettuce up to version 3.3, as the {@link RedisCommand#getType()} method is missing
