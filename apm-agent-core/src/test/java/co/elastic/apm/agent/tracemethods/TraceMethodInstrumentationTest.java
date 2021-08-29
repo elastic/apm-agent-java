@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.bci.methodmatching;
+package co.elastic.apm.agent.tracemethods;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
@@ -65,12 +65,12 @@ class TraceMethodInstrumentationTest {
         ConfigurationRegistry config = mockInstrumentationSetup.getConfig();
         coreConfiguration = config.getConfig(CoreConfiguration.class);
         when(coreConfiguration.getTraceMethods()).thenReturn(Arrays.asList(
-            MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestClass#traceMe*()"),
-            MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestDiscardableMethods#*"),
-            MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestErrorCapture#*"),
-            MethodMatcher.of("co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestExcludeConstructor#*"),
-            MethodMatcher.of("public @co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$CustomAnnotation co.elastic.apm.agent.bci.methodmatching*"),
-            MethodMatcher.of("public @@co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$Meta* co.elastic.apm.agent.bci.methodmatching*"))
+            MethodMatcher.of("private co.elastic.apm.agent.tracemethods.TraceMethodInstrumentationTest$TestClass#traceMe*()"),
+            MethodMatcher.of("private co.elastic.apm.agent.tracemethods.TraceMethodInstrumentationTest$TestDiscardableMethods#*"),
+            MethodMatcher.of("private co.elastic.apm.agent.tracemethods.TraceMethodInstrumentationTest$TestErrorCapture#*"),
+            MethodMatcher.of("co.elastic.apm.agent.tracemethods.TraceMethodInstrumentationTest$TestExcludeConstructor#*"),
+            MethodMatcher.of("public @co.elastic.apm.agent.tracemethods.TraceMethodInstrumentationTest$CustomAnnotation co.elastic.apm.agent.tracemethods*"),
+            MethodMatcher.of("public @@co.elastic.apm.agent.tracemethods.TraceMethodInstrumentationTest$Meta* co.elastic.apm.agent.tracemethods*"))
         );
         when(coreConfiguration.getMethodsExcludedFromInstrumentation()).thenReturn(Arrays.asList(
             WildcardMatcher.valueOf("*exclude*"),
@@ -108,7 +108,7 @@ class TraceMethodInstrumentationTest {
     @Test
     void testReInitTraceMethod() throws Exception {
         when(coreConfiguration.getTraceMethods()).thenReturn(
-            List.of(MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestClass#traceMe()")));
+            List.of(MethodMatcher.of("private co.elastic.apm.agent.tracemethods.TraceMethodInstrumentationTest$TestClass#traceMe()")));
         ElasticApmAgent.reInitInstrumentation().get();
         TestClass.traceMe();
         assertThat(reporter.getTransactions()).hasSize(1);

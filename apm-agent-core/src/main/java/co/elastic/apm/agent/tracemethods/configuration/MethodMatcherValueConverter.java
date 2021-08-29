@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.bci.methodmatching.configuration;
+package co.elastic.apm.agent.tracemethods.configuration;
 
-import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.configuration.converter.ListValueConverter;
-
+import co.elastic.apm.agent.sdk.state.GlobalState;
+import co.elastic.apm.agent.tracemethods.MethodMatcher;
 import org.stagemonitor.configuration.converter.ValueConverter;
 
 import static co.elastic.apm.agent.configuration.converter.ListValueConverter.COMMA_OUT_OF_BRACKETS;
 
+@GlobalState
 public enum MethodMatcherValueConverter implements ValueConverter<MethodMatcher> {
     INSTANCE;
 

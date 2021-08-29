@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.bci.methodmatching.configuration;
+package co.elastic.apm.agent.tracemethods.configuration;
 
+import co.elastic.apm.agent.configuration.converter.ListValueConverter;
+import co.elastic.apm.agent.tracemethods.MethodMatcher;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
-import co.elastic.apm.agent.configuration.converter.ListValueConverter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

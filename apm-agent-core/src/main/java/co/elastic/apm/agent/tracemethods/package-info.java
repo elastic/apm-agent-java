@@ -17,6 +17,6 @@
  * under the License.
  */
 @NonnullApi
-package co.elastic.apm.agent.bci.methodmatching;
+package co.elastic.apm.agent.tracemethods;
 
 import co.elastic.apm.agent.sdk.NonnullApi;
