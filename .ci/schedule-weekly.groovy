@@ -18,11 +18,10 @@ pipeline {
     cron('H H(1-4) * * 1')
   }
   stages {
-    stage('Run compatibility tests') {
+    stage('Run JDK compatibility tests') {
       steps {
         build(job: 'apm-agent-java/apm-agent-java-mbp/master',
           parameters: [
-            booleanParam(name: 'Run_As_Master_Branch', value: true),
             booleanParam(name: 'compatibility_ci', value: true)
           ],
           propagate: false,
