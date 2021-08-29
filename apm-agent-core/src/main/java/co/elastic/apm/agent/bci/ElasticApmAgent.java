@@ -29,12 +29,11 @@ import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFact
 import co.elastic.apm.agent.bci.bytebuddy.SoftlyReferencingTypePoolCache;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToPostProcessorFactory;
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
+import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.premain.AgentMain;
-import co.elastic.apm.agent.premain.ThreadUtils;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.matcher.MethodMatcher;
@@ -127,7 +126,7 @@ public class ElasticApmAgent {
     private static final Map<String, ClassLoader> adviceClassName2instrumentationClassLoader = new ConcurrentHashMap<>();
 
     /**
-     * Called reflectively by {@link AgentMain} to initialize the agent
+     * Called reflectively by {@code co.elastic.apm.agent.premain.AgentMain} to initialize the agent
      *
      * @param instrumentation the instrumentation instance
      * @param agentJarFile    a reference to the agent jar on the file system

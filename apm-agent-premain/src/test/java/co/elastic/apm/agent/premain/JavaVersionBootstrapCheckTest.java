@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.premain;
 
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import org.junit.jupiter.api.Test;
 
 import java.util.stream.Stream;

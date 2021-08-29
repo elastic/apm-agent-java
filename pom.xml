@@ -66,6 +66,7 @@
         <module>apm-indy-bootstrap-module</module>
         <module>apm-agent-premain</module>
         <module>apm-agent-attach-cli</module>
+        <module>apm-agent-common</module>
     </modules>
 
     <properties>

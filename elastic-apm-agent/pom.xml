@@ -12,7 +12,6 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <elastic.apm.agent>co.elastic.apm.agent.premain.AgentMain</elastic.apm.agent>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
 
         <!-- default value that will be overloaded through commit-id plugin -->
@@ -24,11 +23,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>jul-to-slf4j</artifactId>
             <version>${version.slf4j}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-premain</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -503,11 +497,6 @@
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
-                                        <Premain-Class>${elastic.apm.agent}</Premain-Class>
-                                        <Agent-Class>${elastic.apm.agent}</Agent-Class>
-                                        <Can-Redefine-Classes>true</Can-Redefine-Classes>
-                                        <Can-Retransform-Classes>true</Can-Retransform-Classes>
-                                        <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
                                         <Automatic-Module-Name>${project.groupId}.agent</Automatic-Module-Name>
                                         <SCM-Revision>${git.commit.id.abbrev}</SCM-Revision>
                                     </manifestEntries>

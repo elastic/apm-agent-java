@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.bci;
+package co.elastic.apm.agent.premain;
 
-import co.elastic.apm.agent.premain.BootstrapCheck;
-import co.elastic.apm.agent.premain.VerifyNoneBootstrapCheck;
 import org.junit.jupiter.api.Test;
 
 import java.lang.management.RuntimeMXBean;

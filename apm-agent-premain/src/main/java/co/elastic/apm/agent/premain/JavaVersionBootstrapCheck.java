@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.premain;
 
-import java.util.List;
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
 
 /**
  * Gracefully abort agent startup is better than unexpected failure down the road when we known a given JVM

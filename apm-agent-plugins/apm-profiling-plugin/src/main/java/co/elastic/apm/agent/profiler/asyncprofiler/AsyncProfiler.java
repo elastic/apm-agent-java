@@ -33,8 +33,8 @@
  */
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
-import co.elastic.apm.agent.premain.JvmRuntimeInfo;
-import co.elastic.apm.agent.util.IOUtils;
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
+import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -92,8 +92,7 @@ public class AsyncProfiler {
 
     private static void loadNativeLibrary(String libraryDirectory) {
         String libraryName = getLibraryFileName();
-        File file = IOUtils.exportResourceToDirectory("asyncprofiler/" + libraryName + ".so", libraryDirectory,
-            libraryName, ".so");
+        File file = ResourceExtractionUtil.extractResourceToDirectory("asyncprofiler/" + libraryName + ".so", libraryName, ".so", false, libraryDirectory);
         System.load(file.getAbsolutePath());
     }
 

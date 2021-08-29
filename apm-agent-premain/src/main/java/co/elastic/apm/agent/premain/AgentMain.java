@@ -18,14 +18,18 @@
  */
 package co.elastic.apm.agent.premain;
 
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
+import co.elastic.apm.agent.common.ThreadUtils;
+import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
+
 import java.io.File;
 import java.lang.instrument.Instrumentation;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.FileSystems;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
-import java.util.jar.JarFile;
 
 /**
  * This class is loaded by the system classloader,
@@ -138,15 +142,11 @@ public class AgentMain {
 
     private synchronized static void loadAndInitializeAgent(String agentArguments, Instrumentation instrumentation, boolean premain) {
         try {
-            final File agentJarFile = getAgentJarFile();
-            try (JarFile jarFile = new JarFile(agentJarFile)) {
-                instrumentation.appendToBootstrapClassLoaderSearch(jarFile);
-            }
-            // invoking via reflection to make sure the class is not loaded by the system classloader,
-            // but only from the bootstrap classloader
-            Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, null)
+            File agentJar = ResourceExtractionUtil.extractResourceToDirectory("elastic-apm-agent.jar", "elastic-apm-agent", ".jar", true);
+            URLClassLoader agentClassLoader = new URLClassLoader(new URL[]{agentJar.toURI().toURL()}, null);
+            Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, agentClassLoader)
                 .getMethod("initialize", String.class, Instrumentation.class, File.class, boolean.class)
-                .invoke(null, agentArguments, instrumentation, agentJarFile, premain);
+                .invoke(null, agentArguments, instrumentation, agentJar, premain);
             System.setProperty("ElasticApm.attached", Boolean.TRUE.toString());
         } catch (Exception | LinkageError e) {
             System.err.println("[elastic-apm-agent] ERROR Failed to start agent");

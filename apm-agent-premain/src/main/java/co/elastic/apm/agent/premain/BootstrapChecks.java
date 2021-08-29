@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.premain;
 
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
+
 import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import java.util.List;
