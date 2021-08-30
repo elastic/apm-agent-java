@@ -112,22 +112,24 @@ class DslJsonSerializerTest {
         });
     }
 
-    @Test
-    void testSerializeNonStringLabels() {
-        when(apmServerClient.supportsNonStringLabels()).thenReturn(true);
-        assertThat(serializeTags(Map.of("foo", true))).isEqualTo(toJson(Map.of("foo", true)));
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSerializeNonStringLabels(boolean numericLabels) {
+        when(apmServerClient.supportsNonStringLabels()).thenReturn(numericLabels);
 
-        when(apmServerClient.supportsNonStringLabels()).thenReturn(false);
-        assertThat(serializeTags(Map.of("foo", true))).isEqualTo(toJson(Collections.singletonMap("foo", null)));
+        Map<String, Object> expectedMap;
+        if(numericLabels){
+             expectedMap= Map.of("foo", true);
+        } else {
+            expectedMap = Collections.singletonMap("foo", null);
+        }
+        assertThat(serializeTags(Map.of("foo", true))).isEqualTo(toJson(expectedMap));
     }
 
-    @Test
-    void serializeUrlPort() {
-        serializeUrlPort(true);
-        serializeUrlPort(false);
-    }
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSerializeUrlPort(boolean useNumericPort) {
 
-    private void serializeUrlPort(boolean useNumericPort) {
         when(apmServerClient.supportsNumericUrlPort()).thenReturn(useNumericPort);
 
         Url url = new Url()
@@ -725,6 +727,10 @@ class DslJsonSerializerTest {
 
         ElasticApmTracer tracer = MockTracer.create();
         Transaction transaction = new Transaction(tracer);
+
+        // test only the most recent server here
+        when(apmServerClient.supportsMultipleHeaderValues()).thenReturn(true);
+        when(apmServerClient.supportsNumericUrlPort()).thenReturn(true);
 
         transaction.getContext().getUser()
             .withId("42")
