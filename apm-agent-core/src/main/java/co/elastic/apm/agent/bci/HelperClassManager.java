@@ -77,7 +77,6 @@ import java.util.WeakHashMap;
  * @param <T> the type of the helper interface
  */
 @Deprecated
-@VisibleForAdvice
 public abstract class HelperClassManager<T> {
     private static final Logger logger = LoggerFactory.getLogger(HelperClassManager.class);
 

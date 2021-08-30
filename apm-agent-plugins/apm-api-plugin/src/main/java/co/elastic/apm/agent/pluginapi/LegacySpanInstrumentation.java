@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
@@ -91,7 +90,6 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
         public static class AdviceClass {
 
-            @VisibleForAdvice
             @Advice.OnMethodEnter(inline = false)
             public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
                                        @Advice.Argument(0) String type) {
@@ -110,7 +108,6 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         public static class AdviceClass {
             @Nullable
             @AssignTo.Return
-            @VisibleForAdvice
             @Advice.OnMethodExit(inline = false)
             public static Object doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span) {
                 if (span instanceof Span) {
@@ -128,7 +125,6 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
 
         public static class AdviceClass {
-            @VisibleForAdvice
             @Advice.OnMethodEnter(inline = false)
             public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span) {
                 if (span instanceof Span) {
@@ -144,7 +140,6 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
 
         public static class AdviceClass {
-            @VisibleForAdvice
             @Advice.OnMethodExit(inline = false)
             public static void captureException(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
                                                 @Advice.Argument(0) Throwable t) {
@@ -201,7 +196,6 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
 
         public static class AdviceClass {
-            @VisibleForAdvice
             @Advice.OnMethodEnter(inline = false)
             public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
                                       @Advice.Argument(0) String key,
@@ -235,7 +229,6 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
 
         public static class AdviceClass {
             @AssignTo.Return
-            @VisibleForAdvice
             @Advice.OnMethodExit(inline = false)
             public static boolean isSampled(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
                                             @Advice.Return boolean returnValue) {

@@ -61,7 +61,7 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractAli
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class)
             private static void onEnter(@Advice.This ResponseCallback thiz, @Advice.Local("span") AbstractSpan<?> span) {
-                span = AlibabaResponseFutureInstrumentation.callbackSpanMap.remove(thiz);
+                span = AlibabaCallbackHolder.callbackSpanMap.remove(thiz);
                 if (span != null) {
                     span.activate();
                 }
@@ -100,7 +100,7 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractAli
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class)
             private static void onEnter(@Advice.This ResponseCallback thiz, @Advice.Local("span") AbstractSpan<?> span) {
-                span = AlibabaResponseFutureInstrumentation.callbackSpanMap.remove(thiz);
+                span = AlibabaCallbackHolder.callbackSpanMap.remove(thiz);
                 if (span != null) {
                     span.activate();
                 }
