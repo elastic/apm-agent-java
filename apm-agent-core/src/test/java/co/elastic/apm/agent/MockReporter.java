@@ -37,7 +37,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
-import org.apache.logging.log4j.core.config.Configurator;
 import org.awaitility.core.ThrowingRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,10 +98,6 @@ public class MockReporter implements Reporter {
     static {
         SPAN_TYPES_WITHOUT_ADDRESS = Set.of("jms");
         SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"));
-
-        // Make the validation less verbose. We have to set level programatically as the root logger value is
-        // overriden at runtime through agent configuration with log_level
-        Configurator.setLevel("com.networknt.schema", org.apache.logging.log4j.Level.WARN);
     }
 
     public MockReporter() {
@@ -260,6 +255,7 @@ public class MockReporter implements Reporter {
 
     /**
      * Checks the transaction serialization against all available schemas
+     *
      * @param transaction transaction to serialize
      */
     public void verifyTransactionSchema(Transaction transaction) {
@@ -268,6 +264,7 @@ public class MockReporter implements Reporter {
 
     /**
      * Checks the transaction serialization against all available schemas
+     *
      * @param span span to serialize
      */
     public void verifySpanSchema(Span span) {
@@ -276,14 +273,16 @@ public class MockReporter implements Reporter {
 
     /**
      * Checks the error serialization against all available schemas
+     *
      * @param error error to serialize
      */
-    public void verifyErrorSchema(ErrorCapture error){
+    public void verifyErrorSchema(ErrorCapture error) {
         verifyJsonSchemas(dsl -> dsl.toJsonString(error), si -> si.errorSchema, si -> si.errorSchemaPath);
     }
 
     /**
      * Checks the transaction JSON against the current schema
+     *
      * @param jsonNode serialized transaction json
      */
     public void verifyTransactionSchema(JsonNode jsonNode) {
@@ -292,6 +291,7 @@ public class MockReporter implements Reporter {
 
     /**
      * Checks the span JSON against the current schema
+     *
      * @param jsonNode serialized span json
      */
     public void verifySpanSchema(JsonNode jsonNode) {
@@ -300,6 +300,7 @@ public class MockReporter implements Reporter {
 
     /**
      * Checks the error JSON against the current schema
+     *
      * @param jsonNode serialized error json
      */
     public void verifyErrorSchema(JsonNode jsonNode) {
