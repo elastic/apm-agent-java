@@ -57,6 +57,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeType;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
@@ -1137,6 +1139,66 @@ class DslJsonSerializerTest {
         JsonNode jsonSpan = readJsonString(serializer.toJsonString(span));
 
         assertThat(jsonSpan.get("sample_rate").asDouble()).isEqualTo(0.42d);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true,false})
+    void multiValueHeaders(boolean supportsMulti) {
+        // older versions of APM server do not support multi-value headers
+        // thus we should make sure to not break those
+
+        Transaction transaction = createRootTransaction();
+
+        transaction.getContext().getRequest()
+            .addHeader("user-agent", "user-agent1")
+            .addHeader("user-agent", "user-agent2")
+            .addHeader("header", "header1")
+            .addHeader("header", "header2")
+            .addCookie("cookie", "cookie1")
+            .addCookie("cookie", "cookie2");
+
+        transaction.getContext().getResponse()
+            .addHeader("content-type", "content-type1")
+            .addHeader("content-type", "content-type2");
+
+        if(supportsMulti){
+            when(apmServerClient.supportsMultipleHeaderValues())
+                .thenReturn(supportsMulti);
+        }
+
+        JsonNode jsonTransaction = readJsonString(serializer.toJsonString(transaction));
+
+        JsonNode requestJson = jsonTransaction.get("context").get("request");
+        JsonNode headersJson = requestJson.get("headers");
+        JsonNode cookiesJson = requestJson.get("cookies");
+        JsonNode responseHeaders = jsonTransaction.get("context").get("response").get("headers");
+        if (supportsMulti) {
+            checkMultiValueHeader(headersJson, "user-agent", "user-agent1", "user-agent2");
+            checkMultiValueHeader(headersJson, "header", "header1", "header2");
+            checkMultiValueHeader(cookiesJson, "cookie", "cookie1", "cookie2");
+            checkMultiValueHeader(responseHeaders, "content-type", "content-type1", "content-type2");
+        } else {
+            checkSingleValueHeader(headersJson, "user-agent", "user-agent1");
+            checkSingleValueHeader(headersJson, "header", "header1");
+            checkSingleValueHeader(cookiesJson, "cookie", "cookie1");
+            checkSingleValueHeader(responseHeaders, "content-type", "content-type1");
+        }
+
+        assertThat(headersJson).isNotNull();
+    }
+
+    private static void checkSingleValueHeader(JsonNode json, String fieldName, String value){
+        JsonNode fieldValue = json.get(fieldName);
+        assertThat(fieldValue.isTextual()).isTrue();
+        assertThat(fieldValue.asText()).isEqualTo(value);
+    }
+
+    private static void checkMultiValueHeader(JsonNode json, String fieldName, String value1, String value2){
+        JsonNode fieldValue = json.get(fieldName);
+        assertThat(fieldValue.isArray()).isTrue();
+        assertThat(fieldValue.size()).isEqualTo(2);
+        assertThat(fieldValue.get(0).asText()).isEqualTo(value1);
+        assertThat(fieldValue.get(1).asText()).isEqualTo(value2);
     }
 
     private JsonNode readJsonString(String jsonString) {

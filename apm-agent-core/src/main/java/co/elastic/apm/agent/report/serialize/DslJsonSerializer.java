@@ -1132,7 +1132,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (response.hasContent()) {
             writeFieldName("response");
             jw.writeByte(OBJECT_START);
-            writeField("headers", response.getHeaders());
+            writeField("headers", response.getHeaders(), apmServerClient.supportsMultipleHeaderValues());
             writeField("finished", response.isFinished());
             writeField("headers_sent", response.isHeadersSent());
             writeFieldName("status_code");
@@ -1147,11 +1147,11 @@ public class DslJsonSerializer implements PayloadSerializer {
             writeFieldName("request");
             jw.writeByte(OBJECT_START);
             writeField("method", request.getMethod());
-            writeField("headers", request.getHeaders());
-            writeField("cookies", request.getCookies());
+            writeField("headers", request.getHeaders(), apmServerClient.supportsMultipleHeaderValues());
+            writeField("cookies", request.getCookies(), apmServerClient.supportsMultipleHeaderValues());
             // only one of those can be non-empty
             if (!request.getFormUrlEncodedParameters().isEmpty()) {
-                writeField("body", request.getFormUrlEncodedParameters());
+                writeField("body", request.getFormUrlEncodedParameters(), true);
             } else if (request.getRawBody() != null) {
                 writeField("body", request.getRawBody());
             } else {
@@ -1208,21 +1208,35 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
-    private void writeField(final String fieldName, final PotentiallyMultiValuedMap map) {
-        if (map.size() > 0) {
-            writeFieldName(fieldName);
-            jw.writeByte(OBJECT_START);
-            final int size = map.size();
-            if (size > 0) {
-                serializePotentiallyMultiValuedEntry(map.getKey(0), map.getValue(0));
-                for (int i = 1; i < size; i++) {
-                    jw.writeByte(COMMA);
-                    serializePotentiallyMultiValuedEntry(map.getKey(i), map.getValue(i));
+    private void writeField(final String fieldName, final PotentiallyMultiValuedMap map, boolean supportsMultipleValues) {
+        if (map.isEmpty()) {
+            return;
+        }
+
+        writeFieldName(fieldName);
+        jw.writeByte(OBJECT_START);
+        int size = map.size();
+        if(supportsMultipleValues){
+            serializePotentiallyMultiValuedEntry(map.getKey(0), map.getValue(0));
+            for (int i = 1; i < size; i++) {
+                jw.writeByte(COMMA);
+                serializePotentiallyMultiValuedEntry(map.getKey(i), map.getValue(i));
+            }
+        } else {
+            int last = size - 1;
+            for (int i = 0; i <= last; i++) {
+                String key = map.getKey(i);
+                String value = map.getFirst(key);
+                if (i == last) {
+                    writeLastField(key, value);
+                } else {
+                    writeField(key, value);
                 }
             }
-            jw.writeByte(OBJECT_END);
-            jw.writeByte(COMMA);
         }
+
+        jw.writeByte(OBJECT_END);
+        jw.writeByte(COMMA);
     }
 
     private void serializePotentiallyMultiValuedEntry(String key, @Nullable Object value) {
