@@ -66,6 +66,11 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
         return any();
     }
 
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
+    }
+
     /**
      * Instruments {@link javax.servlet.Servlet#init(ServletConfig)}
      */
@@ -77,10 +82,12 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
                 .and(takesArgument(0, named("javax.servlet.ServletConfig")));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
-        public static void onEnter(@Advice.Argument(0) @Nullable ServletConfig servletConfig) {
-            logServletVersion(servletConfig);
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
+            public static void onEnter(@Advice.Argument(0) @Nullable ServletConfig servletConfig) {
+                logServletVersion(servletConfig);
+            }
         }
     }
 
@@ -96,9 +103,11 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
                 .and(takesArgument(1, named("javax.servlet.ServletResponse")));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void onEnter(@Advice.This Servlet servlet) {
-            logServletVersion(servlet.getServletConfig());
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void onEnter(@Advice.This Servlet servlet) {
+                logServletVersion(servlet.getServletConfig());
+            }
         }
     }
 

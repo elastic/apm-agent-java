@@ -54,10 +54,17 @@ public class AlibabaRpcContextInstrumentation extends AbstractAlibabaDubboInstru
         return named("setFuture").and(takesArgument(0, named("java.util.concurrent.Future")));
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void onEnter(@Advice.Argument(0) Future<?> future) {
-        if (future instanceof FutureAdapter) {
-            DynamicTransformer.Accessor.get().ensureInstrumented(((FutureAdapter<?>) future).getFuture().getClass(), RESPONSE_FUTURE_INSTRUMENTATION);
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
+    }
+
+    public static class AdviceClass {
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void onEnter(@Advice.Argument(0) Future<?> future) {
+            if (future instanceof FutureAdapter) {
+                DynamicTransformer.Accessor.get().ensureInstrumented(((FutureAdapter<?>) future).getFuture().getClass(), RESPONSE_FUTURE_INSTRUMENTATION);
+            }
         }
     }
 }

@@ -55,34 +55,41 @@ public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrument
             .and(takesArguments(3));
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onBeforeExecute(@Advice.Argument(value = 0) HttpRequest httpRequest) {
-        return startSpan(httpRequest);
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onAfterExecute(@Advice.Return @Nullable CompletableFuture<HttpResponse<?>> completableFuture,
-                                      @Advice.Enter @Nullable Object spanObj,
-                                      @Advice.Thrown @Nullable Throwable t) {
-        if (spanObj instanceof Span) {
-            final Span span = (Span) spanObj;
-            span.deactivate();
-            if (completableFuture == null) {
-                span.captureException(t)
-                    .end();
+    public static class AdviceClass {
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onBeforeExecute(@Advice.Argument(value = 0) HttpRequest httpRequest) {
+            return startSpan(httpRequest);
+        }
 
-                return;
-            }
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onAfterExecute(@Advice.Return @Nullable CompletableFuture<HttpResponse<?>> completableFuture,
+                                          @Advice.Enter @Nullable Object spanObj,
+                                          @Advice.Thrown @Nullable Throwable t) {
+            if (spanObj instanceof Span) {
+                final Span span = (Span) spanObj;
+                span.deactivate();
+                if (completableFuture == null) {
+                    span.captureException(t)
+                        .end();
 
-            completableFuture.whenComplete((response, throwable) -> {
-                if (response != null) {
-                    int statusCode = response.statusCode();
-                    span.getContext().getHttp().withStatusCode(statusCode);
+                    return;
                 }
-                span.captureException(throwable)
-                    .end();
-            });
+
+                completableFuture.whenComplete((response, throwable) -> {
+                    if (response != null) {
+                        int statusCode = response.statusCode();
+                        span.getContext().getHttp().withStatusCode(statusCode);
+                    }
+                    span.captureException(throwable)
+                        .end();
+                });
+            }
         }
     }
 }

@@ -26,7 +26,6 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.net.http.HttpHeaders;
 import java.util.LinkedHashMap;
@@ -55,17 +54,23 @@ public class HttpRequestHeadersInstrumentation extends AbstractHttpClientInstrum
         return named("headers").and(returns(named("java.net.http.HttpHeaders")));
     }
 
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
+    }
 
-    @Nullable
-    @AssignTo.Return
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static HttpHeaders onAfterExecute(@Advice.Return @Nullable final HttpHeaders httpHeaders) {
-        Span span = tracer.getActiveSpan();
-        if (span == null || httpHeaders == null) { // in case of thrown exception return value might be null
-            return httpHeaders;
+    public static class AdviceClass {
+        @Nullable
+        @AssignTo.Return
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static HttpHeaders onAfterExecute(@Advice.Return @Nullable final HttpHeaders httpHeaders) {
+            Span span = tracer.getActiveSpan();
+            if (span == null || httpHeaders == null) { // in case of thrown exception return value might be null
+                return httpHeaders;
+            }
+            Map<String, List<String>> headersMap = new LinkedHashMap<>(httpHeaders.map());
+            span.propagateTraceContext(headersMap, HttpClientRequestPropertyAccessor.instance());
+            return HttpHeaders.of(headersMap, (x, y) -> true);
         }
-        Map<String, List<String>> headersMap = new LinkedHashMap<>(httpHeaders.map());
-        span.propagateTraceContext(headersMap, HttpClientRequestPropertyAccessor.instance());
-        return HttpHeaders.of(headersMap, (x, y) -> true);
     }
 }

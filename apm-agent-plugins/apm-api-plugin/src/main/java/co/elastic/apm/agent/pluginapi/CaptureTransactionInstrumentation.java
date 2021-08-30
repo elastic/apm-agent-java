@@ -64,41 +64,43 @@ public class CaptureTransactionInstrumentation extends TracerAwareInstrumentatio
         stacktraceConfig = tracer.getConfig(StacktraceConfiguration.class);
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onMethodEnter(@Advice.Origin Class<?> clazz,
-                                       @SimpleMethodSignature String signature,
-                                       @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "value") String transactionName,
-                                       @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "type") String type) {
-        final Object active = tracer.getActive();
-        if (active == null) {
-            Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
-            if (transaction != null) {
-                if (transactionName.isEmpty()) {
-                    transaction.withName(signature, PRIO_METHOD_SIGNATURE);
-                } else {
-                    transaction.withName(transactionName, PRIO_USER_SUPPLIED);
+    public static class AdviceClass {
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onMethodEnter(@Advice.Origin Class<?> clazz,
+                                           @SimpleMethodSignature String signature,
+                                           @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "value") String transactionName,
+                                           @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "type") String type) {
+            final Object active = tracer.getActive();
+            if (active == null) {
+                Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                if (transaction != null) {
+                    if (transactionName.isEmpty()) {
+                        transaction.withName(signature, PRIO_METHOD_SIGNATURE);
+                    } else {
+                        transaction.withName(transactionName, PRIO_USER_SUPPLIED);
+                    }
+                    transaction.withType(type)
+                        .activate();
+                    transaction.setFrameworkName(FRAMEWORK_NAME);
+                    return transaction;
                 }
-                transaction.withType(type)
-                    .activate();
-                transaction.setFrameworkName(FRAMEWORK_NAME);
-                return transaction;
+            } else {
+                logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
             }
-        } else {
-            logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
+            return null;
         }
-        return null;
-    }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onMethodExit(@Advice.Enter @Nullable Object transaction,
-                                    @Advice.Thrown @Nullable Throwable t) {
-        if (transaction instanceof Transaction) {
-            ((Transaction) transaction)
-                .captureException(t)
-                .withOutcome(t != null ? Outcome.FAILURE: Outcome.SUCCESS)
-                .deactivate()
-                .end();
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onMethodExit(@Advice.Enter @Nullable Object transaction,
+                                        @Advice.Thrown @Nullable Throwable t) {
+            if (transaction instanceof Transaction) {
+                ((Transaction) transaction)
+                    .captureException(t)
+                    .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
+                    .deactivate()
+                    .end();
+            }
         }
     }
 
@@ -125,5 +127,10 @@ public class CaptureTransactionInstrumentation extends TracerAwareInstrumentatio
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList(PUBLIC_API_INSTRUMENTATION_GROUP, "annotations");
+    }
+
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
     }
 }

@@ -153,9 +153,7 @@ public abstract class ElasticApmInstrumentation {
      * </p>
      * @return the name of the advice class corresponding this instrumentation
      */
-    public String getAdviceClassName() {
-        return getClass().getName();
-    }
+    public abstract String getAdviceClassName();
 
     /**
      * Returns {@code true} if this instrumentation should be applied even when {@code instrument} is set to {@code false}.

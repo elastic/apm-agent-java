@@ -29,10 +29,12 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class ApiScopeInstrumentation extends ApiInstrumentation {
 
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void close(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context) {
-        if (context instanceof AbstractSpan) {
-            ((AbstractSpan<?>) context).deactivate();
+    public static class AdviceClass {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void close(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context) {
+            if (context instanceof AbstractSpan) {
+                ((AbstractSpan<?>) context).deactivate();
+            }
         }
     }
 
@@ -44,5 +46,10 @@ public class ApiScopeInstrumentation extends ApiInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("close");
+    }
+
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
     }
 }

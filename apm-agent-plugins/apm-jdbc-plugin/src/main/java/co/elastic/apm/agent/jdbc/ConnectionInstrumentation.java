@@ -45,11 +45,13 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public class ConnectionInstrumentation extends JdbcInstrumentation {
 
-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-    public static void storeSql(@Advice.Return @Nullable PreparedStatement statement,
-                                @Advice.Argument(0) String sql) {
-        if (statement != null) { // might be null if exception is thrown
-            JdbcHelper.get().mapStatementToSql(statement, sql);
+    public static class AdviceClass {
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void storeSql(@Advice.Return @Nullable PreparedStatement statement,
+                                    @Advice.Argument(0) String sql) {
+            if (statement != null) { // might be null if exception is thrown
+                JdbcHelper.get().mapStatementToSql(statement, sql);
+            }
         }
     }
 
@@ -70,6 +72,11 @@ public class ConnectionInstrumentation extends JdbcInstrumentation {
             .and(returns(hasSuperType(named("java.sql.PreparedStatement"))))
             .and(takesArgument(0, String.class))
             .and(isPublic());
+    }
+
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
     }
 
 }

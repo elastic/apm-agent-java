@@ -67,14 +67,21 @@ public abstract class Lettuce34StopSpanInstrumentation extends Lettuce34Instrume
         return Arrays.asList("redis", "lettuce");
     }
 
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
+    }
+
     public static class OnComplete extends Lettuce34StopSpanInstrumentation {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void beforeComplete(@Advice.This RedisCommand<?, ?, ?> command) {
-            Span span = commandToSpan.remove(command);
-            if (span != null) {
-                logger.debug("Command#complete");
-                span.end();
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void beforeComplete(@Advice.This RedisCommand<?, ?, ?> command) {
+                Span span = commandToSpan.remove(command);
+                if (span != null) {
+                    logger.debug("Command#complete");
+                    span.end();
+                }
             }
         }
 
@@ -86,12 +93,14 @@ public abstract class Lettuce34StopSpanInstrumentation extends Lettuce34Instrume
 
     public static class OnCompleteExceptionally extends Lettuce34StopSpanInstrumentation {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void beforeComplete(@Advice.This RedisCommand<?, ?, ?> command, @Advice.Argument(0) Throwable throwable) {
-            Span span = commandToSpan.remove(command);
-            if (span != null) {
-                logger.debug("Command#completeExceptionally");
-                span.captureException(throwable).end();
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void beforeComplete(@Advice.This RedisCommand<?, ?, ?> command, @Advice.Argument(0) Throwable throwable) {
+                Span span = commandToSpan.remove(command);
+                if (span != null) {
+                    logger.debug("Command#completeExceptionally");
+                    span.captureException(throwable).end();
+                }
             }
         }
 
@@ -103,12 +112,14 @@ public abstract class Lettuce34StopSpanInstrumentation extends Lettuce34Instrume
 
     public static class OnCancel extends Lettuce34StopSpanInstrumentation {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void beforeComplete(@Advice.This RedisCommand<?, ?, ?> command) {
-            Span span = commandToSpan.remove(command);
-            if (span != null) {
-                logger.debug("Command#cancel");
-                span.end();
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void beforeComplete(@Advice.This RedisCommand<?, ?, ?> command) {
+                Span span = commandToSpan.remove(command);
+                if (span != null) {
+                    logger.debug("Command#cancel");
+                    span.end();
+                }
             }
         }
 

@@ -31,10 +31,12 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class ApmScopeInstrumentation extends OpenTracingBridgeInstrumentation {
 
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
-        if (context instanceof AbstractSpan<?>) {
-            ((AbstractSpan<?>) context).deactivate();
+    public static class AdviceClass {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
+            if (context instanceof AbstractSpan<?>) {
+                ((AbstractSpan<?>) context).deactivate();
+            }
         }
     }
 
@@ -46,5 +48,10 @@ public class ApmScopeInstrumentation extends OpenTracingBridgeInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("release");
+    }
+
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
     }
 }

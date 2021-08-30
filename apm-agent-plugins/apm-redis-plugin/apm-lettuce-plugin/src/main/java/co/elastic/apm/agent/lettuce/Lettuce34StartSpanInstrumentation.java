@@ -52,24 +52,31 @@ public class Lettuce34StartSpanInstrumentation extends Lettuce34Instrumentation 
             .and(not(isPrivate()));
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object beforeDispatch(@Nullable @Advice.Argument(0) RedisCommand<?, ?, ?> command) {
-        if (command != null) {
-            Span span = RedisSpanUtils.createRedisSpan(command.getType().toString());
-            if (span != null) {
-                commandToSpan.put(command, span);
-                return span;
-            }
-        }
-        return null;
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-    public static void afterDispatch(@Nullable @Advice.Enter Object spanObj) {
-        Span span = (Span) spanObj;
-        if (span != null) {
-            span.deactivate();
+    public static class AdviceClass {
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object beforeDispatch(@Nullable @Advice.Argument(0) RedisCommand<?, ?, ?> command) {
+            if (command != null) {
+                Span span = RedisSpanUtils.createRedisSpan(command.getType().toString());
+                if (span != null) {
+                    commandToSpan.put(command, span);
+                    return span;
+                }
+            }
+            return null;
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void afterDispatch(@Nullable @Advice.Enter Object spanObj) {
+            Span span = (Span) spanObj;
+            if (span != null) {
+                span.deactivate();
+            }
         }
     }
 }

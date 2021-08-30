@@ -53,12 +53,14 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void setTransactionName(@SimpleMethodSignature String signature) {
-        final Transaction transaction = tracer.currentTransaction();
-        if (transaction != null) {
-            transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK);
-            transaction.setFrameworkName(FRAMEWORK_NAME);
+    public static class AdviceClass {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void setTransactionName(@SimpleMethodSignature String signature) {
+            final Transaction transaction = tracer.currentTransaction();
+            if (transaction != null) {
+                transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK);
+                transaction.setFrameworkName(FRAMEWORK_NAME);
+            }
         }
     }
 
@@ -94,6 +96,11 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("jax-ws");
+    }
+
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
     }
 
 }

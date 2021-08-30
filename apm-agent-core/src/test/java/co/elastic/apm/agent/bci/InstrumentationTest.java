@@ -423,19 +423,19 @@ class InstrumentationTest {
 
     @Test
     void testInlinedIndyAdvice() {
-        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(InlinedIndyAdviceInstrumentation.class))
+        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(new InlinedIndyAdviceInstrumentation()))
             .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void testAdviceWithAgentReturnType() {
-        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(AgentTypeReturnInstrumentation.class))
+        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(new AgentTypeReturnInstrumentation()))
             .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void testAdviceWithAgentParameterType() {
-        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(AgentTypeParameterInstrumentation.class))
+        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(new AgentTypeParameterInstrumentation()))
             .isInstanceOf(IllegalStateException.class);
     }
 
@@ -457,9 +457,16 @@ class InstrumentationTest {
         return "";
     }
 
-    public static class TestInstrumentation extends TracerAwareInstrumentation {
+    public abstract static class BaseTestInstrumentation extends ElasticApmInstrumentation {
+        @Override
+        public String getAdviceClassName() {
+            return getClass().getName();
+        }
+    }
+
+    public static class TestInstrumentation extends BaseTestInstrumentation {
         @AssignTo.Return
-        @Advice.OnMethodExit
+        @Advice.OnMethodExit(inline = false)
         public static String onMethodExit() {
             return "intercepted";
         }
@@ -479,13 +486,9 @@ class InstrumentationTest {
             return List.of("test", "experimental");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return false;
-        }
     }
 
-    public static class MathInstrumentation extends TracerAwareInstrumentation {
+    public static class MathInstrumentation extends BaseTestInstrumentation {
         @AssignTo.Return
         @Advice.OnMethodExit(inline = false)
         public static int onMethodExit() {
@@ -507,14 +510,10 @@ class InstrumentationTest {
             return Collections.emptyList();
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return false;
-        }
     }
 
-    public static class ExceptionInstrumentation extends TracerAwareInstrumentation {
-        @Advice.OnMethodExit
+    public static class ExceptionInstrumentation extends BaseTestInstrumentation {
+        @Advice.OnMethodExit(inline = false)
         public static void onMethodExit() {
             throw new RuntimeException("This exception should not be suppressed");
         }
@@ -534,20 +533,16 @@ class InstrumentationTest {
             return Collections.emptyList();
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return false;
-        }
     }
 
-    public static class SuppressExceptionInstrumentation extends TracerAwareInstrumentation {
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+    public static class SuppressExceptionInstrumentation extends BaseTestInstrumentation {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static String onMethodEnter() {
             throw new RuntimeException("This exception should be suppressed");
         }
 
         @AssignTo.Return
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static String onMethodExit(@Advice.Thrown Throwable throwable) {
             throw new RuntimeException("This exception should be suppressed");
         }
@@ -567,16 +562,12 @@ class InstrumentationTest {
             return Collections.emptyList();
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return false;
-        }
     }
 
-    public static class FieldAccessInstrumentation extends TracerAwareInstrumentation {
+    public static class FieldAccessInstrumentation extends BaseTestInstrumentation {
 
         @AssignTo.Field("privateString")
-        @Advice.OnMethodEnter
+        @Advice.OnMethodEnter(inline = false)
         public static String onEnter(@Advice.Argument(0) String s) {
             return s;
         }
@@ -596,16 +587,12 @@ class InstrumentationTest {
             return List.of("test", "experimental");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return false;
-        }
     }
 
-    public static class FieldAccessArrayInstrumentation extends TracerAwareInstrumentation {
+    public static class FieldAccessArrayInstrumentation extends BaseTestInstrumentation {
 
         @AssignTo(fields = @AssignTo.Field(index = 0, value = "privateString"))
-        @Advice.OnMethodEnter
+        @Advice.OnMethodEnter(inline = false)
         public static Object[] onEnter(@Advice.Argument(0) String s) {
             return new Object[]{s};
         }
@@ -625,16 +612,12 @@ class InstrumentationTest {
             return List.of("test", "experimental");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return false;
-        }
     }
 
-    public static class AssignToArgumentInstrumentation extends TracerAwareInstrumentation {
+    public static class AssignToArgumentInstrumentation extends BaseTestInstrumentation {
 
         @AssignTo.Argument(0)
-        @Advice.OnMethodEnter
+        @Advice.OnMethodEnter(inline = false)
         public static String onEnter(@Advice.Argument(0) String s) {
             return s + "@AssignToArgument";
         }
@@ -654,13 +637,9 @@ class InstrumentationTest {
             return List.of("test", "experimental");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return false;
-        }
     }
 
-    public static class AssignToArgumentsInstrumentation extends TracerAwareInstrumentation {
+    public static class AssignToArgumentsInstrumentation extends BaseTestInstrumentation {
 
         @AssignTo(arguments = {
             @AssignTo.Argument(index = 0, value = 1),
@@ -686,13 +665,9 @@ class InstrumentationTest {
             return List.of("test", "experimental");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return false;
-        }
     }
 
-    public static class AssignToReturnArrayInstrumentation extends TracerAwareInstrumentation {
+    public static class AssignToReturnArrayInstrumentation extends BaseTestInstrumentation {
 
         @AssignTo(returns = @AssignTo.Return(index = 0))
         @Advice.OnMethodExit(inline = false)
@@ -715,13 +690,9 @@ class InstrumentationTest {
             return List.of("test", "experimental");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return false;
-        }
     }
 
-    public static class CommonsLangInstrumentation extends ElasticApmInstrumentation {
+    public static class CommonsLangInstrumentation extends BaseTestInstrumentation {
 
         public static AtomicInteger enterCount = GlobalVariables.get(CommonsLangInstrumentation.class, "enterCount", new AtomicInteger());
         public static AtomicInteger exitCount = GlobalVariables.get(CommonsLangInstrumentation.class, "exitCount", new AtomicInteger());
@@ -753,7 +724,7 @@ class InstrumentationTest {
 
     }
 
-    public static class LoggerFactoryInstrumentation extends ElasticApmInstrumentation {
+    public static class LoggerFactoryInstrumentation extends BaseTestInstrumentation {
 
         public static AtomicInteger enterCount = GlobalVariables.get(LoggerFactoryInstrumentation.class, "enterCount", new AtomicInteger());
         public static AtomicInteger exitCount = GlobalVariables.get(LoggerFactoryInstrumentation.class, "exitCount", new AtomicInteger());
@@ -785,7 +756,7 @@ class InstrumentationTest {
 
     }
 
-    public static class StatUtilsInstrumentation extends ElasticApmInstrumentation {
+    public static class StatUtilsInstrumentation extends BaseTestInstrumentation {
 
         public static AtomicInteger enterCount = GlobalVariables.get(StatUtilsInstrumentation.class, "enterCount", new AtomicInteger());
         public static AtomicInteger exitCount = GlobalVariables.get(StatUtilsInstrumentation.class, "exitCount", new AtomicInteger());
@@ -817,7 +788,7 @@ class InstrumentationTest {
 
     }
 
-    public static class LogManagerInstrumentation extends ElasticApmInstrumentation {
+    public static class LogManagerInstrumentation extends BaseTestInstrumentation {
 
         public static AtomicInteger enterCount = GlobalVariables.get(LogManagerInstrumentation.class, "enterCount", new AtomicInteger());
         public static AtomicInteger exitCount = GlobalVariables.get(LogManagerInstrumentation.class, "exitCount", new AtomicInteger());
@@ -849,7 +820,7 @@ class InstrumentationTest {
 
     }
 
-    public static class CallStackUtilsInstrumentation extends ElasticApmInstrumentation {
+    public static class CallStackUtilsInstrumentation extends BaseTestInstrumentation {
 
         public static AtomicInteger enterCount = GlobalVariables.get(CallStackUtilsInstrumentation.class, "enterCount", new AtomicInteger());
         public static AtomicInteger exitCount = GlobalVariables.get(CallStackUtilsInstrumentation.class, "exitCount", new AtomicInteger());
@@ -881,7 +852,7 @@ class InstrumentationTest {
 
     }
 
-    public static class ClassLoadingTestInstrumentation extends ElasticApmInstrumentation {
+    public static class ClassLoadingTestInstrumentation extends BaseTestInstrumentation {
 
         @AssignTo.Return
         @Advice.OnMethodExit(inline = false)
@@ -906,7 +877,7 @@ class InstrumentationTest {
 
     }
 
-    public static class InlinedIndyAdviceInstrumentation extends ElasticApmInstrumentation {
+    public static class InlinedIndyAdviceInstrumentation extends BaseTestInstrumentation {
 
         @Advice.OnMethodEnter
         public static void onExit() {
@@ -929,7 +900,7 @@ class InstrumentationTest {
 
     }
 
-    public static class AgentTypeReturnInstrumentation extends ElasticApmInstrumentation {
+    public static class AgentTypeReturnInstrumentation extends BaseTestInstrumentation {
 
         @Advice.OnMethodEnter(inline = false)
         public static Span onEnter() {
@@ -953,7 +924,7 @@ class InstrumentationTest {
 
     }
 
-    public static class AgentTypeParameterInstrumentation extends ElasticApmInstrumentation {
+    public static class AgentTypeParameterInstrumentation extends BaseTestInstrumentation {
 
         @Advice.OnMethodEnter(inline = false)
         public static Object onEnter() {
@@ -981,7 +952,7 @@ class InstrumentationTest {
 
     }
 
-    public static class GetClassLoaderInstrumentation extends ElasticApmInstrumentation {
+    public static class GetClassLoaderInstrumentation extends BaseTestInstrumentation {
 
         @AssignTo.Return
         @Advice.OnMethodExit(inline = false)

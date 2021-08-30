@@ -428,6 +428,7 @@ public class ElasticApmAgent {
         // external plugins are always indy plugins
         if (!(instrumentation instanceof TracerAwareInstrumentation)
             || ((TracerAwareInstrumentation) instrumentation).indyPlugin()) {
+            validateAdvice(instrumentation);
             withCustomMapping = withCustomMapping.bootstrap(IndyBootstrap.getIndyBootstrapMethod(logger));
         }
         return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
@@ -459,24 +460,19 @@ public class ElasticApmAgent {
 
     /**
      * Validates invariants explained in {@link TracerAwareInstrumentation#indyPlugin()}
-     *
-     * @param adviceClass the advice class
      */
-    public static void validateAdvice(Class<?> adviceClass) {
-        String adviceClassName = adviceClass.getName();
-        ClassLoader classLoader = adviceClass.getClassLoader();
-        if (classLoader == null) {
-            classLoader = ClassLoader.getSystemClassLoader();
+    public static void validateAdvice(ElasticApmInstrumentation instrumentation) {
+        String adviceClassName = instrumentation.getAdviceClassName();
+        if (!adviceClassName.contains("Test") && instrumentation.getClass().getName().equals(adviceClassName)) {
+            throw new IllegalStateException("The advice must be declared in a separate class: " + adviceClassName);
         }
-
-        int adviceModifiers = adviceClass.getModifiers();
+        ClassLoader adviceClassLoader = instrumentation.getClass().getClassLoader();
+        TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.of(adviceClassLoader), TypePool.Default.ReaderMode.FAST);
+        TypeDescription typeDescription = pool.describe(adviceClassName).resolve();
+        int adviceModifiers = typeDescription.getModifiers();
         if (!Modifier.isPublic(adviceModifiers)) {
             throw new IllegalStateException(String.format("advice class %s should be public", adviceClassName));
         }
-
-        TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.of(classLoader), TypePool.Default.ReaderMode.FAST);
-        TypeDescription typeDescription = pool.describe(adviceClassName).resolve();
-
         for (MethodDescription.InDefinedShape enterAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodEnter.class)))) {
             validateAdviceReturnAndParameterTypes(enterAdvice, adviceClassName);
 
@@ -493,7 +489,7 @@ public class ElasticApmAgent {
                 checkInline(exitAdvice, adviceClassName, exit.prepare(Advice.OnMethodExit.class).load().inline());
             }
         }
-        if (!(classLoader instanceof ExternalPluginClassLoader) && !adviceClassName.startsWith("co.elastic.apm.agent.")) {
+        if (!(adviceClassLoader instanceof ExternalPluginClassLoader) && !adviceClassName.startsWith("co.elastic.apm.agent.")) {
             throw new IllegalStateException(String.format(
                 "Invalid Advice class - %s - Indy-dispatched advice class must be in a sub-package of 'co.elastic.apm.agent'.",
                 adviceClassName)

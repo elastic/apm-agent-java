@@ -48,16 +48,23 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
         return methodMatcher;
     }
 
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
+    }
+
     public static class ActivateInstrumentation extends ScopeManagerInstrumentation {
 
         public ActivateInstrumentation() {
             super(named("doActivate"));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
-            if (context instanceof AbstractSpan<?>) {
-                ((AbstractSpan<?>) context).activate();
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
+                if (context instanceof AbstractSpan<?>) {
+                    ((AbstractSpan<?>) context).activate();
+                }
             }
         }
     }
@@ -68,13 +75,14 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
             super(named("getCurrentSpan"));
         }
 
-        @Nullable
-        @AssignTo.Return
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static Object getCurrentSpan() {
-            return tracer.getActive();
+        public static class AdviceClass {
+            @Nullable
+            @AssignTo.Return
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Object getCurrentSpan() {
+                return tracer.getActive();
+            }
         }
-
     }
 
     public static class CurrentTraceContextInstrumentation extends ScopeManagerInstrumentation {
@@ -83,12 +91,13 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
             super(named("getCurrentTraceContext"));
         }
 
-        @Nullable
-        @AssignTo.Return
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static Object getCurrentTraceContext() {
-            return tracer.getActive();
+        public static class AdviceClass {
+            @Nullable
+            @AssignTo.Return
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Object getCurrentTraceContext() {
+                return tracer.getActive();
+            }
         }
-
     }
 }

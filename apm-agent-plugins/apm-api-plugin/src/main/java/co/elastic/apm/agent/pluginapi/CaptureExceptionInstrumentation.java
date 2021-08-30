@@ -28,9 +28,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class CaptureExceptionInstrumentation extends ApiInstrumentation {
 
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) Throwable t) {
-        tracer.captureAndReportException(t, clazz.getClassLoader());
+    public static class AdviceClass {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) Throwable t) {
+            tracer.captureAndReportException(t, clazz.getClassLoader());
+        }
     }
 
     @Override
@@ -42,6 +44,11 @@ public class CaptureExceptionInstrumentation extends ApiInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("captureException").and(takesArguments(Throwable.class));
+    }
+
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
     }
 
 }

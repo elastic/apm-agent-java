@@ -67,13 +67,15 @@ public class MicrometerInstrumentation extends TracerAwareInstrumentation {
     }
 
     @Override
-    public boolean indyPlugin() {
-        return true;
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-    public static void onExit(@Advice.This MeterRegistry meterRegistry) {
-        reporter.registerMeterRegistry(meterRegistry);
+    public static class AdviceClass {
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void onExit(@Advice.This MeterRegistry meterRegistry) {
+            reporter.registerMeterRegistry(meterRegistry);
+        }
     }
 
 }

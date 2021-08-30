@@ -64,66 +64,73 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
         return hasSuperType(is(HttpURLConnection.class)).and(not(named("sun.net.www.protocol.https.HttpsURLConnectionImpl")));
     }
 
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
+    }
+
     public static class CreateSpanInstrumentation extends HttpUrlConnectionInstrumentation {
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object enter(@Advice.This HttpURLConnection thiz,
-                                 @Advice.FieldValue("connected") boolean connected,
-                                 @Advice.Origin String signature) {
+        public static class AdviceClass {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object enter(@Advice.This HttpURLConnection thiz,
+                                       @Advice.FieldValue("connected") boolean connected,
+                                       @Advice.Origin String signature) {
 
-            AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
-            }
-            Span span = inFlightSpans.get(thiz);
-            if (span == null && !connected) {
-                final URL url = thiz.getURL();
-                span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
-                if (!TraceContext.containsTraceContextTextHeaders(thiz, UrlConnectionPropertyAccessor.instance())) {
-                    if (span != null) {
-                        span.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
-                    } else {
-                        parent.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
+                AbstractSpan<?> parent = tracer.getActive();
+                if (parent == null) {
+                    return null;
+                }
+                Span span = inFlightSpans.get(thiz);
+                if (span == null && !connected) {
+                    final URL url = thiz.getURL();
+                    span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
+                    if (!TraceContext.containsTraceContextTextHeaders(thiz, UrlConnectionPropertyAccessor.instance())) {
+                        if (span != null) {
+                            span.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
+                        } else {
+                            parent.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
+                        }
                     }
                 }
+                if (span != null) {
+                    span.activate();
+                }
+                return span;
             }
-            if (span != null) {
-                span.activate();
-            }
-            return span;
-        }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void exit(@Advice.This HttpURLConnection thiz,
-                                @Advice.Thrown @Nullable Throwable t,
-                                @Advice.FieldValue("responseCode") int responseCode,
-                                @Advice.Enter @Nullable Object spanObject,
-                                @Advice.Origin String signature) {
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void exit(@Advice.This HttpURLConnection thiz,
+                                    @Advice.Thrown @Nullable Throwable t,
+                                    @Advice.FieldValue("responseCode") int responseCode,
+                                    @Advice.Enter @Nullable Object spanObject,
+                                    @Advice.Origin String signature) {
 
-            Span span = (Span) spanObject;
-            if (span == null) {
-                return;
-            }
-            span.deactivate();
-            if (responseCode != -1) {
-                inFlightSpans.remove(thiz);
-                // if the response code is set, the connection has been established via getOutputStream
-                // if the response code is unset even after getOutputStream has been called, there will be an exception
-                span.getContext().getHttp().withStatusCode(responseCode);
-                span.captureException(t).end();
-            } else if (t != null) {
-                inFlightSpans.remove(thiz);
+                Span span = (Span) spanObject;
+                if (span == null) {
+                    return;
+                }
+                span.deactivate();
+                if (responseCode != -1) {
+                    inFlightSpans.remove(thiz);
+                    // if the response code is set, the connection has been established via getOutputStream
+                    // if the response code is unset even after getOutputStream has been called, there will be an exception
+                    span.getContext().getHttp().withStatusCode(responseCode);
+                    span.captureException(t).end();
+                } else if (t != null) {
+                    inFlightSpans.remove(thiz);
 
-                // an exception here is synonym of failure, for example with circular redirects
-                span.captureException(t)
-                    .withOutcome(Outcome.FAILURE)
-                    .end();
-            } else {
-                // if connect or getOutputStream has been called we can't end the span right away
-                // we have to store associate it with thiz HttpURLConnection instance and end once getInputStream has been called
-                // note that this could happen on another thread
-                inFlightSpans.put(thiz, span);
+                    // an exception here is synonym of failure, for example with circular redirects
+                    span.captureException(t)
+                        .withOutcome(Outcome.FAILURE)
+                        .end();
+                } else {
+                    // if connect or getOutputStream has been called we can't end the span right away
+                    // we have to store associate it with thiz HttpURLConnection instance and end once getInputStream has been called
+                    // note that this could happen on another thread
+                    inFlightSpans.put(thiz, span);
+                }
             }
         }
 
@@ -141,15 +148,17 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
      */
     public static class DisconnectInstrumentation extends HttpUrlConnectionInstrumentation {
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void afterDisconnect(@Advice.This HttpURLConnection thiz,
-                                           @Advice.Thrown @Nullable Throwable t,
-                                           @Advice.FieldValue("responseCode") int responseCode) {
-            Span span = inFlightSpans.remove(thiz);
-            if (span != null) {
-                span.captureException(t)
-                    .withOutcome(t != null ? Outcome.FAILURE: Outcome.SUCCESS)
-                    .end();
+        public static class AdviceClass {
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void afterDisconnect(@Advice.This HttpURLConnection thiz,
+                                               @Advice.Thrown @Nullable Throwable t,
+                                               @Advice.FieldValue("responseCode") int responseCode) {
+                Span span = inFlightSpans.remove(thiz);
+                if (span != null) {
+                    span.captureException(t)
+                        .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
+                        .end();
+                }
             }
         }
 

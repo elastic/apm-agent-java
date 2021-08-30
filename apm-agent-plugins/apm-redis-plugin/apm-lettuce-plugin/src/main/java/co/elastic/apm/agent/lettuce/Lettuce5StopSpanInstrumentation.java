@@ -66,15 +66,22 @@ public abstract class Lettuce5StopSpanInstrumentation extends TracerAwareInstrum
         return Arrays.asList("redis", "lettuce");
     }
 
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
+    }
+
     public static class OnComplete extends Lettuce5StopSpanInstrumentation {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void beforeComplete(@Advice.This RedisCommand<?, ?, ?> command) {
-            if (!command.isDone() && !command.isCancelled()) {
-                Span span = Lettuce5StartSpanInstrumentation.commandToSpan.remove(command);
-                if (span != null) {
-                    logger.debug("Command#complete");
-                    span.end();
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void beforeComplete(@Advice.This RedisCommand<?, ?, ?> command) {
+                if (!command.isDone() && !command.isCancelled()) {
+                    Span span = Lettuce5StartSpanInstrumentation.commandToSpan.remove(command);
+                    if (span != null) {
+                        logger.debug("Command#complete");
+                        span.end();
+                    }
                 }
             }
         }
@@ -87,13 +94,15 @@ public abstract class Lettuce5StopSpanInstrumentation extends TracerAwareInstrum
 
     public static class OnCompleteExceptionally extends Lettuce5StopSpanInstrumentation {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void beforeComplete(@Advice.This RedisCommand<?, ?, ?> command, @Advice.Argument(0) Throwable throwable) {
-            if (!command.isDone() && !command.isCancelled()) {
-                Span span = Lettuce5StartSpanInstrumentation.commandToSpan.remove(command);
-                if (span != null) {
-                    logger.debug("Command#completeExceptionally");
-                    span.captureException(throwable).end();
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void beforeComplete(@Advice.This RedisCommand<?, ?, ?> command, @Advice.Argument(0) Throwable throwable) {
+                if (!command.isDone() && !command.isCancelled()) {
+                    Span span = Lettuce5StartSpanInstrumentation.commandToSpan.remove(command);
+                    if (span != null) {
+                        logger.debug("Command#completeExceptionally");
+                        span.captureException(throwable).end();
+                    }
                 }
             }
         }
@@ -106,13 +115,15 @@ public abstract class Lettuce5StopSpanInstrumentation extends TracerAwareInstrum
 
     public static class OnCancel extends Lettuce5StopSpanInstrumentation {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void beforeComplete(@Advice.This RedisCommand<?, ?, ?> command) {
-            if (!command.isDone() && !command.isCancelled()) {
-                Span span = commandToSpan.remove(command);
-                if (span != null) {
-                    logger.debug("Command#cancel");
-                    span.end();
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void beforeComplete(@Advice.This RedisCommand<?, ?, ?> command) {
+                if (!command.isDone() && !command.isCancelled()) {
+                    Span span = commandToSpan.remove(command);
+                    if (span != null) {
+                        logger.debug("Command#cancel");
+                        span.end();
+                    }
                 }
             }
         }

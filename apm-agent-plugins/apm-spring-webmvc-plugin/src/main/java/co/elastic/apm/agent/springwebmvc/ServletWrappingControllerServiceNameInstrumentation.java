@@ -27,7 +27,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -51,17 +50,24 @@ public class ServletWrappingControllerServiceNameInstrumentation extends TracerA
     }
 
     @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$AdviceClass";
+    }
+
+    @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("spring-mvc");
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void onEnter(@Advice.FieldValue("servletClass") Class<?> servletClass, @Advice.Argument(0) HttpServletRequest request) {
-        final Transaction transaction = tracer.currentTransaction();
-        if (transaction == null) {
-            return;
+    public static class AdviceClass {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onEnter(@Advice.FieldValue("servletClass") Class<?> servletClass, @Advice.Argument(0) HttpServletRequest request) {
+            final Transaction transaction = tracer.currentTransaction();
+            if (transaction == null) {
+                return;
+            }
+            TransactionNameUtils.setTransactionNameByServletClass(request.getMethod(), servletClass, transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
         }
-        TransactionNameUtils.setTransactionNameByServletClass(request.getMethod(), servletClass, transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
     }
 
 }
