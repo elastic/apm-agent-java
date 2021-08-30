@@ -68,7 +68,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
 
         @Nullable
         @AssignTo.Argument(index = 1, value = 5)
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeExecute(@Advice.Argument(0) String method,
                                                @Advice.Argument(1) String endpoint,
                                                @Advice.Argument(3) @Nullable HttpEntity entity,
@@ -84,7 +84,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
             return null;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Thrown @Nullable Throwable t,
                                           @Advice.Enter @Nullable Object[] entryArgs) {
             if (entryArgs != null) {
