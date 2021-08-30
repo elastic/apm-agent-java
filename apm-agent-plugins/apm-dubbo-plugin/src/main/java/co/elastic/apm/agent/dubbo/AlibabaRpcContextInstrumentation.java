@@ -49,11 +49,6 @@ public class AlibabaRpcContextInstrumentation extends AbstractAlibabaDubboInstru
         return named("setFuture").and(takesArgument(0, named("java.util.concurrent.Future")));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class AdviceClass {
         private static final List<Class<? extends ElasticApmInstrumentation>> RESPONSE_FUTURE_INSTRUMENTATION =
             Collections.<Class<? extends ElasticApmInstrumentation>>singletonList(AlibabaResponseFutureInstrumentation.class);

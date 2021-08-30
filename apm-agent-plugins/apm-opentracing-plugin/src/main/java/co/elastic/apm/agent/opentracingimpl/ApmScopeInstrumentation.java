@@ -49,9 +49,4 @@ public class ApmScopeInstrumentation extends OpenTracingBridgeInstrumentation {
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("release");
     }
-
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
 }

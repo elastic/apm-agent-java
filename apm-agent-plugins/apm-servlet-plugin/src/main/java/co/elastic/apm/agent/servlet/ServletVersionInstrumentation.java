@@ -66,11 +66,6 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
         return any();
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     /**
      * Instruments {@link javax.servlet.Servlet#init(ServletConfig)}
      */

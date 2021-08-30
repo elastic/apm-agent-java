@@ -67,11 +67,6 @@ public abstract class ApmSpanBuilderInstrumentation extends OpenTracingBridgeIns
             super(named("createSpan"));
         }
 
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
-        }
-
         public static class AdviceClass {
             @Nullable
             @AssignTo.Return

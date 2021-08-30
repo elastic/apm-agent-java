@@ -50,11 +50,6 @@ public class ServletWrappingControllerServiceNameInstrumentation extends TracerA
     }
 
     @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
-    @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("spring-mvc");
     }

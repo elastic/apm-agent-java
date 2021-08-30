@@ -64,11 +64,6 @@ public class ForkJoinTaskInstrumentation extends TracerAwareInstrumentation {
         return Arrays.asList("concurrent", "fork-join");
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class AdviceClass {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onExecute(@Advice.This ForkJoinTask<?> thiz) {

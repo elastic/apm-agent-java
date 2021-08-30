@@ -43,11 +43,6 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractAli
         return hasSuperType(named("com.alibaba.dubbo.remoting.exchange.ResponseCallback"));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class DoneInstrumentation extends AlibabaResponseCallbackInstrumentation {
 
         /**

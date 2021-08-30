@@ -147,11 +147,6 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
                 .and(takesArgument(0, named("org.asynchttpclient.Request")))
                 .and(takesArgument(1, named("org.asynchttpclient.AsyncHandler")));
         }
-
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
-        }
     }
 
     public abstract static class AbstractAsyncHandlerInstrumentation extends AbstractAsyncHttpClientInstrumentation {
@@ -183,11 +178,6 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
             super(named("onCompleted").and(takesArguments(0)));
         }
 
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
-        }
-
         public static class AdviceClass {
             @Nullable
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -210,11 +200,6 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
         public AsyncHandlerOnThrowableInstrumentation(ElasticApmTracer tracer) {
             super(named("onThrowable").and(takesArguments(Throwable.class)));
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
         }
 
         public static class AdviceClass {
@@ -244,11 +229,6 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
             super(named("onStatusReceived").and(takesArgument(0, named("org.asynchttpclient.HttpResponseStatus"))));
         }
 
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
-        }
-
         public static class AdviceClass {
             @Nullable
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -271,11 +251,6 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
         public StreamedAsyncHandlerOnStreamInstrumentation(ElasticApmTracer tracer) {
             super(named("onStream").and(takesArgument(0, named("org.reactivestreams.Publisher"))));
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
         }
 
         public static class AdviceClass {

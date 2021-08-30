@@ -98,9 +98,4 @@ public class RedisConnectionInstrumentation extends TracerAwareInstrumentation {
         return Arrays.asList("redis", "redisson");
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
 }

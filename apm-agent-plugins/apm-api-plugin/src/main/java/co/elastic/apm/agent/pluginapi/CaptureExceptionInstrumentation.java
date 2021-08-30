@@ -46,9 +46,4 @@ public class CaptureExceptionInstrumentation extends ApiInstrumentation {
         return named("captureException").and(takesArguments(Throwable.class));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
 }

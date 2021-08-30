@@ -54,11 +54,6 @@ public class HttpRequestHeadersInstrumentation extends AbstractHttpClientInstrum
         return named("headers").and(returns(named("java.net.http.HttpHeaders")));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class AdviceClass {
         @Nullable
         @AssignTo.Return

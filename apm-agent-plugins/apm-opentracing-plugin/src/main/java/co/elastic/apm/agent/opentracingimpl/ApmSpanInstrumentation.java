@@ -58,11 +58,6 @@ public abstract class ApmSpanInstrumentation extends OpenTracingBridgeInstrument
         return methodMatcher;
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class FinishInstrumentation extends ApmSpanInstrumentation {
         public FinishInstrumentation() {
             super(named("finishInternal"));

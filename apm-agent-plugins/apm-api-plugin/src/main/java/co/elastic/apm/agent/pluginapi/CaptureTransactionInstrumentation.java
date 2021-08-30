@@ -128,9 +128,4 @@ public class CaptureTransactionInstrumentation extends TracerAwareInstrumentatio
     public final Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList(PUBLIC_API_INSTRUMENTATION_GROUP, "annotations");
     }
-
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
 }

@@ -98,9 +98,4 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
         return Collections.singletonList("jax-ws");
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
 }

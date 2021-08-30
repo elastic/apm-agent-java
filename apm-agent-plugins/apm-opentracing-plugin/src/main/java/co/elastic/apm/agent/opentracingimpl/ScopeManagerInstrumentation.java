@@ -48,11 +48,6 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
         return methodMatcher;
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class ActivateInstrumentation extends ScopeManagerInstrumentation {
 
         public ActivateInstrumentation() {

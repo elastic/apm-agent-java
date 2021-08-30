@@ -66,11 +66,6 @@ public class MicrometerInstrumentation extends TracerAwareInstrumentation {
         return true;
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class AdviceClass {
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void onExit(@Advice.This MeterRegistry meterRegistry) {

@@ -459,7 +459,7 @@ public class ElasticApmAgent {
     }
 
     /**
-     * Validates invariants explained in {@link TracerAwareInstrumentation#indyPlugin()}
+     * Validates invariants explained in {@link TracerAwareInstrumentation#indyPlugin()} and {@link ElasticApmInstrumentation#getAdviceClassName()}
      */
     public static void validateAdvice(ElasticApmInstrumentation instrumentation) {
         String adviceClassName = instrumentation.getAdviceClassName();

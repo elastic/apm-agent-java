@@ -74,9 +74,4 @@ public class ConnectionInstrumentation extends JdbcInstrumentation {
             .and(isPublic());
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
 }

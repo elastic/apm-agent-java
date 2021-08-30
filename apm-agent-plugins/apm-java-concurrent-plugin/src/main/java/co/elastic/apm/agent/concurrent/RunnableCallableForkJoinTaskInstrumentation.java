@@ -66,11 +66,6 @@ public class RunnableCallableForkJoinTaskInstrumentation extends TracerAwareInst
         return Arrays.asList("concurrent", "executor");
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class AdviceClass {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)

@@ -74,9 +74,4 @@ public class JedisSpanNameInstrumentation extends TracerAwareInstrumentation {
         return Arrays.asList("redis", "jedis");
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
 }

@@ -138,11 +138,6 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
                 .or(named("submit").and(returns(hasSuperType(is(Future.class)))).and(takesArguments(Runnable.class, Object.class)))
                 .or(named("schedule").and(returns(hasSuperType(is(ScheduledFuture.class)))).and(takesArguments(Runnable.class, long.class, TimeUnit.class)));
         }
-
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
-        }
     }
 
     public static class ExecutorCallableInstrumentation extends ExecutorInstrumentation {
@@ -176,11 +171,6 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("submit").and(returns(hasSuperType(is(Future.class)))).and(takesArguments(Callable.class))
                 .or(named("schedule").and(returns(hasSuperType(is(ScheduledFuture.class)))).and(takesArguments(Callable.class, long.class, TimeUnit.class)));
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
         }
 
     }
@@ -224,11 +214,6 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
         @Override
         public Collection<String> getInstrumentationGroupNames() {
             return Arrays.asList("concurrent", "executor", "executor-collection");
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
         }
     }
 
@@ -275,11 +260,6 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
         @Override
         public Collection<String> getInstrumentationGroupNames() {
             return Arrays.asList("concurrent", "fork-join");
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
         }
     }
 

@@ -66,11 +66,6 @@ public class Lettuce5StartSpanInstrumentation extends TracerAwareInstrumentation
         return Arrays.asList("redis", "lettuce");
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class AdviceClass {
             @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)

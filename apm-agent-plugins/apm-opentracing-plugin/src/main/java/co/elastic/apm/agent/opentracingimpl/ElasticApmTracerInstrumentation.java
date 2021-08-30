@@ -42,9 +42,4 @@ public class ElasticApmTracerInstrumentation extends OpenTracingBridgeInstrument
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("close");
     }
-
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
 }

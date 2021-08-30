@@ -64,11 +64,6 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
         return hasSuperType(is(HttpURLConnection.class)).and(not(named("sun.net.www.protocol.https.HttpsURLConnectionImpl")));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class CreateSpanInstrumentation extends HttpUrlConnectionInstrumentation {
 
         public static class AdviceClass {

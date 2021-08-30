@@ -69,11 +69,6 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         return methodMatcher;
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     /**
      * Instruments:
      * <ul>

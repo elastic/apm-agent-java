@@ -52,11 +52,6 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         return methodMatcher;
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class StartTransactionInstrumentation extends ElasticApmApiInstrumentation {
         public StartTransactionInstrumentation() {
             super(named("doStartTransaction"));

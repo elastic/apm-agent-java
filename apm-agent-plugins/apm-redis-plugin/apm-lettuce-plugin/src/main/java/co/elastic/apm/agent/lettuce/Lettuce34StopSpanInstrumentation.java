@@ -67,11 +67,6 @@ public abstract class Lettuce34StopSpanInstrumentation extends Lettuce34Instrume
         return Arrays.asList("redis", "lettuce");
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class OnComplete extends Lettuce34StopSpanInstrumentation {
 
         public static class AdviceClass {

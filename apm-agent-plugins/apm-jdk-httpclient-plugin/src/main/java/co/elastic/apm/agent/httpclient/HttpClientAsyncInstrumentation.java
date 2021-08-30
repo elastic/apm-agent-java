@@ -55,11 +55,6 @@ public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrument
             .and(takesArguments(3));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class AdviceClass {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)

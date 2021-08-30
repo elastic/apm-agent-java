@@ -94,11 +94,6 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                 .and(takesArgument(6, named("com.rabbitmq.client.Consumer")));
         }
 
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
-        }
-
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onEnter(@Advice.This Channel channel,
@@ -124,11 +119,6 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("basicPublish")
                 .and(takesArguments(6));
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
         }
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -205,11 +195,6 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("basicGet")
                 .and(takesArgument(0, String.class));
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
         }
 
         public static class AdviceClass {

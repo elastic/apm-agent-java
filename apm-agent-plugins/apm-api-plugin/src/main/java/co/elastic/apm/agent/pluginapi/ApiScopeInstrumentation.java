@@ -47,9 +47,4 @@ public class ApiScopeInstrumentation extends ApiInstrumentation {
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("close");
     }
-
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
 }

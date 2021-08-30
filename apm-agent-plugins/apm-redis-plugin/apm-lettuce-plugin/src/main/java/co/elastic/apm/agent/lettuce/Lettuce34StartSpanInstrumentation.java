@@ -52,11 +52,6 @@ public class Lettuce34StartSpanInstrumentation extends Lettuce34Instrumentation 
             .and(not(isPrivate()));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class AdviceClass {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)

@@ -63,11 +63,6 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         return methodMatcher;
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class SetNameInstrumentation extends LegacySpanInstrumentation {
         public SetNameInstrumentation() {
             super(named("setName"));

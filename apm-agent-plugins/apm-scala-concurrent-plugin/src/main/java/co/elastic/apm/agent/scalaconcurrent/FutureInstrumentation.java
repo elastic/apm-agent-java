@@ -59,11 +59,6 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
             return isConstructor();
         }
 
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
-        }
-
         public static class AdviceClass {
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void onExit(@Advice.This Object thiz) {
@@ -89,11 +84,6 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("run").and(returns(void.class));
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
         }
 
         public static class AdviceClass {

@@ -53,11 +53,6 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
         return named("send").and(returns(hasSuperType(named("java.net.http.HttpResponse"))));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class AdviceClass {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)

@@ -57,11 +57,6 @@ public abstract class ExternalSpanContextInstrumentation extends OpenTracingBrid
             super(named("toTraceId"));
         }
 
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
-        }
-
         public static class AdviceClass {
 
             @Nullable
@@ -93,11 +88,6 @@ public abstract class ExternalSpanContextInstrumentation extends OpenTracingBrid
 
         public ToSpanIdInstrumentation() {
             super(named("toSpanId"));
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
         }
 
         public static class AdviceClass {

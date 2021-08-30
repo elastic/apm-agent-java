@@ -61,11 +61,6 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
             .and(takesArgument(0, named("com.mongodb.MongoNamespace")));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class AdviceClass {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)

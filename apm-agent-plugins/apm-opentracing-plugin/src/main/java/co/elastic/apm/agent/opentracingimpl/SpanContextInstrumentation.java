@@ -61,11 +61,6 @@ public abstract class SpanContextInstrumentation extends OpenTracingBridgeInstru
             super(named("baggageItems"));
         }
 
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
-        }
-
         public static class AdviceClass {
             @Nullable
             @AssignTo.Return
@@ -93,11 +88,6 @@ public abstract class SpanContextInstrumentation extends OpenTracingBridgeInstru
             super(named("toTraceId"));
         }
 
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
-        }
-
         public static class AdviceClass {
             @Nullable
             @AssignTo.Return
@@ -116,11 +106,6 @@ public abstract class SpanContextInstrumentation extends OpenTracingBridgeInstru
 
         public ToSpanIdInstrumentation() {
             super(named("toSpanId"));
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return getClass().getName() + "$AdviceClass";
         }
 
         public static class AdviceClass {

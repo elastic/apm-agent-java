@@ -50,11 +50,6 @@ public class PluginInstrumentation extends ElasticApmInstrumentation {
         return Collections.singletonList("test-plugin");
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class AdviceClass {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.Origin(value = "#m") String methodName) {

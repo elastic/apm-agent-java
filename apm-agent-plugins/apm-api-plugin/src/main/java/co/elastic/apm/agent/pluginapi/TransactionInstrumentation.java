@@ -53,11 +53,6 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         return methodMatcher;
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     public static class SetFrameworkNameInstrumentation extends TransactionInstrumentation {
         public SetFrameworkNameInstrumentation() {
             super(named("setFrameworkName"));

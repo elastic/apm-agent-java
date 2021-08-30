@@ -59,11 +59,6 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         return methodMatcher;
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$AdviceClass";
-    }
-
     /**
      * Instruments {@code co.elastic.apm.api.AbstractSpanImpl#doSetName(java.lang.String)}
      */
