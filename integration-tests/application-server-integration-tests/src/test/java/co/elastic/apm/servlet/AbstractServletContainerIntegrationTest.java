@@ -328,6 +328,8 @@ public abstract class AbstractServletContainerIntegrationTest {
             this.currentTestApp = testApp;
             waitFor(testApp.getStatusEndpoint());
             clearMockServerLog();
+            executeStatusRequestAndCheckIgnored(testApp.getStatusEndpoint());
+            clearMockServerLog();
             testApp.test(this);
         }
     }
@@ -381,9 +383,9 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     public Response executePostRequest(String pathToTest, RequestBody postBody) throws IOException {
         return httpClient.newCall(new Request.Builder()
-            .post(postBody)
-            .url(getBaseUrl() + pathToTest)
-            .build())
+                .post(postBody)
+                .url(getBaseUrl() + pathToTest)
+                .build())
             .execute();
     }
 
@@ -391,10 +393,10 @@ public abstract class AbstractServletContainerIntegrationTest {
         Headers headers = Headers.of((headersMap != null) ? headersMap : new HashMap<>());
 
         return httpClient.newCall(new Request.Builder()
-            .get()
-            .url(getBaseUrl() + pathToTest)
-            .headers(headers)
-            .build())
+                .get()
+                .url(getBaseUrl() + pathToTest)
+                .headers(headers)
+                .build())
             .execute();
     }
 
