@@ -48,12 +48,12 @@ public class ConsumerRecordsRecordsInstrumentation extends KafkaConsumerRecordsI
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.kafka.ConsumerRecordsRecordsInstrumentation$ConsumerRecordsAdvice";
+        return getClass().getName() + "$ConsumerRecordsAdvice";
     }
 
     public static class ConsumerRecordsAdvice {
 
-        public static final KafkaInstrumentationHeadersHelper helper = KafkaInstrumentationHeadersHelper.get();
+        private static final KafkaInstrumentationHeadersHelper helper = KafkaInstrumentationHeadersHelper.get();
 
         @Nullable
         @AssignTo.Return

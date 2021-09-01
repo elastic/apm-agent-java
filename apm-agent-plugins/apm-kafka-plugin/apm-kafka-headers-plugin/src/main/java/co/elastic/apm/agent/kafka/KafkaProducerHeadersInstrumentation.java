@@ -58,7 +58,6 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
         return getClass().getName() + "$KafkaProducerHeadersAdvice";
     }
 
-    @SuppressWarnings("rawtypes")
     public static class KafkaProducerHeadersAdvice {
         private static final KafkaInstrumentationHelper helper = KafkaInstrumentationHelper.get();
         private static final KafkaInstrumentationHeadersHelper headersHelper = KafkaInstrumentationHeadersHelper.get();
@@ -66,10 +65,9 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
 
         @Nullable
         @AssignTo.Argument(value = 1, index = 1)
-        @SuppressWarnings({"unused"})
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] beforeSend(@Advice.FieldValue("apiVersions") final ApiVersions apiVersions,
-                                          @Advice.Argument(0) final ProducerRecord record,
+                                          @Advice.Argument(0) final ProducerRecord<?, ?> record,
                                           @Nullable @Advice.Argument(value = 1) Callback callback) {
             Span span = helper.onSendStart(record);
             if (span == null) {
@@ -92,12 +90,12 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
 
         @Nullable
         @AssignTo.Thrown(index = 0)
-        @SuppressWarnings({"unchecked"})
+        @SuppressWarnings({"unchecked", "rawtypes"})
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
         public static Object[] afterSend(@Advice.Enter @Nullable Object[] enter,
-                                          @Advice.Argument(value = 0) ProducerRecord record,
+                                          @Advice.Argument(value = 0) ProducerRecord<?, ?> record,
                                           @Advice.Argument(value = 1) Callback callback,
-                                          @Advice.This final KafkaProducer thiz,
+                                          @Advice.This final KafkaProducer<?, ?> thiz,
                                           @Advice.Thrown @Nullable final Throwable throwable) {
 
             Span span = enter != null ? (Span) enter[0] : null;

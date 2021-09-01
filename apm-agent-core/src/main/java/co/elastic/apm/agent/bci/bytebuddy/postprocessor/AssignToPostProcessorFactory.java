@@ -100,8 +100,13 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
             public StackManipulation resolve(TypeDescription typeDescription, MethodDescription methodDescription, Assigner assigner, Advice.ArgumentHandler argumentHandler) {
                 final Label jumpToIfNull = new Label();
                 return new StackManipulation.Compound(
-                    new AddNullCheck(jumpToIfNull, adviceMethod.getReturnType(), MethodVariableAccess.of(adviceMethod.getReturnType()).loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter())),
-                    new AssignToPostProcessorFactory.Compound(postProcessors).resolve(typeDescription, methodDescription, assigner, argumentHandler),
+                    new AddNullCheck(jumpToIfNull,
+                        adviceMethod.getReturnType(),
+                        MethodVariableAccess.of(adviceMethod.getReturnType()).loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter())),
+                    new AssignToPostProcessorFactory.Compound(postProcessors).resolve(typeDescription,
+                        methodDescription,
+                        assigner,
+                        argumentHandler),
                     new AddLabel(jumpToIfNull)
                 );
             }
@@ -113,9 +118,23 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
             @Override
             public StackManipulation resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler) {
                 if (assignToReturn.index() != -1) {
-                    return objectArrayStackManipulation(adviceMethod, assigner, false, argumentHandler, exit, assignToReturn.index(), instrumentedMethod.getReturnType(), MethodVariableAccess.of(instrumentedMethod.getReturnType()).storeAt(argumentHandler.returned()));
+                    return objectArrayStackManipulation(adviceMethod,
+                        assigner,
+                        false,
+                        argumentHandler,
+                        exit,
+                        assignToReturn.index(),
+                        instrumentedMethod.getReturnType(),
+                        MethodVariableAccess.of(instrumentedMethod.getReturnType()).storeAt(argumentHandler.returned()));
                 } else {
-                    return scalarStackManipulation(adviceMethod, assigner, false, argumentHandler, exit, instrumentedMethod.getReturnType(), MethodVariableAccess.of(instrumentedMethod.getReturnType()).storeAt(argumentHandler.returned()), assignToReturn.typing());
+                    return scalarStackManipulation(adviceMethod,
+                        assigner,
+                        false,
+                        argumentHandler,
+                        exit,
+                        instrumentedMethod.getReturnType(),
+                        MethodVariableAccess.of(instrumentedMethod.getReturnType()).storeAt(argumentHandler.returned()),
+                        assignToReturn.typing());
                 }
             }
         };
@@ -126,9 +145,23 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
             @Override
             public StackManipulation resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler) {
                 if (assignToThrown.index() != -1) {
-                    return objectArrayStackManipulation(adviceMethod, assigner, false, argumentHandler, exit, assignToThrown.index(), TypeDescription.THROWABLE.asGenericType(), MethodVariableAccess.REFERENCE.storeAt(argumentHandler.thrown()));
+                    return objectArrayStackManipulation(adviceMethod,
+                        assigner,
+                        false,
+                        argumentHandler,
+                        exit,
+                        assignToThrown.index(),
+                        TypeDescription.THROWABLE.asGenericType(),
+                        MethodVariableAccess.REFERENCE.storeAt(argumentHandler.thrown()));
                 } else {
-                    return scalarStackManipulation(adviceMethod, assigner, false, argumentHandler, exit, TypeDescription.THROWABLE.asGenericType(), MethodVariableAccess.REFERENCE.storeAt(argumentHandler.thrown()), assignToThrown.typing());
+                    return scalarStackManipulation(adviceMethod,
+                        assigner,
+                        false,
+                        argumentHandler,
+                        exit,
+                        TypeDescription.THROWABLE.asGenericType(),
+                        MethodVariableAccess.REFERENCE.storeAt(argumentHandler.thrown()),
+                        assignToThrown.typing());
                 }
             }
         };
@@ -178,9 +211,23 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
                 }
 
                 if (assignToField.index() != -1) {
-                    return objectArrayStackManipulation(adviceMethod, assigner, true, argumentHandler, exit, assignToField.index(), field.getType(), FieldAccess.forField(field).write());
+                    return objectArrayStackManipulation(adviceMethod,
+                        assigner,
+                        true,
+                        argumentHandler,
+                        exit,
+                        assignToField.index(),
+                        field.getType(),
+                        FieldAccess.forField(field).write());
                 } else {
-                    return scalarStackManipulation(adviceMethod, assigner, true, argumentHandler, exit, field.getType(), FieldAccess.forField(field).write(), assignToField.typing());
+                    return scalarStackManipulation(adviceMethod,
+                        assigner,
+                        true,
+                        argumentHandler,
+                        exit,
+                        field.getType(),
+                        FieldAccess.forField(field).write(),
+                        assignToField.typing());
                 }
             }
         };
@@ -192,9 +239,23 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
             public StackManipulation resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler) {
                 final ParameterDescription param = instrumentedMethod.getParameters().get(assignToArgument.value());
                 if (assignToArgument.index() != -1) {
-                    return objectArrayStackManipulation(adviceMethod, assigner, false, argumentHandler, exit, assignToArgument.index(), param.getType(), MethodVariableAccess.store(param));
+                    return objectArrayStackManipulation(adviceMethod,
+                        assigner,
+                        false,
+                        argumentHandler,
+                        exit,
+                        assignToArgument.index(),
+                        param.getType(),
+                        MethodVariableAccess.store(param));
                 } else {
-                    return scalarStackManipulation(adviceMethod, assigner, false, argumentHandler, exit, param.getType(), MethodVariableAccess.store(param), assignToArgument.typing());
+                    return scalarStackManipulation(adviceMethod,
+                        assigner,
+                        false,
+                        argumentHandler,
+                        exit,
+                        param.getType(),
+                        MethodVariableAccess.store(param),
+                        assignToArgument.typing());
                 }
             }
         };
