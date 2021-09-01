@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.tracemethods;
+package co.elastic.apm.agent.matcher;
 
-import co.elastic.apm.agent.matcher.AnnotationMatcher;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.sdk.state.GlobalState;
 import org.stagemonitor.util.StringUtils;
 
 import javax.annotation.Nullable;
@@ -33,7 +30,6 @@ import java.util.regex.Pattern;
 import static co.elastic.apm.agent.matcher.AnnotationMatcher.annotationMatcher;
 import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
 
-@GlobalState
 public class MethodMatcher {
 
     private static final String MODIFIER = "(?<modifier>public|private|protected|\\*)";

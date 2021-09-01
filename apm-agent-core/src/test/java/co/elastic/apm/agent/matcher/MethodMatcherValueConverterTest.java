@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.tracemethods.configuration;
+package co.elastic.apm.agent.matcher;
 
 import co.elastic.apm.agent.configuration.converter.ListValueConverter;
-import co.elastic.apm.agent.tracemethods.MethodMatcher;
+import co.elastic.apm.agent.matcher.MethodMatcher;
+import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;

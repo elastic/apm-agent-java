@@ -37,7 +37,7 @@ import co.elastic.apm.agent.premain.AgentMain;
 import co.elastic.apm.agent.premain.ThreadUtils;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import co.elastic.apm.agent.tracemethods.MethodMatcher;
+import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
