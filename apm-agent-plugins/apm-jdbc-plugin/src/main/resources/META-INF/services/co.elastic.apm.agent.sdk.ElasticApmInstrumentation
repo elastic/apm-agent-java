@@ -5,3 +5,4 @@ co.elastic.apm.agent.jdbc.StatementInstrumentation$ExecuteUpdateNoQueryInstrumen
 co.elastic.apm.agent.jdbc.StatementInstrumentation$AddBatchInstrumentation
 co.elastic.apm.agent.jdbc.StatementInstrumentation$ExecuteBatchInstrumentation
 co.elastic.apm.agent.jdbc.StatementInstrumentation$ExecutePreparedStatementInstrumentation
+co.elastic.apm.agent.jdbc.StatementInstrumentation$CloseStatementInstrumentation
