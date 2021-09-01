@@ -48,7 +48,7 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 
 [float]
 ===== Refactorings
-* Migrate several plugins to indy dispatcher {pull}2087[#2087], {pull}2088[#2088], {pull}2090[#2090]
+* Migrate several plugins to indy dispatcher {pull}2087[#2087], {pull}2088[#2088], {pull}2090[#2090], {pull}2095[#2095]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
