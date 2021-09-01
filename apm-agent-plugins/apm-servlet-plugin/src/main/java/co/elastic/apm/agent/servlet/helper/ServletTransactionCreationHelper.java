@@ -70,7 +70,6 @@ public class ServletTransactionCreationHelper {
             // when servlet path is empty, reconstructing the path from the request URI
             // this can happen when transaction is created by a filter (and thus servlet path is unknown yet)
             String contextPath = request.getContextPath();
-            ;
             if (null != contextPath) {
                 pathFirstPart = request.getRequestURI().substring(contextPath.length());
                 pathSecondPart = "";
