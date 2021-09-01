@@ -60,17 +60,21 @@ public class ServletTransactionCreationHelper {
         return transaction;
     }
 
-    private boolean isExcluded(HttpServletRequest request){
+    private boolean isExcluded(HttpServletRequest request) {
         String userAgent = request.getHeader("User-Agent");
 
         String pathFirstPart = request.getServletPath();
-        String pathSecondPart = Objects.toString(request.getPathInfo(),"");
+        String pathSecondPart = Objects.toString(request.getPathInfo(), "");
 
         if (pathFirstPart.isEmpty()) {
             // when servlet path is empty, reconstructing the path from the request URI
             // this can happen when transaction is created by a filter (and thus servlet path is unknown yet)
-            pathFirstPart = request.getRequestURI().substring(request.getContextPath().length());
-            pathSecondPart = "";
+            String contextPath = request.getContextPath();
+            ;
+            if (null != contextPath) {
+                pathFirstPart = request.getRequestURI().substring(contextPath.length());
+                pathSecondPart = "";
+            }
         }
 
         final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), pathFirstPart, pathSecondPart);
@@ -89,7 +93,7 @@ public class ServletTransactionCreationHelper {
     }
 
     @Nullable
-    public ClassLoader getClassloader(@Nullable ServletContext servletContext){
+    public ClassLoader getClassloader(@Nullable ServletContext servletContext) {
         if (servletContext == null) {
             return null;
         }
