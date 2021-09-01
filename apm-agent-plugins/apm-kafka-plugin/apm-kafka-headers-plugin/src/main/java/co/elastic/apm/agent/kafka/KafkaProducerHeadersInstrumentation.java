@@ -88,6 +88,14 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
             return new Object[]{span, helper.wrapCallback(callback, span)};
         }
 
+        /*
+         * Implementation notes on the return value:
+         * Returning Throwable doesn't work because we can only remove the exception with Object[]{null}.
+         * When changing the return type to Throwable and returning null, it would still not change the exception if there's any.
+         * That is to be consistent with the @AssignTo.* annotations that don't allow assigning something to null.
+         * The reason is that if an advice method throws an exception, the return value will always be null.
+         * We want to avoid assigning that null value as that will have unintended consequences.
+         */
         @Nullable
         @AssignTo.Thrown(index = 0)
         @SuppressWarnings({"unchecked", "rawtypes"})
