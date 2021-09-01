@@ -56,7 +56,7 @@ public class JedisInstrumentation extends TracerAwareInstrumentation {
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
     public static void afterSendCommand(@Nullable @Advice.Enter Object spanObj,
-                                         @Nullable @Advice.Thrown Throwable thrown) {
+                                        @Nullable @Advice.Thrown Throwable thrown) {
         Span span = (Span) spanObj;
         if (span != null) {
             span.captureException(thrown)
