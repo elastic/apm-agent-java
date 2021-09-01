@@ -36,6 +36,10 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 * Add extra check to detect improper agent setup - {pull}2076[#2076]
 
 [float]
+===== Performance improvements
+* Reduce GC time overhead caused by WeakReferences {pull}2086[2086]
+
+[float]
 ===== Bug fixes
 * Fix failure to parse some forms of the `Implementation-Version` property from jar manifest files - {pull}1931[#1931]
 * Ensure single value for context-propagation header - {pull}1937[#1937]
@@ -44,7 +48,7 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 
 [float]
 ===== Refactorings
-* Migrate several plugins to indy dispatcher {pull}2087[#2087], {pull}2088[#2088]
+* Migrate several plugins to indy dispatcher {pull}2087[#2087], {pull}2088[#2088], {pull}2090[#2090]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
