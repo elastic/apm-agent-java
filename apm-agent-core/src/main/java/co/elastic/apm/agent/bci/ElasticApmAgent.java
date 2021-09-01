@@ -463,7 +463,7 @@ public class ElasticApmAgent {
      */
     public static void validateAdvice(ElasticApmInstrumentation instrumentation) {
         String adviceClassName = instrumentation.getAdviceClassName();
-        if (!adviceClassName.contains("Test") && instrumentation.getClass().getName().equals(adviceClassName)) {
+        if (instrumentation.getClass().getName().equals(adviceClassName)) {
             throw new IllegalStateException("The advice must be declared in a separate class: " + adviceClassName);
         }
         ClassLoader adviceClassLoader = instrumentation.getClass().getClassLoader();
