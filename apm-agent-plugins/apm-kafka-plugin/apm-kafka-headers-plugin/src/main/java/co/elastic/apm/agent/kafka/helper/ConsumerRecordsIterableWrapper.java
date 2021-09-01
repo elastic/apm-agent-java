@@ -23,19 +23,18 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.util.Iterator;
 
-@SuppressWarnings("rawtypes")
-class ConsumerRecordsIterableWrapper implements Iterable<ConsumerRecord> {
+class ConsumerRecordsIterableWrapper implements Iterable<ConsumerRecord<?, ?>> {
 
-    private final Iterable<ConsumerRecord> delegate;
+    private final Iterable<ConsumerRecord<?, ?>> delegate;
     private final ElasticApmTracer tracer;
 
-    public ConsumerRecordsIterableWrapper(Iterable<ConsumerRecord> delegate, ElasticApmTracer tracer) {
+    public ConsumerRecordsIterableWrapper(Iterable<ConsumerRecord<?, ?>> delegate, ElasticApmTracer tracer) {
         this.delegate = delegate;
         this.tracer = tracer;
     }
 
     @Override
-    public Iterator<ConsumerRecord> iterator() {
+    public Iterator<ConsumerRecord<?, ?>> iterator() {
         return new ConsumerRecordsIteratorWrapper(delegate.iterator(), tracer);
     }
 }
