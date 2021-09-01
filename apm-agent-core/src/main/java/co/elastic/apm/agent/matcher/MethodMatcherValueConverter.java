@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.bci.methodmatching.configuration;
+package co.elastic.apm.agent.matcher;
 
-import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.configuration.converter.ListValueConverter;
-
 import org.stagemonitor.configuration.converter.ValueConverter;
 
 import static co.elastic.apm.agent.configuration.converter.ListValueConverter.COMMA_OUT_OF_BRACKETS;

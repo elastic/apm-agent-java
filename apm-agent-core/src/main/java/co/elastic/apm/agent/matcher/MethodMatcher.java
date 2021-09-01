@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.bci.methodmatching;
+package co.elastic.apm.agent.matcher;
 
-import co.elastic.apm.agent.matcher.AnnotationMatcher;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.stagemonitor.util.StringUtils;
 
 import javax.annotation.Nullable;

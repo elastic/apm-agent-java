@@ -16,15 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.bci.methodmatching;
+package co.elastic.apm.agent.tracemethods;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -45,55 +47,18 @@ import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.isNative;
 import static net.bytebuddy.matcher.ElementMatchers.isSynthetic;
 import static net.bytebuddy.matcher.ElementMatchers.isTypeInitializer;
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
+public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
 
-    public static long traceMethodThresholdMicros;
-
-    protected final MethodMatcher methodMatcher;
+    private final MethodMatcher methodMatcher;
     private final CoreConfiguration config;
 
     public TraceMethodInstrumentation(ElasticApmTracer tracer, MethodMatcher methodMatcher) {
         this.methodMatcher = methodMatcher;
         config = tracer.getConfig(CoreConfiguration.class);
-        traceMethodThresholdMicros = config.getTraceMethodsDurationThreshold().getMillis() * 1000;
-    }
-
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onMethodEnter(@Advice.Origin Class<?> clazz,
-                                     @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
-                                     @Advice.Local("span") AbstractSpan<?> span) {
-        final AbstractSpan<?> parent = tracer.getActive();
-        if (parent == null) {
-            span = tracer.startRootTransaction(clazz.getClassLoader());
-            if (span != null) {
-                span.withName(signature).activate();
-            }
-        } else if (parent.isSampled()) {
-            span = parent.createSpan()
-                .withName(signature)
-                .activate();
-        }
-    }
-
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onMethodExit(@Advice.Local("span") @Nullable AbstractSpan<?> span,
-                                    @Advice.Thrown @Nullable Throwable t) {
-        if (span != null) {
-            span.captureException(t);
-            final long endTime = span.getTraceContext().getClock().getEpochMicros();
-            if (span instanceof Span) {
-                long durationMicros = endTime - span.getTimestamp();
-                if (traceMethodThresholdMicros > 0 && durationMicros < traceMethodThresholdMicros && t == null) {
-                    span.requestDiscarding();
-                }
-            }
-            span.deactivate().end(endTime);
-        }
     }
 
     @Override
@@ -153,7 +118,55 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
     }
 
     @Override
-    public boolean indyPlugin() {
-        return false;
+    public String getAdviceClassName() {
+        return getClass().getName() + "$TraceMethodAdvice";
     }
+
+    public static class TraceMethodAdvice {
+
+        private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+        private static final long traceMethodThresholdMicros;
+
+        static {
+            CoreConfiguration config = tracer.getConfig(CoreConfiguration.class);
+            traceMethodThresholdMicros = config.getTraceMethodsDurationThreshold().getMillis() * 1000;
+        }
+
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onMethodEnter(@Advice.Origin Class<?> clazz,
+                                           @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature) {
+            AbstractSpan<?> span = null;
+            final AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null) {
+                span = tracer.startRootTransaction(clazz.getClassLoader());
+                if (span != null) {
+                    span.withName(signature).activate();
+                }
+            } else if (parent.isSampled()) {
+                span = parent.createSpan()
+                    .withName(signature)
+                    .activate();
+            }
+            return span;
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onMethodExit(@Advice.Enter @Nullable Object spanObj,
+                                        @Advice.Thrown @Nullable Throwable t) {
+            AbstractSpan<?> span = (AbstractSpan<?>) spanObj;
+            if (span != null) {
+                span.captureException(t);
+                final long endTime = span.getTraceContext().getClock().getEpochMicros();
+                if (span instanceof Span) {
+                    long durationMicros = endTime - span.getTimestamp();
+                    if (traceMethodThresholdMicros > 0 && durationMicros < traceMethodThresholdMicros && t == null) {
+                        span.requestDiscarding();
+                    }
+                }
+                span.deactivate().end(endTime);
+            }
+        }
+    }
+
 }
