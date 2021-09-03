@@ -18,8 +18,6 @@
  */
 package co.elastic.apm.agent.util;
 
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
-
 import javax.annotation.Nullable;
 
 public class ClassLoaderUtils {
@@ -30,7 +28,7 @@ public class ClassLoaderUtils {
     /**
      * Checks whether the provided {@link ClassLoader} may be unloaded like a web application class loader, for example.
      * <p>
-     * If the class loader can't be unloaded, it is safe to use {@link ThreadLocal}s and to reuse the {@link WeakConcurrentMap.LookupKey}.
+     * If the class loader can't be unloaded, it is safe to use {@link ThreadLocal}s and to reuse the {@code WeakConcurrentMap.LookupKey}.
      * Otherwise, the use of {@link ThreadLocal}s may lead to class loader leaks as it prevents the class loader this class
      * is loaded by to unload.
      * </p>
