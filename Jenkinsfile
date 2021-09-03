@@ -430,10 +430,10 @@ def mvnOtel(Map args=[:]) {
 def prepareMavenExtension() {
   dir("${BASE_DIR}/.mvn") {
     sh label: 'mvn extension', script: '''
-      cp ../mvnw* .
-      cp -rf ../.mvn .
       git clone https://github.com/elastic/opentelemetry-maven-extension
       cd opentelemetry-maven-extension
+      cp ../../mvnw* .
+      cp -rf ../../.mvn .
       ./mvnw clean install
       cp target/opentelemetry-*.jar ../opentelemetry-maven-extension.jar
       cd ..
