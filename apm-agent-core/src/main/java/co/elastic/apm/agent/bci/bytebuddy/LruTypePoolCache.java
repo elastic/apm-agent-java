@@ -57,6 +57,9 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
     public static final int CACHE_SIZE_TEN_MB = (int) ByteValue.of("10mb").getBytes() / AVERAGE_SIZE_OF_TYPE_RESOLUTION;
 
     private final int maxCacheSize;
+    /*
+     * Wrapped in a SoftReference so that the whole cache can be cleared if the JVM is under memory pressure
+     */
     private final AtomicReference<SoftReference<ConcurrentLinkedHashMap<String, ResolutionsByClassLoader>>> sharedCache;
     private final WeakConcurrentMap<ClassLoader, TypePool.CacheProvider> cacheProviders;
 
@@ -163,14 +166,23 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
         return ClassLoader.getSystemClassLoader();
     }
 
+    /**
+     * Atomically gets or initializes the cache.
+     * <p>
+     * Inspired by {@link TypePool.CacheProvider.Simple.UsingSoftReference#register(java.lang.String, net.bytebuddy.pool.TypePool.Resolution)}
+     * </p>
+     */
     public ConcurrentLinkedHashMap<String, ResolutionsByClassLoader> getSharedCache() {
-        ConcurrentLinkedHashMap<String, ResolutionsByClassLoader> cache = sharedCache.get().get();
+        SoftReference<ConcurrentLinkedHashMap<String, ResolutionsByClassLoader>> reference = sharedCache.get();
+        ConcurrentLinkedHashMap<String, ResolutionsByClassLoader> cache = reference.get();
         if (cache == null) {
-            synchronized (this) {
-                cache = sharedCache.get().get();
-                if (cache == null) {
-                    cache = createCache();
-                    sharedCache.set(new SoftReference<>(cache));
+            cache = createCache();
+            while (!sharedCache.compareAndSet(reference, new SoftReference<ConcurrentLinkedHashMap<String, ResolutionsByClassLoader>>(cache))) {
+                reference = sharedCache.get();
+                ConcurrentLinkedHashMap<String, ResolutionsByClassLoader> previous = reference.get();
+                if (previous != null) {
+                    cache = previous;
+                    break;
                 }
             }
         }
