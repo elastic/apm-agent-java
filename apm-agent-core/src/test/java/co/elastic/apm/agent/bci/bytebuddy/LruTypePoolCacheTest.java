@@ -28,7 +28,7 @@ import java.lang.management.ManagementFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SoftlyReferencingTypePoolCacheTest {
+class LruTypePoolCacheTest {
 
     private LruTypePoolCache cache;
 
@@ -41,7 +41,7 @@ class SoftlyReferencingTypePoolCacheTest {
     void testEvictStaleEntries() {
         cache.locate(ClassLoader.getSystemClassLoader()).register(String.class.getName(), new TypePool.Resolution.Simple(TypeDescription.STRING));
         assertThat(cache.locate(ClassLoader.getSystemClassLoader()).find(String.class.getName())).isNotNull();
-        cache.evictStaleEntries(0);
+        cache.evictStaleEntries(-1);
         assertThat(cache.locate(ClassLoader.getSystemClassLoader()).find(String.class.getName())).isNull();
     }
 
