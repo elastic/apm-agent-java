@@ -13,3 +13,5 @@ docs/html/
 **/__pycache__/
 .m2/
 fetch.log
+.otel
+.mvn/opentelemetry-maven-extension.jar

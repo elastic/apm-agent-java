@@ -428,16 +428,7 @@ def mvnOtel(Map args=[:]) {
 * This method wraps the logic to fetch the maven opentelemetry extension.
 */
 def prepareMavenExtension() {
-  dir("${BASE_DIR}/.mvn") {
-    sh label: 'mvn extension', script: '''
-      git clone https://github.com/elastic/opentelemetry-maven-extension
-      cd opentelemetry-maven-extension
-      cp ../../mvnw* .
-      cp -rf ../../.mvn .
-      ./mvnw clean install
-      cp target/opentelemetry-*.jar ../opentelemetry-maven-extension.jar
-      cd ..
-      rm -rf opentelemetry-maven-extension
-    '''
+  dir("${BASE_DIR}") {
+    sh label: 'mvn extension', script: '.ci/otel-maven.sh'
   }
 }
