@@ -89,7 +89,7 @@ pipeline {
               }
               dir("${BASE_DIR}"){
                 retryWithSleep(retries: 5, seconds: 10) {
-                  mvnOtel(label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true")
+                  mvnOtel(name: 'mvn install', mvnGoals: "clean install -DskipTests=true -Dmaven.javadoc.skip=true")
                 }
                 sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
               }
@@ -417,19 +417,19 @@ def reportTestResults(){
 /**
 * This method wraps the logic to run maven with the maven opentelemetry extension.
 */
+@NonCPS
 def mvnOtel(Map args=[:]) {
   withOtelEnv() {
-    sh(label: args.label, script: "${args.script} -Dmaven.ext.class.path=.mvn/opentelemetry-maven-extension.jar")
+    sh(label: args.name, script: "./mvnw -Dmaven.ext.class.path=.mvn/opentelemetry-maven-extension.jar ${args.mvnGoals}")
   }
 }
 
 /**
 * This method wraps the logic to fetch the maven opentelemetry extension.
 */
-@NonCPS
 def prepareMavenExtension() {
   dir("${BASE_DIR}/.mvn") {
-    sh label: 'mvn extension', script: '''#!/usr/bin/env bash
+    sh label: 'mvn extension', script: '''
       cp ../mvnw* .
       cp -rf ../.mvn .
       git clone https://github.com/elastic/opentelemetry-maven-extension
