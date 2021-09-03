@@ -37,8 +37,8 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 
 [float]
 ===== Performance improvements
-* Reduce GC time overhead caused by WeakReferences {pull}2086[2086]
-* Reduced memory overhead by a smarter type pool caching strategy. +
+* Reduce GC time overhead caused by WeakReferences - {pull}2086[#2086]
+* Reduced memory overhead by a smarter type pool caching strategy - {pull}2102[#2102]. +
   The type pool cache improves the startup times by speeding up type matching
   (determining whether a class that's about to be loaded should be instrumented).
   Generally, the more types that are cached, the faster the startup. +
