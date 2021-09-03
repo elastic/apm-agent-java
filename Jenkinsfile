@@ -1,5 +1,7 @@
 #!/usr/bin/env groovy
 
+import com.cloudbees.groovy.cps.NonCPS
+
 @Library('apm@current') _
 
 pipeline {
@@ -424,12 +426,15 @@ def mvnOtel(Map args=[:]) {
 /**
 * This method wraps the logic to fetch the maven opentelemetry extension.
 */
+@NonCPS
 def prepareMavenExtension() {
   dir("${BASE_DIR}/.mvn") {
     sh label: 'mvn extension', script: '''#!/usr/bin/env bash
+      cp ../mvnw* .
+      cp -rf ../.mvn .
       git clone https://github.com/elastic/opentelemetry-maven-extension
       cd opentelemetry-maven-extension
-      mvn clean install
+      ./mvnw clean install
       cp target/opentelemetry-*.jar ../opentelemetry-maven-extension.jar
       cd ..
       rm -rf opentelemetry-maven-extension
