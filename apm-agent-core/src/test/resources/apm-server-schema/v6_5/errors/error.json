@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "id": "resource:/schema/errors/error.json",
+    "id": "resource:/apm-server-schema/v6_5/errors/error.json",
     "type": "object",
     "description": "Data captured by an agent representing an event occurring in a monitored service",
     "properties": {

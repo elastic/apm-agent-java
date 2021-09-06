@@ -61,6 +61,7 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 * Ensure single value for context-propagation header - {pull}1937[#1937]
 * Fix gRPC non-terminated (therefore non-reported) client spans - {pull}2067[#2067]
 * Fix Webflux response status code - {pull}1948[#1948]
+* Ensure path filtering is applied when Servlet path is not available - {pull}2099[#2099]
 
 [float]
 ===== Refactorings
