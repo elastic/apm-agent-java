@@ -1,7 +1,5 @@
 #!/usr/bin/env groovy
 
-import com.cloudbees.groovy.cps.NonCPS
-
 @Library('apm@current') _
 
 pipeline {
@@ -88,10 +86,12 @@ pipeline {
                 sh label: 'Size .m2', returnStatus: true, script: 'du -hs .m2'
               }
               dir("${BASE_DIR}"){
-                retryWithSleep(retries: 5, seconds: 10) {
-                  mvnwOtel(name: 'mvn install', mvnGoals: "clean install -DskipTests=true -Dmaven.javadoc.skip=true")
+                withOtelEnv() {
+                  retryWithSleep(retries: 5, seconds: 10) {
+                    sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                  }
+                  sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
                 }
-                mvnwOtel(name: 'mvn license', mvnGoals: "org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.")
               }
               stash allowEmpty: true, name: 'build', useDefaultExcludes: false
               archiveArtifacts allowEmptyArchive: true,
@@ -133,7 +133,12 @@ pipeline {
               deleteDir()
               unstash 'build'
               dir("${BASE_DIR}"){
-                mvnwOtel(name: 'mvn test', mvnGoals: 'test')
+                withOtelEnv() {
+                  sh """#!/bin/bash
+                  set -euxo pipefail
+                  ./mvnw test
+                  """
+                }
               }
             }
           }
@@ -279,7 +284,12 @@ pipeline {
               deleteDir()
               unstash 'build'
               dir("${BASE_DIR}"){
-                mvnwOtel(name: 'mvn javadoc', mvnGoals: 'compile javadoc:javadoc')
+                withOtelEnv() {
+                  sh """#!/bin/bash
+                  set -euxo pipefail
+                  ./mvnw compile javadoc:javadoc
+                  """
+                }
               }
             }
           }
@@ -341,7 +351,9 @@ pipeline {
                 deleteDir()
                 unstash 'build'
                 dir("${BASE_DIR}"){
-                  mvnwOtel(name: "test for ${JAVA_VERSION}", mvnGoals: 'test')
+                  withOtelEnv() {
+                    sh(label: "./mvnw test for ${JAVA_VERSION}", script: './mvnw test')
+                  }
                 }
               }
             }
@@ -412,16 +424,6 @@ def reportTestResults(){
     keepLongStdio: true,
     testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
   codecov(repo: env.REPO, basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
-}
-
-/**
-* This method wraps the logic to run maven with the maven opentelemetry extension.
-*/
-@NonCPS
-def mvnwOtel(Map args=[:]) {
-  withOtelEnv() {
-    sh(label: args.name, script: "./mvnw -Dmaven.ext.class.path=.mvn/opentelemetry-maven-extension.jar ${args.mvnGoals}")
-  }
 }
 
 /**
