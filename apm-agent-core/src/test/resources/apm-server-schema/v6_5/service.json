@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "id": "resource:/schema/service.json",
+    "id": "resource:/apm-server-schema/v6_5/service.json",
     "title": "Service",
     "type": "object",
     "properties": {
