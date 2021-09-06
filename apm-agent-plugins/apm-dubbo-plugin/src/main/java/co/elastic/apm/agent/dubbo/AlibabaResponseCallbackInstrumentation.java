@@ -65,8 +65,8 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractAli
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
-                                   @Advice.Enter @Nullable Object spanObj,
-                                   @Advice.Argument(0) @Nullable Object response) {
+                                  @Advice.Enter @Nullable Object spanObj,
+                                  @Advice.Argument(0) @Nullable Object response) {
 
             AbstractSpan<?> span = (AbstractSpan<?>) spanObj;
             if (span == null) {
@@ -106,8 +106,8 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractAli
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
-                                   @Advice.Enter @Nullable Object spanObj,
-                                   @Advice.Argument(0) @Nullable Throwable caught) {
+                                  @Advice.Enter @Nullable Object spanObj,
+                                  @Advice.Argument(0) @Nullable Throwable caught) {
             AbstractSpan<?> span = (AbstractSpan<?>) spanObj;
             if (span == null) {
                 return;
