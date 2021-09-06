@@ -21,23 +21,23 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
+import co.elastic.apm.agent.bci.bytebuddy.LruTypePoolCache;
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.agent.bci.bytebuddy.LruTypePoolCache;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToPostProcessorFactory;
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.premain.AgentMain;
 import co.elastic.apm.agent.premain.ThreadUtils;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
 import co.elastic.apm.agent.util.ClassLoaderUtils;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
@@ -136,24 +136,18 @@ public class ElasticApmAgent {
     public static void initialize(@Nullable final String agentArguments, final Instrumentation instrumentation, final File agentJarFile, final boolean premain) {
         ElasticApmAgent.agentJarFile = agentJarFile;
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                // silently early abort when agent is disabled to minimize the number of loaded classes
-                List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources(agentArguments);
-                for (ConfigurationSource configSource : configSources) {
-                    String enabled = configSource.getValue(CoreConfiguration.ENABLED_KEY);
-                    if (enabled != null && !Boolean.parseBoolean(enabled)) {
-                        return;
-                    }
-
-                }
-
-                ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources).build();
-                initInstrumentation(tracer, instrumentation, premain);
-                tracer.start(premain);
+        // silently early abort when agent is disabled to minimize the number of loaded classes
+        List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources(agentArguments);
+        for (ConfigurationSource configSource : configSources) {
+            String enabled = configSource.getValue(CoreConfiguration.ENABLED_KEY);
+            if (enabled != null && !Boolean.parseBoolean(enabled)) {
+                return;
             }
-        }).start();
+        }
+
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources).build();
+        initInstrumentation(tracer, instrumentation, premain);
+        tracer.start(premain);
     }
 
     public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation) {
@@ -318,7 +312,7 @@ public class ElasticApmAgent {
                 numberOfAdvices++;
                 agentBuilder = applyAdvice(tracer, agentBuilder, advice, advice.getTypeMatcher());
             } else {
-                logger.debug("Not applying excluded instrumentation {}", instrumentation.getClass().getName());
+                logger.debug("Not applying excluded instrumentation {}", advice.getClass().getName());
             }
         }
         logger.debug("Applied {} advices", numberOfAdvices);

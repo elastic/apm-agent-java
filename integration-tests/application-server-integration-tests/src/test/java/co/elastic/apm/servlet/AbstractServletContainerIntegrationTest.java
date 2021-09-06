@@ -198,7 +198,7 @@ public abstract class AbstractServletContainerIntegrationTest {
                 if (AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN != null) {
                     cliArgs = new String[]{"java", "-jar", "/apm-agent-attach-cli-slim.jar", "--download-agent-version", AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN, "--include-all"};
                 } else {
-                    cliArgs = new String[]{"java", "-jar", "/apm-agent-attach-cli.jar", "--include-all"};
+                    cliArgs = new String[]{"java", "-jar", "/apm-agent-attach-cli-slim.jar", "--include-all", "--agent-jar", "/elastic-apm-agent.jar"};
                 }
                 Container.ExecResult result = this.servletContainer.execInContainer(cliArgs);
                 System.out.println(result.getStdout());

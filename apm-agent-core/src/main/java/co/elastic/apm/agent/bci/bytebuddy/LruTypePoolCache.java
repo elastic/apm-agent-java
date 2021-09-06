@@ -60,7 +60,7 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
     /*
      * Wrapped in a SoftReference so that the whole cache can be cleared if the JVM is under memory pressure
      */
-    private final AtomicReference<SoftReference<ConcurrentLinkedHashMap<String, ResolutionsByClassLoader>>> sharedCache;
+    private final AtomicReference<SoftReference<ConcurrentMap<String, ResolutionsByClassLoader>>> sharedCache;
     private final WeakConcurrentMap<ClassLoader, TypePool.CacheProvider> cacheProviders;
 
     /**
@@ -119,7 +119,7 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
         cacheProviders.expungeStaleEntries();
     }
 
-    private ConcurrentLinkedHashMap<String, ResolutionsByClassLoader> createCache() {
+    private ConcurrentMap<String, ResolutionsByClassLoader> createCache() {
         return new ConcurrentLinkedHashMap.Builder<String, ResolutionsByClassLoader>()
             .maximumWeightedCapacity(maxCacheSize)
             .weigher(new EntryWeigher<String, ResolutionsByClassLoader>() {
@@ -172,14 +172,14 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
      * Inspired by {@link TypePool.CacheProvider.Simple.UsingSoftReference#register(java.lang.String, net.bytebuddy.pool.TypePool.Resolution)}
      * </p>
      */
-    public ConcurrentLinkedHashMap<String, ResolutionsByClassLoader> getSharedCache() {
-        SoftReference<ConcurrentLinkedHashMap<String, ResolutionsByClassLoader>> reference = sharedCache.get();
-        ConcurrentLinkedHashMap<String, ResolutionsByClassLoader> cache = reference.get();
+    public ConcurrentMap<String, ResolutionsByClassLoader> getSharedCache() {
+        SoftReference<ConcurrentMap<String, ResolutionsByClassLoader>> reference = sharedCache.get();
+        ConcurrentMap<String, ResolutionsByClassLoader> cache = reference.get();
         if (cache == null) {
             cache = createCache();
-            while (!sharedCache.compareAndSet(reference, new SoftReference<ConcurrentLinkedHashMap<String, ResolutionsByClassLoader>>(cache))) {
+            while (!sharedCache.compareAndSet(reference, new SoftReference<ConcurrentMap<String, ResolutionsByClassLoader>>(cache))) {
                 reference = sharedCache.get();
-                ConcurrentLinkedHashMap<String, ResolutionsByClassLoader> previous = reference.get();
+                ConcurrentMap<String, ResolutionsByClassLoader> previous = reference.get();
                 if (previous != null) {
                     cache = previous;
                     break;
@@ -249,7 +249,7 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
             if (classLoader == null) {
                 return resolution;
             }
-            ConcurrentLinkedHashMap<String, ResolutionsByClassLoader> cache = this.cache.getSharedCache();
+            ConcurrentMap<String, ResolutionsByClassLoader> cache = this.cache.getSharedCache();
             ResolutionsByClassLoader resolutionByClassLoader = getOrCreate(name, cache);
             TypePool.Resolution racy = resolutionByClassLoader.addResolution(classLoader, resolution);
             if (racy != null) {
@@ -260,7 +260,7 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
             return resolution;
         }
 
-        private ResolutionsByClassLoader getOrCreate(String name, ConcurrentLinkedHashMap<String, ResolutionsByClassLoader> cache) {
+        private ResolutionsByClassLoader getOrCreate(String name, ConcurrentMap<String, ResolutionsByClassLoader> cache) {
             ResolutionsByClassLoader resolutionByClassLoader = cache.get(name);
             if (resolutionByClassLoader == null) {
                 resolutionByClassLoader = new ResolutionsByClassLoader();
