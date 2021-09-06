@@ -89,9 +89,9 @@ pipeline {
               }
               dir("${BASE_DIR}"){
                 retryWithSleep(retries: 5, seconds: 10) {
-                  mvnOtel(name: 'mvn install', mvnGoals: "clean install -DskipTests=true -Dmaven.javadoc.skip=true")
+                  mvnwOtel(name: 'mvn install', mvnGoals: "clean install -DskipTests=true -Dmaven.javadoc.skip=true")
                 }
-                sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
+                mvnwOtel(name: 'mvn license', mvnGoals: "org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.")
               }
               stash allowEmpty: true, name: 'build', useDefaultExcludes: false
               archiveArtifacts allowEmptyArchive: true,
@@ -133,10 +133,7 @@ pipeline {
               deleteDir()
               unstash 'build'
               dir("${BASE_DIR}"){
-                sh """#!/bin/bash
-                set -euxo pipefail
-                ./mvnw test
-                """
+                mvnwOtel(name: 'mvn test', mvnGoals: 'test')
               }
             }
           }
@@ -166,7 +163,9 @@ pipeline {
               deleteDir()
               unstash 'build'
               dir("${BASE_DIR}"){
-                sh './scripts/jenkins/smoketests-01.sh'
+                withOtelEnv() {
+                  sh './scripts/jenkins/smoketests-01.sh'
+                }
               }
             }
           }
@@ -196,7 +195,9 @@ pipeline {
               deleteDir()
               unstash 'build'
               dir("${BASE_DIR}"){
-                sh './scripts/jenkins/smoketests-02.sh'
+                withOtelEnv() {
+                  sh './scripts/jenkins/smoketests-02.sh'
+                }
               }
             }
           }
@@ -243,7 +244,9 @@ pipeline {
                   env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
                   env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
                 }
-                sh './scripts/jenkins/run-benchmarks.sh'
+                withOtelEnv() {
+                  sh './scripts/jenkins/run-benchmarks.sh'
+                }
               }
             }
           }
@@ -276,10 +279,7 @@ pipeline {
               deleteDir()
               unstash 'build'
               dir("${BASE_DIR}"){
-                sh """#!/bin/bash
-                set -euxo pipefail
-                ./mvnw compile javadoc:javadoc
-                """
+                mvnwOtel(name: 'mvn javadoc', mvnGoals: 'compile javadoc:javadoc')
               }
             }
           }
@@ -341,7 +341,7 @@ pipeline {
                 deleteDir()
                 unstash 'build'
                 dir("${BASE_DIR}"){
-                  sh(label: "./mvnw test for ${JAVA_VERSION}", script: './mvnw test')
+                  mvnwOtel(name: "test for ${JAVA_VERSION}", mvnGoals: 'test')
                 }
               }
             }
@@ -418,7 +418,7 @@ def reportTestResults(){
 * This method wraps the logic to run maven with the maven opentelemetry extension.
 */
 @NonCPS
-def mvnOtel(Map args=[:]) {
+def mvnwOtel(Map args=[:]) {
   withOtelEnv() {
     sh(label: args.name, script: "./mvnw -Dmaven.ext.class.path=.mvn/opentelemetry-maven-extension.jar ${args.mvnGoals}")
   }
