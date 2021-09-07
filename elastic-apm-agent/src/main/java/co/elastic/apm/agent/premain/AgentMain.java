@@ -23,6 +23,7 @@ import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -140,7 +141,7 @@ public class AgentMain {
     private synchronized static void loadAndInitializeAgent(String agentArguments, Instrumentation instrumentation, boolean premain) {
         try {
             File agentJar = ResourceExtractionUtil.extractResourceToDirectory("apm-agent.jar", "apm-agent", ".jar", true);
-            URLClassLoader agentClassLoader = new URLClassLoader(new URL[]{agentJar.toURI().toURL()}, null);
+            URLClassLoader agentClassLoader = new AgentClassLoader(agentJar, null);
             Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, agentClassLoader)
                 .getMethod("initialize", String.class, Instrumentation.class, File.class, boolean.class)
                 .invoke(null, agentArguments, instrumentation, agentJar, premain);
@@ -148,6 +149,15 @@ public class AgentMain {
         } catch (Exception | LinkageError e) {
             System.err.println("[elastic-apm-agent] ERROR Failed to start agent");
             e.printStackTrace();
+        }
+    }
+
+    /*
+     * A simple custom class loader that makes it easy to ignore instrumenting all classes loaded by this class loader
+     */
+    public static class AgentClassLoader extends URLClassLoader {
+        public AgentClassLoader(File agentJar, ClassLoader parent) throws IOException {
+            super(new URL[]{agentJar.toURI().toURL()}, parent);
         }
     }
 
