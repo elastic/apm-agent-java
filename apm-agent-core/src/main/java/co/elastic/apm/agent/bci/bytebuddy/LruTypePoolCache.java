@@ -36,6 +36,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -43,7 +44,8 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Caches type descriptions of all class loaders in a global cache with a limited size and a LRU eviction policy.
  * In addition to that, it evicts entries that haven't been accessed recently (see {@link #scheduleEntryEviction(long)}).
- * The default size of the cache targets to allocate 1% of the committed heap, at least 0.5mb and max 10mb.
+ * The default size of the cache targets to allocate {@link #DEFAULT_TARGET_PERCENT_OF_HEAP} of the committed heap,
+ * at least {@link #DEFAULT_MIN_CACHE_SIZE} and max {@link #DEFAULT_MAX_CACHE_SIZE}.
  */
 public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCache {
 
@@ -52,9 +54,11 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
      * The size estimate is based on a heap dump analysis with a full cache.
      * However, it can vary by application, so this is just a rough estimate.
      */
-    public static final int AVERAGE_SIZE_OF_TYPE_RESOLUTION = (int) ByteValue.of("16kb").getBytes();
-    public static final int CACHE_SIZE_HALF_MB = (int) ByteValue.of("512kb").getBytes() / AVERAGE_SIZE_OF_TYPE_RESOLUTION;
-    public static final int CACHE_SIZE_TEN_MB = (int) ByteValue.of("10mb").getBytes() / AVERAGE_SIZE_OF_TYPE_RESOLUTION;
+    static final int AVERAGE_SIZE_OF_TYPE_RESOLUTION = (int) ByteValue.of("16kb").getBytes();
+    private static final int DEFAULT_MIN_CACHE_SIZE = (int) ByteValue.of("512kb").getBytes() / AVERAGE_SIZE_OF_TYPE_RESOLUTION;
+    private static final int DEFAULT_MAX_CACHE_SIZE = (int) ByteValue.of("10mb").getBytes() / AVERAGE_SIZE_OF_TYPE_RESOLUTION;
+    private static final double DEFAULT_TARGET_PERCENT_OF_HEAP = 0.01;
+    private static final long DEFAULT_STALE_ENTRY_MAX_AGE_MS = TimeUnit.SECONDS.toMillis(60);
 
     private final int maxCacheSize;
     /*
@@ -62,18 +66,20 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
      */
     private final AtomicReference<SoftReference<ConcurrentMap<String, ResolutionsByClassLoader>>> sharedCache;
     private final WeakConcurrentMap<ClassLoader, TypePool.CacheProvider> cacheProviders;
+    private final ScheduledThreadPoolExecutor executor;
 
     /**
      * Creates a new type locator that creates {@link TypePool}s but provides a custom {@link TypePool.CacheProvider}.
-     * Uses a default size for the cache that targets to allocate 1% of the committed heap, at least 0.5mb and max 10mb.
+     * Uses a default size for the cache that targets to allocate {@link #DEFAULT_TARGET_PERCENT_OF_HEAP} of the committed heap,
+     * at least {@link #DEFAULT_MIN_CACHE_SIZE} and max {@link #DEFAULT_MAX_CACHE_SIZE}.
      *
      * @param readerMode   The reader mode to use for parsing a class file.
      */
     public LruTypePoolCache(TypePool.Default.ReaderMode readerMode) {
         this(readerMode, LruTypePoolCache.cacheSizeForPercentageOfCommittedHeap(
-            LruTypePoolCache.CACHE_SIZE_HALF_MB,
-            LruTypePoolCache.CACHE_SIZE_TEN_MB,
-            0.01));
+            LruTypePoolCache.DEFAULT_MIN_CACHE_SIZE,
+            LruTypePoolCache.DEFAULT_MAX_CACHE_SIZE,
+            DEFAULT_TARGET_PERCENT_OF_HEAP));
     }
 
     /**
@@ -87,6 +93,7 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
         this.maxCacheSize = maxCacheSize;
         this.sharedCache = new AtomicReference<>(new SoftReference<>(createCache()));
         this.cacheProviders = new WeakConcurrentMap<>(false);
+        this.executor = ExecutorUtils.createSingleThreadSchedulingDaemonPool("type-cache-pool-cleaner");
     }
 
     public static int cacheSizeForPercentageOfCommittedHeap(int minCacheSize, int maxCacheSize, double targetPercentOfHeap) {
@@ -97,9 +104,23 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
         return cacheSize;
     }
 
+    /**
+     * Schedules a background job that evicts entries that haven't been accessed since {@link #DEFAULT_STALE_ENTRY_MAX_AGE_MS}.
+     *
+     * @return {@code this}
+     */
+    public LruTypePoolCache scheduleEntryEviction() {
+        return scheduleEntryEviction(DEFAULT_STALE_ENTRY_MAX_AGE_MS);
+    }
+
+    /**
+     * Schedules a background job that evicts entries that haven't been accessed since the provided max age.
+     *
+     * @param maxAgeMs the maximum age an entry may stay in the cache since it as been accessed last
+     * @return {@code this}
+     */
     public LruTypePoolCache scheduleEntryEviction(final long maxAgeMs) {
-        ExecutorUtils.createSingleThreadSchedulingDaemonPool("type-cache-pool-cleaner")
-            .scheduleWithFixedDelay(new Runnable() {
+        executor.scheduleWithFixedDelay(new Runnable() {
                 @Override
                 public void run() {
                     evictStaleEntries(maxAgeMs);
@@ -125,6 +146,10 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
             .weigher(new EntryWeigher<String, ResolutionsByClassLoader>() {
                 @Override
                 public int weightOf(String key, ResolutionsByClassLoader value) {
+                    // the key of the ConcurrentLinkedHashMap is the class name
+                    // the value holds the resolutions by class loader
+                    // if a given class name is loaded by more than one class loader,
+                    // we need to adjust the weight of that entry accordingly
                     return Math.max(1, value.size());
                 }
             })

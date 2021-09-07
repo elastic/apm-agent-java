@@ -655,7 +655,7 @@ public class ElasticApmAgent {
             .with(new ErrorLoggingListener())
             // ReaderMode.FAST as we don't need to read method parameter names
             .with(useTypePoolCache
-                ? new LruTypePoolCache(TypePool.Default.ReaderMode.FAST).scheduleEntryEviction(TimeUnit.SECONDS.toMillis(20))
+                ? new LruTypePoolCache(TypePool.Default.ReaderMode.FAST).scheduleEntryEviction()
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
