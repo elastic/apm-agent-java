@@ -42,13 +42,15 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public class JedisSpanNameInstrumentation extends TracerAwareInstrumentation {
 
-    @Advice.OnMethodEnter(inline = false)
-    public static void setSpanNameToRedisProtocolCommand(@Advice.Argument(1) Object command) {
-        AbstractSpan<?> active = tracer.getActive();
-        if (active instanceof Span) {
-            Span activeSpan = (Span) active;
-            if ("redis".equals(activeSpan.getSubtype())) {
-                activeSpan.withName(command.toString());
+    public static class AdviceClass {
+        @Advice.OnMethodEnter(inline = false)
+        public static void setSpanNameToRedisProtocolCommand(@Advice.Argument(1) Object command) {
+            AbstractSpan<?> active = tracer.getActive();
+            if (active instanceof Span) {
+                Span activeSpan = (Span) active;
+                if ("redis".equals(activeSpan.getSubtype())) {
+                    activeSpan.withName(command.toString());
+                }
             }
         }
     }

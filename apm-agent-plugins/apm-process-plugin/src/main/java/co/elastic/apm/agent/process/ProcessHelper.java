@@ -25,7 +25,6 @@ import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nonnull;
-import java.io.File;
 import java.util.List;
 
 /**

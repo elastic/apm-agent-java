@@ -90,27 +90,29 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             );
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onBeforeExecute(@Advice.This Statement statement,
-                                             @Advice.Argument(0) String sql) {
+        public static class AdviceClass {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object onBeforeExecute(@Advice.This Statement statement,
+                                                 @Advice.Argument(0) String sql) {
 
-            return JdbcHelper.get().createJdbcSpan(sql, statement, tracer.getActive(), false);
-        }
-
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.This Statement statement,
-                                          @Advice.Enter @Nullable Object span,
-                                          @Advice.Thrown @Nullable Throwable t) {
-            if (span == null) {
-                return;
+                return JdbcHelper.get().createJdbcSpan(sql, statement, tracer.getActive(), false);
             }
 
-            ((Span) span).captureException(t)
-                .deactivate()
-                .end();
 
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onAfterExecute(@Advice.This Statement statement,
+                                              @Advice.Enter @Nullable Object span,
+                                              @Advice.Thrown @Nullable Throwable t) {
+                if (span == null) {
+                    return;
+                }
+
+                ((Span) span).captureException(t)
+                    .deactivate()
+                    .end();
+
+            }
         }
     }
 
@@ -137,31 +139,33 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             );
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onBeforeExecute(@Advice.This Statement statement,
-                                           @Advice.Argument(0) String sql) {
+        public static class AdviceClass {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object onBeforeExecute(@Advice.This Statement statement,
+                                                 @Advice.Argument(0) String sql) {
 
-            return JdbcHelper.get().createJdbcSpan(sql, statement, tracer.getActive(), false);
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
-                                          @Advice.Thrown @Nullable Throwable t,
-                                          @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) {
-            if (span == null) {
-                return;
+                return JdbcHelper.get().createJdbcSpan(sql, statement, tracer.getActive(), false);
             }
 
-            if (t == null) {
-                ((Span) span).getContext()
-                    .getDb()
-                    .withAffectedRowsCount(returnValue);
-            }
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onAfterExecute(@Advice.Enter @Nullable Object span,
+                                              @Advice.Thrown @Nullable Throwable t,
+                                              @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) {
+                if (span == null) {
+                    return;
+                }
 
-            ((Span) span).captureException(t)
-                .deactivate()
-                .end();
+                if (t == null) {
+                    ((Span) span).getContext()
+                        .getDb()
+                        .withAffectedRowsCount(returnValue);
+                }
+
+                ((Span) span).captureException(t)
+                    .deactivate()
+                    .end();
+            }
         }
     }
 
@@ -178,9 +182,11 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             );
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void storeSql(@Advice.This Statement statement, @Advice.Argument(0) String sql) {
-            JdbcHelper.get().mapStatementToSql(statement, sql);
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void storeSql(@Advice.This Statement statement, @Advice.Argument(0) String sql) {
+                JdbcHelper.get().mapStatementToSql(statement, sql);
+            }
         }
     }
 
@@ -203,48 +209,50 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             );
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        @SuppressWarnings("DuplicatedCode")
-        public static Object onBeforeExecute(@Advice.This Statement statement) {
-            JdbcHelper helper = JdbcHelper.get();
-            String sql = helper.retrieveSqlForStatement(statement);
-            return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
+        public static class AdviceClass {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            @SuppressWarnings("DuplicatedCode")
+            public static Object onBeforeExecute(@Advice.This Statement statement) {
+                JdbcHelper helper = JdbcHelper.get();
+                String sql = helper.retrieveSqlForStatement(statement);
+                return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
 
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.Enter @Nullable Object spanObj,
-                                          @Advice.Thrown @Nullable Throwable t,
-                                          @Advice.Return @Nullable Object returnValue) {
-            if (!(spanObj instanceof Span)) {
-                return;
             }
-            Span span = (Span)spanObj;
 
-            // for 'executeBatch' and 'executeLargeBatch', we have to compute the sum as Statement.getUpdateCount()
-            // does not seem to return the sum of all elements. As we can use instanceof to check return type
-            // we do not need to use a separate advice. 'execute' return value is auto-boxed into a Boolean,
-            // but there is no extra allocation.
-            long affectedCount = 0;
-            if (returnValue instanceof int[]) {
-                int[] array = (int[]) returnValue;
-                for (int i = 0; i < array.length; i++) {
-                    affectedCount += array[i];
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onAfterExecute(@Advice.Enter @Nullable Object spanObj,
+                                              @Advice.Thrown @Nullable Throwable t,
+                                              @Advice.Return @Nullable Object returnValue) {
+                if (!(spanObj instanceof Span)) {
+                    return;
                 }
-            } else if (returnValue instanceof long[]) {
-                long[] array = (long[]) returnValue;
-                for (int i = 0; i < array.length; i++) {
-                    affectedCount += array[i];
+                Span span = (Span) spanObj;
+
+                // for 'executeBatch' and 'executeLargeBatch', we have to compute the sum as Statement.getUpdateCount()
+                // does not seem to return the sum of all elements. As we can use instanceof to check return type
+                // we do not need to use a separate advice. 'execute' return value is auto-boxed into a Boolean,
+                // but there is no extra allocation.
+                long affectedCount = 0;
+                if (returnValue instanceof int[]) {
+                    int[] array = (int[]) returnValue;
+                    for (int i = 0; i < array.length; i++) {
+                        affectedCount += array[i];
+                    }
+                } else if (returnValue instanceof long[]) {
+                    long[] array = (long[]) returnValue;
+                    for (int i = 0; i < array.length; i++) {
+                        affectedCount += array[i];
+                    }
                 }
+                span.getContext()
+                    .getDb()
+                    .withAffectedRowsCount(affectedCount);
+
+                span.captureException(t)
+                    .deactivate()
+                    .end();
             }
-            span.getContext()
-                .getDb()
-                .withAffectedRowsCount(affectedCount);
-
-            span.captureException(t)
-                .deactivate()
-                .end();
         }
 
     }
@@ -265,33 +273,35 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             );
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        @SuppressWarnings("DuplicatedCode")
-        public static Object onBeforeExecute(@Advice.This Statement statement) {
+        public static class AdviceClass {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            @SuppressWarnings("DuplicatedCode")
+            public static Object onBeforeExecute(@Advice.This Statement statement) {
 
-            JdbcHelper helper = JdbcHelper.get();
-            String sql = helper.retrieveSqlForStatement(statement);
-            return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
-                                          @Advice.Thrown @Nullable Throwable t,
-                                          @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) {
-            if (span == null) {
-                return;
+                JdbcHelper helper = JdbcHelper.get();
+                String sql = helper.retrieveSqlForStatement(statement);
+                return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
             }
 
-            if (t == null) {
-                ((Span) span).getContext()
-                    .getDb()
-                    .withAffectedRowsCount(returnValue);
-            }
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onAfterExecute(@Advice.Enter @Nullable Object span,
+                                              @Advice.Thrown @Nullable Throwable t,
+                                              @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) {
+                if (span == null) {
+                    return;
+                }
 
-            ((Span) span).captureException(t)
-                .deactivate()
-                .end();
+                if (t == null) {
+                    ((Span) span).getContext()
+                        .getDb()
+                        .withAffectedRowsCount(returnValue);
+                }
+
+                ((Span) span).captureException(t)
+                    .deactivate()
+                    .end();
+            }
         }
     }
 
@@ -311,29 +321,30 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             );
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        @SuppressWarnings("DuplicatedCode")
-        public static Object onBeforeExecute(@Advice.This Statement statement) {
-            JdbcHelper helper = JdbcHelper.get();
-            @Nullable String sql = helper.retrieveSqlForStatement(statement);
-            return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.This Statement statement,
-                                          @Advice.Enter @Nullable Object span,
-                                          @Advice.Thrown @Nullable Throwable t) {
-
-            if (span == null) {
-                return;
+        public static class AdviceClass {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            @SuppressWarnings("DuplicatedCode")
+            public static Object onBeforeExecute(@Advice.This Statement statement) {
+                JdbcHelper helper = JdbcHelper.get();
+                @Nullable String sql = helper.retrieveSqlForStatement(statement);
+                return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
             }
 
-            ((Span) span).captureException(t)
-                .deactivate()
-                .end();
-        }
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onAfterExecute(@Advice.This Statement statement,
+                                              @Advice.Enter @Nullable Object span,
+                                              @Advice.Thrown @Nullable Throwable t) {
 
+                if (span == null) {
+                    return;
+                }
+
+                ((Span) span).captureException(t)
+                    .deactivate()
+                    .end();
+            }
+        }
     }
 
     /**
@@ -354,10 +365,12 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             );
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void onBeforeClose(@Advice.This Statement statement) {
-            if (statement instanceof PreparedStatement) {
-                helper.removeSqlForStatement(statement);
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void onBeforeClose(@Advice.This Statement statement) {
+                if (statement instanceof PreparedStatement) {
+                    helper.removeSqlForStatement(statement);
+                }
             }
         }
     }

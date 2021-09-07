@@ -140,13 +140,11 @@ public abstract class ElasticApmInstrumentation {
     public abstract ElementMatcher<? super MethodDescription> getMethodMatcher();
 
     /**
-     * Implementing the advice and instrumentation at the same class is <b>bad practice</b>, as they are
-     * loaded in different contexts with different purposes. The instrumentation class is loaded by the agent class
+     * Implementing the advice and instrumentation at the same class is <b>disallowed</b> and will throw a validation error when trying to do so.
+     * They are loaded in different contexts with different purposes. The instrumentation class is loaded by the agent class
      * loader, whereas the advice class needs to be loaded by a class loader that has visibility to the instrumented
      * type and library, as well as the agent classes. Therefore, loading the advice class through the agent class
      * loader may cause linkage-related errors.
-     * The default implementation is the only one that is allowed to assume the advice class is already loaded, as it
-     * is the same as the instrumentation class.
      * <p>
      *     ANY INSTRUMENTATION THAT OVERRIDES THIS METHOD MUST NOT CAUSE THE LOADING OF THE ADVICE CLASS.
      *     For example, implementing it as {@code MyAdvice.class.getName()} is not allowed.
@@ -154,7 +152,7 @@ public abstract class ElasticApmInstrumentation {
      * @return the name of the advice class corresponding this instrumentation
      */
     public String getAdviceClassName() {
-        return getClass().getName();
+        return getClass().getName() + "$AdviceClass";
     }
 
     /**
