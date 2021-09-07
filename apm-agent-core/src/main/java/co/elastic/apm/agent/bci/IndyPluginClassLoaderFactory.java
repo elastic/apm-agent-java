@@ -45,7 +45,7 @@ public class IndyPluginClassLoaderFactory {
 
     /**
      * Creates an isolated CL that has two parents: the target class loader and the agent CL.
-     * The agent class loader is currently the bootstrap CL but in the future it will be an isolated CL that is a child of the bootstrap CL.
+     * The agent class loader is an isolated CL that is a child of the bootstrap CL.
      */
     public synchronized static ClassLoader getOrCreatePluginClassLoader(@Nullable ClassLoader targetClassLoader,
                                                                         List<String> classesToInject,

@@ -421,22 +421,6 @@
                             </filters>
                             <relocations>
                                 <relocation>
-                                    <pattern>net.bytebuddy</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.bytebuddy</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.objectweb.asm</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.asm</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.dslplatform</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.dslplatform</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.lmax</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.lmax</shadedPattern>
-                                </relocation>
-                                <relocation>
                                     <pattern>org.slf4j</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.slf4j</shadedPattern>
                                 </relocation>
@@ -465,26 +449,10 @@
                                     <shadedPattern>META-INF/co/elastic/apm/agent/shaded/logging</shadedPattern>
                                 </relocation>
 
-                                <relocation>
-                                    <pattern>org.stagemonitor</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.stagemonitor</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.jctools</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.jctools</shadedPattern>
-                                </relocation>
                                 <!-- See javadoc of co.elastic.apm.agent.logging.JulBridgeLogger -->
                                 <relocation>
                                     <pattern>java.util.logging.Logger</pattern>
                                     <shadedPattern>co.elastic.apm.agent.logging.JulBridgeLogger</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.blogspot.mydailyjava.weaklockfree</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.weaklockfree</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.HdrHistogram</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.HdrHistogram</shadedPattern>
                                 </relocation>
 
                                 <!-- This reverts logging frameworks temporary packages given during the execution of the package
