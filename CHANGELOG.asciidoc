@@ -37,7 +37,23 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 
 [float]
 ===== Performance improvements
-* Reduce GC time overhead caused by WeakReferences {pull}2086[2086]
+* Reduce GC time overhead caused by WeakReferences - {pull}2086[#2086]
+* Reduced memory overhead by a smarter type pool caching strategy - {pull}2102[#2102]. +
+  The type pool cache improves the startup times by speeding up type matching
+  (determining whether a class that's about to be loaded should be instrumented).
+  Generally, the more types that are cached, the faster the startup. +
+  The old strategy did not impose a limit to the cache but cleared it after it hasn't been accessed in a while.
+  However, load test have discovered that the cache may never be cleared and leave a permanent overhead of 23mb.
+  The actual size of the cache highly depends on the application and loosely correlates with the number of loaded classes. +
+  The new caching strategy targets to allocate 1% of the committed heap, at least 0.5mb and max 10mb.
+  If a particular entry hasn't been accessed within 20s, it will be removed from the cache. +
+  The results based on load testing are very positive:
+** Equivalent startup times (within the margins of error of the previous strategy)
+** Equivalent allocation rate (within the margins of error of the previous strategy)
+** Reduced avg heap utilization from 10%/15mb (previous strategy) to within margins of error without the agent
+** Reduced GC time due to the additional headroom that the application can utilize.
+** Based on heap dump analysis, after warmup, the cache size is now around 59kb (down from 23mb with the previous strategy).
+
 
 [float]
 ===== Bug fixes

@@ -491,6 +491,10 @@
                                     <pattern>org.HdrHistogram</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.HdrHistogram</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>com.googlecode.concurrentlinkedhashmap</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.concurrentlinkedhashmap</shadedPattern>
+                                </relocation>
 
                                 <!-- This reverts logging frameworks temporary packages given during the execution of the package
                                 phase of the apm-log-shader-plugin to their original packages -->
