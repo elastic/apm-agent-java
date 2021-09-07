@@ -53,18 +53,22 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractAli
             return named("done").and(isOverriddenFrom(named("com.alibaba.dubbo.remoting.exchange.ResponseCallback")));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.This ResponseCallback thiz, @Advice.Local("span") AbstractSpan<?> span) {
-            span = AlibabaResponseFutureInstrumentation.callbackSpanMap.remove(thiz);
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.This ResponseCallback thiz) {
+            AbstractSpan<?> span = AlibabaResponseFutureInstrumentation.callbackSpanMap.remove(thiz);
             if (span != null) {
                 span.activate();
             }
+            return span;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Advice.Thrown @Nullable Throwable thrown,
-                                   @Advice.Local("span") @Nullable AbstractSpan<?> span,
-                                   @Advice.Argument(0) @Nullable Object response) {
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                  @Advice.Enter @Nullable Object spanObj,
+                                  @Advice.Argument(0) @Nullable Object response) {
+
+            AbstractSpan<?> span = (AbstractSpan<?>) spanObj;
             if (span == null) {
                 return;
             }
@@ -90,18 +94,21 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractAli
             return named("caught").and(isOverriddenFrom(named("com.alibaba.dubbo.remoting.exchange.ResponseCallback")));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.This ResponseCallback thiz, @Advice.Local("span") AbstractSpan<?> span) {
-            span = AlibabaResponseFutureInstrumentation.callbackSpanMap.remove(thiz);
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.This ResponseCallback thiz) {
+            AbstractSpan<?> span = AlibabaResponseFutureInstrumentation.callbackSpanMap.remove(thiz);
             if (span != null) {
                 span.activate();
             }
+            return span;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Advice.Thrown @Nullable Throwable thrown,
-                                   @Advice.Local("span") @Nullable AbstractSpan<?> span,
-                                   @Advice.Argument(0) @Nullable Throwable caught) {
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                  @Advice.Enter @Nullable Object spanObj,
+                                  @Advice.Argument(0) @Nullable Throwable caught) {
+            AbstractSpan<?> span = (AbstractSpan<?>) spanObj;
             if (span == null) {
                 return;
             }

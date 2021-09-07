@@ -22,6 +22,7 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
@@ -30,6 +31,7 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
@@ -62,12 +64,12 @@ public class AlibabaResponseFutureInstrumentation extends AbstractAlibabaDubboIn
     public static class AlibabaResponseFutureAdvice {
 
         @VisibleForAdvice
-        public static final List<Class<? extends ElasticApmInstrumentation>> RESPONSE_CALLBACK_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
+        private static final List<Class<? extends ElasticApmInstrumentation>> RESPONSE_CALLBACK_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
             AlibabaResponseCallbackInstrumentation.CaughtInstrumentation.class,
             AlibabaResponseCallbackInstrumentation.DoneInstrumentation.class);
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.Argument(value = 0, readOnly = false) ResponseCallback callback) {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onEnter(@Advice.Argument(value = 0) ResponseCallback callback) {
             AbstractSpan<?> active = tracer.getActive();
             if (active == null) {
                 return;
