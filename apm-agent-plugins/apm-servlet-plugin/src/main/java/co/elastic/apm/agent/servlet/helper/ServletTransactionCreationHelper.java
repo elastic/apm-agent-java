@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.Objects;
 
-public abstract class ServletTransactionCreationHelper<HttpServletRequest, ServletContext> {
+public abstract class ServletTransactionCreationHelper<HTTPREQUEST, CONTEXT> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServletTransactionCreationHelper.class);
 
@@ -42,7 +42,7 @@ public abstract class ServletTransactionCreationHelper<HttpServletRequest, Servl
     }
 
     @Nullable
-    public Transaction createAndActivateTransaction(HttpServletRequest request) {
+    public Transaction createAndActivateTransaction(HTTPREQUEST request) {
         // only create a transaction if there is not already one
         if (tracer.currentTransaction() != null) {
             return null;
@@ -58,23 +58,23 @@ public abstract class ServletTransactionCreationHelper<HttpServletRequest, Servl
         return transaction;
     }
 
-    protected abstract String getServletPath(HttpServletRequest request);
+    protected abstract String getServletPath(HTTPREQUEST request);
 
-    protected abstract String getPathInfo(HttpServletRequest request);
+    protected abstract String getPathInfo(HTTPREQUEST request);
 
-    protected abstract String getHeader(HttpServletRequest request, String headerName);
+    protected abstract String getHeader(HTTPREQUEST request, String headerName);
 
-    protected abstract ServletContext getServletContext(HttpServletRequest request);
+    protected abstract CONTEXT getServletContext(HTTPREQUEST request);
 
-    protected abstract ClassLoader getClassLoader(ServletContext servletContext);
+    protected abstract ClassLoader getClassLoader(CONTEXT servletContext);
 
     protected abstract CommonServletRequestHeaderGetter getRequestHeaderGetter();
 
-    protected abstract String getContextPath(HttpServletRequest request);
+    protected abstract String getContextPath(HTTPREQUEST request);
 
-    protected abstract String getRequestURI(HttpServletRequest request);
+    protected abstract String getRequestURI(HTTPREQUEST request);
 
-    private boolean isExcluded(HttpServletRequest request) {
+    private boolean isExcluded(HTTPREQUEST request) {
         String userAgent = getHeader(request, "User-Agent");
 
         String pathFirstPart = getServletPath(request);
@@ -106,7 +106,7 @@ public abstract class ServletTransactionCreationHelper<HttpServletRequest, Servl
     }
 
     @Nullable
-    public ClassLoader getClassloader(@Nullable ServletContext servletContext) {
+    public ClassLoader getClassloader(@Nullable CONTEXT servletContext) {
         if (servletContext == null) {
             return null;
         }

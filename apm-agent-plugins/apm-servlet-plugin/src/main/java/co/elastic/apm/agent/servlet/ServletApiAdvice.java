@@ -60,7 +60,7 @@ public abstract class ServletApiAdvice {
     private static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "jakarta.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
 
     @Nullable
-    public static <ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> Object onServletEnter(ServletRequest servletRequest, ServletHelper<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> helper) {
+    public static <REQUEST, RESPONSE, HTTPREQUEST, HTTPRESPONSE, CONTEXT> Object onServletEnter(REQUEST servletRequest, ServletHelper<REQUEST, RESPONSE, HTTPREQUEST, HTTPRESPONSE, CONTEXT> helper) {
         ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
         if (tracer == null) {
             return null;
@@ -76,7 +76,7 @@ public abstract class ServletApiAdvice {
             return null;
         }
 
-        final HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
+        final HTTPREQUEST httpServletRequest = (HTTPREQUEST) servletRequest;
         CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
 
         if (helper.isRequestDispatcherType(servletRequest)) {
@@ -84,7 +84,7 @@ public abstract class ServletApiAdvice {
                 return null;
             }
 
-            ServletContext servletContext = helper.getServletContext(servletRequest);
+            CONTEXT servletContext = helper.getServletContext(servletRequest);
             if (servletContext != null) {
                 ClassLoader servletCL = helper.getClassloader(servletContext);
                 // this makes sure service name discovery also works when attaching at runtime
@@ -160,12 +160,12 @@ public abstract class ServletApiAdvice {
         return ret;
     }
 
-    public static <ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> void onExitServlet(ServletRequest servletRequest,
-                                                                       ServletResponse servletResponse,
-                                                                       @Nullable Object transactionOrScopeOrSpan,
-                                                                       @Nullable Throwable t,
-                                                                       Object thiz,
-                                                                       ServletHelper<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> helper) {
+    public static <REQUEST, RESPONSE, HTTPREQUEST, HTTPRESPONSE, CONTEXT> void onExitServlet(REQUEST servletRequest,
+                                                                                             RESPONSE servletResponse,
+                                                                                             @Nullable Object transactionOrScopeOrSpan,
+                                                                                             @Nullable Throwable t,
+                                                                                             Object thiz,
+                                                                                             ServletHelper<REQUEST, RESPONSE, HTTPREQUEST, HTTPRESPONSE, CONTEXT> helper) {
         ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
         if (tracer == null) {
             return;
@@ -188,7 +188,7 @@ public abstract class ServletApiAdvice {
         if (helper.isInstanceOfHttpServlet(thiz) && helper.isHttpServletRequest(servletRequest)) {
             Transaction currentTransaction = tracer.currentTransaction();
             if (currentTransaction != null) {
-                final HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
+                final HTTPREQUEST httpServletRequest = (HTTPREQUEST) servletRequest;
                 TransactionNameUtils.setTransactionNameByServletClass(helper.getMethod(httpServletRequest), thiz.getClass(), currentTransaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));
                 final Principal userPrincipal = helper.getUserPrincipal(httpServletRequest);
                 ServletTransactionHelper.setUsernameIfUnset(userPrincipal != null ? userPrincipal.getName() : null, currentTransaction.getContext());
@@ -198,14 +198,14 @@ public abstract class ServletApiAdvice {
             helper.isHttpServletRequest(servletRequest) &&
             helper.isHttpServletResponse(servletResponse)) {
 
-            final HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
+            final HTTPREQUEST httpServletRequest = (HTTPREQUEST) servletRequest;
             if (helper.getHttpAttribute(httpServletRequest, ServletTransactionHelper.ASYNC_ATTRIBUTE) != null) {
                 // HttpServletRequest.startAsync was invoked on this httpServletRequest.
                 // The transaction should be handled from now on by the other thread committing the response
                 transaction.deactivate();
             } else {
                 // this is not an async httpServletRequest, so we can end the transaction immediately
-                final HttpServletResponse response = (HttpServletResponse) servletResponse;
+                final HTTPRESPONSE response = (HTTPRESPONSE) servletResponse;
                 if (transaction.isSampled() && tracer.getConfig(CoreConfiguration.class).isCaptureHeaders()) {
                     final Response resp = transaction.getContext().getResponse();
                     for (String headerName : helper.getHeaderNames(response)) {
