@@ -52,8 +52,8 @@ public class AlibabaRpcContextInstrumentation extends AbstractAlibabaDubboInstru
     public static class AdviceClass {
         private static final List<Class<? extends ElasticApmInstrumentation>> RESPONSE_FUTURE_INSTRUMENTATION =
             Collections.<Class<? extends ElasticApmInstrumentation>>singletonList(AlibabaResponseFutureInstrumentation.class);
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.Argument(0) Future<?> future) {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onEnter(@Advice.Argument(0) Future<?> future) {
             if (future instanceof FutureAdapter) {
                 DynamicTransformer.Accessor.get().ensureInstrumented(((FutureAdapter<?>) future).getFuture().getClass(), RESPONSE_FUTURE_INSTRUMENTATION);
             }

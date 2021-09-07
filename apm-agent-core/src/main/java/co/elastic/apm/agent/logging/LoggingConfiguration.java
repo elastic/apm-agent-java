@@ -337,6 +337,11 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             level = LogLevel.INFO;
         }
         Configurator.setRootLevel(org.apache.logging.log4j.Level.toLevel(level.toString(), org.apache.logging.log4j.Level.INFO));
+
+        // Setting the root level resets all the other loggers that may have been configured, which overrides
+        // configuration provided by the configuration files in the classpath. While the JSON schema validator is only
+        // used for testing and is not shipped, this is the most convenient solution to avoid verbosity here.
+        Configurator.setLevel("com.networknt.schema", org.apache.logging.log4j.Level.WARN);
     }
 
     public boolean isLogCorrelationEnabled() {
