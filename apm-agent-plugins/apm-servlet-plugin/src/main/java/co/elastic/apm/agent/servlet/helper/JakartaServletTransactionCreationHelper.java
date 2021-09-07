@@ -57,4 +57,14 @@ public class JakartaServletTransactionCreationHelper extends ServletTransactionC
     protected CommonServletRequestHeaderGetter getRequestHeaderGetter() {
         return JakartaServletRequestHeaderGetter.getInstance();
     }
+
+    @Override
+    protected String getContextPath(HttpServletRequest httpServletRequest) {
+        return httpServletRequest.getContextPath();
+    }
+
+    @Override
+    protected String getRequestURI(HttpServletRequest httpServletRequest) {
+        return httpServletRequest.getRequestURI();
+    }
 }

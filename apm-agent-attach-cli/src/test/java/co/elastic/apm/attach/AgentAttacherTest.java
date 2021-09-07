@@ -19,6 +19,7 @@
 package co.elastic.apm.attach;
 
 import org.apache.logging.log4j.Level;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,6 +60,9 @@ class AgentAttacherTest {
         assertThatThrownBy(() -> AgentAttacher.Arguments.parse("--agent-jar", "foo.jar"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("foo.jar does not exist");
+
+        Assertions.setMaxStackTraceElementsDisplayed(30);
+        assertThat(AgentAttacher.Arguments.parse("--download-agent-version", "1.25.0").getDownloadAgentVersion()).isEqualTo("1.25.0");
 
         assertThatThrownBy(() -> AgentAttacher.Arguments.parse("--config", "foo=bar", "--args-provider", "foo")).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> AgentAttacher.Arguments.parse("--include-main", "[")).isInstanceOf(IllegalArgumentException.class);

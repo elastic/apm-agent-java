@@ -40,10 +40,19 @@ public class AgentFileIT {
         return getTargetJar("apm-agent-attach-cli");
     }
 
+    static String getPathToSlimAttacher() {
+        return getTargetJar("apm-agent-attach-cli", "-slim.jar");
+    }
+
     @Nullable
     private static String getTargetJar(String project) {
+        return getTargetJar(project, ".jar");
+    }
+
+    @Nullable
+    private static String getTargetJar(String project, String extension) {
         File agentBuildDir = new File("../../" + project + "/target/");
-        FileFilter fileFilter = file -> file.getName().matches(project + "-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?.jar");
+        FileFilter fileFilter = file -> file.getName().matches(project + "-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?" + extension);
         return Arrays.stream(agentBuildDir.listFiles(fileFilter)).findFirst()
             .map(File::getAbsolutePath)
             .orElse(null);

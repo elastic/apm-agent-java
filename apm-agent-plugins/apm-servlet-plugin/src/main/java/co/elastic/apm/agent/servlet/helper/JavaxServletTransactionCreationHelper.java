@@ -58,4 +58,14 @@ public class JavaxServletTransactionCreationHelper extends ServletTransactionCre
     protected CommonServletRequestHeaderGetter getRequestHeaderGetter() {
         return JavaxServletRequestHeaderGetter.getInstance();
     }
+
+    @Override
+    protected String getContextPath(HttpServletRequest httpServletRequest) {
+        return httpServletRequest.getContextPath();
+    }
+
+    @Override
+    protected String getRequestURI(HttpServletRequest httpServletRequest) {
+        return httpServletRequest.getRequestURI();
+    }
 }

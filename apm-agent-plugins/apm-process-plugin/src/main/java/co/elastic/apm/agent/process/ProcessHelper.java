@@ -30,7 +30,7 @@ import java.util.List;
 
 /**
  * Having direct references to {@link Process} class is safe here because those are loaded in the bootstrap classloader.
- * Thus there is no need to separate helper interface from implementation or use {@link co.elastic.apm.agent.bci.HelperClassManager}.
+ * Thus, there is no need to separate helper interface from implementation.
  */
 class ProcessHelper {
 
@@ -75,7 +75,7 @@ class ProcessHelper {
     }
 
     private static String getBinaryName(String processName) {
-        int lastSeparator = processName.lastIndexOf(File.separatorChar);
+        int lastSeparator = processName.lastIndexOf(System.getProperty("file.separator"));
         return lastSeparator < 0 ? processName : processName.substring(lastSeparator + 1);
     }
 

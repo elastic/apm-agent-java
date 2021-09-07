@@ -30,11 +30,26 @@ endif::[]
 ** Automatically sets `service.node.name` in all log events if set through agent configuration
 ** Add `log_ecs_reformatting_additional_fields` option to support arbitrary fields in logs
 ** Automatically serialize markers as tags where relevant (log4j2 and logback)
+* gRPC spans (client and server) can detect errors or cancellation through custom listeners - {pull}2067[#2067]
+* Add `-download-agent-version` to the agent <<setup-attach-cli-usage-options, attach CLI tool options>>, allowing the
+user to configure an arbitrary agent version that will be downloaded from maven and attached - {pull}1959[#1959]
+* Add extra check to detect improper agent setup - {pull}2076[#2076]
+
+[float]
+===== Performance improvements
+* Reduce GC time overhead caused by WeakReferences {pull}2086[2086]
 
 [float]
 ===== Bug fixes
 * Fix failure to parse some forms of the `Implementation-Version` property from jar manifest files - {pull}1931[#1931]
 * Ensure single value for context-propagation header - {pull}1937[#1937]
+* Fix gRPC non-terminated (therefore non-reported) client spans - {pull}2067[#2067]
+* Fix Webflux response status code - {pull}1948[#1948]
+* Ensure path filtering is applied when Servlet path is not available - {pull}2099[#2099]
+
+[float]
+===== Refactorings
+* Migrate several plugins to indy dispatcher {pull}2087[#2087], {pull}2088[#2088], {pull}2090[#2090], {pull}2094[#2094], {pull}2095[#2095]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

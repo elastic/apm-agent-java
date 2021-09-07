@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.grpc.testapp;
 
+import co.elastic.apm.agent.util.ExecutorUtils;
 import io.grpc.BindableService;
 import io.grpc.Metadata;
 import io.grpc.Server;
@@ -26,7 +27,6 @@ import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
-import io.grpc.elastic.test.TestServerListener;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,15 +111,18 @@ public abstract class HelloServer<Req,Rep> {
 
         logger.info("starting grpc server on port {}", port);
 
-
-        server.start();
-        logger.info("grpc server start complete");
+        try {
+            server.start();
+            logger.info("grpc server start complete on port {}", port);
+        } catch (IOException e) {
+            logger.error("grpc server unable to start on port {}", port, e);
+        }
     }
 
 
 
     public void stop() throws InterruptedException {
-        logger.info("stopping grpc server");
+        logger.info("stopping grpc server on port {}", port);
         Sync sync = syncBarriers.get();
         if (sync != null) {
             checkNoWaiting(sync.processingStart, true);
@@ -130,14 +133,9 @@ public abstract class HelloServer<Req,Rep> {
             throw new IllegalStateException("something is wrong, unable to properly shut down server");
         }
 
-        serverPool.shutdown();
-        try {
-            serverPool.awaitTermination(1, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            serverPool.shutdownNow();
-        }
+        ExecutorUtils.shutdownAndWaitTermination(serverPool, 1, TimeUnit.SECONDS);
 
-        logger.info("grpc server shutdown complete");
+        logger.info("grpc server shutdown complete on port {}", port);
     }
 
     protected static void checkNoWaiting(CyclicBarrier barrier, boolean isStart) {

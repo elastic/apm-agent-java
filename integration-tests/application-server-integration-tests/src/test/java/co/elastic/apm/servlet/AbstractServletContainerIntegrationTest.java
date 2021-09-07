@@ -76,16 +76,31 @@ import static org.mockserver.model.HttpRequest.request;
  * To debug, add a remote debugging configuration for port 5005 and set {@link #ENABLE_DEBUGGING} to {@code true}.
  * </p>
  * <p>
+ * To test slim CLI tool with any agent version, set {@link #AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN} to the desired version.
+ * </p>
+ * <p>
  * Servlet containers that support runtime attach are being tested with it by default. In order to test those through
  * the `javaagent` route, set {@link #ENABLE_RUNTIME_ATTACH} to {@code false}
  * </p>
  */
 public abstract class AbstractServletContainerIntegrationTest {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
+
     private static final String pathToJavaagent;
     private static final String pathToAttach;
-    private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
+    private static final String pathToSlimAttach;
+
     static boolean ENABLE_DEBUGGING = false;
     static boolean ENABLE_RUNTIME_ATTACH = true;
+
+    /**
+     * Set to a specific version to manually test downloading of agent from maven central using the slim cli tool.
+     * Only relevant if {@link #ENABLE_RUNTIME_ATTACH} is set to {@code true} and for Servlet containers for which
+     * {@link #runtimeAttachSupported()} returns {@code true}.
+     */
+    @Nullable
+    private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
+
     private static MockServerContainer mockServerContainer = new MockServerContainer()
         //.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(MockServerContainer.class)))
         .withNetworkAliases("apm-server")
@@ -104,8 +119,10 @@ public abstract class AbstractServletContainerIntegrationTest {
             .build();
         pathToJavaagent = AgentFileIT.getPathToJavaagent();
         pathToAttach = AgentFileIT.getPathToAttacher();
+        pathToSlimAttach = AgentFileIT.getPathToSlimAttacher();
         checkFilePresent(pathToJavaagent);
         checkFilePresent(pathToAttach);
+        checkFilePresent(pathToSlimAttach);
     }
 
     private final MockReporter mockReporter = new MockReporter();
@@ -153,6 +170,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
             .withFileSystemBind(pathToAttach, "/apm-agent-attach-cli.jar")
+            .withFileSystemBind(pathToSlimAttach, "/apm-agent-attach-cli-slim.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
         for (TestApp testApp : getTestApps()) {
             testApp.getAdditionalEnvVariables().forEach(servletContainer::withEnv);
@@ -176,7 +194,13 @@ public abstract class AbstractServletContainerIntegrationTest {
         this.servletContainer.start();
         if (runtimeAttachSupported() && ENABLE_RUNTIME_ATTACH) {
             try {
-                Container.ExecResult result = this.servletContainer.execInContainer("java", "-jar", "/apm-agent-attach-cli.jar", "--include-all");
+                String[] cliArgs;
+                if (AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN != null) {
+                    cliArgs = new String[]{"java", "-jar", "/apm-agent-attach-cli-slim.jar", "--download-agent-version", AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN, "--include-all"};
+                } else {
+                    cliArgs = new String[]{"java", "-jar", "/apm-agent-attach-cli.jar", "--include-all"};
+                }
+                Container.ExecResult result = this.servletContainer.execInContainer(cliArgs);
                 System.out.println(result.getStdout());
                 System.out.println(result.getStderr());
             } catch (Exception e) {
@@ -304,6 +328,8 @@ public abstract class AbstractServletContainerIntegrationTest {
             this.currentTestApp = testApp;
             waitFor(testApp.getStatusEndpoint());
             clearMockServerLog();
+            executeStatusRequestAndCheckIgnored(testApp.getStatusEndpoint());
+            clearMockServerLog();
             testApp.test(this);
         }
     }
@@ -339,6 +365,24 @@ public abstract class AbstractServletContainerIntegrationTest {
         return responseString;
     }
 
+    private void executeStatusRequestAndCheckIgnored(String statusEndpoint) throws IOException {
+        Map<String, String> headers = Collections.emptyMap();
+        Response response = executeRequest(statusEndpoint, headers);
+        assertThat(response.code()).isEqualTo(200);
+
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            // ignored
+        }
+
+        List<JsonNode> transactions = getReportedTransactions();
+        assertThat(transactions.isEmpty())
+            .describedAs("status transaction should be ignored by configuration %s", transactions)
+            .isTrue();
+
+    }
+
     public String executeAndValidatePostRequest(String pathToTest, RequestBody postBody, String expectedContent, Integer expectedResponseCode) throws IOException, InterruptedException {
         Response response = executePostRequest(pathToTest, postBody);
         if (expectedResponseCode != null) {
@@ -357,9 +401,9 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     public Response executePostRequest(String pathToTest, RequestBody postBody) throws IOException {
         return httpClient.newCall(new Request.Builder()
-            .post(postBody)
-            .url(getBaseUrl() + pathToTest)
-            .build())
+                .post(postBody)
+                .url(getBaseUrl() + pathToTest)
+                .build())
             .execute();
     }
 
@@ -367,10 +411,10 @@ public abstract class AbstractServletContainerIntegrationTest {
         Headers headers = Headers.of((headersMap != null) ? headersMap : new HashMap<>());
 
         return httpClient.newCall(new Request.Builder()
-            .get()
-            .url(getBaseUrl() + pathToTest)
-            .headers(headers)
-            .build())
+                .get()
+                .url(getBaseUrl() + pathToTest)
+                .headers(headers)
+                .build())
             .execute();
     }
 

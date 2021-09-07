@@ -336,4 +336,29 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
     }
 
+    /**
+     * Instruments:
+     * <ul>
+     *     <li>{@link Statement#close()}</li>
+     * </ul>
+     */
+    public static class CloseStatementInstrumentation extends StatementInstrumentation {
+
+        private static final JdbcHelper helper = JdbcHelper.get();
+
+        public CloseStatementInstrumentation(ElasticApmTracer tracer) {
+            super(
+                named("close")
+                    .and(takesArguments(0))
+                    .and(isPublic())
+            );
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onBeforeClose(@Advice.This Statement statement) {
+            if (statement instanceof PreparedStatement) {
+                helper.removeSqlForStatement(statement);
+            }
+        }
+    }
 }

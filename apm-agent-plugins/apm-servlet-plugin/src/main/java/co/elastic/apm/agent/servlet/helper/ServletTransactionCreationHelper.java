@@ -47,7 +47,7 @@ public abstract class ServletTransactionCreationHelper<HttpServletRequest, Servl
         if (tracer.currentTransaction() != null) {
             return null;
         }
-        if (isExcluded(getServletPath(request), getPathInfo(request), getHeader(request, "User-Agent"))) {
+        if (isExcluded(request)) {
             return null;
         }
         ClassLoader cl = getClassloader(getServletContext(request));
@@ -70,21 +70,37 @@ public abstract class ServletTransactionCreationHelper<HttpServletRequest, Servl
 
     protected abstract CommonServletRequestHeaderGetter getRequestHeaderGetter();
 
-    private boolean isExcluded(String servletPath, @Nullable String pathInfo, @Nullable String userAgentHeader) {
-        final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), servletPath, pathInfo);
-        if (excludeUrlMatcher != null && logger.isDebugEnabled()) {
-            logger.debug("Not tracing this request as the URL {}{} is ignored by the matcher {}",
-                servletPath, Objects.toString(pathInfo, ""), excludeUrlMatcher);
+    protected abstract String getContextPath(HttpServletRequest request);
+
+    protected abstract String getRequestURI(HttpServletRequest request);
+
+    private boolean isExcluded(HttpServletRequest request) {
+        String userAgent = getHeader(request, "User-Agent");
+
+        String pathFirstPart = getServletPath(request);
+        String pathSecondPart = Objects.toString(getPathInfo(request), "");
+
+        if (pathFirstPart.isEmpty()) {
+            // when servlet path is empty, reconstructing the path from the request URI
+            // this can happen when transaction is created by a filter (and thus servlet path is unknown yet)
+            String contextPath = getContextPath(request);
+            if (null != contextPath) {
+                pathFirstPart = getRequestURI(request).substring(contextPath.length());
+                pathSecondPart = "";
+            }
         }
-        final WildcardMatcher excludeAgentMatcher = userAgentHeader != null ? WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgentHeader) : null;
+
+        final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), pathFirstPart, pathSecondPart);
+        if (excludeUrlMatcher != null && logger.isDebugEnabled()) {
+            logger.debug("Not tracing this request as the URL {}{} is ignored by the matcher {}", pathFirstPart, pathSecondPart, excludeUrlMatcher);
+        }
+        final WildcardMatcher excludeAgentMatcher = userAgent != null ? WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgent) : null;
         if (excludeAgentMatcher != null) {
-            logger.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}",
-                userAgentHeader, excludeAgentMatcher);
+            logger.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}", userAgent, excludeAgentMatcher);
         }
         boolean isExcluded = excludeUrlMatcher != null || excludeAgentMatcher != null;
         if (!isExcluded && logger.isTraceEnabled()) {
-            logger.trace("No matcher found for excluding this request with servlet-path: {}, path-info: {} and User-Agent: {}",
-                servletPath, pathInfo, userAgentHeader);
+            logger.trace("No matcher found for excluding this request with URL: {}{}, and User-Agent: {}", pathFirstPart, pathSecondPart, userAgent);
         }
         return isExcluded;
     }

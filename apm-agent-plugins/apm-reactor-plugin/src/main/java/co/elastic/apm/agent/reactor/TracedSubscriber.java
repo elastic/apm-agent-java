@@ -32,6 +32,7 @@ import reactor.core.CoreSubscriber;
 import reactor.core.Fuseable;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Operators;
+import reactor.util.context.Context;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -52,10 +53,20 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
     private final Tracer tracer;
 
+    private final Context context;
+
     TracedSubscriber(CoreSubscriber<? super T> subscriber, Tracer tracer, AbstractSpan<?> context) {
         this.subscriber = subscriber;
         this.tracer = tracer;
         contextMap.put(this, context);
+
+        // store our span/transaction into reactor context for later lookup without relying on active tracer state
+        this.context = subscriber.currentContext().put(AbstractSpan.class, context);
+    }
+
+    @Override
+    public Context currentContext() {
+        return context;
     }
 
     /**
@@ -236,7 +247,13 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
                     return subscriber;
                 }
 
+                // use active span/transaction if directly active
                 AbstractSpan<?> active = tracer.getActive();
+
+                // fallback to using context-stored span/transaction if not already active
+                if (active == null) {
+                    active = subscriber.currentContext().getOrDefault(AbstractSpan.class, null);
+                }
 
                 if (active == null) {
                     // no active context, we have nothing to wrap

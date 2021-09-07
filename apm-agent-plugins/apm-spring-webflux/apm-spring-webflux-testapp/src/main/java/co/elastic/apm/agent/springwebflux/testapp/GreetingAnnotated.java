@@ -69,7 +69,12 @@ public class GreetingAnnotated {
 
     @RequestMapping("/error-handler")
     public Mono<String> handlerError() {
-        return greetingHandler.throwException();
+        // using delayed exception here allows to ensure that the exception handler is properly
+        // executed, as its execution is part of the "dispatch" phase and is outside of "handler"
+        //
+        // this does not apply for functional definitions as the exception handler is directly part of the "handler"
+        // which is wrapped into the "dispatcher" (which we instrument).
+        return greetingHandler.delayedException();
     }
 
     @RequestMapping("/error-mono")
@@ -144,7 +149,9 @@ public class GreetingAnnotated {
     public Mono<String> customTransactionName() {
         log.debug("enter customTransactionName");
         try {
-            // transaction should be active, even if we are outside of the Mono/Flux execution
+            // Transaction should be active, even if we are outside of Mono/Flux execution
+            // In practice, it's called after onSubscribe and before onNext, thus the active context is not provided
+            // by reactor plugin, but only by the webflux plugin that keeps the transaction active.
             ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
             Transaction transaction = Objects.requireNonNull(tracer.currentTransaction(), "active transaction is required");
             // This mimics setting the name through the public API. We cannot use the public API if we want to test span recycling

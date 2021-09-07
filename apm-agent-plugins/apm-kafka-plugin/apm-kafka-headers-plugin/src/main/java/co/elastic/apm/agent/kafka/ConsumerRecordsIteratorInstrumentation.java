@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
@@ -26,8 +25,6 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
@@ -41,9 +38,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * Instruments the {@link ConsumerRecords#iterator()} method
  */
 public class ConsumerRecordsIteratorInstrumentation extends KafkaConsumerRecordsInstrumentation {
-    public ConsumerRecordsIteratorInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -55,27 +49,22 @@ public class ConsumerRecordsIteratorInstrumentation extends KafkaConsumerRecords
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.kafka.ConsumerRecordsIteratorInstrumentation$ConsumerRecordsAdvice";
+        return getClass().getName() + "$ConsumerRecordsAdvice";
     }
 
-    @SuppressWarnings("rawtypes")
     public static class ConsumerRecordsAdvice {
+
+        private static final KafkaInstrumentationHeadersHelper helper = KafkaInstrumentationHeadersHelper.get();
 
         @Nullable
         @AssignTo.Return
-        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-        public static Iterator<ConsumerRecord> wrapIterator(@Advice.Return @Nullable final Iterator<ConsumerRecord> iterator) {
+        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
+        public static Iterator<ConsumerRecord<?, ?>> wrapIterator(@Advice.Return @Nullable final Iterator<ConsumerRecord<?, ?>> iterator) {
             if (!tracer.isRunning() || tracer.currentTransaction() != null || iterator == null) {
                 return iterator;
             }
 
-            //noinspection ConstantConditions,rawtypes
-            KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord> kafkaInstrumentationHelper =
-                kafkaInstrHeadersHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
-            if (kafkaInstrumentationHelper != null) {
-                return kafkaInstrumentationHelper.wrapConsumerRecordIterator(iterator);
-            }
-            return iterator;
+            return helper.wrapConsumerRecordIterator(iterator);
         }
     }
 }

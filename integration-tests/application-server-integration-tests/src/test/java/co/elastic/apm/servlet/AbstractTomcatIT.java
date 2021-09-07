@@ -15,9 +15,7 @@ public abstract class AbstractTomcatIT extends AbstractServletContainerIntegrati
 
     @Override
     protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer
-            .withEnv("JPDA_ADDRESS", "5005")
-            .withEnv("JPDA_TRANSPORT", "dt_socket");
+        servletContainer.withEnv("CATALINA_OPTS", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
     }
 
     @Nullable
