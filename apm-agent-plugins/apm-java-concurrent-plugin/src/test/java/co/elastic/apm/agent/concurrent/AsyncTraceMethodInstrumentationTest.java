@@ -69,8 +69,6 @@ class AsyncTraceMethodInstrumentationTest {
 
         tracer = mockInstrumentationSetup.getTracer();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
-        new TestAsyncTraceMethodsClass().invokeAsync();
-        reporter.reset();
     }
 
     @AfterEach
