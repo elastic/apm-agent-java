@@ -1,8 +1,6 @@
-# apm-agent-java
+# elastic-apm-agent
 
 This project is responsible for creating the distribution i.e. the javaagent jar file which can be used when specifying the
 `-javaagent` JVM parameter.
-This jar contains all plugins,
-including all dependencies (a so-called uber jar).
 
-In order to avoid dependency conflicts, all dependencies are relocated into the namespace co.elastic.apm.agent.shaded.
+It contains the premain and agentmain method and loads the actual agent (apm-agent) in an isolated class loader hierarchy.

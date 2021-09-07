@@ -142,7 +142,7 @@ public class AgentMain {
 
     private synchronized static void loadAndInitializeAgent(String agentArguments, Instrumentation instrumentation, boolean premain) {
         try {
-            File agentJar = ResourceExtractionUtil.extractResourceToDirectory("elastic-apm-agent.jar", "elastic-apm-agent", ".jar", true);
+            File agentJar = ResourceExtractionUtil.extractResourceToDirectory("apm-agent.jar", "apm-agent", ".jar", true);
             URLClassLoader agentClassLoader = new URLClassLoader(new URL[]{agentJar.toURI().toURL()}, null);
             Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, agentClassLoader)
                 .getMethod("initialize", String.class, Instrumentation.class, File.class, boolean.class)
