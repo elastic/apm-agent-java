@@ -467,6 +467,11 @@ public class ElasticApmAgent {
             throw new IllegalStateException("The advice must be declared in a separate class: " + adviceClassName);
         }
         ClassLoader adviceClassLoader = instrumentation.getClass().getClassLoader();
+        if (adviceClassLoader == null) {
+            // the bootstrap class loader can't do resource lookup
+            // if classes are added via java.lang.instrument.Instrumentation.appendToBootstrapClassLoaderSearch
+            adviceClassLoader = ClassLoader.getSystemClassLoader();
+        }
         TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.of(adviceClassLoader), TypePool.Default.ReaderMode.FAST);
         TypeDescription typeDescription = pool.describe(adviceClassName).resolve();
         int adviceModifiers = typeDescription.getModifiers();
