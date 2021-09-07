@@ -24,12 +24,9 @@ import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
 
 import java.io.File;
 import java.lang.instrument.Instrumentation;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.FileSystems;
-import java.security.CodeSource;
-import java.security.ProtectionDomain;
 
 /**
  * This class is loaded by the system classloader,
@@ -152,23 +149,6 @@ public class AgentMain {
             System.err.println("[elastic-apm-agent] ERROR Failed to start agent");
             e.printStackTrace();
         }
-    }
-
-    private static File getAgentJarFile() throws URISyntaxException {
-        ProtectionDomain protectionDomain = AgentMain.class.getProtectionDomain();
-        CodeSource codeSource = protectionDomain.getCodeSource();
-        if (codeSource == null) {
-            throw new IllegalStateException(String.format("Unable to get agent location, protection domain = %s", protectionDomain));
-        }
-        URL location = codeSource.getLocation();
-        if (location == null) {
-            throw new IllegalStateException(String.format("Unable to get agent location, code source = %s", codeSource));
-        }
-        final File agentJar = new File(location.toURI());
-        if (!agentJar.getName().endsWith(".jar")) {
-            throw new IllegalStateException("Agent is not a jar file: " + agentJar);
-        }
-        return agentJar.getAbsoluteFile();
     }
 
 }
