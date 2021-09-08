@@ -19,32 +19,21 @@
 package co.elastic.apm.agent.lucee;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.http.client.HttpClientHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.returns;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-import java.util.Collection;
 import java.util.Arrays;
-import lucee.runtime.PageSource;
 
 public class LuceeApplicationInstrumentation extends TracerAwareInstrumentation {
-// lucee.runtime.listener.ModernAppListener#call(Component app, PageContext pc, Collection.Key eventName, Object[] args, boolean catchAbort) throws PageException {
 
     // lucee.runtime.listener.ModernAppListener#call
     @Override
@@ -81,7 +70,7 @@ public class LuceeApplicationInstrumentation extends TracerAwareInstrumentation 
             }
             String eventStringName = eventName.getString();
             // Skip, the main "body" event, as it's basically the full request, skip it to use a full span
-            if (eventStringName == "onRequest") {
+            if (eventStringName.equals("onRequest")) {
                 return null;
             }
             final AbstractSpan<?> parent = tracer.getActive();
@@ -109,8 +98,3 @@ public class LuceeApplicationInstrumentation extends TracerAwareInstrumentation 
         }
     }
 }
-/*
-lucee.runtime.listener.ModernAppListener#call
-lucee.runtime.type.Collection.Key
-	private Object call(Component app, PageContext pc, Collection.Key eventName, Object[] args, boolean catchAbort) throws PageException {
-*/

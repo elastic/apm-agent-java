@@ -19,9 +19,6 @@
 package co.elastic.apm.agent.lucee;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.http.client.HttpClientHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
@@ -30,7 +27,6 @@ import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -44,9 +40,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.sql.Array;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
 import lucee.runtime.type.Struct;
@@ -54,9 +48,12 @@ import lucee.runtime.PageContext;
 
 public class LuceeInternalRequestInstrumentation extends TracerAwareInstrumentation {
 
+    private static final String INTERNAL_REQUEST = "internalRequest";
+    private static final String LUCEE_RUNTIME_TYPE_STRUCT = "lucee.runtime.type.Struct";
+
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("lucee.runtime.functions.system.InternalRequest"));
+        return hasSuperType(named("lucee.runtime.functls ions.system.InternalRequest"));
     }
 
     @Override
@@ -66,19 +63,19 @@ public class LuceeInternalRequestInstrumentation extends TracerAwareInstrumentat
             .and(takesArgument(0, named("lucee.runtime.PageContext")))
             .and(takesArgument(1, String.class))
             .and(takesArgument(2, String.class))
-            .and(takesArgument(3, named("lucee.runtime.type.Struct")))
-            .and(takesArgument(4, named("lucee.runtime.type.Struct")))
-            .and(takesArgument(5, named("lucee.runtime.type.Struct")))
-            .and(takesArgument(6, named("lucee.runtime.type.Struct")))
+            .and(takesArgument(3, named(LUCEE_RUNTIME_TYPE_STRUCT)))
+            .and(takesArgument(4, named(LUCEE_RUNTIME_TYPE_STRUCT)))
+            .and(takesArgument(5, named(LUCEE_RUNTIME_TYPE_STRUCT)))
+            .and(takesArgument(6, named(LUCEE_RUNTIME_TYPE_STRUCT)))
             .and(takesArgument(7, Object.class))
             .and(takesArgument(8, String.class))
             .and(takesArgument(9, boolean.class))
-            .and(returns(named("lucee.runtime.type.Struct")));
+            .and(returns(named(LUCEE_RUNTIME_TYPE_STRUCT)));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("internalRequest");
+        return Arrays.asList(INTERNAL_REQUEST);
     }
 
     @Override
@@ -112,7 +109,7 @@ public class LuceeInternalRequestInstrumentation extends TracerAwareInstrumentat
             AbstractSpan<?> span = parent.createSpan()
                 .withName("internalRequest " + method + " " +template)
                 .withType("lucee")
-                .withSubtype("internalRequest")
+                .withSubtype(INTERNAL_REQUEST)
                 .withAction("call");
             if (span != null) {
                 ((Span)span).activate();
@@ -131,7 +128,7 @@ public class LuceeInternalRequestInstrumentation extends TracerAwareInstrumentat
             if (childTransaction != null) {
                 childTransaction.withName(method + " " + template);
                 childTransaction.setFrameworkName("Lucee");
-                childTransaction.withType("internalRequest");
+                childTransaction.withType(INTERNAL_REQUEST);
                 childTransaction.activate();
             } else {
                 ((Transaction)currentTransaction).activate();

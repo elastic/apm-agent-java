@@ -29,69 +29,49 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import java.util.Collection;
 import java.util.Arrays;
-import java.sql.Connection;
 
-public class LuceeDBManagerBeginIntegerInstrumentation extends TracerAwareInstrumentation {
-
+public class LuceeDuplicateInstrumentation extends TracerAwareInstrumentation {
+    // lucee.runtime.op.Duplicator#duplicate
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("lucee.runtime.db.DataSourceManager"));
+        return named("lucee.runtime.op.Duplicator");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("begin")
-            .and(takesArgument(1, int.class));
+        return named("duplicate");
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("lucee", "transaction");
+        return Arrays.asList("lucee", "duplicate");
     }
 
     @Override
     public String getAdviceClassName() {
-        return CfDBMBeginIntegerAdvice.class.getName();
+        return CfDuplicateAdvice.class.getName();
     }
-
-    public static class CfDBMBeginIntegerAdvice {
+    public static class CfDuplicateAdvice {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onBeforeExecute(@Advice.Argument(value=0) @Nullable int isolationMode) {
+        public static Object onBeforeExecute() {
 
             if (tracer == null || tracer.getActive() == null) {
                 return null;
             }
 
-            String transactionIsolationLvl = "";
-            switch(isolationMode) {
-                case Connection.TRANSACTION_READ_UNCOMMITTED:
-                    transactionIsolationLvl = "read_uncommitted";
-                    break;
-                case Connection.TRANSACTION_READ_COMMITTED:
-                    transactionIsolationLvl = "read_committed";
-                    break;
-                case Connection.TRANSACTION_REPEATABLE_READ:
-                    transactionIsolationLvl = "repeatable_read";
-                    break;
-                case Connection.TRANSACTION_SERIALIZABLE:
-                    transactionIsolationLvl = "serializable";
-                    break;
-                case Connection.TRANSACTION_NONE:
-                    transactionIsolationLvl = "none";
-                    break;
-            }
             final AbstractSpan<?> parent = tracer.getActive();
+            if (parent.getNameAsString().equals("Duplication")) {
+                return null;
+            }
             Object span = parent.createSpan()
-                    .withName("BEGIN " + transactionIsolationLvl)
-                    .withType("db")
-                    .withSubtype("transaction")
-                    .withAction("begin");
+                    .withName("Duplication")
+                    .withType("lucee")
+                    .withSubtype("duplicate")
+                    .withAction("duplicate");
 
             if (span != null) {
                 ((Span)span).activate();
