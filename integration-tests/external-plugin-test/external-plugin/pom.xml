@@ -18,13 +18,13 @@
 
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>co.elastic.apm</groupId>
             <artifactId>apm-agent-plugin-sdk</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>co.elastic.apm</groupId>
             <artifactId>apm-agent-api</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -46,7 +46,7 @@
         Not doing this will return noop transactions in the tests.
         -->
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>co.elastic.apm</groupId>
             <!--
             TODO use this artifact when we don't shade anymore
             <artifactId>elastic-apm-agent</artifactId>
@@ -60,7 +60,7 @@
         The test-jar of the core plugin provides useful test helpers such as AbstractInstrumentationTest and MockReporter.
         -->
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>co.elastic.apm</groupId>
             <artifactId>apm-agent-core</artifactId>
             <type>test-jar</type>
             <version>${project.version}</version>
@@ -73,7 +73,7 @@
         This will also make available for testing.
         -->
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>co.elastic.apm</groupId>
             <artifactId>plugin-instrumentation-target</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
@@ -83,11 +83,11 @@
     <build>
         <plugins>
             <!--
-            Currently, Byte Buddy has to be shaded in the same way the agent does.
-            This will likely change in the future, making it required not to shade.
+            Includes all dependencies into the plugin jar.
             -->
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.3</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -96,12 +96,6 @@
                         </goals>
                         <configuration>
                             <shadedArtifactAttached>false</shadedArtifactAttached>
-                            <relocations>
-                                <relocation>
-                                    <pattern>net.bytebuddy</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.bytebuddy</shadedPattern>
-                                </relocation>
-                            </relocations>
                         </configuration>
                     </execution>
                 </executions>
