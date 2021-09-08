@@ -117,9 +117,9 @@ public abstract class AbstractServletContainerIntegrationTest {
             .addInterceptor(loggingInterceptor)
             .readTimeout(ENABLE_DEBUGGING ? 0 : 10, TimeUnit.SECONDS)
             .build();
-        pathToJavaagent = AgentFileIT.getPathToJavaagent();
-        pathToAttach = AgentFileIT.getPathToAttacher();
-        pathToSlimAttach = AgentFileIT.getPathToSlimAttacher();
+        pathToJavaagent = AgentFileAccessor.getPathToJavaagent();
+        pathToAttach = AgentFileAccessor.getPathToAttacher();
+        pathToSlimAttach = AgentFileAccessor.getPathToSlimAttacher();
         checkFilePresent(pathToJavaagent);
         checkFilePresent(pathToAttach);
         checkFilePresent(pathToSlimAttach);

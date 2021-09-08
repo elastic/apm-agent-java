@@ -18,19 +18,12 @@
  */
 package co.elastic.apm.servlet;
 
-import org.junit.Test;
-
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileFilter;
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-public class AgentFileIT {
+public class AgentFileAccessor {
 
     static String getPathToJavaagent() {
         return getTargetJar("elastic-apm-agent");
@@ -58,22 +51,4 @@ public class AgentFileIT {
             .orElse(null);
     }
 
-    @Test
-    public void testEverythingIsShaded() throws IOException {
-        final String pathToJavaagent = getPathToJavaagent();
-        assertThat(pathToJavaagent).isNotNull();
-        try (JarFile agentJar = new JarFile(new File(pathToJavaagent))) {
-            assertThat(
-                agentJar.stream()
-                    .map(JarEntry::getName)
-                    .filter(entry -> !entry.startsWith("META-INF/"))
-                    .filter(entry -> !entry.startsWith("co/"))
-                    .filter(entry -> !entry.startsWith("schema/"))
-                    .filter(entry -> !entry.startsWith("asyncprofiler/"))
-                    .filter(entry -> !entry.startsWith("bootstrap/"))
-                    .filter(entry -> !entry.startsWith("ElasticApmLog4j-"))
-                    .filter(entry -> !entry.startsWith("elasticapmlog4j2.component.properties")))
-                .isEmpty();
-        }
-    }
 }
