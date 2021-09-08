@@ -57,8 +57,6 @@ pipeline {
             deleteDir()
             gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, shallow: false,
                         reference: '/var/lib/jenkins/.git-references/apm-agent-java.git')
-            // Prepare the maven opentelemetry extension
-            prepareMavenExtension()
             stash allowEmpty: true, name: 'source', useDefaultExcludes: false
             script {
               dir("${BASE_DIR}"){
