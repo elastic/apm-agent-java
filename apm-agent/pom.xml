@@ -347,7 +347,6 @@
             <plugin>
                 <groupId>com.coderplus.maven.plugins</groupId>
                 <artifactId>copy-rename-maven-plugin</artifactId>
-                <version>1.0</version>
                 <executions>
                     <execution>
                         <id>copy-file</id>
@@ -356,8 +355,16 @@
                             <goal>copy</goal>
                         </goals>
                         <configuration>
-                            <sourceFile>${apm-agent-parent.base.dir}/NOTICE</sourceFile>
-                            <destinationFile>target/classes/META-INF/NOTICE</destinationFile>
+                            <fileSets>
+                                <fileSet>
+                                    <sourceFile>${apm-agent-parent.base.dir}/NOTICE</sourceFile>
+                                    <destinationFile>target/classes/META-INF/NOTICE</destinationFile>
+                                </fileSet>
+                                <fileSet>
+                                    <sourceFile>${apm-agent-parent.base.dir}/LICENSE</sourceFile>
+                                    <destinationFile>target/classes/META-INF/LICENSE</destinationFile>
+                                </fileSet>
+                            </fileSets>
                         </configuration>
                     </execution>
                 </executions>
@@ -465,12 +472,7 @@
                                         <SCM-Revision>${git.commit.id.abbrev}</SCM-Revision>
                                     </manifestEntries>
                                 </transformer>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
-                                    <resource>META-INF/LICENSE</resource>
-                                    <file>${apm-agent-parent.base.dir}/LICENSE</file>
-                                </transformer>
                             </transformers>
                         </configuration>
                     </execution>
