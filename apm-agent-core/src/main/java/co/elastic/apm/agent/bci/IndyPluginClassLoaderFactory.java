@@ -83,12 +83,7 @@ public class IndyPluginClassLoaderFactory {
 
         Map<String, byte[]> typeDefinitions = getTypeDefinitions(classesToInjectCopy, classFileLocator);
         // child first semantics are important here as the plugin CL contains classes that are also present in the agent CL
-        ClassLoader pluginClassLoader;
-        if (targetClassLoader != null) {
-            pluginClassLoader = new IndyPluginClassLoader(targetClassLoader, agentClassLoader, typeDefinitions);
-        } else {
-            pluginClassLoader = new IndyPluginClassLoader(agentClassLoader, typeDefinitions);
-        }
+        ClassLoader pluginClassLoader = new IndyPluginClassLoader(targetClassLoader, agentClassLoader, typeDefinitions);
         injectedClasses.put(classesToInject, new WeakReference<>(pluginClassLoader));
 
         return pluginClassLoader;

@@ -38,7 +38,6 @@ import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
-import co.elastic.apm.agent.util.ClassLoaderUtils;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
@@ -239,7 +238,7 @@ public class ElasticApmAgent {
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
             adviceClassName2instrumentationClassLoader.put(
                 apmInstrumentation.getAdviceClassName(),
-                ClassLoaderUtils.systemClassLoaderIfNull(apmInstrumentation.getClass().getClassLoader()));
+                apmInstrumentation.getClass().getClassLoader());
         }
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
             @Override
@@ -743,7 +742,7 @@ public class ElasticApmAgent {
                         ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
                         adviceClassName2instrumentationClassLoader.put(
                             apmInstrumentation.getAdviceClassName(),
-                            ClassLoaderUtils.systemClassLoaderIfNull(instrumentationClass.getClassLoader()));
+                            instrumentationClass.getClassLoader());
                         ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
                         if (typeMatcher != null && isIncluded(apmInstrumentation, config)) {
                             agentBuilder = applyAdvice(tracer, agentBuilder, apmInstrumentation, typeMatcher.and(apmInstrumentation.getTypeMatcher()));
@@ -829,12 +828,11 @@ public class ElasticApmAgent {
     }
 
     public static ClassLoader getAgentClassLoader() {
-        // currently, the agent CL is the bootstrap CL in production
-        // but resources are not loadable from the bootstrap CL, only from the system CL
-        // also, we want to return a no-null CL from here
-        // in tests, the agent CL is the system CL
-        // in the future, the agent will be loaded from an isolated CL in production
-        return ClassLoaderUtils.systemClassLoaderIfNull(ElasticApmAgent.class.getClassLoader());
+        ClassLoader agentClassLoader = ElasticApmAgent.class.getClassLoader();
+        if (agentClassLoader == null) {
+            throw new IllegalStateException("Agent is loaded from bootstrap class loader as opposed to the dedicated agent class loader");
+        }
+        return agentClassLoader;
     }
 
     /**

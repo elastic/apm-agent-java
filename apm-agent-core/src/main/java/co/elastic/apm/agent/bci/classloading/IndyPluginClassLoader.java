@@ -19,7 +19,10 @@
 package co.elastic.apm.agent.bci.classloading;
 
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
+import net.bytebuddy.dynamic.loading.MultipleParentClassLoader;
 
+import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -30,11 +33,28 @@ import java.util.Map;
  * @see co.elastic.apm.agent.bci.IndyBootstrap
  */
 public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
-    public IndyPluginClassLoader(ClassLoader targetClassLoader, ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
-        super(new IndyPluginClassLoaderParent(agentClassLoader, targetClassLoader), true, typeDefinitions, PersistenceHandler.MANIFEST);
+
+    public IndyPluginClassLoader(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
+        super(getParent(targetClassLoader, agentClassLoader), true, typeDefinitions, PersistenceHandler.MANIFEST);
     }
 
-    public IndyPluginClassLoader(ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
-        super(agentClassLoader, true, typeDefinitions, PersistenceHandler.MANIFEST);
+    private static ClassLoader getParent(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader) {
+        if (targetClassLoader == null) {
+            // the MultipleParentClassLoader doesn't support null values
+            // the agent class loader already has the bootstrap class loader as the parent
+            return agentClassLoader;
+        }
+        if (agentClassLoader == ClassLoader.getSystemClassLoader()) {
+            // we're inside a unit test
+            // in unit tests, we need to search the target class loader first, unless it's an agent class
+            // that's because the system class loader may contain another version of the library under test
+            // see also co.elastic.apm.agent.TestClassWithDependencyRunner
+            return new IndyPluginClassLoaderParent(agentClassLoader, targetClassLoader);
+        } else {
+            // in prod, always search in the agent class loader first
+            // this ensures that we're referencing the agent bundled classes in advices rather than the ones form the application
+            // (for example for log4j, Byte Buddy, or even dependencies that are bundled in external plugins etc.)
+            return new MultipleParentClassLoader(agentClassLoader, Arrays.asList(agentClassLoader, targetClassLoader));
+        }
     }
 }
