@@ -15,7 +15,6 @@ pipeline {
     GITHUB_CHECK_ITS_NAME = 'Integration Tests'
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
-    MAVEN_OPTS = '-Dmaven.ext.class.path=.mvn/opentelemetry-maven-extension.jar'
     OPBEANS_REPO = 'opbeans-java'
   }
   options {
@@ -425,13 +424,4 @@ def reportTestResults(){
     keepLongStdio: true,
     testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
   codecov(repo: env.REPO, basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
-}
-
-/**
-* This method wraps the logic to fetch the maven opentelemetry extension.
-*/
-def prepareMavenExtension() {
-  dir("${BASE_DIR}") {
-    sh label: 'mvn extension', script: '.ci/otel-maven.sh'
-  }
 }
