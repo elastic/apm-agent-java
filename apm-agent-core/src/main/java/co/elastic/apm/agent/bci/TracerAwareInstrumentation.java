@@ -28,7 +28,6 @@ import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
  */
 public abstract class TracerAwareInstrumentation extends ElasticApmInstrumentation {
 
-    @VisibleForAdvice
     public static final Tracer tracer = GlobalTracer.get();
 
     /**

@@ -41,27 +41,29 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class JedisInstrumentation extends TracerAwareInstrumentation {
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object beforeSendCommand(@Advice.This(typing = Assigner.Typing.DYNAMIC) BinaryJedis thiz,
-                                           @Advice.Origin("#m") String method) {
-        Span span = RedisSpanUtils.createRedisSpan(method);
-        if (span != null) {
-            span.getContext().getDestination()
-                .withAddress(thiz.getClient().getHost())
-                .withPort(thiz.getClient().getPort());
+    public static class AdviceClass {
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object beforeSendCommand(@Advice.This(typing = Assigner.Typing.DYNAMIC) BinaryJedis thiz,
+                                               @Advice.Origin("#m") String method) {
+            Span span = RedisSpanUtils.createRedisSpan(method);
+            if (span != null) {
+                span.getContext().getDestination()
+                    .withAddress(thiz.getClient().getHost())
+                    .withPort(thiz.getClient().getPort());
+            }
+            return span;
         }
-        return span;
-    }
 
-    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-    public static void afterSendCommand(@Nullable @Advice.Enter Object spanObj,
-                                        @Nullable @Advice.Thrown Throwable thrown) {
-        Span span = (Span) spanObj;
-        if (span != null) {
-            span.captureException(thrown)
-                .deactivate()
-                .end();
+        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
+        public static void afterSendCommand(@Nullable @Advice.Enter Object spanObj,
+                                            @Nullable @Advice.Thrown Throwable thrown) {
+            Span span = (Span) spanObj;
+            if (span != null) {
+                span.captureException(thrown)
+                    .deactivate()
+                    .end();
+            }
         }
     }
 

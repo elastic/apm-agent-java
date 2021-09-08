@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.sdk.state.GlobalVariables;
+import co.elastic.apm.agent.util.LoggerUtils;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -27,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -40,8 +39,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public abstract class ServletVersionInstrumentation extends AbstractServletInstrumentation {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServletVersionInstrumentation.class);
-    private static final AtomicBoolean alreadyLogged = GlobalVariables.get(ServletVersionInstrumentation.class, "alreadyLogged", new AtomicBoolean(false));
+    private static final Logger logger = LoggerUtils.logOnce(LoggerFactory.getLogger(ServletVersionInstrumentation.class));
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -85,10 +83,9 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
     }
 
     public static void logServletVersion(@Nullable Object[] infoFromServletContext) {
-        if (alreadyLogged.get()) {
+        if (!logger.isInfoEnabled() && logger.isWarnEnabled()) {
             return;
         }
-        alreadyLogged.set(true);
 
         int majorVersion = -1;
         int minorVersion = -1;
@@ -104,9 +101,10 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
                 serverInfo = (String) infoFromServletContext[2];
             }
         }
-        logger.info("Servlet container info = {}", serverInfo);
         if (majorVersion < 3) {
-            logger.warn("Unsupported servlet version detected: {}.{}, no Servlet transaction will be created", majorVersion, minorVersion);
+            logger.warn("Unsupported servlet version detected: {}.{}, no Servlet transaction will be created. Servlet container info = {}", majorVersion, minorVersion, serverInfo);
+        } else {
+            logger.info("Servlet container info = {}", serverInfo);
         }
     }
 

@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -88,17 +87,14 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         return ignoreMessageQueues.get();
     }
 
-    @VisibleForAdvice
     public boolean shouldCollectQueueAddress() {
         return collectQueueAddress.get();
     }
 
-    @VisibleForAdvice
     public boolean shouldEndMessagingTransactionOnPoll() {
         return endMessagingTransactionOnPoll.get();
     }
 
-    @VisibleForAdvice
     public enum Strategy {
         POLLING,
         HANDLING,

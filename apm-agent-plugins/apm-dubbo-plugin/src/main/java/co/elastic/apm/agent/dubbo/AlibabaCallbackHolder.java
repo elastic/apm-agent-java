@@ -16,18 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.httpclient;
+package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
-import java.util.Arrays;
-import java.util.Collection;
-
-public abstract class AbstractHttpClientInstrumentation extends TracerAwareInstrumentation {
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "jdk-httpclient");
-    }
-
+public class AlibabaCallbackHolder {
+    public static final WeakConcurrentMap<ResponseCallback, AbstractSpan<?>> callbackSpanMap = WeakMapSupplier.createMap();
 }

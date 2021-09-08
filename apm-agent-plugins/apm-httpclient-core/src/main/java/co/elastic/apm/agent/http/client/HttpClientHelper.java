@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.http.client;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -36,7 +35,6 @@ public class HttpClientHelper {
     public static final String HTTP_SUBTYPE = "http";
 
     @Nullable
-    @VisibleForAdvice
     public static Span startHttpClientSpan(AbstractSpan<?> parent, String method, @Nullable URI uri, @Nullable CharSequence hostName) {
         String uriString = null;
         String scheme = null;
@@ -53,7 +51,6 @@ public class HttpClientHelper {
     }
 
     @Nullable
-    @VisibleForAdvice
     public static Span startHttpClientSpan(AbstractSpan<?> parent, String method, @Nullable String uri,
                                            String scheme, CharSequence hostName, int port) {
         Span span = parent.createExitSpan();
@@ -74,7 +71,6 @@ public class HttpClientHelper {
         return span;
     }
 
-    @VisibleForAdvice
     public static void setDestinationServiceDetails(Span span, @Nullable String scheme, @Nullable CharSequence host, int port) {
         if (scheme == null || host == null || host.length() == 0) {
             return;

@@ -19,15 +19,32 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 
-import java.util.Arrays;
-import java.util.Collection;
+import javax.annotation.Nullable;
+import java.net.URI;
+import java.net.http.HttpRequest;
 
-public abstract class AbstractHttpClientInstrumentation extends TracerAwareInstrumentation {
+public class HttpClientAdviceHelper {
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "jdk-httpclient");
+    private static final Tracer tracer = GlobalTracer.get();
+
+    @Nullable
+    public static Span startSpan(HttpRequest httpRequest) {
+        final AbstractSpan<?> parent = tracer.getActive();
+        if (parent == null) {
+            return null;
+        }
+
+        URI uri = httpRequest.uri();
+        Span span = HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri, uri.getHost());
+        if (span != null) {
+            span.activate();
+        }
+        return span;
     }
-
 }

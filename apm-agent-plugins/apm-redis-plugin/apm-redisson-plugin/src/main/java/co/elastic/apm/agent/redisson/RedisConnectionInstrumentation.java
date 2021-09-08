@@ -42,40 +42,42 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class RedisConnectionInstrumentation extends TracerAwareInstrumentation {
 
-    @Nullable
-    @Advice.OnMethodEnter(inline = false)
-    public static Object beforeSend(@Advice.This RedisConnection connection,
-                                   @Advice.Argument(0) Object args) {
-        Span span = RedisSpanUtils.createRedisSpan("");
-        if (span != null) {
-            // get command
-            if (args instanceof CommandsData) {
-                List<CommandData<?, ?>> commands = ((CommandsData) args).getCommands();
-                if (commands != null && !commands.isEmpty()) {
-                    span.appendToName(commands.get(0).getCommand().getName()).appendToName("... [bulk]");
+    public static class AdviceClass {
+        @Nullable
+        @Advice.OnMethodEnter(inline = false)
+        public static Object beforeSend(@Advice.This RedisConnection connection,
+                                       @Advice.Argument(0) Object args) {
+            Span span = RedisSpanUtils.createRedisSpan("");
+            if (span != null) {
+                // get command
+                if (args instanceof CommandsData) {
+                    List<CommandData<?, ?>> commands = ((CommandsData) args).getCommands();
+                    if (commands != null && !commands.isEmpty()) {
+                        span.appendToName(commands.get(0).getCommand().getName()).appendToName("... [bulk]");
+                    }
+                } else if (args instanceof CommandData) {
+                    span.appendToName(((CommandData<?, ?>) args).getCommand().getName());
                 }
-            } else if (args instanceof CommandData) {
-                span.appendToName(((CommandData<?, ?>) args).getCommand().getName());
+
+                // get connection address
+                Channel channel = connection.getChannel();
+                InetSocketAddress remoteAddress = (InetSocketAddress) channel.remoteAddress();
+                span.getContext().getDestination()
+                    .withInetAddress(remoteAddress.getAddress())
+                    .withPort(remoteAddress.getPort());
             }
-
-            // get connection address
-            Channel channel = connection.getChannel();
-            InetSocketAddress remoteAddress = (InetSocketAddress) channel.remoteAddress();
-            span.getContext().getDestination()
-                .withInetAddress(remoteAddress.getAddress())
-                .withPort(remoteAddress.getPort());
+            return span;
         }
-        return span;
-    }
 
-    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-    public static void afterSend(@Nullable @Advice.Enter Object spanObj,
-                                 @Nullable @Advice.Thrown Throwable thrown) {
-        Span span = (Span) spanObj;
-        if (span != null) {
-            span.captureException(thrown)
-                .deactivate()
-                .end();
+        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
+        public static void afterSend(@Nullable @Advice.Enter Object spanObj,
+                                     @Nullable @Advice.Thrown Throwable thrown) {
+            Span span = (Span) spanObj;
+            if (span != null) {
+                span.captureException(thrown)
+                    .deactivate()
+                    .end();
+            }
         }
     }
 

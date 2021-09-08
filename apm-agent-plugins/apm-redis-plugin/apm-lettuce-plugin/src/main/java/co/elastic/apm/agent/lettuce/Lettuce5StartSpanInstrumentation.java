@@ -66,24 +66,26 @@ public class Lettuce5StartSpanInstrumentation extends TracerAwareInstrumentation
         return Arrays.asList("redis", "lettuce");
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object beforeDispatch(@Nullable @Advice.Argument(0) RedisCommand<?, ?, ?> command) {
-        if (command != null) {
-            Span span = RedisSpanUtils.createRedisSpan(command.getType().name());
-            if (span != null) {
-                commandToSpan.put(command, span);
-                return span;
+    public static class AdviceClass {
+            @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object beforeDispatch(@Nullable @Advice.Argument(0) RedisCommand<?, ?, ?> command) {
+            if (command != null) {
+                Span span = RedisSpanUtils.createRedisSpan(command.getType().name());
+                if (span != null) {
+                    commandToSpan.put(command, span);
+                    return span;
+                }
             }
+            return null;
         }
-        return null;
-    }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-    public static void afterDispatch(@Nullable @Advice.Enter Object spanObj) {
-        Span span = (Span) spanObj;
-        if (span != null) {
-            span.deactivate();
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void afterDispatch(@Nullable @Advice.Enter Object spanObj) {
+            Span span = (Span) spanObj;
+            if (span != null) {
+                span.deactivate();
+            }
         }
     }
 }
