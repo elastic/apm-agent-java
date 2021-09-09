@@ -31,14 +31,7 @@ import java.nio.file.FileSystems;
 
 /**
  * This class is loaded by the system classloader,
- * and adds the rest of the agent to the bootstrap class loader search.
- * <p>
- * This is required to instrument Java core classes like {@link Runnable}.
- * </p>
- * <p>
- * Note that this relies on the fact that the system classloader is a parent-first classloader and first asks the bootstrap classloader
- * to resolve a class.
- * </p>
+ * It extracts the apm-agent.jar and loads it in an isolated class loader hierarchy.
  */
 public class AgentMain {
 
@@ -140,7 +133,13 @@ public class AgentMain {
 
     private synchronized static void loadAndInitializeAgent(String agentArguments, Instrumentation instrumentation, boolean premain) {
         try {
-            File agentJar = ResourceExtractionUtil.extractResourceToDirectory("apm-agent.jar", "apm-agent", ".jar", true);
+            String agentVersion = AgentMain.class.getPackage().getImplementationVersion();
+            if (agentVersion != null) {
+                agentVersion = "-" + agentVersion;
+            } else {
+                agentVersion = "";
+            }
+            File agentJar = ResourceExtractionUtil.extractResourceToDirectory("apm-agent.jar", "apm-agent" + agentVersion, ".jar", true);
             URLClassLoader agentClassLoader = new AgentClassLoader(agentJar, null);
             Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, agentClassLoader)
                 .getMethod("initialize", String.class, Instrumentation.class, File.class, boolean.class)
