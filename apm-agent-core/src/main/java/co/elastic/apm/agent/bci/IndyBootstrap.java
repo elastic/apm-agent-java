@@ -56,8 +56,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * When {@link TracerAwareInstrumentation#indyPlugin()} returns {@code true},
- * we instruct Byte Buddy (via {@link Advice.WithCustomMapping#bootstrap(java.lang.reflect.Method)})
+ * We instruct Byte Buddy (via {@link Advice.WithCustomMapping#bootstrap(java.lang.reflect.Method)})
  * to dispatch {@linkplain Advice.OnMethodEnter#inline() non-inlined advices} via an invokedynamic (indy) instruction.
  * The target method is linked to a dynamically created plugin class loader that is specific to an instrumentation plugin
  * and the class loader of the instrumented method.
@@ -157,10 +156,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  *     </li>
  *     <li>
  *         There are some things to watch out for when writing plugins,
- *         as explained in {@link TracerAwareInstrumentation#indyPlugin()}
+ *         as explained in {@link co.elastic.apm.agent.sdk.ElasticApmInstrumentation}
  *     </li>
  * </ul>
- * @see TracerAwareInstrumentation#indyPlugin()
+ * @see co.elastic.apm.agent.sdk.ElasticApmInstrumentation
  */
 @SuppressWarnings("JavadocReference")
 public class IndyBootstrap {

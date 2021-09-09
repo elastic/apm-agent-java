@@ -413,6 +413,7 @@ public class ElasticApmAgent {
     }
 
     private static AgentBuilder.Transformer.ForAdvice getTransformer(final ElasticApmInstrumentation instrumentation, final Logger logger, final ElementMatcher<? super MethodDescription> methodMatcher) {
+        validateAdvice(instrumentation);
         Advice.WithCustomMapping withCustomMapping = Advice
             .withCustomMapping()
             .with(new AssignToPostProcessorFactory())
@@ -422,12 +423,7 @@ public class ElasticApmAgent {
         if (offsetMapping != null) {
             withCustomMapping = withCustomMapping.bind(offsetMapping);
         }
-        // external plugins are always indy plugins
-        if (!(instrumentation instanceof TracerAwareInstrumentation)
-            || ((TracerAwareInstrumentation) instrumentation).indyPlugin()) {
-            validateAdvice(instrumentation);
-            withCustomMapping = withCustomMapping.bootstrap(IndyBootstrap.getIndyBootstrapMethod(logger));
-        }
+        withCustomMapping = withCustomMapping.bootstrap(IndyBootstrap.getIndyBootstrapMethod(logger));
         return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
             .advice(new ElementMatcher<MethodDescription>() {
                 @Override
@@ -456,7 +452,7 @@ public class ElasticApmAgent {
     }
 
     /**
-     * Validates invariants explained in {@link TracerAwareInstrumentation#indyPlugin()} and {@link ElasticApmInstrumentation#getAdviceClassName()}
+     * Validates invariants explained in {@link ElasticApmInstrumentation} and {@link ElasticApmInstrumentation#getAdviceClassName()}
      */
     public static void validateAdvice(ElasticApmInstrumentation instrumentation) {
         String adviceClassName = instrumentation.getAdviceClassName();

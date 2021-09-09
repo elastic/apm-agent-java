@@ -55,7 +55,7 @@
 
     <modules>
         <module>apm-agent-core</module>
-        <module>apm-agent</module>
+        <module>elastic-apm-agent</module>
         <module>apm-agent-benchmarks</module>
         <module>apm-agent-plugins</module>
         <module>apm-agent-api</module>
@@ -64,7 +64,7 @@
         <module>apm-agent-attach</module>
         <module>apm-agent-plugin-sdk</module>
         <module>apm-indy-bootstrap-module</module>
-        <module>elastic-apm-agent</module>
+        <module>apm-agent</module>
         <module>apm-agent-attach-cli</module>
         <module>apm-agent-common</module>
     </modules>

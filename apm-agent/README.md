@@ -2,4 +2,5 @@
 This jar contains all plugins,
 including all dependencies (a so-called uber jar).
 
-In order to avoid dependency conflicts, all dependencies are relocated into the namespace co.elastic.apm.agent.shaded.
+It is loaded in an isolated class loader.
+Therefore, dependencies don't need to be relocated.

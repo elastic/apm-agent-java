@@ -25,12 +25,12 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-common</artifactId>
+            <artifactId>apm-agent-plugin-sdk</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-plugin-sdk</artifactId>
+            <artifactId>apm-agent-common</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
