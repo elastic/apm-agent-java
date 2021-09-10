@@ -90,7 +90,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     private static final String pathToAttach;
     private static final String pathToSlimAttach;
 
-    static boolean ENABLE_DEBUGGING = true;
+    static boolean ENABLE_DEBUGGING = false;
     static boolean ENABLE_RUNTIME_ATTACH = true;
 
     /**
