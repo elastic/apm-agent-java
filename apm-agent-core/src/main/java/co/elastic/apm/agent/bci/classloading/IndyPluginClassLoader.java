@@ -34,6 +34,8 @@ import java.util.Map;
  */
 public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
 
+    private static final ClassLoader SYSTEM_CLASS_LOADER = ClassLoader.getSystemClassLoader();
+
     public IndyPluginClassLoader(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
         super(getParent(targetClassLoader, agentClassLoader), true, typeDefinitions, PersistenceHandler.MANIFEST);
     }
@@ -44,7 +46,7 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
             // the agent class loader already has the bootstrap class loader as the parent
             return agentClassLoader;
         }
-        if (agentClassLoader == ClassLoader.getSystemClassLoader()) {
+        if (agentClassLoader == SYSTEM_CLASS_LOADER) {
             // we're inside a unit test
             // in unit tests, we need to search the target class loader first, unless it's an agent class
             // that's because the system class loader may contain another version of the library under test

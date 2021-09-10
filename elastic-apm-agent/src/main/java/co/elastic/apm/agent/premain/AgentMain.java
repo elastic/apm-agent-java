@@ -20,7 +20,6 @@ package co.elastic.apm.agent.premain;
 
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.ThreadUtils;
-import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
 
 import java.io.File;
 import java.lang.instrument.Instrumentation;
@@ -142,7 +141,7 @@ public class AgentMain {
                 agentVersion = "";
             }
             File agentJar = getAgentJarFile();
-            URLClassLoader agentClassLoader = new ShadedClassLoader(agentJar, null, "agent/", ".esclass");
+            URLClassLoader agentClassLoader = new ShadedClassLoader(agentJar, getAgentClassLoaderParent(), "agent/", ".esclass");
             Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, agentClassLoader)
                 .getMethod("initialize", String.class, Instrumentation.class, File.class, boolean.class)
                 .invoke(null, agentArguments, instrumentation, agentJar, premain);
@@ -150,6 +149,14 @@ public class AgentMain {
         } catch (Exception | LinkageError e) {
             System.err.println("[elastic-apm-agent] ERROR Failed to start agent");
             e.printStackTrace();
+        }
+    }
+
+    private static ClassLoader getAgentClassLoaderParent() {
+        try {
+            return (ClassLoader) ClassLoader.class.getDeclaredMethod("getPlatformClassLoader").invoke(null);
+        } catch (Exception e) {
+            return null;
         }
     }
 
