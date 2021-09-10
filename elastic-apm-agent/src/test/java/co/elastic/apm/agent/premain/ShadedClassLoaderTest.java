@@ -42,6 +42,20 @@ class ShadedClassLoaderTest {
         assertThat(clazz).isNotSameAs(ShadedClassLoaderTest.class);
     }
 
+    @Test
+    void testGetShadedResource(@TempDir File tmp) throws Exception {
+        File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "agent/", ".resource");
+        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/", ".esclass");
+        byte[] expected = ClassLoader.getSystemClassLoader().getResourceAsStream(ShadedClassLoaderTest.class.getName().replace('.', '/') + ".class").readAllBytes();
+        String resourceName = ShadedClassLoaderTest.class.getName().replace('.', '/') + ".resource";
+
+        assertThat(cl.getResourceAsStream("agent/" + resourceName).readAllBytes()).isEqualTo(expected);
+        assertThat(cl.getResourceAsStream(resourceName).readAllBytes()).isEqualTo(expected);
+        assertThat(cl.getResource(resourceName).openStream().readAllBytes()).isEqualTo(expected);
+        assertThat(cl.getResources(resourceName).hasMoreElements()).isTrue();
+        assertThat(cl.getResources(resourceName).nextElement().openStream().readAllBytes()).isEqualTo(expected);
+    }
+
     private File createJar(File folder, List<Class<?>> classes, String classNamePrefix, String classNameExtension) throws IOException {
         File file = new File(folder, "test.jar");
         assertThat(file.createNewFile()).isTrue();
