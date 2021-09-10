@@ -45,6 +45,7 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -55,7 +56,7 @@ public abstract class WebSocketClientInstrumentation extends TracerAwareInstrume
 
     public static final String APM_PARENT_SPAN = "APM_PARENT_SPAN";
 
-    public static class WebSocketClientExecute extends WebSocketClientInstrumentation {
+    public static class WebSocketClientExecuteInstrumentation extends WebSocketClientInstrumentation {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -67,44 +68,56 @@ public abstract class WebSocketClientInstrumentation extends TracerAwareInstrume
             return named("execute").and(takesArguments(3));
         }
 
-        @AssignTo.Argument(index = 0, value = 2)
-        @Nonnull
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object[] onBefore(
-            @Advice.Argument(0) URI url,
-            @Advice.Argument(2) WebSocketHandler handler,
-            @Advice.Origin Class<?> clazz
-        ) {
-            Transaction t = WebfluxClientHelper.getOrCreateTransaction(tracer, clazz);
-            AbstractSpan httpSpan = WebfluxClientHelper.createHttpSpan(t, HttpMethod.GET, url);
-
-            WebSocketHandlerWrapper webSocketHandlerWrapper = new WebSocketHandlerWrapper(handler, httpSpan, tracer);
-            return new Object[]{webSocketHandlerWrapper, httpSpan};
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.webflux.client.WebSocketClientInstrumentation$WebSocketClientExecuteInstrumentation$WebSocketClientExecuteAdvice";
         }
 
-        @AssignTo.Return(index = 0)
-        @Nonnull
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static Object[] onAfter(
-            @Advice.Enter @Nullable Object[] enter,
-            @Advice.Return Mono<Void> monoResult,
-            @Advice.This Object source
-        ) {
-            Span httpSpan = enter[1] != null ? (Span) enter[1] : null;
-            String clientKey = ObjectUtils.getIdentityHexString(source);
+        public static class WebSocketClientExecuteAdvice {
+            @AssignTo.Argument(index = 0, value = 2)
+            @Nonnull
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object[] onBefore(
+                @Advice.Argument(0) URI url,
+                @Advice.Argument(2) WebSocketHandler handler,
+                @Advice.Origin Class<?> clazz
+            ) {
+                Transaction t = tracer.currentTransaction();
+                if (t != null) {
+                    AbstractSpan httpSpan = WebfluxClientHelper.createHttpSpan(t, HttpMethod.GET, url);
 
-            if (httpSpan != null && (clientKey != null && !clientKey.isEmpty())) {
-                //FIXME: the httpspan is double entried
-                WebfluxClientSubscriber.getLogPrefixMap().put(clientKey, httpSpan);
-                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) monoResult, clientKey, tracer,
-                    "WebSocketClientExecute-" + clientKey)};
-            } else {
-                return new Object[]{};
+                    WebSocketHandlerWrapper webSocketHandlerWrapper = new WebSocketHandlerWrapper(handler, httpSpan, tracer);
+                    return new Object[]{webSocketHandlerWrapper, httpSpan};
+                } else {
+                    return new Object[]{};
+                }
+            }
+
+            @AssignTo.Return(index = 0)
+            @Nonnull
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Object[] onAfter(
+                @Advice.Enter @Nullable Object[] enter,
+                @Advice.Return Mono<Void> monoResult,
+                @Advice.This Object source
+            ) {
+                Span httpSpan = enter[1] != null ? (Span) enter[1] : null;
+                String clientKey = ObjectUtils.getIdentityHexString(source);
+
+                if (httpSpan != null && (clientKey != null && !clientKey.isEmpty())) {
+                    //FIXME: the httpspan is double entried
+                    WebfluxClientSubscriber.getLogPrefixMap().put(clientKey, httpSpan);
+                    return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) monoResult, clientKey, tracer,
+                        "WebSocketClientExecute-" + clientKey)};
+                } else {
+                    return new Object[]{};
+                }
             }
         }
+
     }
 
-    public static class WebSocketSessionSendAdvice extends WebSocketClientInstrumentation {
+    public static class WebSocketSessionSendInstrumentation extends WebSocketClientInstrumentation {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -116,26 +129,34 @@ public abstract class WebSocketClientInstrumentation extends TracerAwareInstrume
             return named("send");
         }
 
-        @AssignTo.Return(index = 0)
-        @Nonnull
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static Object[] onAfter(
-            @Advice.Argument(0) Publisher<WebSocketMessage> messages,
-            @Advice.Return Mono<Void> sendResultMono,
-            @Advice.This WebSocketSession thiz
-        ) {
-            String logPrefix = (String) thiz.getAttributes().get(APM_PARENT_SPAN);
-            if (logPrefix != null && !logPrefix.isBlank()) {
-                messages.subscribe(new WebfluxClientSubscriber(null, logPrefix, tracer, "WebSocketSessionSendAdvice-"));
-                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) sendResultMono, logPrefix, tracer,
-                    "WebSocketSessionSendAdviceResult-")};
-            } else {
-                return new Object[]{sendResultMono};
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.webflux.client.WebSocketClientInstrumentation$WebSocketSessionSendInstrumentation$WebSocketSessionSendAdvice";
+        }
+
+        public static class WebSocketSessionSendAdvice {
+            @AssignTo.Return(index = 0)
+            @Nonnull
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Object[] onAfter(
+                @Advice.Argument(0) Publisher<WebSocketMessage> messages,
+                @Advice.Return Mono<Void> sendResultMono,
+                @Advice.This WebSocketSession thiz
+            ) {
+                String logPrefix = (String) thiz.getAttributes().get(APM_PARENT_SPAN);
+                if (logPrefix != null && !logPrefix.isBlank()) {
+                    messages.subscribe(new WebfluxClientSubscriber(null, logPrefix, tracer, "WebSocketSessionSendAdvice-"));
+                    return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) sendResultMono, logPrefix, tracer,
+                        "WebSocketSessionSendAdviceResult-")};
+                } else {
+                    return new Object[]{sendResultMono};
+                }
             }
         }
+
     }
 
-    public static class WebSocketSessionReceiveAdvice extends WebSocketClientInstrumentation {
+    public static class WebSocketSessionReceiveInstrumentation extends WebSocketClientInstrumentation {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -147,24 +168,32 @@ public abstract class WebSocketClientInstrumentation extends TracerAwareInstrume
             return named("receive");
         }
 
-        @AssignTo.Return(index = 0)
-        @Nonnull
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static Object[] onAfter(
-            @Advice.Return Flux<WebSocketMessage> receiveReturnFlux,
-            @Advice.This WebSocketSession thiz
-        ) {
-            String logPrefix = (String) thiz.getAttributes().get(APM_PARENT_SPAN);
-            if (logPrefix != null && !logPrefix.isBlank()) {
-                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) receiveReturnFlux, logPrefix, tracer,
-                    "WebSocketSessionReceiveAdvice-")};
-            } else {
-                return new Object[]{receiveReturnFlux};
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.webflux.client.WebSocketClientInstrumentation$WebSocketSessionReceiveInstrumentation$WebSocketSessionReceiveAdvice";
+        }
+
+        public static class WebSocketSessionReceiveAdvice {
+            @AssignTo.Return(index = 0)
+            @Nonnull
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Object[] onAfter(
+                @Advice.Return Flux<WebSocketMessage> receiveReturnFlux,
+                @Advice.This WebSocketSession thiz
+            ) {
+                String logPrefix = (String) thiz.getAttributes().get(APM_PARENT_SPAN);
+                if (logPrefix != null && !logPrefix.isBlank()) {
+                    return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) receiveReturnFlux, logPrefix, tracer,
+                        "WebSocketSessionReceiveAdvice-")};
+                } else {
+                    return new Object[]{receiveReturnFlux};
+                }
             }
         }
+
     }
 
-    public static class WebSocketSessionCloseAdvice extends WebSocketClientInstrumentation {
+    public static class WebSocketSessionCloseInstrumentation extends WebSocketClientInstrumentation {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -176,19 +205,60 @@ public abstract class WebSocketClientInstrumentation extends TracerAwareInstrume
             return named("close");
         }
 
-        @Nonnull
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void onBefore(
-            @Advice.Origin Class clazz,
-            @Advice.Origin("#m") String methodName,
-            @Advice.AllArguments Object[] arguments,
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.webflux.client.WebSocketClientInstrumentation$WebSocketSessionCloseInstrumentation$WebSocketSessionCloseAdvice";
+        }
+
+        public static class WebSocketSessionCloseAdvice {
+            @Nonnull
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void onBefore(
+                @Advice.Origin Class clazz,
+                @Advice.Origin("#m") String methodName,
+                @Advice.AllArguments Object[] arguments,
 //            @Advice.Return Flux<WebSocketMessage> closeReturnMono,
-            @Advice.This WebSocketSession thiz
-        ) {
-            //FIXME: probably end WebSession span
-            String logPrefix = thiz.getId();
-            if(logger.isDebugEnabled()){
-                logger.debug("WebSocketSessionCloseAdvice attr=" + thiz.getAttributes().get(APM_PARENT_SPAN) + " id=" + thiz.getId());
+                @Advice.This WebSocketSession thiz
+            ) {
+                //FIXME: probably end WebSession span
+                String logPrefix = thiz.getId();
+                if (logger.isDebugEnabled()) {
+                    logger.debug("WebSocketSessionCloseAdvice attr=" + thiz.getAttributes().get(APM_PARENT_SPAN) + " id=" + thiz.getId());
+                }
+            }
+        }
+
+
+    }
+
+
+    public static class WebSocketMessageInstrumentation extends WebSocketClientInstrumentation {
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return named("org.springframework.web.reactive.socket.WebSocketMessage");
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return isConstructor();
+        }
+
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.webflux.client.WebSocketClientInstrumentation$WebSocketMessageInstrumentation$WebSocketMessageAdvice";
+        }
+
+        public static class WebSocketMessageAdvice {
+            @Nonnull
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void onAfter(
+                @Advice.Origin Class clazz,
+                @Advice.AllArguments Object[] arguments
+            ) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("WebSocketMessageAdvice attr=");
+                }
             }
         }
     }
