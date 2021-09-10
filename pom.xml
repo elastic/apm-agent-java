@@ -520,6 +520,18 @@
                 <version>2.5.0</version>
                 <scope>test</scope>
             </dependency>
+
+            <!-- ensures that we always rely on a single bytebuddy version -->
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>${version.byte-buddy}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy-agent</artifactId>
+                <version>${version.byte-buddy}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
