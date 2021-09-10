@@ -41,7 +41,6 @@
             <artifactId>apm-logback-plugin-impl</artifactId>
             <version>${project.version}</version>
             <type>jar</type>
-            <classifier>non-shaded</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>

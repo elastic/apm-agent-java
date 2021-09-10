@@ -35,17 +35,11 @@ import java.lang.invoke.MethodType;
 
 public class MdcActivationListener implements ActivationListener {
 
-    // prevents the shade plugin from relocating org.slf4j.MDC to co.elastic.apm.agent.shaded.slf4j.MDC
-    private static final String SLF4J_MDC = "org!slf4j!MDC".replace('!', '.');
+    private static final String SLF4J_MDC = "org.slf4j.MDC";
 
     private static final String LOG4J_MDC = "org.apache.log4j.MDC";
 
-    // prevents the shade plugin from relocating org.apache.logging.log4j.ThreadContext to co.elastic.apm.agent.shaded.apache.logging.log4j.ThreadContext
-    private static final String LOG4J2_MDC = "org!apache!logging!log4j!ThreadContext".replace('!', '.');
-
-    // allows shading the log4j2 MDC impl as well, so that agent logging can also utilize log correlation when log_format_file or
-    // log_format_sout is set to JSON
-    private static final String SHADED_LOG4J2_MDC = "org.apache.logging.log4j.ThreadContext";
+    private static final String LOG4J2_MDC = "org.apache.logging.log4j.ThreadContext";
 
     private static final String JBOSS_LOGGING_MDC = "org.jboss.logging.MDC";
 
@@ -102,23 +96,6 @@ public class MdcActivationListener implements ActivationListener {
             @Override
             public MethodHandle get(ClassLoader classLoader) {
                 try {
-                    // if the LOG4J2_MDC is not shaded (e.g. in tests) - do not duplicate MDC entries
-                    if (SHADED_LOG4J2_MDC.equals(LOG4J2_MDC)) {
-                        return NOOP;
-                    }
-                    return MethodHandles.lookup()
-                        .findStatic(classLoader.loadClass(SHADED_LOG4J2_MDC), "put", MethodType.methodType(void.class, String.class, String.class));
-                } catch (Exception e) {
-                    logger.debug("Class loader " + classLoader + " cannot load the shaded log4j2 API", e);
-                    return NOOP;
-                }
-            }
-        }),
-        new WeakKeySoftValueLoadingCache<>(new WeakKeySoftValueLoadingCache.ValueSupplier<ClassLoader, MethodHandle>() {
-            @Nullable
-            @Override
-            public MethodHandle get(ClassLoader classLoader) {
-                try {
                     return MethodHandles.lookup()
                         .findStatic(classLoader.loadClass(JBOSS_LOGGING_MDC), "put", MethodType.methodType(Object.class, String.class, Object.class));
                 } catch (Exception e) {
@@ -163,23 +140,6 @@ public class MdcActivationListener implements ActivationListener {
                 try {
                     return MethodHandles.lookup()
                         .findStatic(classLoader.loadClass(LOG4J2_MDC), "remove", MethodType.methodType(void.class, String.class));
-                } catch (Exception ignore) {
-                    // No need to log - logged already when populated the put cache
-                    return NOOP;
-                }
-            }
-        }),
-        new WeakKeySoftValueLoadingCache<>(new WeakKeySoftValueLoadingCache.ValueSupplier<ClassLoader, MethodHandle>() {
-            @Nullable
-            @Override
-            public MethodHandle get(ClassLoader classLoader) {
-                try {
-                    // if the LOG4J2_MDC is not shaded (e.g. in tests) - do not duplicate MDC entries
-                    if (SHADED_LOG4J2_MDC.equals(LOG4J2_MDC)) {
-                        return NOOP;
-                    }
-                    return MethodHandles.lookup()
-                        .findStatic(classLoader.loadClass(SHADED_LOG4J2_MDC), "remove", MethodType.methodType(void.class, String.class));
                 } catch (Exception ignore) {
                     // No need to log - logged already when populated the put cache
                     return NOOP;
