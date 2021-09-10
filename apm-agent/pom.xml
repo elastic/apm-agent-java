@@ -11,8 +11,14 @@
     <artifactId>apm-agent</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
     <properties>
-        <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
 
         <!-- default value that will be overloaded through commit-id plugin -->
