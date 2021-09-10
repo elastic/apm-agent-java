@@ -59,10 +59,10 @@
                 </dependencies>
                 <executions>
                     <execution>
-                        <id>copy-artifact</id>
+                        <id>unpack-agent</id>
                         <phase>prepare-package</phase>
                         <goals>
-                            <goal>copy</goal>
+                            <goal>unpack</goal>
                         </goals>
                         <configuration>
                             <artifactItems>
@@ -71,11 +71,34 @@
                                     <artifactId>apm-agent</artifactId>
                                     <version>${project.version}</version>
                                     <type>jar</type>
-                                    <destFileName>apm-agent.jar</destFileName>
+                                    <outputDirectory>${project.basedir}/target/classes/agent</outputDirectory>
                                 </artifactItem>
                             </artifactItems>
-                            <outputDirectory>${project.basedir}/target/classes</outputDirectory>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>shade-classes</id>
+                        <phase>prepare-package</phase>
+                        <configuration>
+
+                            <target name="move-and-rename" description="Move and Rename">
+                                <move todir="${project.basedir}/target/classes/agent" overwrite="true">
+                                    <fileset dir="${project.basedir}/target/classes/agent" includes="**/*.class" />
+                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclass"/>
+                                </move>
+                            </target>
+
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

@@ -23,11 +23,13 @@ import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.instrument.Instrumentation;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.FileSystems;
+import java.security.CodeSource;
+import java.security.ProtectionDomain;
 
 /**
  * This class is loaded by the system classloader,
@@ -139,8 +141,8 @@ public class AgentMain {
             } else {
                 agentVersion = "";
             }
-            File agentJar = ResourceExtractionUtil.extractResourceToDirectory("apm-agent.jar", "apm-agent" + agentVersion, ".jar", true);
-            URLClassLoader agentClassLoader = new AgentClassLoader(agentJar, null);
+            File agentJar = getAgentJarFile();
+            URLClassLoader agentClassLoader = new ShadedClassLoader(agentJar, null, "agent/", ".esclass");
             Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, agentClassLoader)
                 .getMethod("initialize", String.class, Instrumentation.class, File.class, boolean.class)
                 .invoke(null, agentArguments, instrumentation, agentJar, premain);
@@ -151,13 +153,21 @@ public class AgentMain {
         }
     }
 
-    /*
-     * A simple custom class loader that makes it easy to ignore instrumenting all classes loaded by this class loader
-     */
-    public static class AgentClassLoader extends URLClassLoader {
-        public AgentClassLoader(File agentJar, ClassLoader parent) throws IOException {
-            super(new URL[]{agentJar.toURI().toURL()}, parent);
+    private static File getAgentJarFile() throws URISyntaxException {
+        ProtectionDomain protectionDomain = AgentMain.class.getProtectionDomain();
+        CodeSource codeSource = protectionDomain.getCodeSource();
+        if (codeSource == null) {
+            throw new IllegalStateException(String.format("Unable to get agent location, protection domain = %s", protectionDomain));
         }
+        URL location = codeSource.getLocation();
+        if (location == null) {
+            throw new IllegalStateException(String.format("Unable to get agent location, code source = %s", codeSource));
+        }
+        final File agentJar = new File(location.toURI());
+        if (!agentJar.getName().endsWith(".jar")) {
+            throw new IllegalStateException("Agent is not a jar file: " + agentJar);
+        }
+        return agentJar.getAbsoluteFile();
     }
 
 }
