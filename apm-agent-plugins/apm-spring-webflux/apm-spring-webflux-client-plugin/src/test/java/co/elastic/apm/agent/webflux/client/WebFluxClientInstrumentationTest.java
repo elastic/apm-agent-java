@@ -76,7 +76,10 @@ public class WebFluxClientInstrumentationTest extends AbstractInstrumentationTes
 
     @AfterAll
     static void stopApp() {
-        app.close();
+        if(app!=null){
+            app.close();
+        }
+
     }
 
     @BeforeEach
@@ -85,7 +88,7 @@ public class WebFluxClientInstrumentationTest extends AbstractInstrumentationTes
     }
 
     @AfterEach
-    public final void after() {
+    public void after() {
         Transaction transaction = tracer.currentTransaction();
         assertThat(transaction).isNotNull();
         transaction.deactivate().end();

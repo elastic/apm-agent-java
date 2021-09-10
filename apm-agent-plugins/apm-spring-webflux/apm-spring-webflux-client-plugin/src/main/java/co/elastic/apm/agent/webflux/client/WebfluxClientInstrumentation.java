@@ -20,6 +20,7 @@ package co.elastic.apm.agent.webflux.client;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
@@ -53,7 +54,7 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
 
     public static final Logger logger = LoggerFactory.getLogger(WebfluxClientInstrumentation.class);
 
-    public static class DefaultWebClientConstructor extends WebfluxClientInstrumentation {
+    public static class DefaultWebClientConstructorInstrumentation extends WebfluxClientInstrumentation {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return isConstructor();
@@ -64,20 +65,30 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
             return named("org.springframework.web.reactive.function.client.DefaultWebClient");
         }
 
-        @Nullable
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void onAfter(
-            @Advice.Argument(0) ExchangeFunction exchangeFunction,
-            @Advice.This Object thiz,
-            @Advice.Origin Class<?> clazz
-        ) {
-            String exchangeFunctionKey = ObjectUtils.getIdentityHexString(exchangeFunction);
-            Transaction t = WebfluxClientHelper.getOrCreateTransaction(tracer, clazz);
-            WebfluxClientSubscriber.getWebClientMap().put(exchangeFunctionKey, t);
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.webflux.client.WebfluxClientInstrumentation$DefaultWebClientConstructorInstrumentation$DefaultWebClientConstructorAdvice";
         }
+
+        public static class DefaultWebClientConstructorAdvice {
+            @Nullable
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void onAfter(
+                @Advice.Argument(0) ExchangeFunction exchangeFunction,
+                @Advice.This Object thiz,
+                @Advice.Origin Class<?> clazz
+            ) {
+                Transaction t = tracer.currentTransaction();
+                if (t != null) {
+                    String exchangeFunctionKey = ObjectUtils.getIdentityHexString(exchangeFunction);
+                    WebfluxClientSubscriber.getWebClientMap().put(exchangeFunctionKey, t);
+                }
+            }
+        }
+
     }
 
-    public static class ExchangeFunctionExchange extends WebfluxClientInstrumentation {
+    public static class ExchangeFunctionExchangeInstrumentation extends WebfluxClientInstrumentation {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("exchange");
@@ -88,29 +99,36 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
             return hasSuperType(named("org.springframework.web.reactive.function.client.ExchangeFunction").and(isInterface()));
         }
 
-        @AssignTo.Return(index = 0)
-        @Nullable
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static Object[] onAfter(
-            @Advice.Argument(0) ClientRequest clientRequest,
-            @Advice.Return Mono<ClientResponse> clientResponseMono,
-            @Advice.This Object thiz
-        ) {
-            String exchangeKey = ObjectUtils.getIdentityHexString(thiz);
-            String monoKey = ObjectUtils.getIdentityHexString(clientResponseMono);
-            Transaction t = (Transaction) WebfluxClientSubscriber.getWebClientMap().get(exchangeKey);
-            if (t != null) {
-                AbstractSpan httpSpan = WebfluxClientHelper.createHttpSpan(t, clientRequest.method(), clientRequest.url());
-                WebfluxClientSubscriber.getLogPrefixMap().put(clientRequest.logPrefix(), httpSpan);
-                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) clientResponseMono, clientRequest.logPrefix(), tracer,
-                    "ExchangeFunctionsExchange-" + monoKey)};
-            } else {
-                return new Object[]{clientResponseMono};
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.webflux.client.WebfluxClientInstrumentation$ExchangeFunctionExchangeInstrumentation$ExchangeFunctionExchangeAdvice";
+        }
+
+        public static class ExchangeFunctionExchangeAdvice {
+            @AssignTo.Return(index = 0)
+            @Nullable
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Object[] onAfter(
+                @Advice.Argument(0) ClientRequest clientRequest,
+                @Advice.Return Mono<ClientResponse> clientResponseMono,
+                @Advice.This Object thiz
+            ) {
+                String exchangeKey = ObjectUtils.getIdentityHexString(thiz);
+                Transaction t = (Transaction) WebfluxClientSubscriber.getWebClientMap().get(exchangeKey);
+                if (t != null) {
+                    String monoKey = ObjectUtils.getIdentityHexString(clientResponseMono);
+                    AbstractSpan httpSpan = WebfluxClientHelper.createHttpSpan(t, clientRequest.method(), clientRequest.url());
+                    WebfluxClientSubscriber.getLogPrefixMap().put(clientRequest.logPrefix(), httpSpan);
+                    return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) clientResponseMono, clientRequest.logPrefix(), tracer,
+                        "ExchangeFunctionsExchange-" + monoKey)};
+                } else {
+                    return new Object[]{clientResponseMono};
+                }
             }
         }
     }
 
-    public static class DefaultClientResponseBody extends WebfluxClientInstrumentation {
+    public static class DefaultClientResponseBodyInstrumentation extends WebfluxClientInstrumentation {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("body");
@@ -121,25 +139,33 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
             return named("org.springframework.web.reactive.function.client.DefaultClientResponse");
         }
 
-        @AssignTo.Return(index = 0)
-        @Nullable
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static Object[] onAfter(
-            @Advice.Return Object result,
-            @Advice.FieldValue("logPrefix") String logPrefix
-        ) {
-            //FIXME: probably dont need to key to the flux
-            String fluxKey = ObjectUtils.getIdentityHexString(result);
-            if (result instanceof Publisher) {
-                return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) result, logPrefix, tracer,
-                    "DefaultClientResponseBodyLift-" + fluxKey)};
-            } else {
-                return new Object[]{result};
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.webflux.client.WebfluxClientInstrumentation$DefaultClientResponseBodyInstrumentation$DefaultClientResponseBodyAdvice";
+        }
+
+        public static class DefaultClientResponseBodyAdvice {
+            @AssignTo.Return(index = 0)
+            @Nullable
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Object[] onAfter(
+                @Advice.Return Object result,
+                @Advice.FieldValue("logPrefix") String logPrefix
+            ) {
+                //FIXME: probably dont need to key to the flux
+                Span httpSpan = (Span) WebfluxClientSubscriber.getLogPrefixMap().get(logPrefix);
+                if (httpSpan != null && result instanceof Publisher) {
+                    String fluxKey = ObjectUtils.getIdentityHexString(result);
+                    return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) result, logPrefix, tracer,
+                        "DefaultClientResponseBodyLift-" + fluxKey)};
+                } else {
+                    return new Object[]{result};
+                }
             }
         }
     }
 
-    public static class BodyInsertersWriteStatic extends WebfluxClientInstrumentation {
+    public static class BodyInsertersWriteStaticInstrumentation extends WebfluxClientInstrumentation {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -151,18 +177,28 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
             return isStatic().and(named("write").and(takesArgument(0, Publisher.class)));
         }
 
-        @Nonnull
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void onBefore(
-            @Advice.Argument(0) Publisher publisher,
-            @Advice.Argument(4) BodyInserter.Context context
-        ) {
-            if (context.hints() != null && context.hints().containsKey(Hints.LOG_PREFIX_HINT)) {
-                String logPrefix = (String) context.hints().get(Hints.LOG_PREFIX_HINT);
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.webflux.client.WebfluxClientInstrumentation$BodyInsertersWriteStaticInstrumentation$BodyInsertersWriteStaticAdvice";
+        }
 
-                publisher.subscribe(new WebfluxClientSubscriber(null, logPrefix, tracer, "BodySend-BodyInserters-"));
+        public static class BodyInsertersWriteStaticAdvice {
+            @Nonnull
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void onBefore(
+                @Advice.Argument(0) Publisher publisher,
+                @Advice.Argument(4) BodyInserter.Context context
+            ) {
+                if (context.hints() != null && context.hints().containsKey(Hints.LOG_PREFIX_HINT)) {
+                    String logPrefix = (String) context.hints().get(Hints.LOG_PREFIX_HINT);
+                    Span httpSpan = (Span) WebfluxClientSubscriber.getLogPrefixMap().get(logPrefix);
+                    if (httpSpan != null) {
+                        publisher.subscribe(new WebfluxClientSubscriber(null, logPrefix, tracer, "BodySend-BodyInserters-"));
+                    }
+                }
             }
         }
+
     }
 
     @Override
