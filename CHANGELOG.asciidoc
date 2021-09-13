@@ -67,6 +67,7 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 * Fix Webflux response status code - {pull}1948[#1948]
 * Ensure path filtering is applied when Servlet path is not available - {pull}2099[#2099]
 * Align span subtype for MS SqlServer - {pull}2112[#2112]
+* Fix potential destination host corruption in OkHttp client spans - {pull}2118[#2118]
 
 [float]
 ===== Refactorings
