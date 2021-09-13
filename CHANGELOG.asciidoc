@@ -23,6 +23,10 @@ endif::[]
 [[release-notes-1.26.0]]
 ==== 1.26.0 - YYYY/MM/DD
 
+===== Potentially breaking changes
+* If you rely on Database span subtype and use Microsoft SQL Server, the span subtype has been changed from `sqlserver`
+to `mssql` to align with other agents.
+
 [float]
 ===== Features
 * Improved naming for Spring controllers - {pull}1906[#1906]
@@ -62,6 +66,7 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 * Fix gRPC non-terminated (therefore non-reported) client spans - {pull}2067[#2067]
 * Fix Webflux response status code - {pull}1948[#1948]
 * Ensure path filtering is applied when Servlet path is not available - {pull}2099[#2099]
+* Align span subtype for MS SqlServer - {pull}2112[#2112]
 * Fix potential destination host corruption in OkHttp client spans - {pull}2118[#2118]
 
 [float]

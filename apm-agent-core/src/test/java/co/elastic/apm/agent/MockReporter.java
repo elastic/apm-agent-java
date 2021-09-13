@@ -241,7 +241,7 @@ public class MockReporter implements Reporter {
                 }
             } else {
                 if (!allowUnlistedSubtype && hasSubtypes) {
-                    getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' is not allowed by the sped for type '%s'", subType, type));
+                    getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' is not allowed by the spec for type '%s'", subType, type));
                 }
             }
 
