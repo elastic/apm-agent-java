@@ -20,7 +20,6 @@ package co.elastic.apm.agent.sdk.state;
 
 import org.junit.jupiter.api.Test;
 
-import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -43,7 +42,7 @@ public class GlobalThreadLocalTest {
         final GlobalThreadLocal<Object> threadLocal = GlobalThreadLocal.get(
             GlobalThreadLocalTest.class,
             "testNonConstantDefaultValue",
-            new ObjectValueSupplier()
+            Object::new
         );
         Object mainThreadDefaultValue = threadLocal.get();
         assertThat(mainThreadDefaultValue).isNotNull();
@@ -53,10 +52,11 @@ public class GlobalThreadLocalTest {
 
     @Test
     void testConstantDefaultValue() throws ExecutionException, InterruptedException {
+        final Object constant = new Object();
         final GlobalThreadLocal<Object> threadLocal = GlobalThreadLocal.get(
             GlobalThreadLocalTest.class,
             "testConstantDefaultValue",
-            new ConstantValueSupplier()
+            () -> constant
         );
         Object mainThreadDefaultValue = threadLocal.get();
         assertThat(mainThreadDefaultValue).isNotNull();
@@ -99,23 +99,5 @@ public class GlobalThreadLocalTest {
 
         assertThat(threadLocal.getAndRemove()).isEqualTo("main");
         assertThat(threadLocal.get()).isNull();
-    }
-
-    private static class ObjectValueSupplier implements GlobalThreadLocal.DefaultValueSupplier<Object> {
-        @Nullable
-        @Override
-        public Object getDefaultValueForThread() {
-            return new Object();
-        }
-    }
-
-    private static class ConstantValueSupplier implements GlobalThreadLocal.DefaultValueSupplier<Object> {
-        private final Object defaultValue = new Object();
-
-        @Nullable
-        @Override
-        public Object getDefaultValueForThread() {
-            return defaultValue;
-        }
     }
 }
