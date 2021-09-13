@@ -18,18 +18,12 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.premain.JvmRuntimeInfo;
-import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.BooleanMatcher;
 import net.bytebuddy.matcher.ElementMatcher;
-
-import javax.annotation.Nullable;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -53,27 +47,8 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
         return named("send").and(returns(hasSuperType(named("java.net.http.HttpResponse"))));
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onBeforeExecute(@Advice.Argument(value = 0) HttpRequest httpRequest) {
-        return startSpan(httpRequest);
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.httpclient.HttpClientAdvice";
     }
-
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onAfterExecute(@Advice.Return @Nullable HttpResponse<?> response,
-                                      @Advice.Enter @Nullable Object spanObj,
-                                      @Advice.Thrown @Nullable Throwable t) {
-        if (spanObj instanceof Span) {
-            final Span span = (Span) spanObj;
-            if (response != null) {
-                int statusCode = response.statusCode();
-                span.getContext().getHttp().withStatusCode(statusCode);
-            }
-            span.captureException(t)
-                .deactivate()
-                .end();
-        }
-    }
-
-
 }

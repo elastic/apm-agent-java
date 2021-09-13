@@ -53,34 +53,36 @@ public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrume
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object setTransactionName(@SimpleMethodSignature String signature,
-                                             @Advice.Origin Class<?> clazz) {
-        AbstractSpan<?> active = tracer.getActive();
-        if (active == null) {
-            Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
-            if (transaction != null) {
-                transaction.withName(signature)
-                    .withType("scheduled")
-                    .activate();
-                return transaction;
+    public static class ScheduledTransactionNameAdvice {
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object setTransactionName(@SimpleMethodSignature String signature,
+                                                 @Advice.Origin Class<?> clazz) {
+            AbstractSpan<?> active = tracer.getActive();
+            if (active == null) {
+                Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                if (transaction != null) {
+                    transaction.withName(signature)
+                        .withType("scheduled")
+                        .activate();
+                    return transaction;
+                }
+            } else {
+                logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
             }
-        } else {
-            logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
+            return null;
         }
-        return null;
-    }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onMethodExit(@Advice.Enter @Nullable Object transactionObj,
-                                    @Advice.Thrown @Nullable Throwable t) {
-        if (transactionObj instanceof Transaction) {
-            Transaction transaction = (Transaction) transactionObj;
-            transaction.captureException(t)
-                .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
-                .deactivate()
-                .end();
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onMethodExit(@Advice.Enter @Nullable Object transactionObj,
+                                        @Advice.Thrown @Nullable Throwable t) {
+            if (transactionObj instanceof Transaction) {
+                Transaction transaction = (Transaction) transactionObj;
+                transaction.captureException(t)
+                    .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
+                    .deactivate()
+                    .end();
+            }
         }
     }
 
@@ -103,5 +105,10 @@ public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrume
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("concurrent", "scheduled");
+    }
+
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$ScheduledTransactionNameAdvice";
     }
 }

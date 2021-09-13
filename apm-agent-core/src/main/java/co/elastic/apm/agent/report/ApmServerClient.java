@@ -324,6 +324,10 @@ public class ApmServerClient {
         return isAtLeast(VERSION_7_0);
     }
 
+    public boolean supportsMultipleHeaderValues() {
+        return isAtLeast(VERSION_7_0);
+    }
+
     @Nullable
     Version getApmServerVersion(long timeout, TimeUnit timeUnit) throws InterruptedException, ExecutionException, TimeoutException {
         if (apmServerVersion != null) {

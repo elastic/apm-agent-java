@@ -104,21 +104,23 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
 
     public static class ExecutorRunnableInstrumentation extends ExecutorInstrumentation {
 
-        @Nullable
-        @AssignTo.Argument(0)
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Runnable onExecute(@Advice.This Executor thiz,
-                                         @Advice.Argument(0) @Nullable Runnable runnable) {
-            if (ExecutorInstrumentation.isExcluded(thiz)) {
-                return runnable;
+        public static class AdviceClass {
+            @Nullable
+            @AssignTo.Argument(0)
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Runnable onExecute(@Advice.This Executor thiz,
+                                             @Advice.Argument(0) @Nullable Runnable runnable) {
+                if (ExecutorInstrumentation.isExcluded(thiz)) {
+                    return runnable;
+                }
+                return JavaConcurrent.withContext(runnable, tracer);
             }
-            return JavaConcurrent.withContext(runnable, tracer);
-        }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
-                                  @Advice.Argument(value = 0) @Nullable Runnable runnable) {
-            JavaConcurrent.doFinally(thrown, runnable);
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+                                      @Advice.Argument(value = 0) @Nullable Runnable runnable) {
+                JavaConcurrent.doFinally(thrown, runnable);
+            }
         }
 
         /**
@@ -140,21 +142,23 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
 
     public static class ExecutorCallableInstrumentation extends ExecutorInstrumentation {
 
-        @Nullable
-        @AssignTo.Argument(0)
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Callable<?> onSubmit(@Advice.This Executor thiz,
-                                           @Advice.Argument(0) @Nullable Callable<?> callable) {
-            if (ExecutorInstrumentation.isExcluded(thiz)) {
-                return callable;
+        public static class AdviceClass {
+            @Nullable
+            @AssignTo.Argument(0)
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Callable<?> onSubmit(@Advice.This Executor thiz,
+                                               @Advice.Argument(0) @Nullable Callable<?> callable) {
+                if (ExecutorInstrumentation.isExcluded(thiz)) {
+                    return callable;
+                }
+                return JavaConcurrent.withContext(callable, tracer);
             }
-            return JavaConcurrent.withContext(callable, tracer);
-        }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
-                                  @Advice.Argument(0) @Nullable Callable<?> callable) {
-            JavaConcurrent.doFinally(thrown, callable);
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+                                      @Advice.Argument(0) @Nullable Callable<?> callable) {
+                JavaConcurrent.doFinally(thrown, callable);
+            }
         }
 
         /**
@@ -188,21 +192,23 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
                 .and(isOverriddenFrom(ExecutorService.class));
         }
 
-        @Nullable
-        @AssignTo.Argument(0)
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static <T> Collection<? extends Callable<T>> onEnter(@Advice.This Executor thiz,
-                                                                    @Nullable @Advice.Argument(0) Collection<? extends Callable<T>> callables) {
-            if (ExecutorInstrumentation.isExcluded(thiz)) {
-                return callables;
+        public static class AdviceClass {
+            @Nullable
+            @AssignTo.Argument(0)
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static <T> Collection<? extends Callable<T>> onEnter(@Advice.This Executor thiz,
+                                                                        @Nullable @Advice.Argument(0) Collection<? extends Callable<T>> callables) {
+                if (ExecutorInstrumentation.isExcluded(thiz)) {
+                    return callables;
+                }
+                return JavaConcurrent.withContext(callables, tracer);
             }
-            return JavaConcurrent.withContext(callables, tracer);
-        }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
-                                  @Nullable @Advice.Argument(0) Collection<? extends Callable<?>> callables) {
-            JavaConcurrent.doFinally(thrown, callables);
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+                                      @Nullable @Advice.Argument(0) Collection<? extends Callable<?>> callables) {
+                JavaConcurrent.doFinally(thrown, callables);
+            }
         }
 
         @Override
@@ -232,21 +238,23 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
                 .or(named("invoke").and(returns(Object.class)).and(takesArguments(ForkJoinTask.class)));
         }
 
-        @Nullable
-        @AssignTo.Argument(0)
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static ForkJoinTask<?> onExecute(@Advice.This Executor thiz,
-                                                @Advice.Argument(0) @Nullable ForkJoinTask<?> task) {
-            if (ExecutorInstrumentation.isExcluded(thiz)) {
-                return task;
+        public static class AdviceClass {
+            @Nullable
+            @AssignTo.Argument(0)
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static ForkJoinTask<?> onExecute(@Advice.This Executor thiz,
+                                                    @Advice.Argument(0) @Nullable ForkJoinTask<?> task) {
+                if (ExecutorInstrumentation.isExcluded(thiz)) {
+                    return task;
+                }
+                return JavaConcurrent.withContext(task, tracer);
             }
-            return JavaConcurrent.withContext(task, tracer);
-        }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
-                                  @Advice.Argument(value = 0) @Nullable ForkJoinTask<?> task) {
-            JavaConcurrent.doFinally(thrown, task);
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+                                      @Advice.Argument(value = 0) @Nullable ForkJoinTask<?> task) {
+                JavaConcurrent.doFinally(thrown, task);
+            }
         }
 
         @Override

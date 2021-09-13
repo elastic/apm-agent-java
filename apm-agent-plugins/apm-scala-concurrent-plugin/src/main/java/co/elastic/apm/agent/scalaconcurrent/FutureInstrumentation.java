@@ -59,14 +59,16 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
             return isConstructor();
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void onExit(@Advice.This Object thiz) {
-            final AbstractSpan<?> context = tracer.getActive();
-            if (context != null) {
-                promisesToContext.put(thiz, context);
-                // this span might be ended before the Promise$Transformation#run method starts
-                // we have to avoid that this span gets recycled, even in the above mentioned case
-                context.incrementReferences();
+        public static class AdviceClass {
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void onExit(@Advice.This Object thiz) {
+                final AbstractSpan<?> context = tracer.getActive();
+                if (context != null) {
+                    promisesToContext.put(thiz, context);
+                    // this span might be ended before the Promise$Transformation#run method starts
+                    // we have to avoid that this span gets recycled, even in the above mentioned case
+                    context.incrementReferences();
+                }
             }
         }
 
@@ -84,24 +86,26 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
             return named("run").and(returns(void.class));
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.This Object thiz) {
-            AbstractSpan<?> context = promisesToContext.remove(thiz);
-            if (context != null) {
-                context.activate();
-                // decrements the reference we incremented to avoid that the parent context gets recycled before the promise is run
-                // because we have activated it, we can be sure it doesn't get recycled until we deactivate in the OnMethodExit advice
-                context.decrementReferences();
+        public static class AdviceClass {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object onEnter(@Advice.This Object thiz) {
+                AbstractSpan<?> context = promisesToContext.remove(thiz);
+                if (context != null) {
+                    context.activate();
+                    // decrements the reference we incremented to avoid that the parent context gets recycled before the promise is run
+                    // because we have activated it, we can be sure it doesn't get recycled until we deactivate in the OnMethodExit advice
+                    context.decrementReferences();
+                }
+                return context;
             }
-            return context;
-        }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void onExit(@Advice.Enter @Nullable Object abstractSpanObj) {
-            if (abstractSpanObj instanceof AbstractSpan<?>) {
-                AbstractSpan<?> context = (AbstractSpan<?>) abstractSpanObj;
-                context.deactivate();
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void onExit(@Advice.Enter @Nullable Object abstractSpanObj) {
+                if (abstractSpanObj instanceof AbstractSpan<?>) {
+                    AbstractSpan<?> context = (AbstractSpan<?>) abstractSpanObj;
+                    context.deactivate();
+                }
             }
         }
     }
