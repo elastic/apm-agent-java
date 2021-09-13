@@ -89,19 +89,28 @@ public class BootstrapDelegationClassLoaderInstrumentation extends TracerAwareIn
         return Collections.singletonList("bootdelegation");
     }
 
-    @Advice.OnMethodExit(onThrowable = ClassNotFoundException.class)
-    private static void onExit(@Advice.Thrown(readOnly = false) @Nullable ClassNotFoundException thrown,
-                               @Advice.Argument(0) String className,
-                               @Advice.Return(readOnly = false) Class<?> returnValue) {
-        // only if the class loader wasn't able to load the agent classes themselves we apply our magic
-        if (thrown != null && className.startsWith("co.elastic.apm.agent")) {
-            try {
-                returnValue = Class.forName(className, false, null);
-                thrown = null;
-            } catch (ClassNotFoundException e) {
-                thrown.addSuppressed(e);
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$BootstrapAdvice";
+    }
+
+    public static class BootstrapAdvice {
+
+        @Advice.OnMethodExit(onThrowable = ClassNotFoundException.class)
+        private static void onExit(@Advice.Thrown(readOnly = false) @Nullable ClassNotFoundException thrown,
+                                   @Advice.Argument(0) String className,
+                                   @Advice.Return(readOnly = false) Class<?> returnValue) {
+            // only if the class loader wasn't able to load the agent classes themselves we apply our magic
+            if (thrown != null && className.startsWith("co.elastic.apm.agent")) {
+                try {
+                    returnValue = Class.forName(className, false, null);
+                    thrown = null;
+                } catch (ClassNotFoundException e) {
+                    thrown.addSuppressed(e);
+                }
             }
         }
+
     }
 
     @Override

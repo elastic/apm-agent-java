@@ -161,17 +161,37 @@ public interface JvmDiscoverer {
         @Override
         public Collection<JvmInfo> discoverJvms() throws Exception {
             Collection<JvmInfo> jvms = new ArrayList<>();
-            Process process = new ProcessBuilder("ps", "aux").start();
+            ProcessBuilder builder = Platform.isWindows() ?
+                    new ProcessBuilder("tasklist", "/FO", "CSV", "/V") :
+                    new ProcessBuilder("ps", "aux");
+            builder.redirectErrorStream(true);
+            Process process = builder.start();
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             for (String line = reader.readLine(); line != null; line = reader.readLine()) {
                 if (line.contains("java")) {
-                    String[] rows = line.split("\\s+");
-                    String pid = rows[1];
-                    String user = rows[0];
+                    String pid;
+                    String user;
+                    if (Platform.isWindows()) {
+                        String[] rows = line.split("\",\"");
+                        pid = rows[1];
+                        user = rows[6];
+                        if (user.contains("\\")) {
+                            //get rid of the domain
+                            user = user.substring(user.lastIndexOf('\\')+1);
+                        }
+                        //false positives might show from "java" being an argument
+                        if (!rows[0].startsWith("\"java")) {
+                            continue;
+                        }
+                    } else {
+                        String[] rows = line.split("\\s+");
+                        pid = rows[1];
+                        user = rows[0];
+                    }
                     try {
                         jvms.add(JvmInfo.of(pid, user, GetAgentProperties.getAgentAndSystemProperties(pid, userRegistry.get(user))));
                     } catch (Exception e) {
-                        logger.debug("Although the ps aux output contains 'java', the process {} does not seem to be a Java process.", pid);
+                        logger.debug("Although the process listing output contains 'java', the process {} does not seem to be a Java process.", pid);
                         logger.debug(line);
                         logger.debug(e.getMessage(), e);
                     }
@@ -184,11 +204,19 @@ public interface JvmDiscoverer {
         @Override
         public boolean isAvailable() {
             try {
-                return !Platform.isWindows()
-                    // attachment under hotspot involves executing a kill -3
-                    // this would terminate false positive matching processes (ps aux | grep java)
-                    && JvmInfo.isJ9()
-                    && new ProcessBuilder("ps", "aux").start().waitFor() == 0;
+                if (Platform.isWindows()) {
+                    //tasklist is always available, so no check for it
+                    return JvmInfo.isJ9();
+                } else {
+                    List<String> args = new ArrayList<>();
+                    args.add("ps");
+                    args.add("aux");
+                    return 
+                            // attachment under hotspot involves executing a kill -3
+                            // this would terminate false positive matching processes (ps aux | grep java)
+                            JvmInfo.isJ9()
+                            && UserRegistry.User.executeCommand(args).exitedNormally();
+                }
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
                 return false;

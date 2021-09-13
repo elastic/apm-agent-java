@@ -58,6 +58,7 @@ public abstract class TestApp {
 
     /**
      * Provides a way to bind additional files to the container file system
+     *
      * @return a map of file-paths to designated container-paths
      */
     public Map<String, String> getAdditionalFilesToBind() {
@@ -66,6 +67,7 @@ public abstract class TestApp {
 
     /**
      * Provides a way to configure additional environment variables for a specific app
+     *
      * @return a map of env variable names to values
      */
     public Map<String, String> getAdditionalEnvVariables() {

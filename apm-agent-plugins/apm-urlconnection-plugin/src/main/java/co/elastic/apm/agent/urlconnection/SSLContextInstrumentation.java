@@ -71,12 +71,14 @@ public class SSLContextInstrumentation extends TracerAwareInstrumentation {
         return Collections.singleton("ssl-context");
     }
 
-    /**
-     * This will not allow using the default SSL factory from any agent thread
-     */
-    @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
-    public static boolean skipExecutionIfAgentThread() {
-        return Thread.currentThread().getName().startsWith(ThreadUtils.ELASTIC_APM_THREAD_PREFIX);
+    public static class AdviceClass {
+        /**
+         * This will not allow using the default SSL factory from any agent thread
+         */
+        @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
+        public static boolean skipExecutionIfAgentThread() {
+            return Thread.currentThread().getName().startsWith(ThreadUtils.ELASTIC_APM_THREAD_PREFIX);
+        }
     }
 
 }
