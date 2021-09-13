@@ -33,18 +33,17 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 
-@SuppressWarnings("rawtypes")
-class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
+class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
 
     public static final Logger logger = LoggerFactory.getLogger(ConsumerRecordsIteratorWrapper.class);
     public static final String FRAMEWORK_NAME = "Kafka";
 
-    private final Iterator<ConsumerRecord> delegate;
+    private final Iterator<ConsumerRecord<?, ?>> delegate;
     private final ElasticApmTracer tracer;
     private final CoreConfiguration coreConfiguration;
     private final MessagingConfiguration messagingConfiguration;
 
-    public ConsumerRecordsIteratorWrapper(Iterator<ConsumerRecord> delegate, ElasticApmTracer tracer) {
+    public ConsumerRecordsIteratorWrapper(Iterator<ConsumerRecord<?, ?>> delegate, ElasticApmTracer tracer) {
         this.delegate = delegate;
         this.tracer = tracer;
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
@@ -69,9 +68,9 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
     }
 
     @Override
-    public ConsumerRecord next() {
+    public ConsumerRecord<?, ?> next() {
         endCurrentTransaction();
-        ConsumerRecord record = delegate.next();
+        ConsumerRecord<?, ?> record = delegate.next();
         try {
             String topic = record.topic();
             if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {

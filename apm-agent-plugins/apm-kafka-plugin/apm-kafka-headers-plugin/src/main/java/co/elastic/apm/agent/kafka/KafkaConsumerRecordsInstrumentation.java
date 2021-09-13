@@ -18,17 +18,12 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public abstract class KafkaConsumerRecordsInstrumentation extends BaseKafkaHeadersInstrumentation {
-
-    public KafkaConsumerRecordsInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

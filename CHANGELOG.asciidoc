@@ -23,6 +23,10 @@ endif::[]
 [[release-notes-1.26.0]]
 ==== 1.26.0 - YYYY/MM/DD
 
+===== Potentially breaking changes
+* If you rely on Database span subtype and use Microsoft SQL Server, the span subtype has been changed from `sqlserver`
+to `mssql` to align with other agents.
+
 [float]
 ===== Features
 * Improved naming for Spring controllers - {pull}1906[#1906]
@@ -37,11 +41,37 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 * Add the instance name to `context.destination.service.resource` to JDBC spans, if use_jdbc_service_resource_auto_inference is set to true - {pull}1928[#1928]
 
 [float]
+===== Performance improvements
+* Reduce GC time overhead caused by WeakReferences - {pull}2086[#2086]
+* Reduced memory overhead by a smarter type pool caching strategy - {pull}2102[#2102]. +
+  The type pool cache improves the startup times by speeding up type matching
+  (determining whether a class that's about to be loaded should be instrumented).
+  Generally, the more types that are cached, the faster the startup. +
+  The old strategy did not impose a limit to the cache but cleared it after it hasn't been accessed in a while.
+  However, load test have discovered that the cache may never be cleared and leave a permanent overhead of 23mb.
+  The actual size of the cache highly depends on the application and loosely correlates with the number of loaded classes. +
+  The new caching strategy targets to allocate 1% of the committed heap, at least 0.5mb and max 10mb.
+  If a particular entry hasn't been accessed within 20s, it will be removed from the cache. +
+  The results based on load testing are very positive:
+** Equivalent startup times (within the margins of error of the previous strategy)
+** Equivalent allocation rate (within the margins of error of the previous strategy)
+** Reduced avg heap utilization from 10%/15mb (previous strategy) to within margins of error without the agent
+** Reduced GC time due to the additional headroom that the application can utilize.
+** Based on heap dump analysis, after warmup, the cache size is now around 59kb (down from 23mb with the previous strategy).
+
+
+[float]
 ===== Bug fixes
 * Fix failure to parse some forms of the `Implementation-Version` property from jar manifest files - {pull}1931[#1931]
 * Ensure single value for context-propagation header - {pull}1937[#1937]
 * Fix gRPC non-terminated (therefore non-reported) client spans - {pull}2067[#2067]
 * Fix Webflux response status code - {pull}1948[#1948]
+* Ensure path filtering is applied when Servlet path is not available - {pull}2099[#2099]
+* Align span subtype for MS SqlServer - {pull}2112[#2112]
+
+[float]
+===== Refactorings
+* Migrate several plugins to indy dispatcher {pull}2087[#2087], {pull}2088[#2088], {pull}2090[#2090], {pull}2094[#2094], {pull}2095[#2095]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

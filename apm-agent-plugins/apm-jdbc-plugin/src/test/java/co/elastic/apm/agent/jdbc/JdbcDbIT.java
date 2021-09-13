@@ -42,7 +42,7 @@ public class JdbcDbIT extends AbstractJdbcInstrumentationTest {
             {"jdbc:tc:postgresql:9://hostname/databasename", "postgresql", "databasename"},
             {"jdbc:tc:postgresql:10://hostname/databasename", "postgresql", "databasename"},
             {"jdbc:tc:mariadb:10://hostname/databasename", "mariadb", "databasename"},
-            {"jdbc:tc:sqlserver:2017-CU12://hostname/databasename", "sqlserver", "master"},
+            {"jdbc:tc:sqlserver:2017-CU12://hostname/databasename", "mssql", "master"},
             {"jdbc:tc:db2:11.5.0.0a://hostname/databasename", "db2", null},
             {"jdbc:tc:oracle://hostname/databasename", "oracle", null},
         });

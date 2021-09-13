@@ -200,8 +200,8 @@ class IOUtilsTest  {
                 return file;
             }));
         }
-        executorService.shutdown();
-        executorService.awaitTermination(1, TimeUnit.SECONDS);
+
+        ExecutorUtils.shutdownAndWaitTermination(executorService, 1, TimeUnit.SECONDS);
 
         for (Future<File> future : futureList) {
             assertThat(future.get()).isNotNull();

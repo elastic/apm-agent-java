@@ -22,10 +22,6 @@ import javax.annotation.Nullable;
 
 public class ObjectUtils {
 
-    public static ClassLoader systemClassLoaderIfNull(@Nullable ClassLoader classLoader) {
-        return classLoader != null ? classLoader : ClassLoader.getSystemClassLoader();
-    }
-
     public static <T> T defaultIfNull(@Nullable T obj, T defaultIfNull) {
         return obj != null ? obj : defaultIfNull;
     }
