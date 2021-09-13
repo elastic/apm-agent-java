@@ -94,8 +94,7 @@ public class GlobalThreadLocalTest {
         future = executor.submit(threadLocal::getAndRemove);
         // we can rely on that because we use a single thread executor
         assertThat(future.get()).isEqualTo("worker");
-        future = executor.submit(threadLocal::getAndRemove);
-        // we can rely on that because we use a single thread executor
+        future = executor.submit((Callable<Object>) threadLocal::get);
         assertThat(future.get()).isNull();
 
         assertThat(threadLocal.getAndRemove()).isEqualTo("main");
