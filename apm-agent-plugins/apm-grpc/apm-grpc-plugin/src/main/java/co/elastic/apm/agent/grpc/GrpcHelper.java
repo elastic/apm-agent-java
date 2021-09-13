@@ -387,35 +387,37 @@ public class GrpcHelper {
         // we cannot remove yet, because the span could have been ended already through ClientCall#start(), in which case
         // it will be recycled ahead of time due to reference decrement when removed from the map
         Span spanOfPlaceholder = delayedClientCallSpans.get(placeholderClientCall);
-        if (spanOfPlaceholder != null) {
-            try {
-                // we cannot remove yet, because the span could have been ended already, in which case
-                // it will be recycled ahead of time due to reference decrement when removed from the map
-                Span spanOfRealClientCall = clientCallSpans.get(realClientCall);
-                boolean mapPlaceholderSpanToRealClientCall = false;
-                if (spanOfRealClientCall == null) {
-                    mapPlaceholderSpanToRealClientCall = true;
-                } else if (spanOfRealClientCall != spanOfPlaceholder) {
-                    // the placeholder span is the one we want to use, we need to discard the real call span
-                    if (!spanOfRealClientCall.isFinished()) {
-                        spanOfRealClientCall
-                            .requestDiscarding()
-                            // no need to deactivate
-                            .end();
-                    }
-                    // the discarded span will be removed when replaced with the correct span
-                    mapPlaceholderSpanToRealClientCall = true;
-                } else if (spanOfRealClientCall.isFinished()) {
-                    // the real client call is already mapped to the correct span, but it is already ended, so needs to be removed
-                    clientCallSpans.remove(realClientCall);
-                }
+        if (spanOfPlaceholder == null) {
+            return;
+        }
 
-                if (mapPlaceholderSpanToRealClientCall && !spanOfPlaceholder.isFinished()) {
-                    clientCallSpans.put(realClientCall, spanOfPlaceholder);
+        try {
+            // we cannot remove yet, because the span could have been ended already, in which case
+            // it will be recycled ahead of time due to reference decrement when removed from the map
+            Span spanOfRealClientCall = clientCallSpans.get(realClientCall);
+            boolean mapPlaceholderSpanToRealClientCall = false;
+            if (spanOfRealClientCall == null) {
+                mapPlaceholderSpanToRealClientCall = true;
+            } else if (spanOfRealClientCall != spanOfPlaceholder) {
+                // the placeholder span is the one we want to use, we need to discard the real call span
+                if (!spanOfRealClientCall.isFinished()) {
+                    spanOfRealClientCall
+                        .requestDiscarding()
+                        // no need to deactivate
+                        .end();
                 }
-            } finally {
-                delayedClientCallSpans.remove(placeholderClientCall);
+                // the discarded span will be removed when replaced with the correct span
+                mapPlaceholderSpanToRealClientCall = true;
+            } else if (spanOfRealClientCall.isFinished()) {
+                // the real client call is already mapped to the correct span, but it is already ended, so needs to be removed
+                clientCallSpans.remove(realClientCall);
             }
+
+            if (mapPlaceholderSpanToRealClientCall && !spanOfPlaceholder.isFinished()) {
+                clientCallSpans.put(realClientCall, spanOfPlaceholder);
+            }
+        } finally {
+            delayedClientCallSpans.remove(placeholderClientCall);
         }
     }
 
