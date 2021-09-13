@@ -81,6 +81,9 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
     @Test
     void simpleCallWithRuntimeError() {
         simpleCallWithError("boom", "UNKNOWN", Outcome.FAILURE);
+
+        // Listener removes transaction from map, but only GC removes it from the server call map
+        reporter.enableGcWhenAssertingObjectRecycling();
     }
 
     @Test
@@ -166,6 +169,11 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
             .isEqualTo(expectedClientError ? 1 : 0);
 
         checkUnaryTransaction(getFirstTransaction(), expectedTransactionStatus, expectedTransactionOutcome);
+
+        if (method.equals("onHalfClose")) {
+            // Listener removes transaction from map, but only GC removes it from the server call map
+            reporter.enableGcWhenAssertingObjectRecycling();
+        }
     }
 
     @Test
