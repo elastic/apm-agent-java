@@ -355,7 +355,6 @@ public class IndyBootstrap {
                     // tracer.getConfig(Config.class) would return null when called from an advice as the classes are not the same
                     .or(nameContains("Config").and(hasSuperType(is(ConfigurationOptionProvider.class)))));
             Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
-            ElasticApmAgent.validateAdvice(adviceInPluginCL);
             Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass(LOOKUP_EXPOSER_CLASS_NAME);
             // can't use MethodHandle.lookup(), see also https://github.com/elastic/apm-agent-java/issues/1450
             MethodHandles.Lookup indyLookup = (MethodHandles.Lookup) lookupExposer.getMethod("getLookup").invoke(null);

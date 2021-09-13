@@ -21,20 +21,19 @@ package co.elastic.apm.agent.process;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.util.SpanConcurrentHashMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nonnull;
-import java.io.File;
 import java.util.List;
 
 /**
  * Having direct references to {@link Process} class is safe here because those are loaded in the bootstrap classloader.
- * Thus there is no need to separate helper interface from implementation or use {@link co.elastic.apm.agent.bci.HelperClassManager}.
+ * Thus, there is no need to separate helper interface from implementation.
  */
 class ProcessHelper {
 
-    private static final ProcessHelper INSTANCE = new ProcessHelper(WeakMapSupplier.<Process, Span>createMap());
+    private static final ProcessHelper INSTANCE = new ProcessHelper(SpanConcurrentHashMap.<Process, Span>createWeakMap());
 
     private final WeakConcurrentMap<Process, Span> inFlightSpans;
 

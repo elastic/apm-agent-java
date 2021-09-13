@@ -57,15 +57,17 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             super(named("doStartTransaction"));
         }
 
-        @Nullable
-        @AssignTo.Return
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static Object doStartTransaction(@Advice.Origin Class<?> clazz) {
-            Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
-            if (transaction != null) {
-                transaction.setFrameworkName(Utils.FRAMEWORK_NAME);
+        public static class AdviceClass {
+            @Nullable
+            @AssignTo.Return
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Object doStartTransaction(@Advice.Origin Class<?> clazz) {
+                Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                if (transaction != null) {
+                    transaction.setFrameworkName(Utils.FRAMEWORK_NAME);
+                }
+                return transaction;
             }
-            return transaction;
         }
     }
 
@@ -75,29 +77,31 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             super(named("doStartTransactionWithRemoteParentFunction"));
         }
 
-        @Nullable
-        @AssignTo.Return
-        @SuppressWarnings({"UnusedAssignment", "ParameterCanBeLocal", "unused"})
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static Object doStartTransaction(@Advice.Origin Class<?> clazz,
-                                                @Advice.Argument(0) MethodHandle getFirstHeader,
-                                                @Advice.Argument(1) @Nullable Object headerExtractor,
-                                                @Advice.Argument(2) MethodHandle getAllHeaders,
-                                                @Advice.Argument(3) @Nullable Object headersExtractor) {
-            Transaction transaction = null;
-            if (headersExtractor != null) {
-                HeadersExtractorBridge headersExtractorBridge = HeadersExtractorBridge.get(getFirstHeader, getAllHeaders);
-                transaction = tracer.startChildTransaction(HeadersExtractorBridge.Extractor.of(headerExtractor, headersExtractor), headersExtractorBridge, clazz.getClassLoader());
-            } else if (headerExtractor != null) {
-                HeaderExtractorBridge headersExtractorBridge = HeaderExtractorBridge.get(getFirstHeader);
-                transaction = tracer.startChildTransaction(headerExtractor, headersExtractorBridge, clazz.getClassLoader());
-            } else {
-                transaction = tracer.startRootTransaction(clazz.getClassLoader());
+        public static class AdviceClass {
+            @Nullable
+            @AssignTo.Return
+            @SuppressWarnings({"UnusedAssignment", "ParameterCanBeLocal", "unused"})
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Object doStartTransaction(@Advice.Origin Class<?> clazz,
+                                                    @Advice.Argument(0) MethodHandle getFirstHeader,
+                                                    @Advice.Argument(1) @Nullable Object headerExtractor,
+                                                    @Advice.Argument(2) MethodHandle getAllHeaders,
+                                                    @Advice.Argument(3) @Nullable Object headersExtractor) {
+                Transaction transaction = null;
+                if (headersExtractor != null) {
+                    HeadersExtractorBridge headersExtractorBridge = HeadersExtractorBridge.get(getFirstHeader, getAllHeaders);
+                    transaction = tracer.startChildTransaction(HeadersExtractorBridge.Extractor.of(headerExtractor, headersExtractor), headersExtractorBridge, clazz.getClassLoader());
+                } else if (headerExtractor != null) {
+                    HeaderExtractorBridge headersExtractorBridge = HeaderExtractorBridge.get(getFirstHeader);
+                    transaction = tracer.startChildTransaction(headerExtractor, headersExtractorBridge, clazz.getClassLoader());
+                } else {
+                    transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                }
+                if (transaction != null) {
+                    transaction.setFrameworkName(Utils.FRAMEWORK_NAME);
+                }
+                return transaction;
             }
-            if (transaction != null) {
-                transaction.setFrameworkName(Utils.FRAMEWORK_NAME);
-            }
-            return transaction;
         }
     }
 
@@ -106,11 +110,13 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             super(named("doGetCurrentTransaction"));
         }
 
-        @Nullable
-        @AssignTo.Return
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static Object doGetCurrentTransaction() {
-            return tracer.currentTransaction();
+        public static class AdviceClass {
+            @Nullable
+            @AssignTo.Return
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Object doGetCurrentTransaction() {
+                return tracer.currentTransaction();
+            }
         }
     }
 
@@ -119,11 +125,13 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             super(named("doGetCurrentSpan"));
         }
 
-        @Nullable
-        @AssignTo.Return
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static Object doGetCurrentSpan() {
-            return tracer.getActive();
+        public static class AdviceClass {
+            @Nullable
+            @AssignTo.Return
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Object doGetCurrentSpan() {
+                return tracer.getActive();
+            }
         }
     }
 
@@ -132,9 +140,11 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             super(named("captureException"));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) @Nullable Throwable e) {
-            tracer.captureAndReportException(e, clazz.getClassLoader());
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) @Nullable Throwable e) {
+                tracer.captureAndReportException(e, clazz.getClassLoader());
+            }
         }
     }
 
