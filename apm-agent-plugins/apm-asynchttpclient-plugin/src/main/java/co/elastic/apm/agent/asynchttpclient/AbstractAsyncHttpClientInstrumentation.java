@@ -26,7 +26,7 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.util.SpanConcurrentHashMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -55,7 +55,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
     public static class Helper {
 
-        static final WeakConcurrentMap<AsyncHandler<?>, Span> handlerSpanMap = WeakMapSupplier.createMap();
+        static final WeakConcurrentMap<AsyncHandler<?>, Span> handlerSpanMap = SpanConcurrentHashMap.createWeakMap();
 
         public static final List<Class<? extends ElasticApmInstrumentation>> ASYNC_HANDLER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
             AsyncHandlerOnCompletedInstrumentation.class,
