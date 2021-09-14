@@ -55,17 +55,19 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         this.openTelemetry = GlobalOpenTelemetry.get();
         assertThat(openTelemetry).isSameAs(GlobalOpenTelemetry.get());
         otelTracer = openTelemetry.getTracer(null);
+
+        // otel spans are not recycled for now
         disableRecyclingValidation();
     }
 
     @Before
     public void before() {
-        checkNoContext();
+        checkNoActiveContext();
     }
 
     @After
     public void after() {
-        checkNoContext();
+        checkNoActiveContext();
     }
 
     @Test
@@ -222,7 +224,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     public void otelContextStoreAndRetrieve() {
         Span span = otelTracer.spanBuilder("span").startSpan();
 
-        checkNoContext();
+        checkNoActiveContext();
 
         ContextKey<String> key1 = ContextKey.named("key1");
         Context context1 = Context.current().with(key1, "value1");
@@ -260,7 +262,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
             checkCurrentContext(context1, "context should be restored");
         }
 
-        checkNoContext();
+        checkNoActiveContext();
 
     }
 
@@ -375,7 +377,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
             .isEqualTo(expectedValue);
     }
 
-    private void checkNoContext() {
+    private void checkNoActiveContext() {
         assertThat(tracer.currentContext())
             .describedAs("no active elastic context is expected")
             .isNull();
@@ -444,7 +446,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         assertThat(reportedSpan).isNotNull();
         assertThat(reportedSpan.getNameAsString()).isEqualTo("otel span");
         assertThat(reportedSpan.getTraceContext().getId().toString()).isEqualTo(spanId);
-        assertThat(reportedSpan.getTraceContext().isChildOf(transaction.getTraceContext()));
+        assertThat(reportedSpan.getTraceContext().isChildOf(transaction.getTraceContext())).isTrue();
     }
 
     @Test
