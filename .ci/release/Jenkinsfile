@@ -15,6 +15,7 @@ pipeline {
     PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
     SLACK_CHANNEL = '#apm-agent-java'
     NOTIFY_TO = 'build-apm+apm-agent-java@elastic.co'
+    BRANCH_SPECIFIER = "${params.branch_specifier}"
   }
   options {
     timeout(time: 3, unit: 'HOURS')
@@ -25,8 +26,8 @@ pipeline {
 
   }
   parameters {
-    string(name: 'branch_specifier', defaultValue: 'master')
-    booleanParam(name: 'check_branch_ci_status', defaultValue: true, description: "Check for failing tests in the master branch?")
+    string(name: 'branch_specifier', defaultValue: 'stable', description: "What branch to release from?")
+    booleanParam(name: 'check_branch_ci_status', defaultValue: true, description: "Check for failing tests in the given branch?")
   }
 
   stages {
@@ -37,7 +38,7 @@ pipeline {
           steps {
             gitCheckout(
                 basedir: "${BASE_DIR}",
-                branch: 'master',
+                branch: "${BRANCH_SPECIFIER}",
                 repo: 'git@github.com:elastic/apm-agent-java.git',
                 credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
                 shallow: false
@@ -84,12 +85,12 @@ pipeline {
             }
           }
         }
-        stage('Check master build status') {
+        stage('Check build status') {
         when { expression { params.check_branch_ci_status } }
          steps {
-             // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/master/
-             whenTrue(!buildStatus(host: 'apm-ci.elastic.co', job: ['apm-agent-java', 'apm-agent-java-mbp', 'master'], return_boolean: true)) {
-               input(message: "WARNING! The master build is not passing. Do you wish to continue?")
+             // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/"${BRANCH_SPECIFIER}"/
+             whenTrue(!buildStatus(host: 'apm-ci.elastic.co', job: ['apm-agent-java', 'apm-agent-java-mbp', "${BRANCH_SPECIFIER}"], return_boolean: true)) {
+               input(message: "WARNING! The ${BRANCH_SPECIFIER} build is not passing. Do you wish to continue?")
              }
          }
         }
