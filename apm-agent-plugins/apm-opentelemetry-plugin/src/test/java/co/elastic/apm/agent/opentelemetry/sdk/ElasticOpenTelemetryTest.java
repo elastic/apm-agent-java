@@ -23,7 +23,6 @@ import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.opentelemetry.context.OTelContextStorage;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
@@ -35,7 +34,6 @@ import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -61,12 +59,12 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Before
-    public void before(){
+    public void before() {
         checkNoContext();
     }
 
     @After
-    public void after(){
+    public void after() {
         checkNoContext();
     }
 
@@ -217,7 +215,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
             .describedAs("root context should be wrapped")
             .doesNotStartWith("io.opentelemetry");
 
-        return (ElasticContext<?>)context;
+        return (ElasticContext<?>) context;
     }
 
     @Test
@@ -237,7 +235,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
             checkCurrentContextKey(key1, "value1");
 
             Context context2 = context1.with(key2, "value2");
-            try(Scope scope2 = context2.makeCurrent()){
+            try (Scope scope2 = context2.makeCurrent()) {
                 checkCurrentContext(context2, "second context should be active");
                 checkCurrentContextKey(key1, "value1");
                 checkCurrentContextKey(key2, "value2");
@@ -373,7 +371,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     private void checkCurrentContextKey(ContextKey<String> key, String expectedValue) {
         Context current = Context.current();
         assertThat(current.get(key))
-            .describedAs("context %s should contain %s=%s",current, key, expectedValue)
+            .describedAs("context %s should contain %s=%s", current, key, expectedValue)
             .isEqualTo(expectedValue);
     }
 
@@ -483,7 +481,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         AbstractSpan<?> reportedSpan = reporter.getFirstSpan().getSpan();
         assertThat(reportedSpan).isNotNull();
         assertThat(reportedSpan.getNameAsString()).isEqualTo("elastic span");
-        assertThat(reportedSpan.getTraceContext().isChildOf(transaction.getTraceContext()));
+        assertThat(reportedSpan.getTraceContext().isChildOf(transaction.getTraceContext())).isTrue();
     }
 
     @Test
