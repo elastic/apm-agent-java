@@ -20,6 +20,9 @@ package co.elastic.apm.agent.opentelemetry.sdk;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.opentelemetry.context.OTelContextStorage;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
@@ -30,6 +33,7 @@ import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -54,6 +58,16 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         assertThat(openTelemetry).isSameAs(GlobalOpenTelemetry.get());
         otelTracer = openTelemetry.getTracer(null);
         disableRecyclingValidation();
+    }
+
+    @Before
+    public void before(){
+        checkNoContext();
+    }
+
+    @After
+    public void after(){
+        checkNoContext();
     }
 
     @Test
@@ -137,32 +151,6 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstSpan().isChildOf(reporter.getFirstTransaction())).isTrue();
     }
 
-    /**
-     * Demonstrates a missing feature of this bridge: custom context entries are not propagated
-     *
-     * @see OTelContextStorage#current()
-     */
-    @Test
-    @Ignore
-    public void testPropagateCustomContextKey() {
-        Span transaction = otelTracer.spanBuilder("transaction")
-            .startSpan();
-        Context context = Context.current()
-            .with(transaction)
-            .with(ContextKey.named("foo"), "bar");
-        try (Scope scope = context.makeCurrent()) {
-            assertThat(tracer.getActive().getTraceContext().getId().toString()).isEqualTo(transaction.getSpanContext().getSpanId());
-            // this assertion fails as context keys are not propagated
-            assertThat(Context.current().get(ContextKey.<String>named("foo"))).isEqualTo("bar");
-            Span.current().setAttribute("foo", "bar");
-        } finally {
-            transaction.end();
-        }
-
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("transaction");
-    }
-
     @Test
     public void testTransactionWithRemoteParent() {
         Context context = openTelemetry.getPropagators()
@@ -209,7 +197,293 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
 
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getTimestamp()).isEqualTo(transactionStartMicros);
+    }
 
+    @Test
+    public void otelBridgedRootContext() {
+        checkBridgedContext(Context.root());
+
+        assertThat(Context.root())
+            .describedAs("wrapped root context should be current")
+            .isSameAs(Context.current());
+    }
+
+    public ElasticContext<?> checkBridgedContext(Context context) {
+        assertThat(context).isInstanceOf(ElasticContext.class);
+
+        // we have to check classs name as the wrapper class is loaded in the plugin CL and it also loadable from
+        // the current CL, thus making class equality not work as expected
+        assertThat(context.getClass().getName())
+            .describedAs("root context should be wrapped")
+            .doesNotStartWith("io.opentelemetry");
+
+        return (ElasticContext<?>)context;
+    }
+
+    @Test
+    public void otelContextStoreAndRetrieve() {
+        Span span = otelTracer.spanBuilder("span").startSpan();
+
+        checkNoContext();
+
+        ContextKey<String> key1 = ContextKey.named("key1");
+        Context context1 = Context.current().with(key1, "value1");
+        assertThat(context1.get(key1)).isEqualTo("value1");
+
+        ContextKey<String> key2 = ContextKey.named("key2");
+
+        try (Scope scope1 = context1.makeCurrent()) {
+            checkCurrentContext(context1, "first context should be active");
+            checkCurrentContextKey(key1, "value1");
+
+            Context context2 = context1.with(key2, "value2");
+            try(Scope scope2 = context2.makeCurrent()){
+                checkCurrentContext(context2, "second context should be active");
+                checkCurrentContextKey(key1, "value1");
+                checkCurrentContextKey(key2, "value2");
+
+                try (Scope spanScope = span.makeCurrent()) {
+                    assertThat(Context.current())
+                        .describedAs("span context should have its own context")
+                        .isNotSameAs(context2)
+                        .isNotSameAs(context1);
+                    checkCurrentContextKey(key1, "value1");
+                    checkCurrentContextKey(key2, "value2");
+                } finally {
+                    span.end();
+                }
+                checkCurrentContext(context2, "second context should be restored");
+            }
+
+            assertThat(context1.get(key2))
+                .describedAs("context should be immutable")
+                .isNull();
+
+            checkCurrentContext(context1, "context should be restored");
+        }
+
+        checkNoContext();
+
+    }
+
+    private static void checkCurrentContext(Context expected, String assertMsg) {
+        assertThat(Context.current())
+            .describedAs(assertMsg)
+            .isSameAs(expected);
+
+        assertThat(expected)
+            .describedAs("otel context should also be an elastic context")
+            .isInstanceOf(ElasticContext.class);
+
+        assertThat(tracer.currentContext())
+            .describedAs(assertMsg)
+            .isSameAs(expected);
+    }
+
+    @Test
+    public void otelContextRetrieveByKeyReferenceOnly() {
+        ContextKey<String> key = ContextKey.named("key");
+        Context contextWithKey = Context.current().with(key, "value");
+        assertThat(contextWithKey.get(key)).isEqualTo("value");
+
+        String valueWithSameNameKey = contextWithKey.get(ContextKey.named("key"));
+        assertThat(valueWithSameNameKey)
+            .describedAs("only key reference should allow to get values in context")
+            .isNull();
+    }
+
+    @Test
+    public void otelContextRootIdempotent() {
+        assertThat(Context.root())
+            .describedAs("multiple calls to Context.root() should return the same value")
+            .isSameAs(Context.root());
+    }
+
+    @Test
+    public void otelContextCurrentIdempotent() {
+
+        // create a non-root context by adding a value
+        ContextKey<String> key = ContextKey.named("key");
+        Context context = Context.current().with(key, "value");
+
+        try (Scope scope = context.makeCurrent()) {
+            assertThat(context).isNotSameAs(Context.root());
+            checkCurrentContext(context, "multiple calls to Context.current() should return the same value");
+            checkCurrentContextKey(key, "value");
+        }
+
+        assertThat(Context.current().get(key)).isNull();
+    }
+
+    @Test
+    public void otelContextMakeCurrentMoreThanOnce() {
+        ContextKey<String> key = ContextKey.named("key");
+        Context context = Context.current().with(key, "value");
+
+        try (Scope scope1 = context.makeCurrent()) {
+            assertThat(scope1).isNotSameAs(Scope.noop());
+            checkCurrentContext(context, "first activation should activate context");
+
+            // here the context is expected to remain the same as it is not modified (we don't add any value to it)
+            try (Scope scope2 = context.makeCurrent()) {
+                checkCurrentContext(context, "double activation should keep the same context");
+                assertThat(scope2)
+                    .describedAs("nested scope should be noop as context remains the same")
+                    .isSameAs(Scope.noop());
+            }
+        }
+    }
+
+    @Test
+    public void contextActivationFromElastic() {
+        ContextKey<String> key = ContextKey.named("key");
+
+        Context context = Context.root().with(key, "value");
+        ElasticContext<?> bridgedContext = checkBridgedContext(context);
+
+        // activate context from elastic API using a bridged context
+        try (co.elastic.apm.agent.impl.Scope scope = bridgedContext.activateInScope()) {
+
+            checkCurrentContext(context, "elastic and otel contexts should be the same");
+
+            checkCurrentContextKey(key, "value");
+
+        }
+    }
+
+
+    @Test
+    public void contextActivationFromOtel() {
+
+        ContextKey<String> key = ContextKey.named("key");
+        Context context = Context.root().with(key, "value");
+
+        checkBridgedContext(context);
+
+        // activate context from Otel API
+        try (Scope scope = context.makeCurrent()) {
+
+            checkCurrentContext(context, "elastic and otel contexts should be the same");
+
+            checkCurrentContextKey(key, "value");
+        }
+
+    }
+
+    private void checkCurrentContextKey(ContextKey<String> key, String expectedValue) {
+        Context current = Context.current();
+        assertThat(current.get(key))
+            .describedAs("context %s should contain %s=%s",current, key, expectedValue)
+            .isEqualTo(expectedValue);
+    }
+
+    private void checkNoContext() {
+        assertThat(tracer.currentContext())
+            .describedAs("no active elastic context is expected")
+            .isNull();
+        assertThat(Context.current())
+            .describedAs("no active otel context is expected")
+            .isSameAs(Context.root())
+            .isNotNull();
+    }
+
+    @Test
+    public void otelStateWithActiveElasticTransaction() {
+
+        Transaction transaction = startTestRootTransaction();
+
+        try {
+            assertThat(tracer.currentContext()).isSameAs(transaction);
+
+            assertThat(Context.current())
+                .describedAs("current otel context should have elastic span as active")
+                .isNotSameAs(Context.root());
+
+            assertThat(Span.current())
+                .describedAs("elastic span should appear visible in current context")
+                .isNotNull();
+
+            assertThat(tracer.currentContext())
+                .describedAs("current context should have been upgraded to otel context")
+                .isNotNull()
+                .isNotSameAs(transaction);
+
+            assertThat(tracer.currentTransaction())
+                .isSameAs(tracer.currentContext().getSpan())
+                .isSameAs(transaction);
+        } finally {
+            // this must transparently deactivate the upgraded context
+            transaction.deactivate().end();
+        }
+    }
+
+    @Test
+    public void otelSpanOverActiveElasticTransaction() {
+        Transaction transaction = startTestRootTransaction();
+
+        String spanId;
+        try {
+
+            Span otelSpan = openTelemetry.getTracer("test")
+                .spanBuilder("otel span")
+                .startSpan();
+
+            try (Scope scope = otelSpan.makeCurrent()) {
+                spanId = Span.current().getSpanContext().getSpanId();
+            }
+
+            otelSpan.end();
+
+        } finally {
+            transaction.deactivate().end();
+        }
+
+        assertThat(reporter.getNumReportedTransactions()).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction()).isSameAs(transaction);
+
+        assertThat(reporter.getNumReportedSpans()).isEqualTo(1);
+        AbstractSpan<?> reportedSpan = reporter.getFirstSpan().getSpan();
+        assertThat(reportedSpan).isNotNull();
+        assertThat(reportedSpan.getNameAsString()).isEqualTo("otel span");
+        assertThat(reportedSpan.getTraceContext().getId().toString()).isEqualTo(spanId);
+        assertThat(reportedSpan.getTraceContext().isChildOf(transaction.getTraceContext()));
+    }
+
+    @Test
+    public void elasticSpanOverOtelSpan() {
+        // create and activate an otel span which should create a transaction
+        // create and activate an elastic span
+
+        Span otelSpan = openTelemetry.getTracer("test")
+            .spanBuilder("otel transaction")
+            .startSpan();
+
+        Transaction transaction;
+        try (Scope scope = otelSpan.makeCurrent()) {
+
+            transaction = tracer.currentTransaction();
+            assertThat(transaction).isNotNull();
+
+            co.elastic.apm.agent.impl.transaction.Span elasticSpan = transaction.createSpan();
+            try (co.elastic.apm.agent.impl.Scope elasticScope = elasticSpan.activateInScope()) {
+                assertThat(tracer.getActiveSpan()).isNotNull();
+                tracer.getActiveSpan().withName("elastic span");
+            } finally {
+                elasticSpan.end();
+            }
+        } finally {
+            otelSpan.end();
+        }
+
+        assertThat(reporter.getNumReportedTransactions()).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction()).isSameAs(transaction);
+        assertThat(transaction.getNameAsString()).isEqualTo("otel transaction");
+
+        assertThat(reporter.getNumReportedSpans()).isEqualTo(1);
+        AbstractSpan<?> reportedSpan = reporter.getFirstSpan().getSpan();
+        assertThat(reportedSpan).isNotNull();
+        assertThat(reportedSpan.getNameAsString()).isEqualTo("elastic span");
+        assertThat(reportedSpan.getTraceContext().isChildOf(transaction.getTraceContext()));
     }
 
     @Test

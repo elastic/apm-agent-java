@@ -473,28 +473,21 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return false;
     }
 
+    @Override
     public T activate() {
         tracer.activate(this);
         return (T) this;
     }
 
+    @Override
     public T deactivate() {
         tracer.deactivate(this);
         return (T) this;
     }
 
+    @Override
     public Scope activateInScope() {
-        // already in scope
-        if (tracer.getActive() == this) {
-            return Scope.NoopScope.INSTANCE;
-        }
-        activate();
-        return new Scope() {
-            @Override
-            public void close() {
-                deactivate();
-            }
-        };
+        return tracer.activateInScope(this);
     }
 
     /**
@@ -647,6 +640,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     @Override
     public ElasticContext<T> withActiveSpan(AbstractSpan<?> span) {
+        // for internal spans the active span is only stored implicitly in the stack, hence we have no requirement
+        // to have any other kind of context storage.
         return this;
     }
 

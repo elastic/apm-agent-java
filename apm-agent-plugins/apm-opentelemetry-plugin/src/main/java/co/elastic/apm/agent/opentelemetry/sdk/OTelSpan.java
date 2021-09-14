@@ -362,4 +362,9 @@ public class OTelSpan implements Span {
     public AbstractSpan<?> getInternalSpan() {
         return span;
     }
+
+    @Override
+    public String toString() {
+        return "OtelSpan[" + span + "]";
+    }
 }

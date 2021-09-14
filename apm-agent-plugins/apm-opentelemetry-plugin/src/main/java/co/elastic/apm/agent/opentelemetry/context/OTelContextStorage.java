@@ -20,46 +20,71 @@ package co.elastic.apm.agent.opentelemetry.context;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.opentelemetry.sdk.OTelSpan;
-import io.opentelemetry.api.trace.Span;
+import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.opentelemetry.sdk.OTelBridgeContext;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.context.ContextStorage;
 import io.opentelemetry.context.Scope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
 public class OTelContextStorage implements ContextStorage {
-    private final ElasticApmTracer elasticApmTracer;
 
-    public OTelContextStorage(ElasticApmTracer elasticApmTracer) {
-        this.elasticApmTracer = elasticApmTracer;
+    private static final Logger logger = LoggerFactory.getLogger(OTelContextStorage.class);
+
+    private final ElasticApmTracer tracer;
+
+    public OTelContextStorage(ElasticApmTracer tracer) {
+        this.tracer = tracer;
     }
 
     @Override
-    public Scope attach(Context toAttach) {
-        Span span = Span.fromContext(toAttach);
-        if (span instanceof OTelSpan) {
-            AbstractSpan<?> internalSpan = ((OTelSpan) span).getInternalSpan();
-            elasticApmTracer.activate(internalSpan);
-            return new OTelScope(internalSpan);
-        } else {
+    public Scope attach(@Nullable Context toAttach) {
+        if (toAttach == null) {
+            // no context to attach
             return Scope.noop();
         }
+
+        if (toAttach == tracer.currentContext()) {
+            // already active
+            return Scope.noop();
+        }
+
+        if (!(toAttach instanceof OTelBridgeContext)) {
+            throw new IllegalStateException("unexpected context type "+ toAttach.getClass().getName());
+        }
+        OTelBridgeContext bridgeContext = (OTelBridgeContext)toAttach;
+
+        tracer.activate(bridgeContext);
+        return bridgeContext;
     }
 
-    /**
-     * NOTE: the returned context is not the same as the one provided in {@link #attach(Context)}.
-     * The consequence of this is that it will not have the context keys of the original context.
-     * In other words, {@link Context#get(ContextKey)} will return {@code null} for any key besides the span key.
-     */
     @Nullable
     @Override
     public Context current() {
-        AbstractSpan<?> active = elasticApmTracer.getActive();
-        if (active == null) {
+        ElasticContext<?> current = tracer.currentContext();
+        if (current == null) {
             return null;
         }
-        return Context.root().with(new OTelSpan(active));
+
+        if (current instanceof OTelBridgeContext) {
+            return (Context) current;
+        }
+
+        if (!(current instanceof AbstractSpan)) {
+            throw new IllegalStateException("unexpected context type to upgrade: " + current.getClass().getName());
+        }
+
+        logger.debug("upgrading active context {} to a bridged context", current);
+
+        tracer.deactivate(current);
+        OTelBridgeContext upgradedContext = OTelBridgeContext.wrapElasticActiveSpan(tracer, (AbstractSpan<?>) current);
+        tracer.activate(upgradedContext);
+
+        logger.debug("active context upgraded to {}", upgradedContext);
+
+        return upgradedContext;
     }
 }

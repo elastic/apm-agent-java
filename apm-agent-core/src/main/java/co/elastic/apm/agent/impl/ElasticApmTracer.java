@@ -707,15 +707,34 @@ public class ElasticApmTracer implements Tracer {
         activeStack.get().push(newContext);
     }
 
+    public Scope activateInScope(final ElasticContext<?> context) {
+        // already in scope
+        if (getActiveContext() == context) {
+            return Scope.NoopScope.INSTANCE;
+        }
+        context.activate();
+        return new Scope() {
+            @Override
+            public void close() {
+                context.deactivate();
+            }
+        };
+    }
+
     public void deactivate(ElasticContext<?> context) {
         if (logger.isDebugEnabled()) {
             logger.debug("Deactivating {} on thread {}", context, Thread.currentThread().getId());
         }
         ElasticContext<?> activeContext = activeStack.get().poll();
-        AbstractSpan<?> span = null;
+        AbstractSpan<?> span = context.getSpan();
+
+        if (activeContext != context && context == span) {
+            // when context has been upgraded, we need to deactivate the original span
+            activeContext = context;
+        }
+
         try {
             assertIsActive(context, activeContext);
-            span = context.getSpan();
 
             if (null != span) {
                 triggerActivationListeners(span, false);
