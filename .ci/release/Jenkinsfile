@@ -130,7 +130,7 @@ pipeline {
                 } else {
                     echo "changing project version from '${snapshot_version}' to '${user_release_version}' to prepare release ${user_release_version}."
                     sh(label: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${user_release_version}-SNAPSHOT")
-                    sh(script: "git commit -a -m 'Version bump ${ver}'")
+                    sh(script: "git commit -a -m 'Version bump ${user_release_version}'")
                     gitPush()
                 }
               }
