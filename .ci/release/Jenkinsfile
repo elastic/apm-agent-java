@@ -15,6 +15,7 @@ pipeline {
     PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
     SLACK_CHANNEL = '#apm-agent-java'
     NOTIFY_TO = 'build-apm+apm-agent-java@elastic.co'
+    BRANCH_SPECIFIER = "${params.branch_specifier}"
   }
   options {
     timeout(time: 3, unit: 'HOURS')
@@ -25,10 +26,9 @@ pipeline {
 
   }
   parameters {
-    string(name: 'branch_specifier', defaultValue: 'master')
-    booleanParam(name: 'check_branch_ci_status', defaultValue: true, description: "Check for failing tests in the master branch?")
+    string(name: 'branch_specifier', defaultValue: 'stable', description: "What branch to release from?")
+    booleanParam(name: 'check_branch_ci_status', defaultValue: true, description: "Check for failing tests in the given branch (if no stable branch)?")
   }
-
   stages {
     stage('Initializing'){
       options { skipDefaultCheckout() }
@@ -37,7 +37,7 @@ pipeline {
           steps {
             gitCheckout(
                 basedir: "${BASE_DIR}",
-                branch: 'master',
+                branch: "${BRANCH_SPECIFIER}",
                 repo: 'git@github.com:elastic/apm-agent-java.git',
                 credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
                 shallow: false
@@ -72,6 +72,9 @@ pipeline {
       options { skipDefaultCheckout () }
       stages{
         stage('Check oss.sonatype.org') {
+          when {
+            expression { return false }
+          }
           steps {
             // If this fails, an exception should be thrown and execution will halt
             dir("${BASE_DIR}"){
@@ -84,16 +87,24 @@ pipeline {
             }
           }
         }
-        stage('Check master build status') {
-        when { expression { params.check_branch_ci_status } }
-         steps {
-             // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/master/
-             whenTrue(!buildStatus(host: 'apm-ci.elastic.co', job: ['apm-agent-java', 'apm-agent-java-mbp', 'master'], return_boolean: true)) {
-               input(message: "WARNING! The master build is not passing. Do you wish to continue?")
-             }
-         }
+        stage('Check build status') {
+          when {
+            allOf {
+              expression { params.check_branch_ci_status }
+              not { branch 'stable' }
+            }
+          }
+          steps {
+            // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/"${BRANCH_SPECIFIER}"/
+            whenTrue(!buildStatus(host: 'apm-ci.elastic.co', job: ['apm-agent-java', 'apm-agent-java-mbp', "${BRANCH_SPECIFIER}"], return_boolean: true)) {
+              input(message: "WARNING! The ${BRANCH_SPECIFIER} build is not passing. Do you wish to continue?")
+            }
+          }
         }
         stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
+          when {
+            expression { return false }
+          }
           steps {
             input(message: """
             Update CHANGELOG.asciidoc to reflect the new version release:
@@ -109,6 +120,9 @@ pipeline {
           }
         }
         stage('Set release version') {
+          when {
+            expression { return false }
+          }
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -125,7 +139,7 @@ pipeline {
                 } else {
                     echo "changing project version from '${snapshot_version}' to '${user_release_version}' to prepare release ${user_release_version}."
                     sh(label: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${user_release_version}-SNAPSHOT")
-                    sh(script: "git commit -a -m 'Version bump ${ver}'")
+                    sh(script: "git commit -a -m 'Version bump ${user_release_version}'")
                     gitPush()
                 }
               }
@@ -133,6 +147,9 @@ pipeline {
           }
         }
         stage('Wait on internal CI') {
+          when {
+            expression { return false }
+          }
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
                           body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")

@@ -24,6 +24,8 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.context.WebApplicationContext;
 
 import javax.servlet.ServletContext;
@@ -64,6 +66,8 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
 
     public static class SpringServiceNameAdvice {
 
+        private static final Logger logger = LoggerFactory.getLogger(SpringServiceNameAdvice.class);
+
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void afterInitPropertySources(@Advice.This WebApplicationContext applicationContext) {
             // This method will be called whenever the spring application context is refreshed which may be more than once
@@ -87,12 +91,21 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
 
             String appName = applicationContext.getEnvironment().getProperty("spring.application.name", "");
 
-            // fallback when application name isn't set through an environment property
-            if (appName.isEmpty()) {
+            if (!appName.isEmpty()) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Setting service name `{}` to be used for class loader [{}], based on the value of " +
+                        "the `spring.application.name` environment variable", appName, classLoader);
+                }
+            } else {
+                // fallback when application name isn't set through an environment property
                 appName = applicationContext.getApplicationName();
                 // remove '/' (if any) from application name
                 if (appName.startsWith("/")) {
                     appName = appName.substring(1);
+                }
+                if (logger.isDebugEnabled()) {
+                    logger.debug("``spring.application.name` environment variable is not set, falling back to using `{}` " +
+                        "as service name for class loader [{}]", appName, classLoader);
                 }
             }
 

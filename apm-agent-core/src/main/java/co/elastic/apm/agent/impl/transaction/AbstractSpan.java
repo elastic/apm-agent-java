@@ -263,6 +263,21 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     }
 
     /**
+     * Updates the name of this span to {@code ClassName#methodName}.
+     *
+     * @param clazz      the class that should be part of this span's name
+     * @param methodName the method that should be part of this span's name
+     */
+    public void updateName(Class<?> clazz, String methodName) {
+        StringBuilder spanName = getAndOverrideName(PRIO_DEFAULT);
+        if (spanName != null) {
+            String className = clazz.getName();
+            spanName.append(className, className.lastIndexOf('.') + 1, className.length());
+            spanName.append("#").append(methodName);
+        }
+    }
+
+    /**
      * Only intended for testing purposes as this allocates a {@link String}
      *
      * @return name

@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.util;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,7 +37,6 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-@VisibleForAdvice
 public class IOUtils {
     protected static final int BYTE_BUFFER_CAPACITY = 2048;
     protected static final ThreadLocal<ByteBuffer> threadLocalByteBuffer = new ThreadLocal<ByteBuffer>() {
@@ -69,7 +67,6 @@ public class IOUtils {
      * @return {@code true}, if the input stream could be decoded with the UTF-8 charset, {@code false} otherwise.
      * @throws IOException in case of errors reading from the provided {@link InputStream}
      */
-    @VisibleForAdvice
     public static boolean readUtf8Stream(final InputStream is, final CharBuffer charBuffer) throws IOException {
         // to be compatible with Java 8, we have to cast to buffer because of different return types
         final ByteBuffer buffer = threadLocalByteBuffer.get();
@@ -119,7 +116,6 @@ public class IOUtils {
      * @param charBuffer the {@link CharBuffer} the {@link InputStream} should be written into
      * @return a {@link CoderResult}, indicating the success or failure of the decoding
      */
-    @VisibleForAdvice
     public static CoderResult decodeUtf8Bytes(final byte[] bytes, final CharBuffer charBuffer) {
         return decodeUtf8Bytes(bytes, 0, bytes.length, charBuffer);
     }
@@ -146,7 +142,6 @@ public class IOUtils {
      * @param length     the maximum number of bytes to read
      * @return a {@link CoderResult}, indicating the success or failure of the decoding
      */
-    @VisibleForAdvice
     public static CoderResult decodeUtf8Bytes(final byte[] bytes, final int offset, final int length, final CharBuffer charBuffer) {
         // to be compatible with Java 8, we have to cast to buffer because of different return types
         final ByteBuffer buffer;
@@ -182,7 +177,6 @@ public class IOUtils {
      * @param charBuffer the {@link CharBuffer} the {@link InputStream} should be written into
      * @return a {@link CoderResult}, indicating the success or failure of the decoding
      */
-    @VisibleForAdvice
     public static CoderResult decodeUtf8Byte(final byte b, final CharBuffer charBuffer) {
         // to be compatible with Java 8, we have to cast to buffer because of different return types
         final ByteBuffer buffer = threadLocalByteBuffer.get();

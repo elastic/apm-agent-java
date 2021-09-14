@@ -60,15 +60,14 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.Origin Class<?> clazz,
-                                     @Advice.Argument(0) ServerWebExchange exchange) {
+        public static Object onEnter(@Advice.Argument(0) ServerWebExchange exchange) {
 
             List<String> upgradeHeader = exchange.getRequest().getHeaders().get("upgrade");
             if (upgradeHeader != null && upgradeHeader.contains("websocket")) {
                 // just ignore upgrade WS upgrade requests for now
                 return null;
             }
-            return WebfluxHelper.getOrCreateTransaction(tracer, clazz, exchange);
+            return WebfluxHelper.getOrCreateTransaction(tracer, exchange);
         }
 
         @Nullable
@@ -90,7 +89,7 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
                 return returnValue;
             }
 
-            return WebfluxHelper.wrapDispatcher(tracer, returnValue, transaction, exchange);
+            return WebfluxHelper.wrapDispatcher(returnValue, transaction, exchange);
         }
     }
 

@@ -63,6 +63,7 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
             .filter(annotationType(AssignTo.Argument.class)
                 .or(annotationType(AssignTo.Field.class))
                 .or(annotationType(AssignTo.Return.class))
+                .or(annotationType(AssignTo.Thrown.class))
                 .or(annotationType(AssignTo.class)));
         if (annotations.isEmpty()) {
             return Advice.PostProcessor.NoOp.INSTANCE;
@@ -78,6 +79,9 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
             } else if (annotation.getAnnotationType().represents(AssignTo.Return.class)) {
                 final AssignTo.Return assignToReturn = annotations.getOnly().prepare(AssignTo.Return.class).load();
                 postProcessors.add(createAssignToReturnPostProcessor(adviceMethod, exit, assignToReturn));
+            } else if (annotation.getAnnotationType().represents(AssignTo.Thrown.class)) {
+                final AssignTo.Thrown assignToThrown = annotations.getOnly().prepare(AssignTo.Thrown.class).load();
+                postProcessors.add(createAssignToThrownPostProcessor(adviceMethod, exit, assignToThrown));
             } else if (annotation.getAnnotationType().represents(AssignTo.class)) {
                 final AssignTo assignTo = annotations.getOnly().prepare(AssignTo.class).load();
                 for (AssignTo.Argument assignToArgument : assignTo.arguments()) {
@@ -96,8 +100,13 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
             public StackManipulation resolve(TypeDescription typeDescription, MethodDescription methodDescription, Assigner assigner, Advice.ArgumentHandler argumentHandler) {
                 final Label jumpToIfNull = new Label();
                 return new StackManipulation.Compound(
-                    new AddNullCheck(jumpToIfNull, adviceMethod.getReturnType(), MethodVariableAccess.of(adviceMethod.getReturnType()).loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter())),
-                    new AssignToPostProcessorFactory.Compound(postProcessors).resolve(typeDescription, methodDescription, assigner, argumentHandler),
+                    new AddNullCheck(jumpToIfNull,
+                        adviceMethod.getReturnType(),
+                        MethodVariableAccess.of(adviceMethod.getReturnType()).loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter())),
+                    new AssignToPostProcessorFactory.Compound(postProcessors).resolve(typeDescription,
+                        methodDescription,
+                        assigner,
+                        argumentHandler),
                     new AddLabel(jumpToIfNull)
                 );
             }
@@ -108,31 +117,85 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
         return new Advice.PostProcessor() {
             @Override
             public StackManipulation resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler) {
-                final TypeDescription.Generic returnType = adviceMethod.getReturnType();
                 if (assignToReturn.index() != -1) {
-                    if (!returnType.represents(Object[].class)) {
-                        throw new IllegalStateException("Advice method has to return Object[] when setting an index");
-                    }
-                    return new StackManipulation.Compound(
-                        MethodVariableAccess.REFERENCE.loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter()),
-                        IntegerConstant.forValue(assignToReturn.index()),
-                        ArrayAccess.REFERENCE.load(),
-                        assigner.assign(TypeDescription.Generic.OBJECT, instrumentedMethod.getReturnType(), Assigner.Typing.DYNAMIC),
-                        MethodVariableAccess.of(instrumentedMethod.getReturnType()).storeAt(argumentHandler.returned())
-                    );
+                    return objectArrayStackManipulation(adviceMethod,
+                        assigner,
+                        false,
+                        argumentHandler,
+                        exit,
+                        assignToReturn.index(),
+                        instrumentedMethod.getReturnType(),
+                        MethodVariableAccess.of(instrumentedMethod.getReturnType()).storeAt(argumentHandler.returned()));
                 } else {
-                    final StackManipulation assign = assigner.assign(adviceMethod.getReturnType(), instrumentedMethod.getReturnType(), assignToReturn.typing());
-                    if (!assign.isValid()) {
-                        throw new IllegalStateException("Cannot assign " + adviceMethod.getReturnType() + " to " + instrumentedMethod.getReturnType() + " in advice method " + adviceMethod.toGenericString());
-                    }
-                    return new StackManipulation.Compound(
-                        MethodVariableAccess.of(adviceMethod.getReturnType()).loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter()),
-                        assign,
-                        MethodVariableAccess.of(instrumentedMethod.getReturnType()).storeAt(argumentHandler.returned())
-                    );
+                    return scalarStackManipulation(adviceMethod,
+                        assigner,
+                        false,
+                        argumentHandler,
+                        exit,
+                        instrumentedMethod.getReturnType(),
+                        MethodVariableAccess.of(instrumentedMethod.getReturnType()).storeAt(argumentHandler.returned()),
+                        assignToReturn.typing());
                 }
             }
         };
+    }
+
+    private Advice.PostProcessor createAssignToThrownPostProcessor(final MethodDescription.InDefinedShape adviceMethod, final boolean exit, final AssignTo.Thrown assignToThrown) {
+        return new Advice.PostProcessor() {
+            @Override
+            public StackManipulation resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler) {
+                if (assignToThrown.index() != -1) {
+                    return objectArrayStackManipulation(adviceMethod,
+                        assigner,
+                        false,
+                        argumentHandler,
+                        exit,
+                        assignToThrown.index(),
+                        TypeDescription.THROWABLE.asGenericType(),
+                        MethodVariableAccess.REFERENCE.storeAt(argumentHandler.thrown()));
+                } else {
+                    return scalarStackManipulation(adviceMethod,
+                        assigner,
+                        false,
+                        argumentHandler,
+                        exit,
+                        TypeDescription.THROWABLE.asGenericType(),
+                        MethodVariableAccess.REFERENCE.storeAt(argumentHandler.thrown()),
+                        assignToThrown.typing());
+                }
+            }
+        };
+    }
+
+    private StackManipulation objectArrayStackManipulation(MethodDescription.InDefinedShape adviceMethod, Assigner assigner, boolean loadThis, Advice.ArgumentHandler argumentHandler, boolean exit,
+                                                           int index, TypeDescription.Generic targetType, StackManipulation store) {
+        if (!adviceMethod.getReturnType().represents(Object[].class)) {
+            throw new IllegalStateException("Advice method has to return Object[] when setting an index");
+        }
+        StackManipulation load = MethodVariableAccess.REFERENCE.loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter());
+        return new StackManipulation.Compound(
+            loadThis ? MethodVariableAccess.loadThis() : StackManipulation.Trivial.INSTANCE,
+            load,
+            IntegerConstant.forValue(index),
+            ArrayAccess.REFERENCE.load(),
+            assigner.assign(TypeDescription.Generic.OBJECT, targetType, Assigner.Typing.DYNAMIC),
+            store
+        );
+    }
+
+    private StackManipulation scalarStackManipulation(MethodDescription.InDefinedShape adviceMethod, Assigner assigner, boolean loadThis, Advice.ArgumentHandler argumentHandler,
+                                                      boolean exit, TypeDescription.Generic target, StackManipulation store, Assigner.Typing typing) {
+        final StackManipulation assign = assigner.assign(adviceMethod.getReturnType(), target, typing);
+        if (!assign.isValid()) {
+            throw new IllegalStateException("Cannot assign " + adviceMethod.getReturnType() + " to " + target + " in advice method " + adviceMethod.toGenericString());
+        }
+        StackManipulation load = MethodVariableAccess.of(adviceMethod.getReturnType()).loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter());
+        return new StackManipulation.Compound(
+            loadThis ? MethodVariableAccess.loadThis() : StackManipulation.Trivial.INSTANCE,
+            load,
+            assign,
+            store
+        );
     }
 
     private Advice.PostProcessor createAssignToFieldPostProcessor(final MethodDescription.InDefinedShape adviceMethod, final boolean exit, final AssignTo.Field assignToField) {
@@ -147,37 +210,24 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
                     throw new IllegalStateException("Cannot access non-static field before calling constructor: " + instrumentedMethod);
                 }
 
-                final TypeDescription.Generic returnType = adviceMethod.getReturnType();
                 if (assignToField.index() != -1) {
-                    if (!returnType.represents(Object[].class)) {
-                        throw new IllegalStateException("Advice method has to return Object[] when setting an index");
-                    }
-                    final Label jumpToIfNull = new Label();
-                    final StackManipulation load = MethodVariableAccess.REFERENCE.loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter());
-                    return new StackManipulation.Compound(
-                        new AddNullCheck(jumpToIfNull, TypeDescription.Generic.OBJECT, load),
-                        MethodVariableAccess.loadThis(),
-                        load,
-                        loadArrayElement(assignToField.index()),
-                        assigner.assign(TypeDescription.Generic.OBJECT, field.getType(), Assigner.Typing.DYNAMIC),
-                        FieldAccess.forField(field).write(),
-                        new AddLabel(jumpToIfNull)
-                    );
+                    return objectArrayStackManipulation(adviceMethod,
+                        assigner,
+                        true,
+                        argumentHandler,
+                        exit,
+                        assignToField.index(),
+                        field.getType(),
+                        FieldAccess.forField(field).write());
                 } else {
-                    final StackManipulation assign = assigner.assign(adviceMethod.getReturnType(), field.getType(), assignToField.typing());
-                    if (!assign.isValid()) {
-                        throw new IllegalStateException("Cannot assign " + adviceMethod.getReturnType() + " to " + field.getType());
-                    }
-                    final Label jumpToIfNull = new Label();
-                    final StackManipulation load = MethodVariableAccess.of(adviceMethod.getReturnType()).loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter());
-                    return new StackManipulation.Compound(
-                        new AddNullCheck(jumpToIfNull, TypeDescription.Generic.OBJECT, load),
-                        MethodVariableAccess.loadThis(),
-                        load,
-                        assign,
+                    return scalarStackManipulation(adviceMethod,
+                        assigner,
+                        true,
+                        argumentHandler,
+                        exit,
+                        field.getType(),
                         FieldAccess.forField(field).write(),
-                        new AddLabel(jumpToIfNull)
-                    );
+                        assignToField.typing());
                 }
             }
         };
@@ -188,37 +238,27 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
             @Override
             public StackManipulation resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler) {
                 final ParameterDescription param = instrumentedMethod.getParameters().get(assignToArgument.value());
-                final TypeDescription.Generic returnType = adviceMethod.getReturnType();
                 if (assignToArgument.index() != -1) {
-                    if (!returnType.represents(Object[].class)) {
-                        throw new IllegalStateException("Advice method has to return Object[] when setting an index");
-                    }
-                    return new StackManipulation.Compound(
-                        MethodVariableAccess.REFERENCE.loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter()),
-                        IntegerConstant.forValue(assignToArgument.index()),
-                        ArrayAccess.REFERENCE.load(),
-                        assigner.assign(TypeDescription.Generic.OBJECT, param.getType(), Assigner.Typing.DYNAMIC),
-                        MethodVariableAccess.store(param)
-                    );
+                    return objectArrayStackManipulation(adviceMethod,
+                        assigner,
+                        false,
+                        argumentHandler,
+                        exit,
+                        assignToArgument.index(),
+                        param.getType(),
+                        MethodVariableAccess.store(param));
                 } else {
-                    final StackManipulation assign = assigner.assign(returnType, param.getType(), assignToArgument.typing());
-                    if (!assign.isValid()) {
-                        throw new IllegalStateException("Cannot assign " + adviceMethod.getReturnType() + " to " + param.getType());
-                    }
-                    return new StackManipulation.Compound(
-                        MethodVariableAccess.of(adviceMethod.getReturnType()).loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter()),
-                        assign,
-                        MethodVariableAccess.store(param)
-                    );
+                    return scalarStackManipulation(adviceMethod,
+                        assigner,
+                        false,
+                        argumentHandler,
+                        exit,
+                        param.getType(),
+                        MethodVariableAccess.store(param),
+                        assignToArgument.typing());
                 }
             }
         };
-    }
-
-    private StackManipulation loadArrayElement(int i) {
-        return new StackManipulation.Compound(
-            IntegerConstant.forValue(i),
-            ArrayAccess.REFERENCE.load());
     }
 
     public static class Compound implements Advice.PostProcessor {

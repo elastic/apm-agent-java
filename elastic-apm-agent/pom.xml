@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.25.1-SNAPSHOT</version>
+        <version>1.26.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
@@ -506,6 +506,10 @@
                                 <relocation>
                                     <pattern>io.opentelemetry.semconv</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.opentelemetry.semconv</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.googlecode.concurrentlinkedhashmap</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.concurrentlinkedhashmap</shadedPattern>
                                 </relocation>
                                 <!-- This reverts logging frameworks temporary packages given during the execution of the package
                                 phase of the apm-log-shader-plugin to their original packages -->
