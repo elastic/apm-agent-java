@@ -234,23 +234,23 @@ class ConnectionMetaDataTest {
     @Test
     void testSqlserver() {
         // https://docs.microsoft.com/en-us/sql/connect/jdbc/building-the-connection-url?view=sql-server-ver15
-        testUrl("jdbc:sqlserver://myhost\\instance:666", "sqlserver", "myhost", 666);
-        testUrl("jdbc:sqlserver://myhost\\instance:666;prop1=val1;prop2=val2", "sqlserver", "myhost", 666);
-        testUrl("jdbc:sqlserver://myhost:666", "sqlserver", "myhost", 666);
-        testUrl("jdbc:sqlserver://myhost:666;prop1=val1;prop2=val2", "sqlserver", "myhost", 666);
-        testUrl("jdbc:sqlserver://myhost\\instance", "sqlserver", "myhost", 1433);
-        testUrl("jdbc:sqlserver://myhost\\instance;prop1=val1;prop2=val2", "sqlserver", "myhost", 1433);
-        testUrl("jdbc:sqlserver://myhost", "sqlserver", "myhost", 1433);
-        testUrl("jdbc:sqlserver://myhost;prop1=val1;prop2=val2", "sqlserver", "myhost", 1433);
-        testUrl("jdbc:sqlserver://", "sqlserver", "localhost", 1433);
-        testUrl("jdbc:sqlserver://;prop1=val1;prop2=val2", "sqlserver", "localhost", 1433);
-        testUrl("jdbc:sqlserver://;", "sqlserver", "localhost", 1433);
-        testUrl("jdbc:sqlserver://;serverName=myhost", "sqlserver", "myhost", 1433);
-        testUrl("jdbc:sqlserver://;prop1=val1;serverName=myhost", "sqlserver", "myhost", 1433);
-        testUrl("jdbc:sqlserver://;serverName=myhost;prop1=val1", "sqlserver", "myhost", 1433);
-        testUrl("jdbc:sqlserver://;serverName=myhost\\instance;prop1=val1", "sqlserver", "myhost", 1433);
+        testUrl("jdbc:sqlserver://myhost\\instance:666", "mssql", "myhost", 666);
+        testUrl("jdbc:sqlserver://myhost\\instance:666;prop1=val1;prop2=val2", "mssql", "myhost", 666);
+        testUrl("jdbc:sqlserver://myhost:666", "mssql", "myhost", 666);
+        testUrl("jdbc:sqlserver://myhost:666;prop1=val1;prop2=val2", "mssql", "myhost", 666);
+        testUrl("jdbc:sqlserver://myhost\\instance", "mssql", "myhost", 1433);
+        testUrl("jdbc:sqlserver://myhost\\instance;prop1=val1;prop2=val2", "mssql", "myhost", 1433);
+        testUrl("jdbc:sqlserver://myhost", "mssql", "myhost", 1433);
+        testUrl("jdbc:sqlserver://myhost;prop1=val1;prop2=val2", "mssql", "myhost", 1433);
+        testUrl("jdbc:sqlserver://", "mssql", "localhost", 1433);
+        testUrl("jdbc:sqlserver://;prop1=val1;prop2=val2", "mssql", "localhost", 1433);
+        testUrl("jdbc:sqlserver://;", "mssql", "localhost", 1433);
+        testUrl("jdbc:sqlserver://;serverName=myhost", "mssql", "myhost", 1433);
+        testUrl("jdbc:sqlserver://;prop1=val1;serverName=myhost", "mssql", "myhost", 1433);
+        testUrl("jdbc:sqlserver://;serverName=myhost;prop1=val1", "mssql", "myhost", 1433);
+        testUrl("jdbc:sqlserver://;serverName=myhost\\instance;prop1=val1", "mssql", "myhost", 1433);
         testUrl("jdbc:sqlserver://;serverName=3ffe:8311:eeee:f70f:0:5eae:10.203.31.9\\instance;prop1=val1",
-            "sqlserver", "3ffe:8311:eeee:f70f:0:5eae:10.203.31.9", 1433);
+            "mssql", "3ffe:8311:eeee:f70f:0:5eae:10.203.31.9", 1433);
     }
 
     @Test
