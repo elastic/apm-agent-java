@@ -27,9 +27,8 @@ pipeline {
   }
   parameters {
     string(name: 'branch_specifier', defaultValue: 'stable', description: "What branch to release from?")
-    booleanParam(name: 'check_branch_ci_status', defaultValue: true, description: "Check for failing tests in the given branch?")
+    booleanParam(name: 'check_branch_ci_status', defaultValue: true, description: "Check for failing tests in the given branch (if no stable branch)?")
   }
-
   stages {
     stage('Initializing'){
       options { skipDefaultCheckout() }
@@ -86,13 +85,18 @@ pipeline {
           }
         }
         stage('Check build status') {
-        when { expression { params.check_branch_ci_status } }
-         steps {
-             // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/"${BRANCH_SPECIFIER}"/
-             whenTrue(!buildStatus(host: 'apm-ci.elastic.co', job: ['apm-agent-java', 'apm-agent-java-mbp', "${BRANCH_SPECIFIER}"], return_boolean: true)) {
-               input(message: "WARNING! The ${BRANCH_SPECIFIER} build is not passing. Do you wish to continue?")
-             }
-         }
+          when {
+            allOf {
+              expression { params.check_branch_ci_status }
+              not { branch 'stable' }
+            }
+          }
+          steps {
+            // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/"${BRANCH_SPECIFIER}"/
+            whenTrue(!buildStatus(host: 'apm-ci.elastic.co', job: ['apm-agent-java', 'apm-agent-java-mbp', "${BRANCH_SPECIFIER}"], return_boolean: true)) {
+              input(message: "WARNING! The ${BRANCH_SPECIFIER} build is not passing. Do you wish to continue?")
+            }
+          }
         }
         stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
           steps {
