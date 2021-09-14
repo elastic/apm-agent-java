@@ -40,9 +40,7 @@ public class SystemInfo {
 
     private static final String CONTAINER_UID_REGEX = "^[0-9a-fA-F]{64}$";
     private static final String SHORTENED_UUID_PATTERN = "^[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4,}";
-    private static final String POD_REGEX =
-        "(?:^/kubepods[\\S]*/pod([^/]+)$)|" +
-            "(?:^/kubepods\\.slice/(kubepods-[^/]+\\.slice/)?kubepods[^/]*-pod([^/]+)\\.slice$)";
+    private static final String POD_REGEX = "(?:^/kubepods[\\S]*/pod([^/]+)$)|(?:kubepods[^/]*-pod([^/]+)\\.slice)";
 
     /**
      * Architecture of the system the agent is running on.
@@ -174,13 +172,18 @@ public class SystemInfo {
      * @return this SystemInfo object after parsing
      */
     SystemInfo parseContainerId(String line) {
-        final String[] fields = line.split(":");
+        final String[] fields = line.split(":", 3);
         if (fields.length == 3) {
             String cGroupPath = fields[2];
-            int indexOfLastSlash = cGroupPath.lastIndexOf('/');
 
-            if (indexOfLastSlash >= 0) {
-                String idPart = cGroupPath.substring(indexOfLastSlash + 1);
+            // Looking whether the cgroup path part is delimited with `:`, e.g. in containerd cri
+            int indexOfIdSeparator = cGroupPath.lastIndexOf(':');
+            if (indexOfIdSeparator < 0) {
+                indexOfIdSeparator = cGroupPath.lastIndexOf('/');
+            }
+
+            if (indexOfIdSeparator >= 0) {
+                String idPart = cGroupPath.substring(indexOfIdSeparator + 1);
 
                 // Legacy, e.g.: /system.slice/docker-<CID>.scope
                 if (idPart.endsWith(".scope")) {
@@ -188,7 +191,7 @@ public class SystemInfo {
                 }
 
                 // Looking for kubernetes info
-                String dir = cGroupPath.substring(0, indexOfLastSlash);
+                String dir = cGroupPath.substring(0, indexOfIdSeparator);
                 if (dir.length() > 0) {
                     final Pattern pattern = Pattern.compile(POD_REGEX);
                     final Matcher matcher = pattern.matcher(dir);
@@ -197,8 +200,6 @@ public class SystemInfo {
                             String podUid = matcher.group(i);
                             if (podUid != null && !podUid.isEmpty()) {
                                 if (i == 2) {
-                                    continue;
-                                } else if (i == 3) {
                                     // systemd cgroup driver is being used, so we need to unescape '_' back to '-'.
                                     podUid = podUid.replace('_', '-');
                                 }
