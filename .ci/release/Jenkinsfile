@@ -163,7 +163,7 @@ pipeline {
             input(message: "Go to https://oss.sonatype.org and proceed with the steps to close and release the staging artifact.")
           }
         }
-        stage('Branch creation') {
+        stage('Major Branch create/update') {
           steps {
             dir("${BASE_DIR}") {
               script {
@@ -174,7 +174,10 @@ pipeline {
                   input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
                 } else {
                   // minor release, force-update existing '.x' branch
-                  sh(script: "git branch -f ${TAG_DOT_X} ${TAG_BARE}")
+                  sh(script: """
+                    git branch -f ${TAG_DOT_X} ${TAG_BARE}
+                    git checkout ${TAG_DOT_X} # ensure that we are not in 'detached HEAD' state
+                    """)
                 }
               }
               gitPush()
