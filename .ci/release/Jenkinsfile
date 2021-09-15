@@ -160,7 +160,7 @@ pipeline {
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be published in Nexus",
                          body: "Please go to (<https://oss.sonatype.org/|here>) to proceed with the manual nexus release. Login details in LastPass")
-            input(message: "Go to https://oss.sonatype.or and proceed with the steps to close and release the staging artifact.")
+            input(message: "Go to https://oss.sonatype.org and proceed with the steps to close and release the staging artifact.")
           }
         }
         stage('Branch creation') {
