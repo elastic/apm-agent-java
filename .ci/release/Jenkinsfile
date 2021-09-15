@@ -167,14 +167,16 @@ pipeline {
           steps {
             dir("${BASE_DIR}") {
               script {
-                def curVer = mvnVersion()
-                sh(script: "./scripts/jenkins/branch_creation.sh ${curVer}")
-                def isMajor = sh(script: "./scripts/jenkins/is_major.sh ${curVer}", returnStatus: true)
-                if (isMajor == 0) {
+                def isMajor = "${TAG_VER}".endsWith(".0.0")
+                if (isMajor) {
+                  // major release, create '.x' branch
+                  sh(script: "git checkout -b ${TAG_DOT_X}")
                   input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
+                } else {
+                  // minor release, force-update existing '.x' branch
+                  sh(script: "git branch -f ${TAG_DOT_X} ${TAG_BARE}")
                 }
-              }
-              gitPush()
+                gitPush()
             }
           }
         }
