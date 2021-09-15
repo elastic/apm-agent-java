@@ -176,8 +176,8 @@ pipeline {
                   // minor release, force-update existing '.x' branch
                   sh(script: "git branch -f ${TAG_DOT_X} ${TAG_BARE}")
                 }
-                gitPush()
               }
+              gitPush()
             }
           }
         }
