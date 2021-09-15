@@ -177,6 +177,7 @@ pipeline {
                   sh(script: "git branch -f ${TAG_DOT_X} ${TAG_BARE}")
                 }
                 gitPush()
+              }
             }
           }
         }
