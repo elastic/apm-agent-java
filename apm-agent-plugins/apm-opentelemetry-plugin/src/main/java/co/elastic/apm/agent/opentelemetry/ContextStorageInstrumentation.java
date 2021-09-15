@@ -30,6 +30,9 @@ import net.bytebuddy.matcher.ElementMatcher;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
+/**
+ * Instruments {@link ContextStorage#get()}
+ */
 public class ContextStorageInstrumentation extends AbstractOpenTelemetryInstrumentation {
 
     @Override

@@ -74,6 +74,13 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
         return root;
     }
 
+    /**
+     * Bridges an active elastic span to an active OTel span context
+     *
+     * @param tracer tracer
+     * @param span   elastic span
+     * @return bridged context
+     */
     public static OTelBridgeContext wrapElasticActiveSpan(ElasticApmTracer tracer, AbstractSpan<?> span) {
         OTelSpan otelSpan = new OTelSpan(span);
         return new OTelBridgeContext(tracer, originalRootContext.with(otelSpan));

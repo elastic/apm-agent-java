@@ -53,9 +53,12 @@ public class OTelContextStorage implements ContextStorage {
         }
 
         if (!(toAttach instanceof OTelBridgeContext)) {
-            throw new IllegalStateException("unexpected context type "+ toAttach.getClass().getName());
+            // likely to be triggered when trying to activate a context created before agent attachment and
+            // instrumentation.
+            logger.debug("unexpected context type for attachment {}", toAttach.getClass().getName());
+            return Scope.noop();
         }
-        OTelBridgeContext bridgeContext = (OTelBridgeContext)toAttach;
+        OTelBridgeContext bridgeContext = (OTelBridgeContext) toAttach;
 
         tracer.activate(bridgeContext);
         return bridgeContext;

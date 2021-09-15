@@ -713,6 +713,11 @@ public class ElasticApmTracer implements Tracer {
             return Scope.NoopScope.INSTANCE;
         }
         context.activate();
+
+        if (context instanceof Scope) {
+            // we can take shortcut and avoid creating a separate object
+            return (Scope) context;
+        }
         return new Scope() {
             @Override
             public void close() {
