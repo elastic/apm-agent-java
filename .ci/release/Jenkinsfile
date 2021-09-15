@@ -174,10 +174,7 @@ pipeline {
                   input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
                 } else {
                   // minor release, force-update existing '.x' branch
-                  sh(script: """
-                    git checkout  ${TAG_DOT_X} 
-                    git branch -b ${TAG_BARE}
-                   """)
+                  sh(script: "git branch -f ${TAG_DOT_X} ${TAG_BARE}")
                 }
               }
               gitPush()
