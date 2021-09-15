@@ -50,7 +50,7 @@ pipeline {
               script {
                 env.TAG_BARE = sh(script: "./scripts/jenkins/tags.sh bare", returnStdout: true)
                 env.TAG_VER = sh(script: "./scripts/jenkins/tags.sh ver", returnStdout: true)
-                env.TAG_DOT_X = sh(script: "./scripts/jenkins/tags.sh dot_x", returnStdout: true)
+                env.BRANCH_DOT_X = sh(script: "./scripts/jenkins/tags.sh dot_x", returnStdout: true)
               }
             }
             dir("${BASE_DIR}") {
@@ -170,13 +170,13 @@ pipeline {
                 def isMajor = "${TAG_VER}".endsWith(".0.0")
                 if (isMajor) {
                   // major release, create '.x' branch
-                  sh(script: "git checkout -b ${TAG_DOT_X}")
+                  sh(script: "git checkout -b ${BRANCH_DOT_X}")
                   input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
                 } else {
                   // minor release, force-update existing '.x' branch
                   sh(script: """
-                    git branch -f ${TAG_DOT_X} ${TAG_BARE}
-                    git checkout ${TAG_DOT_X} # ensure that we are not in 'detached HEAD' state
+                    git checkout ${BRANCH_DOT_X}
+                    git merge ${TAG_BARE}
                     """)
                 }
               }
