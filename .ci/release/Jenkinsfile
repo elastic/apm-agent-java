@@ -251,8 +251,7 @@ pipeline {
               dir("${BASE_DIR}"){
                 script {
                   echo "Waiting for the release notes to be available"
-                  def ret = sh(script: "./scripts/jenkins/docs_check.sh ${TAG_VER}")
-                  return ret == 0
+                  return "https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html".toURL().getText().contains("${TAG_VER}")
                 }
               }
             }
