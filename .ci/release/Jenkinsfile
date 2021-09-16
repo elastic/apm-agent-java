@@ -192,12 +192,15 @@ pipeline {
           steps {
             dir("${BASE_DIR}"){
               script {
-                def curVer = mvnVersion(showQualifiers: false)
                 // Construct the URL with anchor for the release notes
                 // Ex: https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-1.x.html#release-notes-1.13.0
-                def finalUrl = sh(script: "scripts/jenkins/generate_release_notes_url.sh ${curVer}", returnStdout: true)
+                def finalUrl = sh(script: "scripts/jenkins/generate_release_notes_url.sh ${TAG_VER}", returnStdout: true)
                 githubEnv()
-                def ret = githubReleaseCreate(draft: true, name: "Release ${curVer}", body: "[Release Notes for ${curVer}](${finalUrl})")
+                def ret = githubReleaseCreate(
+                        draft: true,
+                        tagName: "${TAG_BARE}",
+                        name: "Release ${TAG_VER}",
+                        body: "[Release Notes for ${TAG_VER}](${finalUrl})")
                 env.RELEASE_ID = ret['id']
                 env.RELEASE_NOTES_URL = finalUrl
               }
