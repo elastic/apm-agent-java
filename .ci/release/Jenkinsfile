@@ -255,7 +255,8 @@ pipeline {
                     return ret == 0
                 }
               }
-              githubReleasePublish(id: "${env.RELEASE_ID}")
+              githubEnv()
+              githubReleasePublish(id: "${env.RELEASE_ID}", name: "Release ${TAG_VER}")
             }
           }
         }
