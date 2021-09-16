@@ -181,14 +181,14 @@ public class ElasticApmAttacher {
     private enum AgentJarFileHolder {
         INSTANCE;
 
-        // initializes lazily and ensures it's only loaded once
+        // initializes lazily and ensures its only loaded once
         final File agentJarFile = getAgentJarFile();
 
         private static File getAgentJarFile() {
             if (ElasticApmAttacher.class.getResource("/elastic-apm-agent.jar") == null) {
                 return null;
             }
-            return ResourceExtractionUtil.extractResourceToDirectory("elastic-apm-agent.jar", "elastic-apm-agent", ".jar", true, System.getProperty("java.io.tmpdir"));
+            return ResourceExtractionUtil.extractResourceToTempDirectory("elastic-apm-agent.jar", "elastic-apm-agent", ".jar");
         }
     }
 

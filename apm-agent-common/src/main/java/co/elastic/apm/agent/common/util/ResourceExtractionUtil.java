@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.common.util;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -40,12 +39,10 @@ public class ResourceExtractionUtil {
      * @param resource       The classpath resource to extract.
      * @param prefix         The prefix of the extracted file.
      * @param suffix         The suffix of the extracted file.
-     * @param appendUserHash Whether the name of the extracted file should contain a hash of the current user.
-     *                       This can help to circumvent permission issues.
      * @return the extracted file.
      */
-    public static synchronized File extractResourceToDirectory(String resource, String prefix, String suffix, boolean appendUserHash) {
-        return extractResourceToDirectory(resource, prefix, suffix, appendUserHash, null);
+    public static synchronized File extractResourceToTempDirectory(String resource, String prefix, String suffix) {
+        return extractResourceToDirectory(resource, prefix, suffix, System.getProperty("java.io.tmpdir"));
     }
 
     /**
@@ -55,8 +52,6 @@ public class ResourceExtractionUtil {
      * @param resource       The classpath resource to extract.
      * @param prefix         The prefix of the extracted file.
      * @param suffix         The suffix of the extracted file.
-     * @param appendUserHash Whether the name of the extracted file should contain a hash of the current user.
-     *                       This can help to circumvent permission issues.
      * @param directory      The directory in which the file is to be created, or null if the default temporary-file directory is to be used.
      * @return the extracted file.
      */
@@ -64,22 +59,21 @@ public class ResourceExtractionUtil {
      * Why it's synchronized : if the same JVM try to lock file, we got an java.nio.channels.OverlappingFileLockException.
      * So we need to block until the file is totally written.
      */
-    public static synchronized File extractResourceToDirectory(String resource, String prefix, String suffix, boolean appendUserHash, @Nullable String directory) {
+    public static synchronized File extractResourceToDirectory(String resource, String prefix, String suffix, String directory) {
         try (InputStream resourceStream = ResourceExtractionUtil.class.getResourceAsStream("/" + resource)) {
             if (resourceStream == null) {
                 throw new IllegalStateException(resource + " not found");
             }
             String userHash = "";
-            if (appendUserHash) {
+            if (System.getProperties().contains("user.name")) {
                 // we have to include current user name as multiple copies of the same agent could be attached
                 // to multiple JVMs, each running under a different user. Also, we have to make it path-friendly.
                 userHash = md5Hash(System.getProperty("user.name"));
                 userHash += "-";
             }
-            String hash = md5Hash(ResourceExtractionUtil.class.getResourceAsStream("/" + resource));
+            String resourceHash = md5Hash(ResourceExtractionUtil.class.getResourceAsStream("/" + resource));
 
-            directory = directory != null ? directory : System.getProperty("java.io.tmpdir");
-            File tempFile = new File(directory, prefix + "-" + userHash + hash + suffix);
+            File tempFile = new File(directory, prefix + "-" + userHash + resourceHash + suffix);
             if (!tempFile.exists()) {
                 try (FileOutputStream out = new FileOutputStream(tempFile)) {
                     FileChannel channel = out.getChannel();
@@ -94,7 +88,7 @@ public class ResourceExtractionUtil {
                         }
                     }
                 }
-            } else if (!md5Hash(new FileInputStream(tempFile)).equals(hash)) {
+            } else if (!md5Hash(new FileInputStream(tempFile)).equals(resourceHash)) {
                 throw new IllegalStateException("Invalid MD5 checksum of " + tempFile + ". Please delete this file.");
             }
             return tempFile;

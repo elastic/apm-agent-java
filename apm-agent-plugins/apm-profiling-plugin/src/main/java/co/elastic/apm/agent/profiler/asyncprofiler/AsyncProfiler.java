@@ -92,7 +92,7 @@ public class AsyncProfiler {
 
     private static void loadNativeLibrary(String libraryDirectory) {
         String libraryName = getLibraryFileName();
-        File file = ResourceExtractionUtil.extractResourceToDirectory("asyncprofiler/" + libraryName + ".so", libraryName, ".so", false, libraryDirectory);
+        File file = ResourceExtractionUtil.extractResourceToDirectory("asyncprofiler/" + libraryName + ".so", libraryName, ".so", libraryDirectory);
         System.load(file.getAbsolutePath());
     }
 

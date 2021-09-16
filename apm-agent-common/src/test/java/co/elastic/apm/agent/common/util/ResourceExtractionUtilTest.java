@@ -39,33 +39,31 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ResourceExtractionUtilTest {
 
-    private final String tempDirectory = System.getProperty("java.io.tmpdir");
-
     @Test
     void exportResourceToDirectory() throws URISyntaxException {
-        File tmp = ResourceExtractionUtil.extractResourceToDirectory("test.txt", UUID.randomUUID().toString(), ".tmp", false, tempDirectory);
+        File tmp = ResourceExtractionUtil.extractResourceToTempDirectory("test.txt", UUID.randomUUID().toString(), ".tmp");
         tmp.deleteOnExit();
 
         Path referenceFile = Paths.get(ResourceExtractionUtil.class.getResource("/test.txt").toURI());
 
         assertThat(tmp)
-            .hasSameContentAs(referenceFile.toFile());
+            .hasSameTextualContentAs(referenceFile.toFile());
     }
 
     @Test
     void exportResourceToDirectoryIdempotence() throws InterruptedException {
         String destination = UUID.randomUUID().toString();
-        File tmp = ResourceExtractionUtil.extractResourceToDirectory("test.txt", destination, ".tmp", false, tempDirectory);
+        File tmp = ResourceExtractionUtil.extractResourceToTempDirectory("test.txt", destination, ".tmp");
         tmp.deleteOnExit();
         long actual = tmp.lastModified();
         Thread.sleep(1000);
-        File after = ResourceExtractionUtil.extractResourceToDirectory("test.txt", destination, ".tmp", false, tempDirectory);
+        File after = ResourceExtractionUtil.extractResourceToTempDirectory("test.txt", destination, ".tmp");
         assertThat(actual).isEqualTo(after.lastModified());
     }
 
     @Test
     void exportResourceToDirectory_throwExceptionIfNotFound() {
-        assertThatThrownBy(() -> ResourceExtractionUtil.extractResourceToDirectory("nonexist", UUID.randomUUID().toString(), ".tmp", false, tempDirectory)).hasMessage("nonexist not found");
+        assertThatThrownBy(() -> ResourceExtractionUtil.extractResourceToTempDirectory("nonexist", UUID.randomUUID().toString(), ".tmp")).hasMessage("nonexist not found");
     }
 
     @Test
@@ -80,7 +78,7 @@ class ResourceExtractionUtilTest {
             futureList.add(executorService.submit(() -> {
                 countDownLatch.countDown();
                 countDownLatch.await();
-                File file = ResourceExtractionUtil.extractResourceToDirectory("test.txt", tempFileNamePrefix, ".tmp", false, tempDirectory);
+                File file = ResourceExtractionUtil.extractResourceToTempDirectory("test.txt", tempFileNamePrefix, ".tmp");
                 file.deleteOnExit();
                 return file;
             }));
