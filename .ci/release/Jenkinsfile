@@ -164,6 +164,9 @@ pipeline {
           }
         }
         stage('Major Branch create/update') {
+          when {
+            expression { return false }
+          }
           steps {
             dir("${BASE_DIR}") {
               script {
@@ -222,6 +225,9 @@ pipeline {
           }
         }
         stage('Wait for artifact to be available in Maven Central') {
+          when {
+            expression { return false }
+          }
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -263,10 +269,13 @@ pipeline {
         stage('Build and push Docker images') {
           steps {
             dir("${BASE_DIR}"){
-              sh(label: "Build Docker image", script: "./scripts/jenkins/build_docker.sh")
-              // Get Docker registry credentials
-              dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co')
-              sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
+              // fetch agent artifact from remote repository
+              withEnv(["SONATYPE_FALLBACK=1"]) {
+                sh(label: "Build Docker image", script: "./scripts/jenkins/build_docker.sh")
+                  // Get Docker registry credentials
+                  dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co')
+                  sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
+              }
             }
           }
           post {
