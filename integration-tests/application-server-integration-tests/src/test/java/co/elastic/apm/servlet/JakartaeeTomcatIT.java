@@ -37,9 +37,12 @@ public class JakartaeeTomcatIT extends AbstractTomcatIT {
     @Parameterized.Parameters(name = "Tomcat {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"10.0.8-jdk8"},
-            {"10.0.8-jdk11"},
-            {"10.0.8-jdk16"},
+            {"10.0.10-jdk8"},
+            {"10.0.10-jdk11"},
+            {"10.0.10-jdk8-adoptopenjdk-openj9"},
+            {"10.0.10-jdk11-adoptopenjdk-openj9"},
+            {"10.0.10-jdk8-adoptopenjdk-hotspot"},
+            {"10.0.10-jdk11-adoptopenjdk-hotspot"},
         });
     }
 
