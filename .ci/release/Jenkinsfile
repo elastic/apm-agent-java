@@ -50,7 +50,7 @@ pipeline {
               script {
                 env.TAG_BARE = sh(script: "./scripts/jenkins/tags.sh bare", returnStdout: true)
                 env.TAG_VER = sh(script: "./scripts/jenkins/tags.sh ver", returnStdout: true)
-                env.TAG_DOT_X = sh(script: "./scripts/jenkins/tags.sh dot_x", returnStdout: true)
+                env.BRANCH_DOT_X = sh(script: "./scripts/jenkins/tags.sh dot_x", returnStdout: true)
               }
             }
             dir("${BASE_DIR}") {
@@ -72,6 +72,9 @@ pipeline {
       options { skipDefaultCheckout () }
       stages{
         stage('Check oss.sonatype.org') {
+          when {
+            expression { return false }
+          }
           steps {
             // If this fails, an exception should be thrown and execution will halt
             dir("${BASE_DIR}"){
@@ -99,6 +102,9 @@ pipeline {
           }
         }
         stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
+          when {
+            expression { return false }
+          }
           steps {
             input(message: """
             Update CHANGELOG.asciidoc to reflect the new version release:
@@ -114,6 +120,9 @@ pipeline {
           }
         }
         stage('Set release version') {
+          when {
+            expression { return false }
+          }
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -130,7 +139,7 @@ pipeline {
                 } else {
                     echo "changing project version from '${snapshot_version}' to '${user_release_version}' to prepare release ${user_release_version}."
                     sh(label: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${user_release_version}-SNAPSHOT")
-                    sh(script: "git commit -a -m 'Version bump ${ver}'")
+                    sh(script: "git commit -a -m 'Version bump ${user_release_version}'")
                     gitPush()
                 }
               }
@@ -138,6 +147,9 @@ pipeline {
           }
         }
         stage('Wait on internal CI') {
+          when {
+            expression { return false }
+          }
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
                           body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")
@@ -146,26 +158,30 @@ pipeline {
         }
         stage('Nexus release') {
           steps {
-            script {
-              dir("${BASE_DIR}"){
-                withSecretVault(secret: 'secret/apm-team/ci/nexus', user_var_name: '__unused__', pass_var_name: 'SPID', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id'){
-                  def foundStagingId = nexusFindStagingId(stagingProfileId: "${SPID}", groupId: "co.elastic.apm")
-                  nexusCloseStagingRepository(stagingProfileId: "${SPID}", stagingId: foundStagingId)
-                  nexusReleaseStagingRepository(stagingProfileId: "${SPID}", stagingId: foundStagingId)
-                }
-              }
-            }
+            notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be published in Nexus",
+                         body: "Please go to (<https://oss.sonatype.org/|here>) to proceed with the manual nexus release. Login details in LastPass")
+            input(message: "Go to https://oss.sonatype.org and proceed with the steps to close and release the staging artifact.")
           }
         }
-        stage('Branch creation') {
+        stage('Major Branch create/update') {
           steps {
             dir("${BASE_DIR}") {
               script {
-                def curVer = mvnVersion()
-                sh(script: "./scripts/jenkins/branch_creation.sh ${curVer}")
-                def isMajor = sh(script: "./scripts/jenkins/is_major.sh ${curVer}", returnStatus: true)
-                if (isMajor == 0) {
+                def isMajor = "${TAG_VER}".endsWith(".0.0")
+                if (isMajor) {
+                  // major release, create '.x' branch
+                  sh(script: """
+                    git checkout ${TAG_BARE}
+                    git checkout -b ${BRANCH_DOT_X}
+                  """)
                   input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
+                } else {
+                  // minor release, update existing '.x' branch
+                  sh(script: """
+                    git fetch origin ${BRANCH_DOT_X} # ensure remote branch is fetched for local checkout
+                    git checkout --track origin/${BRANCH_DOT_X}
+                    git merge ${TAG_BARE}
+                    """)
                 }
               }
               gitPush()
@@ -176,12 +192,15 @@ pipeline {
           steps {
             dir("${BASE_DIR}"){
               script {
-                def curVer = mvnVersion(showQualifiers: false)
                 // Construct the URL with anchor for the release notes
                 // Ex: https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-1.x.html#release-notes-1.13.0
-                def finalUrl = sh(script: "scripts/jenkins/generate_release_notes_url.sh ${curVer}", returnStdout: true)
+                def finalUrl = "https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html#release-notes-${TAG_VER}"
                 githubEnv()
-                def ret = githubReleaseCreate(draft: true, name: "Release ${curVer}", body: "[Release Notes for ${curVer}](${finalUrl})")
+                def ret = githubReleaseCreate(
+                        draft: true,
+                        tagName: "${TAG_BARE}",
+                        releaseName: "Release ${TAG_VER}",
+                        body: "[Release Notes for ${TAG_VER}](${finalUrl})")
                 env.RELEASE_ID = ret['id']
                 env.RELEASE_NOTES_URL = finalUrl
               }
