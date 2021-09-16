@@ -7,5 +7,5 @@ set -exo pipefail
 BASE_URL=https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent
 CF_FILE=cloudfoundry/index.yml
 
-echo "$TAG_VER: $BASE_URL/$TAG/elastic-apm-agent-$TAG_VER.jar" >> $CF_FILE
-git commit $CF_FILE -m "Update cloudfoundry for $TAG_VER release"
+echo "${TAG_VER}: ${BASE_URL}/${TAG_VER}/elastic-apm-agent-$TAG_VER.jar" >> ${CF_FILE}
+git commit ${CF_FILE} -m "Update cloudfoundry for ${TAG_VER} release"
