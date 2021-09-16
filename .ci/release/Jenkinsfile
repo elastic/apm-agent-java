@@ -179,7 +179,7 @@ pipeline {
                   // minor release, update existing '.x' branch
                   sh(script: """
                     git fetch origin ${BRANCH_DOT_X} # ensure remote branch is fetched for local checkout
-                    git checkout ${BRANCH_DOT_X}
+                    git checkout --track origin/${BRANCH_DOT_X}
                     git merge ${TAG_BARE}
                     """)
                 }
