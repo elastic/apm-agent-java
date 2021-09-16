@@ -220,7 +220,7 @@ pipeline {
           steps {
             dir("${BASE_DIR}"){
               script {
-                def fullUrl = sh(script: "./scripts/jenkins/maven_artifact_url.sh ", returnStdout: true)
+                def fullUrl = "https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/${TAG_VER}/elastic-apm-agent-${TAG_VER}.pom"
                 waitUntil(initialRecurrencePeriod: 60000) {
                   script {
                     def ret = sh(script: "curl -fs '${fullUrl}' >/dev/null 2>&1", returnStatus: true)
