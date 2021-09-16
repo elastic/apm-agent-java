@@ -211,7 +211,7 @@ pipeline {
           steps {
             dir("${BASE_DIR}"){
               script {
-                def fullUrl = sh(script: "./scripts/jenkins/maven_artifact_url.sh ")
+                def fullUrl = sh(script: "./scripts/jenkins/maven_artifact_url.sh ", returnStdout: true)
                 waitUntil(initialRecurrencePeriod: 60000) {
                   script {
                     def ret = sh(script: "curl -fs '${fullUrl}' >/dev/null 2>&1", returnStatus: true)
