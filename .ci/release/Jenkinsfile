@@ -187,6 +187,13 @@ pipeline {
               gitPush()
             }
           }
+          post {
+            cleanup {
+              // restore git state before updating .x branch, otherwise later external scripts will use
+              // the version when the tag was created, which might not match the branch state
+              sh(script: "git checkout ${BRANCH_SPECIFIER}")
+            }
+          }
         }
         stage('Create GitHub release draft') {
           steps {
