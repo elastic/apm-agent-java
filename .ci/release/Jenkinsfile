@@ -170,11 +170,15 @@ pipeline {
                 def isMajor = "${TAG_VER}".endsWith(".0.0")
                 if (isMajor) {
                   // major release, create '.x' branch
-                  sh(script: "git checkout -b ${BRANCH_DOT_X}")
+                  sh(script: """
+                    git checkout ${TAG_BARE}
+                    git checkout -b ${BRANCH_DOT_X}
+                  """)
                   input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
                 } else {
-                  // minor release, force-update existing '.x' branch
+                  // minor release, update existing '.x' branch
                   sh(script: """
+                    git fetch origin ${BRANCH_DOT_X} # ensure remote branch is fetched for local checkout
                     git checkout ${BRANCH_DOT_X}
                     git merge ${TAG_BARE}
                     """)
