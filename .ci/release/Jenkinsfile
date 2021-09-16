@@ -246,6 +246,11 @@ pipeline {
         stage('Update Cloudfoundry') {
           steps {
             dir("${BASE_DIR}"){
+              // ensure that we don't rely on side effect of another step
+              sh(script: """
+                  git fetch origin ${BRANCH_SPECIFIER} # ensure remote branch is fetched for local checkout
+                  git checkout --track origin/${BRANCH_SPECIFIER}
+                  """)
               sh(script: "./scripts/jenkins/update_cloudfoundry.sh")
               gitPush()
             }
