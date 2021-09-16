@@ -194,7 +194,7 @@ pipeline {
               dir("${BASE_DIR}") {
                 // restore git state before updating .x branch, otherwise later external scripts will use
                 // the version when the tag was created, which might not match the release branch state
-                sh(script: "git switch ${BRANCH_SPECIFIER}")
+                sh(script: "git checkout ${BRANCH_SPECIFIER}")
               }
             }
           }
