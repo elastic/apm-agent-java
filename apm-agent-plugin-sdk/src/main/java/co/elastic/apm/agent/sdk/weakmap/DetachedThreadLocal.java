@@ -16,13 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.dubbo;
+package co.elastic.apm.agent.sdk.weakmap;
 
-import co.elastic.apm.agent.collections.WeakMapSupplierImpl;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
+import javax.annotation.Nullable;
 
-public class AlibabaCallbackHolder {
-    public static final WeakMap<ResponseCallback, AbstractSpan<?>> callbackSpanMap = WeakMapSupplierImpl.createWeakSpanMap();
+/**
+ * Similar to {@link ThreadLocal} but without the risk of introducing class loader leaks.
+ * @param <T>
+ */
+public interface DetachedThreadLocal<T> {
+
+    @Nullable
+    T get();
+
+    @Nullable
+    T getAndRemove();
+
+    void set(@Nullable T value);
+
+    void remove();
+
 }

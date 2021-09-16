@@ -16,27 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.sdk.weakmap;
+package co.elastic.apm.agent.collections;
 
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import co.elastic.apm.agent.sdk.weakmap.WeakMap;
+import co.elastic.apm.agent.weakconcurrent.CachedLookupKey;
+import com.blogspot.mydailyjava.weaklockfree.AbstractWeakConcurrentMap;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.concurrent.ConcurrentMap;
 
-public class NullSafeWeakConcurrentSetTest {
+public class CachedKeyWeakConcurrentMap<K, V> extends AbstractWeakConcurrentMap<K, V, CachedLookupKey<K>> implements WeakMap<K, V> {
 
-    private WeakConcurrentSet<String> set;
+    final ConcurrentMap<WeakKey<K>, V> target;
 
-    @BeforeEach
-    void init() {
-        set = new NullSafeWeakConcurrentSet<>(WeakConcurrentSet.Cleaner.MANUAL);
+    CachedKeyWeakConcurrentMap(ConcurrentMap<WeakKey<K>, V> target) {
+        super(target);
+        this.target = target;
     }
 
-    @Test
-    void nullValuesShouldNotThrow() {
-        assertThat(set.add(null)).isFalse();
-        assertThat(set.remove(null)).isFalse();
-        assertThat(set.contains(null)).isFalse();
+    @Override
+    protected CachedLookupKey<K> getLookupKey(K key) {
+        return CachedLookupKey.get(key);
+    }
+
+    @Override
+    protected void resetLookupKey(CachedLookupKey<K> lookupKey) {
+        lookupKey.reset();
     }
 }

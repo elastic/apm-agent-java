@@ -28,7 +28,8 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
+import co.elastic.apm.agent.sdk.weakmap.DetachedThreadLocal;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
@@ -66,9 +67,18 @@ public class ServletApiAdvice {
         servletTransactionCreationHelper = new ServletTransactionCreationHelper(GlobalTracer.requireTracerImpl());
     }
 
-    private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(ServletApiAdvice.class, "excluded");
-    private static final GlobalThreadLocal<Object> servletPathTL = GlobalThreadLocal.get(ServletApiAdvice.class, "servletPath");
-    private static final GlobalThreadLocal<Object> pathInfoTL = GlobalThreadLocal.get(ServletApiAdvice.class, "pathInfo");
+    private static final DetachedThreadLocal<Boolean> excluded = WeakMapSupplier.Accessor.get()
+        .<Boolean>buildThreadLocal()
+        .asGlobalThreadLocal(ServletApiAdvice.class, "excluded")
+        .build();
+    private static final DetachedThreadLocal<Object> servletPathTL = WeakMapSupplier.Accessor.get()
+        .buildThreadLocal()
+        .asGlobalThreadLocal(ServletApiAdvice.class, "servletPath")
+        .build();
+    private static final DetachedThreadLocal<Object> pathInfoTL = WeakMapSupplier.Accessor.get()
+        .buildThreadLocal()
+        .asGlobalThreadLocal(ServletApiAdvice.class, "pathInfo")
+        .build();
 
     private static final List<String> requestExceptionAttributes = Arrays.asList(RequestDispatcher.ERROR_EXCEPTION, "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
 
@@ -207,7 +217,7 @@ public class ServletApiAdvice {
             span = (Span) transactionOrScopeOrSpan;
         }
 
-        excluded.clear();
+        excluded.remove();
         if (scope != null) {
             scope.close();
         }
@@ -272,8 +282,8 @@ public class ServletApiAdvice {
             }
         }
         if (span != null) {
-            servletPathTL.clear();
-            pathInfoTL.clear();
+            servletPathTL.remove();
+            pathInfoTL.remove();
             span.captureException(t)
                 .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
                 .deactivate()

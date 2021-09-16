@@ -16,13 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.dubbo;
+package co.elastic.apm.agent.collections;
 
-import co.elastic.apm.agent.collections.WeakMapSupplierImpl;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakmap.WeakSet;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class AlibabaCallbackHolder {
-    public static final WeakMap<ResponseCallback, AbstractSpan<?>> callbackSpanMap = WeakMapSupplierImpl.createWeakSpanMap();
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class NullSafeWeakConcurrentSetTest {
+
+    private WeakSet<String> set;
+
+    @BeforeEach
+    void init() {
+        set = WeakMapSupplier.Accessor.get().createSet();
+    }
+
+    @Test
+    void nullValuesShouldNotThrow() {
+        assertThat(set.add(null)).isFalse();
+        assertThat(set.remove(null)).isFalse();
+        assertThat(set.contains(null)).isFalse();
+    }
 }

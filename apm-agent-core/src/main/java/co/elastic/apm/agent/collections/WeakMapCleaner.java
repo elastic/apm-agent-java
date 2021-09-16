@@ -20,7 +20,6 @@ package co.elastic.apm.agent.collections;
 
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +28,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Regularly calls {@link WeakMapSupplier#expungeStaleEntries()}
+ * Regularly calls {@link WeakMapSupplierImpl#expungeStaleEntries()}
  */
 public class WeakMapCleaner extends AbstractLifecycleListener implements Runnable {
 
@@ -55,7 +54,7 @@ public class WeakMapCleaner extends AbstractLifecycleListener implements Runnabl
     @Override
     public void run() {
         try {
-            WeakMapSupplier.expungeStaleEntries();
+            WeakMapSupplierImpl.expungeStaleEntries();
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }

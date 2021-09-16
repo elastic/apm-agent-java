@@ -18,7 +18,9 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
+import co.elastic.apm.agent.sdk.weakmap.DetachedThreadLocal;
+import co.elastic.apm.agent.sdk.weakmap.WeakMap;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 
 import javax.annotation.Nullable;
 
@@ -27,16 +29,16 @@ public class OkHttpClientHelper {
     /**
      * Used to avoid allocations when calculating destination host name.
      */
-    public static final GlobalThreadLocal<StringBuilder> destinationHostName =
-        GlobalThreadLocal.get(
-            OkHttpClientHelper.class,
-            "destinationHostName",
-            new GlobalThreadLocal.DefaultValueSupplier<StringBuilder>() {
-                @Override
-                public StringBuilder getDefaultValueForThread() {
-                    return new StringBuilder();
-                }
-            });
+    public static final DetachedThreadLocal<StringBuilder> destinationHostName = WeakMapSupplier.Accessor.get()
+        .<StringBuilder>buildThreadLocal()
+        .asGlobalThreadLocal(OkHttpClientHelper.class, "destinationHostName")
+        .withDefaultValueSupplier(new WeakMap.DefaultValueSupplier<Thread, StringBuilder>() {
+            @Override
+            public StringBuilder getDefaultValue(Thread t) {
+                return new StringBuilder();
+            }
+        })
+        .build();
 
     /**
      * NOTE: this method returns a StringBuilder instance that is kept as this class's ThreadLocal. Callers of this

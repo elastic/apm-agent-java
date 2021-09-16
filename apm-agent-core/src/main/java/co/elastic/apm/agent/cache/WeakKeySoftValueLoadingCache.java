@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.cache;
 
+import co.elastic.apm.agent.sdk.weakmap.WeakMap;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +49,7 @@ import java.lang.ref.SoftReference;
  * </p>
  * <p>
  * If the cache key has been collected,
- * the underlying {@link WeakConcurrentMap} makes sure that the map entry is deleted.
+ * the underlying {@link WeakMap} makes sure that the map entry is deleted.
  * </p>
  *
  *
@@ -60,7 +60,7 @@ public class WeakKeySoftValueLoadingCache<K, V> {
 
     private static final Logger logger = LoggerFactory.getLogger(WeakKeySoftValueLoadingCache.class);
 
-    private final WeakConcurrentMap<K, CacheValue<K, V>> cache = WeakMapSupplier.createMap();
+    private final WeakMap<K, CacheValue<K, V>> cache = WeakMapSupplier.Accessor.get().createMap();
     private final ValueSupplier<K, V> valueSupplier;
 
     public WeakKeySoftValueLoadingCache(ValueSupplier<K, V> valueSupplier) {

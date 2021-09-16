@@ -16,13 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.dubbo;
+package co.elastic.apm.agent.sdk.weakmap;
 
-import co.elastic.apm.agent.collections.WeakMapSupplierImpl;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
+import javax.annotation.Nullable;
+import java.util.Map;
 
-public class AlibabaCallbackHolder {
-    public static final WeakMap<ResponseCallback, AbstractSpan<?>> callbackSpanMap = WeakMapSupplierImpl.createWeakSpanMap();
+public interface WeakMap<K, V> extends Iterable<Map.Entry<K, V>> {
+
+    @Nullable
+    V get(K key);
+
+    @Nullable
+    V put(K key, V value);
+
+    @Nullable
+    V remove(K key);
+
+    boolean containsKey(K process);
+
+    void clear();
+
+    @Nullable
+    V putIfAbsent(K key, V value);
+
+    int approximateSize();
+
+    interface DefaultValueSupplier<K, V> {
+        @Nullable
+        V getDefaultValue(K key);
+    }
 }

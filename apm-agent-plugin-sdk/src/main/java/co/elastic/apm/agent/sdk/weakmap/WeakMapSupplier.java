@@ -18,50 +18,67 @@
  */
 package co.elastic.apm.agent.sdk.weakmap;
 
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
+import co.elastic.apm.agent.sdk.state.GlobalState;
+import co.elastic.apm.agent.sdk.state.GlobalVariables;
 
-/**
- * The canonical place to get a new instance of a {@link WeakConcurrentMap}.
- * Do not instantiate a {@link WeakConcurrentMap} directly to benefit from the global cleanup of stale entries.
- */
-public class WeakMapSupplier {
-    private static final WeakConcurrentSet<WeakConcurrentMap<?, ?>> registeredMaps = new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.INLINE);
-    private static final WeakConcurrentSet<WeakConcurrentSet<?>> registeredSets = new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.INLINE);
+import javax.annotation.Nullable;
+import java.util.ServiceLoader;
 
-    public static <K, V> WeakConcurrentMap<K, V> createMap() {
-        WeakConcurrentMap<K, V> result = new NullSafeWeakConcurrentMap<>(false);
-        registerMap(result);
-        return result;
+public interface WeakMapSupplier {
+
+    <K, V> WeakMap<K, V> createMap();
+
+    <K, V> WeakMapBuilder<K, V> buildWeakMap();
+
+    <T> ThreadLocalBuilder<T> buildThreadLocal();
+
+    <E> WeakSet<E> createSet();
+
+    interface WeakMapBuilder<K, V> {
+
+        WeakMapBuilder<K, V> withInitialCapacity(int initialCapacity);
+
+        WeakMapBuilder<K, V> withDefaultValueSupplier(@Nullable WeakMap.DefaultValueSupplier<K, V> defaultValueSupplier);
+
+        WeakMap<K, V> build();
     }
 
-    /**
-     * Registers map for global stale entry cleanup
-     *
-     * @param map map to register
-     */
-    public static void registerMap(WeakConcurrentMap<?, ?> map) {
-        registeredMaps.add(map);
+    interface ThreadLocalBuilder<T> {
+
+        /**
+         * Registers a globally shared instance of a {@link DetachedThreadLocal}.
+         * Similar to {@link GlobalVariables} and {@link GlobalState},
+         * this allows to get thread locals whose state is shared across plugin class loaders.
+         * <p>
+         * Be careful not to store classes from the target class loader or the plugin class loader in global thread locals.
+         * This would otherwise lead to class loader leaks.
+         * That's because a global thread local is referenced from the agent class loader.
+         * If it held a reference to a class that's loaded by the plugin class loader, the target class loader (such as a webapp class loader)
+         * is held alive by the following chain of hard references:
+         * Map of global thread locals (Agent CL) -plugin class instance-> -plugin class-> plugin CL -(parent)-> webapp CL
+         * </p>
+         */
+        ThreadLocalBuilder<T> asGlobalThreadLocal(Class<?> adviceClass, String key);
+
+        ThreadLocalBuilder<T> withDefaultValueSupplier(@Nullable WeakMap.DefaultValueSupplier<Thread, T> defaultValueSupplier);
+
+        DetachedThreadLocal<T> build();
     }
 
-    public static <V> WeakConcurrentSet<V> createSet() {
-        WeakConcurrentSet<V> weakSet = new NullSafeWeakConcurrentSet<>(WeakConcurrentSet.Cleaner.MANUAL);
-        registeredSets.add(weakSet);
-        return weakSet;
-    }
+    class Accessor {
+        private static final WeakMapSupplier delegate;
 
-    /**
-     * Calls {@link WeakConcurrentMap#expungeStaleEntries()} on all registered maps,
-     * causing the entries of already collected keys to be removed.
-     * Avoids that the maps take unnecessary space for the {@link java.util.Map.Entry}, the {@link java.lang.ref.WeakReference} and the value.
-     * Failing to call this does not mean the keys cannot be collected.
-     */
-    public static void expungeStaleEntries() {
-        for (WeakConcurrentMap<?, ?> weakMap : registeredMaps) {
-            weakMap.expungeStaleEntries();
+        static {
+            ClassLoader classLoader = WeakMapSupplier.Accessor.class.getClassLoader();
+            if (classLoader == null) {
+                classLoader = ClassLoader.getSystemClassLoader();
+            }
+            // loads the implementation provided by the core module without depending on the class or class name
+            delegate = ServiceLoader.load(WeakMapSupplier.class, classLoader).iterator().next();
         }
-        for (WeakConcurrentSet<?> weakSet : registeredSets) {
-            weakSet.expungeStaleEntries();
+
+        public static WeakMapSupplier get() {
+            return delegate;
         }
     }
 }

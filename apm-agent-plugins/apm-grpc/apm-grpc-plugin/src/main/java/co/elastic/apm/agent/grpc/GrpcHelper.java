@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.grpc;
 
+import co.elastic.apm.agent.collections.WeakMapSupplierImpl;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Destination;
@@ -29,9 +30,8 @@ import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.weakmap.WeakMap;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import co.elastic.apm.agent.util.SpanConcurrentHashMap;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import io.grpc.CallOptions;
 import io.grpc.ClientCall;
 import io.grpc.Metadata;
@@ -59,45 +59,45 @@ public class GrpcHelper {
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall} instance as key.
      */
-    private final WeakConcurrentMap<ClientCall<?, ?>, Span> clientCallSpans;
+    private final WeakMap<ClientCall<?, ?>, Span> clientCallSpans;
 
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall} instance as key.
      */
-    private final WeakConcurrentMap<ClientCall<?, ?>, Span> delayedClientCallSpans;
+    private final WeakMap<ClientCall<?, ?>, Span> delayedClientCallSpans;
 
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall.Listener} instance as key.
      */
-    private final WeakConcurrentMap<ClientCall.Listener<?>, Span> clientCallListenerSpans;
+    private final WeakMap<ClientCall.Listener<?>, Span> clientCallListenerSpans;
 
     /**
      * Map of all in-flight {@link Transaction} with {@link ServerCall.Listener} instance as key.
      */
-    private final WeakConcurrentMap<ServerCall.Listener<?>, Transaction> serverListenerTransactions;
+    private final WeakMap<ServerCall.Listener<?>, Transaction> serverListenerTransactions;
 
     /**
      * Map of all in-flight {@link Transaction} with {@link ServerCall} instance as key.
      */
-    private final WeakConcurrentMap<ServerCall<?, ?>, Transaction> serverCallTransactions;
+    private final WeakMap<ServerCall<?, ?>, Transaction> serverCallTransactions;
 
     /**
      * gRPC header cache used to minimize allocations
      */
-    private final WeakConcurrentMap<String, Metadata.Key<String>> headerCache;
+    private final WeakMap<String, Metadata.Key<String>> headerCache;
 
     private final TextHeaderSetter<Metadata> headerSetter;
     private final TextHeaderGetter<Metadata> headerGetter;
 
     public GrpcHelper() {
-        clientCallSpans = SpanConcurrentHashMap.createWeakMap();
-        delayedClientCallSpans = SpanConcurrentHashMap.createWeakMap();
-        clientCallListenerSpans = SpanConcurrentHashMap.createWeakMap();
+        clientCallSpans = WeakMapSupplierImpl.createWeakSpanMap();
+        delayedClientCallSpans = WeakMapSupplierImpl.createWeakSpanMap();
+        clientCallListenerSpans = WeakMapSupplierImpl.createWeakSpanMap();
 
-        serverListenerTransactions = SpanConcurrentHashMap.createWeakMap();
-        serverCallTransactions = SpanConcurrentHashMap.createWeakMap();
+        serverListenerTransactions = WeakMapSupplierImpl.createWeakSpanMap();
+        serverCallTransactions = WeakMapSupplierImpl.createWeakSpanMap();
 
-        headerCache = WeakMapSupplier.createMap();
+        headerCache = WeakMapSupplier.Accessor.get().createMap();
 
         headerSetter = new GrpcHeaderSetter();
         headerGetter = new GrpcHeaderGetter();
@@ -475,7 +475,7 @@ public class GrpcHelper {
     }
 
     public void cancelCall(ClientCall<?, ?> clientCall, @Nullable Throwable cause) {
-        WeakConcurrentMap<ClientCall<?, ?>, Span> clientCallMap = (isDelayedClientCall(clientCall)) ? delayedClientCallSpans : clientCallSpans;
+        WeakMap<ClientCall<?, ?>, Span> clientCallMap = (isDelayedClientCall(clientCall)) ? delayedClientCallSpans : clientCallSpans;
         // we can't remove yet, in order to avoid reference decrement prematurely
         Span span = clientCallMap.get(clientCall);
         if (span != null) {

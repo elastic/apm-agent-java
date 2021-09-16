@@ -67,6 +67,7 @@
         <module>apm-agent</module>
         <module>apm-agent-attach-cli</module>
         <module>apm-agent-common</module>
+        <module>apm-agent-cached-lookup-key</module>
     </modules>
 
     <properties>

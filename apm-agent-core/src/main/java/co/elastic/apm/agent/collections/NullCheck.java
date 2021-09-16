@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.sdk.weakmap;
+package co.elastic.apm.agent.collections;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

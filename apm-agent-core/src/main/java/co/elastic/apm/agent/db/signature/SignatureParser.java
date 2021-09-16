@@ -18,7 +18,9 @@
  */
 package co.elastic.apm.agent.db.signature;
 
-import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
+import co.elastic.apm.agent.sdk.weakmap.DetachedThreadLocal;
+import co.elastic.apm.agent.sdk.weakmap.WeakMap;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
@@ -69,16 +71,20 @@ public class SignatureParser {
     }
 
     public SignatureParser(final Callable<Scanner> scannerAllocator) {
-        scanner = new DetachedThreadLocal<Scanner>(DetachedThreadLocal.Cleaner.INLINE) {
-            @Override
-            protected Scanner initialValue(Thread thread) {
-                try {
-                    return scannerAllocator.call();
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+        scanner = WeakMapSupplier.Accessor.get()
+            .<Scanner>buildThreadLocal()
+            .withDefaultValueSupplier(new WeakMap.DefaultValueSupplier<Thread, Scanner>() {
+                @Nullable
+                @Override
+                public Scanner getDefaultValue(Thread key) {
+                    try {
+                        return scannerAllocator.call();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-            }
-        };
+            })
+            .build();
     }
 
     public void querySignature(String query, StringBuilder signature, boolean preparedStatement) {

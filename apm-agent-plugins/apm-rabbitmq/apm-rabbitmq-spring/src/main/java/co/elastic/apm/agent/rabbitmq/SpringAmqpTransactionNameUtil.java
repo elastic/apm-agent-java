@@ -20,12 +20,12 @@ package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
+import co.elastic.apm.agent.sdk.weakmap.WeakSet;
 
 @GlobalState
 public class SpringAmqpTransactionNameUtil {
 
-    private static final WeakConcurrentSet<Object> rabbitListeners = WeakMapSupplier.createSet();
+    private static final WeakSet<Object> rabbitListeners = WeakMapSupplier.Accessor.get().createSet();
 
     public static String getTransactionNamePrefix(Object listener) {
         return rabbitListeners.contains(listener) ? "RabbitMQ" : "Spring AMQP";

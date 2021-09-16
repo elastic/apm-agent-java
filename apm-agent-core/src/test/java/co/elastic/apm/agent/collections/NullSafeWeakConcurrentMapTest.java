@@ -16,28 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.sdk.weakmap;
+package co.elastic.apm.agent.collections;
 
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakmap.WeakMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class NullSafeWeakConcurrentMapTest {
 
-    private WeakConcurrentMap<String, String> map;
+    private NullSafeWeakConcurrentMap<String, String> map;
 
     @BeforeEach
     void init() {
-        map = new NullSafeWeakConcurrentMap<String, String>(false) {
+        map = new NullSafeWeakConcurrentMap<String, String>(new ConcurrentHashMap<>(), new WeakMap.DefaultValueSupplier<String, String>() {
+            @Nullable
             @Override
-            protected String defaultValue(String key) {
+            public String getDefaultValue(String key) {
                 return "default-" + key;
             }
-        };
+        });
     }
 
     @Test
