@@ -184,7 +184,7 @@ pipeline {
                     git checkout --track origin/${BRANCH_DOT_X}
                     git reset --hard ${TAG_BARE}
                     """)
-                  gitPush(args: "-f origin ${BRANCH_DOT_X}")
+                  gitPush(args: "-f ${BRANCH_DOT_X}")
                 }
               }
             }
