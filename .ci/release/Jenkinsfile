@@ -174,25 +174,27 @@ pipeline {
                     git checkout ${TAG_BARE}
                     git checkout -b ${BRANCH_DOT_X}
                   """)
+                  gitPush()
                   input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
                 } else {
-                  // minor release, update existing '.x' branch
+                  // minor release, force-update existing '.x' branch. any change applied to '.x' branch, for example to
+                  // fix doc or release notes should also have been applied to master/stable branch we are releasing from
                   sh(script: """
                     git fetch origin ${BRANCH_DOT_X} # ensure remote branch is fetched for local checkout
                     git checkout --track origin/${BRANCH_DOT_X}
-                    git merge ${TAG_BARE}
+                    git reset --hard ${TAG_BARE}
                     """)
+                  gitPush(args: "-f origin ${BRANCH_DOT_X}")
                 }
               }
-              gitPush()
             }
           }
           post {
             cleanup {
               dir("${BASE_DIR}") {
                 // restore git state before updating .x branch, otherwise later external scripts will use
-                // the version when the tag was created, which might not match the branch state
-                sh(script: "git reset --hard origin/${BRANCH_SPECIFIER}")
+                // the version when the tag was created, which might not match the release branch state
+                sh(script: "git switch ${BRANCH_SPECIFIER}")
               }
             }
           }
