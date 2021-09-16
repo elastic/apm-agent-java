@@ -247,17 +247,16 @@ pipeline {
         }
         stage('Publish release on GitHub') {
           steps {
-            waitUntil(initialRecurrencePeriod: 60000) {
-              dir("${BASE_DIR}"){
+            dir("${BASE_DIR}"){
+              waitUntil(initialRecurrencePeriod: 60000) {
                 script {
                   echo "Waiting for the release notes to be available"
-                  def ret = sh(script: "curl -fs https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html | grep ${TAG_VER}", returnStatus: true)
-                  return ret == 0
+                    def ret = sh(script: "curl -fs https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html | grep ${TAG_VER}", returnStatus: true)
+                    return ret == 0
                 }
               }
+              githubReleasePublish(id: "${env.RELEASE_ID}")
             }
-            githubEnv()
-            githubReleasePublish(id: "${env.RELEASE_ID}")
           }
         }
         stage('Build and push Docker images') {
