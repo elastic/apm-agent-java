@@ -212,11 +212,9 @@ pipeline {
             dir("${BASE_DIR}"){
               script {
                 def fullUrl = sh(script: "./scripts/jenkins/maven_artifact_url.sh ")
-                echo "Sleeping for ten minutes to wait for Sonatype"
-                sleep(time: 10, unit: "MINUTES")
                 waitUntil(initialRecurrencePeriod: 60000) {
                   script {
-                    def ret = sh(script: "curl -fs $fullUrl >/dev/null 2>&1", returnStatus: true)
+                    def ret = sh(script: "curl -fs '${fullUrl}' >/dev/null 2>&1", returnStatus: true)
                     echo "Waiting for the artifacts to be published on Sonatype"
                     return ret == 0
                   }
@@ -239,7 +237,7 @@ pipeline {
               dir("${BASE_DIR}"){
                 script {
                   echo "Waiting for the release notes to be available"
-                  def ret = sh(script: "./scripts/jenkins/docs_check.sh $TAG_VER")
+                  def ret = sh(script: "./scripts/jenkins/docs_check.sh ${TAG_VER}")
                   return ret == 0
                 }
               }
