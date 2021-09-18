@@ -40,24 +40,6 @@ public class WebfluxClientHelper {
         return HttpClientHelper.startHttpClientSpan(parentSpan, httpMethod.toString(), uri, uri.getHost());
     }
 
-    public static Transaction getOrCreateTransaction(Tracer tracer, Class clazz) {
-        Transaction t = tracer.currentTransaction();
-        if (t == null) {
-            //TODO: check the object
-            t = tracer.startRootTransaction(clazz.getClassLoader());
-            //FIXME
-            ((Transaction) t)
-                .withName("name")
-                .withType("test")
-                .withResult("success")
-                .withOutcome(Outcome.SUCCESS)
-                .activate();
-        } else {
-            //FIXME: startChildTransaction?
-        }
-        return t;
-    }
-
     public static <T> Publisher<T> wrapSubscriber(Publisher<T> publisher, final String subscriberKey, final Tracer tracer,
                                                   final String prependId) {
 
