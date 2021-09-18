@@ -107,7 +107,6 @@ public class ServletTransactionHelper {
             .withMethod(method);
 
         request.getSocket()
-            .withEncrypted(secure)
             .withRemoteAddress(remoteAddr);
 
         request.getUrl()

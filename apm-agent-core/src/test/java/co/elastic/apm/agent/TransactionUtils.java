@@ -51,7 +51,6 @@ public class TransactionUtils {
             .withPathname("/p/a/t/h")
             .withSearch("?query=string");
         request.getSocket()
-            .withEncrypted(true)
             .withRemoteAddress("12.53.12.1");
         request.addHeader("user-agent", "Mozilla Chrome Edge");
         request.addHeader("content-type", "text/html");

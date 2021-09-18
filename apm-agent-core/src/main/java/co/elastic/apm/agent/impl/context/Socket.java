@@ -24,25 +24,13 @@ import javax.annotation.Nullable;
 
 public class Socket implements Recyclable {
 
-    /**
-     * Indicates whether request was sent as SSL/HTTPS request.
-     */
-    private boolean encrypted;
     @Nullable
     private String remoteAddress;
 
     /**
      * Indicates whether request was sent as SSL/HTTPS request.
      */
-    public boolean isEncrypted() {
-        return encrypted;
-    }
-
-    /**
-     * Indicates whether request was sent as SSL/HTTPS request.
-     */
     public Socket withEncrypted(boolean encrypted) {
-        this.encrypted = encrypted;
         return this;
     }
 
@@ -58,12 +46,10 @@ public class Socket implements Recyclable {
 
     @Override
     public void resetState() {
-        encrypted = false;
         remoteAddress = null;
     }
 
     public void copyFrom(Socket other) {
-        this.encrypted = other.encrypted;
         this.remoteAddress = other.remoteAddress;
     }
 

@@ -755,7 +755,6 @@ class DslJsonSerializerTest {
             .withSearch("q=test");
 
         request.getSocket()
-            .withEncrypted(true)
             .withRemoteAddress("::1");
 
         transaction.getContext().getResponse()
@@ -809,8 +808,7 @@ class DslJsonSerializerTest {
         assertThat(jsonUrl.get("full").asText()).isEqualTo("http://my-hostname:42/path/name?q=test");
 
         JsonNode jsonSocket = jsonRequest.get("socket");
-        assertThat(jsonSocket).hasSize(2);
-        assertThat(jsonSocket.get("encrypted").asBoolean()).isTrue();
+        assertThat(jsonSocket).hasSize(1);
         assertThat(jsonSocket.get("remote_address").asText()).isEqualTo("::1");
 
         JsonNode jsonResponse = jsonContext.get("response");
