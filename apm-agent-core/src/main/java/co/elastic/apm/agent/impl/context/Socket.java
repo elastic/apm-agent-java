@@ -27,13 +27,6 @@ public class Socket implements Recyclable {
     @Nullable
     private String remoteAddress;
 
-    /**
-     * Indicates whether request was sent as SSL/HTTPS request.
-     */
-    public Socket withEncrypted(boolean encrypted) {
-        return this;
-    }
-
     @Nullable
     public String getRemoteAddress() {
         return remoteAddress;
