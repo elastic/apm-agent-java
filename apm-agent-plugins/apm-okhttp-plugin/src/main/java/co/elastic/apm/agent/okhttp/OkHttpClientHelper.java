@@ -20,7 +20,7 @@ package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.sdk.weakmap.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
 
 import javax.annotation.Nullable;
 
@@ -29,7 +29,7 @@ public class OkHttpClientHelper {
     /**
      * Used to avoid allocations when calculating destination host name.
      */
-    public static final DetachedThreadLocal<StringBuilder> destinationHostName = WeakMapSupplier.Accessor.get()
+    public static final DetachedThreadLocal<StringBuilder> destinationHostName = WeakMaps
         .<StringBuilder>buildThreadLocal()
         .asGlobalThreadLocal(OkHttpClientHelper.class, "destinationHostName")
         .withDefaultValueSupplier(new WeakMap.DefaultValueSupplier<Thread, StringBuilder>() {

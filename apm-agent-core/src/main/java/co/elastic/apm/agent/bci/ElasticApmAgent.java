@@ -37,7 +37,7 @@ import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
@@ -113,7 +113,7 @@ public class ElasticApmAgent {
     @Nullable
     private static ResettableClassFileTransformer resettableClassFileTransformer;
     private static final List<ResettableClassFileTransformer> dynamicClassFileTransformers = new ArrayList<>();
-    private static final WeakMap<Class<?>, Set<Collection<Class<? extends ElasticApmInstrumentation>>>> dynamicallyInstrumentedClasses = WeakMapSupplier.Accessor.get().createMap();
+    private static final WeakMap<Class<?>, Set<Collection<Class<? extends ElasticApmInstrumentation>>>> dynamicallyInstrumentedClasses = WeakMaps.createMap();
     @Nullable
     private static File agentJarFile;
 

@@ -20,7 +20,7 @@ package co.elastic.apm.agent.db.signature;
 
 import co.elastic.apm.agent.sdk.weakmap.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
@@ -71,7 +71,7 @@ public class SignatureParser {
     }
 
     public SignatureParser(final Callable<Scanner> scannerAllocator) {
-        scanner = WeakMapSupplier.Accessor.get()
+        scanner = WeakMaps
             .<Scanner>buildThreadLocal()
             .withDefaultValueSupplier(new WeakMap.DefaultValueSupplier<Thread, Scanner>() {
                 @Nullable

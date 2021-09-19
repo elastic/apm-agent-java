@@ -27,7 +27,7 @@ import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import org.reactivestreams.Publisher;
@@ -74,7 +74,7 @@ public class WebfluxHelper {
     private static final CoreConfiguration coreConfig;
     private static final WebConfiguration webConfig;
 
-    private static final WeakMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakMapSupplier.Accessor.get().createMap();
+    private static final WeakMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakMaps.createMap();
 
     static {
         coreConfig = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);

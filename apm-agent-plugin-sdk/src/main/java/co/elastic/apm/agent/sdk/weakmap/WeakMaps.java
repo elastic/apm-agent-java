@@ -24,17 +24,45 @@ import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import javax.annotation.Nullable;
 import java.util.ServiceLoader;
 
-public interface WeakMapSupplier {
+public final class WeakMaps {
 
-    <K, V> WeakMap<K, V> createMap();
+    private static final WeakMapSupplier supplier;
 
-    <K, V> WeakMapBuilder<K, V> buildWeakMap();
+    static {
+        ClassLoader classLoader = WeakMapSupplier.class.getClassLoader();
+        if (classLoader == null) {
+            classLoader = ClassLoader.getSystemClassLoader();
+        }
+        // loads the implementation provided by the core module without depending on the class or class name
+        supplier = ServiceLoader.load(WeakMapSupplier.class, classLoader).iterator().next();
+    }
 
-    <T> ThreadLocalBuilder<T> buildThreadLocal();
+    public static <K, V> WeakMap<K, V> createMap() {
+        return supplier.<K, V>buildWeakMap().build();
+    }
 
-    <E> WeakSet<E> createSet();
+    public static <K, V> WeakMapBuilder<K, V> buildWeakMap() {
+        return supplier.buildWeakMap();
+    }
 
-    interface WeakMapBuilder<K, V> {
+    public static <T> ThreadLocalBuilder<T> buildThreadLocal() {
+        return supplier.buildThreadLocal();
+    }
+
+    public static <E> WeakSet<E> createSet() {
+        return supplier.createSet();
+    }
+
+    public interface WeakMapSupplier {
+
+        <K, V> WeakMapBuilder<K, V> buildWeakMap();
+
+        <T> ThreadLocalBuilder<T> buildThreadLocal();
+
+        <E> WeakSet<E> createSet();
+    }
+
+    public interface WeakMapBuilder<K, V> {
 
         WeakMapBuilder<K, V> withInitialCapacity(int initialCapacity);
 
@@ -43,7 +71,7 @@ public interface WeakMapSupplier {
         WeakMap<K, V> build();
     }
 
-    interface ThreadLocalBuilder<T> {
+    public interface ThreadLocalBuilder<T> {
 
         /**
          * Registers a globally shared instance of a {@link DetachedThreadLocal}.
@@ -63,22 +91,5 @@ public interface WeakMapSupplier {
         ThreadLocalBuilder<T> withDefaultValueSupplier(@Nullable WeakMap.DefaultValueSupplier<Thread, T> defaultValueSupplier);
 
         DetachedThreadLocal<T> build();
-    }
-
-    class Accessor {
-        private static final WeakMapSupplier delegate;
-
-        static {
-            ClassLoader classLoader = WeakMapSupplier.Accessor.class.getClassLoader();
-            if (classLoader == null) {
-                classLoader = ClassLoader.getSystemClassLoader();
-            }
-            // loads the implementation provided by the core module without depending on the class or class name
-            delegate = ServiceLoader.load(WeakMapSupplier.class, classLoader).iterator().next();
-        }
-
-        public static WeakMapSupplier get() {
-            return delegate;
-        }
     }
 }

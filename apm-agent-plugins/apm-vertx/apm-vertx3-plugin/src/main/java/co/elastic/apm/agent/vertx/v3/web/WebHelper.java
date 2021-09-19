@@ -22,7 +22,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
@@ -34,7 +34,7 @@ public class WebHelper extends AbstractVertxWebHelper {
 
     private static final WebHelper INSTANCE = new WebHelper(GlobalTracer.requireTracerImpl());
 
-    static final WeakMap<HttpServerRequest, Transaction> requestTransactionMap = WeakMapSupplier.Accessor.get().createMap();
+    static final WeakMap<HttpServerRequest, Transaction> requestTransactionMap = WeakMaps.createMap();
 
     public static WebHelper getInstance() {
         return INSTANCE;

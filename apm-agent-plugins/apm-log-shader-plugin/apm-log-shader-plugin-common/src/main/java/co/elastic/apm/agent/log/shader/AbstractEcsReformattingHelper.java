@@ -30,7 +30,7 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,21 +120,21 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#SHADE SHADE} or {@link LogEcsReformatting#REPLACE REPLACE}.
      */
-    private static final WeakMap<Object, Object> originalAppender2ecsAppender = WeakMapSupplier.Accessor.get().createMap();
+    private static final WeakMap<Object, Object> originalAppender2ecsAppender = WeakMaps.createMap();
 
     /**
      * A mapping between original appender and the formatter that it had originally.
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#OVERRIDE OVERRIDE}.
      */
-    private static final WeakMap<Object, Object> originalAppender2originalFormatter = WeakMapSupplier.Accessor.get().createMap();
+    private static final WeakMap<Object, Object> originalAppender2originalFormatter = WeakMaps.createMap();
 
     /**
      * A mapping between original appender and the corresponding ECS-formatter.
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#OVERRIDE OVERRIDE}, currently only for the log4j2 instrumentation.
      */
-    private static final WeakMap<Object, Object> originalAppender2ecsFormatter = WeakMapSupplier.Accessor.get().createMap();
+    private static final WeakMap<Object, Object> originalAppender2ecsFormatter = WeakMaps.createMap();
 
     /**
      * This state is set at the beginning of {@link #onAppendEnter(Object)} and cleared at the end of {@link #onAppendExit(Object)}.

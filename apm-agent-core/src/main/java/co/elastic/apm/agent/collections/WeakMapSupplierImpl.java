@@ -21,7 +21,7 @@ package co.elastic.apm.agent.collections;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.weakmap.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
 import co.elastic.apm.agent.sdk.weakmap.WeakSet;
 import com.blogspot.mydailyjava.weaklockfree.AbstractWeakConcurrentMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentMap;
  * The canonical place to get a new instance of a {@link WeakMap}, {@link WeakSet}, or {@link DetachedThreadLocal}.
  * Do not instantiate a {@link AbstractWeakConcurrentMap} directly to benefit from the global cleanup of stale entries.
  */
-public class WeakMapSupplierImpl implements WeakMapSupplier {
+public class WeakMapSupplierImpl implements WeakMaps.WeakMapSupplier {
 
     private static final WeakConcurrentSet<AbstractWeakConcurrentMap<?, ?, ?>> registeredMaps = new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.INLINE);
     private static final ConcurrentMap<String, DetachedThreadLocalImpl<?>> globalThreadLocals = new ConcurrentHashMap<>();
@@ -47,19 +47,19 @@ public class WeakMapSupplierImpl implements WeakMapSupplier {
     }
 
     @Override
-    public <K, V> WeakMapBuilder<K, V> buildWeakMap() {
-        return new WeakMapBuilder<K, V>() {
+    public <K, V> WeakMaps.WeakMapBuilder<K, V> buildWeakMap() {
+        return new WeakMaps.WeakMapBuilder<K, V>() {
             @Nullable
             private WeakMap.DefaultValueSupplier<K, V> defaultValueSupplier;
             private int initialCapacity = 16;
             @Override
-            public WeakMapBuilder<K, V> withInitialCapacity(int initialCapacity) {
+            public WeakMaps.WeakMapBuilder<K, V> withInitialCapacity(int initialCapacity) {
                 this.initialCapacity = initialCapacity;
                 return this;
             }
 
             @Override
-            public WeakMapBuilder<K, V> withDefaultValueSupplier(@Nullable WeakMap.DefaultValueSupplier<K, V> defaultValueSupplier) {
+            public WeakMaps.WeakMapBuilder<K, V> withDefaultValueSupplier(@Nullable WeakMap.DefaultValueSupplier<K, V> defaultValueSupplier) {
                 this.defaultValueSupplier = defaultValueSupplier;
                 return this;
             }
@@ -74,21 +74,21 @@ public class WeakMapSupplierImpl implements WeakMapSupplier {
     }
 
     @Override
-    public <T> ThreadLocalBuilder<T> buildThreadLocal() {
-        return new ThreadLocalBuilder<T>() {
+    public <T> WeakMaps.ThreadLocalBuilder<T> buildThreadLocal() {
+        return new WeakMaps.ThreadLocalBuilder<T>() {
 
             @Nullable
             private WeakMap.DefaultValueSupplier<Thread, T> defaultValueSupplier;
             @Nullable
             private String globalKey;
             @Override
-            public ThreadLocalBuilder<T> asGlobalThreadLocal(Class<?> adviceClass, String key) {
+            public WeakMaps.ThreadLocalBuilder<T> asGlobalThreadLocal(Class<?> adviceClass, String key) {
                 globalKey = adviceClass.getName() + "." + key;
                 return this;
             }
 
             @Override
-            public ThreadLocalBuilder<T> withDefaultValueSupplier(@Nullable WeakMap.DefaultValueSupplier<Thread, T> defaultValueSupplier) {
+            public WeakMaps.ThreadLocalBuilder<T> withDefaultValueSupplier(@Nullable WeakMap.DefaultValueSupplier<Thread, T> defaultValueSupplier) {
                 this.defaultValueSupplier = defaultValueSupplier;
                 return this;
             }
@@ -114,13 +114,8 @@ public class WeakMapSupplierImpl implements WeakMapSupplier {
         };
     }
 
-    @Override
-    public <K, V> WeakMap<K, V> createMap() {
-        return this.<K, V>buildWeakMap().build();
-    }
-
     public <V> WeakSet<V> createSet() {
-        return new NullSafeWeakConcurrentSet<V>(createMap());
+        return new NullSafeWeakConcurrentSet<V>(this.<V, Boolean>buildWeakMap().build());
     }
 
     /**

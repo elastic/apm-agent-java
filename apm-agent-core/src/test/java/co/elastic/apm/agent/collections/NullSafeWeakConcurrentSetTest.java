@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.collections;
 
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
 import co.elastic.apm.agent.sdk.weakmap.WeakSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,7 @@ public class NullSafeWeakConcurrentSetTest {
 
     @BeforeEach
     void init() {
-        set = WeakMapSupplier.Accessor.get().createSet();
+        set = WeakMaps.createSet();
     }
 
     @Test

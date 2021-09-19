@@ -24,7 +24,7 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -56,7 +56,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         transaction = new Transaction(tracer);
         TransactionUtils.fillTransaction(transaction);
 
-        storageMap = WeakMapSupplier.Accessor.get().createMap();
+        storageMap = WeakMaps.createMap();
         helper = new ProcessHelper(storageMap);
     }
 

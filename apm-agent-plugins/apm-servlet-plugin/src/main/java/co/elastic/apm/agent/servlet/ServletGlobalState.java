@@ -20,12 +20,12 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
 
 @GlobalState
 public class ServletGlobalState {
 
-    public static final WeakMap<ClassLoader, Boolean> nameInitialized = WeakMapSupplier.Accessor.get().createMap();
+    public static final WeakMap<ClassLoader, Boolean> nameInitialized = WeakMaps.createMap();
 
     // visible for testing as clearing cache is required between tests execution
     static void clearServiceNameCache() {

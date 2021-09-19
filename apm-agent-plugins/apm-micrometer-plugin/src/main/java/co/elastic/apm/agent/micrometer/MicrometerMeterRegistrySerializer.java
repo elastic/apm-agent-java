@@ -20,7 +20,7 @@ package co.elastic.apm.agent.micrometer;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
 import co.elastic.apm.agent.sdk.weakmap.WeakSet;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
@@ -58,7 +58,7 @@ public class MicrometerMeterRegistrySerializer {
     private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
     private final StringBuilder replaceBuilder = new StringBuilder();
     private final MetricsConfiguration config;
-    private final WeakSet<Meter> internallyDisabledMeters = WeakMapSupplier.Accessor.get().createSet();
+    private final WeakSet<Meter> internallyDisabledMeters = WeakMaps.createSet();
 
     private int maxSerializedSize = 512;
 

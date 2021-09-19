@@ -31,7 +31,7 @@ import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
 import io.grpc.CallOptions;
 import io.grpc.ClientCall;
 import io.grpc.Metadata;
@@ -97,7 +97,7 @@ public class GrpcHelper {
         serverListenerTransactions = WeakMapSupplierImpl.createWeakSpanMap();
         serverCallTransactions = WeakMapSupplierImpl.createWeakSpanMap();
 
-        headerCache = WeakMapSupplier.Accessor.get().createMap();
+        headerCache = WeakMaps.createMap();
 
         headerSetter = new GrpcHeaderSetter();
         headerGetter = new GrpcHeaderGetter();
