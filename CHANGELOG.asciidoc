@@ -28,6 +28,7 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* Fix k8s metadata discovery for containerd-cri envs - {pull}2126[#2126]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
