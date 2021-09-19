@@ -199,10 +199,8 @@ public class SystemInfo {
                         for (int i = 1; i <= matcher.groupCount(); i++) {
                             String podUid = matcher.group(i);
                             if (podUid != null && !podUid.isEmpty()) {
-                                if (i == 2) {
-                                    // systemd cgroup driver is being used, so we need to unescape '_' back to '-'.
-                                    podUid = podUid.replace('_', '-');
-                                }
+                                // systemd cgroup driver is being used, so we need to unescape '_' back to '-'.
+                                podUid = podUid.replace('_', '-');
                                 logger.debug("Found Kubernetes pod UID: {}", podUid);
                                 // By default, Kubernetes will set the hostname of the pod containers to the pod name. Users that override
                                 // the name should use the Downward API to override the pod name.
