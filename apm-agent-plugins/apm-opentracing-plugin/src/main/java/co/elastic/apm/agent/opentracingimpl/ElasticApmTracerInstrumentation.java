@@ -26,10 +26,11 @@ import net.bytebuddy.matcher.ElementMatcher;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class ElasticApmTracerInstrumentation extends OpenTracingBridgeInstrumentation {
-
-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-    public static void close() {
-        tracer.stop();
+    public static class AdviceClass {
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void close() {
+            tracer.stop();
+        }
     }
 
     @Override

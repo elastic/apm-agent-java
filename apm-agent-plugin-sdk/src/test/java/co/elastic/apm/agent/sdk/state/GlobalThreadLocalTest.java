@@ -20,12 +20,84 @@ package co.elastic.apm.agent.sdk.state;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 public class GlobalThreadLocalTest {
 
-    GlobalThreadLocal<String> threadLocal = GlobalThreadLocal.get(GlobalThreadLocalTest.class, "test");
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Test
     void setNullValueShouldNotThrow() {
-        threadLocal.set(null);
+        GlobalThreadLocal.get(GlobalThreadLocalTest.class, "setNullValueShouldNotThrow").set(null);
+    }
+
+    @Test
+    void testNonConstantDefaultValue() throws ExecutionException, InterruptedException {
+        final GlobalThreadLocal<Object> threadLocal = GlobalThreadLocal.get(
+            GlobalThreadLocalTest.class,
+            "testNonConstantDefaultValue",
+            Object::new
+        );
+        Object mainThreadDefaultValue = threadLocal.get();
+        assertThat(mainThreadDefaultValue).isNotNull();
+        Future<Object> future = executor.submit((Callable<Object>) threadLocal::get);
+        assertThat(future.get()).isNotEqualTo(mainThreadDefaultValue);
+    }
+
+    @Test
+    void testConstantDefaultValue() throws ExecutionException, InterruptedException {
+        final Object constant = new Object();
+        final GlobalThreadLocal<Object> threadLocal = GlobalThreadLocal.get(
+            GlobalThreadLocalTest.class,
+            "testConstantDefaultValue",
+            () -> constant
+        );
+        Object mainThreadDefaultValue = threadLocal.get();
+        assertThat(mainThreadDefaultValue).isNotNull();
+        Future<Object> future = executor.submit((Callable<Object>) threadLocal::get);
+        assertThat(future.get()).isEqualTo(mainThreadDefaultValue);
+    }
+
+    @Test
+    void testNullDefaultValue() {
+        final GlobalThreadLocal<Object> threadLocal = GlobalThreadLocal.get(
+            GlobalThreadLocalTest.class,
+            "testNullDefaultValue",
+            null
+        );
+        assertThat(threadLocal.get()).isNull();
+    }
+
+    @Test
+    void testNonDefaultValue() throws ExecutionException, InterruptedException {
+        final GlobalThreadLocal<Object> threadLocal = GlobalThreadLocal.get(
+            GlobalThreadLocalTest.class,
+            "testNonDefaultValue",
+            null
+        );
+
+        threadLocal.set("main");
+        assertThat(threadLocal.get()).isEqualTo("main");
+
+        Future<Object> future = executor.submit(() -> {
+            threadLocal.set("worker");
+            return threadLocal.get();
+        });
+        assertThat(future.get()).isEqualTo("worker");
+
+        future = executor.submit(threadLocal::getAndRemove);
+        // we can rely on that because we use a single thread executor
+        assertThat(future.get()).isEqualTo("worker");
+        future = executor.submit((Callable<Object>) threadLocal::get);
+        assertThat(future.get()).isNull();
+
+        assertThat(threadLocal.getAndRemove()).isEqualTo("main");
+        assertThat(threadLocal.get()).isNull();
     }
 }

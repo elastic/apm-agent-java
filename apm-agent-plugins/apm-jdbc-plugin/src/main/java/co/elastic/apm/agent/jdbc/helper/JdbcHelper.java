@@ -213,6 +213,10 @@ public class JdbcHelper {
         }
     }
 
+    public void removeSqlForStatement(Statement statement) {
+        statementSqlMap.remove(statement);
+    }
+
     /**
      * Represent JDBC features for which availability has to be checked at runtime
      */

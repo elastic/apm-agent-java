@@ -56,9 +56,10 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer
-            .withEnv("JPDA_ADDRESS", "5005")
-            .withEnv("JPDA_TRANSPORT", "dt_socket");
+        // using directly CATALINA_OPTS allows to set the debugger options without having to change the command to start
+        // the container. Using the JPDA_* env variables requires using "catalina.sh jpda start" command otherwise
+        // they are ignored
+        servletContainer.withEnv("CATALINA_OPTS", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
     }
 
     @Nullable

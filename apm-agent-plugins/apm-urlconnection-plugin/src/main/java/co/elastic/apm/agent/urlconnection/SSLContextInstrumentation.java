@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.premain.ThreadUtils;
+import co.elastic.apm.agent.common.ThreadUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -71,12 +71,14 @@ public class SSLContextInstrumentation extends TracerAwareInstrumentation {
         return Collections.singleton("ssl-context");
     }
 
-    /**
-     * This will not allow using the default SSL factory from any agent thread
-     */
-    @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
-    public static boolean skipExecutionIfAgentThread() {
-        return Thread.currentThread().getName().startsWith(ThreadUtils.ELASTIC_APM_THREAD_PREFIX);
+    public static class AdviceClass {
+        /**
+         * This will not allow using the default SSL factory from any agent thread
+         */
+        @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
+        public static boolean skipExecutionIfAgentThread() {
+            return Thread.currentThread().getName().startsWith(ThreadUtils.ELASTIC_APM_THREAD_PREFIX);
+        }
     }
 
 }

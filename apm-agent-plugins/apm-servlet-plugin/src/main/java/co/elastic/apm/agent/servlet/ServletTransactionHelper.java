@@ -52,7 +52,7 @@ public class ServletTransactionHelper {
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
     private static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcher.valueOf("*.jsp");
 
-    private final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
+    private static final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
 
     private final Set<String> METHODS_WITH_BODY = new HashSet<>(Arrays.asList("POST", "PUT", "PATCH", "DELETE"));
     private final CoreConfiguration coreConfiguration;
@@ -66,6 +66,14 @@ public class ServletTransactionHelper {
     public static void determineServiceName(@Nullable String servletContextName, @Nullable ClassLoader servletContextClassLoader, @Nullable String contextPath) {
         if (servletContextClassLoader == null || nameInitialized.putIfAbsent(servletContextClassLoader, Boolean.TRUE) != null) {
             return;
+        }
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("Inferring service name for class loader [{}] based on servlet context path `{}` and request context path `{}`",
+                servletContextClassLoader,
+                servletContextName,
+                contextPath
+            );
         }
 
         @Nullable
@@ -99,7 +107,6 @@ public class ServletTransactionHelper {
             .withMethod(method);
 
         request.getSocket()
-            .withEncrypted(secure)
             .withRemoteAddress(remoteAddr);
 
         request.getUrl()

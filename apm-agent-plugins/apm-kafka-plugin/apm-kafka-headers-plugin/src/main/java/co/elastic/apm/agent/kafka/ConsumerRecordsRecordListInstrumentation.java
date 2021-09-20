@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
@@ -26,8 +25,6 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 
 import javax.annotation.Nullable;
@@ -42,9 +39,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Instruments the {@link ConsumerRecords#records(TopicPartition)} method
  */
 public class ConsumerRecordsRecordListInstrumentation extends KafkaConsumerRecordsInstrumentation {
-    public ConsumerRecordsRecordListInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -56,27 +50,22 @@ public class ConsumerRecordsRecordListInstrumentation extends KafkaConsumerRecor
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.kafka.ConsumerRecordsRecordListInstrumentation$ConsumerRecordsAdvice";
+        return getClass().getName() + "$ConsumerRecordsAdvice";
     }
 
-    @SuppressWarnings("rawtypes")
     public static class ConsumerRecordsAdvice {
+
+        private static final KafkaInstrumentationHeadersHelper helper = KafkaInstrumentationHeadersHelper.get();
 
         @Nullable
         @AssignTo.Return
-        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-        public static List<ConsumerRecord> wrapRecordList(@Advice.Return @Nullable final List<ConsumerRecord> list) {
+        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
+        public static List<ConsumerRecord<?, ?>> wrapRecordList(@Advice.Return @Nullable final List<ConsumerRecord<?, ?>> list) {
             if (!tracer.isRunning() || tracer.currentTransaction() != null || list == null) {
                 return list;
             }
 
-            //noinspection ConstantConditions,rawtypes
-            KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord> kafkaInstrumentationHelper =
-                kafkaInstrHeadersHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
-            if (kafkaInstrumentationHelper != null) {
-                return kafkaInstrumentationHelper.wrapConsumerRecordList(list);
-            }
-            return list;
+            return helper.wrapConsumerRecordList(list);
         }
     }
 }

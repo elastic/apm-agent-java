@@ -55,7 +55,7 @@ public class Version implements Comparable<Version> {
             }
         }
         numbers = new int[validPartsIndex];
-        if (numbers.length >= 0) {
+        if (numbers.length > 0) {
             System.arraycopy(tmp, 0, numbers, 0, numbers.length);
         }
     }

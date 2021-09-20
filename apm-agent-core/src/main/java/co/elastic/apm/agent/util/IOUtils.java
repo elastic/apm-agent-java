@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.util;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,7 +37,6 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-@VisibleForAdvice
 public class IOUtils {
     protected static final int BYTE_BUFFER_CAPACITY = 2048;
     protected static final ThreadLocal<ByteBuffer> threadLocalByteBuffer = new ThreadLocal<ByteBuffer>() {
@@ -69,7 +67,6 @@ public class IOUtils {
      * @return {@code true}, if the input stream could be decoded with the UTF-8 charset, {@code false} otherwise.
      * @throws IOException in case of errors reading from the provided {@link InputStream}
      */
-    @VisibleForAdvice
     public static boolean readUtf8Stream(final InputStream is, final CharBuffer charBuffer) throws IOException {
         // to be compatible with Java 8, we have to cast to buffer because of different return types
         final ByteBuffer buffer = threadLocalByteBuffer.get();
@@ -119,7 +116,6 @@ public class IOUtils {
      * @param charBuffer the {@link CharBuffer} the {@link InputStream} should be written into
      * @return a {@link CoderResult}, indicating the success or failure of the decoding
      */
-    @VisibleForAdvice
     public static CoderResult decodeUtf8Bytes(final byte[] bytes, final CharBuffer charBuffer) {
         return decodeUtf8Bytes(bytes, 0, bytes.length, charBuffer);
     }
@@ -146,7 +142,6 @@ public class IOUtils {
      * @param length     the maximum number of bytes to read
      * @return a {@link CoderResult}, indicating the success or failure of the decoding
      */
-    @VisibleForAdvice
     public static CoderResult decodeUtf8Bytes(final byte[] bytes, final int offset, final int length, final CharBuffer charBuffer) {
         // to be compatible with Java 8, we have to cast to buffer because of different return types
         final ByteBuffer buffer;
@@ -182,7 +177,6 @@ public class IOUtils {
      * @param charBuffer the {@link CharBuffer} the {@link InputStream} should be written into
      * @return a {@link CoderResult}, indicating the success or failure of the decoding
      */
-    @VisibleForAdvice
     public static CoderResult decodeUtf8Byte(final byte b, final CharBuffer charBuffer) {
         // to be compatible with Java 8, we have to cast to buffer because of different return types
         final ByteBuffer buffer = threadLocalByteBuffer.get();
@@ -204,48 +198,4 @@ public class IOUtils {
         }
     }
 
-    /**
-     * Why it's synchronized : if the same JVM try to lock file, we got an java.nio.channels.OverlappingFileLockException.
-     * So we need to block until the file is totally written.
-     */
-    public static synchronized File exportResourceToDirectory(String resource, String parentDirectory, String tempFileNamePrefix,
-                                                              String tempFileNameExtension) {
-        try (InputStream resourceStream = IOUtils.class.getResourceAsStream("/" + resource)) {
-            if (resourceStream == null) {
-                throw new IllegalStateException(resource + " not found");
-            }
-            String hash = md5Hash(IOUtils.class.getResourceAsStream("/" + resource));
-            File tempFile = new File(parentDirectory, tempFileNamePrefix + "-" + hash + tempFileNameExtension);
-            if (!tempFile.exists()) {
-                try (FileOutputStream out = new FileOutputStream(tempFile)) {
-                    FileChannel channel = out.getChannel();
-                    // If multiple JVM start on same compute, they can write in same file
-                    // and this file will be corrupted.
-                    try (FileLock ignored = channel.lock()) {
-                        if (tempFile.length() == 0) {
-                            byte[] buffer = new byte[1024];
-                            for (int length; (length = resourceStream.read(buffer)) != -1; ) {
-                                out.write(buffer, 0, length);
-                            }
-                        }
-                    }
-                }
-            } else if (!md5Hash(new FileInputStream(tempFile)).equals(hash)) {
-                throw new IllegalStateException("Invalid MD5 checksum of " + tempFile + ". Please delete this file.");
-            }
-            return tempFile;
-        } catch (NoSuchAlgorithmException | IOException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    public static String md5Hash(InputStream resourceAsStream) throws IOException, NoSuchAlgorithmException {
-        try (InputStream is = resourceAsStream) {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] buffer = new byte[1024];
-            DigestInputStream dis = new DigestInputStream(is, md);
-            while (dis.read(buffer) != -1) {}
-            return String.format("%032x", new BigInteger(1, md.digest()));
-        }
-    }
 }

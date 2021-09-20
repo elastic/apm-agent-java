@@ -430,7 +430,7 @@ public class ConnectionMetaData {
                 if (indexOfInstance > 0) {
                     host = host.substring(0, indexOfInstance);
                 }
-                return new ConnectionMetaData(dbVendor, host, port, instance, user);
+                return new ConnectionMetaData("mssql", host, port, instance, user);
             }
         },
 
