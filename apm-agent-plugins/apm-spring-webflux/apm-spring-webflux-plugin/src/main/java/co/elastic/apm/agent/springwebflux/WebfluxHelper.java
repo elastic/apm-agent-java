@@ -241,8 +241,7 @@ public class WebfluxHelper {
 
         InetSocketAddress remoteAddress = serverRequest.getRemoteAddress();
         request.getSocket()
-            .withRemoteAddress(remoteAddress == null ? null : remoteAddress.getAddress().getHostAddress())
-            .withEncrypted(serverRequest.getSslInfo() != null);
+            .withRemoteAddress(remoteAddress == null ? null : remoteAddress.getAddress().getHostAddress());
 
         request.getUrl().fillFrom(serverRequest.getURI());
 

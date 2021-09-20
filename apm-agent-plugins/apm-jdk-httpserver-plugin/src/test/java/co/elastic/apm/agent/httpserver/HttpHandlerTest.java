@@ -116,7 +116,6 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
         Request request = transaction.getContext().getRequest();
 
         Socket socket = request.getSocket();
-        assertThat(socket.isEncrypted()).isFalse();
         assertThat(socket.getRemoteAddress()).isEqualTo("127.0.0.1");
 
         Url url = request.getUrl();

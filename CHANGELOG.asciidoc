@@ -20,12 +20,33 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.27.0]]
+==== 1.27.0 - YYYY/MM/DD
+
+[float]
+===== Features
+* Add the instance name to `context.destination.service.resource` to JDBC spans, if use_jdbc_service_resource_auto_inference is set to true - {pull}1928[#1928]
+
+[float]
+===== Bug fixes
+
+[float]
+===== Refactorings
+* Loading the agent from an isolated class loader {pull}2109[#2109]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.26.0]]
-==== 1.26.0 - YYYY/MM/DD
+==== 1.26.0 - 2021/09/14
 
 ===== Potentially breaking changes
 * If you rely on Database span subtype and use Microsoft SQL Server, the span subtype has been changed from `sqlserver`
 to `mssql` to align with other agents.
+
+[float]
+===== Breaking changes
+* Stop collecting the field `http.request.socket.encrypted` in http requests - {pull}2136[#2136]
 
 [float]
 ===== Features
@@ -38,11 +59,10 @@ to `mssql` to align with other agents.
 * Add `-download-agent-version` to the agent <<setup-attach-cli-usage-options, attach CLI tool options>>, allowing the
 user to configure an arbitrary agent version that will be downloaded from maven and attached - {pull}1959[#1959]
 * Add extra check to detect improper agent setup - {pull}2076[#2076]
-* Add the instance name to `context.destination.service.resource` to JDBC spans, if use_jdbc_service_resource_auto_inference is set to true - {pull}1928[#1928]
 
 [float]
 ===== Performance improvements
-* Reduce GC time overhead caused by WeakReferences - {pull}2086[#2086]
+* Reduce GC time overhead caused by WeakReferences - {pull}2086[#2086], {pull}2081[#2081]
 * Reduced memory overhead by a smarter type pool caching strategy - {pull}2102[#2102]. +
   The type pool cache improves the startup times by speeding up type matching
   (determining whether a class that's about to be loaded should be instrumented).
@@ -59,7 +79,6 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 ** Reduced GC time due to the additional headroom that the application can utilize.
 ** Based on heap dump analysis, after warmup, the cache size is now around 59kb (down from 23mb with the previous strategy).
 
-
 [float]
 ===== Bug fixes
 * Fix failure to parse some forms of the `Implementation-Version` property from jar manifest files - {pull}1931[#1931]
@@ -68,13 +87,11 @@ user to configure an arbitrary agent version that will be downloaded from maven 
 * Fix Webflux response status code - {pull}1948[#1948]
 * Ensure path filtering is applied when Servlet path is not available - {pull}2099[#2099]
 * Align span subtype for MS SqlServer - {pull}2112[#2112]
+* Fix potential destination host name corruption in OkHttp client spans - {pull}2118[#2118]
 
 [float]
 ===== Refactorings
 * Migrate several plugins to indy dispatcher {pull}2087[#2087], {pull}2088[#2088], {pull}2090[#2090], {pull}2094[#2094], {pull}2095[#2095]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.25.0]]
 ==== 1.25.0 - 2021/07/22
