@@ -26,6 +26,8 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxTestContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -36,6 +38,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class VertxTestHttpServer {
 
     protected Vertx vertx;
+
+    private static final Logger logger = LoggerFactory.getLogger(VertxTestHttpServer.class);
 
     @Nullable
     private HttpServer server;
@@ -64,8 +68,11 @@ public class VertxTestHttpServer {
         server.requestHandler(router).listen(port, testContext.succeedingThenComplete());
         assertThat(testContext.awaitCompletion(2, TimeUnit.SECONDS)).isTrue();
         if (testContext.failed()) {
+            logger.error("starting vertx server on port {} failed", port);
             throw testContext.causeOfFailure();
         }
+
+        logger.info("starting vertx server on port {} succeeded", port);
 
     }
 
@@ -75,8 +82,10 @@ public class VertxTestHttpServer {
 
         assertThat(testContext.awaitCompletion(2, TimeUnit.SECONDS)).isTrue();
         if (testContext.failed()) {
+            logger.error("stopping vertx server on port {} failed", port);
             throw testContext.causeOfFailure();
         }
+        logger.info("stopping vertx server on port {} succeeded", port);
     }
 
     public int getPort() {

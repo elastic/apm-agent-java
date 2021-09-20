@@ -64,14 +64,16 @@ public class ForkJoinTaskInstrumentation extends TracerAwareInstrumentation {
         return Arrays.asList("concurrent", "fork-join");
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void onExecute(@Advice.This ForkJoinTask<?> thiz) {
-        JavaConcurrent.withContext(thiz, tracer);
-    }
+    public static class AdviceClass {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onExecute(@Advice.This ForkJoinTask<?> thiz) {
+            JavaConcurrent.withContext(thiz, tracer);
+        }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
-                              @Advice.This ForkJoinTask<?> thiz) {
-        JavaConcurrent.doFinally(thrown, thiz);
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+                                  @Advice.This ForkJoinTask<?> thiz) {
+            JavaConcurrent.doFinally(thrown, thiz);
+        }
     }
 }

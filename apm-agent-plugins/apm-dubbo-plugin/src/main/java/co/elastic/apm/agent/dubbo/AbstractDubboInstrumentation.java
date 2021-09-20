@@ -30,8 +30,4 @@ public abstract class AbstractDubboInstrumentation extends TracerAwareInstrument
         return Arrays.asList("dubbo", "experimental");
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return false;
-    }
 }

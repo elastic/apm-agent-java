@@ -27,7 +27,16 @@ public class OkHttpClientHelper {
     /**
      * Used to avoid allocations when calculating destination host name.
      */
-    public static final GlobalThreadLocal<StringBuilder> destinationHostName = GlobalThreadLocal.get(OkHttpClientHelper.class, "destinationHostName", new StringBuilder());
+    public static final GlobalThreadLocal<StringBuilder> destinationHostName =
+        GlobalThreadLocal.get(
+            OkHttpClientHelper.class,
+            "destinationHostName",
+            new GlobalThreadLocal.DefaultValueSupplier<StringBuilder>() {
+                @Override
+                public StringBuilder getDefaultValueForThread() {
+                    return new StringBuilder();
+                }
+            });
 
     /**
      * NOTE: this method returns a StringBuilder instance that is kept as this class's ThreadLocal. Callers of this
