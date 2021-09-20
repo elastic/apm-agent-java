@@ -41,7 +41,7 @@ to `mssql` to align with other agents.
 
 [float]
 ===== Breaking changes
-* Stop collecting the field `http.request.socket.encrypted` in http requests - {pull}
+* Stop collecting the field `http.request.socket.encrypted` in http requests - {pull}2136[#2136]
 
 [float]
 ===== Features
