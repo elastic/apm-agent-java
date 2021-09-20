@@ -22,7 +22,6 @@ import javax.annotation.Nullable;
 
 /**
  * Similar to {@link ThreadLocal} but without the risk of introducing class loader leaks.
- * @param <T>
  */
 public interface DetachedThreadLocal<T> {
 
