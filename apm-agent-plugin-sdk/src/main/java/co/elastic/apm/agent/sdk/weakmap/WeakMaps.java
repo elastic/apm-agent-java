@@ -83,7 +83,7 @@ public final class WeakMaps {
          * That's because a global thread local is referenced from the agent class loader.
          * If it held a reference to a class that's loaded by the plugin class loader, the target class loader (such as a webapp class loader)
          * is held alive by the following chain of hard references:
-         * Map of global thread locals (Agent CL) -plugin class instance-> -plugin class-> plugin CL -(parent)-> webapp CL
+         * {@code Map of global thread locals (Agent CL) -plugin class instance-> -plugin class-> plugin CL -(parent)-> webapp CL}
          * </p>
          */
         ThreadLocalBuilder<T> asGlobalThreadLocal(Class<?> adviceClass, String key);
