@@ -146,10 +146,10 @@ public class AgentMain {
             File agentJar = getAgentJarFile();
             if (lookupKeyClassLoader == null) {
                 // loads the CachedLookupKey class in a dedicated class loader that will never be un-loaded
-                lookupKeyClassLoader = new ShadedClassLoader(agentJar, getAgentClassLoaderParent(), "cached-lookup-key/", ".esclass");
+                lookupKeyClassLoader = new ShadedClassLoader(agentJar, getAgentClassLoaderParent(), "cached-lookup-key/");
             }
             // the agent class loader that may be unloaded if/when we support detaching the agent
-            agentClassLoader = new ShadedClassLoader(agentJar, lookupKeyClassLoader, "agent/", ".esclass");
+            agentClassLoader = new ShadedClassLoader(agentJar, lookupKeyClassLoader, "agent/");
             Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, agentClassLoader)
                 .getMethod("initialize", String.class, Instrumentation.class, File.class, boolean.class)
                 .invoke(null, agentArguments, instrumentation, agentJar, premain);
