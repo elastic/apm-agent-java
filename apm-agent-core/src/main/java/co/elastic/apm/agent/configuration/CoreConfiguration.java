@@ -19,8 +19,6 @@
 package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
-import co.elastic.apm.agent.bci.methodmatching.configuration.MethodMatcherValueConverter;
 import co.elastic.apm.agent.configuration.converter.ListValueConverter;
 import co.elastic.apm.agent.configuration.converter.RoundedDoubleConverter;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
@@ -29,6 +27,8 @@ import co.elastic.apm.agent.configuration.validation.RegexValidator;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.matcher.MethodMatcher;
+import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.MapValueConverter;

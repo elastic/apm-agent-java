@@ -30,8 +30,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class Log4j2LoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
 
-    // prevents the shade plugin from relocating org.apache.logging.log4j.Logger to co.elastic.apm.agent.shaded.logging.log4j.Logger
-    static final String LOG4J2_LOGGER = "org!apache!logging!log4j!Logger".replace('!', '.');
+    static final String LOG4J2_LOGGER = "org.apache.logging.log4j.Logger";
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

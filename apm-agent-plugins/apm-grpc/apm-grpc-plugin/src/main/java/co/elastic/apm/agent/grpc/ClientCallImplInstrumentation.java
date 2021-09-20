@@ -34,6 +34,7 @@ import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 /**
  * Instruments gRPC client calls by relying on {@link ClientCall} internal implementation {@code io.grpc.internal.ClientCallImpl},
@@ -64,7 +65,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
     }
 
     /**
-     * Instruments {@code ClientCallImpl#start} to start client call span
+     * Instruments {@link ClientCall#start} to start client call span
      */
     public static class Start extends ClientCallImplInstrumentation {
 
@@ -96,6 +97,33 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
                                       @Advice.Enter @Nullable Object span) {
 
                 GrpcHelper.getInstance().clientCallStartExit((Span) span, listener, thrown);
+            }
+        }
+    }
+
+    /**
+     * Instruments {@link ClientCall#cancel} to end client call span upon cancellation
+     */
+    public static class Cancel extends ClientCallImplInstrumentation {
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("cancel").and(takesArgument(1, Throwable.class));
+        }
+
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.grpc.ClientCallImplInstrumentation$Cancel$CancelAdvice";
+        }
+
+        public static class CancelAdvice {
+
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void onEnter(@Advice.This ClientCall<?, ?> clientCall,
+                                         @Advice.Argument(1) @Nullable Throwable cause) {
+
+                GrpcHelper.getInstance().cancelCall(clientCall, cause);
             }
         }
     }
