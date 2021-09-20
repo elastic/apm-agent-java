@@ -36,7 +36,7 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
-import co.elastic.apm.agent.premain.JvmRuntimeInfo;
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -737,8 +737,11 @@ public class ElasticApmTracer implements Tracer {
             || coreConfiguration.getServiceNameConfig().getUsedKey() != null) {
             return;
         }
+
+        String sanitizedServiceName = ServiceNameUtil.replaceDisallowedChars(serviceName);
+        logger.debug("Using `{}` as the service name for class loader [{}]", sanitizedServiceName, classLoader);
         if (!serviceNameByClassLoader.containsKey(classLoader)) {
-            serviceNameByClassLoader.putIfAbsent(classLoader, ServiceNameUtil.replaceDisallowedChars(serviceName));
+            serviceNameByClassLoader.putIfAbsent(classLoader, sanitizedServiceName);
         }
     }
 

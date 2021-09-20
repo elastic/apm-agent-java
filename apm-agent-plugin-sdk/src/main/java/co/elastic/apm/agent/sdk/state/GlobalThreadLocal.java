@@ -35,26 +35,26 @@ import java.util.concurrent.ConcurrentMap;
 public class GlobalThreadLocal<T> extends DetachedThreadLocal<T> {
 
     private static final ConcurrentMap<String, GlobalThreadLocal<?>> registry = new ConcurrentHashMap<>();
-    @Nullable
-    private final T defaultValue;
 
-    private GlobalThreadLocal(@Nullable T defaultValue) {
+    private final DefaultValueSupplier<T> defaultValueSupplier;
+
+    private GlobalThreadLocal(@Nullable DefaultValueSupplier<T> defaultValueSupplier) {
         super(Cleaner.INLINE);
-        this.defaultValue = defaultValue;
+        this.defaultValueSupplier = defaultValueSupplier != null ? defaultValueSupplier : new NullValueSupplier();
     }
 
     public static <T> GlobalThreadLocal<T> get(Class<?> adviceClass, String key) {
         return get(adviceClass.getName() + "." + key, null);
     }
 
-    public static <T> GlobalThreadLocal<T> get(Class<?> adviceClass, String key, @Nullable T defaultValue) {
-        return get(adviceClass.getName() + "." + key, defaultValue);
+    public static <T> GlobalThreadLocal<T> get(Class<?> adviceClass, String key, @Nullable DefaultValueSupplier<T> defaultValueSupplier) {
+        return get(adviceClass.getName() + "." + key, defaultValueSupplier);
     }
 
-    static <T> GlobalThreadLocal<T> get(String key, @Nullable T defaultValue) {
+    static <T> GlobalThreadLocal<T> get(String key, @Nullable DefaultValueSupplier<T> defaultValueSupplier) {
         GlobalThreadLocal<?> threadLocal = registry.get(key);
         if (threadLocal == null) {
-            registry.putIfAbsent(key, new GlobalThreadLocal<T>(defaultValue));
+            registry.putIfAbsent(key, new GlobalThreadLocal<T>(defaultValueSupplier));
             threadLocal = registry.get(key);
         }
         return (GlobalThreadLocal<T>) threadLocal;
@@ -88,7 +88,19 @@ public class GlobalThreadLocal<T> extends DetachedThreadLocal<T> {
     @Override
     @Nullable
     protected T initialValue(Thread thread) {
-        return defaultValue;
+        return defaultValueSupplier.getDefaultValueForThread();
     }
 
+    public interface DefaultValueSupplier<T> {
+        @Nullable
+        T getDefaultValueForThread();
+    }
+
+    private class NullValueSupplier implements DefaultValueSupplier<T> {
+        @Nullable
+        @Override
+        public T getDefaultValueForThread() {
+            return null;
+        }
+    }
 }

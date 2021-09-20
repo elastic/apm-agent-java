@@ -102,7 +102,7 @@ import java.util.Map;
 public abstract class AbstractEcsReformattingHelper<A, F> {
 
     // Escape shading
-    private static final String ECS_LOGGING_PACKAGE_NAME = "co!elastic!logging".replace('!', '.');
+    private static final String ECS_LOGGING_PACKAGE_NAME = "co.elastic.logging";
 
     // We can use regular shaded logging here as this class is loaded from the agent CL
     private static final Logger logger = LoggerFactory.getLogger(AbstractEcsReformattingHelper.class);

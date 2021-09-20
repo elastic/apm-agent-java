@@ -26,7 +26,7 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.util.SpanConcurrentHashMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -53,13 +53,35 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAwareInstrumentation {
 
-    static final WeakConcurrentMap<AsyncHandler<?>, Span> handlerSpanMap = WeakMapSupplier.createMap();
+    public static class Helper {
 
-    public static final List<Class<? extends ElasticApmInstrumentation>> ASYNC_HANDLER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
-        AsyncHandlerOnCompletedInstrumentation.class,
-        AsyncHandlerOnThrowableInstrumentation.class,
-        AsyncHandlerOnStatusReceivedInstrumentation.class,
-        StreamedAsyncHandlerOnStreamInstrumentation.class);
+        static final WeakConcurrentMap<AsyncHandler<?>, Span> handlerSpanMap = SpanConcurrentHashMap.createWeakMap();
+
+        public static final List<Class<? extends ElasticApmInstrumentation>> ASYNC_HANDLER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
+            AsyncHandlerOnCompletedInstrumentation.class,
+            AsyncHandlerOnThrowableInstrumentation.class,
+            AsyncHandlerOnStatusReceivedInstrumentation.class,
+            StreamedAsyncHandlerOnStreamInstrumentation.class);
+
+
+        @Nullable
+        static Span removeAndActivateSpan(AsyncHandler<?> asyncHandler) {
+            Span span = handlerSpanMap.remove(asyncHandler);
+            if (span != null) {
+                span.activate();
+            }
+            return span;
+        }
+
+        @Nullable
+        static Span getAndActivateSpan(AsyncHandler<?> asyncHandler) {
+            Span span = handlerSpanMap.get(asyncHandler);
+            if (span != null) {
+                span.activate();
+            }
+            return span;
+        }
+    }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -74,41 +96,43 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
     public static class AsyncHttpClientInstrumentation extends AbstractAsyncHttpClientInstrumentation {
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onBeforeExecute(@Advice.Argument(value = 0) Request request,
-                                            @Advice.Argument(value = 1) AsyncHandler<?> asyncHandler) {
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
-            }
-            DynamicTransformer.Accessor.get().ensureInstrumented(asyncHandler.getClass(), ASYNC_HANDLER_INSTRUMENTATIONS);
+        public static class AdviceClass {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object onBeforeExecute(@Advice.Argument(value = 0) Request request,
+                                                 @Advice.Argument(value = 1) AsyncHandler<?> asyncHandler) {
+                final AbstractSpan<?> parent = tracer.getActive();
+                if (parent == null) {
+                    return null;
+                }
+                DynamicTransformer.Accessor.get().ensureInstrumented(asyncHandler.getClass(), Helper.ASYNC_HANDLER_INSTRUMENTATIONS);
 
-            Uri uri = request.getUri();
-            Span span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
+                Uri uri = request.getUri();
+                Span span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
 
-            if (span != null) {
-                span.activate();
-                span.propagateTraceContext(request, RequestHeaderSetter.INSTANCE);
-                handlerSpanMap.put(asyncHandler, span);
-            } else {
-                parent.propagateTraceContext(request, RequestHeaderSetter.INSTANCE);
+                if (span != null) {
+                    span.activate();
+                    span.propagateTraceContext(request, RequestHeaderSetter.INSTANCE);
+                    Helper.handlerSpanMap.put(asyncHandler, span);
+                } else {
+                    parent.propagateTraceContext(request, RequestHeaderSetter.INSTANCE);
+                }
+                return span;
             }
-            return span;
-        }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.Enter @Nullable Object spanObj,
-                                          @Advice.Argument(value = 1) AsyncHandler<?> asyncHandler,
-                                          @Advice.Thrown @Nullable Throwable t) {
-            if (spanObj == null) {
-                return;
-            }
-            Span span = (Span) spanObj;
-            span.deactivate();
-            if (t != null) {
-                handlerSpanMap.remove(asyncHandler);
-                span.captureException(t).end();
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onAfterExecute(@Advice.Enter @Nullable Object spanObj,
+                                              @Advice.Argument(value = 1) AsyncHandler<?> asyncHandler,
+                                              @Advice.Thrown @Nullable Throwable t) {
+                if (spanObj == null) {
+                    return;
+                }
+                Span span = (Span) spanObj;
+                span.deactivate();
+                if (t != null) {
+                    Helper.handlerSpanMap.remove(asyncHandler);
+                    span.captureException(t).end();
+                }
             }
         }
 
@@ -154,18 +178,20 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
             super(named("onCompleted").and(takesArguments(0)));
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler) {
-            return removeAndActivateSpan(asyncHandler);
-        }
+        public static class AdviceClass {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler) {
+                return Helper.removeAndActivateSpan(asyncHandler);
+            }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void onMethodExit(@Nullable @Advice.Enter Object spanObj) {
-            Span span = (Span) spanObj;
-            if (span != null) {
-                span.end();
-                span.deactivate();
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void onMethodExit(@Nullable @Advice.Enter Object spanObj) {
+                Span span = (Span) spanObj;
+                if (span != null) {
+                    span.end();
+                    span.deactivate();
+                }
             }
         }
     }
@@ -176,21 +202,23 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
             super(named("onThrowable").and(takesArguments(Throwable.class)));
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler) {
-            return removeAndActivateSpan(asyncHandler);
-        }
+        public static class AdviceClass {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler) {
+                return Helper.removeAndActivateSpan(asyncHandler);
+            }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void onMethodExit(@Nullable @Advice.Enter Object spanObj, @Advice.Argument(0) Throwable t) {
-            Span span = (Span) spanObj;
-            if (span != null) {
-                if (t instanceof MaxRedirectException) {
-                    span.withOutcome(Outcome.FAILURE);
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void onMethodExit(@Nullable @Advice.Enter Object spanObj, @Advice.Argument(0) Throwable t) {
+                Span span = (Span) spanObj;
+                if (span != null) {
+                    if (t instanceof MaxRedirectException) {
+                        span.withOutcome(Outcome.FAILURE);
+                    }
+                    span.captureException(t).end();
+                    span.deactivate();
                 }
-                span.captureException(t).end();
-                span.deactivate();
             }
         }
     }
@@ -201,18 +229,20 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
             super(named("onStatusReceived").and(takesArgument(0, named("org.asynchttpclient.HttpResponseStatus"))));
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler) {
-            return getAndActivateSpan(asyncHandler);
-        }
+        public static class AdviceClass {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler) {
+                return Helper.getAndActivateSpan(asyncHandler);
+            }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void onMethodExit(@Nullable @Advice.Enter Object spanObj, @Advice.Argument(0) HttpResponseStatus status) {
-            Span span = (Span) spanObj;
-            if (span != null) {
-                span.getContext().getHttp().withStatusCode(status.getStatusCode());
-                span.deactivate();
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void onMethodExit(@Nullable @Advice.Enter Object spanObj, @Advice.Argument(0) HttpResponseStatus status) {
+                Span span = (Span) spanObj;
+                if (span != null) {
+                    span.getContext().getHttp().withStatusCode(status.getStatusCode());
+                    span.deactivate();
+                }
             }
         }
     }
@@ -223,37 +253,22 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
             super(named("onStream").and(takesArgument(0, named("org.reactivestreams.Publisher"))));
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler) {
-            return getAndActivateSpan(asyncHandler);
-        }
+        public static class AdviceClass {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler) {
+                return Helper.getAndActivateSpan(asyncHandler);
+            }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void onMethodExit(@Nullable @Advice.Enter Object spanObj) {
-            Span span = (Span) spanObj;
-            if (span != null) {
-                span.deactivate();
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void onMethodExit(@Nullable @Advice.Enter Object spanObj) {
+                Span span = (Span) spanObj;
+                if (span != null) {
+                    span.deactivate();
+                }
             }
         }
     }
 
-    @Nullable
-    static Span removeAndActivateSpan(AsyncHandler<?> asyncHandler) {
-        Span span = handlerSpanMap.remove(asyncHandler);
-        if (span != null) {
-            span.activate();
-        }
-        return span;
-    }
-
-    @Nullable
-    static Span getAndActivateSpan(AsyncHandler<?> asyncHandler) {
-        Span span = handlerSpanMap.get(asyncHandler);
-        if (span != null) {
-            span.activate();
-        }
-        return span;
-    }
 
 }
