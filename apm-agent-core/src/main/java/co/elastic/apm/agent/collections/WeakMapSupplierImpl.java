@@ -66,7 +66,7 @@ public class WeakMapSupplierImpl implements WeakMaps.WeakMapSupplier {
 
             @Override
             public WeakMap<K, V> build() {
-                NullSafeWeakConcurrentMap<K, V> map = new NullSafeWeakConcurrentMap<K, V>(new ConcurrentHashMap<AbstractWeakConcurrentMap.WeakKey<K>, V>(initialCapacity)), defaultValueSupplier);
+                NullSafeWeakConcurrentMap<K, V> map = new NullSafeWeakConcurrentMap<K, V>(new ConcurrentHashMap<AbstractWeakConcurrentMap.WeakKey<K>, V>(initialCapacity), defaultValueSupplier);
                 registeredMaps.add(map);
                 return map;
             }
