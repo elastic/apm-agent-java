@@ -44,6 +44,10 @@ endif::[]
 to `mssql` to align with other agents.
 
 [float]
+===== Breaking changes
+* Stop collecting the field `http.request.socket.encrypted` in http requests - {pull}2136[#2136]
+
+[float]
 ===== Features
 * Improved naming for Spring controllers - {pull}1906[#1906]
 * ECS log reformatting improvements - {pull}1910[#1910]
