@@ -54,7 +54,6 @@
         <module>apm-grpc</module>
         <module>apm-grails-plugin</module>
         <module>apm-dubbo-plugin</module>
-        <module>apm-bootdelegation-plugin</module>
         <module>apm-micrometer-plugin</module>
         <module>apm-jdk-httpclient-plugin</module>
         <module>apm-jdk-httpserver-plugin</module>

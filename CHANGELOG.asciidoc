@@ -29,6 +29,10 @@ endif::[]
 [float]
 ===== Bug fixes
 
+[float]
+===== Refactorings
+* Loading the agent from an isolated class loader {pull}2109[#2109]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
@@ -38,6 +42,10 @@ endif::[]
 ===== Potentially breaking changes
 * If you rely on Database span subtype and use Microsoft SQL Server, the span subtype has been changed from `sqlserver`
 to `mssql` to align with other agents.
+
+[float]
+===== Breaking changes
+* Stop collecting the field `http.request.socket.encrypted` in http requests - {pull}2136[#2136]
 
 [float]
 ===== Features

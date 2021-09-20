@@ -2,7 +2,7 @@
 
 @Library('apm@current') _
 pipeline {
-  agent { label 'linux && immutable' }
+  agent { label 'ubuntu && linux-immutable-docker' }
   environment {
     REPO = 'apm-agent-java'
     BASE_DIR = "src/github.com/elastic/${env.REPO}"
@@ -50,7 +50,7 @@ pipeline {
               script {
                 env.TAG_BARE = sh(script: "./scripts/jenkins/tags.sh bare", returnStdout: true)
                 env.TAG_VER = sh(script: "./scripts/jenkins/tags.sh ver", returnStdout: true)
-                env.TAG_DOT_X = sh(script: "./scripts/jenkins/tags.sh dot_x", returnStdout: true)
+                env.BRANCH_DOT_X = sh(script: "./scripts/jenkins/tags.sh dot_x", returnStdout: true)
               }
             }
             dir("${BASE_DIR}") {
@@ -158,29 +158,50 @@ pipeline {
         }
         stage('Nexus release') {
           steps {
-            script {
-              dir("${BASE_DIR}"){
-                withSecretVault(secret: 'secret/apm-team/ci/nexus', user_var_name: '__unused__', pass_var_name: 'SPID', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id'){
-                  def foundStagingId = nexusFindStagingId(stagingProfileId: "${SPID}", groupId: "co.elastic.apm")
-                  nexusCloseStagingRepository(stagingProfileId: "${SPID}", stagingId: foundStagingId)
-                  nexusReleaseStagingRepository(stagingProfileId: "${SPID}", stagingId: foundStagingId)
+            notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be published in Nexus",
+                         body: "Please go to (<https://oss.sonatype.org/|here>) to proceed with the manual nexus release. Login details in LastPass")
+            input(message: "Go to https://oss.sonatype.org and proceed with the steps to close and release the staging artifact.")
+          }
+        }
+        stage('Major Branch create/update') {
+          when {
+            expression { return false }
+          }
+          steps {
+            dir("${BASE_DIR}") {
+              script {
+                def isMajor = "${TAG_VER}".endsWith(".0.0")
+                if (isMajor) {
+                  // major release, create '.x' branch
+                  sh(script: """
+                    git checkout ${TAG_BARE}
+                    git checkout -b ${BRANCH_DOT_X}
+                  """)
+                  gitPush()
+                  input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
+                } else {
+                  // minor release, force-update existing '.x' branch. any change applied to '.x' branch, for example to
+                  // fix doc or release notes should also have been applied to master/stable branch we are releasing from
+                  sh(script: """
+                    git fetch origin ${BRANCH_DOT_X} # ensure remote branch is fetched for local checkout
+                    git checkout --track origin/${BRANCH_DOT_X}
+                    git reset --hard ${TAG_BARE}
+                    """)
+                  gitPush(args: "-f ${BRANCH_DOT_X}")
                 }
               }
             }
           }
-        }
-        stage('Branch creation') {
-          steps {
-            dir("${BASE_DIR}") {
-              script {
-                def curVer = mvnVersion()
-                sh(script: "./scripts/jenkins/branch_creation.sh ${curVer}")
-                def isMajor = sh(script: "./scripts/jenkins/is_major.sh ${curVer}", returnStatus: true)
-                if (isMajor == 0) {
-                  input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
-                }
+          post {
+            cleanup {
+              dir("${BASE_DIR}") {
+                // restore git state before updating .x branch, otherwise later external scripts will use
+                // the version when the tag was created, which might not match the release branch state
+                sh(script: """
+                    git fetch origin ${BRANCH_SPECIFIER} # ensure remote branch is fetched for local checkout
+                    git checkout --track origin/${BRANCH_SPECIFIER}
+                """)
               }
-              gitPush()
             }
           }
         }
@@ -188,12 +209,15 @@ pipeline {
           steps {
             dir("${BASE_DIR}"){
               script {
-                def curVer = mvnVersion(showQualifiers: false)
                 // Construct the URL with anchor for the release notes
                 // Ex: https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-1.x.html#release-notes-1.13.0
-                def finalUrl = sh(script: "scripts/jenkins/generate_release_notes_url.sh ${curVer}", returnStdout: true)
+                def finalUrl = "https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html#release-notes-${TAG_VER}"
                 githubEnv()
-                def ret = githubReleaseCreate(draft: true, name: "Release ${curVer}", body: "[Release Notes for ${curVer}](${finalUrl})")
+                def ret = githubReleaseCreate(
+                        draft: true,
+                        tagName: "${TAG_BARE}",
+                        releaseName: "Release ${TAG_VER}",
+                        body: "[Release Notes for ${TAG_VER}](${finalUrl})")
                 env.RELEASE_ID = ret['id']
                 env.RELEASE_NOTES_URL = finalUrl
               }
@@ -201,15 +225,16 @@ pipeline {
           }
         }
         stage('Wait for artifact to be available in Maven Central') {
+          when {
+            expression { return false }
+          }
           steps {
             dir("${BASE_DIR}"){
               script {
-                def fullUrl = sh(script: "./scripts/jenkins/maven_artifact_url.sh ")
-                echo "Sleeping for ten minutes to wait for Sonatype"
-                sleep(time: 10, unit: "MINUTES")
+                def fullUrl = "https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/${TAG_VER}/elastic-apm-agent-${TAG_VER}.pom"
                 waitUntil(initialRecurrencePeriod: 60000) {
                   script {
-                    def ret = sh(script: "curl -fs $fullUrl >/dev/null 2>&1", returnStatus: true)
+                    def ret = sh(script: "curl -fs '${fullUrl}' >/dev/null 2>&1", returnStatus: true)
                     echo "Waiting for the artifacts to be published on Sonatype"
                     return ret == 0
                   }
@@ -221,6 +246,11 @@ pipeline {
         stage('Update Cloudfoundry') {
           steps {
             dir("${BASE_DIR}"){
+              // ensure that we don't rely on side effect of another step
+              sh(script: """
+                  git fetch origin ${BRANCH_SPECIFIER} # ensure remote branch is fetched for local checkout
+                  git checkout --track origin/${BRANCH_SPECIFIER}
+                  """)
               sh(script: "./scripts/jenkins/update_cloudfoundry.sh")
               gitPush()
             }
@@ -228,26 +258,29 @@ pipeline {
         }
         stage('Publish release on GitHub') {
           steps {
-            waitUntil(initialRecurrencePeriod: 60000) {
-              dir("${BASE_DIR}"){
+            dir("${BASE_DIR}"){
+              waitUntil(initialRecurrencePeriod: 60000) {
                 script {
                   echo "Waiting for the release notes to be available"
-                  def ret = sh(script: "./scripts/jenkins/docs_check.sh $TAG_VER")
-                  return ret == 0
+                    def ret = sh(script: "curl -fs https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html | grep ${TAG_VER}", returnStatus: true)
+                    return ret == 0
                 }
               }
+              githubEnv()
+              githubReleasePublish(id: "${env.RELEASE_ID}", name: "Release ${TAG_VER}")
             }
-            githubEnv()
-            githubReleasePublish(id: "${env.RELEASE_ID}")
           }
         }
         stage('Build and push Docker images') {
           steps {
             dir("${BASE_DIR}"){
-              sh(label: "Build Docker image", script: "./scripts/jenkins/build_docker.sh")
-              // Get Docker registry credentials
-              dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co')
-              sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
+              // fetch agent artifact from remote repository
+              withEnv(["SONATYPE_FALLBACK=1"]) {
+                sh(label: "Build Docker image", script: "./scripts/jenkins/build_docker.sh")
+                  // Get Docker registry credentials
+                  dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id')
+                  sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
+              }
             }
           }
           post {
