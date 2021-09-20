@@ -21,6 +21,7 @@ package co.elastic.apm.agent.springwebflux;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -79,12 +80,11 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
                 // set name for annotated controllers
                 HandlerMethod handlerMethod = (HandlerMethod) handler;
 
-                StringBuilder name = ((Transaction) exchangeTransaction).getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK, false);
-                if (name != null) {
-                    name.append(handlerMethod.getBeanType().getSimpleName())
-                        .append("#")
-                        .append(handlerMethod.getMethod().getName());
-                }
+                TransactionNameUtils.setNameFromClassAndMethod(
+                    handlerMethod.getBeanType().getSimpleName(),
+                    handlerMethod.getMethod().getName(),
+                    ((Transaction) exchangeTransaction).getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK, false));
+
             }
 
             return exchangeTransaction;
@@ -98,31 +98,20 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
                                                  @Advice.Enter @Nullable Object enterTransaction,
                                                  @Advice.Return @Nullable Mono<HandlerResult> resultMono) {
 
-            if (!(enterTransaction instanceof Transaction)) {
+            if (!(enterTransaction instanceof Transaction) || resultMono == null) {
                 return resultMono;
             }
 
             Transaction transaction = (Transaction) enterTransaction;
             transaction.captureException(thrown);
 
-            if (resultMono == null) {
-                return resultMono;
-            }
-
             if (transaction.isNoop()) {
-                // when exception has been disabled within method invocation, we need to properly disable it
-                // without the need to use wrapping
+                // in transaction has been made no-op, we must still deactivate it
                 transaction.deactivate();
-                return resultMono;
             }
-
-            // in case an exception it thrown, it's too early to end transaction
-            // otherwise the status code returned isn't the expected one
-
-            return WebfluxHelper.wrapHandlerAdapter(tracer, resultMono, transaction, exchange);
-
+            // we don't wrap for handler execution, dispatcher will take care of it
+            return resultMono;
         }
+
     }
-
-
 }

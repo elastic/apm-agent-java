@@ -186,6 +186,13 @@ One history file will be kept with the name `${logFile}.1`.
 Instead of the bundled agent jar, attach the provided agent to the target JVMs.
 --
 
+*--download-agent-version <agent-version>*::
++
+--
+Instead of the bundled agent jar, download and attach the specified agent version from maven central.
+The agent is authenticated and validated based on the published PGP signature. This option requires internet access.
+--
+
 [float]
 [[setup-attach-cli-docker]]
 ==== Docker

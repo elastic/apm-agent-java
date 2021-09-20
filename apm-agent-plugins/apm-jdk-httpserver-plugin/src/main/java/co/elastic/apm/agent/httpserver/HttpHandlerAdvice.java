@@ -28,9 +28,9 @@ import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpsExchange;
 import net.bytebuddy.asm.Advice;
 import org.slf4j.Logger;
@@ -64,14 +64,18 @@ public class HttpHandlerAdvice {
             return null;
         }
 
+        TransactionNameUtils.setNameFromHttpRequestPath(
+            exchange.getRequestMethod(),
+            exchange.getRequestURI().getPath(),
+            transaction.getAndOverrideName(AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK),
+            webConfiguration.getUrlGroups());
+
         transaction.withType(Transaction.TYPE_REQUEST)
-            .withName(exchange.getRequestMethod() + " " + exchange.getRequestURI(), AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK)
             .setFrameworkName("JDK HTTP Server");
 
         Request request = transaction.getContext().getRequest();
 
         request.getSocket()
-            .withEncrypted(exchange instanceof HttpsExchange)
             .withRemoteAddress(exchange.getRemoteAddress().getAddress().getHostAddress());
 
         request.withHttpVersion(exchange.getProtocol())

@@ -109,14 +109,13 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
         Transaction transaction = reporter.getFirstTransaction(500);
         assertThat(transaction.getTraceContext().getParentId().toString()).isEqualTo("0000000000000000");
         assertThat(transaction.getType()).isEqualTo(Transaction.TYPE_REQUEST);
-        assertThat(transaction.getNameAsString()).isEqualTo("GET /status_" + expectedStatus + "?q=p");
+        assertThat(transaction.getNameAsString()).isEqualTo("GET /status_%d",expectedStatus);
         assertThat(transaction.getResult()).isEqualTo(ResultUtil.getResultByHttpStatus(expectedStatus));
         assertThat(transaction.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpServerStatus(expectedStatus));
 
         Request request = transaction.getContext().getRequest();
 
         Socket socket = request.getSocket();
-        assertThat(socket.isEncrypted()).isFalse();
         assertThat(socket.getRemoteAddress()).isEqualTo("127.0.0.1");
 
         Url url = request.getUrl();

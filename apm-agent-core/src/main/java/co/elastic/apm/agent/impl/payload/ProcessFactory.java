@@ -94,7 +94,8 @@ public interface ProcessFactory {
 
         private String getTitle() {
             String javaHome = java.lang.System.getProperty("java.home");
-            final String title = javaHome + File.separator + "bin" + File.separator + "java";
+            final String title = javaHome + System.getProperty("file.separator") + 
+                    "bin" + System.getProperty("file.separator") + "java";
             if (java.lang.System.getProperty("os.name").startsWith("Win")) {
                 return title + ".exe";
             }

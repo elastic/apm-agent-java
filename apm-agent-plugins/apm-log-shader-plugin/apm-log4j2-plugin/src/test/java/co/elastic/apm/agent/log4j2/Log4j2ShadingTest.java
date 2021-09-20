@@ -22,6 +22,8 @@ import co.elastic.apm.agent.log.shader.LogShadingInstrumentationTest;
 import co.elastic.apm.agent.log.shader.LoggerFacade;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.Marker;
+import org.apache.logging.log4j.MarkerManager;
 import org.apache.logging.log4j.ThreadContext;
 import org.apache.logging.log4j.core.appender.RandomAccessFileAppender;
 
@@ -31,9 +33,16 @@ import java.util.Objects;
 
 public class Log4j2ShadingTest extends LogShadingInstrumentationTest {
 
+    private static final Marker TEST_MARKER = MarkerManager.getMarker("TEST");
+
     @Override
     protected LoggerFacade createLoggerFacade() {
         return new Log4j2LoggerFacade();
+    }
+
+    @Override
+    protected boolean markersSupported() {
+        return true;
     }
 
     @Override
@@ -83,6 +92,11 @@ public class Log4j2ShadingTest extends LogShadingInstrumentationTest {
         @Override
         public void debug(String message) {
             log4j2Logger.debug(message);
+        }
+
+        @Override
+        public void debugWithMarker(String message) {
+            log4j2Logger.debug(TEST_MARKER, message);
         }
 
         @Override

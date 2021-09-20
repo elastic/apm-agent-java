@@ -28,12 +28,16 @@ import org.apache.logging.log4j.status.StatusLogger;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
+import org.stagemonitor.configuration.converter.MapValueConverter;
+import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Defines configuration options related to logging.
@@ -188,6 +192,17 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(LogEcsReformatting.OFF);
 
+    private final ConfigurationOption<Map<String, String>> logEcsReformattingAdditionalFields = ConfigurationOption
+        .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
+        .key("log_ecs_reformatting_additional_fields")
+        .tags("added[1.26.0]")
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("A comma-separated list of key-value pairs that will be added as additional fields to all log events.\n " +
+            "Takes the format `key=value[,key=value[,...]]`, for example: `key1=value1,key2=value2`.\n " +
+            "Only relevant if <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to any option other than `OFF`.\n")
+        .dynamic(false)
+        .buildWithDefault(Collections.<String, String>emptyMap());
+
     private final ConfigurationOption<List<WildcardMatcher>> logEcsFormatterAllowList = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("log_ecs_formatter_allow_list")
@@ -322,6 +337,11 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             level = LogLevel.INFO;
         }
         Configurator.setRootLevel(org.apache.logging.log4j.Level.toLevel(level.toString(), org.apache.logging.log4j.Level.INFO));
+
+        // Setting the root level resets all the other loggers that may have been configured, which overrides
+        // configuration provided by the configuration files in the classpath. While the JSON schema validator is only
+        // used for testing and is not shipped, this is the most convenient solution to avoid verbosity here.
+        Configurator.setLevel("com.networknt.schema", org.apache.logging.log4j.Level.WARN);
     }
 
     public boolean isLogCorrelationEnabled() {
@@ -331,6 +351,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     public LogEcsReformatting getLogEcsReformatting() {
         return logEcsReformatting.get();
+    }
+
+    public Map<String, String> getLogEcsReformattingAdditionalFields() {
+        return logEcsReformattingAdditionalFields.get();
     }
 
     public List<WildcardMatcher> getLogEcsFormatterAllowList() {

@@ -101,8 +101,11 @@ public abstract class CommonVertxServerClientTest extends AbstractVertxWebTest {
 
     @AfterEach
     public void close() {
-        client.close();
-        close(vertx);
+    	try {
+    		client.close();
+    	} finally {
+    		close(vertx);
+    	}
     }
 
     @Override

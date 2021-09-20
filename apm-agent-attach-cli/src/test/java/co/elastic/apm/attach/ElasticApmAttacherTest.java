@@ -46,12 +46,6 @@ class ElasticApmAttacherTest {
     }
 
     @Test
-    void testHash() throws Exception {
-        assertThat(ElasticApmAttacher.md5Hash(getClass().getResourceAsStream(ElasticApmAttacher.class.getSimpleName() + ".class")))
-            .isEqualTo(DigestUtils.md5Hex(getClass().getResourceAsStream(ElasticApmAttacher.class.getSimpleName() + ".class")));
-    }
-
-    @Test
     void testCreateTempProperties() throws Exception {
         File tempProperties = ElasticApmAttacher.createTempProperties(Map.of("foo", "bär"));
         assertThat(tempProperties).isNotNull();

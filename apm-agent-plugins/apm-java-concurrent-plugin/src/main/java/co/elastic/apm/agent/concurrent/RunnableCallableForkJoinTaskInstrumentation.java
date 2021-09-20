@@ -66,17 +66,19 @@ public class RunnableCallableForkJoinTaskInstrumentation extends TracerAwareInst
         return Arrays.asList("concurrent", "executor");
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onEnter(@Advice.This Object thiz) {
-        return JavaConcurrent.restoreContext(thiz, tracer);
-    }
+    public static class AdviceClass {
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.This Object thiz) {
+            return JavaConcurrent.restoreContext(thiz, tracer);
+        }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExit(@Advice.Thrown Throwable thrown,
-                              @Nullable @Advice.Enter Object context) {
-        if (context instanceof AbstractSpan) {
-            ((AbstractSpan<?>) context).deactivate();
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Thrown Throwable thrown,
+                                  @Nullable @Advice.Enter Object context) {
+            if (context instanceof AbstractSpan) {
+                ((AbstractSpan<?>) context).deactivate();
+            }
         }
     }
 }
