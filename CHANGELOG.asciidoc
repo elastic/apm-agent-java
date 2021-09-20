@@ -29,6 +29,10 @@ endif::[]
 [float]
 ===== Bug fixes
 
+[float]
+===== Refactorings
+* Loading the agent from an isolated class loader {pull}2109[#2109]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 

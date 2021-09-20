@@ -64,8 +64,9 @@
         <module>apm-agent-attach</module>
         <module>apm-agent-plugin-sdk</module>
         <module>apm-indy-bootstrap-module</module>
-        <module>apm-agent-premain</module>
+        <module>apm-agent</module>
         <module>apm-agent-attach-cli</module>
+        <module>apm-agent-common</module>
     </modules>
 
     <properties>
@@ -483,7 +484,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.2.3</version>
+                    <version>3.2.4</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-clean-plugin</artifactId>

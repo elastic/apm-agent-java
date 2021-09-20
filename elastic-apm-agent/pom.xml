@@ -12,338 +12,32 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <elastic.apm.agent>co.elastic.apm.agent.premain.AgentMain</elastic.apm.agent>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
-
-        <!-- default value that will be overloaded through commit-id plugin -->
-        <git.commit.id.abbrev>UNKNOWN</git.commit.id.abbrev>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jul-to-slf4j</artifactId>
-            <version>${version.slf4j}</version>
-        </dependency>
-        <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-premain</artifactId>
+            <artifactId>apm-agent-common</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-indy-bootstrap-module</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <!--Agent plugins, sorted alphabetically -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-apache-httpclient-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-api-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-asynchttpclient-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-bootdelegation-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-cassandra3-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-cassandra4-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-error-logging-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-grails-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-httpclient-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jdk-httpclient-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-java-concurrent-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jaxrs-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jaxws-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jdbc-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jedis-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-lettuce-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-redisson-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jms-plugin-base</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jmx-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jsf-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-hibernate-search-plugin-5_x</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-hibernate-search-plugin-6_x</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-es-restclient-plugin-5_6</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-es-restclient-plugin-6_4</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-grpc-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-kafka-base-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-kafka-headers-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-logback-plugin-impl</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-log4j1-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-log4j2-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-mongoclient-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-okhttp-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-opentracing-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-profiling-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-rabbitmq-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-rabbitmq-spring</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-redis-common</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-servlet-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-log-correlation-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-log-shipper-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-micrometer-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-spring-resttemplate-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-spring-webflux-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-spring-webmvc-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-urlconnection-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-scheduled-annotation-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-quartz-job-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-process-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-dubbo-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-scala-concurrent-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-struts-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-vertx3-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-vertx4-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-sparkjava-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jdk-httpserver-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-javalin-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <!-- For auto-generating configuration docs -->
-        <dependency>
-            <groupId>org.freemarker</groupId>
-            <artifactId>freemarker</artifactId>
-            <version>2.3.27-incubating</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-core</artifactId>
-            <type>test-jar</type>
-            <version>${project.version}</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.0.1</version>
                 <executions>
                     <execution>
                         <id>generate-source-jar</id>
@@ -355,9 +49,62 @@
                 </executions>
             </plugin>
             <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <dependencies>
+                    <dependency>
+                        <groupId>${project.groupId}</groupId>
+                        <artifactId>apm-agent</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>unpack-agent</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>apm-agent</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                    <outputDirectory>${project.basedir}/target/classes/agent</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>shade-classes</id>
+                        <phase>prepare-package</phase>
+                        <configuration>
+
+                            <target name="move-and-rename" description="Move and Rename">
+                                <move todir="${project.basedir}/target/classes/agent" overwrite="true">
+                                    <fileset dir="${project.basedir}/target/classes/agent" includes="**/*.class" />
+                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclass"/>
+                                </move>
+                            </target>
+
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>com.coderplus.maven.plugins</groupId>
                 <artifactId>copy-rename-maven-plugin</artifactId>
-                <version>1.0</version>
                 <executions>
                     <execution>
                         <id>copy-file</id>
@@ -366,8 +113,16 @@
                             <goal>copy</goal>
                         </goals>
                         <configuration>
-                            <sourceFile>${apm-agent-parent.base.dir}/NOTICE</sourceFile>
-                            <destinationFile>target/classes/META-INF/NOTICE</destinationFile>
+                            <fileSets>
+                                <fileSet>
+                                    <sourceFile>${apm-agent-parent.base.dir}/NOTICE</sourceFile>
+                                    <destinationFile>target/classes/META-INF/NOTICE</destinationFile>
+                                </fileSet>
+                                <fileSet>
+                                    <sourceFile>${apm-agent-parent.base.dir}/LICENSE</sourceFile>
+                                    <destinationFile>target/classes/META-INF/LICENSE</destinationFile>
+                                </fileSet>
+                            </fileSets>
                         </configuration>
                     </execution>
                 </executions>
@@ -384,185 +139,27 @@
                             <createSourcesJar>true</createSourcesJar>
                             <shadeSourcesContent>true</shadeSourcesContent>
                             <shadedArtifactAttached>false</shadedArtifactAttached>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>**/module-info.class</exclude>
-                                        <exclude>META-INF/versions/**</exclude>
-                                    </excludes>
-                                </filter>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <!--
-                                        We have to exclude the log4j plugin descriptor file because we can't shade its contents
-                                        Therefore, we have to manually specify the plugin packages via PluginManager.addPackage
-                                        -->
-                                        <exclude>**/Log4j2Plugins.dat</exclude>
-                                    </excludes>
-                                </filter>
-                                <filter>
-                                    <artifact>org.apache.logging.log4j:log4j-core</artifact>
-                                    <!--
-                                    Eliminating exposure to the log4j2 vulnerability related to the SMTP appender -
-                                    https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle
-                                    -->
-                                    <excludes>
-                                        <exclude>org/apache/logging/log4j/core/appender/SmtpAppender.class</exclude>
-                                    </excludes>
-                                </filter>
-                                <filter>
-                                    <artifact>org.hdrhistogram:HdrHistogram</artifact>
-                                    <!--
-                                    Currently, we only need this single class.
-                                    We need to be careful not to use others.
-                                    But even if we did, the integration tests should catch that there's a missing class.
-                                    -->
-                                    <includes>
-                                        <include>org/HdrHistogram/WriterReaderPhaser.class</include>
-                                    </includes>
-                                </filter>
-                            </filters>
                             <relocations>
                                 <relocation>
-                                    <pattern>net.bytebuddy</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.bytebuddy</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.objectweb.asm</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.asm</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.dslplatform</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.dslplatform</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.lmax</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.lmax</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.slf4j</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.slf4j</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>co.elastic.logging</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.logging</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.apache.logging</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.apache.logging</shadedPattern>
-                                </relocation>
-
-                                <relocation>
-                                    <!-- makes sure we don't load log4j2.{properties|xml|yml|json} files-->
-                                    <pattern>log4j2</pattern>
-                                    <shadedPattern>elasticapmlog4j2</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <!-- makes sure we don't pollute the system classloader with Log4j2-{charsets.properties|*.xsd} files-->
-                                    <pattern>Log4j-</pattern>
-                                    <shadedPattern>ElasticApmLog4j-</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <!-- makes sure that direct link to resources in meta-inf are also relocated, otherwise will load log4j plugins from app -->
-                                    <pattern>META-INF/org/apache/logging</pattern>
-                                    <shadedPattern>META-INF/co/elastic/apm/agent/shaded/logging</shadedPattern>
-                                </relocation>
-
-                                <relocation>
-                                    <pattern>org.stagemonitor</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.stagemonitor</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.jctools</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.jctools</shadedPattern>
-                                </relocation>
-                                <!-- See javadoc of co.elastic.apm.agent.logging.JulBridgeLogger -->
-                                <relocation>
-                                    <pattern>java.util.logging.Logger</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.logging.JulBridgeLogger</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.blogspot.mydailyjava.weaklockfree</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.weaklockfree</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.HdrHistogram</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.HdrHistogram</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.googlecode.concurrentlinkedhashmap</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.concurrentlinkedhashmap</shadedPattern>
-                                </relocation>
-
-                                <!-- This reverts logging frameworks temporary packages given during the execution of the package
-                                phase of the apm-log-shader-plugin to their original packages -->
-                                <relocation>
-                                    <pattern>co.elastic.apm.agent.logshading.shaded</pattern>
-                                    <shadedPattern>org</shadedPattern>
+                                    <pattern>co.elastic.apm.agent.common</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.premain.common</shadedPattern>
                                 </relocation>
                             </relocations>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
-                                        <Premain-Class>${elastic.apm.agent}</Premain-Class>
-                                        <Agent-Class>${elastic.apm.agent}</Agent-Class>
+                                        <Premain-Class>co.elastic.apm.agent.premain.AgentMain</Premain-Class>
+                                        <Agent-Class>co.elastic.apm.agent.premain.AgentMain</Agent-Class>
                                         <Can-Redefine-Classes>true</Can-Redefine-Classes>
                                         <Can-Retransform-Classes>true</Can-Retransform-Classes>
                                         <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
-                                        <Automatic-Module-Name>${project.groupId}.agent</Automatic-Module-Name>
-                                        <SCM-Revision>${git.commit.id.abbrev}</SCM-Revision>
                                     </manifestEntries>
-                                </transformer>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
-                                    <resource>META-INF/LICENSE</resource>
-                                    <file>${apm-agent-parent.base.dir}/LICENSE</file>
                                 </transformer>
                             </transformers>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <configuration>
-                    <additionalOptions>-html5</additionalOptions>
-                    <source>8</source>
-                    <detectJavaApiLink>false</detectJavaApiLink>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <configuration>
-                            <includeDependencySources>true</includeDependencySources>
-                            <dependencySourceIncludes>
-                                <dependencySourceInclude>${project.groupId}:apm-agent-api</dependencySourceInclude>
-                                <dependencySourceInclude>${project.groupId}:apm-agent-core</dependencySourceInclude>
-                            </dependencySourceIncludes>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>pl.project13.maven</groupId>
-                <artifactId>git-commit-id-plugin</artifactId>
-                <version>4.0.2</version>
-                <executions>
-                    <execution>
-                        <id>get-the-git-infos</id>
-                        <goals>
-                            <goal>revision</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
-
 </project>

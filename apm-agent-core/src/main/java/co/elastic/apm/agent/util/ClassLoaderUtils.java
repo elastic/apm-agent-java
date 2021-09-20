@@ -21,9 +21,6 @@ package co.elastic.apm.agent.util;
 import javax.annotation.Nullable;
 
 public class ClassLoaderUtils {
-    public static ClassLoader systemClassLoaderIfNull(@Nullable ClassLoader classLoader) {
-        return classLoader != null ? classLoader : ClassLoader.getSystemClassLoader();
-    }
 
     /**
      * Checks whether the provided {@link ClassLoader} may be unloaded like a web application class loader, for example.
