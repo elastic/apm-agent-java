@@ -18,17 +18,10 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.impl.transaction.Span;
-import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-
-import javax.annotation.Nullable;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.concurrent.CompletableFuture;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -55,34 +48,8 @@ public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrument
             .and(takesArguments(3));
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onBeforeExecute(@Advice.Argument(value = 0) HttpRequest httpRequest) {
-        return startSpan(httpRequest);
-    }
-
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onAfterExecute(@Advice.Return @Nullable CompletableFuture<HttpResponse<?>> completableFuture,
-                                      @Advice.Enter @Nullable Object spanObj,
-                                      @Advice.Thrown @Nullable Throwable t) {
-        if (spanObj instanceof Span) {
-            final Span span = (Span) spanObj;
-            span.deactivate();
-            if (completableFuture == null) {
-                span.captureException(t)
-                    .end();
-
-                return;
-            }
-
-            completableFuture.whenComplete((response, throwable) -> {
-                if (response != null) {
-                    int statusCode = response.statusCode();
-                    span.getContext().getHttp().withStatusCode(statusCode);
-                }
-                span.captureException(throwable)
-                    .end();
-            });
-        }
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.httpclient.HttpClientAsyncAdvice";
     }
 }

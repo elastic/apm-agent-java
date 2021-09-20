@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.attach;
 
+import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
 import net.bytebuddy.agent.ByteBuddyAgent;
 
 import java.io.File;
@@ -25,12 +26,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigInteger;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -186,63 +181,15 @@ public class ElasticApmAttacher {
     private enum AgentJarFileHolder {
         INSTANCE;
 
-        // initializes lazily and ensures it's only loaded once
+        // initializes lazily and ensures its only loaded once
         final File agentJarFile = getAgentJarFile();
 
-        /**
-         * {@see co.elastic.apm.agent.util.IOUtils#exportResourceToTemp(java.lang.String, java.lang.String, java.lang.String)} who share the same code.
-         */
         private static File getAgentJarFile() {
-            try (InputStream agentJar = ElasticApmAttacher.class.getResourceAsStream("/elastic-apm-agent.jar")) {
-                if (agentJar == null) {
-                    return null;
-                }
-                String hash = md5Hash(ElasticApmAttacher.class.getResourceAsStream("/elastic-apm-agent.jar"));
-
-                // we have to include current user name as multiple copies of the same agent could be attached
-                // to multiple JVMs, each running under a different user. Also, we have to make it path-friendly.
-                String user = md5Hash(System.getProperty("user.name"));
-
-                File tempAgentJar = new File(System.getProperty("java.io.tmpdir"), String.format("elastic-apm-agent-%s-%s.jar", user, hash));
-                if (!tempAgentJar.exists()) {
-                    try (FileOutputStream out = new FileOutputStream(tempAgentJar)) {
-                        FileChannel channel = out.getChannel();
-                        // If multiple JVM start on same compute, they can write in same file
-                        // and this file will be corrupted.
-                        try (FileLock ignored = channel.lock()) {
-                            if (tempAgentJar.length() == 0) {
-                                byte[] buffer = new byte[1024];
-                                for (int length; (length = agentJar.read(buffer)) != -1; ) {
-                                    out.write(buffer, 0, length);
-                                }
-                            }
-                        }
-                    }
-                } else if (!md5Hash(new FileInputStream(tempAgentJar)).equals(hash)) {
-                    throw new IllegalStateException("Invalid MD5 checksum of " + tempAgentJar + ". Please delete this file.");
-                }
-                return tempAgentJar;
-            } catch (NoSuchAlgorithmException | IOException e) {
-                throw new IllegalStateException(e);
+            if (ElasticApmAttacher.class.getResource("/elastic-apm-agent.jar") == null) {
+                return null;
             }
-        }
-
-    }
-
-    static String md5Hash(InputStream resourceAsStream) throws IOException, NoSuchAlgorithmException {
-        try (InputStream agentJar = resourceAsStream) {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] buffer = new byte[1024];
-            DigestInputStream dis = new DigestInputStream(agentJar, md);
-            while (dis.read(buffer) != -1) {
-            }
-            return String.format("%032x", new BigInteger(1, md.digest()));
+            return ResourceExtractionUtil.extractResourceToTempDirectory("elastic-apm-agent.jar", "elastic-apm-agent", ".jar");
         }
     }
 
-    static String md5Hash(String s) throws NoSuchAlgorithmException {
-        MessageDigest md = MessageDigest.getInstance("MD5");
-        md.update(s.getBytes());
-        return String.format("%032x", new BigInteger(1, md.digest()));
-    }
 }

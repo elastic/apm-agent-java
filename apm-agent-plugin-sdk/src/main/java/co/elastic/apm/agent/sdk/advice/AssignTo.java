@@ -180,4 +180,23 @@ public @interface AssignTo {
          */
         int index() default -1;
     }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    @interface Thrown {
+
+        /**
+         * Determines the typing that is applied when assigning the thrown value.
+         *
+         * @return The typing to apply when assigning the annotated parameter.
+         */
+        Assigner.Typing typing() default Assigner.Typing.STATIC;
+
+        /**
+         * Used in combination with {@link AssignTo} to select the index of the returned {@code Object[]} that should be used for the assignment.
+         *
+         * @return the index of the {@code Object[]} that should be used for the assignment.
+         */
+        int index() default -1;
+    }
 }

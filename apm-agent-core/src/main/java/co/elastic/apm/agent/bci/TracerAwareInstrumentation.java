@@ -28,22 +28,6 @@ import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
  */
 public abstract class TracerAwareInstrumentation extends ElasticApmInstrumentation {
 
-    @VisibleForAdvice
     public static final Tracer tracer = GlobalTracer.get();
-
-    /**
-     * Allows to opt-out of indy plugins.
-     * This is just to allow for a migration period where both indy and non-indy plugins are in use.
-     * Once all non-indy plugins are migrated this method will be removed.
-     *
-     * @deprecated Overriding this method means not the instrumentation is not an indy plugin.
-     * The usage of non-indy plugins is deprecated.
-     * @return whether to load the classes of this plugin in dedicated plugin class loaders (one for each unique class loader)
-     * and dispatch to the {@linkplain #getAdviceClassName() advice} via an {@code INVOKEDYNAMIC} instruction.
-     */
-    @Deprecated
-    public boolean indyPlugin() {
-        return true;
-    }
 
 }
