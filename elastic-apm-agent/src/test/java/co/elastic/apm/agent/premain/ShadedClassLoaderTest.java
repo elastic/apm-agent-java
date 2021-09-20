@@ -29,6 +29,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 
 class ShadedClassLoaderTest {
@@ -43,17 +44,61 @@ class ShadedClassLoaderTest {
     }
 
     @Test
+    void testLoadClassFromParent(@TempDir File tmp) throws Exception {
+        File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "agent/", ".esclass");
+        ClassLoader cl = new ShadedClassLoader(jar, ShadedClassLoaderTest.class.getClassLoader(), "agent/", ".esclass");
+        Class<?> clazz = cl.loadClass(ShadedClassLoaderTest.class.getName());
+        assertThat(clazz).isNotNull();
+        assertThat(clazz).isSameAs(ShadedClassLoaderTest.class);
+    }
+
+    @Test
+    void testCannotLoadNonShadedClass(@TempDir File tmp) throws Exception {
+        File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "", ".class");
+        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/", ".esclass");
+        assertThatThrownBy(() -> cl.loadClass(ShadedClassLoaderTest.class.getName()))
+            .isInstanceOf(ClassNotFoundException.class);
+    }
+
+    @Test
     void testGetShadedResource(@TempDir File tmp) throws Exception {
         File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "agent/", ".resource");
         ClassLoader cl = new ShadedClassLoader(jar, null, "agent/", ".esclass");
         byte[] expected = ClassLoader.getSystemClassLoader().getResourceAsStream(ShadedClassLoaderTest.class.getName().replace('.', '/') + ".class").readAllBytes();
         String resourceName = ShadedClassLoaderTest.class.getName().replace('.', '/') + ".resource";
 
-        assertThat(cl.getResourceAsStream("agent/" + resourceName).readAllBytes()).isEqualTo(expected);
+        assertThat(cl.getResourceAsStream(resourceName).readAllBytes()).isEqualTo(expected);
         assertThat(cl.getResourceAsStream(resourceName).readAllBytes()).isEqualTo(expected);
         assertThat(cl.getResource(resourceName).openStream().readAllBytes()).isEqualTo(expected);
         assertThat(cl.getResources(resourceName).hasMoreElements()).isTrue();
         assertThat(cl.getResources(resourceName).nextElement().openStream().readAllBytes()).isEqualTo(expected);
+    }
+
+    @Test
+    void testCannotGetNonShadedResource(@TempDir File tmp) throws Exception {
+        File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "", ".resource");
+        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/", ".esclass");
+        String resourceName = ShadedClassLoaderTest.class.getName().replace('.', '/') + ".resource";
+
+        assertThat(cl.getResourceAsStream(resourceName)).isNull();
+    }
+
+    @Test
+    void testGetParentResource(@TempDir File tmp) throws Exception {
+        File jar = createEmptyJar(tmp);
+        ClassLoader cl = new ShadedClassLoader(jar, ShadedClassLoaderTest.class.getClassLoader(), "agent/", ".esclass");
+        String resourceName = ShadedClassLoaderTest.class.getName().replace('.', '/') + ".class";
+        byte[] expected = ShadedClassLoaderTest.class.getClassLoader().getResourceAsStream(resourceName).readAllBytes();
+
+        assertThat(cl.getResourceAsStream(resourceName).readAllBytes()).isEqualTo(expected);
+        assertThat(cl.getResourceAsStream(resourceName).readAllBytes()).isEqualTo(expected);
+        assertThat(cl.getResource(resourceName).openStream().readAllBytes()).isEqualTo(expected);
+        assertThat(cl.getResources(resourceName).hasMoreElements()).isTrue();
+        assertThat(cl.getResources(resourceName).nextElement().openStream().readAllBytes()).isEqualTo(expected);
+    }
+
+    private File createEmptyJar(File tmp) throws IOException {
+        return createJar(tmp, List.of(), "", ".class");
     }
 
     private File createJar(File folder, List<Class<?>> classes, String classNamePrefix, String classNameExtension) throws IOException {
