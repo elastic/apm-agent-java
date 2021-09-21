@@ -278,7 +278,7 @@ pipeline {
               withEnv(["SONATYPE_FALLBACK=1"]) {
                 sh(label: "Build Docker image", script: "./scripts/jenkins/build_docker.sh")
                   // Get Docker registry credentials
-                  dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co')
+                  dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id')
                   sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
               }
             }
