@@ -32,7 +32,10 @@ import java.lang.ref.WeakReference;
 public class CachedLookupKey<K> {
 
     /*
-     * Creating a subclass and storing a custom class in a ThreadLocal is only safe because this class will be loaded from a dedicated class loader that can't be unloaded
+     * Creating a subclass and storing a custom class in a ThreadLocal is only safe
+     * because this class will be loaded from a dedicated class loader that can't be unloaded.
+     * If this class was loaded by the agent CL, this would leak a reference to the agent CL:
+     * ThreadLocal -> Thread -> CachedLookupKey + CachedLookupKey$1 (anonymous inner ThreadLocal implementation) -> agent CL
      */
     static final ThreadLocal<CachedLookupKey<?>> LOOKUP_KEY_CACHE = new ThreadLocal<CachedLookupKey<?>>() {
         @Override
