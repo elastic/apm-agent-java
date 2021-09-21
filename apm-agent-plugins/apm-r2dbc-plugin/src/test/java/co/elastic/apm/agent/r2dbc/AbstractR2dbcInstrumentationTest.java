@@ -1,0 +1,210 @@
+/*
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package co.elastic.apm.agent.r2dbc;
+
+import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.db.signature.SignatureParser;
+import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.r2dbc.helper.R2dbcGlobalState;
+import io.r2dbc.spi.Connection;
+import io.r2dbc.spi.R2dbcException;
+import io.r2dbc.spi.R2dbcNonTransientException;
+import io.r2dbc.spi.Statement;
+import org.junit.After;
+import org.junit.Test;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.sql.SQLException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static co.elastic.apm.agent.r2dbc.helper.R2dbcHelper.DB_SPAN_ACTION;
+import static co.elastic.apm.agent.r2dbc.helper.R2dbcHelper.DB_SPAN_TYPE;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+
+public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTest {
+
+    private static final ExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadExecutor();
+    private static final String PREPARED_STATEMENT_SQL = "SELECT * FROM ELASTIC_APM WHERE FOO=?";
+    private static final String UPDATE_PREPARED_STATEMENT_SQL = "UPDATE ELASTIC_APM SET BAR=? WHERE FOO=11";
+    private static final long PREPARED_STMT_TIMEOUT = 10000;
+
+    private final String expectedDbVendor;
+    private Connection connection;
+//    @Nullable
+//    private Statement statement;
+//    @Nullable
+//    private Statement updateStatement;
+
+    private final Transaction transaction;
+    private final SignatureParser signatureParser;
+
+    AbstractR2dbcInstrumentationTest(Connection connection, String expectedDbVendor) {
+        this.connection = connection;
+        this.expectedDbVendor = expectedDbVendor;
+
+        Mono.from(connection.createStatement("CREATE TABLE ELASTIC_APM (FOO INT NOT NULL, BAR VARCHAR(255))").execute()).block();
+        Mono.from(connection.createStatement("ALTER TABLE ELASTIC_APM ADD PRIMARY KEY (FOO)").execute()).block();
+        Mono.from(connection.createStatement("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')").execute()).block();
+        Mono.from(connection.createStatement("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (11, 'BEFORE')").execute()).block();
+
+        transaction = startTestRootTransaction("r2dbc-test");
+        signatureParser = new SignatureParser();
+    }
+
+    @After
+    public void tearDown() {
+        try {
+            Thread.sleep(200);
+        } catch (Exception e) {
+
+        }
+        Mono.from(connection.close()).block();
+        transaction.deactivate().end();
+    }
+
+    @Test
+    public void test() {
+        executeTest(this::testStatement);
+//        executeTest(() -> testUpdateStatement());
+    }
+
+    private void executeTest(R2dbcTask task) throws R2dbcException {
+        reporter.reset();
+        try {
+            task.execute();
+        } catch (R2dbcException e) {
+            fail("unexpected exception", e);
+        } finally {
+            reporter.reset();
+            R2dbcGlobalState.clearInternalStorage();
+        }
+    }
+
+    private interface R2dbcTask {
+        void execute() throws R2dbcException;
+    }
+
+    private void testStatement() throws R2dbcException {
+        final String sql = "SELECT FOO, BAR FROM ELASTIC_APM WHERE FOO=1";
+        Statement statement = connection.createStatement(sql);
+        AtomicBoolean isCheckRowData = new AtomicBoolean(false);
+        Flux.from(statement.execute()).flatMap(result ->
+            result.map((row, metadata) -> {
+                    Integer foo = row.get(0, Integer.class);
+                    String bar = row.get(1, String.class);
+                    System.out.println(String.format("Foo = %s, bar = %s", foo, bar));
+                    assertThat(foo).isEqualTo(1);
+                    assertThat(bar).isEqualTo("APM");
+                    isCheckRowData.set(true);
+                    return "handle";
+                }
+            )).blockLast();
+
+        try {
+            Thread.sleep(100);
+        } catch (Exception e) {
+
+        }
+        assertThat(isCheckRowData).isTrue();
+        Span span = assertSpanRecorded(sql, false, -1);
+        assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
+    }
+
+    private void testUpdateStatement() {
+        final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER' WHERE FOO=11";
+        Statement statement = connection.createStatement(sql);
+        statement.execute();
+
+        assertSpanRecorded(sql, false, 0);
+    }
+
+    private Span assertSpanRecorded(String rawSql, boolean preparedStatement, long expectedAffectedRows) throws R2dbcException {
+        assertThat(reporter.getSpans())
+            .describedAs("one span is expected")
+            .hasSize(1);
+        Span span = reporter.getFirstSpan();
+        StringBuilder processedSql = new StringBuilder();
+        signatureParser.querySignature(rawSql, processedSql, preparedStatement);
+        assertThat(span.getNameAsString()).isEqualTo(processedSql.toString());
+        assertThat(span.getType()).isEqualTo(DB_SPAN_TYPE);
+        assertThat(span.getSubtype()).isEqualTo(expectedDbVendor);
+        assertThat(span.getAction()).isEqualTo(DB_SPAN_ACTION);
+
+        Db db = span.getContext().getDb();
+        assertThat(db.getStatement()).isEqualTo(rawSql);
+//        ConnectionMetadata metaData = connection.getMetadata();
+//        assertThat(db.getInstance()).isEqualToIgnoringCase(connection.getCatalog());
+//        assertThat(db.getUser()).isEqualToIgnoringCase(metaData.getUserName());
+        assertThat(db.getType()).isEqualToIgnoringCase("sql");
+
+//        assertThat(db.getAffectedRowsCount())
+//            .describedAs("unexpected affected rows count for statement %s", rawSql)
+//            .isEqualTo(expectedAffectedRows);
+
+        Destination destination = span.getContext().getDestination();
+//        assertThat(destination.getAddress().toString()).isEqualTo("localhost");
+//        if (expectedDbVendor.equals("h2")) {
+//            assertThat(destination.getPort()).isEqualTo(-1);
+//        } else {
+//            assertThat(destination.getPort()).isGreaterThan(0);
+//        }
+
+        Destination.Service service = destination.getService();
+        assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor);
+
+        assertThat(span.getOutcome())
+            .describedAs("span outcome should be explicitly set to either failure or success")
+            .isNotEqualTo(Outcome.UNKNOWN);
+
+        return span;
+    }
+
+    private interface StatementExecutor<T> {
+        T withStatement(Statement s, String sql) throws R2dbcException;
+    }
+
+    /**
+     * @param task jdbc task to execute
+     * @return false if feature is not supported, true otherwise
+     */
+    private static boolean executePotentiallyUnsupportedFeature(R2dbcTask task) throws SQLException {
+        try {
+            task.execute();
+        } catch (R2dbcNonTransientException | UnsupportedOperationException unsupported) {
+            // silently ignored as this feature is not supported by most JDBC drivers
+            return false;
+        } catch (R2dbcException e) {
+            if (e.getCause() instanceof UnsupportedOperationException) {
+                // same as above, because c3p0 have it's own way to say feature not supported
+                return false;
+            } else {
+                throw new SQLException(e);
+            }
+        }
+        return true;
+    }
+}
