@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Improved capturing of logged exceptions when using Log4j2 {pull}2139[#2139]
 
 [float]
 ===== Bug fixes
