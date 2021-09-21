@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Improved capturing of logged exceptions when using Log4j2 {pull}2139[#2139]
 * When the MANIFEST.MF of the main jar contains the Implementation-Title attribute, it is used as the default service name - {pull}1921[#1921]
 
 [float]
