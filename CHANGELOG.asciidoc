@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Improved capturing of logged exceptions when using Log4j2 {pull}2139[#2139]
 * Added support for instrumenting Struts 2 static resource requests {pull}1949[#1949]
 
 [float]
