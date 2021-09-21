@@ -89,7 +89,8 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
     @Test
     public void test() {
         executeTest(this::testStatement);
-//        executeTest(() -> testUpdateStatement());
+        executeTest(this::testUpdateStatement);
+
     }
 
     private void executeTest(R2dbcTask task) throws R2dbcException {
@@ -123,12 +124,7 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
                     return "handle";
                 }
             )).blockLast();
-
-        try {
-            Thread.sleep(100);
-        } catch (Exception e) {
-
-        }
+        sleep(100);
         assertThat(isCheckRowData).isTrue();
         Span span = assertSpanRecorded(sql, false, -1);
         assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
@@ -137,9 +133,17 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
     private void testUpdateStatement() {
         final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER' WHERE FOO=11";
         Statement statement = connection.createStatement(sql);
-        statement.execute();
-
+        Flux.from(statement.execute())
+            .blockLast();
+        sleep(100);
         assertSpanRecorded(sql, false, 0);
+    }
+
+    private void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (Exception e) {
+        }
     }
 
     private Span assertSpanRecorded(String rawSql, boolean preparedStatement, long expectedAffectedRows) throws R2dbcException {
@@ -167,11 +171,11 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
 
         Destination destination = span.getContext().getDestination();
 //        assertThat(destination.getAddress().toString()).isEqualTo("localhost");
-//        if (expectedDbVendor.equals("h2")) {
-//            assertThat(destination.getPort()).isEqualTo(-1);
-//        } else {
-//            assertThat(destination.getPort()).isGreaterThan(0);
-//        }
+        if (expectedDbVendor.equals("h2")) {
+            assertThat(destination.getPort()).isEqualTo(-1);
+        } else {
+            assertThat(destination.getPort()).isGreaterThan(0);
+        }
 
         Destination.Service service = destination.getService();
         assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor);
