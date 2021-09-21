@@ -29,8 +29,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class Slf4jLoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
 
-    // prevents the shade plugin from relocating org.slf4j.Logger to co.elastic.apm.agent.shaded.slf4j.Logger
-    static final String SLF4J_LOGGER = "org!slf4j!Logger".replace('!', '.');
+    static final String SLF4J_LOGGER = "org.slf4j.Logger";
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

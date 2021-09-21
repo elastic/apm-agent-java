@@ -42,7 +42,15 @@ public class GreetingHandler {
     }
 
     public <T> Mono<T> throwException() {
-        throw new RuntimeException("intentional handler exception");
+        throw new RuntimeException("intentional exception");
+    }
+
+    public Mono<String> delayedException() {
+        return helloMessage(null)
+            .delayElement(Duration.ofMillis(50))
+            .flatMap(s -> {
+                throw new RuntimeException("intentional exception");
+            });
     }
 
     public <T> Mono<T> monoError() {

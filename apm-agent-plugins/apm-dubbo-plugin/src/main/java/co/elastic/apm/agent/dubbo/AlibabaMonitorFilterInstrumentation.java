@@ -18,8 +18,6 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.dubbo.advice.AlibabaMonitorFilterAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import com.alibaba.dubbo.monitor.support.MonitorFilter;
 import com.alibaba.dubbo.remoting.exchange.ResponseFuture;
 import com.alibaba.dubbo.rpc.Invocation;
@@ -57,10 +55,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * </p>
  */
 public class AlibabaMonitorFilterInstrumentation extends AbstractAlibabaDubboInstrumentation {
-
-    public AlibabaMonitorFilterInstrumentation(ElasticApmTracer tracer) {
-        AlibabaMonitorFilterAdvice.init(tracer);
-    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
