@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Improved capturing of logged exceptions when using Log4j2 {pull}2139[#2139]
 * Added support for excluding classes from classes_excluded_from_instrumentation_default (#1919) - {pull}1920[#1920]
 
 [float]
