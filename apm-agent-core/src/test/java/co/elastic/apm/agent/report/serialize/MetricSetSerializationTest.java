@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -31,11 +32,12 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 
 class MetricSetSerializationTest {
 
     private ObjectMapper objectMapper = new ObjectMapper();
-    private MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class));
+    private MetricRegistry registry = new MetricRegistry(spy(CoreConfiguration.class), mock(ReporterConfiguration.class));
     private MetricRegistrySerializer metricRegistrySerializer = new MetricRegistrySerializer();
 
     @Test

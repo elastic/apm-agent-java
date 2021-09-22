@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.metrics;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,22 +32,25 @@ import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 class MetricRegistryTest {
 
     private MetricRegistry metricRegistry;
-    private ReporterConfiguration config;
+    private CoreConfiguration coreConfiguration;
+    private ReporterConfiguration reporterConfiguration;
 
     @BeforeEach
     void setUp() {
-        config = mock(ReporterConfiguration.class);
-        metricRegistry = new MetricRegistry(config);
+        coreConfiguration = spy(CoreConfiguration.class);
+        reporterConfiguration = mock(ReporterConfiguration.class);
+        metricRegistry = new MetricRegistry(coreConfiguration, reporterConfiguration);
     }
 
     @Test
     void testDisabledMetrics() {
-        when(config.getDisableMetrics()).thenReturn(List.of(WildcardMatcher.valueOf("jvm.gc.*")));
+        when(reporterConfiguration.getDisableMetrics()).thenReturn(List.of(WildcardMatcher.valueOf("jvm.gc.*")));
         final DoubleSupplier problematicMetric = () -> {
             throw new RuntimeException("Huston, we have a problem");
         };
@@ -129,13 +133,24 @@ class MetricRegistryTest {
     }
 
     @Test
-    void testLimitTimers() {
+    void testLimitTimersWithDefaultValue() {
         IntStream.range(1, 505).forEach(i -> metricRegistry.updateTimer("timer" + i, Labels.Mutable.of("foo", Integer.toString(i)), 1));
         IntStream.range(1, 505).forEach(i -> metricRegistry.updateTimer("timer" + i, Labels.Mutable.of("bar", Integer.toString(i)), 1));
 
         metricRegistry.flipPhaseAndReport(metricSets -> assertThat(metricSets).hasSize(1000));
         // the active and inactive metricSets are now switched, also check the size of the previously inactive metricSets
         metricRegistry.flipPhaseAndReport(metricSets -> assertThat(metricSets).hasSize(1000));
+    }
+
+    @Test
+    void testLimitTimersWithCustomValue() {
+        when(coreConfiguration.getMetricSetLimit()).thenReturn(2000);
+        IntStream.range(1, 505).forEach(i -> metricRegistry.updateTimer("timer" + i, Labels.Mutable.of("foo", Integer.toString(i)), 1));
+        IntStream.range(1, 505).forEach(i -> metricRegistry.updateTimer("timer" + i, Labels.Mutable.of("bar", Integer.toString(i)), 1));
+
+        metricRegistry.flipPhaseAndReport(metricSets -> assertThat(metricSets).hasSize(1008));
+        // the active and inactive metricSets are now switched, also check the size of the previously inactive metricSets
+        metricRegistry.flipPhaseAndReport(metricSets -> assertThat(metricSets).hasSize(1008));
     }
 
     @Test

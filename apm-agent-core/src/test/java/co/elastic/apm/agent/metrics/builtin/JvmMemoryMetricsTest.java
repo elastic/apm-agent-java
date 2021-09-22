@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -33,6 +34,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 
 class JvmMemoryMetricsTest {
 
@@ -40,7 +42,7 @@ class JvmMemoryMetricsTest {
 
     @Test
     void testMetrics() {
-        final MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class));
+        final MetricRegistry registry = new MetricRegistry(spy(CoreConfiguration.class), mock(ReporterConfiguration.class));
         jvmMemoryMetrics.bindTo(registry);
 
         Stream.of(

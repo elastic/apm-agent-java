@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.metrics;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.HdrHistogram.WriterReaderPhaser;
@@ -40,9 +41,9 @@ import java.util.concurrent.ConcurrentMap;
 public class MetricRegistry {
 
     private static final Logger logger = LoggerFactory.getLogger(MetricRegistry.class);
-    private static final int METRIC_SET_LIMIT = 1000;
     private final WriterReaderPhaser phaser = new WriterReaderPhaser();
-    private final ReporterConfiguration config;
+    private final CoreConfiguration coreConfiguration;
+    private final ReporterConfiguration reporterConfiguration;
     /**
      * Groups {@link MetricSet}s by their unique labels.
      */
@@ -54,8 +55,9 @@ public class MetricRegistry {
      */
     private final ConcurrentMap<Labels.Immutable, MetricSet> metricSets1 = activeMetricSets, metricSets2 = inactiveMetricSets;
 
-    public MetricRegistry(ReporterConfiguration config) {
-        this.config = config;
+    public MetricRegistry(CoreConfiguration coreConfiguration, ReporterConfiguration reporterConfiguration) {
+        this.coreConfiguration = coreConfiguration;
+        this.reporterConfiguration = reporterConfiguration;
     }
 
     /**
@@ -127,7 +129,7 @@ public class MetricRegistry {
     }
 
     private boolean isDisabled(String name) {
-        return WildcardMatcher.anyMatch(config.getDisableMetrics(), name) != null;
+        return WildcardMatcher.anyMatch(reporterConfiguration.getDisableMetrics(), name) != null;
     }
 
     public double getGaugeValue(String name, Labels labels) {
@@ -208,7 +210,7 @@ public class MetricRegistry {
         if (metricSet != null) {
             return metricSet;
         }
-        if (activeMetricSets.size() < METRIC_SET_LIMIT) {
+        if (activeMetricSets.size() < coreConfiguration.getMetricSetLimit()) {
             return createMetricSet(labels.immutableCopy());
         }
         return null;
@@ -227,7 +229,7 @@ public class MetricRegistry {
         }
         // even if the map already contains this metric set, the gauges reference will be the same
         metricSets2.putIfAbsent(labelsCopy, new MetricSet(labelsCopy, metricSet.getGauges()));
-        if (metricSets1.size() >= METRIC_SET_LIMIT) {
+        if (metricSets1.size() >= coreConfiguration.getMetricSetLimit()) {
             logger.warn("The limit of 1000 timers has been reached, no new timers will be created. " +
                 "Try to name your transactions so that there are less distinct transaction names.");
         }

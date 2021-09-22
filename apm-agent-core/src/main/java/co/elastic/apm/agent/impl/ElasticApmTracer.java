@@ -112,7 +112,7 @@ public class ElasticApmTracer implements Tracer {
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory,
                      ApmServerClient apmServerClient, final String ephemeralId, Future<MetaData> metaData) {
-        this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
+        this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(CoreConfiguration.class), configurationRegistry.getConfig(ReporterConfiguration.class));
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);

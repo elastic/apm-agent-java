@@ -524,6 +524,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("Disables the collection of breakdown metrics (`span.self_time`)")
         .buildWithDefault(true);
 
+    private final ConfigurationOption<Integer> metricSetLimit = ConfigurationOption.integerOption()
+        .key("metric_set_limit")
+        .tags("added[1.27.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("Limits the number of active metric sets")
+        .buildWithDefault(1000);
+
     private final ConfigurationOption<String> configFileLocation = ConfigurationOption.stringOption()
         .key(CONFIG_FILE)
         .tags("added[1.8.0]")
@@ -753,6 +761,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isBreakdownMetricsEnabled() {
         return breakdownMetrics.get();
+    }
+
+    public int getMetricSetLimit() {
+        return metricSetLimit.get();
     }
 
     public boolean isElasticTraceparentHeaderEnabled() {

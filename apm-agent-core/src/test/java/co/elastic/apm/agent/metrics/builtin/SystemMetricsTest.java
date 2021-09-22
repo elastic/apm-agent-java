@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -31,10 +32,11 @@ import java.io.File;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 
 class SystemMetricsTest {
 
-    private MetricRegistry metricRegistry = new MetricRegistry(mock(ReporterConfiguration.class));
+    private MetricRegistry metricRegistry = new MetricRegistry(spy(CoreConfiguration.class), mock(ReporterConfiguration.class));
     private SystemMetrics systemMetrics = new SystemMetrics();
 
     @Test
