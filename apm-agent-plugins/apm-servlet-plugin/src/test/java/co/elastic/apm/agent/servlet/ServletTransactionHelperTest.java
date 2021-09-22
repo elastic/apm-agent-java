@@ -46,12 +46,8 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
 
     @BeforeEach
     void setUp() {
-        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         webConfig = config.getConfig(WebConfiguration.class);
-        servletTransactionHelper = new ServletTransactionHelper(new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build());
+        servletTransactionHelper = new ServletTransactionHelper(tracer);
     }
 
     @Test
@@ -123,4 +119,5 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
         servletTransactionHelper.applyDefaultTransactionName(method, path, null, transaction);
         return transaction.getNameAsString();
     }
+
 }
