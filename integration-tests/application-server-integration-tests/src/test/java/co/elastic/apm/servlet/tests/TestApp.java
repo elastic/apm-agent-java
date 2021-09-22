@@ -31,11 +31,13 @@ public abstract class TestApp {
     private final String statusEndpoint;
     @Nullable
     private final String expectedServiceName;
+    private final String deploymentContext;
 
-    TestApp(String modulePath, String appFileName, String statusEndpoint, @Nullable String expectedServiceName) {
+    TestApp(String modulePath, String appFileName, String deploymentContext, String statusEndpoint, @Nullable String expectedServiceName) {
         this.modulePath = modulePath;
         this.appFileName = appFileName;
-        this.statusEndpoint = statusEndpoint;
+        this.statusEndpoint = String.format("%s/%s", deploymentContext, statusEndpoint);
+        this.deploymentContext = deploymentContext;
         this.expectedServiceName = expectedServiceName;
     }
 
@@ -49,6 +51,10 @@ public abstract class TestApp {
 
     public String getStatusEndpoint() {
         return statusEndpoint;
+    }
+
+    public String getDeploymentContext() {
+        return deploymentContext;
     }
 
     @Nullable
