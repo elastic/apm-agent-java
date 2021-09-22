@@ -40,6 +40,8 @@ public class R2dbcIT extends AbstractR2dbcInstrumentationTest {
             {"r2dbc:tc:postgresql://hostname/databasename?TC_IMAGE_TAG=10", "postgresql"},
             {"r2dbc:tc:mysql://hostname/databasename?TC_IMAGE_TAG=5.7.34&sslMode=disabled", "mysql"},
             {"r2dbc:tc:sqlserver:///?TC_IMAGE_TAG=2017-CU12", "sqlserver"},
+// at current time there are no oracle implementation of org.testcontainers.r2dbc.R2DBCDatabaseContainerProvider
+//            {"r2dbc:tc:oracle://hostname/databasename", "oracle"},
         });
     }
 }
