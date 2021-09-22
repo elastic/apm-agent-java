@@ -51,7 +51,7 @@ public class AlibabaMonitorFilterAdvice {
                 span.propagateTraceContext(invocation, AlibabaDubboTextMapPropagator.INSTANCE);
                 return span;
             }
-        } else if (active == null) {
+        } else if (context.isProviderSide() && active == null) {
             // for provider side
             Transaction transaction = tracer.startChildTransaction(invocation, AlibabaDubboTextMapPropagator.INSTANCE, Invocation.class.getClassLoader());
             if (transaction != null) {

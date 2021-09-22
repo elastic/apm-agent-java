@@ -52,7 +52,7 @@ public class ApacheMonitorFilterAdvice {
                 span.propagateTraceContext(invocation, ApacheDubboTextMapPropagator.INSTANCE);
                 return span;
             }
-        } else if (active == null) {
+        } else if (context.isProviderSide() && active == null) {
             // for provider side
             Transaction transaction = tracer.startChildTransaction(invocation, ApacheDubboTextMapPropagator.INSTANCE, Invocation.class.getClassLoader());
             if (transaction != null) {
