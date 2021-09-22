@@ -4,3 +4,4 @@
 [ ] Add batch instrumentation
 [ ] Tests with batch
 [ ] R2dbcInstrumentationTest with h2
+[ ] ParametrizedMssqlStatement not contains field sql - requires fix with storing sql.

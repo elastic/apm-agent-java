@@ -140,9 +140,32 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
     }
 
     private void testStatementWithBinds() {
-        final String sql = "SELECT * FROM ELASTIC_APM WHERE FOO=?";
-        Statement statement = connection.createStatement(sql)
-            .bind(0, 1);
+        String sql = null;
+        switch (expectedDbVendor) {
+            case "postgresql":
+                sql = "SELECT * FROM ELASTIC_APM WHERE FOO=$1";
+                break;
+            case "sqlserver":
+                sql = "SELECT * FROM ELASTIC_APM WHERE FOO=@id";
+                break;
+            case "mariadb":
+            default:
+                sql = "SELECT * FROM ELASTIC_APM WHERE FOO=?";
+                break;
+        }
+        Statement statement = connection.createStatement(sql);
+        switch (expectedDbVendor) {
+            case "postgresql":
+                statement = statement.bind("$1", 1);
+                break;
+            case "sqlserver":
+                statement = statement.bind("id", 1);
+                break;
+            case "mariadb":
+            default:
+                statement = statement.bind(0, 1);
+                break;
+        }
         Flux.from(statement.execute()).blockLast();
         sleep(100);
         assertSpanRecorded(sql, false, 0);

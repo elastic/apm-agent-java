@@ -27,7 +27,7 @@
         <dependency>
             <groupId>io.r2dbc</groupId>
             <artifactId>r2dbc-spi</artifactId>
-            <version>0.8.5.RELEASE</version>
+            <version>0.9.0.M2</version>
             <scope>provided</scope>
         </dependency>
 
@@ -74,6 +74,13 @@
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
             <version>9.2.0.jre8</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.r2dbc</groupId>
+            <artifactId>r2dbc-h2</artifactId>
+            <version>0.9.0.M1</version>
             <scope>test</scope>
         </dependency>
 
