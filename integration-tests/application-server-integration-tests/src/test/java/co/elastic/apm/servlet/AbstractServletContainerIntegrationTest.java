@@ -155,7 +155,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         servletContainer
             .withNetwork(Network.SHARED)
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
-            .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
+            .withEnv("ELASTIC_APM_IGNORE_URLS", "/*/status*,/favicon.ico") // status ignore path is broad to fit all deployment context paths
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
             .withEnv("ELASTIC_APM_METRICS_INTERVAL", "1s")
