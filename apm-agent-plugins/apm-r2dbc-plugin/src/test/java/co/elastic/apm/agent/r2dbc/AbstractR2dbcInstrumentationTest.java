@@ -90,7 +90,7 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
     public void test() {
         executeTest(this::testStatement);
         executeTest(this::testUpdateStatement);
-
+        executeTest(this::testStatementWithBinds);
     }
 
     private void executeTest(R2dbcTask task) throws R2dbcException {
@@ -135,6 +135,15 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
         Statement statement = connection.createStatement(sql);
         Flux.from(statement.execute())
             .blockLast();
+        sleep(100);
+        assertSpanRecorded(sql, false, 0);
+    }
+
+    private void testStatementWithBinds() {
+        final String sql = "SELECT * FROM ELASTIC_APM WHERE FOO=?";
+        Statement statement = connection.createStatement(sql)
+            .bind(0, 1);
+        Flux.from(statement.execute()).blockLast();
         sleep(100);
         assertSpanRecorded(sql, false, 0);
     }

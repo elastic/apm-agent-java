@@ -1,5 +1,6 @@
-1. rows affected count(feature)
-2. statement with binds(test)
-3. IT with connection pools
-4. test with batch
-5. batch implmenetationn
+[ ] add - rows affected count
+[ ] Integration tests with connection pools providers
+[ ] Find instrumentation for getting r2dbc url
+[ ] Add batch instrumentation
+[ ] Tests with batch
+[ ] R2dbcInstrumentationTest with h2

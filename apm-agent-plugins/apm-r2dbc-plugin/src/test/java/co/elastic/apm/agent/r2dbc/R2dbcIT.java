@@ -36,10 +36,10 @@ public class R2dbcIT extends AbstractR2dbcInstrumentationTest {
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
             {"r2dbc:tc:mariadb://hostname/databasename?TC_IMAGE_TAG=10", "mariadb"},
-            {"r2dbc:tc:postgresql://hostname/databasename?TC_IMAGE_TAG=9", "postgresql"},
-            {"r2dbc:tc:postgresql://hostname/databasename?TC_IMAGE_TAG=10", "postgresql"},
-            {"r2dbc:tc:mysql://hostname/databasename?TC_IMAGE_TAG=5.7.34&sslMode=disabled", "mysql"},
-            {"r2dbc:tc:sqlserver:///?TC_IMAGE_TAG=2017-CU12", "sqlserver"},
+//            {"r2dbc:tc:postgresql://hostname/databasename?TC_IMAGE_TAG=9", "postgresql"},
+//            {"r2dbc:tc:postgresql://hostname/databasename?TC_IMAGE_TAG=10", "postgresql"},
+//            {"r2dbc:tc:mysql://hostname/databasename?TC_IMAGE_TAG=5.7.34&sslMode=disabled", "mysql"},
+//            {"r2dbc:tc:sqlserver:///?TC_IMAGE_TAG=2017-CU12", "sqlserver"},
         });
     }
 }
