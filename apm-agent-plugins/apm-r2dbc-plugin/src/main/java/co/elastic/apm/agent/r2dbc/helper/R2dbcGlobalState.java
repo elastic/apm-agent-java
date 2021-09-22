@@ -28,7 +28,7 @@ import io.r2dbc.spi.Connection;
 @GlobalState
 public class R2dbcGlobalState {
 
-    public static final WeakConcurrentMap<Object, Object> statementConnectionMap = WeakMapSupplier.createMap();
+    public static final WeakConcurrentMap<Object, Object[]> statementConnectionMap = WeakMapSupplier.createMap();
     public static final WeakConcurrentMap<Connection, ConnectionMetaData> r2dbcMetaDataMap = WeakMapSupplier.createMap();
     public static final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = WeakMapSupplier.createMap();
     public static final WeakConcurrentMap<Class<?>, Boolean> connectionSupported = WeakMapSupplier.createMap();

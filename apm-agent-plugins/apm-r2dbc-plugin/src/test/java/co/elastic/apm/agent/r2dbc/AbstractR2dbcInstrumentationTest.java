@@ -36,8 +36,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.sql.SQLException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static co.elastic.apm.agent.r2dbc.helper.R2dbcHelper.DB_SPAN_ACTION;
@@ -47,17 +45,8 @@ import static org.assertj.core.api.Assertions.fail;
 
 public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTest {
 
-    private static final ExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadExecutor();
-    private static final String PREPARED_STATEMENT_SQL = "SELECT * FROM ELASTIC_APM WHERE FOO=?";
-    private static final String UPDATE_PREPARED_STATEMENT_SQL = "UPDATE ELASTIC_APM SET BAR=? WHERE FOO=11";
-    private static final long PREPARED_STMT_TIMEOUT = 10000;
-
     private final String expectedDbVendor;
     private Connection connection;
-//    @Nullable
-//    private Statement statement;
-//    @Nullable
-//    private Statement updateStatement;
 
     private final Transaction transaction;
     private final SignatureParser signatureParser;
@@ -148,7 +137,6 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
             case "sqlserver":
                 sql = "SELECT * FROM ELASTIC_APM WHERE FOO=@id";
                 break;
-            case "mariadb":
             default:
                 sql = "SELECT * FROM ELASTIC_APM WHERE FOO=?";
                 break;
@@ -161,7 +149,6 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
             case "sqlserver":
                 statement = statement.bind("id", 1);
                 break;
-            case "mariadb":
             default:
                 statement = statement.bind(0, 1);
                 break;
@@ -219,28 +206,4 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
         return span;
     }
 
-    private interface StatementExecutor<T> {
-        T withStatement(Statement s, String sql) throws R2dbcException;
-    }
-
-    /**
-     * @param task jdbc task to execute
-     * @return false if feature is not supported, true otherwise
-     */
-    private static boolean executePotentiallyUnsupportedFeature(R2dbcTask task) throws SQLException {
-        try {
-            task.execute();
-        } catch (R2dbcNonTransientException | UnsupportedOperationException unsupported) {
-            // silently ignored as this feature is not supported by most JDBC drivers
-            return false;
-        } catch (R2dbcException e) {
-            if (e.getCause() instanceof UnsupportedOperationException) {
-                // same as above, because c3p0 have it's own way to say feature not supported
-                return false;
-            } else {
-                throw new SQLException(e);
-            }
-        }
-        return true;
-    }
 }

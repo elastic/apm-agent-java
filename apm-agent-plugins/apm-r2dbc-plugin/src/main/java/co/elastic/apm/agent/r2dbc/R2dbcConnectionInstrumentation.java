@@ -74,9 +74,10 @@ public class R2dbcConnectionInstrumentation extends R2dbcInstrumentation {
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void storeConnection(@Advice.This Object connectionObject,
-                                           @Advice.Return @Nullable Statement statement) {
+                                           @Advice.Return @Nullable Statement statement,
+                                           @Advice.Argument(0) String sql) {
             if (statement != null) {
-                R2dbcHelper.get().mapStatementToSql(statement, connectionObject);
+                R2dbcHelper.get().mapStatementToSql(statement, connectionObject, sql);
             }
         }
     }

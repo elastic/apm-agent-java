@@ -30,6 +30,7 @@ import io.r2dbc.spi.R2dbcException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 
@@ -60,11 +61,11 @@ public class R2dbcHelper {
      *
      * @param statement javax.sql.Statement object
      */
-    public void mapStatementToSql(Object statement, Object connection) {
+    public void mapStatementToSql(Object statement, @Nonnull Object connection, @Nullable String sql) {
         if (statementConnectionMap.containsKey(statement)) {
             logger.info("Already contains statement");
         }
-        statementConnectionMap.putIfAbsent(statement, connection);
+        statementConnectionMap.putIfAbsent(statement, new Object[]{connection, sql});
     }
 
     /**
@@ -76,7 +77,7 @@ public class R2dbcHelper {
      * @return the SQL statement belonging to provided Statement, or {@code null}
      */
     @Nullable
-    public Object retrieveConnectionForStatement(Object statement) {
+    public Object[] retrieveConnectionForStatement(Object statement) {
         return statementConnectionMap.get(statement);
     }
 

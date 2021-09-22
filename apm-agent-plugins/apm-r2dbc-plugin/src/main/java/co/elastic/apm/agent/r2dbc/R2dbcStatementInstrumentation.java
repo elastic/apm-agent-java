@@ -81,15 +81,16 @@ public class R2dbcStatementInstrumentation extends R2dbcInstrumentation {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onBeforeExecute(@Advice.This Object statementObject,
-                                             final @Advice.FieldValue("sql") @Nullable Object sqlObject) {
+        public static Object onBeforeExecute(@Advice.This Object statementObject) {
             R2dbcHelper helper = R2dbcHelper.get();
-            logger.info("Trying to handle sql = {} with statement = {} on thread = {}", sqlObject, statementObject, Thread.currentThread().getName());
+            logger.info("Trying to handle with statement = {} on thread = {}", statementObject, Thread.currentThread().getName());
+            Object[] connectionSqlObj = helper.retrieveConnectionForStatement(statementObject);
+            Object connectionObj = connectionSqlObj != null ? connectionSqlObj[0] : null;
+            Object sqlObject = connectionSqlObj != null ? connectionSqlObj[1] : null;
             @Nullable String sql = sqlObject instanceof String ? (String) sqlObject : null;
+            @Nullable Connection connection = connectionObj instanceof Connection ? (Connection) connectionObj : null;
 
             AbstractSpan<?> parent = tracer.getActive();
-            Object connectionObj = helper.retrieveConnectionForStatement(statementObject);
-            @Nullable Connection connection = connectionObj instanceof Connection ? (Connection) connectionObj : null;
             return R2dbcHelper.get().createR2dbcSpan(connection, sql, parent, false);
         }
 
