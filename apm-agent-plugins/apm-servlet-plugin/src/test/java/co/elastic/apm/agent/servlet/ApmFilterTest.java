@@ -159,22 +159,16 @@ class ApmFilterTest extends AbstractInstrumentationTest {
             .hasSize(0);
     }
 
-    void testIgnoreUserAgent(String ignoreUserAgent, String userAgent) throws ServletException, IOException {
-        when(webConfiguration.getIgnoreUserAgents()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf(ignoreUserAgent)));
+    @Test
+    void testIgnoreUserAGent() throws IOException, ServletException {
+        String config = "curl/*";
+        String userAgent = "curl/7.54.0";
+
+        when(webConfiguration.getIgnoreUserAgents()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf(config)));
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("user-agent", userAgent);
         filterChain.doFilter(request, new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(0);
-    }
-
-    @Test
-    void testIgnoreUserAgentStartWith() throws IOException, ServletException {
-        testIgnoreUserAgent("curl/*","curl/7.54.0");
-    }
-
-    @Test
-    void testIgnoreUserAgentInfix() throws IOException, ServletException {
-        testIgnoreUserAgent("*pingdom*","Pingdom.com_bot_version_1.4_(http://www.pingdom.com)");
     }
 
     @Test
