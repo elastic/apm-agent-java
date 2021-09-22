@@ -50,7 +50,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 /**
  * Creates spans for R2DBC {@link Statement} execution
  */
-public class R2dbcStatementInstrumentation extends R2dbcInstrumentation {
+public class R2dbcStatementInstrumentation extends AbstractR2dbcInstrumentation {
 
     private static final Logger logger = LoggerFactory.getLogger(R2dbcStatementInstrumentation.class);
 
@@ -72,12 +72,7 @@ public class R2dbcStatementInstrumentation extends R2dbcInstrumentation {
             .and(isPublic());
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return "co.elastic.apm.agent.r2dbc.R2dbcStatementInstrumentation$ExecuteAdvice";
-    }
-
-    public static class ExecuteAdvice {
+    public static class AdviceClass {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -91,7 +86,7 @@ public class R2dbcStatementInstrumentation extends R2dbcInstrumentation {
             @Nullable Connection connection = connectionObj instanceof Connection ? (Connection) connectionObj : null;
 
             AbstractSpan<?> parent = tracer.getActive();
-            return R2dbcHelper.get().createR2dbcSpan(connection, sql, parent, false);
+            return R2dbcHelper.get().createR2dbcSpan(connection, sql, parent);
         }
 
 

@@ -34,6 +34,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 
+import static co.elastic.apm.agent.r2dbc.helper.R2dbcGlobalState.batchConnectionMap;
 import static co.elastic.apm.agent.r2dbc.helper.R2dbcGlobalState.r2dbcMetaDataMap;
 import static co.elastic.apm.agent.r2dbc.helper.R2dbcGlobalState.statementConnectionMap;
 
@@ -68,6 +69,15 @@ public class R2dbcHelper {
         statementConnectionMap.putIfAbsent(statement, new Object[]{connection, sql});
     }
 
+    public void mapBatch(@Nonnull Object batch, @Nonnull Object connection) {
+        logger.debug("Trying to map batch = {}", batch);
+        if (batchConnectionMap.containsKey(batch)) {
+            logger.info("Already contains batch");
+        }
+        // via Batch#add we will add first sql statement
+        batchConnectionMap.putIfAbsent(batch, new Object[]{connection, null});
+    }
+
     /**
      * Returns the SQL statement belonging to provided Statement.
      * <p>
@@ -82,7 +92,12 @@ public class R2dbcHelper {
     }
 
     @Nullable
-    public Span createR2dbcSpan(@Nullable Connection connection, @Nullable String sql, @Nullable AbstractSpan<?> parent, boolean preparedStatement) {
+    public Object[] retrieveMetaForBatch(Object batch) {
+        return batchConnectionMap.get(batch);
+    }
+
+    @Nullable
+    public Span createR2dbcSpan(@Nullable Connection connection, @Nullable String sql, @Nullable AbstractSpan<?> parent) {
         if (sql == null || parent == null) {
             return null;
         }
@@ -92,7 +107,7 @@ public class R2dbcHelper {
         } else if (span.isSampled()) {
             StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
             if (spanName != null) {
-                signatureParser.querySignature(sql, spanName, preparedStatement);
+                signatureParser.querySignature(sql, spanName, false);
             }
         }
         span.withType(DB_SPAN_TYPE);

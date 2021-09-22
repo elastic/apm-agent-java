@@ -29,12 +29,14 @@ import io.r2dbc.spi.Connection;
 public class R2dbcGlobalState {
 
     public static final WeakConcurrentMap<Object, Object[]> statementConnectionMap = WeakMapSupplier.createMap();
+    public static final WeakConcurrentMap<Object, Object[]> batchConnectionMap = WeakMapSupplier.createMap();
     public static final WeakConcurrentMap<Connection, ConnectionMetaData> r2dbcMetaDataMap = WeakMapSupplier.createMap();
     public static final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = WeakMapSupplier.createMap();
     public static final WeakConcurrentMap<Class<?>, Boolean> connectionSupported = WeakMapSupplier.createMap();
 
     public static void clearInternalStorage() {
         statementConnectionMap.clear();
+        batchConnectionMap.clear();
         r2dbcMetaDataMap.clear();
         metadataSupported.clear();
         connectionSupported.clear();

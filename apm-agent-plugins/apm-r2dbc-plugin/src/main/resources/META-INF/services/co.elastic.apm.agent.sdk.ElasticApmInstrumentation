@@ -1,2 +1,5 @@
-co.elastic.apm.agent.r2dbc.R2dbcConnectionInstrumentation
+co.elastic.apm.agent.r2dbc.R2dbcConnectionInstrumentation$CreateStatementInstrumentation
+co.elastic.apm.agent.r2dbc.R2dbcConnectionInstrumentation$CreateBatchInstrumentation
 co.elastic.apm.agent.r2dbc.R2dbcStatementInstrumentation
+co.elastic.apm.agent.r2dbc.R2dbcBatchInstrumentation$AddBatchInstrumentation
+co.elastic.apm.agent.r2dbc.R2dbcBatchInstrumentation$ExecuteBatchInstrumentation

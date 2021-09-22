@@ -1,7 +1,3 @@
 [ ] add - rows affected count
 [ ] Integration tests with connection pools providers
 [ ] Find instrumentation for getting r2dbc url
-[ ] Add batch instrumentation
-[ ] Tests with batch
-[ ] R2dbcInstrumentationTest with h2
-[ ] ParametrizedMssqlStatement not contains field sql - requires fix with storing sql.

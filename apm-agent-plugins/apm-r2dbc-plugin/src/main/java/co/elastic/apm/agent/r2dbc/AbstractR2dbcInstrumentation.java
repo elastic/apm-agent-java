@@ -23,7 +23,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import java.util.Arrays;
 import java.util.Collection;
 
-public abstract class R2dbcInstrumentation extends TracerAwareInstrumentation {
+public abstract class AbstractR2dbcInstrumentation extends TracerAwareInstrumentation {
 
     private static final Collection<String> R2DBC_GROUPS = Arrays.asList("r2dbc", "experimental");
 

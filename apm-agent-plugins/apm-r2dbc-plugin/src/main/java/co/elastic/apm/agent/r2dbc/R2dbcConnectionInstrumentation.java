@@ -20,6 +20,7 @@
 package co.elastic.apm.agent.r2dbc;
 
 import co.elastic.apm.agent.r2dbc.helper.R2dbcHelper;
+import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.Statement;
 import net.bytebuddy.asm.Advice;
@@ -44,7 +45,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Matches {@link Connection#createStatement(String)} methods
  * and keeps a reference to from the resulting {@link Statement} to the connection.
  */
-public class R2dbcConnectionInstrumentation extends R2dbcInstrumentation {
+public abstract class R2dbcConnectionInstrumentation extends AbstractR2dbcInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -57,27 +58,44 @@ public class R2dbcConnectionInstrumentation extends R2dbcInstrumentation {
             .and(hasSuperType(named("io.r2dbc.spi.Connection")));
     }
 
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return nameStartsWith("createStatement")
-            .and(returns(hasSuperType(named("io.r2dbc.spi.Statement"))))
-            .and(takesArgument(0, String.class))
-            .and(isPublic());
+    public static class CreateStatementInstrumentation extends R2dbcConnectionInstrumentation {
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return nameStartsWith("createStatement")
+                .and(returns(hasSuperType(named("io.r2dbc.spi.Statement"))))
+                .and(takesArgument(0, String.class))
+                .and(isPublic());
+        }
+
+        public static class AdviceClass {
+
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void storeConnection(@Advice.This Object connectionObject,
+                                               @Advice.Return @Nullable Statement statement,
+                                               @Advice.Argument(0) String sql) {
+                if (statement != null) {
+                    R2dbcHelper.get().mapStatementToSql(statement, connectionObject, sql);
+                }
+            }
+        }
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return "co.elastic.apm.agent.r2dbc.R2dbcConnectionInstrumentation$R2dbcConnectionAdvice";
-    }
+    public static class CreateBatchInstrumentation extends R2dbcConnectionInstrumentation {
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return nameStartsWith("createBatch")
+                .and(returns(hasSuperType(named("io.r2dbc.spi.Batch"))))
+                .and(isPublic());
+        }
 
-    public static class R2dbcConnectionAdvice {
+        public static class AdviceClass {
 
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void storeConnection(@Advice.This Object connectionObject,
-                                           @Advice.Return @Nullable Statement statement,
-                                           @Advice.Argument(0) String sql) {
-            if (statement != null) {
-                R2dbcHelper.get().mapStatementToSql(statement, connectionObject, sql);
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void storeConnection(@Advice.This Object connectionObject,
+                                               @Advice.Return @Nullable Batch batch) {
+                if (batch != null) {
+                    R2dbcHelper.get().mapBatch(batch, connectionObject);
+                }
             }
         }
     }

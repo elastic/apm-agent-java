@@ -26,6 +26,7 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.r2dbc.helper.R2dbcGlobalState;
+import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.R2dbcException;
 import io.r2dbc.spi.R2dbcNonTransientException;
@@ -36,6 +37,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static co.elastic.apm.agent.r2dbc.helper.R2dbcHelper.DB_SPAN_ACTION;
@@ -44,6 +46,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTest {
+
+    private static final int SLEEP_TIME_AFTER_EXECUTE = 100;
 
     private final String expectedDbVendor;
     private Connection connection;
@@ -80,6 +84,7 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
         executeTest(this::testStatement);
         executeTest(this::testUpdateStatement);
         executeTest(this::testStatementWithBinds);
+        executeTest(this::testBatch);
     }
 
     private void executeTest(R2dbcTask task) throws R2dbcException {
@@ -113,7 +118,9 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
                     return "handle";
                 }
             )).blockLast();
-        sleep(100);
+
+        sleep(SLEEP_TIME_AFTER_EXECUTE);
+
         assertThat(isCheckRowData).isTrue();
         Span span = assertSpanRecorded(sql, false, -1);
         assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
@@ -124,7 +131,9 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
         Statement statement = connection.createStatement(sql);
         Flux.from(statement.execute())
             .blockLast();
-        sleep(100);
+
+        sleep(SLEEP_TIME_AFTER_EXECUTE);
+
         assertSpanRecorded(sql, false, 0);
     }
 
@@ -154,15 +163,29 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
                 break;
         }
         Flux.from(statement.execute()).blockLast();
-        sleep(100);
+
+        sleep(SLEEP_TIME_AFTER_EXECUTE);
+
         assertSpanRecorded(sql, false, 0);
     }
 
     private void sleep(long millis) {
         try {
             Thread.sleep(millis);
-        } catch (Exception e) {
-        }
+        } catch (Exception e) {}
+    }
+
+    private void testBatch() {
+        String insert = "INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (111, 'APM BAR')";
+        Batch batch = connection.createBatch()
+            .add(insert)
+            .add("UPDATE ELASTIC_APM SET BAR='AFTER' WHERE FOO=111");
+
+        Flux.from(batch.execute()).blockLast();
+
+        sleep(SLEEP_TIME_AFTER_EXECUTE);
+
+        assertSpanRecorded(insert, false, 0);
     }
 
     private Span assertSpanRecorded(String rawSql, boolean preparedStatement, long expectedAffectedRows) throws R2dbcException {
