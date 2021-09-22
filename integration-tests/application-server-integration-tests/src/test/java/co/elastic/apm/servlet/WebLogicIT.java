@@ -33,7 +33,6 @@ import org.testcontainers.containers.GenericContainer;
 import java.util.Arrays;
 import java.util.List;
 
-@Ignore("Requires docker login which is not available on the CI performing the releases")
 @RunWith(Parameterized.class)
 public class WebLogicIT extends AbstractServletContainerIntegrationTest {
 
