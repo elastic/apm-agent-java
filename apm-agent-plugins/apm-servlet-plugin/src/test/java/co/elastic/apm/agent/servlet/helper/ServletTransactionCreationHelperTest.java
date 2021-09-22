@@ -25,21 +25,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.mockito.ArgumentCaptor;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ServletTransactionCreationHelperTest extends AbstractInstrumentationTest {
@@ -71,8 +67,8 @@ class ServletTransactionCreationHelperTest extends AbstractInstrumentationTest {
         when(webConfig.getIgnoreUrls())
             .thenReturn(parseWildcard(ignoreExpr));
 
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getRequestURI()).thenReturn(path);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI(path);
 
         assertThat(helper.isExcluded(request))
             .describedAs("request with path '%s' should be ignored", path)
@@ -82,37 +78,31 @@ class ServletTransactionCreationHelperTest extends AbstractInstrumentationTest {
     @ParameterizedTest
     @CsvSource(delimiterString = " ", value = {
         "anderson and*",
+        "anderson *son",
+        "anderson *der*",
         "anderson smith,anderson"
     })
     void requestUserAgentIgnored(String userAgent, String ignoreExpr) {
         when(webConfig.getIgnoreUserAgents())
             .thenReturn(parseWildcard(ignoreExpr));
 
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getRequestURI()).thenReturn("/request/path");
-
-
-        ArgumentCaptor<String> headerName = ArgumentCaptor.forClass(String.class);
-        when(request.getHeader(headerName.capture())).thenReturn(userAgent);
-
-        doReturn(userAgent).when(request).getHeader(anyString());
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/request/path");
+        request.addHeader("user-agent", userAgent);
 
         assertThat(helper.isExcluded(request))
             .describedAs("request with user-agent '%s' should be ignored", userAgent)
             .isTrue();
-
-        verify(request).getHeader(headerName.capture());
-        assertThat(headerName.getValue().toLowerCase(Locale.ROOT)).isEqualTo("user-agent");
     }
 
-    private static List<WildcardMatcher> parseWildcard(String expr){
+    private static List<WildcardMatcher> parseWildcard(String expr) {
         return Stream.of(expr.split(","))
             .map(WildcardMatcher::valueOf)
             .collect(Collectors.toList());
     }
 
     @Test
-    void safeGetClassLoader(){
+    void safeGetClassLoader() {
         assertThat(helper.getClassloader(null)).isNull();
 
         ServletContext servletContext = mock(ServletContext.class);
