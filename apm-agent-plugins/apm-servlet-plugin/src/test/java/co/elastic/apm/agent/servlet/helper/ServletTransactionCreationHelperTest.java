@@ -27,8 +27,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 
+import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -49,30 +50,38 @@ class ServletTransactionCreationHelperTest extends AbstractInstrumentationTest {
         helper = new ServletTransactionCreationHelper(tracer);
     }
 
-    @Test
-    void requestPathNotIgnored() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getRequestURI()).thenReturn("/not-ignored");
-
-        assertThat(helper.isExcluded(request)).isFalse();
+    @ParameterizedTest
+    @CsvSource(delimiterString = " ", value = {
+        "/not-ignored ",
+        "/ ",
+        " ",
+        "/index.html *.xml"})
+    void requestPathNotIgnored(String path, String ignoreExpr) {
+        checkRequestPathIgnored(path, ignoreExpr, false);
     }
 
     @ParameterizedTest
-    @CsvSource(
-        delimiterString = " ", value = {
+    @CsvSource(delimiterString = " ", value = {
         "/ignored/from/prefix /ignored*",
         "/ignored/with-suffix.js *.js",
+        "/ignored/with-suffix.html *.js,*.html",
         "/ignored/with/term *with*"})
     void requestPathIgnored(String path, String ignoreExpr) {
+        checkRequestPathIgnored(path, ignoreExpr, true);
+    }
+
+    void checkRequestPathIgnored(String path, String config, boolean expectIgnored) {
         when(webConfig.getIgnoreUrls())
-            .thenReturn(parseWildcard(ignoreExpr));
+            .thenReturn(parseWildcard(config));
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI(path);
 
-        assertThat(helper.isExcluded(request))
-            .describedAs("request with path '%s' should be ignored", path)
-            .isTrue();
+        boolean isIgnored = helper.isExcluded(request);
+        assertThat(isIgnored)
+            .describedAs("request with path '%s' %s be ignored", expectIgnored ? "should" : "should not", path)
+            .isEqualTo(expectIgnored);
+
     }
 
     @ParameterizedTest
@@ -95,7 +104,10 @@ class ServletTransactionCreationHelperTest extends AbstractInstrumentationTest {
             .isTrue();
     }
 
-    private static List<WildcardMatcher> parseWildcard(String expr) {
+    private static List<WildcardMatcher> parseWildcard(@Nullable String expr) {
+        if (null == expr || expr.isEmpty()) {
+            return Collections.emptyList();
+        }
         return Stream.of(expr.split(","))
             .map(WildcardMatcher::valueOf)
             .collect(Collectors.toList());
