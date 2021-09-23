@@ -36,7 +36,7 @@ public abstract class TestApp {
     TestApp(String modulePath, String appFileName, String deploymentContext, String statusEndpoint, @Nullable String expectedServiceName) {
         this.modulePath = modulePath;
         this.appFileName = appFileName;
-        this.statusEndpoint = String.format("%s/%s", deploymentContext, statusEndpoint);
+        this.statusEndpoint = String.format("/%s/%s", deploymentContext, statusEndpoint);
         this.deploymentContext = deploymentContext;
         this.expectedServiceName = expectedServiceName;
     }
