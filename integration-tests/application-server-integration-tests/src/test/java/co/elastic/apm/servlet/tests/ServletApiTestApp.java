@@ -39,7 +39,11 @@ import static org.awaitility.Awaitility.await;
 public class ServletApiTestApp extends TestApp {
 
     public ServletApiTestApp() {
-        super("../simple-webapp", "simple-webapp.war", "/simple-webapp/status.jsp", "Simple Web App");
+        super("../simple-webapp",
+            "simple-webapp.war",
+            "simple-webapp",
+            "status.jsp",
+            "Simple Web App");
     }
 
     @Override
