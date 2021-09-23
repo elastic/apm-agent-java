@@ -54,6 +54,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
@@ -151,6 +154,22 @@ class InstrumentationTest {
         init(List.of());
         assertThat(interceptMe()).isEmpty();
         DynamicTransformer.Accessor.get().ensureInstrumented(getClass(), List.of(TestInstrumentation.class));
+        assertThat(interceptMe()).isEqualTo("intercepted");
+    }
+
+    @Test
+    void testConcurrentEnsureInstrumented() throws InterruptedException {
+        init(List.of());
+        assertThat(interceptMe()).isEmpty();
+        TestCounterInstrumentation.resetCounter();
+        int nThreads = 100;
+        ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
+        for (int i = 0; i < nThreads; i++) {
+            executorService.submit(() -> ElasticApmAgent.ensureInstrumented(getClass(), List.of(TestCounterInstrumentation.class)));
+        }
+        executorService.shutdown();
+        executorService.awaitTermination(1000, TimeUnit.MILLISECONDS);
+        assertThat(TestCounterInstrumentation.getCounter()).isEqualTo(1);
         assertThat(interceptMe()).isEqualTo("intercepted");
     }
 
@@ -481,6 +500,31 @@ class InstrumentationTest {
             return List.of("test", "experimental");
         }
 
+    }
+
+    public static class TestCounterInstrumentation extends TestInstrumentation {
+
+        private static final AtomicInteger counter = new AtomicInteger();
+
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.bci.InstrumentationTest$TestInstrumentation$AdviceClass";
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            counter.incrementAndGet();
+            new Throwable().printStackTrace();
+            return super.getTypeMatcher();
+        }
+
+        public static void resetCounter() {
+            counter.set(0);
+        }
+
+        public static int getCounter() {
+            return counter.get();
+        }
     }
 
     public static class MathInstrumentation extends ElasticApmInstrumentation {
