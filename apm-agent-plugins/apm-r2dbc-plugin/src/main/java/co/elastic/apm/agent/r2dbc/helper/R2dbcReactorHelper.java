@@ -21,6 +21,7 @@ package co.elastic.apm.agent.r2dbc.helper;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import io.r2dbc.spi.ConnectionFactoryOptions;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,4 +63,28 @@ public class R2dbcReactorHelper {
         }
         return publisher;
     }
+
+    public static <T> Publisher<T> wrapConnectionPublisher(Publisher<T> publisher, ConnectionFactoryOptions connectionFactoryOptions) {
+        log.info("Trying to wrap connection");
+        Function<? super Publisher<T>, ? extends Publisher<T>> lift = Operators.liftPublisher(
+            new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
+                @Override
+                public CoreSubscriber<? super T> apply(Publisher publisher, CoreSubscriber<? super T> subscriber) {
+                    if (publisher instanceof Fuseable.ScalarCallable) {
+                        log.info("skip wrapping {}", subscriber.toString());
+                        return subscriber;
+                    }
+                    return new R2dbcConnectionSubscriber<>(subscriber, connectionFactoryOptions);
+                }
+            }
+        );
+        if (publisher instanceof Mono) {
+            publisher = ((Mono) publisher).transform(lift);
+        } else if (publisher instanceof Flux) {
+            publisher = ((Flux) publisher).transform(lift);
+        }
+        return publisher;
+    }
+
+
 }

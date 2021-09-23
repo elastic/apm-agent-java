@@ -25,7 +25,10 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import io.r2dbc.spi.Connection;
+import io.r2dbc.spi.ConnectionFactory;
+import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.ConnectionMetadata;
+import io.r2dbc.spi.Option;
 import io.r2dbc.spi.R2dbcException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +38,8 @@ import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 
 import static co.elastic.apm.agent.r2dbc.helper.R2dbcGlobalState.batchConnectionMap;
+import static co.elastic.apm.agent.r2dbc.helper.R2dbcGlobalState.connectionFactoryMap;
+import static co.elastic.apm.agent.r2dbc.helper.R2dbcGlobalState.connectionOptionsMap;
 import static co.elastic.apm.agent.r2dbc.helper.R2dbcGlobalState.r2dbcMetaDataMap;
 import static co.elastic.apm.agent.r2dbc.helper.R2dbcGlobalState.statementConnectionMap;
 
@@ -78,6 +83,32 @@ public class R2dbcHelper {
         batchConnectionMap.putIfAbsent(batch, new Object[]{connection, null});
     }
 
+    public void mapConnectionFactoryData(@Nonnull ConnectionFactory connectionFactory, @Nonnull ConnectionFactoryOptions connectionFactoryOptions) {
+        logger.debug("Trying to map connection factory {} with options", connectionFactory, connectionFactoryOptions);
+        if (connectionFactoryMap.containsKey(connectionFactory)) {
+            logger.info("ALready contains connection factory");
+        }
+        connectionFactoryMap.putIfAbsent(connectionFactory, connectionFactoryOptions);
+    }
+
+    public void mapConnectionOptionsData(@Nonnull Connection connection, @Nonnull ConnectionFactoryOptions connectionFactoryOptions) {
+        logger.debug("Trying to map connection {} with options", connection, connectionFactoryOptions);
+        if (connectionOptionsMap.containsKey(connection)) {
+            logger.info("ALready contains connection");
+        }
+        connectionOptionsMap.putIfAbsent(connection, connectionFactoryOptions);
+    }
+
+    @Nullable
+    public ConnectionFactoryOptions getConnectionFactoryOptions(@Nonnull ConnectionFactory connectionFactory) {
+        return connectionFactoryMap.get(connectionFactory);
+    }
+
+    @Nullable
+    public ConnectionFactoryOptions getConnectionOptions(@Nonnull Connection connection) {
+        return connectionOptionsMap.get(connection);
+    }
+
     /**
      * Returns the SQL statement belonging to provided Statement.
      * <p>
@@ -117,14 +148,15 @@ public class R2dbcHelper {
             .withType("sql");
 
         ConnectionMetaData connectionMetaData = getConnectionMetaData(connection);
+
         String vendor = "unknown";
         if (connectionMetaData != null) {
             vendor = connectionMetaData.getDbVendor();
             span.getContext().getDb()
-                .withInstance(null)
-                .withUser(null);
+                .withInstance(connectionMetaData.getInstance())
+                .withUser(connectionMetaData.getUser());
             Destination destination = span.getContext().getDestination()
-                .withAddress(null)
+                .withAddress(connectionMetaData.getHost())
                 .withPort(connectionMetaData.getPort());
             destination.getService()
                 .withName(vendor)
@@ -166,11 +198,30 @@ public class R2dbcHelper {
         }
         ConnectionMetaData apmConnectionMetadata = null;
         try {
+            R2dbcHelper helper = R2dbcHelper.get();
             ConnectionMetadata metaData = connection.getMetadata();
             if (metaData != null) {
                 apmConnectionMetadata = ConnectionMetaData.create(metaData.getDatabaseProductName(), metaData.getDatabaseVersion());
                 if (supported == null) {
                     markSupported(JdbcFeature.METADATA, type);
+                }
+            }
+            ConnectionFactoryOptions connectionFactoryOptions = helper.getConnectionOptions(connection);
+            if (connectionFactoryOptions != null) {
+                Object database = connectionFactoryOptions.getValue(ConnectionFactoryOptions.DATABASE);
+                Object host = connectionFactoryOptions.getValue(ConnectionFactoryOptions.HOST);
+                Object port = connectionFactoryOptions.getValue(ConnectionFactoryOptions.PORT);
+                Object user = connectionFactoryOptions.getValue(ConnectionFactoryOptions.USER);
+                if (apmConnectionMetadata == null) {
+                    Object driver = connectionFactoryOptions.getValue(ConnectionFactoryOptions.DRIVER);
+                    if (driver instanceof String) {
+                        apmConnectionMetadata = new ConnectionMetaData(getString(driver), null, -1);
+                    }
+                }
+                if (apmConnectionMetadata != null) {
+                    apmConnectionMetadata.withHost(getString(host))
+                        .withInstance(getString(database))
+                        .withUser(getString(user));
                 }
             }
         } catch (R2dbcException e) {
@@ -180,6 +231,13 @@ public class R2dbcHelper {
             r2dbcMetaDataMap.put(connection, apmConnectionMetadata);
         }
         return apmConnectionMetadata;
+    }
+
+    private static String getString(Object value) {
+        if (value instanceof String) {
+            return (String) value;
+        }
+        return null;
     }
 
     @Nullable
@@ -202,8 +260,7 @@ public class R2dbcHelper {
      * Represent JDBC features for which availability has to be checked at runtime
      */
     private enum JdbcFeature {
-        METADATA(R2dbcGlobalState.metadataSupported),
-        CONNECTION(R2dbcGlobalState.connectionSupported);
+        METADATA(R2dbcGlobalState.metadataSupported);
 
         private final WeakConcurrentMap<Class<?>, Boolean> classSupport;
 

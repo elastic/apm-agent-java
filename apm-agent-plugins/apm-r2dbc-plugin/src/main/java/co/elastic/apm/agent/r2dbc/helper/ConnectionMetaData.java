@@ -69,6 +69,11 @@ public class ConnectionMetaData {
     private final String dbVendor;
     private final int port;
     private final String dbVersion;
+    @Nullable
+    private String host;
+    @Nullable
+    private String instance;
+    private String user;
 
     public ConnectionMetaData(String dbVendor, String dbVersion, int port) {
         this.dbVendor = dbVendor;
@@ -86,6 +91,35 @@ public class ConnectionMetaData {
 
     public String getDbVersion() {
         return dbVersion;
+    }
+
+    @Nullable
+    public String getHost() {
+        return host;
+    }
+
+    @Nullable
+    public String getInstance() {
+        return instance;
+    }
+
+    public String getUser() {
+        return user;
+    }
+
+    public ConnectionMetaData withHost(String host) {
+        this.host = host;
+        return this;
+    }
+
+    public ConnectionMetaData withInstance(String instance) {
+        this.instance = instance;
+        return this;
+    }
+
+    public ConnectionMetaData withUser(String user) {
+        this.user = user;
+        return this;
     }
 
     private enum MetadataParser {

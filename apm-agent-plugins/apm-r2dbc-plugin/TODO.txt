@@ -1,3 +1,2 @@
 [ ] add - rows affected count
-[ ] Integration tests with connection pools providers
 [ ] Find instrumentation for getting r2dbc url
