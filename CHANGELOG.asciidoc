@@ -29,6 +29,9 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* fixed 2 problems in dubbo plugin
+** ensure that dubbo transaction will only be created at the provider side
+** the apm headers will be covered with unexpected value when the application invoke a dubbo api within a dubbo transaction
 
 [float]
 ===== Refactorings
