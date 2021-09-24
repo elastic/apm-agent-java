@@ -83,7 +83,7 @@ public class R2dbcHelper {
     }
 
     public void mapConnectionFactoryData(@Nonnull ConnectionFactory connectionFactory, @Nonnull ConnectionFactoryOptions connectionFactoryOptions) {
-        logger.debug("Trying to map connection factory {} with options", connectionFactory, connectionFactoryOptions);
+        logger.debug("Trying to map connection factory {} with options {}", connectionFactory, connectionFactoryOptions);
         if (connectionFactoryMap.containsKey(connectionFactory)) {
             logger.debug("Already contains connection factory");
         }
@@ -91,7 +91,7 @@ public class R2dbcHelper {
     }
 
     public void mapConnectionOptionsData(@Nonnull Connection connection, @Nonnull ConnectionFactoryOptions connectionFactoryOptions) {
-        logger.debug("Trying to map connection {} with options", connection, connectionFactoryOptions);
+        logger.debug("Trying to map connection {} with options {}", connection, connectionFactoryOptions);
         if (connectionOptionsMap.containsKey(connection)) {
             logger.debug("Already contains connection");
         }

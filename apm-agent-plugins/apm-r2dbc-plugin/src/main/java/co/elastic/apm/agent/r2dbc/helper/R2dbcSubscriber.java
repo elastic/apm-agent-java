@@ -23,6 +23,7 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.util.SpanConcurrentHashMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import io.r2dbc.spi.Result;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +69,11 @@ public class R2dbcSubscriber<T> implements CoreSubscriber<T> {
         Throwable thrown = null;
         try {
             subscriber.onNext(next);
+            log.info("onNext = {}", (next instanceof Result));
+            if (next instanceof Result) {
+                Result result = (Result) next;
+//                result.getRowsUpdated().subscribe();
+            }
         } catch (Throwable e) {
             thrown = e;
             throw e;
