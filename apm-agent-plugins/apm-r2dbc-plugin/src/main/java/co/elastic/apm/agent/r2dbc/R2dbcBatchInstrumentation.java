@@ -24,7 +24,6 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.r2dbc.helper.R2dbcHelper;
 import co.elastic.apm.agent.r2dbc.helper.R2dbcReactorHelper;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
-import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;

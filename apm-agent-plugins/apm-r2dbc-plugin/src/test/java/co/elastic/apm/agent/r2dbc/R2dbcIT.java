@@ -35,11 +35,11 @@ public class R2dbcIT extends AbstractR2dbcInstrumentationTest {
     @Parameterized.Parameters(name = "{1} {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"r2dbc:tc:mariadb://hostname/databasename?TC_IMAGE_TAG=10", "mariadb"},
+            {"r2dbc:tc:mariadb://localhost/databasename?TC_IMAGE_TAG=10", "mariadb"},
             {"r2dbc:tc:postgresql://hostname/databasename?TC_IMAGE_TAG=9", "postgresql"},
             {"r2dbc:tc:postgresql://hostname/databasename?TC_IMAGE_TAG=10", "postgresql"},
             {"r2dbc:tc:mysql://hostname/databasename?TC_IMAGE_TAG=5.7.34&sslMode=disabled", "mysql"},
-            {"r2dbc:tc:sqlserver:///?TC_IMAGE_TAG=2017-CU12", "sqlserver"},
+            {"r2dbc:tc:sqlserver://hostname/?TC_IMAGE_TAG=2017-CU12", "sqlserver"},
 // at current time there are no oracle implementation of org.testcontainers.r2dbc.R2DBCDatabaseContainerProvider
 //            {"r2dbc:tc:oracle://hostname/databasename", "oracle"},
         });

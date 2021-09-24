@@ -9,28 +9,27 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
-import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class R2dbcConnectionFactoriesInstrumentation extends AbstractR2dbcInstrumentation {
+public class R2dbcConnectionFactoryProviderInstrumentation extends AbstractR2dbcInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(named("io.r2dbc.spi.ConnectionFactories"));
+            .and(hasSuperType(named("io.r2dbc.spi.ConnectionFactoryProvider")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("get")
-            .and(returns(named("io.r2dbc.spi.ConnectionFactory")))
+        return named("create")
+            .and(returns(hasSuperType(named("io.r2dbc.spi.ConnectionFactory"))))
             .and(takesArgument(0, named("io.r2dbc.spi.ConnectionFactoryOptions")))
-            .and(isPublic())
-            .and(isStatic());
+            .and(isPublic());
     }
 
     public static class AdviceClass {

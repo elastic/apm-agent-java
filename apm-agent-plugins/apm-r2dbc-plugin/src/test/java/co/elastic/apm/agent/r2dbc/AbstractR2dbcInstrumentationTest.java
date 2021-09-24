@@ -29,15 +29,12 @@ import co.elastic.apm.agent.r2dbc.helper.R2dbcGlobalState;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.R2dbcException;
-import io.r2dbc.spi.R2dbcNonTransientException;
 import io.r2dbc.spi.Statement;
 import org.junit.After;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.sql.SQLException;
-import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static co.elastic.apm.agent.r2dbc.helper.R2dbcHelper.DB_SPAN_ACTION;
@@ -95,7 +92,6 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
             fail("unexpected exception", e);
         } finally {
             reporter.reset();
-            R2dbcGlobalState.clearInternalStorage();
         }
     }
 
@@ -202,9 +198,11 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
 
         Db db = span.getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(rawSql);
-//        ConnectionMetadata metaData = connection.getMetadata();
-//        assertThat(db.getInstance()).isEqualToIgnoringCase(connection.getCatalog());
-//        assertThat(db.getUser()).isEqualToIgnoringCase(metaData.getUserName());
+
+        if (!expectedDbVendor.equals("sqlserver")) {
+            assertThat(db.getInstance()).isNotBlank();
+        }
+        assertThat(db.getUser()).isNotBlank();
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 
 //        assertThat(db.getAffectedRowsCount())
@@ -212,12 +210,8 @@ public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTes
 //            .isEqualTo(expectedAffectedRows);
 
         Destination destination = span.getContext().getDestination();
-//        assertThat(destination.getAddress().toString()).isEqualTo("localhost");
-        if (expectedDbVendor.equals("h2")) {
-            assertThat(destination.getPort()).isEqualTo(-1);
-        } else {
-            assertThat(destination.getPort()).isGreaterThan(0);
-        }
+        assertThat(destination.getAddress().toString()).isEqualTo("localhost");
+        assertThat(destination.getPort()).isGreaterThan(0);
 
         Destination.Service service = destination.getService();
         assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor);

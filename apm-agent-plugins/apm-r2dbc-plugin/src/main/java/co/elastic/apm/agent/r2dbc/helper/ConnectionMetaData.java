@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.r2dbc.helper;
 
 import co.elastic.apm.agent.sdk.state.GlobalState;
+import io.r2dbc.spi.ConnectionFactoryOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,47 +40,59 @@ public class ConnectionMetaData {
     }
 
     @Nonnull
-    public static ConnectionMetaData create(@Nullable String databaseProductName, @Nullable String databaseVersion) {
-        logger.debug("Trying to define connection metadata for {}, {}", databaseProductName, databaseVersion);
-        String dbVendor = "unknown";
-        if (databaseProductName != null) {
+    public static ConnectionMetaData create(@Nullable String databaseProductName, @Nullable String databaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
+        logger.trace("Trying to define connection metadata by: productName = [{}], version = [{}], options = [{}]", databaseProductName, databaseVersion, connectionFactoryOptions);
+        String dbVendor = null;
+        if (connectionFactoryOptions != null) {
+            Object driverValue = connectionFactoryOptions.getValue(ConnectionFactoryOptions.DRIVER);
+            if (driverValue instanceof String) {
+                String driver = (String) driverValue;
+                if (!driver.isEmpty()) {
+                    dbVendor = driver;
+                    logger.trace("Defined driver from connection factory options = {}", dbVendor);
+                }
+            }
+        }
+        if (dbVendor == null && databaseProductName != null) {
             String databaseNameLower = databaseProductName.toLowerCase();
             for (MetadataParser parser : MetadataParser.values()) {
                 if (databaseNameLower.contains(parser.containsPart)) {
                     dbVendor = parser.dbVendor;
+                    logger.debug("Defined driver from metadata = {}", dbVendor);
                     break;
                 }
             }
         }
+        if (dbVendor == null) {
+            dbVendor = "unknown";
+        }
 
         ConnectionMetaData ret = null;
         MetadataParser metadataParser = parsers.get(dbVendor);
+        if (metadataParser == null) {
+            logger.debug("Not found metadata parser. Will be used unknown.");
+            metadataParser = parsers.get("unknown");
+        }
         try {
-            ret = metadataParser.parse(databaseProductName, databaseVersion);
+            ret = metadataParser.parse(databaseProductName, databaseVersion, connectionFactoryOptions);
         } catch (Exception e) {
-            logger.error("Failed to parse databaseProductName: " + databaseProductName, e);
-            ret = parsers.get("unknown").parse(databaseProductName, databaseVersion);
+            logger.error("Failed to parse for dbVendor {}", dbVendor, e);
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("Based on the database name {}, parsed metadata is: {}", databaseProductName, ret);
+            logger.debug("Based on the dbVendor {}, parsed metadata is: {}", dbVendor, ret);
         }
         return ret;
     }
 
-    private final String dbVendor;
-    private final int port;
-    private final String dbVersion;
-    @Nullable
+    private String dbProductName;
+    private String dbVendor;
+    private String dbVersion;
     private String host;
-    @Nullable
+    private int port;
     private String instance;
     private String user;
 
-    public ConnectionMetaData(String dbVendor, String dbVersion, int port) {
-        this.dbVendor = dbVendor;
-        this.dbVersion = dbVersion;
-        this.port = port;
-    }
+    public ConnectionMetaData() {}
 
     public String getDbVendor() {
         return dbVendor;
@@ -107,99 +120,108 @@ public class ConnectionMetaData {
         return user;
     }
 
-    public ConnectionMetaData withHost(String host) {
+    public ConnectionMetaData withDbProductName(@Nullable String dbProductName) {
+        this.dbProductName = dbProductName;
+        return this;
+    }
+
+    public ConnectionMetaData withDbVendor(@Nonnull String dbVendor) {
+        this.dbVendor = dbVendor;
+        return this;
+    }
+
+    public ConnectionMetaData withDbVersion(@Nullable String dbVersion) {
+        this.dbVersion = dbVersion;
+        return this;
+    }
+
+    public ConnectionMetaData withHost(@Nullable String host) {
         this.host = host;
         return this;
     }
 
-    public ConnectionMetaData withInstance(String instance) {
+    public ConnectionMetaData withPort(int port) {
+        this.port = port;
+        return this;
+    }
+
+    public ConnectionMetaData withInstance(@Nullable String instance) {
         this.instance = instance;
         return this;
     }
 
-    public ConnectionMetaData withUser(String user) {
+    public ConnectionMetaData withUser(@Nullable String user) {
         this.user = user;
         return this;
+    }
+
+    @Override
+    public String toString() {
+        return "ConnectionMetaData{" +
+            "dbProductName='" + dbProductName + '\'' +
+            ", dbVendor='" + dbVendor + '\'' +
+            ", dbVersion='" + dbVersion + '\'' +
+            ", host='" + host + '\'' +
+            ", port=" + port +
+            ", instance='" + instance + '\'' +
+            ", user='" + user + '\'' +
+            '}';
     }
 
     private enum MetadataParser {
         ORACLE("oracle", "oracle") {
 
             @Override
-            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion) {
-                return new ConnectionMetaData(dbVendor, metadataDatabaseVersion, 1521);
+            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
+                return toMetadata(dbVendor, 1521, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);
             }
         },
 
         POSTGRESQL("postgresql", "postgresql") {
 
             @Override
-            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion) {
-                return new ConnectionMetaData(dbVendor, metadataDatabaseVersion, 5432);
+            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
+                return toMetadata(dbVendor, 5432, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);
             }
         },
 
         MYSQL("mysql", "mysql") {
 
             @Override
-            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion) {
-                return new ConnectionMetaData(dbVendor, metadataDatabaseVersion, 3306);
-            }
-        },
-
-        DB2("db2", "db2") {
-
-            @Override
-            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion) {
-                return new ConnectionMetaData(dbVendor, metadataDatabaseVersion, 50000);
+            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
+                return toMetadata(dbVendor,  3306, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);
             }
         },
 
         H2("h2", "h2") {
 
             @Override
-            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion) {
-                return new ConnectionMetaData(dbVendor, metadataDatabaseVersion, -1);
-            }
-        },
-
-        DERBY("derby", "derby") {
-
-            @Override
-            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion) {
-                return new ConnectionMetaData(dbVendor, metadataDatabaseVersion, 1527);
-            }
-        },
-
-        HSQLDB("hsqldb", "hsqldb") {
-
-            @Override
-            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion) {
-                return new ConnectionMetaData(dbVendor, metadataDatabaseVersion, 9001);
+            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
+                return toMetadata(dbVendor, -1, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);
             }
         },
 
         MARIADB("mariadb", "mariadb") {
 
             @Override
-            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion) {
-                return new ConnectionMetaData(dbVendor, metadataDatabaseVersion, 3306);
+            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
+                return toMetadata(dbVendor, 3306, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);
             }
         },
 
         SQLSERVER("sqlserver", "sql server") {
 
             @Override
-            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion) {
-                return new ConnectionMetaData(dbVendor, metadataDatabaseVersion, 1433);
+            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
+                return toMetadata(dbVendor, 1433, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);
             }
         },
 
         UNKNOWN("unknown", "unknown") {
 
             @Override
-            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion) {
-                return new ConnectionMetaData(dbVendor, metadataDatabaseVersion, -1);
+            ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
+                return toMetadata(dbVendor, -1, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);
             }
         };
 
@@ -211,7 +233,37 @@ public class ConnectionMetaData {
         final String dbVendor;
         final String containsPart;
 
-        abstract ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion);
+        abstract ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions);
 
+        private static ConnectionMetaData toMetadata(@Nonnull String dbVendor, int defaultPort, @Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
+            String database = null, host = null, user = null;
+            int port = defaultPort;
+            if (connectionFactoryOptions != null) {
+                Object dbOption = connectionFactoryOptions.getValue(ConnectionFactoryOptions.DATABASE);
+                Object hostOption = connectionFactoryOptions.getValue(ConnectionFactoryOptions.HOST);
+                Object portOption = connectionFactoryOptions.getValue(ConnectionFactoryOptions.PORT);
+                Object userOption = connectionFactoryOptions.getValue(ConnectionFactoryOptions.USER);
+                if (dbOption instanceof String) {
+                    database = (String) dbOption;
+                }
+                if (hostOption instanceof String) {
+                    host = (String) hostOption;
+                }
+                if (portOption instanceof Integer) {
+                    port = (int) portOption;
+                }
+                if (userOption instanceof String) {
+                    user = (String) userOption;
+                }
+            }
+            return new ConnectionMetaData()
+                .withDbVendor(dbVendor)
+                .withDbProductName(databaseProductName)
+                .withDbVersion(metadataDatabaseVersion)
+                .withHost(host)
+                .withPort(port)
+                .withUser(user)
+                .withInstance(database);
+        }
     }
 }

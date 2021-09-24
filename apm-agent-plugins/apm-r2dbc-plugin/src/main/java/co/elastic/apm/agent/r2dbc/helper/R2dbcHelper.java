@@ -28,7 +28,6 @@ import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.ConnectionMetadata;
-import io.r2dbc.spi.Option;
 import io.r2dbc.spi.R2dbcException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +85,7 @@ public class R2dbcHelper {
     public void mapConnectionFactoryData(@Nonnull ConnectionFactory connectionFactory, @Nonnull ConnectionFactoryOptions connectionFactoryOptions) {
         logger.debug("Trying to map connection factory {} with options", connectionFactory, connectionFactoryOptions);
         if (connectionFactoryMap.containsKey(connectionFactory)) {
-            logger.info("ALready contains connection factory");
+            logger.debug("Already contains connection factory");
         }
         connectionFactoryMap.putIfAbsent(connectionFactory, connectionFactoryOptions);
     }
@@ -94,7 +93,7 @@ public class R2dbcHelper {
     public void mapConnectionOptionsData(@Nonnull Connection connection, @Nonnull ConnectionFactoryOptions connectionFactoryOptions) {
         logger.debug("Trying to map connection {} with options", connection, connectionFactoryOptions);
         if (connectionOptionsMap.containsKey(connection)) {
-            logger.info("ALready contains connection");
+            logger.debug("Already contains connection");
         }
         connectionOptionsMap.putIfAbsent(connection, connectionFactoryOptions);
     }
@@ -148,7 +147,7 @@ public class R2dbcHelper {
             .withType("sql");
 
         ConnectionMetaData connectionMetaData = getConnectionMetaData(connection);
-
+        logger.info("Parse connection metadata = {}", connectionMetaData);
         String vendor = "unknown";
         if (connectionMetaData != null) {
             vendor = connectionMetaData.getDbVendor();
@@ -188,11 +187,12 @@ public class R2dbcHelper {
         }
         ConnectionMetaData connectionMetaData = r2dbcMetaDataMap.get(connection);
         if (connectionMetaData != null) {
+            logger.info("Already contains connection metadata in cache.");
             return connectionMetaData;
         }
 
         Class<?> type = connection.getClass();
-        Boolean supported = isSupported(JdbcFeature.METADATA, type);
+        Boolean supported = isSupported(R2dbcFeature.METADATA, type);
         if (supported == Boolean.FALSE) {
             return null;
         }
@@ -200,32 +200,15 @@ public class R2dbcHelper {
         try {
             R2dbcHelper helper = R2dbcHelper.get();
             ConnectionMetadata metaData = connection.getMetadata();
-            if (metaData != null) {
-                apmConnectionMetadata = ConnectionMetaData.create(metaData.getDatabaseProductName(), metaData.getDatabaseVersion());
-                if (supported == null) {
-                    markSupported(JdbcFeature.METADATA, type);
-                }
-            }
             ConnectionFactoryOptions connectionFactoryOptions = helper.getConnectionOptions(connection);
-            if (connectionFactoryOptions != null) {
-                Object database = connectionFactoryOptions.getValue(ConnectionFactoryOptions.DATABASE);
-                Object host = connectionFactoryOptions.getValue(ConnectionFactoryOptions.HOST);
-                Object port = connectionFactoryOptions.getValue(ConnectionFactoryOptions.PORT);
-                Object user = connectionFactoryOptions.getValue(ConnectionFactoryOptions.USER);
-                if (apmConnectionMetadata == null) {
-                    Object driver = connectionFactoryOptions.getValue(ConnectionFactoryOptions.DRIVER);
-                    if (driver instanceof String) {
-                        apmConnectionMetadata = new ConnectionMetaData(getString(driver), null, -1);
-                    }
-                }
-                if (apmConnectionMetadata != null) {
-                    apmConnectionMetadata.withHost(getString(host))
-                        .withInstance(getString(database))
-                        .withUser(getString(user));
-                }
+            String databaseProductName = metaData != null ? metaData.getDatabaseProductName() : null;
+            String databaseVersion = metaData != null ? metaData.getDatabaseVersion() : null;
+            apmConnectionMetadata = ConnectionMetaData.create(databaseProductName, databaseVersion, connectionFactoryOptions);
+            if (apmConnectionMetadata != null && supported == null) {
+                markSupported(R2dbcFeature.METADATA, type);
             }
         } catch (R2dbcException e) {
-            markNotSupported(JdbcFeature.METADATA, type, e);
+            markNotSupported(R2dbcFeature.METADATA, type, e);
         }
         if (apmConnectionMetadata != null) {
             r2dbcMetaDataMap.put(connection, apmConnectionMetadata);
@@ -233,38 +216,31 @@ public class R2dbcHelper {
         return apmConnectionMetadata;
     }
 
-    private static String getString(Object value) {
-        if (value instanceof String) {
-            return (String) value;
-        }
-        return null;
-    }
-
     @Nullable
-    private static Boolean isSupported(JdbcFeature feature, Class<?> type) {
+    private static Boolean isSupported(R2dbcFeature feature, Class<?> type) {
         return feature.classSupport.get(type);
     }
 
-    private static void markSupported(JdbcFeature feature, Class<?> type) {
+    private static void markSupported(R2dbcFeature feature, Class<?> type) {
         feature.classSupport.put(type, Boolean.TRUE);
     }
 
-    private static void markNotSupported(JdbcFeature feature, Class<?> type, R2dbcException e) {
+    private static void markNotSupported(R2dbcFeature feature, Class<?> type, R2dbcException e) {
         Boolean previous = feature.classSupport.put(type, Boolean.FALSE);
         if (previous == null) {
-            logger.warn("JDBC feature not supported on class " + type, e);
+            logger.warn("R2DBC feature not supported on class " + type, e);
         }
     }
 
     /**
      * Represent JDBC features for which availability has to be checked at runtime
      */
-    private enum JdbcFeature {
+    private enum R2dbcFeature {
         METADATA(R2dbcGlobalState.metadataSupported);
 
         private final WeakConcurrentMap<Class<?>, Boolean> classSupport;
 
-        JdbcFeature(WeakConcurrentMap<Class<?>, Boolean> map) {
+        R2dbcFeature(WeakConcurrentMap<Class<?>, Boolean> map) {
             this.classSupport = map;
         }
     }
