@@ -117,7 +117,7 @@ public class R2dbcHelper {
     }
 
     @Nullable
-    public Span createR2dbcSpan(@Nullable Connection connection, @Nullable String sql, @Nullable AbstractSpan<?> parent) {
+    public Span createR2dbcSpan(@Nullable String sql, @Nullable AbstractSpan<?> parent) {
         if (sql == null || parent == null) {
             return null;
         }
@@ -136,23 +136,6 @@ public class R2dbcHelper {
             .withStatement(sql.isEmpty() ? "(empty query)" : sql)
             .withType("sql");
 
-        ConnectionMetaData connectionMetaData = getConnectionMetaData(connection);
-        logger.debug("Parsed connection metadata = {}", connectionMetaData);
-        String vendor = "unknown";
-        if (connectionMetaData != null) {
-            vendor = connectionMetaData.getDbVendor();
-            span.getContext().getDb()
-                .withInstance(connectionMetaData.getInstance())
-                .withUser(connectionMetaData.getUser());
-            Destination destination = span.getContext().getDestination()
-                .withAddress(connectionMetaData.getHost())
-                .withPort(connectionMetaData.getPort());
-            destination.getService()
-                .withName(vendor)
-                .withResource(vendor)
-                .withType(DB_SPAN_TYPE);
-        }
-        span.withSubtype(vendor).withAction(DB_SPAN_ACTION);
         return span;
     }
 
@@ -171,7 +154,7 @@ public class R2dbcHelper {
     }
 
     @Nullable
-    private ConnectionMetaData getConnectionMetaData(@Nullable Connection connection) {
+    public ConnectionMetaData getConnectionMetaData(@Nullable Connection connection) {
         if (null == connection) {
             return null;
         }

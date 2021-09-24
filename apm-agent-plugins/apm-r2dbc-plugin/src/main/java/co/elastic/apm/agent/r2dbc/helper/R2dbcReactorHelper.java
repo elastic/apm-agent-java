@@ -21,6 +21,7 @@ package co.elastic.apm.agent.r2dbc.helper;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -38,7 +39,7 @@ public class R2dbcReactorHelper {
 
     private static final Logger log = LoggerFactory.getLogger(R2dbcReactorHelper.class);
 
-    public static <T> Publisher<T> wrapPublisher(final Tracer tracer, Publisher<T> publisher, final Span span) {
+    public static <T> Publisher<T> wrapPublisher(final Tracer tracer, Publisher<T> publisher, final Span span, final Connection connection) {
         Function<? super Publisher<T>, ? extends Publisher<T>> lift = Operators.liftPublisher(
             new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
                 @Override
@@ -52,7 +53,7 @@ public class R2dbcReactorHelper {
                     if (active == null) {
                         return subscriber;
                     }
-                    return new R2dbcSubscriber<>(subscriber, tracer, span);
+                    return new R2dbcSubscriber<>(subscriber, tracer, span, connection);
                 }
             }
         );

@@ -106,7 +106,7 @@ public abstract class R2dbcBatchInstrumentation extends AbstractR2dbcInstrumenta
 
             @Nullable
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static Object onBeforeExecute(@Advice.This Object batchObject) {
+            public static Object[] onBeforeExecute(@Advice.This Object batchObject) {
                 R2dbcHelper helper = R2dbcHelper.get();
                 logger.info("Trying to handle with batch = {} on thread = {}", batchObject, Thread.currentThread().getName());
                 Object[] connectionSqlObj = helper.retrieveMetaForBatch(batchObject);
@@ -116,25 +116,35 @@ public abstract class R2dbcBatchInstrumentation extends AbstractR2dbcInstrumenta
                 @Nullable Connection connection = connectionObj instanceof Connection ? (Connection) connectionObj : null;
 
                 AbstractSpan<?> parent = tracer.getActive();
-                return R2dbcHelper.get().createR2dbcSpan(connection, sql, parent);
+                Span span = R2dbcHelper.get().createR2dbcSpan(sql, parent);
+                return new Object[]{span, connection};
             }
 
 
             @Nullable
             @AssignTo.Return(typing = Assigner.Typing.DYNAMIC)
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-            public static Object onAfterExecute(@Advice.Enter @Nullable Object spanObject,
+            public static Object onAfterExecute(@Advice.Enter @Nullable Object[] spanConnectionObj,
                                                 @Advice.Thrown @Nullable Throwable t,
                                                 @Advice.Return @Nullable Publisher<? extends Result> returnValue) {
-                if (!(spanObject instanceof Span)) {
+                if (spanConnectionObj == null) {
                     return returnValue;
                 }
-                Span span = (Span) spanObject;
+                Object spanObj = spanConnectionObj[0];
+                Object connectionObj = spanConnectionObj[1];
+                Connection connection = null;
+                if (!(spanObj instanceof Span)) {
+                    return returnValue;
+                }
+                if (connectionObj instanceof Connection) {
+                    connection = (Connection) connectionObj;
+                }
+                Span span = (Span) spanObj;
                 span = span.captureException(t).deactivate();
                 if (t != null || returnValue == null) {
                     return returnValue;
                 }
-                return R2dbcReactorHelper.wrapPublisher(tracer, returnValue, span);
+                return R2dbcReactorHelper.wrapPublisher(tracer, returnValue, span, connection);
             }
         }
     }

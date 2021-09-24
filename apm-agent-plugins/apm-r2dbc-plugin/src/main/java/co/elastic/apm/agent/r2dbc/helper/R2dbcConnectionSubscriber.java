@@ -39,11 +39,13 @@ public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T> {
 
     @Override
     public void onSubscribe(Subscription subscription) {
+        log.debug("onSubscribe connection");
         subscriber.onSubscribe(subscription);
     }
 
     @Override
     public void onNext(T next) {
+        log.debug("onNext connection");
         try {
             if (next instanceof Connection) {
                 Connection connection = (Connection) next;
@@ -64,6 +66,7 @@ public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T> {
 
     @Override
     public void onComplete() {
+        log.debug("onComplete connection");
         subscriber.onComplete();
     }
 

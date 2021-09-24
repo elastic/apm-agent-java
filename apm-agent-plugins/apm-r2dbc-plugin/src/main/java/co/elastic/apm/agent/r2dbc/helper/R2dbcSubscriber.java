@@ -19,10 +19,12 @@
 package co.elastic.apm.agent.r2dbc.helper;
 
 import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.util.SpanConcurrentHashMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.Result;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -31,18 +33,24 @@ import reactor.core.CoreSubscriber;
 
 import javax.annotation.Nullable;
 
+import static co.elastic.apm.agent.r2dbc.helper.R2dbcHelper.DB_SPAN_ACTION;
+import static co.elastic.apm.agent.r2dbc.helper.R2dbcHelper.DB_SPAN_TYPE;
+
 public class R2dbcSubscriber<T> implements CoreSubscriber<T> {
     private static final Logger log = LoggerFactory.getLogger(R2dbcSubscriber.class);
 
     private final Tracer tracer;
     private final CoreSubscriber<? super T> subscriber;
     private static final WeakConcurrentMap<R2dbcSubscriber<?>, Span> spanMap = SpanConcurrentHashMap.createWeakMap();
+    private final Connection connection;
 
     public R2dbcSubscriber(CoreSubscriber<? super T> subscriber,
                            Tracer tracer,
-                           Span span) {
+                           Span span,
+                           Connection connection) {
         this.subscriber = subscriber;
         this.tracer = tracer;
+        this.connection = connection;
         spanMap.put(this, span);
     }
 
@@ -68,6 +76,27 @@ public class R2dbcSubscriber<T> implements CoreSubscriber<T> {
         boolean hasActivated = doEnter("onNext", span);
         Throwable thrown = null;
         try {
+            if (span.getSubtype() == null) {
+                log.debug("Subtype is null try to set db details.");
+                R2dbcHelper helper = R2dbcHelper.get();
+                ConnectionMetaData connectionMetaData = helper.getConnectionMetaData(connection);
+                log.debug("Parsed connection metadata = {}", connectionMetaData);
+                String vendor = "unknown";
+                if (connectionMetaData != null) {
+                    vendor = connectionMetaData.getDbVendor();
+                    span.getContext().getDb()
+                        .withInstance(connectionMetaData.getInstance())
+                        .withUser(connectionMetaData.getUser());
+                    Destination destination = span.getContext().getDestination()
+                        .withAddress(connectionMetaData.getHost())
+                        .withPort(connectionMetaData.getPort());
+                    destination.getService()
+                        .withName(vendor)
+                        .withResource(vendor)
+                        .withType(DB_SPAN_TYPE);
+                }
+                span.withSubtype(vendor).withAction(DB_SPAN_ACTION);
+            }
             subscriber.onNext(next);
             log.info("onNext = {}", (next instanceof Result));
             if (next instanceof Result) {
