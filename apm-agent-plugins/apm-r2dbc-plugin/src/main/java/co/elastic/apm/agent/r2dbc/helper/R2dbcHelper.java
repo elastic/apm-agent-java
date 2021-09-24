@@ -67,44 +67,34 @@ public class R2dbcHelper {
      * @param statement javax.sql.Statement object
      */
     public void mapStatementToSql(Object statement, @Nonnull Object connection, @Nullable String sql) {
-        if (statementConnectionMap.containsKey(statement)) {
-            logger.info("Already contains statement");
-        }
         statementConnectionMap.putIfAbsent(statement, new Object[]{connection, sql});
     }
 
     public void mapBatch(@Nonnull Object batch, @Nonnull Object connection) {
         logger.debug("Trying to map batch = {}", batch);
-        if (batchConnectionMap.containsKey(batch)) {
-            logger.info("Already contains batch");
-        }
         // via Batch#add we will add first sql statement
         batchConnectionMap.putIfAbsent(batch, new Object[]{connection, null});
     }
 
     public void mapConnectionFactoryData(@Nonnull ConnectionFactory connectionFactory, @Nonnull ConnectionFactoryOptions connectionFactoryOptions) {
         logger.debug("Trying to map connection factory {} with options {}", connectionFactory, connectionFactoryOptions);
-        if (connectionFactoryMap.containsKey(connectionFactory)) {
-            logger.debug("Already contains connection factory");
-        }
         connectionFactoryMap.putIfAbsent(connectionFactory, connectionFactoryOptions);
     }
 
     public void mapConnectionOptionsData(@Nonnull Connection connection, @Nonnull ConnectionFactoryOptions connectionFactoryOptions) {
         logger.debug("Trying to map connection {} with options {}", connection, connectionFactoryOptions);
-        if (connectionOptionsMap.containsKey(connection)) {
-            logger.debug("Already contains connection");
-        }
         connectionOptionsMap.putIfAbsent(connection, connectionFactoryOptions);
     }
 
     @Nullable
     public ConnectionFactoryOptions getConnectionFactoryOptions(@Nonnull ConnectionFactory connectionFactory) {
+        logger.debug("Trying to get options by connection factory {}", connectionFactory);
         return connectionFactoryMap.get(connectionFactory);
     }
 
     @Nullable
     public ConnectionFactoryOptions getConnectionOptions(@Nonnull Connection connection) {
+        logger.debug("Trying to get options by connection {}", connection);
         return connectionOptionsMap.get(connection);
     }
 
@@ -147,7 +137,7 @@ public class R2dbcHelper {
             .withType("sql");
 
         ConnectionMetaData connectionMetaData = getConnectionMetaData(connection);
-        logger.info("Parse connection metadata = {}", connectionMetaData);
+        logger.debug("Parsed connection metadata = {}", connectionMetaData);
         String vendor = "unknown";
         if (connectionMetaData != null) {
             vendor = connectionMetaData.getDbVendor();
@@ -187,7 +177,7 @@ public class R2dbcHelper {
         }
         ConnectionMetaData connectionMetaData = r2dbcMetaDataMap.get(connection);
         if (connectionMetaData != null) {
-            logger.info("Already contains connection metadata in cache.");
+            logger.debug("Already contains connection metadata in cache.");
             return connectionMetaData;
         }
 

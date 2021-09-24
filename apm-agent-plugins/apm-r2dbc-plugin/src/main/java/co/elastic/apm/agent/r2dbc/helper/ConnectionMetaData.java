@@ -41,7 +41,7 @@ public class ConnectionMetaData {
 
     @Nonnull
     public static ConnectionMetaData create(@Nullable String databaseProductName, @Nullable String databaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
-        logger.trace("Trying to define connection metadata by: productName = [{}], version = [{}], options = [{}]", databaseProductName, databaseVersion, connectionFactoryOptions);
+        logger.debug("Trying to define connection metadata by: productName = [{}], version = [{}], options = [{}]", databaseProductName, databaseVersion, connectionFactoryOptions);
         String dbVendor = null;
         if (connectionFactoryOptions != null) {
             Object driverValue = connectionFactoryOptions.getValue(ConnectionFactoryOptions.DRIVER);
@@ -49,7 +49,7 @@ public class ConnectionMetaData {
                 String driver = (String) driverValue;
                 if (!driver.isEmpty()) {
                     dbVendor = driver;
-                    logger.trace("Defined driver from connection factory options = {}", dbVendor);
+                    logger.debug("Defined driver from connection factory options = {}", dbVendor);
                 }
             }
         }
@@ -58,7 +58,7 @@ public class ConnectionMetaData {
             for (MetadataParser parser : MetadataParser.values()) {
                 if (databaseNameLower.contains(parser.containsPart)) {
                     dbVendor = parser.dbVendor;
-                    logger.trace("Defined driver from metadata = {}", dbVendor);
+                    logger.debug("Defined driver from metadata = {}", dbVendor);
                     break;
                 }
             }
@@ -70,7 +70,7 @@ public class ConnectionMetaData {
         ConnectionMetaData ret = null;
         MetadataParser metadataParser = parsers.get(dbVendor);
         if (metadataParser == null) {
-            logger.trace("Not found metadata parser. Will be used unknown.");
+            logger.debug("Not found metadata parser. Will be used unknown.");
             metadataParser = parsers.get("unknown");
         }
         try {
@@ -79,7 +79,7 @@ public class ConnectionMetaData {
             logger.error("Failed to parse for dbVendor {}", dbVendor, e);
         }
         if (logger.isDebugEnabled()) {
-            logger.trace("Based on the dbVendor {}, parsed metadata is: {}", dbVendor, ret);
+            logger.debug("Based on the dbVendor {}, parsed metadata is: {}", dbVendor, ret);
         }
         return ret;
     }

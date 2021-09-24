@@ -65,7 +65,7 @@ public class R2dbcReactorHelper {
     }
 
     public static <T> Publisher<T> wrapConnectionPublisher(Publisher<T> publisher, final ConnectionFactoryOptions connectionFactoryOptions) {
-        log.info("Trying to wrap connection");
+        log.debug("Trying to wrap connection");
         Function<? super Publisher<T>, ? extends Publisher<T>> lift = Operators.liftPublisher(
             new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
                 @Override

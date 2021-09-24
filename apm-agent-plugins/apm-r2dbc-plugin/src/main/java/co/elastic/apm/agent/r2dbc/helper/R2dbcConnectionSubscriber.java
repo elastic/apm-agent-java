@@ -45,7 +45,6 @@ public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T> {
     @Override
     public void onNext(T next) {
         try {
-            subscriber.onNext(next);
             if (next instanceof Connection) {
                 Connection connection = (Connection) next;
                 R2dbcHelper helper = R2dbcHelper.get();
@@ -53,6 +52,8 @@ public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T> {
             }
         } catch (Throwable e) {
             throw e;
+        } finally {
+            subscriber.onNext(next);
         }
     }
 

@@ -65,7 +65,6 @@ public class R2dbcConnectionFactoryInstrumentation extends AbstractR2dbcInstrume
             if (connectionFactoryObject == null) {
                 return;
             }
-            R2dbcHelper helper = R2dbcHelper.get();
             logger.info("Trying to handle creating connection {} on thread = {}", connectionFactoryObject, Thread.currentThread().getName());
         }
 
