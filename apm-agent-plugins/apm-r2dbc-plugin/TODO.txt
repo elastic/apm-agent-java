@@ -1,2 +1,0 @@
-[ ] add - rows affected count
-[ ] Find instrumentation for getting r2dbc url
