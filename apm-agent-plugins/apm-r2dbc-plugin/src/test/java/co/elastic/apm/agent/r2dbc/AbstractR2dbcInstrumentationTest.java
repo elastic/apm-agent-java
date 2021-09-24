@@ -42,7 +42,7 @@ import static co.elastic.apm.agent.r2dbc.helper.R2dbcHelper.DB_SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
-public class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTest {
+public abstract class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTest {
 
     private static final int SLEEP_TIME_AFTER_EXECUTE = 100;
 

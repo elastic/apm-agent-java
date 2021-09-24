@@ -32,7 +32,7 @@ public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T> {
     private final ConnectionFactoryOptions connectionFactoryOptions;
 
     public R2dbcConnectionSubscriber(CoreSubscriber<? super T> subscriber,
-                                     ConnectionFactoryOptions connectionFactoryOptions) {
+                                     final ConnectionFactoryOptions connectionFactoryOptions) {
         this.subscriber = subscriber;
         this.connectionFactoryOptions = connectionFactoryOptions;
     }
