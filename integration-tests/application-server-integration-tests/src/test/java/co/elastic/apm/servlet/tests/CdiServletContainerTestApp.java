@@ -23,7 +23,11 @@ import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
 public class CdiServletContainerTestApp extends TestApp {
 
     public CdiServletContainerTestApp() {
-        super("../cdi-app/cdi-app-standalone", "cdi-app.war", "/cdi-app/status.html", "CDI App");
+        super("../cdi-app/cdi-app-standalone",
+            "cdi-app.war",
+            "cdi-app",
+            "status.html",
+            "CDI App");
     }
 
     @Override

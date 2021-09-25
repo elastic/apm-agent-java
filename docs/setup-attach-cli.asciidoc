@@ -43,11 +43,12 @@ NOTE: In versions prior to 1.22.0, you will have to download the `standalone` ja
 ==== Usage
 
 Attaches the Elastic APM Java agent to all running JVMs that match the `--include-*` / `--exclude-*` discovery rules.
-For every running JVM, the discovery rules are evaluated in the order they are provided.
-The first matching rule determines the outcome.
 
-* If the first matching rules is an exclude, the agent will not be attached.
-* If the first matching rules is an include, the agent will be attached.
+For every running JVM, the discovery rules are evaluated in the order they are provided.
+The first rule that matches the currently evaluated Java application determines the outcome.
+
+* If the first match is an exclude rule, the agent will not be attached.
+* If the first match is an include rule, the agent will be attached.
 * If no rule matches, the agent will not be attached.
 
 Example: The following command attaches the agent to all JVMs whose main class contains `MyApplication`
@@ -183,6 +184,13 @@ One history file will be kept with the name `${logFile}.1`.
 +
 --
 Instead of the bundled agent jar, attach the provided agent to the target JVMs.
+--
+
+*--download-agent-version <agent-version>*::
++
+--
+Instead of the bundled agent jar, download and attach the specified agent version from maven central.
+The agent is authenticated and validated based on the published PGP signature. This option requires internet access.
 --
 
 [float]

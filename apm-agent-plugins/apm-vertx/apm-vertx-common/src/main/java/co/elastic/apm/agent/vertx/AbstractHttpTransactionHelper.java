@@ -23,10 +23,10 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,23 +95,19 @@ public abstract class AbstractHttpTransactionHelper {
         // JSPs don't contain path params and the name is more telling than the generated servlet class
         if (webConfiguration.isUsePathAsName() || ENDS_WITH_JSP.matches(pathFirstPart, pathSecondPart)) {
             // should override ServletName#doGet
-            StringBuilder transactionName = transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1 + priorityOffset);
-            if (transactionName != null) {
-                WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(webConfiguration.getUrlGroups(), pathFirstPart, pathSecondPart);
-                if (groupMatcher != null) {
-                    transactionName.append(method).append(' ').append(groupMatcher.toString());
-                } else {
-                    transactionName.append(method).append(' ').append(pathFirstPart);
-                    if (pathSecondPart != null) {
-                        transactionName.append(pathSecondPart);
-                    }
-                }
-            }
+            TransactionNameUtils.setNameFromHttpRequestPath(
+                method,
+                pathFirstPart,
+                pathSecondPart,
+                transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1 + priorityOffset),
+                webConfiguration.getUrlGroups());
         } else {
-            StringBuilder transactionName = transaction.getAndOverrideName(PRIO_DEFAULT);
-            if (transactionName != null) {
-                transactionName.append(method).append(" unknown route");
-            }
+            TransactionNameUtils.setNameFromHttpRequestPath(
+                method,
+                "unknown route",
+                null,
+                transaction.getAndOverrideName(PRIO_DEFAULT),
+                webConfiguration.getUrlGroups());
         }
     }
 
@@ -155,19 +151,18 @@ public abstract class AbstractHttpTransactionHelper {
         response.withStatusCode(status);
     }
 
-    protected void fillRequest(Request request, String protocol, String method, boolean secure, @Nullable String scheme, @Nullable String serverName,
+    protected void fillRequest(Request request, String protocol, String method, @Nullable String scheme, @Nullable String serverName,
                                int serverPort, String requestURI, @Nullable String queryString, @Nullable String remoteAddr) {
-        fillRequest(request, protocol, method, secure, remoteAddr);
+        fillRequest(request, protocol, method, remoteAddr);
 
         fillUrlRelatedFields(request, scheme, serverName, serverPort, requestURI, queryString);
     }
 
-    protected void fillRequest(Request request, String protocol, String method, boolean secure, @Nullable String remoteAddr) {
+    protected void fillRequest(Request request, String protocol, String method, @Nullable String remoteAddr) {
         request.withHttpVersion(protocol);
         request.withMethod(method);
 
         request.getSocket()
-            .withEncrypted(secure)
             .withRemoteAddress(remoteAddr);
     }
 

@@ -27,14 +27,14 @@ import javax.annotation.Nullable;
 
 class CallbackWrapper implements Callback, Recyclable {
 
-    private final KafkaInstrumentationHelperImpl helper;
+    private final KafkaInstrumentationHelper helper;
 
     @Nullable
     private Callback delegate;
     @SuppressWarnings("NotNullFieldNotInitialized")
     private volatile Span span;
 
-    CallbackWrapper(KafkaInstrumentationHelperImpl helper) {
+    CallbackWrapper(KafkaInstrumentationHelper helper) {
         this.helper = helper;
     }
 

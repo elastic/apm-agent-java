@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.24.1-SNAPSHOT</version>
+        <version>1.26.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -19,6 +19,8 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+        <version.bouncy-castle.bcpg-fips>1.0.5.1</version.bouncy-castle.bcpg-fips>
+        <version.bouncy-castle.bc-fips>1.0.2.1</version.bouncy-castle.bc-fips>
     </properties>
 
     <dependencies>
@@ -37,10 +39,102 @@
             <artifactId>log4j2-ecs-layout</artifactId>
             <version>${version.log4j2-ecs-layout}</version>
         </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpg-fips</artifactId>
+            <version>${version.bouncy-castle.bcpg-fips}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bc-fips</artifactId>
+            <version>${version.bouncy-castle.bc-fips}</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>com.coderplus.maven.plugins</groupId>
+                <artifactId>copy-rename-maven-plugin</artifactId>
+                <version>1.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-file</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <sourceFile>${project.basedir}/Bouncy-Castle-NOTICE</sourceFile>
+                            <destinationFile>target/classes/META-INF/Bouncy-Castle-NOTICE</destinationFile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>package-bouncy-castle-verifier</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>bc-verifier</classifier>
+                            <includes>
+                                <include>co/elastic/apm/attach/bouncycastle/BouncyCastleVerifier.class</include>
+                            </includes>
+                            <outputDirectory>${project.basedir}/target/classes/bc-lib</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.bouncycastle</groupId>
+                        <artifactId>bcpg-fips</artifactId>
+                        <version>${version.bouncy-castle.bcpg-fips}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.bouncycastle</groupId>
+                        <artifactId>bc-fips</artifactId>
+                        <version>${version.bouncy-castle.bc-fips}</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>copy-bouncy-castle-jars</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.bouncycastle</groupId>
+                                    <artifactId>bcpg-fips</artifactId>
+                                    <version>${version.bouncy-castle.bcpg-fips}</version>
+                                    <type>jar</type>
+                                    <destFileName>bcpg-fips.jar</destFileName>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.bouncycastle</groupId>
+                                    <artifactId>bc-fips</artifactId>
+                                    <version>${version.bouncy-castle.bc-fips}</version>
+                                    <type>jar</type>
+                                    <destFileName>bc-fips.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${project.basedir}/target/classes/bc-lib</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
                 <executions>
@@ -57,6 +151,18 @@
                             <shadedArtifactAttached>false</shadedArtifactAttached>
                             <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
                             <createDependencyReducedPom>true</createDependencyReducedPom>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <!--
+                                        Excluding the Bouncy Castle implementation for PGP signature verification, which
+                                        must be loaded through a dedicated class loader
+                                        -->
+                                        <exclude>co/elastic/apm/attach/bouncycastle/BouncyCastleVerifier.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
@@ -88,6 +194,11 @@
                                     <artifact>*:*</artifact>
                                     <excludes>
                                         <exclude>elastic-apm-agent.jar</exclude>
+                                        <!--
+                                        Excluding the Bouncy Castle implementation for PGP signature verification, which
+                                        must be loaded through a dedicated class loader
+                                        -->
+                                        <exclude>co/elastic/apm/attach/bouncycastle/BouncyCastleVerifier.class</exclude>
                                     </excludes>
                                 </filter>
                                 <filter>

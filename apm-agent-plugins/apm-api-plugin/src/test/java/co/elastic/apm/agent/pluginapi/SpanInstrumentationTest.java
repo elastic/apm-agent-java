@@ -89,6 +89,50 @@ class SpanInstrumentationTest extends AbstractApiTest {
     }
 
     @Test
+    void testExitSpanFromTransaction() {
+        reporter.disableCheckStrictSpanType();
+        reporter.disableCheckDestinationAddress();
+
+        Span span = transaction.startExitSpan("foo", "bar", "baz");
+        endSpan(span);
+        co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
+        // relying on auto-inference of context.destination.service.resource
+        assertThat(internalSpan.getContext().getDestination().getService().getResource().toString()).isEqualTo("bar");
+    }
+
+    @Test
+    void testExitSpanFromNonExitSpan() {
+        reporter.disableCheckStrictSpanType();
+        reporter.disableCheckDestinationAddress();
+
+        Span parent = transaction.startSpan("foo", "bar", "baz");
+        Span span = parent.startExitSpan("foo", "bar", "baz");
+        endSpan(span);
+        co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
+        // relying on auto-inference of context.destination.service.resource
+        assertThat(internalSpan.getContext().getDestination().getService().getResource().toString()).isEqualTo("bar");
+    }
+
+    @Test
+    void testExitSpanFromExitSpan() {
+        reporter.disableCheckStrictSpanType();
+        reporter.disableCheckDestinationAddress();
+
+        Span parent = transaction.startExitSpan("foo", "bar", "baz");
+        assertThat(parent.getId()).isNotEmpty();
+        Span span = parent.startExitSpan("tic", "tac", "toe");
+        // invoking startExitSpan on an exit span should result with a noop span
+        assertThat(span.getId()).isEmpty();
+        span.end();
+        assertThat(reporter.getSpans()).isEmpty();
+
+        endSpan(parent);
+        co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
+        // relying on auto-inference of context.destination.service.resource
+        assertThat(internalSpan.getContext().getDestination().getService().getResource().toString()).isEqualTo("bar");
+    }
+
+    @Test
     void testChaining() {
         reporter.disableCheckStrictSpanType();
 

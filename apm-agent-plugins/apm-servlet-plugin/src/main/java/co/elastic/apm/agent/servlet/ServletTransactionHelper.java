@@ -24,11 +24,11 @@ import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +52,7 @@ public class ServletTransactionHelper {
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
     private static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcher.valueOf("*.jsp");
 
-    private final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
+    private static final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
 
     private final Set<String> METHODS_WITH_BODY = new HashSet<>(Arrays.asList("POST", "PUT", "PATCH", "DELETE"));
     private final CoreConfiguration coreConfiguration;
@@ -66,6 +66,14 @@ public class ServletTransactionHelper {
     public static void determineServiceName(@Nullable String servletContextName, @Nullable ClassLoader servletContextClassLoader, @Nullable String contextPath) {
         if (servletContextClassLoader == null || nameInitialized.putIfAbsent(servletContextClassLoader, Boolean.TRUE) != null) {
             return;
+        }
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("Inferring service name for class loader [{}] based on servlet context path `{}` and request context path `{}`",
+                servletContextClassLoader,
+                servletContextName,
+                contextPath
+            );
         }
 
         @Nullable
@@ -99,7 +107,6 @@ public class ServletTransactionHelper {
             .withMethod(method);
 
         request.getSocket()
-            .withEncrypted(secure)
             .withRemoteAddress(remoteAddr);
 
         request.getUrl()
@@ -187,18 +194,7 @@ public class ServletTransactionHelper {
         // JSPs don't contain path params and the name is more telling than the generated servlet class
         if (webConfiguration.isUsePathAsName() || ENDS_WITH_JSP.matches(servletPath, pathInfo)) {
             // should override ServletName#doGet
-            StringBuilder transactionName = transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1);
-            if (transactionName != null) {
-                WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(webConfiguration.getUrlGroups(), servletPath, pathInfo);
-                if (groupMatcher != null) {
-                    transactionName.append(method).append(' ').append(groupMatcher.toString());
-                } else {
-                    transactionName.append(method).append(' ').append(servletPath);
-                    if (pathInfo != null) {
-                        transactionName.append(pathInfo);
-                    }
-                }
-            }
+            TransactionNameUtils.setNameFromHttpRequestPath(method, servletPath, pathInfo, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1), webConfiguration.getUrlGroups());
         } else {
             StringBuilder transactionName = transaction.getAndOverrideName(PRIO_DEFAULT);
             if (transactionName != null) {

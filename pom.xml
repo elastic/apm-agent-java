@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.24.1-SNAPSHOT</version>
+    <version>1.26.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -64,8 +64,9 @@
         <module>apm-agent-attach</module>
         <module>apm-agent-plugin-sdk</module>
         <module>apm-indy-bootstrap-module</module>
-        <module>apm-agent-premain</module>
+        <module>apm-agent</module>
         <module>apm-agent-attach-cli</module>
+        <module>apm-agent-common</module>
     </modules>
 
     <properties>
@@ -97,24 +98,24 @@
         <version.error_prone>2.2.0</version.error_prone>
         <version.h2>1.4.196</version.h2>
         <version.jackson>[2.10.0,)</version.jackson>
-        <version.junit-jupiter>5.7.2</version.junit-jupiter>
+        <version.junit-jupiter>5.8.0</version.junit-jupiter>
         <version.junit.vintage>4.13.2</version.junit.vintage>
-        <version.junit-vintage-engine>5.7.2</version.junit-vintage-engine>
+        <version.junit-vintage-engine>5.8.0</version.junit-vintage-engine>
         <version.logback>1.2.3</version.logback>
         <version.okhttp>4.9.1</version.okhttp>
-        <version.slf4j>1.7.31</version.slf4j>
+        <version.slf4j>1.7.32</version.slf4j>
         <!-- this is the last version of log4j that is compatible with Java 7. Due to a known vulnerability
         (https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle), the SMTP appender is
          excluded from the build and not packaged into the agent artifacts -->
         <version.log4j>2.12.1</version.log4j>
-        <version.log4j2-ecs-layout>1.0.1</version.log4j2-ecs-layout>
+        <version.log4j2-ecs-layout>1.1.0</version.log4j2-ecs-layout>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.spring-boot>2.2.2.RELEASE</version.spring-boot>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.0.55</version.json-schema-validator>
+        <version.json-schema-validator>1.0.59</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.11.2</version.byte-buddy>
-        <version.asm>9.1</version.asm>
+        <version.byte-buddy>1.11.16</version.byte-buddy>
+        <version.asm>9.2</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
         <!-- used both for plugin & annotations dependency -->
@@ -356,6 +357,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.7</version>
                 <executions>
                     <execution>
                         <goals>
@@ -482,7 +484,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.2.3</version>
+                    <version>3.2.4</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-clean-plugin</artifactId>
@@ -502,6 +504,13 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+        <extensions>
+            <extension>
+                <groupId>co.elastic.opentelemetry.contrib</groupId>
+                <artifactId>opentelemetry-maven-extension</artifactId>
+                <version>0.1.0-beta-5</version>
+            </extension>
+        </extensions>
     </build>
 
     <dependencyManagement>
@@ -571,13 +580,13 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.20.2</version>
+            <version>3.21.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>3.11.1</version>
+            <version>3.12.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>

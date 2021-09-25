@@ -32,9 +32,18 @@ enum NoopTransaction implements Transaction {
         return this;
     }
 
+
+
     @Nonnull
     @Override
     public Transaction setType(String type) {
+        // noop
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction setFrameworkName(String frameworkName) {
         // noop
         return this;
     }
@@ -175,6 +184,12 @@ enum NoopTransaction implements Transaction {
     @Nonnull
     @Override
     public Span startSpan(String type, @Nullable String subtype, @Nullable String action) {
+        return NoopSpan.INSTANCE;
+    }
+
+    @Nonnull
+    @Override
+    public Span startExitSpan(String type, String subtype, @Nullable String action) {
         return NoopSpan.INSTANCE;
     }
 

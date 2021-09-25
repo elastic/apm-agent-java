@@ -53,16 +53,34 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         return methodMatcher;
     }
 
+    public static class SetFrameworkNameInstrumentation extends TransactionInstrumentation {
+        public SetFrameworkNameInstrumentation() {
+            super(named("setFrameworkName"));
+        }
+
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void setFrameworkName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+                                                @Advice.Argument(0) String frameworkName) {
+                if (transaction instanceof Transaction) {
+                    ((Transaction) transaction).setUserFrameworkName(frameworkName);
+                }
+            }
+        }
+    }
+
     public static class SetUserInstrumentation extends TransactionInstrumentation {
         public SetUserInstrumentation() {
             super(named("setUser"));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void setUser(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
-                                   @Advice.Argument(0) String id, @Advice.Argument(1) String email, @Advice.Argument(2) String username, @Advice.Argument(value = 3, optional = true) String domain) {
-            if (transaction instanceof Transaction) {
-                ((Transaction) transaction).setUser(id, email, username, domain);
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void setUser(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+                                       @Advice.Argument(0) String id, @Advice.Argument(1) String email, @Advice.Argument(2) String username, @Advice.Argument(value = 3, optional = true) String domain) {
+                if (transaction instanceof Transaction) {
+                    ((Transaction) transaction).setUser(id, email, username, domain);
+                }
             }
         }
     }
@@ -72,20 +90,22 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             super(named("ensureParentId"));
         }
 
-        @Nullable
-        @AssignTo.Return
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static String ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
-                                            @Advice.Return @Nullable String returnValue) {
-            if (transaction instanceof Transaction) {
-                final TraceContext traceContext = ((Transaction) transaction).getTraceContext();
-                Id parentId = traceContext.getParentId();
-                if (parentId.isEmpty()) {
-                    parentId.setToRandomValue();
+        public static class AdviceClass {
+            @Nullable
+            @AssignTo.Return
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static String ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+                                                @Advice.Return @Nullable String returnValue) {
+                if (transaction instanceof Transaction) {
+                    final TraceContext traceContext = ((Transaction) transaction).getTraceContext();
+                    Id parentId = traceContext.getParentId();
+                    if (parentId.isEmpty()) {
+                        parentId.setToRandomValue();
+                    }
+                    return parentId.toString();
                 }
-                return parentId.toString();
+                return returnValue;
             }
-            return returnValue;
         }
     }
 
@@ -94,11 +114,13 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             super(named("setResult"));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void setResult(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
-                                     @Advice.Argument(0) String result) {
-            if (transaction instanceof Transaction) {
-                ((Transaction) transaction).withResult(result);
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void setResult(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+                                         @Advice.Argument(0) String result) {
+                if (transaction instanceof Transaction) {
+                    ((Transaction) transaction).withResult(result);
+                }
             }
         }
     }
@@ -108,18 +130,20 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             super(named("addCustomContext"));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void addCustomContext(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transactionObj,
-                                            @Advice.Argument(0) String key,
-                                            @Advice.Argument(1) @Nullable Object value) {
-            if (value != null && transactionObj instanceof Transaction) {
-                Transaction transaction = (Transaction) transactionObj;
-                if (value instanceof String) {
-                    transaction.addCustomContext(key, (String) value);
-                } else if (value instanceof Number) {
-                    transaction.addCustomContext(key, (Number) value);
-                } else if (value instanceof Boolean) {
-                    transaction.addCustomContext(key, (Boolean) value);
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void addCustomContext(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transactionObj,
+                                                @Advice.Argument(0) String key,
+                                                @Advice.Argument(1) @Nullable Object value) {
+                if (value != null && transactionObj instanceof Transaction) {
+                    Transaction transaction = (Transaction) transactionObj;
+                    if (value instanceof String) {
+                        transaction.addCustomContext(key, (String) value);
+                    } else if (value instanceof Number) {
+                        transaction.addCustomContext(key, (Number) value);
+                    } else if (value instanceof Boolean) {
+                        transaction.addCustomContext(key, (Boolean) value);
+                    }
                 }
             }
         }

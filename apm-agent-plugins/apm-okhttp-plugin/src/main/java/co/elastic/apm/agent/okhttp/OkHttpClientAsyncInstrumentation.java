@@ -22,6 +22,7 @@ import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
@@ -61,7 +62,9 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
         public static Object[] onBeforeEnqueue(final @Advice.Origin Class<? extends Call> clazz,
                                                final @Advice.FieldValue("originalRequest") @Nullable Request originalRequest,
                                                final @Advice.Argument(0) @Nullable Callback originalCallback) {
-            if (tracer.getActive() == null) {
+
+            final AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null) {
                 return null;
             }
 
@@ -69,19 +72,27 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
                 return null;
             }
 
-            final AbstractSpan<?> parent = tracer.getActive();
-
             Request request = originalRequest;
             Callback callback = originalCallback;
             URL url = request.url();
+
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.getProtocol(),
                 OkHttpClientHelper.computeHostName(url.getHost()), url.getPort());
+
             if (span != null) {
                 span.activate();
+            }
+
+            if (!TraceContext.containsTraceContextTextHeaders(request, OkHttpRequestHeaderGetter.INSTANCE)) {
                 Request.Builder builder = originalRequest.newBuilder();
-                span.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
-                request = builder.build();
-                callback = CallbackWrapperCreator.INSTANCE.wrap(originalCallback, span);
+                if (span != null) {
+                    span.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
+                    request = builder.build();
+                    callback = CallbackWrapperCreator.INSTANCE.wrap(originalCallback, span);
+                } else {
+                    parent.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
+                    request = builder.build();
+                }
             }
             return new Object[]{request, callback, span};
         }

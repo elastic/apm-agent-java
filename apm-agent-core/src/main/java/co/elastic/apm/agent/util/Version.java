@@ -33,10 +33,30 @@ public class Version implements Comparable<Version> {
     }
 
     private Version(String version) {
-        final String[] parts = version.split("\\-")[0].split("\\.");
-        numbers = new int[parts.length];
-        for (int i = 0; i < parts.length; i++) {
-            numbers[i] = Integer.valueOf(parts[i]);
+        int indexOfDash = version.indexOf('-');
+        int indexOfFirstDot = version.indexOf('.');
+        if (indexOfDash > 0 && indexOfDash < indexOfFirstDot) {
+            version = version.substring(indexOfDash + 1);
+        }
+        indexOfDash = version.indexOf('-');
+        int indexOfLastDot = version.lastIndexOf('.');
+        if (indexOfDash > 0 && indexOfDash > indexOfLastDot) {
+            version = version.substring(0, indexOfDash);
+        }
+        final String[] parts = version.split("\\.");
+        int[] tmp = new int[parts.length];
+        int validPartsIndex = 0;
+        for (String part : parts) {
+            try {
+                tmp[validPartsIndex] = Integer.valueOf(part);
+                validPartsIndex++;
+            } catch (NumberFormatException numberFormatException) {
+                // continue
+            }
+        }
+        numbers = new int[validPartsIndex];
+        if (numbers.length > 0) {
+            System.arraycopy(tmp, 0, numbers, 0, numbers.length);
         }
     }
 

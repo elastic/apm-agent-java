@@ -312,6 +312,24 @@ transaction.setType(Transaction.TYPE_REQUEST);
 * `type`: The type of the transaction
 
 [float]
+[[api-transaction-set-framework-name]]
+==== `Transaction setFrameworkName(String frameworkName)` added[1.25.0]
+Provides a way to manually set the `service.framework.name` field.
+For supported frameworks,
+the framework name is determined automatically,
+and can be overridden using this function.
+`null` or the empty string will make the agent omit this field.
+
+Example:
+
+[source,java]
+----
+transaction.setFrameworkName("My Framework");
+----
+
+* `frameworkName`: The name of the framework
+
+[float]
 [[api-transaction-add-tag]]
 ==== `Transaction setLabel(String key, value)` added[1.5.0 as `addLabel`,Number and boolean labels require APM Server 6.7]
 Labels are used to add *indexed* information to transactions, spans, and errors.
@@ -476,8 +494,19 @@ NOTE: Spans created via this method can not be retrieved by calling <<api-curren
 See <<api-span-activate, `span.activate()`>> on how to achieve that.
 
 [float]
+[[api-transaction-start-exit-span-with-type]]
+==== `Span startExitSpan(String type, String subtype, String action)`
+
+Start and return a new exit span with a type, a subtype and an action, as a child of this transaction.
+
+Similar to <<api-transaction-start-span-with-type, `startSpan(String, String, String)`>>, but the created span will be used to create a node in the Service Map and a downstream service in the Dependencies Table.
+The provided subtype will be used as the downstream service name, unless the `destination.service.resource` field is explicitly set through
+<<api-span-set-destination-resource, `setDestinationService(String resource)`>>.
+
+[float]
 [[api-transaction-start-span]]
 ==== `Span startSpan()`
+
 Start and return a new custom span with no type as a child of this transaction.
 
 It is important to call <<api-span-end>> when the span has ended.
@@ -752,7 +781,7 @@ span.end(System.currentTimeMillis() * 1000);
 [float]
 [[api-span-start-span-with-type]]
 ==== `Span startSpan(String type, String subtype, String action)`
-Start and return a new span with a type, a subtype and an action, as a child of this transaction.
+Start and return a new span with a type, a subtype and an action, as a child of this span.
 
 The type, subtype and action strings are used to group similar spans together, with different resolution.
 For instance, all DB spans are given the type `db`; all spans of MySQL queries are given the subtype `mysql` and all spans
@@ -785,9 +814,22 @@ NOTE: Spans created via this method can not be retrieved by calling <<api-curren
 See <<api-span-activate, `span.activate()`>> on how to achieve that.
 
 [float]
+[[api-span-start-exit-span-with-type]]
+==== `Span startExitSpan(String type, String subtype, String action)`
+
+Start and return a new exit span with a type, a subtype and an action, as a child of this span.
+
+Similar to <<api-span-start-span-with-type, `startSpan(String, String, String)`>>, but the created span will be used to create a node in the Service Map and a downstream service in the Dependencies Table.
+The provided subtype will be used as the downstream service name, unless the `destination.service.resource` field is explicitly set through
+<<api-span-set-destination-resource, `setDestinationService(String resource)`>>.
+
+If invoked on a span which is already an exit span, this method will return a noop span.
+
+[float]
 [[api-span-start-span]]
 ==== `Span startSpan()`
-Start and return a new custom span with no type as a child of this transaction.
+
+Start and return a new custom span with no type as a child of this span.
 
 It is important to call <<api-span-end>> when the span has ended.
 A best practice is to use the span in a try-catch-finally block.

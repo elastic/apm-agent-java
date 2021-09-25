@@ -31,11 +31,13 @@ public abstract class TestApp {
     private final String statusEndpoint;
     @Nullable
     private final String expectedServiceName;
+    private final String deploymentContext;
 
-    TestApp(String modulePath, String appFileName, String statusEndpoint, @Nullable String expectedServiceName) {
+    TestApp(String modulePath, String appFileName, String deploymentContext, String statusEndpoint, @Nullable String expectedServiceName) {
         this.modulePath = modulePath;
         this.appFileName = appFileName;
-        this.statusEndpoint = statusEndpoint;
+        this.statusEndpoint = String.format("/%s/%s", deploymentContext, statusEndpoint);
+        this.deploymentContext = deploymentContext;
         this.expectedServiceName = expectedServiceName;
     }
 
@@ -51,6 +53,10 @@ public abstract class TestApp {
         return statusEndpoint;
     }
 
+    public String getDeploymentContext() {
+        return deploymentContext;
+    }
+
     @Nullable
     public String getExpectedServiceName() {
         return expectedServiceName;
@@ -58,6 +64,7 @@ public abstract class TestApp {
 
     /**
      * Provides a way to bind additional files to the container file system
+     *
      * @return a map of file-paths to designated container-paths
      */
     public Map<String, String> getAdditionalFilesToBind() {
@@ -66,6 +73,7 @@ public abstract class TestApp {
 
     /**
      * Provides a way to configure additional environment variables for a specific app
+     *
      * @return a map of env variable names to values
      */
     public Map<String, String> getAdditionalEnvVariables() {

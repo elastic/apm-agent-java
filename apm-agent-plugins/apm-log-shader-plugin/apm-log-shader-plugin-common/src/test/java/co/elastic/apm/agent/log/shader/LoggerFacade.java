@@ -30,6 +30,10 @@ public interface LoggerFacade {
 
     void debug(String message);
 
+    default void debugWithMarker(String message) {
+        // do nothing unless supported by framework
+    }
+
     void warn(String message);
 
     void error(String message);

@@ -20,7 +20,6 @@ package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.helper.ApacheHttpAsyncClientHelper;
-import co.elastic.apm.agent.httpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
@@ -96,17 +95,19 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
             Span span = parent.createExitSpan();
             HttpAsyncRequestProducer wrappedProducer = requestProducer;
             FutureCallback<?> wrappedFutureCallback = futureCallback;
-            boolean wrapped = false;
+            boolean responseFutureWrapped = false;
             if (span != null) {
                 span.withType(HttpClientHelper.EXTERNAL_TYPE)
                     .withSubtype(HttpClientHelper.HTTP_SUBTYPE)
                     .activate();
 
-                wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, span, RequestHeaderAccessor.INSTANCE);
+                wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, span, null);
                 wrappedFutureCallback = asyncHelper.wrapFutureCallback(futureCallback, context, span);
-                wrapped = true;
+                responseFutureWrapped = true;
+            } else {
+                wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, null, parent);
             }
-            return new Object[]{wrappedProducer, wrappedFutureCallback, wrapped, span};
+            return new Object[]{wrappedProducer, wrappedFutureCallback, responseFutureWrapped, span};
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

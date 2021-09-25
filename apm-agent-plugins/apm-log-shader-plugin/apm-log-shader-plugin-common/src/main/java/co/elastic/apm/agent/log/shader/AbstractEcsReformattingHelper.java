@@ -21,6 +21,7 @@ package co.elastic.apm.agent.log.shader;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.ServiceFactory;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The abstract Log shading helper- loaded as part of the agent core (agent CL / bootstrap CL / System CL).
@@ -100,7 +102,7 @@ import java.util.List;
 public abstract class AbstractEcsReformattingHelper<A, F> {
 
     // Escape shading
-    private static final String ECS_LOGGING_PACKAGE_NAME = "co!elastic!logging".replace('!', '.');
+    private static final String ECS_LOGGING_PACKAGE_NAME = "co.elastic.logging";
 
     // We can use regular shaded logging here as this class is loaded from the agent CL
     private static final Logger logger = LoggerFactory.getLogger(AbstractEcsReformattingHelper.class);
@@ -147,10 +149,23 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     @Nullable
     private final String configuredServiceName;
 
+    @Nullable
+    private final String configuredServiceNodeName;
+
+    @Nullable
+    private final Map<String, String> additionalFields;
+
     public AbstractEcsReformattingHelper() {
         ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
         loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
-        configuredServiceName = new ServiceFactory().createService(tracer.getConfig(CoreConfiguration.class), "").getName();
+        additionalFields = loggingConfiguration.getLogEcsReformattingAdditionalFields();
+        Service service = new ServiceFactory().createService(tracer.getConfig(CoreConfiguration.class), "");
+        configuredServiceName = service.getName();
+        if (service.getNode() != null) {
+            configuredServiceNodeName = service.getNode().getName();
+        } else {
+            configuredServiceNodeName = null;
+        }
     }
 
     /**
@@ -201,13 +216,17 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
                 return;
             }
 
-            Object originalFormatter = NULL_FORMATTER;
+            Object mappedFormatter = NULL_FORMATTER;
             Object ecsFormatter = NULL_FORMATTER;
             try {
                 if (shouldApplyEcsReformatting(originalAppender)) {
-                    originalFormatter = getFormatterFrom(originalAppender);
+                    F originalFormatter = getFormatterFrom(originalAppender);
+                    mappedFormatter = originalFormatter;
                     String serviceName = getServiceName();
-                    F createdEcsFormatter = createEcsFormatter(getEventDataset(originalAppender, serviceName), serviceName);
+                    F createdEcsFormatter = createEcsFormatter(
+                        getEventDataset(originalAppender, serviceName), serviceName, configuredServiceNodeName,
+                        additionalFields, originalFormatter
+                    );
                     setFormatter(originalAppender, createdEcsFormatter);
                     ecsFormatter = createdEcsFormatter;
                 }
@@ -217,7 +236,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
                     originalAppender.getClass().getName(), getAppenderName(originalAppender)), throwable);
             } finally {
                 originalAppender2ecsFormatter.put(originalAppender, ecsFormatter);
-                originalAppender2originalFormatter.put(originalAppender, originalFormatter);
+                originalAppender2originalFormatter.put(originalAppender, mappedFormatter);
             }
         }
     }
@@ -287,7 +306,10 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
             try {
                 if (shouldApplyEcsReformatting(originalAppender)) {
                     String serviceName = getServiceName();
-                    F ecsFormatter = createEcsFormatter(getEventDataset(originalAppender, serviceName), serviceName);
+                    F ecsFormatter = createEcsFormatter(
+                        getEventDataset(originalAppender, serviceName), serviceName, configuredServiceNodeName,
+                        additionalFields, getFormatterFrom(originalAppender)
+                    );
                     ecsAppender = createAndStartEcsAppender(originalAppender, ECS_SHADE_APPENDER_NAME, ecsFormatter);
                     if (ecsAppender == null) {
                         ecsAppender = NULL_APPENDER;
@@ -392,7 +414,8 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     @Nullable
     protected abstract A createAndStartEcsAppender(A originalAppender, String ecsAppenderName, F ecsFormatter);
 
-    protected abstract F createEcsFormatter(String eventDataset, @Nullable String serviceName);
+    protected abstract F createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName,
+                                            @Nullable Map<String, String> additionalFields, F originalFormatter);
 
     /**
      * We currently get the same service name that is reported in the metadata document.
