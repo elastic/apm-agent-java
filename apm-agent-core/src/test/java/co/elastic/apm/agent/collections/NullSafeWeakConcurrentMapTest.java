@@ -18,12 +18,11 @@
  */
 package co.elastic.apm.agent.collections;
 
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
-
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;

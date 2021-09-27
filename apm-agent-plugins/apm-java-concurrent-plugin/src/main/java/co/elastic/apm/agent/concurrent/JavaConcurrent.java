@@ -22,8 +22,8 @@ import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -37,7 +37,7 @@ import java.util.concurrent.ForkJoinTask;
 
 public class JavaConcurrent {
 
-    private static final WeakMap<Object, AbstractSpan<?>> contextMap = WeakMaps.createMap();
+    private static final WeakMap<Object, AbstractSpan<?>> contextMap = WeakConcurrent.createMap();
     private static final List<Class<? extends ElasticApmInstrumentation>> RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION = Collections.
         <Class<? extends ElasticApmInstrumentation>>singletonList(RunnableCallableForkJoinTaskInstrumentation.class);
     static final ThreadLocal<Boolean> needsContext = new ThreadLocal<>();

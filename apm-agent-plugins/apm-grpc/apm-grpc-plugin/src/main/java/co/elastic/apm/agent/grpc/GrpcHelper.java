@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.collections.WeakMapSupplierImpl;
+import co.elastic.apm.agent.collections.WeakConcurrentSupplierImpl;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Destination;
@@ -30,8 +30,8 @@ import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import io.grpc.CallOptions;
 import io.grpc.ClientCall;
 import io.grpc.Metadata;
@@ -90,14 +90,14 @@ public class GrpcHelper {
     private final TextHeaderGetter<Metadata> headerGetter;
 
     public GrpcHelper() {
-        clientCallSpans = WeakMapSupplierImpl.createWeakSpanMap();
-        delayedClientCallSpans = WeakMapSupplierImpl.createWeakSpanMap();
-        clientCallListenerSpans = WeakMapSupplierImpl.createWeakSpanMap();
+        clientCallSpans = WeakConcurrentSupplierImpl.createWeakSpanMap();
+        delayedClientCallSpans = WeakConcurrentSupplierImpl.createWeakSpanMap();
+        clientCallListenerSpans = WeakConcurrentSupplierImpl.createWeakSpanMap();
 
-        serverListenerTransactions = WeakMapSupplierImpl.createWeakSpanMap();
-        serverCallTransactions = WeakMapSupplierImpl.createWeakSpanMap();
+        serverListenerTransactions = WeakConcurrentSupplierImpl.createWeakSpanMap();
+        serverCallTransactions = WeakConcurrentSupplierImpl.createWeakSpanMap();
 
-        headerCache = WeakMaps.createMap();
+        headerCache = WeakConcurrent.createMap();
 
         headerSetter = new GrpcHeaderSetter();
         headerGetter = new GrpcHeaderGetter();

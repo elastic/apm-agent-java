@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.collections;
 
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.weakconcurrent.CachedLookupKey;
 import com.blogspot.mydailyjava.weaklockfree.AbstractWeakConcurrentMap;
 

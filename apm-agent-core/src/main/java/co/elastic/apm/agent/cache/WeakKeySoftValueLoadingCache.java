@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.cache;
 
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +60,7 @@ public class WeakKeySoftValueLoadingCache<K, V> {
 
     private static final Logger logger = LoggerFactory.getLogger(WeakKeySoftValueLoadingCache.class);
 
-    private final WeakMap<K, CacheValue<K, V>> cache = WeakMaps.createMap();
+    private final WeakMap<K, CacheValue<K, V>> cache = WeakConcurrent.createMap();
     private final ValueSupplier<K, V> valueSupplier;
 
     public WeakKeySoftValueLoadingCache(ValueSupplier<K, V> valueSupplier) {

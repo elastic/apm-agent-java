@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.sdk.weakmap;
+package co.elastic.apm.agent.sdk.weakconcurrent;
 
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
@@ -24,28 +24,31 @@ import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import javax.annotation.Nullable;
 import java.util.ServiceLoader;
 
-public final class WeakMaps {
+public final class WeakConcurrent {
 
-    private static final WeakMapSupplier supplier;
+    private static final WeakConcurrentSupplier supplier;
 
     static {
-        ClassLoader classLoader = WeakMapSupplier.class.getClassLoader();
+        ClassLoader classLoader = WeakConcurrentSupplier.class.getClassLoader();
         if (classLoader == null) {
             classLoader = ClassLoader.getSystemClassLoader();
         }
         // loads the implementation provided by the core module without depending on the class or class name
-        supplier = ServiceLoader.load(WeakMapSupplier.class, classLoader).iterator().next();
+        supplier = ServiceLoader.load(WeakConcurrentSupplier.class, classLoader).iterator().next();
     }
 
+    /**
+     * A shorthand for {@code WeakConcurrent.<K, V>weakMapBuilder().build()}
+     */
     public static <K, V> WeakMap<K, V> createMap() {
         return supplier.<K, V>buildWeakMap().build();
     }
 
-    public static <K, V> WeakMapBuilder<K, V> buildWeakMap() {
+    public static <K, V> WeakMapBuilder<K, V> weakMapBuilder() {
         return supplier.buildWeakMap();
     }
 
-    public static <T> ThreadLocalBuilder<T> buildThreadLocal() {
+    public static <T> ThreadLocalBuilder<T> threadLocalBuilder() {
         return supplier.buildThreadLocal();
     }
 
@@ -53,7 +56,7 @@ public final class WeakMaps {
         return supplier.createSet();
     }
 
-    public interface WeakMapSupplier {
+    public interface WeakConcurrentSupplier {
 
         <K, V> WeakMapBuilder<K, V> buildWeakMap();
 

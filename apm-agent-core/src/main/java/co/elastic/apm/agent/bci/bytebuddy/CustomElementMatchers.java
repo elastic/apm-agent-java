@@ -20,8 +20,8 @@ package co.elastic.apm.agent.bci.bytebuddy;
 
 import co.elastic.apm.agent.matcher.AnnotationMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.Version;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.annotation.AnnotationSource;
@@ -79,7 +79,7 @@ public class CustomElementMatchers {
         return new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
 
             private final boolean loadableByBootstrapClassLoader = canLoadClass(null, className);
-            private final WeakMap<ClassLoader, Boolean> cache = WeakMaps.createMap();
+            private final WeakMap<ClassLoader, Boolean> cache = WeakConcurrent.createMap();
 
             @Override
             public boolean matches(@Nullable ClassLoader target) {

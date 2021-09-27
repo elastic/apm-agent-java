@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.collections;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.sdk.weakmap.DetachedThreadLocal;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
-import co.elastic.apm.agent.sdk.weakmap.WeakSet;
+import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 import com.blogspot.mydailyjava.weaklockfree.AbstractWeakConcurrentMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
 
@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentMap;
  * The canonical place to get a new instance of a {@link WeakMap}, {@link WeakSet}, or {@link DetachedThreadLocal}.
  * Do not instantiate a {@link AbstractWeakConcurrentMap} directly to benefit from the global cleanup of stale entries.
  */
-public class WeakMapSupplierImpl implements WeakMaps.WeakMapSupplier {
+public class WeakConcurrentSupplierImpl implements WeakConcurrent.WeakConcurrentSupplier {
 
     private static final WeakConcurrentSet<AbstractWeakConcurrentMap<?, ?, ?>> registeredMaps = new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.INLINE);
     private static final ConcurrentMap<String, DetachedThreadLocalImpl<?>> globalThreadLocals = new ConcurrentHashMap<>();
@@ -47,19 +47,19 @@ public class WeakMapSupplierImpl implements WeakMaps.WeakMapSupplier {
     }
 
     @Override
-    public <K, V> WeakMaps.WeakMapBuilder<K, V> buildWeakMap() {
-        return new WeakMaps.WeakMapBuilder<K, V>() {
+    public <K, V> WeakConcurrent.WeakMapBuilder<K, V> buildWeakMap() {
+        return new WeakConcurrent.WeakMapBuilder<K, V>() {
             @Nullable
             private WeakMap.DefaultValueSupplier<K, V> defaultValueSupplier;
             private int initialCapacity = 16;
             @Override
-            public WeakMaps.WeakMapBuilder<K, V> withInitialCapacity(int initialCapacity) {
+            public WeakConcurrent.WeakMapBuilder<K, V> withInitialCapacity(int initialCapacity) {
                 this.initialCapacity = initialCapacity;
                 return this;
             }
 
             @Override
-            public WeakMaps.WeakMapBuilder<K, V> withDefaultValueSupplier(@Nullable WeakMap.DefaultValueSupplier<K, V> defaultValueSupplier) {
+            public WeakConcurrent.WeakMapBuilder<K, V> withDefaultValueSupplier(@Nullable WeakMap.DefaultValueSupplier<K, V> defaultValueSupplier) {
                 this.defaultValueSupplier = defaultValueSupplier;
                 return this;
             }
@@ -74,21 +74,21 @@ public class WeakMapSupplierImpl implements WeakMaps.WeakMapSupplier {
     }
 
     @Override
-    public <T> WeakMaps.ThreadLocalBuilder<T> buildThreadLocal() {
-        return new WeakMaps.ThreadLocalBuilder<T>() {
+    public <T> WeakConcurrent.ThreadLocalBuilder<T> buildThreadLocal() {
+        return new WeakConcurrent.ThreadLocalBuilder<T>() {
 
             @Nullable
             private WeakMap.DefaultValueSupplier<Thread, T> defaultValueSupplier;
             @Nullable
             private String globalKey;
             @Override
-            public WeakMaps.ThreadLocalBuilder<T> asGlobalThreadLocal(Class<?> adviceClass, String key) {
+            public WeakConcurrent.ThreadLocalBuilder<T> asGlobalThreadLocal(Class<?> adviceClass, String key) {
                 globalKey = adviceClass.getName() + "." + key;
                 return this;
             }
 
             @Override
-            public WeakMaps.ThreadLocalBuilder<T> withDefaultValueSupplier(@Nullable WeakMap.DefaultValueSupplier<Thread, T> defaultValueSupplier) {
+            public WeakConcurrent.ThreadLocalBuilder<T> withDefaultValueSupplier(@Nullable WeakMap.DefaultValueSupplier<Thread, T> defaultValueSupplier) {
                 this.defaultValueSupplier = defaultValueSupplier;
                 return this;
             }
@@ -100,7 +100,7 @@ public class WeakMapSupplierImpl implements WeakMaps.WeakMapSupplier {
                     threadLocal = globalThreadLocals.get(globalKey);
                 }
                 if (threadLocal == null) {
-                    threadLocal = new DetachedThreadLocalImpl<T>(WeakMapSupplierImpl.this.<Thread, T>buildWeakMap()
+                    threadLocal = new DetachedThreadLocalImpl<T>(WeakConcurrentSupplierImpl.this.<Thread, T>buildWeakMap()
                         .withDefaultValueSupplier(defaultValueSupplier)
                         .build());
                 }

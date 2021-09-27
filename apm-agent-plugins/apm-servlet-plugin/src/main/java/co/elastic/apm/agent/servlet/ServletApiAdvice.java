@@ -28,8 +28,8 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.weakmap.DetachedThreadLocal;
-import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
+import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
@@ -67,16 +67,16 @@ public class ServletApiAdvice {
         servletTransactionCreationHelper = new ServletTransactionCreationHelper(GlobalTracer.requireTracerImpl());
     }
 
-    private static final DetachedThreadLocal<Boolean> excluded = WeakMaps
-        .<Boolean>buildThreadLocal()
+    private static final DetachedThreadLocal<Boolean> excluded = WeakConcurrent
+        .<Boolean>threadLocalBuilder()
         .asGlobalThreadLocal(ServletApiAdvice.class, "excluded")
         .build();
-    private static final DetachedThreadLocal<Object> servletPathTL = WeakMaps
-        .buildThreadLocal()
+    private static final DetachedThreadLocal<Object> servletPathTL = WeakConcurrent
+        .threadLocalBuilder()
         .asGlobalThreadLocal(ServletApiAdvice.class, "servletPath")
         .build();
-    private static final DetachedThreadLocal<Object> pathInfoTL = WeakMaps
-        .buildThreadLocal()
+    private static final DetachedThreadLocal<Object> pathInfoTL = WeakConcurrent
+        .threadLocalBuilder()
         .asGlobalThreadLocal(ServletApiAdvice.class, "pathInfo")
         .build();
 

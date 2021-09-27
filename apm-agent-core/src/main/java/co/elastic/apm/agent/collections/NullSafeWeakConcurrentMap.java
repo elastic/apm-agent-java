@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.collections;
 
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.ConcurrentMap;

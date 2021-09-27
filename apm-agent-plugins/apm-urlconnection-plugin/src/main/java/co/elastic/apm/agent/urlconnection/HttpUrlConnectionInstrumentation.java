@@ -24,8 +24,8 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -47,7 +47,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
 
-    private static final WeakMap<HttpURLConnection, Span> inFlightSpans = WeakMaps.createMap();
+    private static final WeakMap<HttpURLConnection, Span> inFlightSpans = WeakConcurrent.createMap();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

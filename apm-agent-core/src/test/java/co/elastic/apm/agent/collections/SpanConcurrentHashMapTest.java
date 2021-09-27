@@ -22,7 +22,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -45,7 +45,7 @@ class SpanConcurrentHashMapTest {
         checkRefCount(testSpan, 0);
 
         key = new Object();
-        WeakMap<Object, TestSpan> map = WeakMapSupplierImpl.createWeakSpanMap();
+        WeakMap<Object, TestSpan> map = WeakConcurrentSupplierImpl.createWeakSpanMap();
         map.put(key, testSpan);
 
         checkRefCount(testSpan, 1);
@@ -63,7 +63,7 @@ class SpanConcurrentHashMapTest {
     void putTwice(PutOperation operation) {
         TestSpan testSpan = new TestSpan();
         key = new Object();
-        WeakMap<Object, TestSpan> map = WeakMapSupplierImpl.createWeakSpanMap();
+        WeakMap<Object, TestSpan> map = WeakConcurrentSupplierImpl.createWeakSpanMap();
 
         checkRefCount(testSpan, 0);
 
@@ -82,7 +82,7 @@ class SpanConcurrentHashMapTest {
         TestSpan ts2 = new TestSpan();
 
         key = new Object();
-        WeakMap<Object, TestSpan> map = WeakMapSupplierImpl.createWeakSpanMap();
+        WeakMap<Object, TestSpan> map = WeakConcurrentSupplierImpl.createWeakSpanMap();
 
         map.put(key, ts1);
         map.put(key, ts2);
@@ -99,7 +99,7 @@ class SpanConcurrentHashMapTest {
         TestSpan ts2 = new TestSpan();
 
         key = new Object();
-        WeakMap<Object, TestSpan> map = WeakMapSupplierImpl.createWeakSpanMap();
+        WeakMap<Object, TestSpan> map = WeakConcurrentSupplierImpl.createWeakSpanMap();
 
         map.putIfAbsent(key, ts1);
         map.putIfAbsent(key, ts2);
@@ -130,7 +130,7 @@ class SpanConcurrentHashMapTest {
 
     @Test
     void clear() {
-        WeakMap<Object, TestSpan> map = WeakMapSupplierImpl.createWeakSpanMap();
+        WeakMap<Object, TestSpan> map = WeakConcurrentSupplierImpl.createWeakSpanMap();
 
         List<AbstractSpan<?>> list = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
@@ -153,7 +153,7 @@ class SpanConcurrentHashMapTest {
         key = new Object();
         TestSpan span = new TestSpan();
 
-        WeakMap<Object, AbstractSpan<?>> map = WeakMapSupplierImpl.createWeakSpanMap();
+        WeakMap<Object, AbstractSpan<?>> map = WeakConcurrentSupplierImpl.createWeakSpanMap();
 
         map.put(key, span);
 
@@ -165,7 +165,7 @@ class SpanConcurrentHashMapTest {
 
         await().untilAsserted(() -> {
             System.gc();
-            WeakMapSupplierImpl.expungeStaleEntries();
+            WeakConcurrentSupplierImpl.expungeStaleEntries();
             assertThat(map.approximateSize()).isEqualTo(0);
         });
 

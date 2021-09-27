@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.collections;
 
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakSet;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
 
 import java.util.Iterator;

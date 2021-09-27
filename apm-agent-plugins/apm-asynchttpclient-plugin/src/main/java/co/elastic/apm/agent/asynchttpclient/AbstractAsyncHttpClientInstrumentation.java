@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.asynchttpclient;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.collections.WeakMapSupplierImpl;
+import co.elastic.apm.agent.collections.WeakConcurrentSupplierImpl;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -27,7 +27,7 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -55,7 +55,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
     public static class Helper {
 
-        static final WeakMap<AsyncHandler<?>, Span> handlerSpanMap = WeakMapSupplierImpl.createWeakSpanMap();
+        static final WeakMap<AsyncHandler<?>, Span> handlerSpanMap = WeakConcurrentSupplierImpl.createWeakSpanMap();
 
         public static final List<Class<? extends ElasticApmInstrumentation>> ASYNC_HANDLER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
             AsyncHandlerOnCompletedInstrumentation.class,

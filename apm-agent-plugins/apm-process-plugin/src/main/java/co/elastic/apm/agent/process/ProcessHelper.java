@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.collections.WeakMapSupplierImpl;
+import co.elastic.apm.agent.collections.WeakConcurrentSupplierImpl;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -33,7 +33,7 @@ import java.util.List;
  */
 class ProcessHelper {
 
-    private static final ProcessHelper INSTANCE = new ProcessHelper(WeakMapSupplierImpl.<Process, Span>createWeakSpanMap());
+    private static final ProcessHelper INSTANCE = new ProcessHelper(WeakConcurrentSupplierImpl.<Process, Span>createWeakSpanMap());
 
     private final WeakMap<Process, Span> inFlightSpans;
 

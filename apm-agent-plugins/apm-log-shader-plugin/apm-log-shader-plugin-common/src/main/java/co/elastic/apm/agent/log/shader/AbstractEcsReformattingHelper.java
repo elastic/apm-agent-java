@@ -29,8 +29,8 @@ import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,21 +120,21 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#SHADE SHADE} or {@link LogEcsReformatting#REPLACE REPLACE}.
      */
-    private static final WeakMap<Object, Object> originalAppender2ecsAppender = WeakMaps.createMap();
+    private static final WeakMap<Object, Object> originalAppender2ecsAppender = WeakConcurrent.createMap();
 
     /**
      * A mapping between original appender and the formatter that it had originally.
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#OVERRIDE OVERRIDE}.
      */
-    private static final WeakMap<Object, Object> originalAppender2originalFormatter = WeakMaps.createMap();
+    private static final WeakMap<Object, Object> originalAppender2originalFormatter = WeakConcurrent.createMap();
 
     /**
      * A mapping between original appender and the corresponding ECS-formatter.
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#OVERRIDE OVERRIDE}, currently only for the log4j2 instrumentation.
      */
-    private static final WeakMap<Object, Object> originalAppender2ecsFormatter = WeakMaps.createMap();
+    private static final WeakMap<Object, Object> originalAppender2ecsFormatter = WeakConcurrent.createMap();
 
     /**
      * This state is set at the beginning of {@link #onAppendEnter(Object)} and cleared at the end of {@link #onAppendExit(Object)}.

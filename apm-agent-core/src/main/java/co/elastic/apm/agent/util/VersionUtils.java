@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -32,7 +32,7 @@ import java.util.jar.JarInputStream;
 
 public final class VersionUtils {
 
-    private static final WeakMap<Class<?>, String> versionsCache = WeakMaps.createMap();
+    private static final WeakMap<Class<?>, String> versionsCache = WeakConcurrent.createMap();
     private static final String UNKNOWN_VERSION = "UNKNOWN_VERSION";
     @Nullable
     private static final String AGENT_VERSION;

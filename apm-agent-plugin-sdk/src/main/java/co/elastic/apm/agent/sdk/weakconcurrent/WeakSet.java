@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.sdk.weakmap;
+package co.elastic.apm.agent.sdk.weakconcurrent;
 
 public interface WeakSet<E> extends Iterable<E> {
 

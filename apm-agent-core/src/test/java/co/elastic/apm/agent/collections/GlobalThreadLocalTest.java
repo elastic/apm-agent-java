@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.collections;
 
-import co.elastic.apm.agent.sdk.weakmap.DetachedThreadLocal;
-import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
+import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.Callable;
@@ -36,8 +36,8 @@ public class GlobalThreadLocalTest {
 
     @Test
     void setNullValueShouldNotThrow() {
-        WeakMaps
-            .buildThreadLocal()
+        WeakConcurrent
+            .threadLocalBuilder()
             .asGlobalThreadLocal(GlobalThreadLocalTest.class, "setNullValueShouldNotThrow")
             .build()
             .set(null);
@@ -45,8 +45,8 @@ public class GlobalThreadLocalTest {
 
     @Test
     void testNonConstantDefaultValue() throws ExecutionException, InterruptedException {
-        final DetachedThreadLocal<Object> threadLocal = WeakMaps
-            .buildThreadLocal()
+        final DetachedThreadLocal<Object> threadLocal = WeakConcurrent
+            .threadLocalBuilder()
             .asGlobalThreadLocal(GlobalThreadLocalTest.class, "testNonConstantDefaultValue")
             .withDefaultValueSupplier(t -> new Object())
             .build();
@@ -59,8 +59,8 @@ public class GlobalThreadLocalTest {
     @Test
     void testConstantDefaultValue() throws ExecutionException, InterruptedException {
         final Object constant = new Object();
-        final DetachedThreadLocal<Object> threadLocal = WeakMaps
-            .buildThreadLocal()
+        final DetachedThreadLocal<Object> threadLocal = WeakConcurrent
+            .threadLocalBuilder()
             .asGlobalThreadLocal(GlobalThreadLocalTest.class, "testConstantDefaultValue")
             .withDefaultValueSupplier(t -> constant)
             .build();
@@ -72,8 +72,8 @@ public class GlobalThreadLocalTest {
 
     @Test
     void testNullDefaultValue() {
-        final DetachedThreadLocal<Object> threadLocal = WeakMaps
-            .buildThreadLocal()
+        final DetachedThreadLocal<Object> threadLocal = WeakConcurrent
+            .threadLocalBuilder()
             .asGlobalThreadLocal(GlobalThreadLocalTest.class, "testNullDefaultValue")
             .withDefaultValueSupplier(null)
             .build();
@@ -82,8 +82,8 @@ public class GlobalThreadLocalTest {
 
     @Test
     void testNonDefaultValue() throws ExecutionException, InterruptedException {
-        final DetachedThreadLocal<Object> threadLocal = WeakMaps
-            .buildThreadLocal()
+        final DetachedThreadLocal<Object> threadLocal = WeakConcurrent
+            .threadLocalBuilder()
             .asGlobalThreadLocal(GlobalThreadLocalTest.class, "testNonDefaultValue")
             .withDefaultValueSupplier(null)
             .build();

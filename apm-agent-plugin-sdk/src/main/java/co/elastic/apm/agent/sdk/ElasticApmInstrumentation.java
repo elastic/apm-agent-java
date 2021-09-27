@@ -77,7 +77,7 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  *     </li>
  *     <li>
  *         Don't use {@link ThreadLocal}s as it can lead to class loader leaks.
- *         Use {@link co.elastic.apm.agent.sdk.weakmap.DetachedThreadLocal} instead.
+ *         Use {@link co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal} instead.
  *     </li>
  *     <li>
  *         This applies to internal plugins only:

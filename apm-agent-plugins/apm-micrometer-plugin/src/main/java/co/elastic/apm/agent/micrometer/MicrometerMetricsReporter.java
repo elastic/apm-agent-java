@@ -24,8 +24,8 @@ import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
-import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
-import co.elastic.apm.agent.sdk.weakmap.WeakSet;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 import com.dslplatform.json.JsonWriter;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -44,7 +44,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(MicrometerMetricsReporter.class);
 
-    private final WeakSet<MeterRegistry> meterRegistries = WeakMaps.createSet();
+    private final WeakSet<MeterRegistry> meterRegistries = WeakConcurrent.createSet();
     private final MicrometerMeterRegistrySerializer serializer;
     private final Reporter reporter;
     private final ElasticApmTracer tracer;

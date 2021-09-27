@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.reactor;
 
-import co.elastic.apm.agent.collections.WeakMapSupplierImpl;
+import co.elastic.apm.agent.collections.WeakConcurrentSupplierImpl;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -45,7 +45,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
     private static final AtomicBoolean isRegistered = GlobalVariables.get(ReactorInstrumentation.class, "reactor-hook-enabled", new AtomicBoolean(false));
 
-    private static final WeakMap<TracedSubscriber<?>, AbstractSpan<?>> contextMap = WeakMapSupplierImpl.createWeakSpanMap();
+    private static final WeakMap<TracedSubscriber<?>, AbstractSpan<?>> contextMap = WeakConcurrentSupplierImpl.createWeakSpanMap();
 
     private static final String HOOK_KEY = "elastic-apm";
 

@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.bci.bytebuddy;
 
 import co.elastic.apm.agent.configuration.converter.ByteValue;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMaps;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.googlecode.concurrentlinkedhashmap.EntryWeigher;
@@ -90,7 +90,7 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
         super(readerMode);
         this.maxCacheSize = maxCacheSize;
         this.sharedCache = new AtomicReference<>(new SoftReference<>(createCache()));
-        this.cacheProviders = WeakMaps.createMap();
+        this.cacheProviders = WeakConcurrent.createMap();
         this.executor = ExecutorUtils.createSingleThreadSchedulingDaemonPool("type-cache-pool-cleaner");
     }
 
@@ -216,8 +216,8 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
         private final WeakMap<ClassLoader, TypePool.Resolution> typeByClassLoader;
 
         public ResolutionsByClassLoader() {
-            typeByClassLoader = WeakMaps
-                .<ClassLoader, TypePool.Resolution>buildWeakMap()
+            typeByClassLoader = WeakConcurrent
+                .<ClassLoader, TypePool.Resolution>weakMapBuilder()
                 // we expect that most classes are loaded by just one class loader
                 .withInitialCapacity(1)
                 .build();

@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.collections.WeakMapSupplierImpl;
+import co.elastic.apm.agent.collections.WeakConcurrentSupplierImpl;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.sdk.weakmap.WeakMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
 
 public class AlibabaCallbackHolder {
-    public static final WeakMap<ResponseCallback, AbstractSpan<?>> callbackSpanMap = WeakMapSupplierImpl.createWeakSpanMap();
+    public static final WeakMap<ResponseCallback, AbstractSpan<?>> callbackSpanMap = WeakConcurrentSupplierImpl.createWeakSpanMap();
 }
