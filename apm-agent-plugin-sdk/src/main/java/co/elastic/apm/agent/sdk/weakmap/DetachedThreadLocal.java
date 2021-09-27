@@ -22,6 +22,13 @@ import javax.annotation.Nullable;
 
 /**
  * Similar to {@link ThreadLocal} but without the risk of introducing class loader leaks.
+ * A {@link ThreadLocal} can introduce leaks as it stores the values within {@link Thread} instances, which are loaded by the bootstrap CL.
+ * This creates a reference chain that can keep the agent class loader or a webapp class loader alive.
+ * <p>
+ * In contrast to that, implementations of this interface are built upon a map that uses a
+ * {@linkplain java.lang.ref.WeakReference weakly referenced} {@link Thread} instance as a key.
+ * This avoids leaking a reference to the defining class loader of the class instances stored via the {@link #set} method.
+ * </p>
  */
 public interface DetachedThreadLocal<T> {
 
@@ -31,7 +38,7 @@ public interface DetachedThreadLocal<T> {
     @Nullable
     T getAndRemove();
 
-    void set(@Nullable T value);
+    void set(T value);
 
     void remove();
 
