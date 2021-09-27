@@ -39,8 +39,8 @@ public class GlobalThreadLocalTest {
         WeakMaps
             .buildThreadLocal()
             .asGlobalThreadLocal(GlobalThreadLocalTest.class, "setNullValueShouldNotThrow")
-            .withDefaultValueSupplier(null)
-            .build();
+            .build()
+            .set(null);
     }
 
     @Test
