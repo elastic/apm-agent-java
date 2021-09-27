@@ -137,9 +137,6 @@ public class WebfluxHelper {
             }
         }));
 
-        if (log.isTraceEnabled()) {
-            mono = mono.log(description);
-        }
         return mono;
     }
 
