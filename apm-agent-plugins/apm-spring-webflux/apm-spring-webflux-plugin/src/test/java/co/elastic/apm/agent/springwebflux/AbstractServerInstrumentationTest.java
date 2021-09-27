@@ -79,7 +79,6 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         // ensure that both reactor & webflux storage maps are properly cleaned
         // if they are not, it means there is a leaked reference that isn't properly decremented.
         flushGcExpiry(3);
-        flushGcExpiry(3);
     }
 
     protected abstract GreetingWebClient getClient();
