@@ -40,7 +40,7 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
 
     @SuppressWarnings("WeakerAccess")
     public static final WeakMap<Object, AbstractSpan<?>> promisesToContext =
-        WeakConcurrent.createMap();
+        WeakConcurrent.buildMap();
 
     @Nonnull
     @Override

@@ -31,7 +31,7 @@ public class NullSafeWeakConcurrentSetTest {
 
     @BeforeEach
     void init() {
-        set = WeakConcurrent.createSet();
+        set = WeakConcurrent.buildSet();
     }
 
     @Test

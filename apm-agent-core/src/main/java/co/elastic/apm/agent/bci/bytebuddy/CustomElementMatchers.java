@@ -79,7 +79,7 @@ public class CustomElementMatchers {
         return new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
 
             private final boolean loadableByBootstrapClassLoader = canLoadClass(null, className);
-            private final WeakMap<ClassLoader, Boolean> cache = WeakConcurrent.createMap();
+            private final WeakMap<ClassLoader, Boolean> cache = WeakConcurrent.buildMap();
 
             @Override
             public boolean matches(@Nullable ClassLoader target) {

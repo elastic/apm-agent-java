@@ -60,7 +60,7 @@ public class WeakKeySoftValueLoadingCache<K, V> {
 
     private static final Logger logger = LoggerFactory.getLogger(WeakKeySoftValueLoadingCache.class);
 
-    private final WeakMap<K, CacheValue<K, V>> cache = WeakConcurrent.createMap();
+    private final WeakMap<K, CacheValue<K, V>> cache = WeakConcurrent.buildMap();
     private final ValueSupplier<K, V> valueSupplier;
 
     public WeakKeySoftValueLoadingCache(ValueSupplier<K, V> valueSupplier) {

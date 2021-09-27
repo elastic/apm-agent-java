@@ -70,7 +70,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class ElasticApmTracer implements Tracer {
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
 
-    private static final WeakMap<ClassLoader, String> serviceNameByClassLoader = WeakConcurrent.createMap();
+    private static final WeakMap<ClassLoader, String> serviceNameByClassLoader = WeakConcurrent.buildMap();
 
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;

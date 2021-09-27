@@ -97,7 +97,7 @@ public class GrpcHelper {
         serverListenerTransactions = WeakConcurrentSupplierImpl.createWeakSpanMap();
         serverCallTransactions = WeakConcurrentSupplierImpl.createWeakSpanMap();
 
-        headerCache = WeakConcurrent.createMap();
+        headerCache = WeakConcurrent.buildMap();
 
         headerSetter = new GrpcHeaderSetter();
         headerGetter = new GrpcHeaderGetter();

@@ -90,7 +90,7 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
         super(readerMode);
         this.maxCacheSize = maxCacheSize;
         this.sharedCache = new AtomicReference<>(new SoftReference<>(createCache()));
-        this.cacheProviders = WeakConcurrent.createMap();
+        this.cacheProviders = WeakConcurrent.buildMap();
         this.executor = ExecutorUtils.createSingleThreadSchedulingDaemonPool("type-cache-pool-cleaner");
     }
 

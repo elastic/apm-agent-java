@@ -74,7 +74,7 @@ public class WebfluxHelper {
     private static final CoreConfiguration coreConfig;
     private static final WebConfiguration webConfig;
 
-    private static final WeakMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakConcurrent.createMap();
+    private static final WeakMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakConcurrent.buildMap();
 
     static {
         coreConfig = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);

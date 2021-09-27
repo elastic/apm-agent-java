@@ -32,7 +32,7 @@ import java.util.jar.JarInputStream;
 
 public final class VersionUtils {
 
-    private static final WeakMap<Class<?>, String> versionsCache = WeakConcurrent.createMap();
+    private static final WeakMap<Class<?>, String> versionsCache = WeakConcurrent.buildMap();
     private static final String UNKNOWN_VERSION = "UNKNOWN_VERSION";
     @Nullable
     private static final String AGENT_VERSION;

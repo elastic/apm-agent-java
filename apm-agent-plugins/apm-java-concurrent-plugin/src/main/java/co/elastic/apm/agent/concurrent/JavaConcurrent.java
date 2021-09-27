@@ -37,7 +37,7 @@ import java.util.concurrent.ForkJoinTask;
 
 public class JavaConcurrent {
 
-    private static final WeakMap<Object, AbstractSpan<?>> contextMap = WeakConcurrent.createMap();
+    private static final WeakMap<Object, AbstractSpan<?>> contextMap = WeakConcurrent.buildMap();
     private static final List<Class<? extends ElasticApmInstrumentation>> RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION = Collections.
         <Class<? extends ElasticApmInstrumentation>>singletonList(RunnableCallableForkJoinTaskInstrumentation.class);
     static final ThreadLocal<Boolean> needsContext = new ThreadLocal<>();

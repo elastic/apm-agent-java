@@ -18,12 +18,14 @@
  */
 package co.elastic.apm.agent.okhttp;
 
+import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
 
+@GlobalState
 public class OkHttpClientHelper {
 
     /**
@@ -31,7 +33,6 @@ public class OkHttpClientHelper {
      */
     public static final DetachedThreadLocal<StringBuilder> destinationHostName = WeakConcurrent
         .<StringBuilder>threadLocalBuilder()
-        .asGlobalThreadLocal(OkHttpClientHelper.class, "destinationHostName")
         .withDefaultValueSupplier(new WeakMap.DefaultValueSupplier<Thread, StringBuilder>() {
             @Override
             public StringBuilder getDefaultValue(Thread t) {

@@ -58,7 +58,7 @@ public class MicrometerMeterRegistrySerializer {
     private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
     private final StringBuilder replaceBuilder = new StringBuilder();
     private final MetricsConfiguration config;
-    private final WeakSet<Meter> internallyDisabledMeters = WeakConcurrent.createSet();
+    private final WeakSet<Meter> internallyDisabledMeters = WeakConcurrent.buildSet();
 
     private int maxSerializedSize = 512;
 

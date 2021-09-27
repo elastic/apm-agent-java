@@ -44,7 +44,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(MicrometerMetricsReporter.class);
 
-    private final WeakSet<MeterRegistry> meterRegistries = WeakConcurrent.createSet();
+    private final WeakSet<MeterRegistry> meterRegistries = WeakConcurrent.buildSet();
     private final MicrometerMeterRegistrySerializer serializer;
     private final Reporter reporter;
     private final ElasticApmTracer tracer;

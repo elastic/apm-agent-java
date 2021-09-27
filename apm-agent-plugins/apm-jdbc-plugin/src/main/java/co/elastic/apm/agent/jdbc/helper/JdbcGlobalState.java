@@ -27,10 +27,10 @@ import java.sql.Connection;
 @GlobalState
 public class JdbcGlobalState {
 
-    public static final WeakMap<Object, String> statementSqlMap = WeakConcurrent.createMap();
-    public static final WeakMap<Connection, ConnectionMetaData> metaDataMap = WeakConcurrent.createMap();
-    public static final WeakMap<Class<?>, Boolean> metadataSupported = WeakConcurrent.createMap();
-    public static final WeakMap<Class<?>, Boolean> connectionSupported = WeakConcurrent.createMap();
+    public static final WeakMap<Object, String> statementSqlMap = WeakConcurrent.buildMap();
+    public static final WeakMap<Connection, ConnectionMetaData> metaDataMap = WeakConcurrent.buildMap();
+    public static final WeakMap<Class<?>, Boolean> metadataSupported = WeakConcurrent.buildMap();
+    public static final WeakMap<Class<?>, Boolean> connectionSupported = WeakConcurrent.buildMap();
 
     public static void clearInternalStorage() {
         metaDataMap.clear();

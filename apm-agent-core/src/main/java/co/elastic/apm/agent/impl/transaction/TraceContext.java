@@ -99,7 +99,7 @@ public class TraceContext implements Recyclable {
     /**
      * Helps to reduce allocations by caching {@link WeakReference}s to {@link ClassLoader}s
      */
-    private static final WeakMap<ClassLoader, WeakReference<ClassLoader>> classLoaderWeakReferenceCache = WeakConcurrent.createMap();
+    private static final WeakMap<ClassLoader, WeakReference<ClassLoader>> classLoaderWeakReferenceCache = WeakConcurrent.buildMap();
     private static final ChildContextCreator<TraceContext> FROM_PARENT_CONTEXT = new ChildContextCreator<TraceContext>() {
         @Override
         public boolean asChildOf(TraceContext child, TraceContext parent) {

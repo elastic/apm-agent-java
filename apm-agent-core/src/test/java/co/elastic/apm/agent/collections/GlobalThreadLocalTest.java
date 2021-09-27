@@ -38,7 +38,6 @@ public class GlobalThreadLocalTest {
     void setNullValueShouldNotThrow() {
         WeakConcurrent
             .threadLocalBuilder()
-            .asGlobalThreadLocal(GlobalThreadLocalTest.class, "setNullValueShouldNotThrow")
             .build()
             .set(null);
     }
@@ -47,7 +46,6 @@ public class GlobalThreadLocalTest {
     void testNonConstantDefaultValue() throws ExecutionException, InterruptedException {
         final DetachedThreadLocal<Object> threadLocal = WeakConcurrent
             .threadLocalBuilder()
-            .asGlobalThreadLocal(GlobalThreadLocalTest.class, "testNonConstantDefaultValue")
             .withDefaultValueSupplier(t -> new Object())
             .build();
         Object mainThreadDefaultValue = threadLocal.get();
@@ -61,7 +59,6 @@ public class GlobalThreadLocalTest {
         final Object constant = new Object();
         final DetachedThreadLocal<Object> threadLocal = WeakConcurrent
             .threadLocalBuilder()
-            .asGlobalThreadLocal(GlobalThreadLocalTest.class, "testConstantDefaultValue")
             .withDefaultValueSupplier(t -> constant)
             .build();
         Object mainThreadDefaultValue = threadLocal.get();
@@ -74,7 +71,6 @@ public class GlobalThreadLocalTest {
     void testNullDefaultValue() {
         final DetachedThreadLocal<Object> threadLocal = WeakConcurrent
             .threadLocalBuilder()
-            .asGlobalThreadLocal(GlobalThreadLocalTest.class, "testNullDefaultValue")
             .withDefaultValueSupplier(null)
             .build();
         assertThat(threadLocal.get()).isNull();
@@ -84,7 +80,6 @@ public class GlobalThreadLocalTest {
     void testNonDefaultValue() throws ExecutionException, InterruptedException {
         final DetachedThreadLocal<Object> threadLocal = WeakConcurrent
             .threadLocalBuilder()
-            .asGlobalThreadLocal(GlobalThreadLocalTest.class, "testNonDefaultValue")
             .withDefaultValueSupplier(null)
             .build();
 

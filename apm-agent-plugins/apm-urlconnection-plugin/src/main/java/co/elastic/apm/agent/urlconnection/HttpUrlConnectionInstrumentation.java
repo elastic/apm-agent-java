@@ -47,7 +47,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
 
-    private static final WeakMap<HttpURLConnection, Span> inFlightSpans = WeakConcurrent.createMap();
+    private static final WeakMap<HttpURLConnection, Span> inFlightSpans = WeakConcurrent.buildMap();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

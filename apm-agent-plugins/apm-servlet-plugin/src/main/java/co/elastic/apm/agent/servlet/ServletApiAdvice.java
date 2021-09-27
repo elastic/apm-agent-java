@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
@@ -67,18 +68,9 @@ public class ServletApiAdvice {
         servletTransactionCreationHelper = new ServletTransactionCreationHelper(GlobalTracer.requireTracerImpl());
     }
 
-    private static final DetachedThreadLocal<Boolean> excluded = WeakConcurrent
-        .<Boolean>threadLocalBuilder()
-        .asGlobalThreadLocal(ServletApiAdvice.class, "excluded")
-        .build();
-    private static final DetachedThreadLocal<Object> servletPathTL = WeakConcurrent
-        .threadLocalBuilder()
-        .asGlobalThreadLocal(ServletApiAdvice.class, "servletPath")
-        .build();
-    private static final DetachedThreadLocal<Object> pathInfoTL = WeakConcurrent
-        .threadLocalBuilder()
-        .asGlobalThreadLocal(ServletApiAdvice.class, "pathInfo")
-        .build();
+    private static final DetachedThreadLocal<Boolean> excluded = GlobalVariables.get(ServletApiAdvice.class, "excluded", WeakConcurrent.buildThreadLocal());
+    private static final DetachedThreadLocal<Object> servletPathTL = GlobalVariables.get(ServletApiAdvice.class, "servletPath", WeakConcurrent.buildThreadLocal());
+    private static final DetachedThreadLocal<Object> pathInfoTL = GlobalVariables.get(ServletApiAdvice.class, "pathInfo", WeakConcurrent.buildThreadLocal());
 
     private static final List<String> requestExceptionAttributes = Arrays.asList(RequestDispatcher.ERROR_EXCEPTION, "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
 

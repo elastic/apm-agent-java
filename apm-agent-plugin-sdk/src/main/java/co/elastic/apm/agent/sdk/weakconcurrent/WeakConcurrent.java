@@ -18,9 +18,6 @@
  */
 package co.elastic.apm.agent.sdk.weakconcurrent;
 
-import co.elastic.apm.agent.sdk.state.GlobalState;
-import co.elastic.apm.agent.sdk.state.GlobalVariables;
-
 import javax.annotation.Nullable;
 import java.util.ServiceLoader;
 
@@ -39,30 +36,39 @@ public final class WeakConcurrent {
 
     /**
      * A shorthand for {@code WeakConcurrent.<K, V>weakMapBuilder().build()}
+     * to avoid having to specify the generic arguments in simple cases.
      */
-    public static <K, V> WeakMap<K, V> createMap() {
-        return supplier.<K, V>buildWeakMap().build();
+    public static <K, V> WeakMap<K, V> buildMap() {
+        return supplier.<K, V>weakMapBuilder().build();
     }
 
     public static <K, V> WeakMapBuilder<K, V> weakMapBuilder() {
-        return supplier.buildWeakMap();
+        return supplier.weakMapBuilder();
+    }
+
+    /**
+     * A shorthand for {@code WeakConcurrent.<T>threadLocalBuilder().build()}
+     * to avoid having to specify the generic arguments in simple cases.
+     */
+    public static <T> DetachedThreadLocal<T> buildThreadLocal() {
+        return supplier.<T>threadLocalBuilder().build();
     }
 
     public static <T> ThreadLocalBuilder<T> threadLocalBuilder() {
-        return supplier.buildThreadLocal();
+        return supplier.threadLocalBuilder();
     }
 
-    public static <E> WeakSet<E> createSet() {
-        return supplier.createSet();
+    public static <E> WeakSet<E> buildSet() {
+        return supplier.buildSet();
     }
 
     public interface WeakConcurrentSupplier {
 
-        <K, V> WeakMapBuilder<K, V> buildWeakMap();
+        <K, V> WeakMapBuilder<K, V> weakMapBuilder();
 
-        <T> ThreadLocalBuilder<T> buildThreadLocal();
+        <T> ThreadLocalBuilder<T> threadLocalBuilder();
 
-        <E> WeakSet<E> createSet();
+        <E> WeakSet<E> buildSet();
     }
 
     public interface WeakMapBuilder<K, V> {
@@ -75,21 +81,6 @@ public final class WeakConcurrent {
     }
 
     public interface ThreadLocalBuilder<T> {
-
-        /**
-         * Registers a globally shared instance of a {@link DetachedThreadLocal}.
-         * Similar to {@link GlobalVariables} and {@link GlobalState},
-         * this allows to get thread locals whose state is shared across plugin class loaders.
-         * <p>
-         * Be careful not to store classes from the target class loader or the plugin class loader in global thread locals.
-         * This would otherwise lead to class loader leaks.
-         * That's because a global thread local is referenced from the agent class loader.
-         * If it held a reference to a class that's loaded by the plugin class loader, the target class loader (such as a webapp class loader)
-         * is held alive by the following chain of hard references:
-         * {@code Map of global thread locals (Agent CL) -plugin class instance-> -plugin class-> plugin CL -(parent)-> webapp CL}
-         * </p>
-         */
-        ThreadLocalBuilder<T> asGlobalThreadLocal(Class<?> adviceClass, String key);
 
         ThreadLocalBuilder<T> withDefaultValueSupplier(@Nullable WeakMap.DefaultValueSupplier<Thread, T> defaultValueSupplier);
 

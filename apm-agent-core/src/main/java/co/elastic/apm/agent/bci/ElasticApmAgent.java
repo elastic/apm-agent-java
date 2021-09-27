@@ -113,7 +113,7 @@ public class ElasticApmAgent {
     @Nullable
     private static ResettableClassFileTransformer resettableClassFileTransformer;
     private static final List<ResettableClassFileTransformer> dynamicClassFileTransformers = new ArrayList<>();
-    private static final WeakMap<Class<?>, Set<Collection<Class<? extends ElasticApmInstrumentation>>>> dynamicallyInstrumentedClasses = WeakConcurrent.createMap();
+    private static final WeakMap<Class<?>, Set<Collection<Class<? extends ElasticApmInstrumentation>>>> dynamicallyInstrumentedClasses = WeakConcurrent.buildMap();
     @Nullable
     private static File agentJarFile;
 

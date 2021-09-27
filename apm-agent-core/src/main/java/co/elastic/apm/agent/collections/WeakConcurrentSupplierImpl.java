@@ -28,7 +28,6 @@ import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * The canonical place to get a new instance of a {@link WeakMap}, {@link WeakSet}, or {@link DetachedThreadLocal}.
@@ -37,7 +36,6 @@ import java.util.concurrent.ConcurrentMap;
 public class WeakConcurrentSupplierImpl implements WeakConcurrent.WeakConcurrentSupplier {
 
     private static final WeakConcurrentSet<AbstractWeakConcurrentMap<?, ?, ?>> registeredMaps = new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.INLINE);
-    private static final ConcurrentMap<String, DetachedThreadLocalImpl<?>> globalThreadLocals = new ConcurrentHashMap<>();
 
     public static <K, V extends AbstractSpan<?>> WeakMap<K, V> createWeakSpanMap() {
         SpanConcurrentHashMap<AbstractWeakConcurrentMap.WeakKey<K>, V> map = new SpanConcurrentHashMap<>();
@@ -47,7 +45,7 @@ public class WeakConcurrentSupplierImpl implements WeakConcurrent.WeakConcurrent
     }
 
     @Override
-    public <K, V> WeakConcurrent.WeakMapBuilder<K, V> buildWeakMap() {
+    public <K, V> WeakConcurrent.WeakMapBuilder<K, V> weakMapBuilder() {
         return new WeakConcurrent.WeakMapBuilder<K, V>() {
             @Nullable
             private WeakMap.DefaultValueSupplier<K, V> defaultValueSupplier;
@@ -74,18 +72,11 @@ public class WeakConcurrentSupplierImpl implements WeakConcurrent.WeakConcurrent
     }
 
     @Override
-    public <T> WeakConcurrent.ThreadLocalBuilder<T> buildThreadLocal() {
+    public <T> WeakConcurrent.ThreadLocalBuilder<T> threadLocalBuilder() {
         return new WeakConcurrent.ThreadLocalBuilder<T>() {
 
             @Nullable
             private WeakMap.DefaultValueSupplier<Thread, T> defaultValueSupplier;
-            @Nullable
-            private String globalKey;
-            @Override
-            public WeakConcurrent.ThreadLocalBuilder<T> asGlobalThreadLocal(Class<?> adviceClass, String key) {
-                globalKey = adviceClass.getName() + "." + key;
-                return this;
-            }
 
             @Override
             public WeakConcurrent.ThreadLocalBuilder<T> withDefaultValueSupplier(@Nullable WeakMap.DefaultValueSupplier<Thread, T> defaultValueSupplier) {
@@ -95,27 +86,15 @@ public class WeakConcurrentSupplierImpl implements WeakConcurrent.WeakConcurrent
 
             @Override
             public DetachedThreadLocal<T> build() {
-                DetachedThreadLocalImpl<?> threadLocal = null;
-                if (globalKey != null) {
-                    threadLocal = globalThreadLocals.get(globalKey);
-                }
-                if (threadLocal == null) {
-                    threadLocal = new DetachedThreadLocalImpl<T>(WeakConcurrentSupplierImpl.this.<Thread, T>buildWeakMap()
-                        .withDefaultValueSupplier(defaultValueSupplier)
-                        .build());
-                }
-                if (globalKey != null) {
-                    globalThreadLocals.putIfAbsent(globalKey, threadLocal);
-                    threadLocal = globalThreadLocals.get(globalKey);
-                }
-
-                return (DetachedThreadLocalImpl<T>) threadLocal;
+                return new DetachedThreadLocalImpl<T>(WeakConcurrentSupplierImpl.this.<Thread, T>weakMapBuilder()
+                    .withDefaultValueSupplier(defaultValueSupplier)
+                    .build());
             }
         };
     }
 
-    public <V> WeakSet<V> createSet() {
-        return new NullSafeWeakConcurrentSet<V>(this.<V, Boolean>buildWeakMap().build());
+    public <V> WeakSet<V> buildSet() {
+        return new NullSafeWeakConcurrentSet<V>(this.<V, Boolean>weakMapBuilder().build());
     }
 
     /**

@@ -34,7 +34,7 @@ public class WebHelper extends AbstractVertxWebHelper {
 
     private static final WebHelper INSTANCE = new WebHelper(GlobalTracer.requireTracerImpl());
 
-    static final WeakMap<HttpServerRequest, Transaction> requestTransactionMap = WeakConcurrent.createMap();
+    static final WeakMap<HttpServerRequest, Transaction> requestTransactionMap = WeakConcurrent.buildMap();
 
     public static WebHelper getInstance() {
         return INSTANCE;

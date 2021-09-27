@@ -25,7 +25,7 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 @GlobalState
 public class ServletGlobalState {
 
-    public static final WeakMap<ClassLoader, Boolean> nameInitialized = WeakConcurrent.createMap();
+    public static final WeakMap<ClassLoader, Boolean> nameInitialized = WeakConcurrent.buildMap();
 
     // visible for testing as clearing cache is required between tests execution
     static void clearServiceNameCache() {
