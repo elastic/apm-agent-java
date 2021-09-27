@@ -117,7 +117,7 @@ public class WebfluxHelper {
 
     private static <T> Mono<T> doWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final String description) {
         //noinspection Convert2Lambda,rawtypes,Convert2Diamond
-        mono = mono.transform(Operators.liftPublisher(new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
+        return mono.transform(Operators.liftPublisher(new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
             @Override // liftPublisher too (or whole transform param)
             public CoreSubscriber<? super T> apply(Publisher publisher, CoreSubscriber<? super T> subscriber) {
                 log.trace("wrapping {} subscriber with transaction {}", description, transaction);
@@ -136,7 +136,6 @@ public class WebfluxHelper {
                 return wrappedSubscriber;
             }
         }));
-        return mono;
     }
 
     public static void endTransaction(@Nullable Throwable thrown, @Nullable Transaction transaction, ServerWebExchange exchange) {
