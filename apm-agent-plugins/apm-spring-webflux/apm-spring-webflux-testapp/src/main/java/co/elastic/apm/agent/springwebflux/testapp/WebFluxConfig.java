@@ -32,6 +32,12 @@ import org.springframework.boot.web.embedded.tomcat.TomcatReactiveWebServerFacto
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorResourceFactory;
+import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
@@ -51,6 +57,8 @@ import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebFlux
+@EnableWebFluxSecurity
+@EnableReactiveMethodSecurity
 public class WebFluxConfig implements WebFluxConfigurer {
 
     // those server methods are just plain copies of ReactiveWebServerFactoryConfiguration inner classes
@@ -141,4 +149,26 @@ public class WebFluxConfig implements WebFluxConfigurer {
         return new HandshakeWebSocketService(upgradeStrategy);
     }
 
+    @Bean
+    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+        http
+            .authorizeExchange()
+            .anyExchange()
+            .authenticated()
+            .and()
+            .httpBasic()
+            .and()
+            .formLogin();
+        return http.build();
+    }
+
+    @Bean
+    public MapReactiveUserDetailsService userDetailsService() {
+        return new MapReactiveUserDetailsService(
+            User.withDefaultPasswordEncoder()
+                .username("user")
+                .password("password")
+                .roles("USER")
+                .build());
+    }
 }

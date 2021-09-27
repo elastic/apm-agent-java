@@ -29,6 +29,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,6 +50,7 @@ import java.util.Objects;
 /**
  * Provides Webflux annotated endpoint
  */
+@PreAuthorize("hasAuthority('ROLE_USER')")
 @RestController
 @RequestMapping(value = "/annotated", produces = MediaType.TEXT_PLAIN_VALUE)
 public class GreetingAnnotated {
