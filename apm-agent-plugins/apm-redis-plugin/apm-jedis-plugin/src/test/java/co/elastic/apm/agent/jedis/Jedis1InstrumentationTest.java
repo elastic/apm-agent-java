@@ -22,6 +22,8 @@ import co.elastic.apm.agent.redis.AbstractRedisInstrumentationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnJre;
+import org.junit.jupiter.api.condition.JRE;
 import redis.clients.jedis.Jedis;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -48,6 +50,7 @@ class Jedis1InstrumentationTest extends AbstractRedisInstrumentationTest {
     }
 
     @Test
+    @DisabledOnJre(JRE.JAVA_15) // https://github.com/elastic/apm-agent-java/issues/1944
     void testJedis() {
         jedis.set("foo", "bar");
         assertThat(jedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
