@@ -298,7 +298,11 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     @Nonnull
     private ArrayList<JsonNode> readEcsLogFile(String shadeLogFilePath) throws IOException {
         ArrayList<JsonNode> ecsLogLines = new ArrayList<>();
-        try (Stream<String> stream = Files.lines(Paths.get(shadeLogFilePath))) {
+        Path path = Paths.get(shadeLogFilePath);
+        assertThat(path)
+            .describedAs("shaded log file should exist %s", path.toAbsolutePath())
+            .exists();
+        try (Stream<String> stream = Files.lines(path)) {
             stream.forEach(line -> {
                 try {
                     ecsLogLines.add(objectMapper.readTree(line));
