@@ -28,6 +28,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnJre;
+import org.junit.jupiter.api.condition.JRE;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -102,6 +104,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     protected abstract LoggerFacade createLoggerFacade();
 
     @Test
+    @DisabledOnJre(JRE.JAVA_15)
     public void testSimpleLogShading() throws Exception {
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
         initializeShadeDir("simple");
@@ -132,6 +135,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     }
 
     @Test
+    @DisabledOnJre(JRE.JAVA_15)
     public void testMarkers() throws Exception {
         if (markersSupported()) {
             setEcsReformattingConfig(LogEcsReformatting.SHADE);
@@ -159,6 +163,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     }
 
     @Test
+    @DisabledOnJre(JRE.JAVA_15)
     public void testShadingIntoOriginalLogsDir() throws Exception {
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
         initializeShadeDir("");
@@ -166,6 +171,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     }
 
     @Test
+    @DisabledOnJre(JRE.JAVA_15)
     public void testLazyShadeFileCreation() throws Exception {
         initializeShadeDir("delayed");
         logger.trace(TRACE_MESSAGE);
@@ -186,6 +192,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     }
 
     @Test
+    @DisabledOnJre(JRE.JAVA_15)
     public void testLogShadingReplaceOriginal() throws IOException {
         initializeShadeDir("replace");
         setEcsReformattingConfig(LogEcsReformatting.REPLACE);
@@ -203,6 +210,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     }
 
     @Test
+    @DisabledOnJre(JRE.JAVA_15)
     public void testLogOverride() throws IOException {
         setEcsReformattingConfig(LogEcsReformatting.OVERRIDE);
         logger.trace(TRACE_MESSAGE);
@@ -231,6 +239,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     }
 
     @Test
+    @DisabledOnJre(JRE.JAVA_15)
     public void testDynamicConfiguration() throws Exception {
         initializeShadeDir("dynamic");
         for (int i = 0; i < 2; i++) {
@@ -362,9 +371,11 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
      * is a notorious way to make tests flaky. If that proves to be the case, this test can be disabled, as its
      * importance for regression testing is not crucial. It would be very useful if we decide to modify anything in
      * our logging configuration, for example - change the rolling decision strategy.
+     *
      * @throws IOException thrown if we fail to read the shade log file
      */
     @Test
+    @DisabledOnJre(JRE.JAVA_15)
     public void testShadeLogRolling() throws IOException {
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
         initializeShadeDir("rolling");
