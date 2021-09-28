@@ -157,12 +157,6 @@ public class WebFluxConfig implements WebFluxConfigurer {
         return http
             .csrf()
             .disable()
-            .exceptionHandling()
-            .authenticationEntryPoint((swe, e) -> Mono.fromRunnable(() -> {
-                swe.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            })).accessDeniedHandler((swe, e) -> Mono.fromRunnable(() -> {
-                swe.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
-            })).and()
             .authorizeExchange()
             .pathMatchers("/annotated/path-username").hasAnyAuthority("ROLE_USER")
             .pathMatchers("/functional/path-username", "/functional/username", "/functional/preauthorized").hasAnyAuthority("ROLE_USER")

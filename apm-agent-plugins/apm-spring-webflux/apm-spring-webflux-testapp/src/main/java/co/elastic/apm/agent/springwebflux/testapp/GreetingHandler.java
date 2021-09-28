@@ -21,7 +21,6 @@ package co.elastic.apm.agent.springwebflux.testapp;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.springframework.http.codec.ServerSentEvent;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -96,7 +95,6 @@ public class GreetingHandler {
             .doOnNext(m -> fakeWork(durationMillis));
     }
 
-//    @PreAuthorize("hasAuthority('ROLE_USER')")
     public Mono<String> getUsernameFromContext() {
         return ReactiveSecurityContextHolder.getContext()
             .flatMap(ctx -> Mono.just(ctx.getAuthentication().getName()));
