@@ -31,8 +31,6 @@ import org.springframework.boot.web.embedded.tomcat.TomcatProtocolHandlerCustomi
 import org.springframework.boot.web.embedded.tomcat.TomcatReactiveWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.client.reactive.ReactorResourceFactory;
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -53,7 +51,6 @@ import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAd
 import org.springframework.web.reactive.socket.server.upgrade.ReactorNettyRequestUpgradeStrategy;
 import org.springframework.web.reactive.socket.server.upgrade.TomcatRequestUpgradeStrategy;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.stream.Collectors;
