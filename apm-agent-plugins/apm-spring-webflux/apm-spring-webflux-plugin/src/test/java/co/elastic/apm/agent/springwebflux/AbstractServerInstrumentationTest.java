@@ -23,6 +23,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.reactor.TracedSubscriber;
@@ -196,6 +197,8 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     @ParameterizedTest
     @CsvSource({"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"})
     void methodMapping(String method) {
+        client.setHeader("Authorization", "Basic ZWxhc3RpYzpjaGFuZ2VtZQ==");
+
         var verifier = StepVerifier.create(client.methodMapping(method));
         if ("HEAD".equals(method)) {
             verifier.verifyComplete();
@@ -292,6 +295,81 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         // reporter.assertNoSpan(200);
     }
 
+    @Test
+    void testPreauthorized_shouldSuccessWithAuthorizationHeader() {
+        client.setHeader("Authorization", "Basic ZWxhc3RpYzpjaGFuZ2VtZQ==");
+
+        StepVerifier.create(client.getPreAuthorized(200))
+            .expectNext("Hello, elastic!")
+            .verifyComplete();
+
+        String expectedName = client.useFunctionalEndpoint()
+            ? "GET /functional/preauthorized"
+            : "GreetingAnnotated#getPreauthorized";
+        checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
+    }
+
+    @Test
+    void testPreauthorized_shouldFailWithoutAuthorization() {
+        int expectedStatusCode = 500;
+        boolean checkTransaction = true;
+        Class expectedExceptionClass = WebClientResponseException.InternalServerError.class;
+        if (client.useFunctionalEndpoint()) {
+            expectedStatusCode = 200;
+            expectedExceptionClass = IllegalStateException.class;
+            checkTransaction = false;
+        }
+        StepVerifier.create(client.getPreAuthorized(expectedStatusCode))
+            .expectError(expectedExceptionClass)
+            .verify();
+
+        if (checkTransaction) {
+            String expectedName = client.useFunctionalEndpoint()
+                ? "GET /functional/preauthorized"
+                : "GreetingAnnotated#getPreauthorized";
+            checkTransaction(getFirstTransaction(), expectedName, "GET", expectedStatusCode);
+        } else {
+            // when functional - transaction not created.
+        }
+    }
+
+    @Test
+    void testSecurityContext_shouldSuccessWithAuthorizationHeader() {
+        client.setHeader("Authorization", "Basic ZWxhc3RpYzpjaGFuZ2VtZQ==");
+
+        StepVerifier.create(client.getSecurityContextUsername(200))
+            .expectNext("elastic")
+            .verifyComplete();
+
+        String expectedName = client.useFunctionalEndpoint()
+            ? "GET /functional/username"
+            : "GreetingAnnotated#getSecurityContextUsername";
+        checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
+    }
+
+    @Test
+    void testSecurityContextByPath_shouldSuccessWithAuthorizationHeader() {
+        client.setHeader("Authorization", "Basic ZWxhc3RpYzpjaGFuZ2VtZQ==");
+
+        StepVerifier.create(client.getSecurityContextUsernameByPathSecured(200))
+            .expectNext("elastic")
+            .verifyComplete();
+
+        String expectedName = client.useFunctionalEndpoint()
+            ? "GET /functional/path-username"
+            : "GreetingAnnotated#getSecurityContextUsernameByPathSecured";
+        checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
+    }
+
+    @Test
+    void testSecurityContextByPath_shouldFailWithoutAuthorizationHeader() {
+        StepVerifier.create(client.getSecurityContextUsernameByPathSecured(401))
+            .expectError(WebClientResponseException.Unauthorized.class)
+            .verify();
+
+        // no transactions, not errors captured.
+    }
+
     private static Predicate<ServerSentEvent<String>> checkSSE(final int index) {
         return sse -> {
             String data = sse.data();
@@ -341,6 +419,10 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     protected Transaction getFirstTransaction() {
         return reporter.getFirstTransaction(200);
+    }
+
+    protected ErrorCapture getFirstError() {
+        return reporter.getFirstError(200);
     }
 
     static Transaction checkTransaction(Transaction transaction, String expectedName, String expectedMethod, int expectedStatus) {

@@ -84,6 +84,12 @@ public class GreetingWebClient {
         return requestMono("GET", "/hello", 200);
     }
 
+    public Mono<String> getPreAuthorized(int expectedStatus) { return requestMono("GET", "/preauthorized", expectedStatus); }
+
+    public Mono<String> getSecurityContextUsername(int expectedStatus) { return requestMono("GET", "/username", expectedStatus); }
+
+    public Mono<String> getSecurityContextUsernameByPathSecured(int expectedStatus) { return requestMono("GET", "/path-username", expectedStatus); }
+
     public Mono<String> getMappingError404() {
         return requestMono("GET", "/error-404", 404);
     }
@@ -155,6 +161,7 @@ public class GreetingWebClient {
     public Mono<String> requestMono(String method, String path, int expectedStatus) {
         Mono<String> request = request(method, path, expectedStatus)
             .bodyToMono(String.class)
+            .doOnError((throwable) -> logger.error("Exception occurred during requesting with exception class [{}]", throwable.getClass().getCanonicalName()))
             .publishOn(clientScheduler);
         return logEnabled ? request.log(logger) : request;
     }
