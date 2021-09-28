@@ -20,52 +20,43 @@ package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.net.SocketFactory;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLConnection;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SSLContextInstrumentationTest extends AbstractInstrumentationTest {
 
-    private static Field defaultSSLSocketFactoryField;
-    private static ThreadPoolExecutor elasticApmThreadPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("HttpsUrlConnection-Test");
+    private static final ThreadPoolExecutor elasticApmThreadPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("HttpsUrlConnection-Test");
 
-    @BeforeAll
-    static void setup() throws Exception {
-        defaultSSLSocketFactoryField = HttpsURLConnection.class.getDeclaredField("defaultSSLSocketFactory");
-        defaultSSLSocketFactoryField.setAccessible(true);
-        defaultSSLSocketFactoryField.set(null, null);
-    }
-
-    @BeforeEach
-    void resetState() throws Exception {
-        defaultSSLSocketFactoryField.set(null, null);
-    }
+    // note: we can't directly test that the default field is initialized or not by our agent
+    // thus we have to test the "implementation detail" that calling any of the getDefault() methods should return
+    // null when called from an agent thread to prevent eager initialization by the agent.w
 
     @Test
-    void testNonSkipped() throws Exception {
-        createConnection();
-        Object defaultSslFactory = defaultSSLSocketFactoryField.get(null);
-        assertThat(defaultSslFactory).isNotNull();
-        assertThat(defaultSslFactory).isEqualTo(HttpsURLConnection.getDefaultSSLSocketFactory());
+    void testNonSkipped() {
+        checkDefaultFactory(false);
     }
 
     @Test
     void testSkipped() throws Exception {
-        Future<?> connectionCreationFuture = elasticApmThreadPool.submit(this::createConnection);
+        Future<?> connectionCreationFuture = elasticApmThreadPool.submit(() -> {
+            checkDefaultFactory(true);
+            createConnection();
+            checkDefaultFactory(true);
+        });
         connectionCreationFuture.get();
-        assertThat(defaultSSLSocketFactoryField.get(null)).isNull();
-        createConnection();
-        assertThat(defaultSSLSocketFactoryField.get(null)).isNotNull();
+        checkDefaultFactory(false);
     }
 
     private void createConnection() {
@@ -74,6 +65,24 @@ class SSLContextInstrumentationTest extends AbstractInstrumentationTest {
             assertThat(urlConnection).isInstanceOf(HttpsURLConnection.class);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void checkDefaultFactory(boolean expectNull) {
+        try {
+            Stream.of(SSLContext.getDefault(),
+                    SocketFactory.getDefault(),
+                    SocketFactory.getDefault())
+                .forEach((d) -> {
+                    if (expectNull) {
+                        assertThat(d).isNull();
+                    } else {
+                        assertThat(d).isNotNull();
+                    }
+                });
+
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
         }
     }
 }
