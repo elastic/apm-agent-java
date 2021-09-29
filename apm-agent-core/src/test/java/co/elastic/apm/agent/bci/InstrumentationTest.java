@@ -28,6 +28,7 @@ import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -56,7 +57,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
@@ -167,8 +167,7 @@ class InstrumentationTest {
         for (int i = 0; i < nThreads; i++) {
             executorService.submit(() -> ElasticApmAgent.ensureInstrumented(getClass(), List.of(TestCounterInstrumentation.class)));
         }
-        executorService.shutdown();
-        executorService.awaitTermination(1000, TimeUnit.MILLISECONDS);
+        ExecutorUtils.shutdownAndWaitTermination(executorService);
         assertThat(TestCounterInstrumentation.getCounter()).isEqualTo(1);
         assertThat(interceptMe()).isEqualTo("intercepted");
     }
