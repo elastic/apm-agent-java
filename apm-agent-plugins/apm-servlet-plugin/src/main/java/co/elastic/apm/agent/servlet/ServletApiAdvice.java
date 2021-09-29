@@ -68,7 +68,7 @@ public class ServletApiAdvice {
         servletTransactionCreationHelper = new ServletTransactionCreationHelper(GlobalTracer.requireTracerImpl());
     }
 
-    private static final DetachedThreadLocal<Boolean> excluded = GlobalVariables.get(ServletApiAdvice.class, "excluded", WeakConcurrent.buildThreadLocal());
+    private static final DetachedThreadLocal<Boolean> excluded = GlobalVariables.get(ServletApiAdvice.class, "excluded", WeakConcurrent.<Boolean>buildThreadLocal());
     private static final DetachedThreadLocal<Object> servletPathTL = GlobalVariables.get(ServletApiAdvice.class, "servletPath", WeakConcurrent.buildThreadLocal());
     private static final DetachedThreadLocal<Object> pathInfoTL = GlobalVariables.get(ServletApiAdvice.class, "pathInfo", WeakConcurrent.buildThreadLocal());
 
