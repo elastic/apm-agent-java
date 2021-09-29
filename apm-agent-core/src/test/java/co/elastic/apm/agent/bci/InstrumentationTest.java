@@ -513,7 +513,6 @@ class InstrumentationTest {
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             counter.incrementAndGet();
-            new Throwable().printStackTrace();
             return super.getTypeMatcher();
         }
 
