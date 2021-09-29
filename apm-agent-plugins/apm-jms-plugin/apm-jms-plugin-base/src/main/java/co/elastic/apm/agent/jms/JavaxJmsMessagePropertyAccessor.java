@@ -31,19 +31,19 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageNotWriteableException;
 
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
+import static co.elastic.apm.agent.jms.JavaxJmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
 
-public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Message> implements TextHeaderGetter<Message>, TextHeaderSetter<Message> {
+public class JavaxJmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Message> implements TextHeaderGetter<Message>, TextHeaderSetter<Message> {
 
-    private static final Logger logger = LoggerFactory.getLogger(JmsMessagePropertyAccessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(JavaxJmsMessagePropertyAccessor.class);
 
-    private static final JmsMessagePropertyAccessor INSTANCE = new JmsMessagePropertyAccessor();
+    private static final JavaxJmsMessagePropertyAccessor INSTANCE = new JavaxJmsMessagePropertyAccessor();
 
-    public static JmsMessagePropertyAccessor instance() {
+    public static JavaxJmsMessagePropertyAccessor instance() {
         return INSTANCE;
     }
 
-    private JmsMessagePropertyAccessor() {
+    private JavaxJmsMessagePropertyAccessor() {
     }
 
     @Nullable

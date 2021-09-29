@@ -47,10 +47,10 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Currently tested using ActiveMQ Artemis, which is the successor of HornetQ, both of which are traced properly when
  * using JMS 2 API, buy this instrumentation of JMS 1 API.
  */
-public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumentation {
+public abstract class JavaxJmsMessageProducerInstrumentation extends JavaxBaseJmsInstrumentation {
 
     @SuppressWarnings("WeakerAccess")
-    public static final Logger logger = LoggerFactory.getLogger(JmsMessageProducerInstrumentation.class);
+    public static final Logger logger = LoggerFactory.getLogger(JavaxJmsMessageProducerInstrumentation.class);
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -65,7 +65,7 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
         return not(isInterface()).and(hasSuperType(named("javax.jms.MessageProducer")));
     }
 
-    public static class JmsMessageProducerNoDestinationInstrumentation extends JmsMessageProducerInstrumentation {
+    public static class JmsMessageProducerNoDestinationInstrumentation extends JavaxJmsMessageProducerInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -74,10 +74,10 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.jms.JmsMessageProducerInstrumentation$JmsMessageProducerNoDestinationInstrumentation$MessageProducerNoDestinationAdvice";
+            return "co.elastic.apm.agent.jms.JavaxJmsMessageProducerInstrumentation$JmsMessageProducerNoDestinationInstrumentation$MessageProducerNoDestinationAdvice";
         }
 
-        public static class MessageProducerNoDestinationAdvice extends BaseAdvice {
+        public static class MessageProducerNoDestinationAdvice extends JavaxBaseAdvice {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             @Nullable
             public static Object beforeSend(@Advice.Argument(0) final Message message,
@@ -105,7 +105,7 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
         }
     }
 
-    public static class JmsMessageProducerWithDestinationInstrumentation extends JmsMessageProducerInstrumentation {
+    public static class JmsMessageProducerWithDestinationInstrumentation extends JavaxJmsMessageProducerInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -117,10 +117,10 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.jms.JmsMessageProducerInstrumentation$JmsMessageProducerWithDestinationInstrumentation$MessageProducerWithDestinationAdvice";
+            return "co.elastic.apm.agent.jms.JavaxJmsMessageProducerInstrumentation$JmsMessageProducerWithDestinationInstrumentation$MessageProducerWithDestinationAdvice";
         }
 
-        public static class MessageProducerWithDestinationAdvice extends BaseAdvice {
+        public static class MessageProducerWithDestinationAdvice extends JavaxBaseAdvice {
 
             @Nullable
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)

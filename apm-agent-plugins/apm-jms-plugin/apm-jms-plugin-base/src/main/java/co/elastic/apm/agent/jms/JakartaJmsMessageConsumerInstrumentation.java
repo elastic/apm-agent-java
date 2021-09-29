@@ -32,28 +32,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageListener;
+import jakarta.jms.Destination;
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+import jakarta.jms.MessageListener;
 
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_HANDLING;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_POLLING;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.RECEIVE_NAME_PREFIX;
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
-import static net.bytebuddy.matcher.ElementMatchers.isPublic;
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
-import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
-import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
+import static co.elastic.apm.agent.jms.JakartaJmsInstrumentationHelper.*;
+import static net.bytebuddy.matcher.ElementMatchers.*;
 
-public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumentation {
+public abstract class JakartaJmsMessageConsumerInstrumentation extends JakartaBaseJmsInstrumentation {
 
     @SuppressWarnings("WeakerAccess")
-    public static final Logger logger = LoggerFactory.getLogger(JmsMessageConsumerInstrumentation.class);
+    public static final Logger logger = LoggerFactory.getLogger(JakartaJmsMessageConsumerInstrumentation.class);
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -65,10 +55,10 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface()).and(hasSuperType(named("javax.jms.MessageConsumer")));
+        return not(isInterface()).and(hasSuperType(named("jakarta.jms.MessageConsumer")));
     }
 
-    public static class ReceiveInstrumentation extends JmsMessageConsumerInstrumentation {
+    public static class ReceiveInstrumentation extends JakartaJmsMessageConsumerInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -78,10 +68,10 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.jms.JmsMessageConsumerInstrumentation$ReceiveInstrumentation$MessageConsumerAdvice";
+            return "co.elastic.apm.agent.jms.JakartaJmsMessageConsumerInstrumentation$ReceiveInstrumentation$MessageConsumerAdvice";
         }
 
-        public static class MessageConsumerAdvice extends BaseAdvice {
+        public static class MessageConsumerAdvice extends JakartaBaseAdvice {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             @Nullable
@@ -221,19 +211,19 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
         }
     }
 
-    public static class SetMessageListenerInstrumentation extends JmsMessageConsumerInstrumentation {
+    public static class SetMessageListenerInstrumentation extends JakartaJmsMessageConsumerInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("setMessageListener").and(takesArgument(0, named("javax.jms.MessageListener")));
+            return named("setMessageListener").and(takesArgument(0, named("jakarta.jms.MessageListener")));
         }
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.jms.JmsMessageConsumerInstrumentation$SetMessageListenerInstrumentation$ListenerWrappingAdvice";
+            return "co.elastic.apm.agent.jms.JakartaJmsMessageConsumerInstrumentation$SetMessageListenerInstrumentation$ListenerWrappingAdvice";
         }
 
-        public static class ListenerWrappingAdvice extends BaseAdvice {
+        public static class ListenerWrappingAdvice extends JakartaBaseAdvice {
 
             @Nullable
             @AssignTo.Argument(0)

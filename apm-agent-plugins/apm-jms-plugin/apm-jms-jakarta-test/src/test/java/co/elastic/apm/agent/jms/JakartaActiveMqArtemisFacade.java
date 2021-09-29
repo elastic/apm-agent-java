@@ -25,17 +25,17 @@ import org.apache.activemq.artemis.core.remoting.impl.invm.InVMAcceptorFactory;
 import org.apache.activemq.artemis.core.server.impl.ActiveMQServerImpl;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 
-import javax.jms.Destination;
-import javax.jms.JMSConsumer;
-import javax.jms.JMSContext;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageListener;
-import javax.jms.Queue;
-import javax.jms.TemporaryQueue;
-import javax.jms.TemporaryTopic;
-import javax.jms.TextMessage;
-import javax.jms.Topic;
+import jakarta.jms.Destination;
+import jakarta.jms.JMSConsumer;
+import jakarta.jms.JMSContext;
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+import jakarta.jms.MessageListener;
+import jakarta.jms.Queue;
+import jakarta.jms.TemporaryQueue;
+import jakarta.jms.TemporaryTopic;
+import jakarta.jms.TextMessage;
+import jakarta.jms.Topic;
 import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,8 +45,10 @@ import java.util.concurrent.CompletableFuture;
 /**
  * ActiveMQ Artemis tests for JMS 2 API
  */
-public class ActiveMqArtemisFacade implements BrokerFacade {
-
+// TODO Need to wait until Artemis is fully on jakarta.jms,
+//  currently ActiveMQConnectionFactory on javax.jms is still needed
+public class JakartaActiveMqArtemisFacade /*implements JakartaBrokerFacade*/ {
+/*
     private ActiveMQConnectionFactory connectionFactory;
     private ActiveMQServerImpl activeMQServer;
     private JMSContext context;
@@ -186,4 +188,6 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
         }
         return consumer;
     }
+
+ */
 }

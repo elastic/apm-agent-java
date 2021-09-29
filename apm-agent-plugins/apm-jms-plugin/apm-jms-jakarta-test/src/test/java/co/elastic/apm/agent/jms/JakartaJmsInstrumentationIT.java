@@ -39,13 +39,13 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import javax.annotation.Nullable;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.Queue;
-import javax.jms.TemporaryQueue;
-import javax.jms.TextMessage;
-import javax.jms.Topic;
+import jakarta.jms.Destination;
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+import jakarta.jms.Queue;
+import jakarta.jms.TemporaryQueue;
+import jakarta.jms.TextMessage;
+import jakarta.jms.Topic;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,32 +63,26 @@ import java.util.stream.Collectors;
 
 import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.BOTH;
 import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.POLLING;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_EXPIRATION_HEADER;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_MESSAGE_ID_HEADER;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TIMESTAMP_HEADER;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.TEMP;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.TIBCO_TMP_QUEUE_PREFIX;
+import static co.elastic.apm.agent.jms.JakartaJmsInstrumentationHelper.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
 @RunWith(Parameterized.class)
-public class JmsInstrumentationIT extends AbstractInstrumentationTest {
+public class JakartaJmsInstrumentationIT extends AbstractInstrumentationTest {
 
     // Keeping a static reference for resource cleaning
-    private final static Set<BrokerFacade> staticBrokerFacade = new HashSet<>();
+    private final static Set<JakartaBrokerFacade> staticBrokerFacade = new HashSet<>();
 
     private static final BlockingQueue<Message> resultQ = new ArrayBlockingQueue<>(5);
 
-    private final BrokerFacade brokerFacade;
+    private final JakartaBrokerFacade brokerFacade;
     private final CoreConfiguration coreConfiguration;
     private final ThreadLocal<Boolean> receiveNoWaitFlow = new ThreadLocal<>();
     private final ThreadLocal<Boolean> expectNoTraces = new ThreadLocal<>();
 
     private Queue noopQ;
 
-    public JmsInstrumentationIT(BrokerFacade brokerFacade, Class<? extends BrokerFacade> clazz) throws Exception {
+    public JakartaJmsInstrumentationIT(JakartaBrokerFacade brokerFacade, Class<? extends JakartaBrokerFacade> clazz) throws Exception {
         this.brokerFacade = brokerFacade;
         if (staticBrokerFacade.add(brokerFacade)) {
             brokerFacade.prepareResources();
@@ -98,12 +92,12 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Parameterized.Parameters(name = "BrokerFacade={1}")
     public static Iterable<Object[]> brokerFacades() {
-        return Arrays.asList(new Object[][]{{new ActiveMqFacade(), ActiveMqFacade.class}, {new ActiveMqArtemisFacade(), ActiveMqArtemisFacade.class}});
+        return Arrays.asList(new Object[][]{{new JakartaActiveMqFacade(), JakartaActiveMqFacade.class}, {new JakartaActiveMqArtemisFacade(), JakartaActiveMqArtemisFacade.class}});
     }
 
     @AfterClass
     public static void closeResources() throws Exception {
-        for (BrokerFacade brokerFacade : staticBrokerFacade) {
+        for (JakartaBrokerFacade brokerFacade : staticBrokerFacade) {
             brokerFacade.closeResources();
         }
         staticBrokerFacade.clear();

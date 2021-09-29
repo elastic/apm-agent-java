@@ -18,16 +18,16 @@
  */
 package co.elastic.apm.agent.jms;
 
-import javax.jms.Destination;
-import javax.jms.Message;
-import javax.jms.Queue;
-import javax.jms.TemporaryQueue;
-import javax.jms.TemporaryTopic;
-import javax.jms.TextMessage;
-import javax.jms.Topic;
+import jakarta.jms.Destination;
+import jakarta.jms.Message;
+import jakarta.jms.Queue;
+import jakarta.jms.TemporaryQueue;
+import jakarta.jms.TemporaryTopic;
+import jakarta.jms.TextMessage;
+import jakarta.jms.Topic;
 import java.util.concurrent.CompletableFuture;
 
-interface BrokerFacade {
+interface JakartaBrokerFacade {
 
     void prepareResources() throws Exception;
 
@@ -52,7 +52,7 @@ interface BrokerFacade {
      *
      * @param destination      destination to send the message to
      * @param message          message to be sent
-     * @param disableTimestamp indicates whether the underlying {@link javax.jms.MessageProducer} should disable message timestamp
+     * @param disableTimestamp indicates whether the underlying {@link jakarta.jms.MessageProducer} should disable message timestamp
      * @throws Exception an internal client error
      */
     void send(Destination destination, Message message, boolean disableTimestamp) throws Exception;

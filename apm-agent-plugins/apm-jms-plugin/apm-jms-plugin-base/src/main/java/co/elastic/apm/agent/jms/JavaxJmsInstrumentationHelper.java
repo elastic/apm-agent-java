@@ -41,7 +41,7 @@ import javax.jms.TextMessage;
 import javax.jms.Topic;
 import java.util.Enumeration;
 
-public class JmsInstrumentationHelper {
+public class JavaxJmsInstrumentationHelper {
 
     /**
      * In some cases, dashes are not allowed in JMS Message property names
@@ -82,12 +82,12 @@ public class JmsInstrumentationHelper {
     static final String TEMP = "<temporary>";
     static final String FRAMEWORK_NAME = "JMS";
 
-    private static final Logger logger = LoggerFactory.getLogger(JmsInstrumentationHelper.class);
+    private static final Logger logger = LoggerFactory.getLogger(JavaxJmsInstrumentationHelper.class);
     private final ElasticApmTracer tracer;
     private final CoreConfiguration coreConfiguration;
     private final MessagingConfiguration messagingConfiguration;
 
-    public JmsInstrumentationHelper(ElasticApmTracer tracer) {
+    public JavaxJmsInstrumentationHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
@@ -123,7 +123,7 @@ public class JmsInstrumentationHelper {
             .withAction("send")
             .activate();
 
-        span.propagateTraceContext(message, JmsMessagePropertyAccessor.instance());
+        span.propagateTraceContext(message, JavaxJmsMessagePropertyAccessor.instance());
         if (span.isSampled()) {
             span.getContext().getDestination().getService()
                 .withName("jms")
@@ -134,7 +134,7 @@ public class JmsInstrumentationHelper {
                 span.withName("JMS SEND to ");
                 addDestinationDetails(destination, destinationName, span);
                 if (isDestinationNameComputed) {
-                    JmsMessagePropertyAccessor.instance().setHeader(JMS_DESTINATION_NAME_PROPERTY, destinationName, message);
+                    JavaxJmsMessagePropertyAccessor.instance().setHeader(JMS_DESTINATION_NAME_PROPERTY, destinationName, message);
                 }
             }
         }
@@ -143,7 +143,7 @@ public class JmsInstrumentationHelper {
 
     @Nullable
     public Transaction startJmsTransaction(Message parentMessage, Class<?> instrumentedClass) {
-        Transaction transaction = tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), instrumentedClass.getClassLoader());
+        Transaction transaction = tracer.startChildTransaction(parentMessage, JavaxJmsMessagePropertyAccessor.instance(), instrumentedClass.getClassLoader());
         if (transaction != null) {
             transaction.setFrameworkName(FRAMEWORK_NAME);
         }
@@ -151,14 +151,14 @@ public class JmsInstrumentationHelper {
     }
 
     public void makeChildOf(Transaction childTransaction, Message parentMessage) {
-        TraceContext.<Message>getFromTraceContextTextHeaders().asChildOf(childTransaction.getTraceContext(), parentMessage, JmsMessagePropertyAccessor.instance());
+        TraceContext.<Message>getFromTraceContextTextHeaders().asChildOf(childTransaction.getTraceContext(), parentMessage, JavaxJmsMessagePropertyAccessor.instance());
     }
 
     @Nullable
     public MessageListener wrapLambda(@Nullable MessageListener listener) {
         // the name check also prevents from wrapping twice
         if (listener != null && listener.getClass().getName().contains("/")) {
-            return new JmsInstrumentationHelper.MessageListenerWrapper(listener);
+            return new JavaxJmsInstrumentationHelper.MessageListenerWrapper(listener);
         }
         return listener;
     }
@@ -181,7 +181,7 @@ public class JmsInstrumentationHelper {
     public String extractDestinationName(@Nullable Message message, Destination destination) {
         String destinationName = null;
         if (message != null) {
-            destinationName = JmsMessagePropertyAccessor.instance().getFirstHeader(JMS_DESTINATION_NAME_PROPERTY, message);
+            destinationName = JavaxJmsMessagePropertyAccessor.instance().getFirstHeader(JMS_DESTINATION_NAME_PROPERTY, message);
         }
         if (destinationName == null) {
             try {

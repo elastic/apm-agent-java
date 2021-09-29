@@ -27,41 +27,36 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.Message;
+import jakarta.jms.Destination;
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
 
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.RECEIVE_NAME_PREFIX;
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
-import static net.bytebuddy.matcher.ElementMatchers.isPublic;
-import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
+import static co.elastic.apm.agent.jms.JakartaJmsInstrumentationHelper.MESSAGING_TYPE;
+import static co.elastic.apm.agent.jms.JakartaJmsInstrumentationHelper.RECEIVE_NAME_PREFIX;
+import static net.bytebuddy.matcher.ElementMatchers.*;
 
-public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
+public class JakartaJmsMessageListenerInstrumentation extends JakartaBaseJmsInstrumentation {
 
     @SuppressWarnings("WeakerAccess")
-    public static final Logger logger = LoggerFactory.getLogger(JmsMessageListenerInstrumentation.class);
+    public static final Logger logger = LoggerFactory.getLogger(JakartaJmsMessageListenerInstrumentation.class);
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface()).and(hasSuperType(named("javax.jms.MessageListener")));
+        return not(isInterface()).and(hasSuperType(named("jakarta.jms.MessageListener")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("onMessage")
-            .and(takesArgument(0, hasSuperType(named("javax.jms.Message")))).and(isPublic());
+            .and(takesArgument(0, hasSuperType(named("jakarta.jms.Message")))).and(isPublic());
     }
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.jms.JmsMessageListenerInstrumentation$MessageListenerAdvice";
+        return "co.elastic.apm.agent.jms.JakartaJmsMessageListenerInstrumentation$MessageListenerAdvice";
     }
 
-    public static class MessageListenerAdvice extends BaseAdvice {
+    public static class MessageListenerAdvice extends JakartaBaseAdvice {
 
         @SuppressWarnings("unused")
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)

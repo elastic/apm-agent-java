@@ -35,7 +35,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-class JmsMessagePropertyAccessorTest {
+class JavaxJmsMessagePropertyAccessorTest {
 
     @Test
     void returnsNullOnJMSException() throws JMSException {
@@ -43,7 +43,7 @@ class JmsMessagePropertyAccessorTest {
 
         doThrow(JMSException.class).when(msg).getStringProperty(any(String.class));
 
-        assertThat(JmsMessagePropertyAccessor.instance().getFirstHeader("header", msg)).isNull();
+        assertThat(JavaxJmsMessagePropertyAccessor.instance().getFirstHeader("header", msg)).isNull();
     }
 
     @Test
@@ -55,7 +55,7 @@ class JmsMessagePropertyAccessorTest {
 
         doReturn(null).when(msg).getStringProperty(any(String.class));
 
-        JmsMessagePropertyAccessor.instance().setHeader(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, "header-value", msg);
+        JavaxJmsMessagePropertyAccessor.instance().setHeader(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, "header-value", msg);
 
         verify(msg).setStringProperty(headerName.capture(), headerValue.capture());
 
@@ -73,7 +73,7 @@ class JmsMessagePropertyAccessorTest {
         doReturn("msg-value").when(msg).getStringProperty(header);
         doThrow(RuntimeException.class).when(msg).setStringProperty(header, newValue);
 
-        JmsMessagePropertyAccessor.instance().setHeader(header, newValue, msg);
+        JavaxJmsMessagePropertyAccessor.instance().setHeader(header, newValue, msg);
     }
 
     @ParameterizedTest
@@ -82,7 +82,7 @@ class JmsMessagePropertyAccessorTest {
         Message msg = mock(Message.class);
         doThrow(exceptionType).when(msg).setStringProperty(any(String.class), any(String.class));
 
-        JmsMessagePropertyAccessor.instance().setHeader("", "", msg);
+        JavaxJmsMessagePropertyAccessor.instance().setHeader("", "", msg);
     }
 
 }
