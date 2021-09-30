@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.premain.JvmRuntimeInfo;
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

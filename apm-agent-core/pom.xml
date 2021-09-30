@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.25.1-SNAPSHOT</version>
+        <version>1.26.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
@@ -30,7 +30,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-premain</artifactId>
+            <artifactId>apm-agent-common</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

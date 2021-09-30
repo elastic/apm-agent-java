@@ -55,7 +55,7 @@ docker build -t docker.elastic.co/$NAMESPACE/apm-agent-java:$GIT_TAG \
 
 if [ $? -eq 0 ]
 then
-  echo "INFO: Docker image built succesfully"
+  echo "INFO: Docker image built successfully"
 else
   echo "ERROR: Problem building Docker image!"
 fi

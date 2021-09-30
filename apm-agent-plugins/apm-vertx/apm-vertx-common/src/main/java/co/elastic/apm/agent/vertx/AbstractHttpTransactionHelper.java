@@ -151,19 +151,18 @@ public abstract class AbstractHttpTransactionHelper {
         response.withStatusCode(status);
     }
 
-    protected void fillRequest(Request request, String protocol, String method, boolean secure, @Nullable String scheme, @Nullable String serverName,
+    protected void fillRequest(Request request, String protocol, String method, @Nullable String scheme, @Nullable String serverName,
                                int serverPort, String requestURI, @Nullable String queryString, @Nullable String remoteAddr) {
-        fillRequest(request, protocol, method, secure, remoteAddr);
+        fillRequest(request, protocol, method, remoteAddr);
 
         fillUrlRelatedFields(request, scheme, serverName, serverPort, requestURI, queryString);
     }
 
-    protected void fillRequest(Request request, String protocol, String method, boolean secure, @Nullable String remoteAddr) {
+    protected void fillRequest(Request request, String protocol, String method, @Nullable String remoteAddr) {
         request.withHttpVersion(protocol);
         request.withMethod(method);
 
         request.getSocket()
-            .withEncrypted(secure)
             .withRemoteAddress(remoteAddr);
     }
 

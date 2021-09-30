@@ -46,10 +46,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static org.assertj.core.api.Java6Assertions.assertThat;
@@ -135,31 +136,18 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testIgnoreUrl() {
-        Arrays.asList("/resources*", "*.js").forEach(ignoreConfig -> {
-            // we have 3 different cases:
-            // 1. servlet path without path info (null)
-            testIgnoreUrl(ignoreConfig, r -> r.setServletPath("/resources/test.js"));
-            // 2. servlet path with path info
-            testIgnoreUrl(ignoreConfig, r -> {
-                r.setServletPath("/resources");
-                r.setPathInfo("/test.js");
-            });
-            // 3. empty servlet path, when servlet path is unknown yet (filters)
-            testIgnoreUrl(ignoreConfig, r -> {
-                r.setServletPath("");
-                r.setRequestURI("/context/resources/test.js");
-                r.setContextPath("/context");
-            });
-        });
+        List<WildcardMatcher> config = Stream.of("/context/resources*", "*.js").map(WildcardMatcher::valueOf).collect(Collectors.toList());
+        testIgnoreUrl(config, "/context/resources/test.xml");
+        testIgnoreUrl(config, "/ignored.js");
     }
 
-    void testIgnoreUrl(String ignoreUrl, Consumer<MockHttpServletRequest> setRequestProperties) {
+    void testIgnoreUrl(List<WildcardMatcher> ignoreConfig, String requestUri) {
         reset(webConfiguration);
         filterChain = new MockFilterChain(new HttpServlet() {
         });
-        when(webConfiguration.getIgnoreUrls()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf(ignoreUrl)));
+        when(webConfiguration.getIgnoreUrls()).thenReturn(ignoreConfig);
         final MockHttpServletRequest request = new MockHttpServletRequest();
-        setRequestProperties.accept(request);
+        request.setRequestURI(requestUri);
         try {
             filterChain.doFilter(request, new MockHttpServletResponse());
         } catch (ServletException|IOException e) {
@@ -167,26 +155,20 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         }
         verify(webConfiguration, times(1)).getIgnoreUrls();
         assertThat(reporter.getTransactions())
-            .describedAs("request should be ignored by config = %s", ignoreUrl)
+            .describedAs("request with URI %s should be ignored by config = %s", requestUri, ignoreConfig)
             .hasSize(0);
     }
 
-    void testIgnoreUserAgent(String ignoreUserAgent, String userAgent) throws ServletException, IOException {
-        when(webConfiguration.getIgnoreUserAgents()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf(ignoreUserAgent)));
+    @Test
+    void testIgnoreUserAGent() throws IOException, ServletException {
+        String config = "curl/*";
+        String userAgent = "curl/7.54.0";
+
+        when(webConfiguration.getIgnoreUserAgents()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf(config)));
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("user-agent", userAgent);
         filterChain.doFilter(request, new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(0);
-    }
-
-    @Test
-    void testIgnoreUserAgentStartWith() throws IOException, ServletException {
-        testIgnoreUserAgent("curl/*","curl/7.54.0");
-    }
-
-    @Test
-    void testIgnoreUserAgentInfix() throws IOException, ServletException {
-        testIgnoreUserAgent("*pingdom*","Pingdom.com_bot_version_1.4_(http://www.pingdom.com)");
     }
 
     @Test

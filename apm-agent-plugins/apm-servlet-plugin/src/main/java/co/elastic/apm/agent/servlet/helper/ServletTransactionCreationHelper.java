@@ -74,7 +74,7 @@ public abstract class ServletTransactionCreationHelper<HTTPREQUEST, CONTEXT> {
 
     protected abstract String getRequestURI(HTTPREQUEST request);
 
-    private boolean isExcluded(HTTPREQUEST request) {
+    boolean isExcluded(HTTPREQUEST request) {
         String userAgent = getHeader(request, "User-Agent");
 
         String pathFirstPart = getServletPath(request);

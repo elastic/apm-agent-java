@@ -23,4 +23,5 @@ public class ServletApiTestApp extends AbstractServletApiTestApp {
     public ServletApiTestApp() {
         super("../simple-webapp", "simple-webapp.war", "/simple-webapp/status.jsp", "Simple Web App", "/simple-webapp", "TestApiServlet");
     }
+
 }
