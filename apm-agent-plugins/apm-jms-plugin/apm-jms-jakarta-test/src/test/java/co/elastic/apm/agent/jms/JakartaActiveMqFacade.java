@@ -18,8 +18,6 @@
  */
 package co.elastic.apm.agent.jms;
 
-import org.apache.activemq.ActiveMQConnectionFactory;
-
 import jakarta.jms.Connection;
 import jakarta.jms.ConnectionFactory;
 import jakarta.jms.Destination;
@@ -34,6 +32,8 @@ import jakarta.jms.TemporaryQueue;
 import jakarta.jms.TemporaryTopic;
 import jakarta.jms.TextMessage;
 import jakarta.jms.Topic;
+import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -44,8 +44,8 @@ import java.util.concurrent.CompletableFuture;
  */
 // TODO Need to wait until Artemis is fully on jakarta.jms,
 //  currently ActiveMQConnectionFacto
-class JakartaActiveMqFacade /*implements JakartaBrokerFacade*/ {
-/*
+class JakartaActiveMqFacade implements JakartaBrokerFacade {
+
     private Connection connection;
     private Session session;
     private final Map<Destination, MessageConsumer> consumerCache = new HashMap<>();
@@ -185,5 +185,4 @@ class JakartaActiveMqFacade /*implements JakartaBrokerFacade*/ {
         return consumer;
     }
 
- */
 }
