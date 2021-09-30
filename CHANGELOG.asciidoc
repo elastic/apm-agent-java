@@ -39,6 +39,10 @@ exclude known static files in all applications might be changed to `/app/static/
 * Improved capturing of logged exceptions when using Log4j2 - {pull}2139[#2139]
 
 [float]
+===== Performance improvements
+* Disable compression when sending data to a local APM Server
+
+[float]
 ===== Bug fixes
 * Fixing/reducing startup delays related to `ensureInstrumented` - {pull}2150[#2150]
 
