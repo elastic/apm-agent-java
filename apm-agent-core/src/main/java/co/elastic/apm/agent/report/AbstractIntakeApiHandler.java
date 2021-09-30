@@ -38,7 +38,6 @@ import java.util.zip.DeflaterOutputStream;
 
 public class AbstractIntakeApiHandler {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-    protected static final int GZIP_COMPRESSION_LEVEL = 1;
     private static final Object WAIT_LOCK = new Object();
 
     protected final ReporterConfiguration reporterConfiguration;
@@ -59,7 +58,7 @@ public class AbstractIntakeApiHandler {
         this.reporterConfiguration = reporterConfiguration;
         this.payloadSerializer = payloadSerializer;
         this.apmServerClient = apmServerClient;
-        this.deflater = new Deflater(GZIP_COMPRESSION_LEVEL);
+        this.deflater = new Deflater();
     }
 
     /*
@@ -91,6 +90,11 @@ public class AbstractIntakeApiHandler {
         payloadSerializer.blockUntilReady();
         final HttpURLConnection connection = apmServerClient.startRequest(endpoint);
         if (connection != null) {
+            if (isLocalhost(connection)) {
+                deflater.setLevel(Deflater.NO_COMPRESSION);
+            } else {
+                deflater.setLevel(Deflater.BEST_SPEED);
+            }
             try {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Starting new request to {}", connection.getURL());
@@ -133,6 +137,11 @@ public class AbstractIntakeApiHandler {
             }
         }
         return connection;
+    }
+
+    private boolean isLocalhost(HttpURLConnection connection) {
+        String host = connection.getURL().getHost();
+        return "localhost".equals(host) || "127.0.0.1".equals(host);
     }
 
     public void endRequest() {
