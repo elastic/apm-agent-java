@@ -140,8 +140,15 @@ public class AbstractIntakeApiHandler {
     }
 
     private boolean isLocalhost(HttpURLConnection connection) {
-        String host = connection.getURL().getHost();
-        return "localhost".equals(host) || "127.0.0.1".equals(host);
+        switch (connection.getURL().getHost()) {
+            case "localhost":
+            case "127.0.0.1":
+            case "[::1]":
+            case "[0:0:0:0:0:0:0:1]":
+                return true;
+            default:
+                return false;
+        }
     }
 
     public void endRequest() {
