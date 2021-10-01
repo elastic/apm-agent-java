@@ -85,8 +85,11 @@ public abstract class ServletTransactionCreationHelper<HTTPREQUEST, CONTEXT> {
             // this can happen when transaction is created by a filter (and thus servlet path is unknown yet)
             String contextPath = getContextPath(request);
             if (null != contextPath) {
-                pathFirstPart = getRequestURI(request).substring(contextPath.length());
-                pathSecondPart = "";
+                String uri = getRequestURI(request);
+                if (null != uri) {
+                    pathFirstPart = uri.substring(contextPath.length());
+                    pathSecondPart = "";
+                }
             }
         }
 
