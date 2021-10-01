@@ -719,6 +719,7 @@ public class ElasticApmAgent {
                     throw new IllegalStateException("Agent is not initialized");
                 }
 
+                appliedInstrumentations = dynamicallyInstrumentedClasses.get(classToInstrument);
                 if (!appliedInstrumentations.contains(instrumentationClasses)) {
                     appliedInstrumentations = new HashSet<>(appliedInstrumentations);
                     appliedInstrumentations.add(instrumentationClasses);
@@ -754,7 +755,7 @@ public class ElasticApmAgent {
         Set<Collection<Class<? extends ElasticApmInstrumentation>>> instrumentedClasses = dynamicallyInstrumentedClasses.get(classToInstrument);
         if (instrumentedClasses == null) {
             instrumentedClasses = new HashSet<Collection<Class<? extends ElasticApmInstrumentation>>>();
-            Set<Collection<Class<? extends ElasticApmInstrumentation>>> racy = dynamicallyInstrumentedClasses.put(classToInstrument, instrumentedClasses);
+            Set<Collection<Class<? extends ElasticApmInstrumentation>>> racy = dynamicallyInstrumentedClasses.putIfAbsent(classToInstrument, instrumentedClasses);
             if (racy != null) {
                 instrumentedClasses = racy;
             }

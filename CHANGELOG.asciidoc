@@ -36,13 +36,15 @@ exclude known static files in all applications might be changed to `/app/static/
 
 [float]
 ===== Features
-* Improved capturing of logged exceptions when using Log4j2 {pull}2139[#2139]
+* Improved capturing of logged exceptions when using Log4j2 - {pull}2139[#2139]
 
 [float]
 ===== Bug fixes
+* Fixing/reducing startup delays related to `ensureInstrumented` - {pull}2150[#2150]
 
 [float]
 ===== Refactorings
+* Loading the agent from an isolated class loader - {pull}2109[#2109]
 * Loading the agent from an isolated class loader {pull}2109[#2109]
 * Refactorings in the `apm-agent-plugin-sdk` that may imply breaking changes for beta users of the external plugin mechanism {pull}2136[#2136]
 
