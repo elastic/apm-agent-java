@@ -26,11 +26,8 @@ import java.util.concurrent.ConcurrentMap;
 
 public class CachedKeyWeakConcurrentMap<K, V> extends AbstractWeakConcurrentMap<K, V, CachedLookupKey<K>> implements WeakMap<K, V> {
 
-    final ConcurrentMap<WeakKey<K>, V> target;
-
     CachedKeyWeakConcurrentMap(ConcurrentMap<WeakKey<K>, V> target) {
         super(target);
-        this.target = target;
     }
 
     @Override
