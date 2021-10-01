@@ -158,7 +158,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
         }
 
         /**
-         * Overridden in {@link DynamicTransformer.DynamicTransformerSupplier#ensureInstrumented(Class, Collection)},
+         * Overridden in {@link DynamicTransformer#ensureInstrumented(Class, Collection)},
          * based on the type of the {@linkplain AsyncHandler} implementation class.
          */
         @Override
