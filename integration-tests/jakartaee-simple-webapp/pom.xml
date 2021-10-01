@@ -7,7 +7,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.25.1-SNAPSHOT</version>
+        <version>1.26.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>jakartaee-simple-webapp</artifactId>

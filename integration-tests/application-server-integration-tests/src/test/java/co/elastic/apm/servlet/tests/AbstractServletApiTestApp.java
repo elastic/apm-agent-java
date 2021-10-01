@@ -42,7 +42,7 @@ public abstract class AbstractServletApiTestApp extends TestApp {
     private final String spanName;
 
     public AbstractServletApiTestApp(String modulePath, String appFileName, String statusEndpoint, String expectedServiceName, String servicePath, String spanName) {
-        super(modulePath, appFileName, statusEndpoint, expectedServiceName);
+        super(modulePath, appFileName, servicePath, statusEndpoint, expectedServiceName);
         this.servicePath = servicePath;
         this.spanName = spanName;
     }
