@@ -40,7 +40,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
  * Used only within {@link JavaConcurrent#withContext} to
- * {@linkplain DynamicTransformer#ensureInstrumented(Class, Collection) ensure}
+ * {@linkplain DynamicTransformer.DynamicTransformerSupplier#ensureInstrumented(Class, Collection) ensure}
  * that particular {@link Callable}, {@link Runnable} and {@link ForkJoinTask} classes are instrumented.
  */
 public class RunnableCallableForkJoinTaskInstrumentation extends TracerAwareInstrumentation {

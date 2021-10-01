@@ -56,7 +56,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
         );
 
     /**
-     * Overridden in {@link DynamicTransformer#ensureInstrumented(Class, Collection)},
+     * Overridden in {@link DynamicTransformer.DynamicTransformerSupplier#ensureInstrumented(Class, Collection)},
      * based on the type of the {@linkplain ClientCall} implementation class.
      */
     @Override
@@ -87,7 +87,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
                                          @Advice.Argument(0) ClientCall.Listener<?> listener,
                                          @Advice.Argument(1) Metadata headers) {
 
-                DynamicTransformer.Accessor.get().ensureInstrumented(listener.getClass(), RESPONSE_LISTENER_INSTRUMENTATIONS);
+                DynamicTransformer.ensureInstrumented(listener.getClass(), RESPONSE_LISTENER_INSTRUMENTATIONS);
                 return GrpcHelper.getInstance().clientCallStartEnter(clientCall, listener, headers);
             }
 

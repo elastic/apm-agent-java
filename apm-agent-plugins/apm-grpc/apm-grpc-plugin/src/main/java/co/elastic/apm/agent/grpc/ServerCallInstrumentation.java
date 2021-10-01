@@ -41,7 +41,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 public class ServerCallInstrumentation extends BaseInstrumentation {
 
     /**
-     * Overridden in {@link DynamicTransformer#ensureInstrumented(Class, Collection)},
+     * Overridden in {@link DynamicTransformer.DynamicTransformerSupplier#ensureInstrumented(Class, Collection)},
      * based on the type of the {@linkplain ServerCall} implementation class.
      */
     @Override

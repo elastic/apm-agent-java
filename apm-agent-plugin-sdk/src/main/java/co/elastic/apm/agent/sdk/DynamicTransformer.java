@@ -24,7 +24,17 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.util.Collection;
 import java.util.ServiceLoader;
 
-public interface DynamicTransformer {
+public class DynamicTransformer {
+    private static final DynamicTransformerSupplier transformer;
+
+    static {
+        ClassLoader classLoader = DynamicTransformer.class.getClassLoader();
+        if (classLoader == null) {
+            classLoader = ClassLoader.getSystemClassLoader();
+        }
+        // loads the implementation provided by the core module without depending on the class or class name
+        transformer = ServiceLoader.load(DynamicTransformerSupplier.class, classLoader).iterator().next();
+    }
 
     /**
      * Instruments a specific class at runtime with one or multiple instrumentation classes.
@@ -38,23 +48,13 @@ public interface DynamicTransformer {
      * @param classToInstrument      the class which should be instrumented.
      * @param instrumentationClasses the instrumentation which should be applied to the class to instrument.
      */
-    void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses);
-
-    class Accessor {
-        private static final DynamicTransformer transformer;
-
-        static {
-            ClassLoader classLoader = Accessor.class.getClassLoader();
-            if (classLoader == null) {
-                classLoader = ClassLoader.getSystemClassLoader();
-            }
-            // loads the implementation provided by the core module without depending on the class or class name
-            transformer = ServiceLoader.load(DynamicTransformer.class, classLoader).iterator().next();
-        }
-
-        public static DynamicTransformer get() {
-            return transformer;
-        }
+    public static void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses) {
+        transformer.ensureInstrumented(classToInstrument, instrumentationClasses);
     }
 
+    public interface DynamicTransformerSupplier {
+
+        void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses);
+
+    }
 }

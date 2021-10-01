@@ -102,7 +102,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                     return;
                 }
 
-                DynamicTransformer.Accessor.get().ensureInstrumented(consumer.getClass(), CONSUMER_INSTRUMENTATION);
+                DynamicTransformer.ensureInstrumented(consumer.getClass(), CONSUMER_INSTRUMENTATION);
             }
         }
     }

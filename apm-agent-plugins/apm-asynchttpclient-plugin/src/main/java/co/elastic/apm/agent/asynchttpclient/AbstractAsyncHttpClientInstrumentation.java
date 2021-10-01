@@ -105,7 +105,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
                 if (parent == null) {
                     return null;
                 }
-                DynamicTransformer.Accessor.get().ensureInstrumented(asyncHandler.getClass(), Helper.ASYNC_HANDLER_INSTRUMENTATIONS);
+                DynamicTransformer.ensureInstrumented(asyncHandler.getClass(), Helper.ASYNC_HANDLER_INSTRUMENTATIONS);
 
                 Uri uri = request.getUri();
                 Span span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
@@ -158,7 +158,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
         }
 
         /**
-         * Overridden in {@link DynamicTransformer#ensureInstrumented(Class, Collection)},
+         * Overridden in {@link DynamicTransformer.DynamicTransformerSupplier#ensureInstrumented(Class, Collection)},
          * based on the type of the {@linkplain AsyncHandler} implementation class.
          */
         @Override

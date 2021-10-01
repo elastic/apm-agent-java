@@ -23,7 +23,7 @@ import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 
 import java.util.Collection;
 
-public class DynamicTransformerImpl implements DynamicTransformer {
+public class DynamicTransformerSupplierImpl implements DynamicTransformer.DynamicTransformerSupplier {
 
     @Override
     public void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses) {
