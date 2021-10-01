@@ -24,16 +24,28 @@ endif::[]
 ==== 1.27.0 - YYYY/MM/DD
 
 [float]
+===== Potentially breaking changes
+* `transaction_ignore_urls` now relies on full request URL path - {pull}2146[#2146]
+** On a typical application server like Tomcat, deploying an `app.war` application to the non-ROOT context makes it accessible with `http://localhost:8080/app/`
+** Ignoring the whole webapp through `/app/*` was not possible until now.
+** Existing configuration may need to be updated to include the deployment context, thus for example `/static/*.js` used to
+exclude known static files in all applications might be changed to `/app/static/*.js` or `*/static/*.js`.
+** It only impacts prefix patterns due to the additional context path in pattern.
+** It does not impact deployment within the `ROOT` context like Spring-boot which do not have such context path prefix.
+
+
+[float]
 ===== Features
-* Improved capturing of logged exceptions when using Log4j2 {pull}2139[#2139]
-* Added support for overwritting the service version per classloader {pull}#1726[#1726]
+* Improved capturing of logged exceptions when using Log4j2 - {pull}2139[#2139]
+* Added support for overwritting the service version per classloader - {pull}#1726[#1726]
 
 [float]
 ===== Bug fixes
+* Fixing/reducing startup delays related to `ensureInstrumented` - {pull}2150[#2150]
 
 [float]
 ===== Refactorings
-* Loading the agent from an isolated class loader {pull}2109[#2109]
+* Loading the agent from an isolated class loader - {pull}2109[#2109]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
