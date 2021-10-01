@@ -47,7 +47,7 @@ public class R2dbcSubscriber<T> implements CoreSubscriber<T> {
     public R2dbcSubscriber(CoreSubscriber<? super T> subscriber,
                            Tracer tracer,
                            Span span,
-                           Connection connection) {
+                           final Connection connection) {
         this.subscriber = subscriber;
         this.tracer = tracer;
         this.connection = connection;
@@ -76,6 +76,7 @@ public class R2dbcSubscriber<T> implements CoreSubscriber<T> {
         boolean hasActivated = doEnter("onNext", span);
         Throwable thrown = null;
         try {
+            subscriber.onNext(next);
             if (span.getSubtype() == null) {
                 log.debug("Subtype is null try to set db details.");
                 R2dbcHelper helper = R2dbcHelper.get();
@@ -97,7 +98,6 @@ public class R2dbcSubscriber<T> implements CoreSubscriber<T> {
                 }
                 span.withSubtype(vendor).withAction(DB_SPAN_ACTION);
             }
-            subscriber.onNext(next);
             log.info("onNext = {}", (next instanceof Result));
             if (next instanceof Result) {
                 Result result = (Result) next;

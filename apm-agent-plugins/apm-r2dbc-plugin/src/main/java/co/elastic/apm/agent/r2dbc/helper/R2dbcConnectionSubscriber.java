@@ -61,6 +61,7 @@ public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T> {
 
     @Override
     public void onError(Throwable t) {
+        log.debug("onError connection");
         subscriber.onError(t);
     }
 
