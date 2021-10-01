@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
+import co.elastic.apm.agent.collections.WeakConcurrentSupplierImpl;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.util.SpanConcurrentHashMap;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -41,7 +41,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
 
     private static final Logger log = LoggerFactory.getLogger(TransactionAwareSubscriber.class);
 
-    private static final WeakConcurrentMap<TransactionAwareSubscriber<?>, Transaction> transactionMap = SpanConcurrentHashMap.createWeakMap();
+    private static final WeakMap<TransactionAwareSubscriber<?>, Transaction> transactionMap = WeakConcurrentSupplierImpl.createWeakSpanMap();
 
     private final CoreSubscriber<? super T> subscriber;
 
@@ -219,14 +219,4 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
         }
         log.trace("{} {} {} {}", isEnter ? ">>>>" : "<<<<", description, method, transaction);
     }
-
-    /**
-     * Only for testing
-     *
-     * @return storage map for in-flight transactions
-     */
-    static WeakConcurrentMap<TransactionAwareSubscriber<?>, Transaction> getTransactionMap() {
-        return transactionMap;
-    }
-
 }
