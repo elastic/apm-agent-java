@@ -45,7 +45,10 @@ exclude known static files in all applications might be changed to `/app/static/
 [float]
 ===== Refactorings
 * Loading the agent from an isolated class loader - {pull}2109[#2109]
-* Refactorings in the `apm-agent-plugin-sdk` that may imply breaking changes for beta users of the external plugin mechanism {pull}2136[#2136]
+* Refactorings in the `apm-agent-plugin-sdk` that may imply breaking changes for beta users of the external plugin mechanism
+** `WeakMapSupplier.createMap()` is now `WeakConcurrent.buildMap()` and contains more builders. - {pull}2136[#2136]
+** `GlobalThreadLocal` has been removed in favor of `DetachedThreadLocal`. To make it global, use `GlobalVariables`. - {pull}2136[#2136]
+** `DynamicTransformer.Accessor.get().ensureInstrumented` is now `DynamicTransformer.ensureInstrumented`. - {pull}#2164[#2164]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
