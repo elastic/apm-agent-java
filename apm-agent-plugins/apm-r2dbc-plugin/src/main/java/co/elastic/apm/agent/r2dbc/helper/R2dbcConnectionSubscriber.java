@@ -25,11 +25,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.CoreSubscriber;
 
-public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T> {
+public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T>, Subscription {
     private static final Logger log = LoggerFactory.getLogger(R2dbcConnectionSubscriber.class);
 
     private final CoreSubscriber<? super T> subscriber;
     private final ConnectionFactoryOptions connectionFactoryOptions;
+
+    private Subscription subscription;
 
     public R2dbcConnectionSubscriber(CoreSubscriber<? super T> subscriber,
                                      final ConnectionFactoryOptions connectionFactoryOptions) {
@@ -38,8 +40,22 @@ public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T> {
     }
 
     @Override
+    public void request(long n) {
+        log.debug("Request connection {}", n);
+        subscription.request(n);
+    }
+
+    @Override
+    public void cancel() {
+        log.debug("Cancel connection");
+        subscription.cancel();
+    }
+
+    @Override
     public void onSubscribe(Subscription subscription) {
         log.debug("onSubscribe connection");
+        this.subscription = subscription;
+
         subscriber.onSubscribe(subscription);
     }
 
@@ -52,10 +68,9 @@ public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T> {
                 R2dbcHelper helper = R2dbcHelper.get();
                 helper.mapConnectionOptionsData(connection, connectionFactoryOptions);
             }
+            subscriber.onNext(next);
         } catch (Throwable e) {
             throw e;
-        } finally {
-            subscriber.onNext(next);
         }
     }
 
@@ -70,5 +85,4 @@ public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T> {
         log.debug("onComplete connection");
         subscriber.onComplete();
     }
-
 }

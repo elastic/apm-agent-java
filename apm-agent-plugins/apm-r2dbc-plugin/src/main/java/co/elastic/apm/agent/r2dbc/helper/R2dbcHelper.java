@@ -20,10 +20,9 @@ package co.elastic.apm.agent.r2dbc.helper;
 
 import co.elastic.apm.agent.db.signature.Scanner;
 import co.elastic.apm.agent.db.signature.SignatureParser;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
@@ -88,14 +87,16 @@ public class R2dbcHelper {
 
     @Nullable
     public ConnectionFactoryOptions getConnectionFactoryOptions(@Nonnull ConnectionFactory connectionFactory) {
-        logger.debug("Trying to get options by connection factory {}", connectionFactory);
-        return connectionFactoryMap.get(connectionFactory);
+        ConnectionFactoryOptions options = connectionFactoryMap.get(connectionFactory);
+        logger.debug("Trying to get options ({}) by connection factory {}", (options == null), connectionFactory);
+        return options;
     }
 
     @Nullable
     public ConnectionFactoryOptions getConnectionOptions(@Nonnull Connection connection) {
-        logger.debug("Trying to get options by connection {}", connection);
-        return connectionOptionsMap.get(connection);
+        ConnectionFactoryOptions options = connectionOptionsMap.get(connection);
+        logger.debug("Trying to get options ({}) by connection {}", (options == null), connection);
+        return options;
     }
 
     /**
@@ -139,29 +140,24 @@ public class R2dbcHelper {
         return span;
     }
 
-    /*
-     * This makes sure that even when there are wrappers for the statement,
-     * we only record each JDBC call once.
-     */
-    private boolean isAlreadyMonitored(@Nullable AbstractSpan<?> parent) {
-        if (!(parent instanceof Span)) {
-            return false;
-        }
-        Span parentSpan = (Span) parent;
-        // a db span can't be the child of another db span
-        // this means the span has already been created for this db call
-        return parentSpan.getType() != null && parentSpan.getType().equals(DB_SPAN_TYPE);
-    }
-
     @Nullable
     public ConnectionMetaData getConnectionMetaData(@Nullable Connection connection) {
         if (null == connection) {
             return null;
         }
+        ConnectionFactoryOptions connectionFactoryOptions = null;
+        try {
+            R2dbcHelper helper = R2dbcHelper.get();
+            connectionFactoryOptions = helper.getConnectionOptions(connection);
+        } catch (Exception e) {
+            logger.error("Cannot get connection options from map.");
+        }
         ConnectionMetaData connectionMetaData = r2dbcMetaDataMap.get(connection);
         if (connectionMetaData != null) {
-            logger.debug("Already contains connection metadata in cache.");
-            return connectionMetaData;
+            if (connectionFactoryOptions == null || connectionMetaData.getHost() != null) {
+                logger.debug("Already contains connection metadata in cache.");
+                return connectionMetaData;
+            }
         }
 
         Class<?> type = connection.getClass();
@@ -171,13 +167,10 @@ public class R2dbcHelper {
         }
         ConnectionMetaData apmConnectionMetadata = null;
         try {
-            R2dbcHelper helper = R2dbcHelper.get();
             ConnectionMetadata metaData = connection.getMetadata();
-            ConnectionFactoryOptions connectionFactoryOptions = helper.getConnectionOptions(connection);
-            String databaseProductName = metaData != null ? metaData.getDatabaseProductName() : null;
-            String databaseVersion = metaData != null ? metaData.getDatabaseVersion() : null;
+            String databaseProductName = metaData.getDatabaseProductName(), databaseVersion = metaData.getDatabaseVersion();
             apmConnectionMetadata = ConnectionMetaData.create(databaseProductName, databaseVersion, connectionFactoryOptions);
-            if (apmConnectionMetadata != null && supported == null) {
+            if (supported == null) {
                 markSupported(R2dbcFeature.METADATA, type);
             }
         } catch (R2dbcException e) {
@@ -211,9 +204,9 @@ public class R2dbcHelper {
     private enum R2dbcFeature {
         METADATA(R2dbcGlobalState.metadataSupported);
 
-        private final WeakConcurrentMap<Class<?>, Boolean> classSupport;
+        private final WeakMap<Class<?>, Boolean> classSupport;
 
-        R2dbcFeature(WeakConcurrentMap<Class<?>, Boolean> map) {
+        R2dbcFeature(WeakMap<Class<?>, Boolean> map) {
             this.classSupport = map;
         }
     }

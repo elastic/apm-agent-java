@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.r2dbc.helper;
 
-import co.elastic.apm.agent.sdk.state.GlobalState;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,11 +27,11 @@ import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
-@GlobalState
 public class ConnectionMetaData {
     private static final Logger logger = LoggerFactory.getLogger(ConnectionMetaData.class);
 
     private static final Map<String, MetadataParser> parsers = new HashMap<>();
+
     static {
         for (MetadataParser parser : MetadataParser.values()) {
             parsers.put(parser.dbVendor, parser);
@@ -92,7 +91,8 @@ public class ConnectionMetaData {
     private String instance;
     private String user;
 
-    public ConnectionMetaData() {}
+    public ConnectionMetaData() {
+    }
 
     public String getDbVendor() {
         return dbVendor;
@@ -170,7 +170,6 @@ public class ConnectionMetaData {
 
     private enum MetadataParser {
         ORACLE("oracle", "oracle") {
-
             @Override
             ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
                 return toMetadata(dbVendor, 1521, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);
@@ -178,7 +177,6 @@ public class ConnectionMetaData {
         },
 
         POSTGRESQL("postgresql", "postgresql") {
-
             @Override
             ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
                 return toMetadata(dbVendor, 5432, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);
@@ -186,15 +184,13 @@ public class ConnectionMetaData {
         },
 
         MYSQL("mysql", "mysql") {
-
             @Override
             ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
-                return toMetadata(dbVendor,  3306, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);
+                return toMetadata(dbVendor, 3306, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);
             }
         },
 
         H2("h2", "h2") {
-
             @Override
             ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
                 return toMetadata(dbVendor, -1, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);
@@ -202,7 +198,6 @@ public class ConnectionMetaData {
         },
 
         MARIADB("mariadb", "mariadb") {
-
             @Override
             ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
                 return toMetadata(dbVendor, 3306, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);
@@ -210,7 +205,6 @@ public class ConnectionMetaData {
         },
 
         SQLSERVER("sqlserver", "sql server") {
-
             @Override
             ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
                 return toMetadata(dbVendor, 1433, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);
@@ -218,7 +212,6 @@ public class ConnectionMetaData {
         },
 
         UNKNOWN("unknown", "unknown") {
-
             @Override
             ConnectionMetaData parse(@Nullable String databaseProductName, @Nullable String metadataDatabaseVersion, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
                 return toMetadata(dbVendor, -1, databaseProductName, metadataDatabaseVersion, connectionFactoryOptions);

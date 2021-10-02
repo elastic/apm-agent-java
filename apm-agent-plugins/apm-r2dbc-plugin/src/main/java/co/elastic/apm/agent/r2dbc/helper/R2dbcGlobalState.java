@@ -20,8 +20,8 @@
 package co.elastic.apm.agent.r2dbc.helper;
 
 import co.elastic.apm.agent.sdk.state.GlobalState;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
@@ -30,19 +30,11 @@ import io.r2dbc.spi.ConnectionFactoryOptions;
 @GlobalState
 public class R2dbcGlobalState {
 
-    public static final WeakConcurrentMap<Object, Object[]> statementConnectionMap = WeakMapSupplier.createMap();
-    public static final WeakConcurrentMap<Object, Object[]> batchConnectionMap = WeakMapSupplier.createMap();
-    public static final WeakConcurrentMap<Connection, ConnectionMetaData> r2dbcMetaDataMap = WeakMapSupplier.createMap();
-    public static final WeakConcurrentMap<ConnectionFactory, ConnectionFactoryOptions> connectionFactoryMap = WeakMapSupplier.createMap();
-    public static final WeakConcurrentMap<Connection, ConnectionFactoryOptions> connectionOptionsMap = WeakMapSupplier.createMap();
-    public static final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = WeakMapSupplier.createMap();
+    public static final WeakMap<Object, Object[]> statementConnectionMap = WeakConcurrent.buildMap();
+    public static final WeakMap<Object, Object[]> batchConnectionMap = WeakConcurrent.buildMap();
+    public static final WeakMap<Connection, ConnectionMetaData> r2dbcMetaDataMap = WeakConcurrent.buildMap();
+    public static final WeakMap<ConnectionFactory, ConnectionFactoryOptions> connectionFactoryMap = WeakConcurrent.buildMap();
+    public static final WeakMap<Connection, ConnectionFactoryOptions> connectionOptionsMap = WeakConcurrent.buildMap();
+    public static final WeakMap<Class<?>, Boolean> metadataSupported = WeakConcurrent.buildMap();
 
-    public static void clearInternalStorage() {
-        statementConnectionMap.clear();
-        batchConnectionMap.clear();
-        r2dbcMetaDataMap.clear();
-        metadataSupported.clear();
-        connectionFactoryMap.clear();
-        connectionOptionsMap.clear();
-    }
 }

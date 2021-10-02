@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.r2dbc.helper;
 
+import co.elastic.apm.agent.collections.WeakConcurrentSupplierImpl;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.util.SpanConcurrentHashMap;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.Result;
 import org.reactivestreams.Subscription;
@@ -36,13 +36,14 @@ import javax.annotation.Nullable;
 import static co.elastic.apm.agent.r2dbc.helper.R2dbcHelper.DB_SPAN_ACTION;
 import static co.elastic.apm.agent.r2dbc.helper.R2dbcHelper.DB_SPAN_TYPE;
 
-public class R2dbcSubscriber<T> implements CoreSubscriber<T> {
+public class R2dbcSubscriber<T> implements CoreSubscriber<T>, Subscription {
     private static final Logger log = LoggerFactory.getLogger(R2dbcSubscriber.class);
 
     private final Tracer tracer;
     private final CoreSubscriber<? super T> subscriber;
-    private static final WeakConcurrentMap<R2dbcSubscriber<?>, Span> spanMap = SpanConcurrentHashMap.createWeakMap();
+    private static final WeakMap<R2dbcSubscriber<?>, Span> spanMap = WeakConcurrentSupplierImpl.createWeakSpanMap();
     private final Connection connection;
+    private Subscription subscription;
 
     public R2dbcSubscriber(CoreSubscriber<? super T> subscriber,
                            Tracer tracer,
@@ -51,11 +52,26 @@ public class R2dbcSubscriber<T> implements CoreSubscriber<T> {
         this.subscriber = subscriber;
         this.tracer = tracer;
         this.connection = connection;
+
         spanMap.put(this, span);
     }
 
     @Override
+    public void request(long n) {
+        log.debug("Request r2dbcSubscriber {}", n);
+        subscription.request(n);
+    }
+
+    @Override
+    public void cancel() {
+        log.debug("Cancel r2dbcSubscriber");
+        subscription.cancel();
+        cancelSpan();
+    }
+
+    @Override
     public void onSubscribe(Subscription subscription) {
+        this.subscription = subscription;
         Span span = getSpan();
         boolean hasActivated = doEnter("onSubscribe", span);
         Throwable thrown = null;
@@ -192,5 +208,20 @@ public class R2dbcSubscriber<T> implements CoreSubscriber<T> {
             return;
         }
         span.captureException(thrown).end();
+    }
+
+    private void cancelSpan() {
+        Span span = getSpan();
+        debugTrace(true, "cancelSpan", span);
+        try {
+            if (span == null) {
+                return;
+            }
+            endSpan(null, span);
+
+            spanMap.remove(this);
+        } finally {
+            debugTrace(false, "cancelSpan", span);
+        }
     }
 }

@@ -44,7 +44,7 @@ public class R2dbcReactorHelper {
             new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
                 @Override
                 public CoreSubscriber<? super T> apply(Publisher publisher, CoreSubscriber<? super T> subscriber) {
-                    log.trace("wrapping subscribe with span {}", span);
+                    log.debug("wrapping subscribe with span {}", span);
                     if (publisher instanceof Fuseable.ScalarCallable) {
                         log.info("skip wrapping {}", subscriber.toString());
                         return subscriber;
