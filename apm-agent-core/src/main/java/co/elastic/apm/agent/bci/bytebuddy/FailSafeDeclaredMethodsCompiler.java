@@ -56,13 +56,24 @@ public enum FailSafeDeclaredMethodsCompiler implements MethodGraph.Compiler {
     /**
      * {@inheritDoc}
      */
-    public MethodGraph.Linked compile(TypeDescription typeDescription) {
-        return compile(typeDescription, typeDescription);
+    @Override
+    public MethodGraph.Linked compile(TypeDefinition typeDefinition) {
+        return compile(typeDefinition, typeDefinition.asErasure());
     }
 
     /**
      * {@inheritDoc}
      */
+    @Deprecated
+    @Override
+    public MethodGraph.Linked compile(TypeDescription typeDescription) {
+        return compile((TypeDefinition) typeDescription, typeDescription);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public MethodGraph.Linked compile(TypeDefinition typeDefinition, TypeDescription viewPoint) {
         LinkedHashMap<MethodDescription.SignatureToken, MethodGraph.Node> nodes = new LinkedHashMap<MethodDescription.SignatureToken, MethodGraph.Node>();
         for (MethodDescription methodDescription : typeDefinition.getDeclaredMethods()
@@ -79,5 +90,14 @@ public enum FailSafeDeclaredMethodsCompiler implements MethodGraph.Compiler {
             nodes.put(methodDescription.asSignatureToken(), new MethodGraph.Node.Simple(methodDescription));
         }
         return new MethodGraph.Linked.Delegation(new MethodGraph.Simple(nodes), MethodGraph.Empty.INSTANCE, Collections.<TypeDescription, MethodGraph>emptyMap());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Deprecated
+    @Override
+    public MethodGraph.Linked compile(TypeDescription typeDescription, TypeDescription viewPoint) {
+        return compile((TypeDefinition) typeDescription, viewPoint);
     }
 }

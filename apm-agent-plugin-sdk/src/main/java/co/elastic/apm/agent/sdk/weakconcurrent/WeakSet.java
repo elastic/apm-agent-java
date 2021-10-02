@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@NonnullApi
-package co.elastic.apm.agent.sdk.weakmap;
+package co.elastic.apm.agent.sdk.weakconcurrent;
 
-import co.elastic.apm.agent.sdk.NonnullApi;
+public interface WeakSet<E> extends Iterable<E> {
+
+    boolean add(E element);
+
+    boolean contains(E element);
+
+    boolean remove(E element);
+}

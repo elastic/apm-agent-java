@@ -23,10 +23,10 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.objectpool.Recyclable;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.ByteUtils;
 import co.elastic.apm.agent.util.HexUtils;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +99,7 @@ public class TraceContext implements Recyclable {
     /**
      * Helps to reduce allocations by caching {@link WeakReference}s to {@link ClassLoader}s
      */
-    private static final WeakConcurrentMap<ClassLoader, WeakReference<ClassLoader>> classLoaderWeakReferenceCache = WeakMapSupplier.createMap();
+    private static final WeakMap<ClassLoader, WeakReference<ClassLoader>> classLoaderWeakReferenceCache = WeakConcurrent.buildMap();
     private static final ChildContextCreator<TraceContext> FROM_PARENT_CONTEXT = new ChildContextCreator<TraceContext>() {
         @Override
         public boolean asChildOf(TraceContext child, TraceContext parent) {
