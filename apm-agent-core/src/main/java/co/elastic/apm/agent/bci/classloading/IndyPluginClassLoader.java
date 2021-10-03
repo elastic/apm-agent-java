@@ -37,7 +37,11 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
     private static final ClassLoader SYSTEM_CLASS_LOADER = ClassLoader.getSystemClassLoader();
 
     public IndyPluginClassLoader(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
-        super(getParent(targetClassLoader, agentClassLoader), true, typeDefinitions, PersistenceHandler.MANIFEST);
+        // PersistenceHandler.LATENT reduces the memory footprint of the class loader
+        // after a class has been loaded, the class file byte[] is removed from the map
+        // the tradeoff that looking up the class as a resource isn't possible
+        // that shouldn't be an issue as it can be looked up from the parent class loader (agent class loader)
+        super(getParent(targetClassLoader, agentClassLoader), true, typeDefinitions, PersistenceHandler.LATENT);
     }
 
     private static ClassLoader getParent(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader) {

@@ -123,6 +123,7 @@ public class ElasticApmAgent {
      * with the corresponding instrumentation class.
      */
     private static final Map<String, ClassLoader> adviceClassName2instrumentationClassLoader = new ConcurrentHashMap<>();
+    private static final Map<String, Set<String>> pluginPackages2pluginClassLoaderRootPackages = new ConcurrentHashMap<>();
 
     /**
      * Called reflectively by {@code co.elastic.apm.agent.premain.AgentMain} to initialize the agent
@@ -239,6 +240,12 @@ public class ElasticApmAgent {
             adviceClassName2instrumentationClassLoader.put(
                 apmInstrumentation.getAdviceClassName(),
                 apmInstrumentation.getClass().getClassLoader());
+            if (apmInstrumentation instanceof TracerAwareInstrumentation) {
+                TracerAwareInstrumentation tracerAwareInstrumentation = (TracerAwareInstrumentation) apmInstrumentation;
+                pluginPackages2pluginClassLoaderRootPackages.putIfAbsent(tracerAwareInstrumentation.getPluginPackage(), new HashSet<String>());
+                Set<String> pluginClassLoaderPackages = pluginPackages2pluginClassLoaderRootPackages.get(tracerAwareInstrumentation.getPluginPackage());
+                pluginClassLoaderPackages.addAll(tracerAwareInstrumentation.pluginClassLoaderRootPackages());
+            }
         }
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
             @Override
@@ -609,6 +616,8 @@ public class ElasticApmAgent {
         dynamicClassFileTransformers.clear();
         instrumentation = null;
         IndyPluginClassLoaderFactory.clear();
+        adviceClassName2instrumentationClassLoader.clear();
+        pluginPackages2pluginClassLoaderRootPackages.clear();
     }
 
     private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, final Logger logger,
@@ -844,5 +853,13 @@ public class ElasticApmAgent {
             throw new IllegalStateException("There's no mapping for key " + adviceClass);
         }
         return classLoader;
+    }
+
+    public static Set<String> getPluginClassLoaderRootPackages(String pluginPackage) {
+        Set<String> pluginPackages = pluginPackages2pluginClassLoaderRootPackages.get(pluginPackage);
+        if (pluginPackages != null) {
+            return pluginPackages;
+        }
+        return Collections.singleton(pluginPackage);
     }
 }

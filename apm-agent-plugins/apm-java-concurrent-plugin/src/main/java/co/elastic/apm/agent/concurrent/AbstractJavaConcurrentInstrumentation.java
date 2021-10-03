@@ -16,28 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.log.shader;
-
+package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
+import java.util.Collections;
 
-public abstract class AbstractLogShadingInstrumentation extends TracerAwareInstrumentation {
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = new ArrayList<>();
-        ret.add("logging");
-        return ret;
-    }
+public abstract class AbstractJavaConcurrentInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> pluginClassLoaderRootPackages() {
-        List<String> pluginPackages = new ArrayList<>(super.pluginClassLoaderRootPackages());
-        pluginPackages.add("co.elastic.logging");
-        return pluginPackages;
+        // the classes of this plugin don't need to be injected into a no plugin CL
+        // as all types referenced in this plugin are available form the bootstrap CL, thus also the agent CL
+        return Collections.emptyList();
     }
 }
