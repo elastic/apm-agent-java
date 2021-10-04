@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
+import one.profiler.AsyncProfiler;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -50,7 +51,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@link #TARGET_VERSION} and run on a POSIX-compatible file system.
  */
 @Disabled
-public class AsyncProfilerUpdater {
+public class AsyncProfilerUpgrader {
 
     static final String TARGET_VERSION = "1.8.7";
     static final String TAR_GZ_FILE_EXTENSION = ".tar.gz";
@@ -76,6 +77,11 @@ public class AsyncProfilerUpdater {
                 downloadAndReplaceBinary(releaseAsset.getBrowserDownloadUrl(), releaseAsset.getName(), downloadDirPath, releaseAsset.getSize());
             }
         }
+
+        // test we are now using the right version
+        Path thisOsLib = getBinariesResourceDir().resolve(co.elastic.apm.agent.profiler.asyncprofiler.AsyncProfiler.getLibraryFileName() + ".so");
+        AsyncProfiler asyncProfiler = AsyncProfiler.getInstance(thisOsLib.toString());
+        assertThat(asyncProfiler.getVersion()).isEqualTo(TARGET_VERSION);
     }
 
     private void downloadAndReplaceBinary(String ghAssetDownloadUrl, String ghAssetName, Path targetDownloadDir, long expectedSize) throws Exception {
@@ -181,7 +187,7 @@ public class AsyncProfilerUpdater {
 
     private Path getBinariesResourceDir() throws URISyntaxException {
         // <agent-repo-root>/apm-agent-plugins/apm-profiling-plugin/target/classes/asyncprofiler
-        Path asyncProfilerTestResourcePath = Paths.get(AsyncProfilerUpdater.class.getResource("/asyncprofiler").toURI());
+        Path asyncProfilerTestResourcePath = Paths.get(AsyncProfilerUpgrader.class.getResource("/asyncprofiler").toURI());
         // <agent-repo-root>/apm-agent-plugins/apm-profiling-plugin/target/classes/asyncprofiler
         Path pluginRootDir = asyncProfilerTestResourcePath.getParent().getParent().getParent();
         // We are looking for // <agent-repo-root>/apm-agent-plugins/apm-profiling-plugin/src/main/resources/asyncprofiler

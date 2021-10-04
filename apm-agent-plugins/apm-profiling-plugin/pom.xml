@@ -28,6 +28,12 @@
             <version>1.21</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>tools.profiler</groupId>
+            <artifactId>async-profiler</artifactId>
+            <version>1.8.3</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

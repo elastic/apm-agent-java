@@ -100,7 +100,7 @@ public class AsyncProfiler {
         System.load(file.getAbsolutePath());
     }
 
-    private static String getLibraryFileName() {
+    static String getLibraryFileName() {
         String os = System.getProperty("os.name").toLowerCase();
         String arch = System.getProperty("os.arch").toLowerCase();
         if (os.contains("linux")) {
