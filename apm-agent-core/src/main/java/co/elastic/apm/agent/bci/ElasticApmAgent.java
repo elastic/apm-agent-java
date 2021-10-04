@@ -416,6 +416,7 @@ public class ElasticApmAgent {
         validateAdvice(instrumentation);
         Advice.WithCustomMapping withCustomMapping = Advice
             .withCustomMapping()
+            .with(new Advice.AssignReturned.Factory())
             .with(new AssignToPostProcessorFactory())
             .bind(new SimpleMethodSignatureOffsetMappingFactory())
             .bind(new AnnotationValueOffsetMappingFactory());

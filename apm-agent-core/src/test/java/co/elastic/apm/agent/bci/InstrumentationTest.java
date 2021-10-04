@@ -26,11 +26,11 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
@@ -59,6 +59,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -477,7 +478,7 @@ class InstrumentationTest {
 
     public static class TestInstrumentation extends ElasticApmInstrumentation {
         public static class AdviceClass {
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(inline = false)
             public static String onMethodExit() {
                 return "intercepted";
@@ -527,7 +528,7 @@ class InstrumentationTest {
 
     public static class MathInstrumentation extends ElasticApmInstrumentation {
         public static class AdviceClass {
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(inline = false)
             public static int onMethodExit() {
                 return 42;
@@ -583,7 +584,7 @@ class InstrumentationTest {
                 throw new RuntimeException("This exception should be suppressed");
             }
 
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
             public static String onMethodExit(@Advice.Thrown Throwable throwable) {
                 throw new RuntimeException("This exception should be suppressed");
@@ -610,7 +611,7 @@ class InstrumentationTest {
     public static class FieldAccessInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
-            @AssignTo.Field("privateString")
+            @Advice.AssignReturned.ToFields(@ToField(value = "privateString", typing = DYNAMIC))
             @Advice.OnMethodEnter(inline = false)
             public static String onEnter(@Advice.Argument(0) String s) {
                 return s;
@@ -637,7 +638,7 @@ class InstrumentationTest {
     public static class FieldAccessArrayInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
-            @AssignTo(fields = @AssignTo.Field(index = 0, value = "privateString"))
+            @Advice.AssignReturned.ToFields(@ToField(index = 0, value = "privateString", typing = DYNAMIC))
             @Advice.OnMethodEnter(inline = false)
             public static Object[] onEnter(@Advice.Argument(0) String s) {
                 return new Object[]{s};
@@ -664,7 +665,7 @@ class InstrumentationTest {
     public static class AssignToArgumentInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
-            @AssignTo.Argument(0)
+            @Advice.AssignReturned.ToArguments(@Advice.AssignReturned.ToArguments.ToArgument(0))
             @Advice.OnMethodEnter(inline = false)
             public static String onEnter(@Advice.Argument(0) String s) {
                 return s + "@AssignToArgument";
@@ -691,9 +692,9 @@ class InstrumentationTest {
     public static class AssignToArgumentsInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
-            @AssignTo(arguments = {
-                @AssignTo.Argument(index = 0, value = 1),
-                @AssignTo.Argument(index = 1, value = 0)
+            @Advice.AssignReturned.ToArguments({
+                @Advice.AssignReturned.ToArguments.ToArgument(index = 0, value = 1, typing = DYNAMIC),
+                @Advice.AssignReturned.ToArguments.ToArgument(index = 1, value = 0, typing = DYNAMIC)
             })
             @Advice.OnMethodEnter(inline = false)
             public static Object[] onEnter(@Advice.Argument(0) String foo, @Advice.Argument(1) String bar) {
@@ -721,7 +722,7 @@ class InstrumentationTest {
     public static class AssignToReturnArrayInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
-            @AssignTo(returns = @AssignTo.Return(index = 0))
+            @Advice.AssignReturned.ToReturned(index = 0, typing = DYNAMIC)
             @Advice.OnMethodExit(inline = false)
             public static Object[] onEnter(@Advice.Argument(0) String foo, @Advice.Argument(1) String bar) {
                 return new Object[]{foo + bar};
@@ -918,7 +919,7 @@ class InstrumentationTest {
     public static class ClassLoadingTestInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(inline = false)
             public static ClassLoader onExit() {
                 return ClassLoadingTestInstrumentation.class.getClassLoader();
@@ -1026,7 +1027,7 @@ class InstrumentationTest {
     public static class GetClassLoaderInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(inline = false)
             public static ClassLoader onExit(@Advice.Origin Class<?> clazz) {
                 return clazz.getClassLoader();
