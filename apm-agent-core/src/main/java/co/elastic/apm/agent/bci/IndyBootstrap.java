@@ -66,8 +66,8 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * This will also create the plugin class loader.
  * </p>
  * <pre>
- *                      {@link co.elastic.apm.agent.premain.ShadedClassLoader}
- *   Bootstrap CL ←─────Cached Lookup Key────── Agent CL {@link co.elastic.apm.agent.premain.ShadedClassLoader}
+ *                      {@code co.elastic.apm.agent.premain.ShadedClassLoader}
+ *   Bootstrap CL ←─────Cached Lookup Key────── Agent CL {@code co.elastic.apm.agent.premain.ShadedClassLoader}
  *       ↑ └java.lang.IndyBootstrapDispatcher ─ ↑ ───→ └ {@link IndyBootstrap#bootstrap}
  *     Ext/Platform CL               ↑          │                        ╷
  *       ↑                           ╷          │                        ↓
