@@ -20,10 +20,15 @@ package co.elastic.apm.agent.bci.classloading;
 
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
 import net.bytebuddy.dynamic.loading.MultipleParentClassLoader;
+import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Map;
+
+import static net.bytebuddy.matcher.ElementMatchers.any;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
  * The plugin class loader has both the agent class loader and the target class loader as the parent.
@@ -55,12 +60,34 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
             // in unit tests, we need to search the target class loader first, unless it's an agent class
             // that's because the system class loader may contain another version of the library under test
             // see also co.elastic.apm.agent.TestClassWithDependencyRunner
-            return new IndyPluginClassLoaderParent(agentClassLoader, targetClassLoader);
+            return new DiscriminatingMultiParentClassLoader(
+                agentClassLoader, startsWith("co.elastic.apm.agent").or(startsWith("net.bytebuddy")),
+                targetClassLoader, ElementMatchers.<String>any());
         } else {
             // in prod, always search in the agent class loader first
             // this ensures that we're referencing the agent bundled classes in advices rather than the ones form the application
             // (for example for log4j, Byte Buddy, or even dependencies that are bundled in external plugins etc.)
-            return new MultipleParentClassLoader(agentClassLoader, Arrays.asList(agentClassLoader, targetClassLoader));
+            return new DiscriminatingMultiParentClassLoader(
+                agentClassLoader, not(startsWith("org.apache.logging.log4j")),
+                targetClassLoader, ElementMatchers.<String>any());
+        }
+    }
+
+    public static StartsWithElementMatcher startsWith(String prefix) {
+        return new StartsWithElementMatcher(prefix);
+    }
+
+    private static class StartsWithElementMatcher extends ElementMatcher.Junction.AbstractBase<String> {
+
+        private final String prefix;
+
+        private StartsWithElementMatcher(String prefix) {
+            this.prefix = prefix;
+        }
+
+        @Override
+        public boolean matches(String s) {
+            return s.startsWith(prefix);
         }
     }
 }

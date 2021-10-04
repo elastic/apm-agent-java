@@ -79,7 +79,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  *          ↑ - InstrumentedClass    ╷          │ ├ GlobalState          ╷
  *          │                ╷       ╷          │ └ LookupExposer        ╷
  *          │                INVOKEDYNAMIC      │                        ╷
- *          └────────────────┼──────────────────{@link net.bytebuddy.dynamic.loading.MultipleParentClassLoader}
+ *          └────────────────┼──────────────────{@link co.elastic.apm.agent.bci.classloading.DiscriminatingMultiParentClassLoader}
  *                           │                  ↑                        ↓
  *                           │                  {@link IndyPluginClassLoader}
  *                           └╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶→ ├ AdviceClass
