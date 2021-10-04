@@ -73,7 +73,12 @@ public class AsyncProfiler {
                         "profiling_inferred_spans_enabled to false");
                 }
                 try {
-                    // set the AsyncProfiler.safemode with the configured safemode, so that optimizations can be applied already at load time
+                    // set the AsyncProfiler.safemode system property with the configured safemode, so that optimizations
+                    // can be applied already at load time. Specifically, if (safemode & 14) == 14 (2, 4 and 8 bits are set), then
+                    // async profiler will avoid enabling CompiledMethodLoad events at load time, so to workaround a relatd JVM bug
+                    // (https://bugs.openjdk.java.net/browse/JDK-8202883, https://bugs.openjdk.java.net/browse/JDK-8173361 and friends).
+                    // safemode can still be set for each profiling session, but it can only be stricter than the safemode
+                    // configured at load time.
                     System.setProperty(SAFEMODE_SYSTEM_PROPERTY_NAME, String.valueOf(safemode));
                     loadNativeLibrary(profilerLibDirectory);
                 } catch (UnsatisfiedLinkError e) {
