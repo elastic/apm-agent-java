@@ -79,7 +79,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -515,9 +514,11 @@ public class ElasticApmAgent {
         String adviceMethod = advice.getInternalName();
         try {
             checkNotAgentType(advice.getReturnType(), "return type", adviceClass, adviceMethod);
+            checkNotSlf4jType(advice.getReturnType(), "return type", adviceClass, adviceMethod);
 
             for (ParameterDescription.InDefinedShape parameter : advice.getParameters()) {
                 checkNotAgentType(parameter.getType(), "parameter", adviceClass, adviceMethod);
+                checkNotSlf4jType(parameter.getType(), "parameter", adviceClass, adviceMethod);
 
                 AnnotationDescription.Loadable<Advice.Return> returnAnnotation = parameter.getDeclaredAnnotations().ofType(Advice.Return.class);
                 if (returnAnnotation != null && !returnAnnotation.load().readOnly()) {
@@ -536,6 +537,15 @@ public class ElasticApmAgent {
         String name = type.asRawType().getTypeName();
         if (name.startsWith("co.elastic.apm")) {
             throw new IllegalStateException(String.format("Advice %s in %s#%s must not be an agent type: %s", description, adviceClass, adviceMethod, name));
+        }
+    }
+
+    private static void checkNotSlf4jType(TypeDescription.Generic type, String description, String adviceClass, String adviceMethod) {
+        // When trying to instrument slf4j classes from the application, advices would instead resolve the types from the agent class loader
+        // This would lead to errors on indy bootstrap, similar to the ones reported at https://github.com/elastic/apm-agent-java/issues/2163
+        String name = type.asRawType().getTypeName();
+        if (name.startsWith("org.slf4j.")) {
+            throw new IllegalStateException(String.format("Advice %s in %s#%s must not reference slf4j types: %s", description, adviceClass, adviceMethod, name));
         }
     }
 
