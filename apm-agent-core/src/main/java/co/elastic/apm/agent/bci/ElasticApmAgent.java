@@ -122,8 +122,8 @@ public class ElasticApmAgent {
      * We need this in order to locate the advice class file. This implies that the advice class needs to be collocated
      * with the corresponding instrumentation class.
      */
-    private static final Map<String, ClassLoader> adviceClassName2instrumentationClassLoader = new ConcurrentHashMap<>();
-    private static final Map<String, Set<String>> pluginPackages2pluginClassLoaderRootPackages = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, ClassLoader> adviceClassName2instrumentationClassLoader = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, Set<String>> pluginPackages2pluginClassLoaderRootPackages = new ConcurrentHashMap<>();
 
     /**
      * Called reflectively by {@code co.elastic.apm.agent.premain.AgentMain} to initialize the agent
