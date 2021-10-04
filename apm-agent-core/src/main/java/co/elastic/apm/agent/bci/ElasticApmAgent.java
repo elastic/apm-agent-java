@@ -471,7 +471,10 @@ public class ElasticApmAgent {
             // if classes are added via java.lang.instrument.Instrumentation.appendToBootstrapClassLoaderSearch
             adviceClassLoader = ClassLoader.getSystemClassLoader();
         }
-        TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.of(adviceClassLoader), TypePool.Default.ReaderMode.FAST);
+        TypePool pool = new TypePool.Default.WithLazyResolution(
+            TypePool.CacheProvider.NoOp.INSTANCE,
+            new ClassFileLocator.Compound(ClassFileLocator.ForClassLoader.of(adviceClassLoader), ClassFileLocator.ForClassLoader.of(getAgentClassLoader())),
+            TypePool.Default.ReaderMode.FAST);
         TypeDescription typeDescription = pool.describe(adviceClassName).resolve();
         int adviceModifiers = typeDescription.getModifiers();
         if (!Modifier.isPublic(adviceModifiers)) {
