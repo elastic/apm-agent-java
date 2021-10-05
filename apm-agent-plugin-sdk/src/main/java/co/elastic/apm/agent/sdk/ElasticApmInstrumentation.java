@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.sdk;
 
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -57,7 +56,7 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  *         Set {@link Advice.OnMethodEnter#inline()} and {@link Advice.OnMethodExit#inline()} to {@code false} on all advices.
  *         As the {@code readOnly} flag in Byte Buddy annotations such as {@link Advice.Return#readOnly()} cannot be used with non
  *         {@linkplain Advice.OnMethodEnter#inline() inlined advices},
- *         use {@link AssignTo} and friends.
+ *         use the annotations in {@link Advice.AssignReturned}.
  *     </li>
  *     <li>
  *         Both the return type and the arguments of advice methods must not contain types from the agent.

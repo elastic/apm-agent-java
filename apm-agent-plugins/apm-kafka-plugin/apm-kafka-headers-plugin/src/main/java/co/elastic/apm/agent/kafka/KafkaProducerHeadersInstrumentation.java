@@ -21,7 +21,6 @@ package co.elastic.apm.agent.kafka;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
@@ -98,7 +97,7 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
          * We want to avoid assigning that null value as that will have unintended consequences.
          */
         @Nullable
-        @AssignTo.Thrown(index = 0)
+        @Advice.AssignReturned.ToThrown(index = 0)
         @SuppressWarnings({"unchecked", "rawtypes"})
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
         public static Object[] afterSend(@Advice.Enter @Nullable Object[] enter,
