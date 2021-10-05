@@ -30,6 +30,7 @@ import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -665,7 +666,7 @@ class InstrumentationTest {
     public static class AssignToArgumentInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
-            @Advice.AssignReturned.ToArguments(@Advice.AssignReturned.ToArguments.ToArgument(0))
+            @Advice.AssignReturned.ToArguments(@ToArgument(0))
             @Advice.OnMethodEnter(inline = false)
             public static String onEnter(@Advice.Argument(0) String s) {
                 return s + "@AssignToArgument";
@@ -693,8 +694,8 @@ class InstrumentationTest {
 
         public static class AdviceClass {
             @Advice.AssignReturned.ToArguments({
-                @Advice.AssignReturned.ToArguments.ToArgument(index = 0, value = 1, typing = DYNAMIC),
-                @Advice.AssignReturned.ToArguments.ToArgument(index = 1, value = 0, typing = DYNAMIC)
+                @ToArgument(index = 0, value = 1, typing = DYNAMIC),
+                @ToArgument(index = 1, value = 0, typing = DYNAMIC)
             })
             @Advice.OnMethodEnter(inline = false)
             public static Object[] onEnter(@Advice.Argument(0) String foo, @Advice.Argument(1) String bar) {

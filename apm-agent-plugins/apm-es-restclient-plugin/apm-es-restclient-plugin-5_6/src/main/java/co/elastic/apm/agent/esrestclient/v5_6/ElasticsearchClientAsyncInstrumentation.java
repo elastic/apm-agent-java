@@ -21,8 +21,8 @@ package co.elastic.apm.agent.esrestclient.v5_6;
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -67,7 +67,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
         private static final ElasticsearchRestClientInstrumentationHelper helper = ElasticsearchRestClientInstrumentationHelper.get();
 
         @Nullable
-        @AssignTo.Argument(index = 1, value = 5)
+        @Advice.AssignReturned.ToArguments(@ToArgument(index = 1, value = 5))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeExecute(@Advice.Argument(0) String method,
                                                @Advice.Argument(1) String endpoint,

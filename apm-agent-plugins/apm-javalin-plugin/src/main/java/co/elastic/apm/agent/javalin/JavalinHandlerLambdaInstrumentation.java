@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.javalin;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -71,7 +71,7 @@ public class JavalinHandlerLambdaInstrumentation extends TracerAwareInstrumentat
 
     public static class HandlerWrappingAdvice {
         @Nullable
-        @AssignTo.Argument(2)
+        @Advice.AssignReturned.ToArguments(@ToArgument(2))
         @Advice.OnMethodEnter(inline = false)
         public static Handler beforeAddHandler(@Advice.Argument(2) @Nullable Handler original) {
             if (original != null && original.getClass().getName().contains("/")) {

@@ -23,6 +23,7 @@ import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -64,7 +65,7 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
         private static boolean headersSupported = true;
 
         @Nullable
-        @AssignTo.Argument(value = 1, index = 1)
+        @Advice.AssignReturned.ToArguments(@ToArgument(value = 1, index = 1))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] beforeSend(@Advice.FieldValue("apiVersions") final ApiVersions apiVersions,
                                           @Advice.Argument(0) final ProducerRecord<?, ?> record,
