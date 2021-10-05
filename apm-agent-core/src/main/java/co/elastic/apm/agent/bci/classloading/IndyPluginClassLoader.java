@@ -19,15 +19,13 @@
 package co.elastic.apm.agent.bci.classloading;
 
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
-import net.bytebuddy.dynamic.loading.MultipleParentClassLoader;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
+import java.net.URL;
 import java.util.Map;
 
-import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
@@ -78,6 +76,17 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
                 agentClassLoader, not(startsWith("org.apache.logging.log4j")),
                 targetClassLoader, ElementMatchers.<String>any());
         }
+    }
+
+    @Override
+    public URL getResource(String name) {
+        // the implementation of the super class disallows parent lookup if the name isShadowed by this class loader
+        // we explicitly want to allow resource lookup from the agent class loader to avoid having to use PersistenceHandler.PERSISTENT
+        // as PersistenceHandler.LATENT is much more memory efficient
+        URL url = super.getResource(name);
+        return url != null
+            ? url
+            : getParent().getResource(name);
     }
 
     public static StartsWithElementMatcher startsWith(String prefix) {

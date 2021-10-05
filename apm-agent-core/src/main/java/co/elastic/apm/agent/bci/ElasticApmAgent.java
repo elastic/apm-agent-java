@@ -473,7 +473,7 @@ public class ElasticApmAgent {
         }
         TypePool pool = new TypePool.Default.WithLazyResolution(
             TypePool.CacheProvider.NoOp.INSTANCE,
-            new ClassFileLocator.Compound(ClassFileLocator.ForClassLoader.of(adviceClassLoader), ClassFileLocator.ForClassLoader.of(getAgentClassLoader())),
+            ClassFileLocator.ForClassLoader.of(adviceClassLoader),
             TypePool.Default.ReaderMode.FAST);
         TypeDescription typeDescription = pool.describe(adviceClassName).resolve();
         int adviceModifiers = typeDescription.getModifiers();
