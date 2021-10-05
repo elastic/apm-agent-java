@@ -25,7 +25,7 @@ import java.util.Collection;
 import java.util.ServiceLoader;
 
 public class DynamicTransformer {
-    private static final DynamicTransformerSupplier transformer;
+    private static final DynamicTransformerProvider transformer;
 
     static {
         ClassLoader classLoader = DynamicTransformer.class.getClassLoader();
@@ -33,7 +33,7 @@ public class DynamicTransformer {
             classLoader = ClassLoader.getSystemClassLoader();
         }
         // loads the implementation provided by the core module without depending on the class or class name
-        transformer = ServiceLoader.load(DynamicTransformerSupplier.class, classLoader).iterator().next();
+        transformer = ServiceLoader.load(DynamicTransformerProvider.class, classLoader).iterator().next();
     }
 
     /**
@@ -52,7 +52,11 @@ public class DynamicTransformer {
         transformer.ensureInstrumented(classToInstrument, instrumentationClasses);
     }
 
-    public interface DynamicTransformerSupplier {
+    /**
+     * This is an internal class.
+     * Provides the implementation for the dynamic transformation.
+     */
+    public interface DynamicTransformerProvider {
 
         void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses);
 

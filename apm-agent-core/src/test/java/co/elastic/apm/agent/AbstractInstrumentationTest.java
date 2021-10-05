@@ -19,7 +19,7 @@
 package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.collections.WeakConcurrentSupplierImpl;
+import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
@@ -163,7 +163,7 @@ public abstract class AbstractInstrumentationTest {
                     // silently ignored
                 }
             }
-            WeakConcurrentSupplierImpl.expungeStaleEntries();
+            WeakConcurrentProviderImpl.expungeStaleEntries();
         } while (--left > 0);
     }
 }
