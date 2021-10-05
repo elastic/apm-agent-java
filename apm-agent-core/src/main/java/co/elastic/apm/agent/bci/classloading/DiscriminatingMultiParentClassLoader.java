@@ -33,18 +33,22 @@ class DiscriminatingMultiParentClassLoader extends ClassLoader {
     private final List<ClassLoader> parents;
     private final List<ElementMatcher<String>> discriminators;
 
-    DiscriminatingMultiParentClassLoader(ClassLoader primary, ElementMatcher<String> primaryMatcher,
-                                         ClassLoader secondary, ElementMatcher<String> secondaryMatcher) throws NullPointerException {
+    static {
+        registerAsParallelCapable();
+    }
+
+    DiscriminatingMultiParentClassLoader(ClassLoader agentClassLoader, ElementMatcher<String> classesToLoadFromAgentClassLoader,
+                                         ClassLoader targetClassLoader, ElementMatcher<String> classesToLoadFromTargetClassLoader) throws NullPointerException {
         // We should not delegate class loading to super but to one of the parents, however this is preferable over using
         // null, which implies for the bootstrap CL
-        super(primary);
+        super(targetClassLoader);
         //noinspection ConstantConditions
-        if (primary == null || secondary == null) {
+        if (agentClassLoader == null || targetClassLoader == null) {
             throw new NullPointerException("The bootstrap class loader cannot be used as one of this class loader parents. " +
                 "Use a single-parent class loader instead.");
         }
-        this.parents = Arrays.asList(primary, secondary);
-        this.discriminators = Arrays.asList(primaryMatcher, secondaryMatcher);
+        this.parents = Arrays.asList(agentClassLoader, targetClassLoader);
+        this.discriminators = Arrays.asList(classesToLoadFromAgentClassLoader, classesToLoadFromTargetClassLoader);
     }
 
     /**
@@ -52,22 +56,24 @@ class DiscriminatingMultiParentClassLoader extends ClassLoader {
      */
     @Override
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        for (int i = 0, parentsSize = parents.size(); i < parentsSize; i++) {
-            ClassLoader parent = parents.get(i);
-            ElementMatcher<String> discriminator = discriminators.get(i);
-            if (discriminator.matches(name)) {
-                try {
-                    Class<?> type = parent.loadClass(name);
-                    if (resolve) {
-                        resolveClass(type);
+        synchronized (getClassLoadingLock(name)) {
+            for (int i = 0, parentsSize = parents.size(); i < parentsSize; i++) {
+                ClassLoader parent = parents.get(i);
+                ElementMatcher<String> discriminator = discriminators.get(i);
+                if (discriminator.matches(name)) {
+                    try {
+                        Class<?> type = parent.loadClass(name);
+                        if (resolve) {
+                            resolveClass(type);
+                        }
+                        return type;
+                    } catch (ClassNotFoundException ignored) {
+                        /* try next class loader */
                     }
-                    return type;
-                } catch (ClassNotFoundException ignored) {
-                    /* try next class loader */
                 }
             }
+            throw new ClassNotFoundException(name);
         }
-        throw new ClassNotFoundException(name);
     }
 
     /**
