@@ -23,7 +23,6 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 public abstract class AbstractLogShadingInstrumentation extends TracerAwareInstrumentation {
 
@@ -34,10 +33,4 @@ public abstract class AbstractLogShadingInstrumentation extends TracerAwareInstr
         return ret;
     }
 
-    @Override
-    public Collection<String> pluginClassLoaderRootPackages() {
-        List<String> pluginPackages = new ArrayList<>(super.pluginClassLoaderRootPackages());
-        pluginPackages.add("co.elastic.logging");
-        return pluginPackages;
-    }
 }

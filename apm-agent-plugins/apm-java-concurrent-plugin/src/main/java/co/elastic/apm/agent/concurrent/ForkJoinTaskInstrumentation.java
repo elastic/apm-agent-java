@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.concurrent;
 
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -35,7 +36,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 /**
  * Instruments {@link ForkJoinTask#fork()} to support parallel streams.
  */
-public class ForkJoinTaskInstrumentation extends AbstractJavaConcurrentInstrumentation {
+public class ForkJoinTaskInstrumentation extends TracerAwareInstrumentation {
 
     static {
         if (Boolean.parseBoolean(System.getProperty("intellij.debug.agent"))) {

@@ -122,7 +122,7 @@ public class ElasticApmAgent {
      * with the corresponding instrumentation class.
      */
     private static final ConcurrentMap<String, ClassLoader> adviceClassName2instrumentationClassLoader = new ConcurrentHashMap<>();
-    private static final ConcurrentMap<String, Set<String>> pluginPackages2pluginClassLoaderRootPackages = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, Collection<String>> pluginPackages2pluginClassLoaderRootPackages = new ConcurrentHashMap<>();
 
     /**
      * Called reflectively by {@code co.elastic.apm.agent.premain.AgentMain} to initialize the agent
@@ -235,16 +235,22 @@ public class ElasticApmAgent {
                 }
             }
         }
+        final List<PluginClassLoaderRootPackageCustomizer> rootPackageCustomizers = DependencyInjectingServiceLoader.load(
+            PluginClassLoaderRootPackageCustomizer.class,
+            getAgentClassLoader());
+        for (PluginClassLoaderRootPackageCustomizer rootPackageCustomizer : rootPackageCustomizers) {
+            Collection<String> previous = pluginPackages2pluginClassLoaderRootPackages.put(
+                rootPackageCustomizer.getPluginPackage(),
+                Collections.unmodifiableList(new ArrayList<>(rootPackageCustomizer.pluginClassLoaderRootPackages())));
+            if (previous != null) {
+                throw new IllegalStateException("Only one PluginClassLoaderRootPackageCustomizer is allowed per plugin package: "
+                    + rootPackageCustomizer.getPluginPackage());
+            }
+        }
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
             adviceClassName2instrumentationClassLoader.put(
                 apmInstrumentation.getAdviceClassName(),
                 apmInstrumentation.getClass().getClassLoader());
-            if (apmInstrumentation instanceof TracerAwareInstrumentation) {
-                TracerAwareInstrumentation tracerAwareInstrumentation = (TracerAwareInstrumentation) apmInstrumentation;
-                pluginPackages2pluginClassLoaderRootPackages.putIfAbsent(tracerAwareInstrumentation.getPluginPackage(), new HashSet<String>());
-                Set<String> pluginClassLoaderPackages = pluginPackages2pluginClassLoaderRootPackages.get(tracerAwareInstrumentation.getPluginPackage());
-                pluginClassLoaderPackages.addAll(tracerAwareInstrumentation.pluginClassLoaderRootPackages());
-            }
         }
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
             @Override
@@ -868,8 +874,8 @@ public class ElasticApmAgent {
         return classLoader;
     }
 
-    public static Set<String> getPluginClassLoaderRootPackages(String pluginPackage) {
-        Set<String> pluginPackages = pluginPackages2pluginClassLoaderRootPackages.get(pluginPackage);
+    public static Collection<String> getPluginClassLoaderRootPackages(String pluginPackage) {
+        Collection<String> pluginPackages = pluginPackages2pluginClassLoaderRootPackages.get(pluginPackage);
         if (pluginPackages != null) {
             return pluginPackages;
         }
