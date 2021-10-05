@@ -27,7 +27,6 @@ import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToPostProcessorFactory;
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
@@ -417,7 +416,6 @@ public class ElasticApmAgent {
         Advice.WithCustomMapping withCustomMapping = Advice
             .withCustomMapping()
             .with(new Advice.AssignReturned.Factory())
-            .with(new AssignToPostProcessorFactory())
             .bind(new SimpleMethodSignatureOffsetMappingFactory())
             .bind(new AnnotationValueOffsetMappingFactory());
         Advice.OffsetMapping.Factory<?> offsetMapping = instrumentation.getOffsetMapping();
