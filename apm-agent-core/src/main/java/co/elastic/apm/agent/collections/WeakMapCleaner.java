@@ -28,7 +28,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Regularly calls {@link WeakConcurrentSupplierImpl#expungeStaleEntries()}
+ * Regularly calls {@link WeakConcurrentProviderImpl#expungeStaleEntries()}
  */
 public class WeakMapCleaner extends AbstractLifecycleListener implements Runnable {
 
@@ -54,7 +54,7 @@ public class WeakMapCleaner extends AbstractLifecycleListener implements Runnabl
     @Override
     public void run() {
         try {
-            WeakConcurrentSupplierImpl.expungeStaleEntries();
+            WeakConcurrentProviderImpl.expungeStaleEntries();
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.collections.WeakConcurrentSupplierImpl;
+import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Destination;
@@ -90,12 +90,12 @@ public class GrpcHelper {
     private final TextHeaderGetter<Metadata> headerGetter;
 
     public GrpcHelper() {
-        clientCallSpans = WeakConcurrentSupplierImpl.createWeakSpanMap();
-        delayedClientCallSpans = WeakConcurrentSupplierImpl.createWeakSpanMap();
-        clientCallListenerSpans = WeakConcurrentSupplierImpl.createWeakSpanMap();
+        clientCallSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
+        delayedClientCallSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
+        clientCallListenerSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
 
-        serverListenerTransactions = WeakConcurrentSupplierImpl.createWeakSpanMap();
-        serverCallTransactions = WeakConcurrentSupplierImpl.createWeakSpanMap();
+        serverListenerTransactions = WeakConcurrentProviderImpl.createWeakSpanMap();
+        serverCallTransactions = WeakConcurrentProviderImpl.createWeakSpanMap();
 
         headerCache = WeakConcurrent.buildMap();
 

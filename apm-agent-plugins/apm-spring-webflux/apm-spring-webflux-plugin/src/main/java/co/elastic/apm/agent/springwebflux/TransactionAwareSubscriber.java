@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.collections.WeakConcurrentSupplierImpl;
+import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
@@ -41,7 +41,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
 
     private static final Logger log = LoggerFactory.getLogger(TransactionAwareSubscriber.class);
 
-    private static final WeakMap<TransactionAwareSubscriber<?>, Transaction> transactionMap = WeakConcurrentSupplierImpl.createWeakSpanMap();
+    private static final WeakMap<TransactionAwareSubscriber<?>, Transaction> transactionMap = WeakConcurrentProviderImpl.createWeakSpanMap();
 
     private final CoreSubscriber<? super T> subscriber;
 

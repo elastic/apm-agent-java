@@ -66,7 +66,7 @@ public class AlibabaResponseFutureInstrumentation extends AbstractAlibabaDubboIn
                 return;
             }
             AlibabaCallbackHolder.callbackSpanMap.put(callback, active);
-            DynamicTransformer.Accessor.get().ensureInstrumented(callback.getClass(), RESPONSE_CALLBACK_INSTRUMENTATIONS);
+            DynamicTransformer.ensureInstrumented(callback.getClass(), RESPONSE_CALLBACK_INSTRUMENTATIONS);
         }
     }
 
