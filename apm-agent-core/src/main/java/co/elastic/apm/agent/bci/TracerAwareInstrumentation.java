@@ -55,7 +55,7 @@ public abstract class TracerAwareInstrumentation extends ElasticApmInstrumentati
      * All classes in the provided packages except for the ones annotated with {@link co.elastic.apm.agent.sdk.state.GlobalState}
      * and classes extending {@link org.stagemonitor.configuration.ConfigurationOptionProvider}
      * will be loaded from a dedicated plugin class loader that has access to both the instrumented classes and the agent classes.
-     * Note that the all root packages of each distinct {@link #pluginPackage} will be combined.
+     * Note that all root packages of each distinct {@link #pluginPackage} will be combined.
      */
     public Collection<String> pluginClassLoaderRootPackages() {
         return Collections.singletonList(pluginPackage);
