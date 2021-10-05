@@ -40,6 +40,7 @@ exclude known static files in all applications might be changed to `/app/static/
 
 [float]
 ===== Bug fixes
+* Fix k8s metadata discovery for containerd-cri envs - {pull}2126[#2126]
 * Fixing/reducing startup delays related to `ensureInstrumented` - {pull}2150[#2150]
 
 [float]
