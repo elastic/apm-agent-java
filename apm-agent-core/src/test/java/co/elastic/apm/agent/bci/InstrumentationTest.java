@@ -28,6 +28,7 @@ import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -54,6 +55,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
@@ -150,7 +153,22 @@ class InstrumentationTest {
     void testEnsureInstrumented() {
         init(List.of());
         assertThat(interceptMe()).isEmpty();
-        DynamicTransformer.Accessor.get().ensureInstrumented(getClass(), List.of(TestInstrumentation.class));
+        DynamicTransformer.ensureInstrumented(getClass(), List.of(TestInstrumentation.class));
+        assertThat(interceptMe()).isEqualTo("intercepted");
+    }
+
+    @Test
+    void testConcurrentEnsureInstrumented() throws InterruptedException {
+        init(List.of());
+        assertThat(interceptMe()).isEmpty();
+        TestCounterInstrumentation.resetCounter();
+        int nThreads = 100;
+        ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
+        for (int i = 0; i < nThreads; i++) {
+            executorService.submit(() -> DynamicTransformer.ensureInstrumented(getClass(), List.of(TestCounterInstrumentation.class)));
+        }
+        ExecutorUtils.shutdownAndWaitTermination(executorService);
+        assertThat(TestCounterInstrumentation.getCounter()).isEqualTo(1);
         assertThat(interceptMe()).isEqualTo("intercepted");
     }
 
@@ -481,6 +499,30 @@ class InstrumentationTest {
             return List.of("test", "experimental");
         }
 
+    }
+
+    public static class TestCounterInstrumentation extends TestInstrumentation {
+
+        private static final AtomicInteger counter = new AtomicInteger();
+
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.bci.InstrumentationTest$TestInstrumentation$AdviceClass";
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            counter.incrementAndGet();
+            return super.getTypeMatcher();
+        }
+
+        public static void resetCounter() {
+            counter.set(0);
+        }
+
+        public static int getCounter() {
+            return counter.get();
+        }
     }
 
     public static class MathInstrumentation extends ElasticApmInstrumentation {

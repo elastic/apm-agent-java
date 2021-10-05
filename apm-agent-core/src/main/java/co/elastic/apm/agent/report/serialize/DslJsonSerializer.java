@@ -1202,7 +1202,6 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeSocket(final Socket socket) {
         writeFieldName("socket");
         jw.writeByte(OBJECT_START);
-        writeField("encrypted", socket.isEncrypted());
         writeLastField("remote_address", socket.getRemoteAddress());
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);

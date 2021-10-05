@@ -30,8 +30,18 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-premain</artifactId>
+            <artifactId>apm-agent-common</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-cached-lookup-key</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.blogspot.mydailyjava</groupId>
+            <artifactId>weak-lock-free</artifactId>
+            <version>0.18</version>
         </dependency>
         <dependency>
             <groupId>com.lmax</groupId>

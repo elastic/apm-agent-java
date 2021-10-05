@@ -24,11 +24,32 @@ endif::[]
 ==== 1.27.0 - YYYY/MM/DD
 
 [float]
+===== Potentially breaking changes
+* `transaction_ignore_urls` now relies on full request URL path - {pull}2146[#2146]
+** On a typical application server like Tomcat, deploying an `app.war` application to the non-ROOT context makes it accessible with `http://localhost:8080/app/`
+** Ignoring the whole webapp through `/app/*` was not possible until now.
+** Existing configuration may need to be updated to include the deployment context, thus for example `/static/*.js` used to
+exclude known static files in all applications might be changed to `/app/static/*.js` or `*/static/*.js`.
+** It only impacts prefix patterns due to the additional context path in pattern.
+** It does not impact deployment within the `ROOT` context like Spring-boot which do not have such context path prefix.
+
+
+[float]
 ===== Features
+* Improved capturing of logged exceptions when using Log4j2 - {pull}2139[#2139]
 
 [float]
 ===== Bug fixes
 * Fix k8s metadata discovery for containerd-cri envs - {pull}2126[#2126]
+* Fixing/reducing startup delays related to `ensureInstrumented` - {pull}2150[#2150]
+
+[float]
+===== Refactorings
+* Loading the agent from an isolated class loader - {pull}2109[#2109]
+* Refactorings in the `apm-agent-plugin-sdk` that may imply breaking changes for beta users of the external plugin mechanism
+** `WeakMapSupplier.createMap()` is now `WeakConcurrent.buildMap()` and contains more builders. - {pull}2136[#2136]
+** `GlobalThreadLocal` has been removed in favor of `DetachedThreadLocal`. To make it global, use `GlobalVariables`. - {pull}2136[#2136]
+** `DynamicTransformer.Accessor.get().ensureInstrumented` is now `DynamicTransformer.ensureInstrumented`. - {pull}#2164[#2164]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
@@ -39,6 +60,10 @@ endif::[]
 ===== Potentially breaking changes
 * If you rely on Database span subtype and use Microsoft SQL Server, the span subtype has been changed from `sqlserver`
 to `mssql` to align with other agents.
+
+[float]
+===== Breaking changes
+* Stop collecting the field `http.request.socket.encrypted` in http requests - {pull}2136[#2136]
 
 [float]
 ===== Features

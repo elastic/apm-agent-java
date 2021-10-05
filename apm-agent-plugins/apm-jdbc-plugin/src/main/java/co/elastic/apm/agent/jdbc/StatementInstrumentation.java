@@ -355,8 +355,6 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      */
     public static class CloseStatementInstrumentation extends StatementInstrumentation {
 
-        private static final JdbcHelper helper = JdbcHelper.get();
-
         public CloseStatementInstrumentation(ElasticApmTracer tracer) {
             super(
                 named("close")
@@ -366,6 +364,8 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         }
 
         public static class AdviceClass {
+            private static final JdbcHelper helper = JdbcHelper.get();
+
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onBeforeClose(@Advice.This Statement statement) {
                 if (statement instanceof PreparedStatement) {
