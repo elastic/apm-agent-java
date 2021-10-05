@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.servlet.helper.RecordingServletInputStreamWrapper;
 import net.bytebuddy.asm.Advice;
@@ -79,7 +78,7 @@ public class RequestStreamRecordingInstrumentation extends AbstractServletInstru
         }
 
         @Nullable
-        @AssignTo.Return
+        @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
         public static ServletInputStream afterGetInputStream(@Advice.Return @Nullable ServletInputStream inputStream) {
             if (callDepth.isNestedCallAndDecrement() || inputStream == null) {

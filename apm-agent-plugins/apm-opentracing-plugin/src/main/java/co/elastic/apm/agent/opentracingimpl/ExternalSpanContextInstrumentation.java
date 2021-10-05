@@ -73,7 +73,7 @@ public abstract class ExternalSpanContextInstrumentation extends OpenTracingBrid
 
 
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static String onExit(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object childTraceContextObj) {
                 if (!(childTraceContextObj instanceof TraceContext)) {
@@ -104,7 +104,7 @@ public abstract class ExternalSpanContextInstrumentation extends OpenTracingBrid
             }
 
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static String onExit(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object childTraceContextObj) {
                 if (!(childTraceContextObj instanceof TraceContext)) {

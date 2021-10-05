@@ -36,12 +36,6 @@ public @interface AssignTo {
      */
     Field[] fields() default {};
 
-    /**
-     * Overrides the return value of the instrumented method with the object at index {@link Return#index()}
-     * of the {@code Object[]} returned from the advice.
-     */
-    Return[] returns() default {};
-
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     @interface Field {
@@ -66,25 +60,6 @@ public @interface AssignTo {
          * The typing that should be applied when assigning the field value.
          *
          * @return The typing to apply upon assignment.
-         */
-        Assigner.Typing typing() default Assigner.Typing.STATIC;
-
-        /**
-         * Used in combination with {@link AssignTo} to select the index of the returned {@code Object[]} that should be used for the assignment.
-         *
-         * @return the index of the {@code Object[]} that should be used for the assignment.
-         */
-        int index() default -1;
-    }
-
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.METHOD)
-    @interface Return {
-
-        /**
-         * Determines the typing that is applied when assigning the return value.
-         *
-         * @return The typing to apply when assigning the annotated parameter.
          */
         Assigner.Typing typing() default Assigner.Typing.STATIC;
 

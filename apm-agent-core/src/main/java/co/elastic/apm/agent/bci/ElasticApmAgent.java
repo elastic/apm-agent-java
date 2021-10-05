@@ -513,7 +513,7 @@ public class ElasticApmAgent {
 
                 AnnotationDescription.Loadable<Advice.Return> returnAnnotation = parameter.getDeclaredAnnotations().ofType(Advice.Return.class);
                 if (returnAnnotation != null && !returnAnnotation.load().readOnly()) {
-                    throw new IllegalStateException("Advice parameter must not use '@Advice.Return(readOnly=false)', use @AssignTo.Return instead");
+                    throw new IllegalStateException("Advice parameter must not use '@Advice.Return(readOnly=false)', use @Advice.AssignReturned.ToReturned instead");
                 }
             }
         } catch (Exception e) {
