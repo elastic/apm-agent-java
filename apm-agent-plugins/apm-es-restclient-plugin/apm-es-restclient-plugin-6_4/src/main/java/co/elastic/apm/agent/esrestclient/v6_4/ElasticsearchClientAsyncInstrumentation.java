@@ -31,6 +31,7 @@ import org.elasticsearch.client.ResponseListener;
 
 import javax.annotation.Nullable;
 
+import static net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -60,7 +61,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
         private static final ElasticsearchRestClientInstrumentationHelper helper = ElasticsearchRestClientInstrumentationHelper.get();
 
         @Nullable
-        @Advice.AssignReturned.ToArguments(@ToArgument(index = 1, value = 1))
+        @Advice.AssignReturned.ToArguments(@ToArgument(index = 1, value = 1, typing = DYNAMIC))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeExecute(@Advice.Argument(0) Request request,
                                                @Advice.Argument(1) ResponseListener responseListener) {
