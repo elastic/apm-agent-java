@@ -21,8 +21,8 @@ package co.elastic.apm.agent.opentracingimpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
@@ -60,7 +60,7 @@ public abstract class ExternalSpanContextInstrumentation extends OpenTracingBrid
         public static class AdviceClass {
 
             @Nullable
-            @AssignTo.Field(value = "childTraceContext")
+            @Advice.AssignReturned.ToFields(@ToField(value = "childTraceContext"))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object toTraceId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
                                            @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object childTraceContextObj) {
@@ -93,7 +93,7 @@ public abstract class ExternalSpanContextInstrumentation extends OpenTracingBrid
         public static class AdviceClass {
 
             @Nullable
-            @AssignTo.Field(value = "childTraceContext")
+            @Advice.AssignReturned.ToFields(@ToField(value = "childTraceContext"))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object toSpanId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
                                           @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object childTraceContextObj) {

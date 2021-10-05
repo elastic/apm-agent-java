@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.sdk.advice;
 
-import net.bytebuddy.dynamic.TargetType;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
 import java.lang.annotation.ElementType;
@@ -30,46 +29,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 public @interface AssignTo {
 
-    /**
-     * Overrides a field of the instrumented class with the object at index {@link Field#index()}
-     * of the {@code Object[]} returned from the advice.
-     */
-    Field[] fields() default {};
-
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.METHOD)
-    @interface Field {
-        /**
-         * Returns the name of the field.
-         *
-         * @return The name of the field.
-         */
-        String value();
-
-        /**
-         * Returns the type that declares the field that should be mapped to the annotated parameter. If this property
-         * is set to {@code void}, the field is looked up implicitly within the instrumented class's class hierarchy.
-         * The value can also be set to {@link TargetType} in order to look up the type on the instrumented type.
-         *
-         * @return The type that declares the field, {@code void} if this type should be determined implicitly or
-         * {@link TargetType} for the instrumented type.
-         */
-        Class<?> declaringType() default Void.class;
-
-        /**
-         * The typing that should be applied when assigning the field value.
-         *
-         * @return The typing to apply upon assignment.
-         */
-        Assigner.Typing typing() default Assigner.Typing.STATIC;
-
-        /**
-         * Used in combination with {@link AssignTo} to select the index of the returned {@code Object[]} that should be used for the assignment.
-         *
-         * @return the index of the {@code Object[]} that should be used for the assignment.
-         */
-        int index() default -1;
-    }
 
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
