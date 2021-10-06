@@ -30,6 +30,7 @@ public abstract class PluginClassLoaderRootPackageCustomizer {
      * All classes in the provided packages except for the ones annotated with {@link co.elastic.apm.agent.sdk.state.GlobalState}
      * and classes extending {@link org.stagemonitor.configuration.ConfigurationOptionProvider}
      * will be loaded from a dedicated plugin class loader that has access to both the instrumented classes and the agent classes.
+     * If the {@linkplain #getPluginPackage() plugin package} should be part of the root packages, implementations need to explicitly add it.
      */
     public abstract Collection<String> pluginClassLoaderRootPackages();
 }

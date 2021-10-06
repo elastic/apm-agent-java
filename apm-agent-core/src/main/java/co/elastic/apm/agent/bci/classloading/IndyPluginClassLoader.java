@@ -40,10 +40,7 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
     private static final ClassLoader SYSTEM_CLASS_LOADER = ClassLoader.getSystemClassLoader();
 
     public IndyPluginClassLoader(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
-        // PersistenceHandler.LATENT reduces the memory footprint of the class loader
-        // after a class has been loaded, the class file byte[] is removed from the map
-        // the tradeoff that looking up the class as a resource isn't possible
-        // that shouldn't be an issue as it can be looked up from the parent class loader (agent class loader)
+        // See getResource on why we're using PersistenceHandler.LATENT over PersistenceHandler.MANIFEST
         super(getParent(targetClassLoader, agentClassLoader), true, typeDefinitions, PersistenceHandler.LATENT);
     }
 
@@ -78,11 +75,18 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
         }
     }
 
+    /**
+     * This class loader uses {@link PersistenceHandler#LATENT} (see {@link #IndyPluginClassLoader})
+     * as it reduces the memory footprint of the class loader compared to {@link PersistenceHandler#MANIFEST}.
+     * With {@link PersistenceHandler#MANIFEST}, after a class has been loaded, the class file byte[] is kept in the typeDefinitions map
+     * so that the class can be looked up as a resource.
+     * With {@link PersistenceHandler#LATENT}, the class file byte[] is removed from the typeDefinitions after the corresponding class has been loaded.
+     * This implies that the class can't be looked up as a resource.
+     * The method from the super class even disallows delegation to the parent (as it's a child-first class loader).
+     * Overriding this method ensures that we can look up the class resource from the parent class loader (agent class loader).
+     */
     @Override
     public URL getResource(String name) {
-        // the implementation of the super class disallows parent lookup if the name isShadowed by this class loader
-        // we explicitly want to allow resource lookup from the agent class loader to avoid having to use PersistenceHandler.PERSISTENT
-        // as PersistenceHandler.LATENT is much more memory efficient
         URL url = super.getResource(name);
         return url != null
             ? url

@@ -27,6 +27,11 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 
+/**
+ * This class loader works similar to {@link net.bytebuddy.dynamic.loading.MultipleParentClassLoader}.
+ * The difference is that an {@link ElementMatcher} can be supplied that determines (based on the class name) which class lookups are delegated to each parent.
+ * This is used, for example, to avoid looking up log4j2 classes from the agent class loader in the context of an advice.
+ */
 class DiscriminatingMultiParentClassLoader extends ClassLoader {
 
     private static final String CLASS_EXTENSION = ".class";
