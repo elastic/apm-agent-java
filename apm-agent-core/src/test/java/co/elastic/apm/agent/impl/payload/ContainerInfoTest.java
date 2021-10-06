@@ -119,6 +119,15 @@ public class ContainerInfoTest {
     }
 
     @Test
+    void testKubernetesInfo_containerd_cri() {
+        // In such cases- underscores should be replaced with hyphens in the pod UID
+        String line = "1:name=systemd:/system.slice/containerd.service/kubepods-burstable-podff49d0be_16b7_4a49_bb9e_8ec1f1f4e27f.slice" +
+            ":cri-containerd:0f99ad5f45163ed14ab8eaf92ed34bb4a631d007f8755a7d79be614bcb0df0ef";
+        SystemInfo systemInfo = assertContainerId(line, "0f99ad5f45163ed14ab8eaf92ed34bb4a631d007f8755a7d79be614bcb0df0ef");
+        assertKubernetesInfo(systemInfo, "ff49d0be-16b7-4a49-bb9e-8ec1f1f4e27f", "my-host", null, null);
+    }
+
+    @Test
     @DisabledOnJre({JRE.JAVA_15, JRE.JAVA_16}) // https://github.com/elastic/apm-agent-java/issues/1942
     void testKubernetesDownwardApi() throws Exception {
         String line = "1:name=systemd:/kubepods/besteffort/pode9b90526-f47d-11e8-b2a5-080027b9f4fb/15aa6e53-b09a-40c7-8558-c6c31e36c88a";

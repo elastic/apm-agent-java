@@ -28,6 +28,14 @@ import java.util.concurrent.ConcurrentMap;
  * <p>
  * An alternative to this is {@link GlobalState} which can be used to make a whole class scoped globally.
  * </p>
+ * <p>
+ * Be careful not to store classes from the target class loader or the plugin class loader in a global variable.
+ * This would otherwise lead to class loader leaks.
+ * That's because a global variable is referenced from the agent class loader.
+ * If it held a reference to a class that's loaded by the plugin class loader, the target class loader (such as a webapp class loader)
+ * is held alive by the following chain of hard references:
+ * {@code Map of global thread locals (Agent CL) -plugin class instance-> -plugin class-> plugin CL -(parent)-> webapp CL}
+ * </p>
  */
 public class GlobalVariables {
     private static final ConcurrentMap<String, Object> registry = new ConcurrentHashMap<>();

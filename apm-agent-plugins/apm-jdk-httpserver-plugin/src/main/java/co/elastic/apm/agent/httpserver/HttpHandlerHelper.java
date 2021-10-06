@@ -35,6 +35,6 @@ public class HttpHandlerHelper {
             return;
         }
 
-        DynamicTransformer.Accessor.get().ensureInstrumented(handler.getClass(), INSTRUMENTATIONS);
+        DynamicTransformer.ensureInstrumented(handler.getClass(), INSTRUMENTATIONS);
     }
 }

@@ -10,6 +10,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>apm-agent-common</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>

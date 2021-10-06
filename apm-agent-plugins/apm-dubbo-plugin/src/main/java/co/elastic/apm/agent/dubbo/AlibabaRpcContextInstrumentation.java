@@ -55,7 +55,7 @@ public class AlibabaRpcContextInstrumentation extends AbstractAlibabaDubboInstru
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.Argument(0) Future<?> future) {
             if (future instanceof FutureAdapter) {
-                DynamicTransformer.Accessor.get().ensureInstrumented(((FutureAdapter<?>) future).getFuture().getClass(), RESPONSE_FUTURE_INSTRUMENTATION);
+                DynamicTransformer.ensureInstrumented(((FutureAdapter<?>) future).getFuture().getClass(), RESPONSE_FUTURE_INSTRUMENTATION);
             }
         }
     }

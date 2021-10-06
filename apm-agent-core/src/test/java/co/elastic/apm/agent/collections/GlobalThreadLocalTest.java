@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.sdk.state;
+package co.elastic.apm.agent.collections;
 
+import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.Callable;
@@ -34,16 +36,18 @@ public class GlobalThreadLocalTest {
 
     @Test
     void setNullValueShouldNotThrow() {
-        GlobalThreadLocal.get(GlobalThreadLocalTest.class, "setNullValueShouldNotThrow").set(null);
+        WeakConcurrent
+            .threadLocalBuilder()
+            .build()
+            .set(null);
     }
 
     @Test
     void testNonConstantDefaultValue() throws ExecutionException, InterruptedException {
-        final GlobalThreadLocal<Object> threadLocal = GlobalThreadLocal.get(
-            GlobalThreadLocalTest.class,
-            "testNonConstantDefaultValue",
-            Object::new
-        );
+        final DetachedThreadLocal<Object> threadLocal = WeakConcurrent
+            .threadLocalBuilder()
+            .withDefaultValueSupplier(t -> new Object())
+            .build();
         Object mainThreadDefaultValue = threadLocal.get();
         assertThat(mainThreadDefaultValue).isNotNull();
         Future<Object> future = executor.submit((Callable<Object>) threadLocal::get);
@@ -53,11 +57,10 @@ public class GlobalThreadLocalTest {
     @Test
     void testConstantDefaultValue() throws ExecutionException, InterruptedException {
         final Object constant = new Object();
-        final GlobalThreadLocal<Object> threadLocal = GlobalThreadLocal.get(
-            GlobalThreadLocalTest.class,
-            "testConstantDefaultValue",
-            () -> constant
-        );
+        final DetachedThreadLocal<Object> threadLocal = WeakConcurrent
+            .threadLocalBuilder()
+            .withDefaultValueSupplier(t -> constant)
+            .build();
         Object mainThreadDefaultValue = threadLocal.get();
         assertThat(mainThreadDefaultValue).isNotNull();
         Future<Object> future = executor.submit((Callable<Object>) threadLocal::get);
@@ -66,21 +69,19 @@ public class GlobalThreadLocalTest {
 
     @Test
     void testNullDefaultValue() {
-        final GlobalThreadLocal<Object> threadLocal = GlobalThreadLocal.get(
-            GlobalThreadLocalTest.class,
-            "testNullDefaultValue",
-            null
-        );
+        final DetachedThreadLocal<Object> threadLocal = WeakConcurrent
+            .threadLocalBuilder()
+            .withDefaultValueSupplier(null)
+            .build();
         assertThat(threadLocal.get()).isNull();
     }
 
     @Test
     void testNonDefaultValue() throws ExecutionException, InterruptedException {
-        final GlobalThreadLocal<Object> threadLocal = GlobalThreadLocal.get(
-            GlobalThreadLocalTest.class,
-            "testNonDefaultValue",
-            null
-        );
+        final DetachedThreadLocal<Object> threadLocal = WeakConcurrent
+            .threadLocalBuilder()
+            .withDefaultValueSupplier(null)
+            .build();
 
         threadLocal.set("main");
         assertThat(threadLocal.get()).isEqualTo("main");
