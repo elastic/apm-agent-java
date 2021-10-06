@@ -87,5 +87,23 @@ public class R2dbcReactorHelper {
         return publisher;
     }
 
+    public static <T> Publisher<T> wrapResultPublisher(Publisher<T> publisher, final Span span) {
+        log.debug("Trying to wrap result");
+        Function<? super Publisher<T>, ? extends Publisher<T>> lift = Operators.liftPublisher(
+            new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
+                @Override
+                public CoreSubscriber<? super T> apply(Publisher publisher, CoreSubscriber<? super T> subscriber) {
+                    log.info("result wrapping {}", subscriber.toString());
+                    return new R2dbcResultSubscriber<>(subscriber, span);
+                }
+            }
+        );
+        if (publisher instanceof Mono) {
+            publisher = ((Mono) publisher).transform(lift);
+        } else if (publisher instanceof Flux) {
+            publisher = ((Flux) publisher).transform(lift);
+        }
+        return publisher;
+    }
 
 }

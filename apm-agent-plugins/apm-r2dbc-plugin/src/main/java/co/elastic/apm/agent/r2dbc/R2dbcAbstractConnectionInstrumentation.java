@@ -45,7 +45,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Matches {@link Connection#createStatement(String)} methods
  * and keeps a reference to from the resulting {@link Statement} to the connection.
  */
-public abstract class R2dbcConnectionInstrumentation extends AbstractR2dbcInstrumentation {
+public abstract class R2dbcAbstractConnectionInstrumentation extends AbstractR2dbcInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -58,7 +58,7 @@ public abstract class R2dbcConnectionInstrumentation extends AbstractR2dbcInstru
             .and(hasSuperType(named("io.r2dbc.spi.Connection")));
     }
 
-    public static class CreateStatementInstrumentation extends R2dbcConnectionInstrumentation {
+    public static class CreateStatementInstrumentation extends R2dbcAbstractConnectionInstrumentation {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return nameStartsWith("createStatement")
@@ -80,7 +80,7 @@ public abstract class R2dbcConnectionInstrumentation extends AbstractR2dbcInstru
         }
     }
 
-    public static class CreateBatchInstrumentation extends R2dbcConnectionInstrumentation {
+    public static class CreateBatchInstrumentation extends R2dbcAbstractConnectionInstrumentation {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return nameStartsWith("createBatch")

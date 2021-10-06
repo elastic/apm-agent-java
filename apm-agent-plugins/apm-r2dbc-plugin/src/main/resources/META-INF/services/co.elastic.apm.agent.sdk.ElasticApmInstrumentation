@@ -1,7 +1,8 @@
-co.elastic.apm.agent.r2dbc.R2dbcConnectionInstrumentation$CreateStatementInstrumentation
-co.elastic.apm.agent.r2dbc.R2dbcConnectionInstrumentation$CreateBatchInstrumentation
+co.elastic.apm.agent.r2dbc.R2dbcAbstractConnectionInstrumentation$CreateStatementInstrumentation
+co.elastic.apm.agent.r2dbc.R2dbcAbstractConnectionInstrumentation$CreateBatchInstrumentation
 co.elastic.apm.agent.r2dbc.R2dbcStatementInstrumentation
-co.elastic.apm.agent.r2dbc.R2dbcBatchInstrumentation$AddBatchInstrumentation
-co.elastic.apm.agent.r2dbc.R2dbcBatchInstrumentation$ExecuteBatchInstrumentation
+co.elastic.apm.agent.r2dbc.R2dbcAbstractBatchInstrumentation$AddBatchInstrumentation
+co.elastic.apm.agent.r2dbc.R2dbcAbstractBatchInstrumentation$ExecuteBatchInstrumentation
 co.elastic.apm.agent.r2dbc.R2dbcConnectionFactoryProviderInstrumentation
 co.elastic.apm.agent.r2dbc.R2dbcConnectionFactoryInstrumentation
+co.elastic.apm.agent.r2dbc.R2dbcResultInstrumentation

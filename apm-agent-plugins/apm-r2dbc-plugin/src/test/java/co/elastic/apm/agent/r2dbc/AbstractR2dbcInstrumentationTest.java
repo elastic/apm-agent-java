@@ -32,6 +32,8 @@ import io.r2dbc.spi.R2dbcException;
 import io.r2dbc.spi.Statement;
 import org.junit.After;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -43,6 +45,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 public abstract class AbstractR2dbcInstrumentationTest extends AbstractInstrumentationTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(AbstractR2dbcInstrumentationTest.class);
 
     private static final int SLEEP_TIME_AFTER_EXECUTE = 100;
 
@@ -130,7 +134,7 @@ public abstract class AbstractR2dbcInstrumentationTest extends AbstractInstrumen
 
         sleep(SLEEP_TIME_AFTER_EXECUTE);
 
-        assertSpanRecorded(sql, false, 0);
+        assertSpanRecorded(sql, false, 1);
     }
 
     private void testStatementWithBinds() {
@@ -162,7 +166,7 @@ public abstract class AbstractR2dbcInstrumentationTest extends AbstractInstrumen
 
         sleep(SLEEP_TIME_AFTER_EXECUTE);
 
-        assertSpanRecorded(sql, false, 0);
+        assertSpanRecorded(sql, false, -1);
     }
 
     private void sleep(long millis) {
@@ -181,7 +185,7 @@ public abstract class AbstractR2dbcInstrumentationTest extends AbstractInstrumen
 
         sleep(SLEEP_TIME_AFTER_EXECUTE);
 
-        assertSpanRecorded(insert, false, 0);
+        assertSpanRecorded(insert, false, 2);
     }
 
     private Span assertSpanRecorded(String rawSql, boolean preparedStatement, long expectedAffectedRows) throws R2dbcException {
@@ -205,9 +209,9 @@ public abstract class AbstractR2dbcInstrumentationTest extends AbstractInstrumen
         assertThat(db.getUser()).isNotBlank();
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 
-//        assertThat(db.getAffectedRowsCount())
-//            .describedAs("unexpected affected rows count for statement %s", rawSql)
-//            .isEqualTo(expectedAffectedRows);
+        assertThat(db.getAffectedRowsCount())
+            .describedAs("unexpected affected rows count for statement %s", rawSql)
+            .isEqualTo(expectedAffectedRows);
 
         Destination destination = span.getContext().getDestination();
         assertThat(destination.getAddress().toString()).isEqualTo("localhost");

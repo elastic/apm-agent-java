@@ -34,8 +34,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -51,9 +49,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 /**
  * Creates spans for R2DBC {@link Statement} execution
  */
-public abstract class R2dbcBatchInstrumentation extends AbstractR2dbcInstrumentation {
-
-    private static final Logger logger = LoggerFactory.getLogger(R2dbcBatchInstrumentation.class);
+public abstract class R2dbcAbstractBatchInstrumentation extends AbstractR2dbcInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -66,7 +62,7 @@ public abstract class R2dbcBatchInstrumentation extends AbstractR2dbcInstrumenta
             .and(hasSuperType(named("io.r2dbc.spi.Batch")));
     }
 
-    public static class AddBatchInstrumentation extends R2dbcBatchInstrumentation {
+    public static class AddBatchInstrumentation extends R2dbcAbstractBatchInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -79,8 +75,7 @@ public abstract class R2dbcBatchInstrumentation extends AbstractR2dbcInstrumenta
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onBeforeAdd(@Advice.This Object batchObject,
-                                             @Advice.Argument(0) String sql) {
-                logger.info("Trying to add sql {} to batch = {} on thread = {}", sql, batchObject, Thread.currentThread().getName());
+                                           @Advice.Argument(0) String sql) {
                 R2dbcHelper helper = R2dbcHelper.get();
                 Object[] connectionSqlObj = helper.retrieveMetaForBatch(batchObject);
                 if (connectionSqlObj == null) {
@@ -93,7 +88,7 @@ public abstract class R2dbcBatchInstrumentation extends AbstractR2dbcInstrumenta
         }
     }
 
-    public static class ExecuteBatchInstrumentation extends R2dbcBatchInstrumentation {
+    public static class ExecuteBatchInstrumentation extends R2dbcAbstractBatchInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -108,7 +103,6 @@ public abstract class R2dbcBatchInstrumentation extends AbstractR2dbcInstrumenta
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object[] onBeforeExecute(@Advice.This Object batchObject) {
                 R2dbcHelper helper = R2dbcHelper.get();
-                logger.info("Trying to handle with batch = {} on thread = {}", batchObject, Thread.currentThread().getName());
                 Object[] connectionSqlObj = helper.retrieveMetaForBatch(batchObject);
                 Object connectionObj = connectionSqlObj != null ? connectionSqlObj[0] : null;
                 Object sqlObject = connectionSqlObj != null ? connectionSqlObj[1] : null;

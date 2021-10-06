@@ -30,6 +30,8 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.CoreSubscriber;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.Nullable;
 
@@ -88,13 +90,12 @@ public class R2dbcSubscriber<T> implements CoreSubscriber<T>, Subscription {
 
     @Override
     public void onNext(T next) {
-        Span span = getSpan();
+        final Span span = getSpan();
         boolean hasActivated = doEnter("onNext", span);
         Throwable thrown = null;
         try {
             subscriber.onNext(next);
             if (span.getSubtype() == null) {
-                log.debug("Subtype is null try to set db details.");
                 R2dbcHelper helper = R2dbcHelper.get();
                 ConnectionMetaData connectionMetaData = helper.getConnectionMetaData(connection);
                 log.debug("Parsed connection metadata = {}", connectionMetaData);
@@ -114,10 +115,16 @@ public class R2dbcSubscriber<T> implements CoreSubscriber<T>, Subscription {
                 }
                 span.withSubtype(vendor).withAction(DB_SPAN_ACTION);
             }
-            log.info("onNext = {}", (next instanceof Result));
             if (next instanceof Result) {
                 Result result = (Result) next;
-//                result.getRowsUpdated().subscribe();
+                if (result.getRowsUpdated() instanceof Mono) {
+                    ((Mono<Integer>) result.getRowsUpdated()).subscribe();
+                } else if (result.getRowsUpdated() instanceof Flux) {
+                    ((Flux<Integer>) result.getRowsUpdated()).subscribe();
+                }
+//                Flux.just(result.getRowsUpdated())
+//                    .subscribe((cnt) -> log.info("Affected count = {}", cnt));
+                log.info("After subscribe..");
             }
         } catch (Throwable e) {
             thrown = e;

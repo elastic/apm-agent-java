@@ -18,12 +18,11 @@
  */
 package co.elastic.apm.agent.r2dbc;
 
-import co.elastic.apm.agent.r2dbc.helper.R2dbcHelper;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.r2dbc.helper.R2dbcReactorHelper;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
-import io.r2dbc.spi.Connection;
-import io.r2dbc.spi.ConnectionFactory;
-import io.r2dbc.spi.ConnectionFactoryOptions;
+import io.r2dbc.spi.Result;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -40,17 +39,17 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 
-public class R2dbcConnectionFactoryInstrumentation extends AbstractR2dbcInstrumentation {
+public class R2dbcResultInstrumentation extends AbstractR2dbcInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(hasSuperType(named("io.r2dbc.spi.ConnectionFactory")));
+            .and(hasSuperType(named("io.r2dbc.spi.Result")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("create")
+        return named("getRowsUpdated")
             .and(takesNoArguments())
             .and(isPublic());
     }
@@ -60,15 +59,15 @@ public class R2dbcConnectionFactoryInstrumentation extends AbstractR2dbcInstrume
         @Nullable
         @AssignTo.Return(typing = Assigner.Typing.DYNAMIC)
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static Object onAfterExecute(@Advice.This ConnectionFactory connectionFactory,
+        public static Object onAfterExecute(@Advice.This Result result,
                                             @Advice.Thrown @Nullable Throwable t,
-                                            @Advice.Return @Nullable Publisher<? extends Connection> returnValue) {
-            if (t != null || returnValue == null) {
+                                            @Advice.Return @Nullable Publisher<Integer> returnValue) {
+            AbstractSpan<?> parent = tracer.getActive();
+            if (t != null || returnValue == null || !(parent instanceof Span)) {
                 return returnValue;
             }
-            R2dbcHelper helper = R2dbcHelper.get();
-            ConnectionFactoryOptions connectionFactoryOptions = helper.getConnectionFactoryOptions(connectionFactory);
-            return R2dbcReactorHelper.wrapConnectionPublisher(returnValue, connectionFactoryOptions);
+            Span span = (Span) parent;
+            return R2dbcReactorHelper.wrapResultPublisher(returnValue, span);
         }
     }
 }
