@@ -26,7 +26,7 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.jdbc.JDBCConfiguration;
 import co.elastic.apm.agent.jdbc.JdbcFilter;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -242,9 +242,9 @@ public class JdbcHelper {
          */
         CONNECTION(JdbcGlobalState.connectionSupported);
 
-        private final WeakConcurrentMap<Class<?>, Boolean> classSupport;
+        private final WeakMap<Class<?>, Boolean> classSupport;
 
-        JdbcFeature(WeakConcurrentMap<Class<?>, Boolean> map) {
+        JdbcFeature(WeakMap<Class<?>, Boolean> map) {
             this.classSupport = map;
         }
     }

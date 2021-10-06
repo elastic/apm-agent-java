@@ -87,13 +87,13 @@ public class PackageScanner {
         Files.walkFileTree(basePath, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                if (file.toString().endsWith("class")) {
+                if (file.toString().endsWith(".class") || file.toString().endsWith(".esclazz")) {
                     // We need to escape both the filesystem-specific separator and the explicit `/` separator that may be added by the relativize() implementation
                     String classNameSuffix = basePath.relativize(file).toString()
                         .replace(System.getProperty("file.separator"), ".")
                         .replace('/', '.')
                         .replace(".class", "")
-                        .replace(".esclass", "");
+                        .replace(".esclazz", "");
                     classNames.add(basePackage + "." + classNameSuffix);
                 }
                 return FileVisitResult.CONTINUE;
