@@ -23,15 +23,42 @@ import co.elastic.apm.agent.util.VersionUtils;
 
 public class ServiceFactory {
 
-    public Service createService(CoreConfiguration coreConfiguration, String ephemeralId) {
-        return new Service()
-            .withName(coreConfiguration.getServiceName())
-            .withVersion(coreConfiguration.getServiceVersion())
-            .withEnvironment(coreConfiguration.getEnvironment())
+    public Service createService(CoreConfiguration coreConfiguration, String ephemeralId, boolean runsOnLambda) {
+        Service service = new Service();
+        if (runsOnLambda) {
+            augmentServiceForAWSLambda(service, coreConfiguration, ephemeralId);
+        } else {
+            service = new Service()
+                .withName(coreConfiguration.getServiceName())
+                .withVersion(coreConfiguration.getServiceVersion())
+                .withNode(new Node(coreConfiguration.getServiceNodeName()))
+                .withRuntime(new RuntimeInfo("Java", System.getProperty("java.version")));
+        }
+
+        return service.withEnvironment(coreConfiguration.getEnvironment())
             .withAgent(new Agent("java", getAgentVersion(), ephemeralId))
-            .withRuntime(new RuntimeInfo("Java", System.getProperty("java.version")))
-            .withLanguage(new Language("Java", System.getProperty("java.version")))
-            .withNode(new Node(coreConfiguration.getServiceNodeName()));
+            .withLanguage(new Language("Java", System.getProperty("java.version")));
+    }
+
+    private void augmentServiceForAWSLambda(Service service, CoreConfiguration coreConfiguration, String ephemeralId) {
+        String serviceName = System.getenv("AWS_LAMBDA_FUNCTION_NAME");
+        if (null != serviceName) {
+            service.withName(serviceName);
+        }
+
+        String serviceVersion = System.getenv("AWS_LAMBDA_FUNCTION_VERSION");
+        if (null != serviceVersion) {
+            service.withVersion(serviceVersion);
+        }
+
+        String runtimeName = System.getenv("AWS_EXECUTION_ENV");
+        runtimeName = null != runtimeName ? runtimeName : "AWS_Lambda_java";
+        service.withRuntime(new RuntimeInfo(runtimeName, System.getProperty("java.version")));
+
+        String serviceNodeName = System.getenv("AWS_LAMBDA_LOG_STREAM_NAME");
+        if (null != serviceNodeName) {
+            service.withNode(new Node(serviceNodeName));
+        }
     }
 
     private String getAgentVersion() {

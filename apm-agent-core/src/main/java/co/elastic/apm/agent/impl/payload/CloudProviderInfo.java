@@ -43,6 +43,9 @@ public class CloudProviderInfo {
     @Nullable
     private ProviderMachine machine;
 
+    @Nullable
+    private Service service;
+
     public CloudProviderInfo(String provider) {
         this.provider = provider;
     }
@@ -103,6 +106,15 @@ public class CloudProviderInfo {
 
     public void setMachine(@Nullable ProviderMachine machine) {
         this.machine = machine;
+    }
+
+    @Nullable
+    public Service getService() {
+        return service;
+    }
+
+    public void setService(@Nullable Service service) {
+        this.service = service;
     }
 
     public static class NameAndIdField {
@@ -192,6 +204,24 @@ public class CloudProviderInfo {
         }
     }
 
+    public static class Service {
+
+        private final String name;
+
+        public Service(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("CloudProviderInfo{");
@@ -202,6 +232,7 @@ public class CloudProviderInfo {
         sb.append(", account=").append(account);
         sb.append(", project=").append(project);
         sb.append(", machine=").append(machine);
+        sb.append(", service=").append(service);
         sb.append('}');
         return sb.toString();
     }

@@ -253,6 +253,7 @@ public class CloudMetadataProvider {
         cloudProviderInfo.setAvailabilityZone(availabilityZone);
         cloudProviderInfo.setAccount(new CloudProviderInfo.ProviderAccount(accountId));
         cloudProviderInfo.setRegion(region);
+        cloudProviderInfo.setService(new CloudProviderInfo.Service("ec2"));
         return cloudProviderInfo;
     }
 

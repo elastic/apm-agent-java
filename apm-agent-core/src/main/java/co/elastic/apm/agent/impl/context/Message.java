@@ -67,7 +67,7 @@ public class Message implements Recyclable {
         return queueName;
     }
 
-    public Message withQueue(String queueName) {
+    public Message withQueue(@Nullable String queueName) {
         this.queueName = queueName;
         return this;
     }

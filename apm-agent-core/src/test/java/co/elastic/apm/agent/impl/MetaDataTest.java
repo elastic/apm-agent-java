@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,6 +30,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -38,12 +40,14 @@ import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AWS;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.NONE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.when;
 
 class MetaDataTest {
 
     private static ConfigurationRegistry config;
     private static CoreConfiguration coreConfiguration;
+    private static ServerlessConfiguration serverlessConfiguration;
     @Nullable
     private static CoreConfiguration.CloudProvider currentCloudProvider;
 
@@ -51,6 +55,7 @@ class MetaDataTest {
     static void setup() {
         config = SpyConfiguration.createSpyConfig();
         coreConfiguration = config.getConfig(CoreConfiguration.class);
+        serverlessConfiguration = config.getConfig(ServerlessConfiguration.class);
         CloudProviderInfo cloudProviderInfo = CloudMetadataProvider.fetchAndParseCloudProviderInfo(AUTO, 1000);
         if (cloudProviderInfo != null) {
             currentCloudProvider = CoreConfiguration.CloudProvider.valueOf(cloudProviderInfo.getProvider().toUpperCase());
@@ -69,6 +74,23 @@ class MetaDataTest {
         assertThat(metaDataFuture).isInstanceOf(MetaData.NoWaitFuture.class);
         MetaData metaData = metaDataFuture.get(0, TimeUnit.MILLISECONDS);
         verifyMetaData(metaData, NONE);
+    }
+
+    @Test
+    void testCloudProvider_ForAWSLambda() throws InterruptedException, ExecutionException, TimeoutException {
+        when(serverlessConfiguration.runsOnAwsLambda()).thenReturn(true);
+        Future<MetaData> metaDataFuture = MetaData.create(config, null);
+        assertThat(metaDataFuture).isInstanceOf(MetaData.EditableMetadataFuture.class);
+        assertThatExceptionOfType(CancellationException.class).isThrownBy(() -> metaDataFuture.get(0, TimeUnit.MILLISECONDS));
+
+        String serviceId = "testServiceId";
+        MetaData.EditableMetadataFuture editableMDFuture = (MetaData.EditableMetadataFuture) metaDataFuture;
+        editableMDFuture.getEditableMetaData().getService().withId(serviceId);
+        editableMDFuture.setReady();
+
+        MetaData metaData = metaDataFuture.get(0, TimeUnit.MILLISECONDS);
+        verifyMetaData(metaData, NONE, true);
+        assertThat(metaData.getService().getId()).isEqualTo(serviceId);
     }
 
     @ParameterizedTest
@@ -119,11 +141,16 @@ class MetaDataTest {
     }
 
     private void verifyMetaData(MetaData metaData, CoreConfiguration.CloudProvider cloudProvider) {
+        verifyMetaData(metaData, cloudProvider, false);
+    }
+
+    private void verifyMetaData(MetaData metaData, CoreConfiguration.CloudProvider cloudProvider, boolean onAWSLambda) {
         assertThat(metaData.getService()).isNotNull();
         assertThat(metaData.getProcess()).isNotNull();
         assertThat(metaData.getSystem()).isNotNull();
         assertThat(metaData.getGlobalLabelKeys()).isEmpty();
-        if (cloudProvider == currentCloudProvider || (cloudProvider == AUTO && currentCloudProvider != null)) {
+        if (cloudProvider == currentCloudProvider || (cloudProvider == AUTO && currentCloudProvider != null)
+                || (onAWSLambda && cloudProvider == NONE)) {
             assertThat(metaData.getCloudProviderInfo()).isNotNull();
         } else {
             assertThat(metaData.getCloudProviderInfo()).isNull();

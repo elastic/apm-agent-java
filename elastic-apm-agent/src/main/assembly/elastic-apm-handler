@@ -1,0 +1,8 @@
+#!/bin/bash
+
+export JAVA_TOOL_OPTIONS="-javaagent:/opt/[[project.artifactId]]-[[project.version]].jar ${JAVA_TOOL_OPTIONS}"
+
+export ELASTIC_APM_SERVICE_NAME="${AWS_LAMBDA_FUNCTION_NAME}"
+export ELASTIC_APM_AWS_LAMBDA_HANDLER="${_HANDLER}"
+
+exec "$@"

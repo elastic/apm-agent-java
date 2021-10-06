@@ -34,8 +34,7 @@ public class MetaDataMock {
      *
      * @return a mock future, already containing the medata info
      */
-    public static Future<MetaData> create(ProcessInfo process, Service service, SystemInfo system, @Nullable CloudProviderInfo cloudProviderInfo,
-                                          Map<String, String> globalLabels) {
+    public static Future<MetaData> create(ProcessInfo process, Service service, SystemInfo system, @Nullable CloudProviderInfo cloudProviderInfo, Map<String, String> globalLabels) {
         return new MetaData.NoWaitFuture(new MetaData(process, service, system, cloudProviderInfo, globalLabels));
     }
 }
