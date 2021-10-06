@@ -26,6 +26,7 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import com.squareup.okhttp.HttpUrl;
 import com.squareup.okhttp.Request;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
@@ -48,7 +49,7 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
 
         @Nonnull
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        @Advice.AssignReturned.ToFields(@Advice.AssignReturned.ToFields.ToField(index = 0, value = "originalRequest", typing = Assigner.Typing.DYNAMIC))
+        @Advice.AssignReturned.ToFields(@ToField(index = 0, value = "originalRequest", typing = Assigner.Typing.DYNAMIC))
         public static Object[] onBeforeExecute(@Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
 
             final AbstractSpan<?> parent = tracer.getActive();
