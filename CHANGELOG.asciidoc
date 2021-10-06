@@ -53,6 +53,7 @@ exclude known static files in all applications might be changed to `/app/static/
 ** The `@AssignTo.*` annotations have been removed.
    Use the `@Advice.AssignReturned.*` annotations that come with the latest version of Byte Buddy.
    If your plugin uses the old annotations, it will be skipped.
+   {pull}2171[#2171]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
