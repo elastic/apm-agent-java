@@ -50,6 +50,9 @@ exclude known static files in all applications might be changed to `/app/static/
 ** `WeakMapSupplier.createMap()` is now `WeakConcurrent.buildMap()` and contains more builders. - {pull}2136[#2136]
 ** `GlobalThreadLocal` has been removed in favor of `DetachedThreadLocal`. To make it global, use `GlobalVariables`. - {pull}2136[#2136]
 ** `DynamicTransformer.Accessor.get().ensureInstrumented` is now `DynamicTransformer.ensureInstrumented`. - {pull}#2164[#2164]
+** The `@AssignTo.*` annotations have been removed.
+   Use the `@Advice.AssignReturned.*` annotations that come with the latest version of Byte Buddy.
+   If your plugin uses the old annotations, it will be skipped.
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

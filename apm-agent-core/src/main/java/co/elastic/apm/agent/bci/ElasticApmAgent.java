@@ -306,8 +306,14 @@ public class ElasticApmAgent {
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
             if (isIncluded(advice, coreConfiguration)) {
-                numberOfAdvices++;
-                agentBuilder = applyAdvice(tracer, agentBuilder, advice, advice.getTypeMatcher());
+                try {
+                    agentBuilder = applyAdvice(tracer, agentBuilder, advice, advice.getTypeMatcher());
+                    numberOfAdvices++;
+                } catch (Exception e) {
+                    logger.warn("Exception occurred while applying instrumentation {}", advice.getClass().getName(), e);
+                    // this should fail tests but skip the instrumentations in prod
+                    assert false;
+                }
             } else {
                 logger.debug("Not applying excluded instrumentation {}", advice.getClass().getName());
             }
@@ -472,6 +478,7 @@ public class ElasticApmAgent {
         }
         for (MethodDescription.InDefinedShape enterAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodEnter.class)))) {
             validateAdviceReturnAndParameterTypes(enterAdvice, adviceClassName);
+            validateLegacyAssignToIsNotUsed(enterAdvice);
 
             for (AnnotationDescription enter : enterAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodEnter.class))) {
                 checkInline(enterAdvice, adviceClassName, enter.prepare(Advice.OnMethodEnter.class).load().inline());
@@ -479,6 +486,7 @@ public class ElasticApmAgent {
         }
         for (MethodDescription.InDefinedShape exitAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodExit.class)))) {
             validateAdviceReturnAndParameterTypes(exitAdvice, adviceClassName);
+            validateLegacyAssignToIsNotUsed(exitAdvice);
             if (exitAdvice.getReturnType().asRawType().getTypeName().startsWith("co.elastic.apm")) {
                 throw new IllegalStateException("Advice return type must be visible from the bootstrap class loader and must not be an agent type.");
             }
@@ -500,6 +508,16 @@ public class ElasticApmAgent {
             throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, advice.getName()));
         } else if (!Modifier.isPublic(advice.getModifiers())) {
             throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared public", adviceClassName, advice.getName()));
+        }
+    }
+
+    private static void validateLegacyAssignToIsNotUsed(MethodDescription.InDefinedShape advice) {
+        boolean usesLegacyAssignToAnnotations = !advice.getDeclaredAnnotations()
+            .asTypeList()
+            .filter(nameStartsWith("co.elastic.apm.agent.sdk.advice.AssignTo"))
+            .isEmpty();
+        if (usesLegacyAssignToAnnotations) {
+            throw new IllegalStateException("@AssignTo.* annotations have been removed in favor of Byte Buddy's @Advice.AssignReturned.* annotations");
         }
     }
 
