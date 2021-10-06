@@ -19,6 +19,7 @@
 package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
@@ -26,7 +27,6 @@ import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -145,10 +145,9 @@ public abstract class AbstractInstrumentationTest {
     /**
      * Triggers a GC + stale entry cleanup in order to trigger GC-based expiration
      *
-     * @param map   map to flush
      * @param count number of cleanup loops to execute
      */
-    protected static void flushGcExpiry(WeakConcurrentMap<?, ?> map, int count) {
+    protected static void flushGcExpiry(int count) {
         // note: we can't rely on map size as it might report zero when not empty
         int left = count;
         do {
@@ -165,8 +164,7 @@ public abstract class AbstractInstrumentationTest {
                     // silently ignored
                 }
             }
-
-            map.expungeStaleEntries();
+            WeakConcurrentProviderImpl.expungeStaleEntries();
         } while (--left > 0);
     }
 }

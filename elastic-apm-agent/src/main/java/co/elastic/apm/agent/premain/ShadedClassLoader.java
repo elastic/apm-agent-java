@@ -34,7 +34,7 @@ import java.util.jar.Manifest;
  * <p>
  * Shaded classes are hidden from normal class loaders.
  * A regular class is packaged like this in a jar: {@code org/example/MyClass.class}
- * A shaded class is packaged like this in a jar: {@code agent/org/example/MyClass.esclass}
+ * A shaded class is packaged like this in a jar: {@code agent/org/example/MyClass.esclazz}
  * </p>
  * <p>
  * This is used to hide the classes of the agent from the regular class loader hierarchy.
@@ -48,6 +48,7 @@ import java.util.jar.Manifest;
  */
 public class ShadedClassLoader extends URLClassLoader {
 
+    public static final String SHADED_CLASS_EXTENSION = ".esclazz";
     private static final String CLASS_EXTENSION = ".class";
 
     static {
@@ -55,14 +56,12 @@ public class ShadedClassLoader extends URLClassLoader {
     }
 
     private final String customPrefix;
-    private final String customClassFileExtension;
     private final Manifest manifest;
     private final URL jarUrl;
 
-    public ShadedClassLoader(File jar, ClassLoader parent, String customPrefix, String customClassNameExtension) throws IOException {
+    public ShadedClassLoader(File jar, ClassLoader parent, String customPrefix) throws IOException {
         super(new URL[]{jar.toURI().toURL()}, parent);
         this.customPrefix = customPrefix;
-        this.customClassFileExtension = customClassNameExtension;
         this.jarUrl = jar.toURI().toURL();
         try (JarFile jarFile = new JarFile(jar, false)) {
             this.manifest = jarFile.getManifest();
@@ -135,7 +134,7 @@ public class ShadedClassLoader extends URLClassLoader {
 
     private String getShadedResourceName(String name) {
         if (name.endsWith(CLASS_EXTENSION)) {
-            return customPrefix + name.substring(0, name.length() - CLASS_EXTENSION.length()) + customClassFileExtension;
+            return customPrefix + name.substring(0, name.length() - CLASS_EXTENSION.length()) + SHADED_CLASS_EXTENSION;
         } else {
             return customPrefix + name;
         }

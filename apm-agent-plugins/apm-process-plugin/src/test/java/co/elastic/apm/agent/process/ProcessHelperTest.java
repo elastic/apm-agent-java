@@ -23,7 +23,8 @@ import co.elastic.apm.agent.TransactionUtils;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -47,7 +48,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
     private Transaction transaction;
 
-    private WeakConcurrentMap<Process, Span> storageMap;
+    private WeakMap<Process, Span> storageMap;
     private ProcessHelper helper;
 
     @BeforeEach
@@ -55,7 +56,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         transaction = new Transaction(tracer);
         TransactionUtils.fillTransaction(transaction);
 
-        storageMap = new WeakConcurrentMap.WithInlinedExpunction<>();
+        storageMap = WeakConcurrent.buildMap();
         helper = new ProcessHelper(storageMap);
     }
 

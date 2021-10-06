@@ -64,7 +64,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Integer> asyncProfilerSafeMode = ConfigurationOption.<Integer>integerOption()
         .key("async_profiler_safe_mode")
         .configurationCategory(PROFILING_CATEGORY)
-        .dynamic(true)
+        .dynamic(false)
         .description("Can be used for analysis: the Async Profiler's area that deals with recovering stack trace frames \n" +
             "is known to be sensitive in some systems. It is used as a bit mask using values are between 0 and 31, \n" +
             "where 0 enables all recovery attempts and 31 disables all five (corresponding 1, 2, 4, 8 and 16).")

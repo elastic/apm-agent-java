@@ -37,15 +37,21 @@ exclude known static files in all applications might be changed to `/app/static/
 [float]
 ===== Features
 * Improved capturing of logged exceptions when using Log4j2 - {pull}2139[#2139]
+* Update to async-profiler 1.8.7 and set configured `safemode` at load time though a new system property - {pull}2165[#2165]
 * Added support for overwritting the service version per classloader - {pull}#1726[#1726]
 
 [float]
 ===== Bug fixes
+* Fix k8s metadata discovery for containerd-cri envs - {pull}2126[#2126]
 * Fixing/reducing startup delays related to `ensureInstrumented` - {pull}2150[#2150]
 
 [float]
 ===== Refactorings
 * Loading the agent from an isolated class loader - {pull}2109[#2109]
+* Refactorings in the `apm-agent-plugin-sdk` that may imply breaking changes for beta users of the external plugin mechanism
+** `WeakMapSupplier.createMap()` is now `WeakConcurrent.buildMap()` and contains more builders. - {pull}2136[#2136]
+** `GlobalThreadLocal` has been removed in favor of `DetachedThreadLocal`. To make it global, use `GlobalVariables`. - {pull}2136[#2136]
+** `DynamicTransformer.Accessor.get().ensureInstrumented` is now `DynamicTransformer.ensureInstrumented`. - {pull}#2164[#2164]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
