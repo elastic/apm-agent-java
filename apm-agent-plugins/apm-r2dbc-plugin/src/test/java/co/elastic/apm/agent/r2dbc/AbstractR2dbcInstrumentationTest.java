@@ -166,7 +166,19 @@ public abstract class AbstractR2dbcInstrumentationTest extends AbstractInstrumen
 
         sleep(SLEEP_TIME_AFTER_EXECUTE);
 
-        assertSpanRecorded(sql, false, -1);
+        long expectedAffectedRowsCount = -1L;
+        switch (expectedDbVendor) {
+            case "mariadb":
+            case "mysql":
+                expectedAffectedRowsCount = 0L;
+                break;
+            case "postgresql":
+            case "sqlserver":
+                expectedAffectedRowsCount = 1L;
+                break;
+        }
+
+        assertSpanRecorded(sql, false, expectedAffectedRowsCount);
     }
 
     private void sleep(long millis) {

@@ -118,13 +118,10 @@ public class R2dbcSubscriber<T> implements CoreSubscriber<T>, Subscription {
             if (next instanceof Result) {
                 Result result = (Result) next;
                 if (result.getRowsUpdated() instanceof Mono) {
-                    ((Mono<Integer>) result.getRowsUpdated()).subscribe();
+                    ((Mono<Integer>) result.getRowsUpdated()).cache().subscribe();
                 } else if (result.getRowsUpdated() instanceof Flux) {
-                    ((Flux<Integer>) result.getRowsUpdated()).subscribe();
+                    ((Flux<Integer>) result.getRowsUpdated()).cache().subscribe();
                 }
-//                Flux.just(result.getRowsUpdated())
-//                    .subscribe((cnt) -> log.info("Affected count = {}", cnt));
-                log.info("After subscribe..");
             }
         } catch (Throwable e) {
             thrown = e;
