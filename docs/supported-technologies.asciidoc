@@ -269,6 +269,12 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |
 |1.23.0
 
+|R2DBC
+|0.9.0.M2+
+|The agent automatically creates DB spans for all your R2DBC queries.
+|1.27.0
+
+
 |===
 
 [float]

@@ -39,6 +39,7 @@ exclude known static files in all applications might be changed to `/app/static/
 * Improved capturing of logged exceptions when using Log4j2 - {pull}2139[#2139]
 * Update to async-profiler 1.8.7 and set configured `safemode` at load time though a new system property - {pull}2165[#2165]
 * Added support to capture `context.message.routing-key` in rabbitmq, spring amqp instrumentations - {pull}1767[#1767]
+* Add instrumentation for R2DBC - {pull}2142[#2142]
 
 [float]
 ===== Performance improvements
