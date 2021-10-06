@@ -199,7 +199,7 @@ public class R2dbcHelper {
     }
 
     /**
-     * Represent JDBC features for which availability has to be checked at runtime
+     * Represent R2DBC features for which availability has to be checked at runtime
      */
     private enum R2dbcFeature {
         METADATA(R2dbcGlobalState.metadataSupported);

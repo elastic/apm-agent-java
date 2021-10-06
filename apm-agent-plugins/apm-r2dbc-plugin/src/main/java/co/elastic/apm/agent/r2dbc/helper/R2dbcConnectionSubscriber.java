@@ -21,12 +21,9 @@ package co.elastic.apm.agent.r2dbc.helper;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.CoreSubscriber;
 
 public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T>, Subscription {
-    private static final Logger log = LoggerFactory.getLogger(R2dbcConnectionSubscriber.class);
 
     private final CoreSubscriber<? super T> subscriber;
     private final ConnectionFactoryOptions connectionFactoryOptions;
@@ -41,19 +38,16 @@ public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T>, Subscrip
 
     @Override
     public void request(long n) {
-        log.debug("Request connection {}", n);
         subscription.request(n);
     }
 
     @Override
     public void cancel() {
-        log.debug("Cancel connection");
         subscription.cancel();
     }
 
     @Override
     public void onSubscribe(Subscription subscription) {
-        log.debug("onSubscribe connection");
         this.subscription = subscription;
 
         subscriber.onSubscribe(subscription);
@@ -61,7 +55,6 @@ public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T>, Subscrip
 
     @Override
     public void onNext(T next) {
-        log.debug("onNext connection");
         try {
             if (next instanceof Connection) {
                 Connection connection = (Connection) next;
@@ -76,13 +69,11 @@ public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T>, Subscrip
 
     @Override
     public void onError(Throwable t) {
-        log.debug("onError connection");
         subscriber.onError(t);
     }
 
     @Override
     public void onComplete() {
-        log.debug("onComplete connection");
         subscriber.onComplete();
     }
 }

@@ -24,34 +24,30 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.CoreSubscriber;
 
-public class R2dbcResultSubscriber<T> implements CoreSubscriber<T> {
+public class R2dbcResultSubscriber<T> implements CoreSubscriber<T>, Subscription {
     private static final Logger log = LoggerFactory.getLogger(R2dbcResultSubscriber.class);
 
     private final CoreSubscriber<? super T> subscriber;
     private final Span span;
+    private Subscription subscription;
 
     public R2dbcResultSubscriber(CoreSubscriber<? super T> subscriber, Span span) {
-        log.debug("onConstructor");
         this.subscriber = subscriber;
         this.span = span;
     }
 
     @Override
     public void onSubscribe(Subscription s) {
-        log.debug("onSubscribe");
-
+        this.subscription = subscription;
         subscriber.onSubscribe(s);
     }
 
     @Override
     public void onNext(T t) {
-        log.debug("onNext");
-
         if (t instanceof Integer) {
             Integer affectedRowCount = (Integer) t;
             if (span != null) {
                 long current = span.getContext().getDb().getAffectedRowsCount();
-                log.debug("Affected row count = {}, current = {}", affectedRowCount, current);
                 span.getContext().getDb().withAffectedRowsCount(current > 0 ? current + affectedRowCount : affectedRowCount);
             }
         }
@@ -66,5 +62,15 @@ public class R2dbcResultSubscriber<T> implements CoreSubscriber<T> {
     @Override
     public void onComplete() {
         subscriber.onComplete();
+    }
+
+    @Override
+    public void request(long n) {
+        subscription.request(n);
+    }
+
+    @Override
+    public void cancel() {
+        subscription.cancel();
     }
 }

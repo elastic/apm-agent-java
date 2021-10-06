@@ -60,13 +60,11 @@ public class R2dbcSubscriber<T> implements CoreSubscriber<T>, Subscription {
 
     @Override
     public void request(long n) {
-        log.debug("Request r2dbcSubscriber {}", n);
         subscription.request(n);
     }
 
     @Override
     public void cancel() {
-        log.debug("Cancel r2dbcSubscriber");
         subscription.cancel();
         cancelSpan();
     }
