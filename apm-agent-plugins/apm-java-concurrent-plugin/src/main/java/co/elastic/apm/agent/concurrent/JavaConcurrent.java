@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.concurrent;
 
+import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
@@ -37,7 +37,8 @@ import java.util.concurrent.ForkJoinTask;
 
 public class JavaConcurrent {
 
-    private static final WeakMap<Object, AbstractSpan<?>> contextMap = WeakConcurrent.buildMap();
+    private static final WeakMap<Object, AbstractSpan<?>> contextMap = WeakConcurrentProviderImpl.createWeakSpanMap();
+
     private static final List<Class<? extends ElasticApmInstrumentation>> RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION = Collections.
         <Class<? extends ElasticApmInstrumentation>>singletonList(RunnableCallableForkJoinTaskInstrumentation.class);
     static final ThreadLocal<Boolean> needsContext = new ThreadLocal<>();
@@ -53,10 +54,7 @@ public class JavaConcurrent {
     }
 
     private static void removeContext(Object o) {
-        AbstractSpan<?> context = contextMap.remove(o);
-        if (context != null) {
-            context.decrementReferences();
-        }
+        contextMap.remove(o);
     }
 
     private static boolean shouldAvoidContextPropagation(@Nullable Object executable) {
@@ -65,21 +63,34 @@ public class JavaConcurrent {
             needsContext.get() == Boolean.FALSE;
     }
 
+    /**
+     * Retrieves the context mapped to the provided task and activates it on the current thread.
+     * It is the responsibility of the caller to deactivate the returned context at the right time.
+     * If the mapped context is already the active span of this thread, this method returns {@code null}.
+     * @param o a task for which running there may be a context to activate
+     * @param tracer the tracer
+     * @return the context mapped to the provided task or {@code null} if such does not exist or if the mapped context
+     * is already the active one on the current thread.
+     */
     @Nullable
     public static AbstractSpan<?> restoreContext(Object o, Tracer tracer) {
         // When an Executor executes directly on the current thread we need to enable this thread for context propagation again
         needsContext.set(Boolean.TRUE);
-        AbstractSpan<?> context = contextMap.remove(o);
+
+        // we cannot remove yet, as this decrements the reference count, which may cause already ended spans to be recycled ahead of time
+        AbstractSpan<?> context = contextMap.get(o);
         if (context == null) {
             return null;
         }
-        if (tracer.getActive() != context) {
-            context.activate();
-            context.decrementReferences();
-            return context;
-        } else {
-            context.decrementReferences();
-            return null;
+
+        try {
+            if (tracer.getActive() != context) {
+                return context.activate();
+            } else {
+                return null;
+            }
+        } finally {
+            contextMap.remove(o);
         }
     }
 
@@ -106,7 +117,6 @@ public class JavaConcurrent {
     private static void captureContext(Object task, AbstractSpan<?> active) {
         DynamicTransformer.ensureInstrumented(task.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
         contextMap.put(task, active);
-        active.incrementReferences();
         // Do no discard branches leading to async operations so not to break span references
         active.setNonDiscardable();
     }
