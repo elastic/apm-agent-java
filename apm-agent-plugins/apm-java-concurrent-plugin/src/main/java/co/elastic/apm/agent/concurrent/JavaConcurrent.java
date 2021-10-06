@@ -108,7 +108,7 @@ public class JavaConcurrent {
     }
 
     private static void captureContext(Object task, AbstractSpan<?> active) {
-        DynamicTransformer.Accessor.get().ensureInstrumented(task.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
+        DynamicTransformer.ensureInstrumented(task.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
         contextMap.put(task, active);
         active.incrementReferences();
         // Do no discard branches leading to async operations so not to break span references
