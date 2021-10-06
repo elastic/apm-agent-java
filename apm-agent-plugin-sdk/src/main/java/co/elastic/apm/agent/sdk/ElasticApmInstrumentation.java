@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.sdk;
 
 import co.elastic.apm.agent.sdk.advice.AssignTo;
-import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -78,7 +77,7 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  *     </li>
  *     <li>
  *         Don't use {@link ThreadLocal}s as it can lead to class loader leaks.
- *         Use {@link GlobalThreadLocal} instead.
+ *         Use {@link co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal} instead.
  *     </li>
  *     <li>
  *         This applies to internal plugins only:

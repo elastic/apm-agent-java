@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.log.shader;
 
+import co.elastic.apm.agent.collections.DetachedThreadLocalImpl;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
@@ -28,8 +29,8 @@ import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,27 +120,27 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#SHADE SHADE} or {@link LogEcsReformatting#REPLACE REPLACE}.
      */
-    private static final WeakConcurrentMap<Object, Object> originalAppender2ecsAppender = WeakMapSupplier.createMap();
+    private static final WeakMap<Object, Object> originalAppender2ecsAppender = WeakConcurrent.buildMap();
 
     /**
      * A mapping between original appender and the formatter that it had originally.
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#OVERRIDE OVERRIDE}.
      */
-    private static final WeakConcurrentMap<Object, Object> originalAppender2originalFormatter = WeakMapSupplier.createMap();
+    private static final WeakMap<Object, Object> originalAppender2originalFormatter = WeakConcurrent.buildMap();
 
     /**
      * A mapping between original appender and the corresponding ECS-formatter.
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#OVERRIDE OVERRIDE}, currently only for the log4j2 instrumentation.
      */
-    private static final WeakConcurrentMap<Object, Object> originalAppender2ecsFormatter = WeakMapSupplier.createMap();
+    private static final WeakMap<Object, Object> originalAppender2ecsFormatter = WeakConcurrent.buildMap();
 
     /**
      * This state is set at the beginning of {@link #onAppendEnter(Object)} and cleared at the end of {@link #onAppendExit(Object)}.
      * This ensures consistency during the entire handling of each log events and guarantees that each log event is being
      * logged exactly once.
-     * No need to use {@link co.elastic.apm.agent.sdk.state.GlobalThreadLocal} because we already annotate the class
+     * No need to use {@link DetachedThreadLocalImpl} because we already annotate the class
      * with {@link GlobalState}.
      */
     private static final ThreadLocal<LogEcsReformatting> configForCurrentLogEvent = new ThreadLocal<>();
