@@ -122,14 +122,14 @@ For example,
 when you are developing a web application,
 make sure that the agent is not packaged in your war in `WEB-INF/lib`.
 In the debug window of your IDE,
-make sure that `elastic-apm-agent` does not appear in the `-classpath`.
+make sure that `apm-agent` does not appear in the `-classpath`.
 
 [source,xml]
 .pom.xml
 ----
 <dependency>
     <groupId>co.elastic.apm</groupId>
-    <artifactId>elastic-apm-agent</artifactId>
+    <artifactId>apm-agent</artifactId>
     <version>${elastic-apm.version}</version>
     <scope>provided</scope>
 </dependency>
@@ -142,9 +142,10 @@ One workaround is to set the `scope` to `test`.
 [source,groovy]
 .build.gradle
 ----
-compileOnly "co.elastic.apm:elastic-apm-agent:$elasticApmVersion"
+compileOnly "co.elastic.apm:apm-agent:$elasticApmVersion"
 ----
 
+NOTE: In versions prior to 1.26.0, you need to declare a dependency on the `elastic-apm-agent` module instead of `apm-agent`
 
 [float]
 [[trouble-shooting-common-issues]]

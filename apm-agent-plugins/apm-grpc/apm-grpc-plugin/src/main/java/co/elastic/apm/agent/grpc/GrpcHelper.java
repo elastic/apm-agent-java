@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.grpc;
 
+import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Destination;
@@ -29,8 +30,8 @@ import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import io.grpc.CallOptions;
 import io.grpc.ClientCall;
 import io.grpc.Metadata;
@@ -45,9 +46,6 @@ import javax.annotation.Nullable;
  */
 public class GrpcHelper {
 
-    // todo - replace all accesses to active span with usages of GlobalTracer
-    // todo - replace all maps with values of type Span to SpanConcurrentHashMap
-
     static String GRPC = "grpc";
 
     private static final String FRAMEWORK_NAME = "gRPC";
@@ -61,45 +59,45 @@ public class GrpcHelper {
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall} instance as key.
      */
-    private final WeakConcurrentMap<ClientCall<?, ?>, Span> clientCallSpans;
+    private final WeakMap<ClientCall<?, ?>, Span> clientCallSpans;
 
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall} instance as key.
      */
-    private final WeakConcurrentMap<ClientCall<?, ?>, Span> delayedClientCallSpans;
+    private final WeakMap<ClientCall<?, ?>, Span> delayedClientCallSpans;
 
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall.Listener} instance as key.
      */
-    private final WeakConcurrentMap<ClientCall.Listener<?>, Span> clientCallListenerSpans;
+    private final WeakMap<ClientCall.Listener<?>, Span> clientCallListenerSpans;
 
     /**
      * Map of all in-flight {@link Transaction} with {@link ServerCall.Listener} instance as key.
      */
-    private final WeakConcurrentMap<ServerCall.Listener<?>, Transaction> serverListenerTransactions;
+    private final WeakMap<ServerCall.Listener<?>, Transaction> serverListenerTransactions;
 
     /**
      * Map of all in-flight {@link Transaction} with {@link ServerCall} instance as key.
      */
-    private final WeakConcurrentMap<ServerCall<?, ?>, Transaction> serverCallTransactions;
+    private final WeakMap<ServerCall<?, ?>, Transaction> serverCallTransactions;
 
     /**
      * gRPC header cache used to minimize allocations
      */
-    private final WeakConcurrentMap<String, Metadata.Key<String>> headerCache;
+    private final WeakMap<String, Metadata.Key<String>> headerCache;
 
     private final TextHeaderSetter<Metadata> headerSetter;
     private final TextHeaderGetter<Metadata> headerGetter;
 
     public GrpcHelper() {
-        clientCallSpans = WeakMapSupplier.createMap();
-        delayedClientCallSpans = WeakMapSupplier.createMap();
-        clientCallListenerSpans = WeakMapSupplier.createMap();
+        clientCallSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
+        delayedClientCallSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
+        clientCallListenerSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
 
-        serverListenerTransactions = WeakMapSupplier.createMap();
-        serverCallTransactions = WeakMapSupplier.createMap();
+        serverListenerTransactions = WeakConcurrentProviderImpl.createWeakSpanMap();
+        serverCallTransactions = WeakConcurrentProviderImpl.createWeakSpanMap();
 
-        headerCache = WeakMapSupplier.createMap();
+        headerCache = WeakConcurrent.buildMap();
 
         headerSetter = new GrpcHeaderSetter();
         headerGetter = new GrpcHeaderGetter();
@@ -345,9 +343,7 @@ public class GrpcHelper {
             if (spanToMap != null && !spanToMap.isDiscarded()) {
                 // io.grpc.internal.DelayedClientCall was introduced in 1.32 as a temporary placeholder for client calls
                 // that eventually refer to the real client call, but when they are first created
-                Class<?> clientCallClass = clientCall.getClass();
-                if (clientCallClass.getName().equals("io.grpc.internal.DelayedClientCall") ||
-                    clientCallClass.getSuperclass().getName().equals("io.grpc.internal.DelayedClientCall")) {
+                if (isDelayedClientCall(clientCall)) {
                     delayedClientCallSpans.put(clientCall, spanToMap);
                 } else {
                     clientCallSpans.put(clientCall, spanToMap);
@@ -358,6 +354,12 @@ public class GrpcHelper {
         if (spanFromEntry != null) {
             spanFromEntry.deactivate();
         }
+    }
+
+    private boolean isDelayedClientCall(ClientCall<?, ?> clientCall) {
+        Class<?> clientCallClass = clientCall.getClass();
+        return clientCallClass.getName().equals("io.grpc.internal.DelayedClientCall") ||
+            clientCallClass.getSuperclass().getName().equals("io.grpc.internal.DelayedClientCall");
     }
 
     /**
@@ -382,16 +384,40 @@ public class GrpcHelper {
      * @param realClientCall        the client call instance that represents the actual client call
      */
     public void replaceClientCallRegistration(ClientCall<?, ?> placeholderClientCall, ClientCall<?, ?> realClientCall) {
-        Span spanOfPlaceholder = delayedClientCallSpans.remove(placeholderClientCall);
-        if (spanOfPlaceholder != null) {
-            Span spanOfRealClientCall = clientCallSpans.remove(realClientCall);
-            if (spanOfRealClientCall != spanOfPlaceholder) {
-                spanOfRealClientCall
-                    .requestDiscarding()
-                    // no need to deactivate
-                    .end();
+        // we cannot remove yet, because the span could have been ended already through ClientCall#start(), in which case
+        // it will be recycled ahead of time due to reference decrement when removed from the map
+        Span spanOfPlaceholder = delayedClientCallSpans.get(placeholderClientCall);
+        if (spanOfPlaceholder == null) {
+            return;
+        }
+
+        try {
+            // we cannot remove yet, because the span could have been ended already, in which case
+            // it will be recycled ahead of time due to reference decrement when removed from the map
+            Span spanOfRealClientCall = clientCallSpans.get(realClientCall);
+            boolean mapPlaceholderSpanToRealClientCall = false;
+            if (spanOfRealClientCall == null) {
+                mapPlaceholderSpanToRealClientCall = true;
+            } else if (spanOfRealClientCall != spanOfPlaceholder) {
+                // the placeholder span is the one we want to use, we need to discard the real call span
+                if (!spanOfRealClientCall.isFinished()) {
+                    spanOfRealClientCall
+                        .requestDiscarding()
+                        // no need to deactivate
+                        .end();
+                }
+                // the discarded span will be removed when replaced with the correct span
+                mapPlaceholderSpanToRealClientCall = true;
+            } else if (spanOfRealClientCall.isFinished()) {
+                // the real client call is already mapped to the correct span, but it is already ended, so needs to be removed
+                clientCallSpans.remove(realClientCall);
             }
-            clientCallSpans.put(realClientCall, spanOfPlaceholder);
+
+            if (mapPlaceholderSpanToRealClientCall && !spanOfPlaceholder.isFinished()) {
+                clientCallSpans.put(realClientCall, spanOfPlaceholder);
+            }
+        } finally {
+            delayedClientCallSpans.remove(placeholderClientCall);
         }
     }
 
@@ -448,6 +474,21 @@ public class GrpcHelper {
         }
     }
 
+    public void cancelCall(ClientCall<?, ?> clientCall, @Nullable Throwable cause) {
+        WeakMap<ClientCall<?, ?>, Span> clientCallMap = (isDelayedClientCall(clientCall)) ? delayedClientCallSpans : clientCallSpans;
+        // we can't remove yet, in order to avoid reference decrement prematurely
+        Span span = clientCallMap.get(clientCall);
+        if (span != null) {
+            if (!span.isFinished()) {
+                span
+                    .captureException(cause)
+                    .withOutcome(toClientOutcome(Status.CANCELLED))
+                    .end();
+            }
+            clientCallMap.remove(clientCall);
+        }
+    }
+
     /**
      * Lookup and activate span when entering listener method execution
      *
@@ -458,7 +499,11 @@ public class GrpcHelper {
     public Span enterClientListenerMethod(ClientCall.Listener<?> listener) {
         Span span = clientCallListenerSpans.get(listener);
         if (span != null) {
-            if (span == GlobalTracer.get().getActiveSpan()) {
+            if (span.isFinished()) {
+                // the span may have already been ended by another listener on a different thread/stack
+                clientCallListenerSpans.remove(listener);
+                span = null;
+            } else if (span == GlobalTracer.get().getActiveSpan()) {
                 // avoid duplicated activation and invocation on nested listener method calls
                 span = null;
             } else {

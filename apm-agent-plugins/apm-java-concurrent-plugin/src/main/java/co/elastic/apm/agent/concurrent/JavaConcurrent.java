@@ -22,8 +22,9 @@ import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.state.GlobalState;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -35,9 +36,12 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ForkJoinTask;
 
+// Not strictly necessary as AbstractJavaConcurrentInstrumentation returns an empty collection for pluginClassLoaderRootPackages
+// but this signals the intent that this class must not be loaded from the IndyBootstrapClassLoader so that the state in this class applies globally
+@GlobalState
 public class JavaConcurrent {
 
-    private static final WeakConcurrentMap<Object, AbstractSpan<?>> contextMap = WeakMapSupplier.createMap();
+    private static final WeakMap<Object, AbstractSpan<?>> contextMap = WeakConcurrent.buildMap();
     private static final List<Class<? extends ElasticApmInstrumentation>> RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION = Collections.
         <Class<? extends ElasticApmInstrumentation>>singletonList(RunnableCallableForkJoinTaskInstrumentation.class);
     static final ThreadLocal<Boolean> needsContext = new ThreadLocal<>();
@@ -104,7 +108,7 @@ public class JavaConcurrent {
     }
 
     private static void captureContext(Object task, AbstractSpan<?> active) {
-        DynamicTransformer.Accessor.get().ensureInstrumented(task.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
+        DynamicTransformer.ensureInstrumented(task.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
         contextMap.put(task, active);
         active.incrementReferences();
         // Do no discard branches leading to async operations so not to break span references

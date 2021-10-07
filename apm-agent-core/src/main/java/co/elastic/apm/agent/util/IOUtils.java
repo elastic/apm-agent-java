@@ -198,48 +198,4 @@ public class IOUtils {
         }
     }
 
-    /**
-     * Why it's synchronized : if the same JVM try to lock file, we got an java.nio.channels.OverlappingFileLockException.
-     * So we need to block until the file is totally written.
-     */
-    public static synchronized File exportResourceToDirectory(String resource, String parentDirectory, String tempFileNamePrefix,
-                                                              String tempFileNameExtension) {
-        try (InputStream resourceStream = IOUtils.class.getResourceAsStream("/" + resource)) {
-            if (resourceStream == null) {
-                throw new IllegalStateException(resource + " not found");
-            }
-            String hash = md5Hash(IOUtils.class.getResourceAsStream("/" + resource));
-            File tempFile = new File(parentDirectory, tempFileNamePrefix + "-" + hash + tempFileNameExtension);
-            if (!tempFile.exists()) {
-                try (FileOutputStream out = new FileOutputStream(tempFile)) {
-                    FileChannel channel = out.getChannel();
-                    // If multiple JVM start on same compute, they can write in same file
-                    // and this file will be corrupted.
-                    try (FileLock ignored = channel.lock()) {
-                        if (tempFile.length() == 0) {
-                            byte[] buffer = new byte[1024];
-                            for (int length; (length = resourceStream.read(buffer)) != -1; ) {
-                                out.write(buffer, 0, length);
-                            }
-                        }
-                    }
-                }
-            } else if (!md5Hash(new FileInputStream(tempFile)).equals(hash)) {
-                throw new IllegalStateException("Invalid MD5 checksum of " + tempFile + ". Please delete this file.");
-            }
-            return tempFile;
-        } catch (NoSuchAlgorithmException | IOException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    public static String md5Hash(InputStream resourceAsStream) throws IOException, NoSuchAlgorithmException {
-        try (InputStream is = resourceAsStream) {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] buffer = new byte[1024];
-            DigestInputStream dis = new DigestInputStream(is, md);
-            while (dis.read(buffer) != -1) {}
-            return String.format("%032x", new BigInteger(1, md.digest()));
-        }
-    }
 }

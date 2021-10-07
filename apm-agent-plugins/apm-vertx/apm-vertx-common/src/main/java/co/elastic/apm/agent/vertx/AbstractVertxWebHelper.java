@@ -131,7 +131,7 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
         String method = httpServerRequest.method().name();
         String contentType = httpServerRequest.headers().get(CONTENT_TYPE_HEADER);
 
-        fillRequest(request, httpServerRequest.version().toString(), method, httpServerRequest.isSSL(),
+        fillRequest(request, httpServerRequest.version().toString(), method,
             httpServerRequest.scheme(), host,
             httpServerRequest.connection().localAddress().port(), httpServerRequest.path(), httpServerRequest.query(), httpServerRequest.remoteAddress().toString());
 

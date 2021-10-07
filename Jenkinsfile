@@ -28,7 +28,7 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger('(?i)(.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:(compatibility|benchmark|integration)\\W+)?tests(?:\\W+please)?.*|^/test(?:\\W+.*)?$)')
+    issueCommentTrigger("(${obltGitHubComments()}|^run (compatibility|benchmark|integration) tests)")
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
@@ -84,10 +84,12 @@ pipeline {
                 sh label: 'Size .m2', returnStatus: true, script: 'du -hs .m2'
               }
               dir("${BASE_DIR}"){
-                retryWithSleep(retries: 5, seconds: 10) {
-                  sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                withOtelEnv() {
+                  retryWithSleep(retries: 5, seconds: 10) {
+                    sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                  }
+                  sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
                 }
-                sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
               }
               stash allowEmpty: true, name: 'build', useDefaultExcludes: false
               archiveArtifacts allowEmptyArchive: true,
@@ -129,10 +131,12 @@ pipeline {
               deleteDir()
               unstash 'build'
               dir("${BASE_DIR}"){
-                sh """#!/bin/bash
-                set -euxo pipefail
-                ./mvnw test
-                """
+                withOtelEnv() {
+                  sh """#!/bin/bash
+                  set -euxo pipefail
+                  ./mvnw test
+                  """
+                }
               }
             }
           }
@@ -162,7 +166,9 @@ pipeline {
               deleteDir()
               unstash 'build'
               dir("${BASE_DIR}"){
-                sh './scripts/jenkins/smoketests-01.sh'
+                withOtelEnv() {
+                  sh './scripts/jenkins/smoketests-01.sh'
+                }
               }
             }
           }
@@ -192,7 +198,9 @@ pipeline {
               deleteDir()
               unstash 'build'
               dir("${BASE_DIR}"){
-                sh './scripts/jenkins/smoketests-02.sh'
+                withOtelEnv() {
+                  sh './scripts/jenkins/smoketests-02.sh'
+                }
               }
             }
           }
@@ -239,7 +247,9 @@ pipeline {
                   env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
                   env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
                 }
-                sh './scripts/jenkins/run-benchmarks.sh'
+                withOtelEnv() {
+                  sh './scripts/jenkins/run-benchmarks.sh'
+                }
               }
             }
           }
@@ -272,10 +282,12 @@ pipeline {
               deleteDir()
               unstash 'build'
               dir("${BASE_DIR}"){
-                sh """#!/bin/bash
-                set -euxo pipefail
-                ./mvnw compile javadoc:javadoc
-                """
+                withOtelEnv() {
+                  sh """#!/bin/bash
+                  set -euxo pipefail
+                  ./mvnw compile javadoc:javadoc
+                  """
+                }
               }
             }
           }
@@ -337,7 +349,9 @@ pipeline {
                 deleteDir()
                 unstash 'build'
                 dir("${BASE_DIR}"){
-                  sh(label: "./mvnw test for ${JAVA_VERSION}", script: './mvnw test')
+                  withOtelEnv() {
+                    sh(label: "./mvnw test for ${JAVA_VERSION}", script: './mvnw test')
+                  }
                 }
               }
             }

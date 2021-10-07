@@ -22,7 +22,6 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
 import co.elastic.apm.agent.configuration.converter.ByteValue;
-import co.elastic.logging.log4j2.EcsLayout;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.ConsoleAppender;
@@ -34,7 +33,6 @@ import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
 import org.apache.logging.log4j.core.config.builder.api.LayoutComponentBuilder;
 import org.apache.logging.log4j.core.config.builder.api.RootLoggerComponentBuilder;
 import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
-import org.apache.logging.log4j.core.config.plugins.util.PluginManager;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.converter.EnumValueConverter;
 
@@ -57,13 +55,6 @@ import static co.elastic.apm.agent.logging.LoggingConfiguration.SHIP_AGENT_LOGS;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.SYSTEM_OUT;
 
 public class Log4j2ConfigurationFactory extends ConfigurationFactory {
-
-    static {
-        // We have to add this so that log4j can both load its internal plugins and the ECS plugin
-        // That's because we have to omit the plugin descriptor file Log4j2Plugins.dat because there's no good way to shade the binary content
-        PluginManager.addPackage(EcsLayout.class.getPackage().getName());
-        PluginManager.addPackage(LoggerContext.class.getPackage().getName());
-    }
 
     private final List<org.stagemonitor.configuration.source.ConfigurationSource> sources;
     private final String ephemeralId;
