@@ -21,7 +21,7 @@ package co.elastic.apm.servlet.tests;
 public class ServletApiTestApp extends AbstractServletApiTestApp {
 
     public ServletApiTestApp() {
-        super("../simple-webapp", "simple-webapp.war", "simple-webapp/status.jsp", "Simple Web App", "simple-webapp", "TestApiServlet");
+        super("../simple-webapp", "simple-webapp.war", "status.jsp", "Simple Web App", "simple-webapp", "TestApiServlet");
     }
 
 }
