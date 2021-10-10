@@ -32,4 +32,5 @@ public abstract class AbstractLogShadingInstrumentation extends TracerAwareInstr
         ret.add("logging");
         return ret;
     }
+
 }

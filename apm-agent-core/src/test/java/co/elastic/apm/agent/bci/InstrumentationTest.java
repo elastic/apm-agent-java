@@ -153,7 +153,7 @@ class InstrumentationTest {
     void testEnsureInstrumented() {
         init(List.of());
         assertThat(interceptMe()).isEmpty();
-        DynamicTransformer.Accessor.get().ensureInstrumented(getClass(), List.of(TestInstrumentation.class));
+        DynamicTransformer.ensureInstrumented(getClass(), List.of(TestInstrumentation.class));
         assertThat(interceptMe()).isEqualTo("intercepted");
     }
 
@@ -165,7 +165,7 @@ class InstrumentationTest {
         int nThreads = 100;
         ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
         for (int i = 0; i < nThreads; i++) {
-            executorService.submit(() -> ElasticApmAgent.ensureInstrumented(getClass(), List.of(TestCounterInstrumentation.class)));
+            executorService.submit(() -> DynamicTransformer.ensureInstrumented(getClass(), List.of(TestCounterInstrumentation.class)));
         }
         ExecutorUtils.shutdownAndWaitTermination(executorService);
         assertThat(TestCounterInstrumentation.getCounter()).isEqualTo(1);
