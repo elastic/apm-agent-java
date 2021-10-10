@@ -43,6 +43,7 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
 
     LogbackEcsReformattingHelper() {}
 
+    @Nullable
     @Override
     protected Encoder<ILoggingEvent> getFormatterFrom(OutputStreamAppender<ILoggingEvent> appender) {
         return appender.getEncoder();

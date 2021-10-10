@@ -20,9 +20,9 @@ package co.elastic.apm.agent.bci.bytebuddy;
 
 import co.elastic.apm.agent.matcher.AnnotationMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.Version;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.annotation.AnnotationSource;
 import net.bytebuddy.description.method.MethodDescription;
@@ -51,6 +51,12 @@ import static net.bytebuddy.matcher.ElementMatchers.none;
 public class CustomElementMatchers {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomElementMatchers.class);
+    private static final ElementMatcher.Junction.AbstractBase<ClassLoader> AGENT_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
+        @Override
+        public boolean matches(@Nullable ClassLoader classLoader) {
+            return classLoader != null && classLoader.getClass().getName().startsWith("co.elastic.apm");
+        }
+    };
 
     public static ElementMatcher.Junction<NamedElement> isInAnyPackage(Collection<String> includedPackages,
                                                                        ElementMatcher.Junction<NamedElement> defaultIfEmpty) {
@@ -79,7 +85,7 @@ public class CustomElementMatchers {
         return new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
 
             private final boolean loadableByBootstrapClassLoader = canLoadClass(null, className);
-            private final WeakConcurrentMap<ClassLoader, Boolean> cache = WeakMapSupplier.createMap();
+            private final WeakMap<ClassLoader, Boolean> cache = WeakConcurrent.buildMap();
 
             @Override
             public boolean matches(@Nullable ClassLoader target) {
@@ -154,6 +160,10 @@ public class CustomElementMatchers {
                 return true;
             }
         };
+    }
+
+    public static ElementMatcher.Junction<ClassLoader> isAgentClassLoader() {
+        return AGENT_CLASS_LOADER_MATCHER;
     }
 
     private enum Matcher {

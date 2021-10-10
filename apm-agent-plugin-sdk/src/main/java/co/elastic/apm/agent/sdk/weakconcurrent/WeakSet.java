@@ -16,17 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.bci;
+package co.elastic.apm.agent.sdk.weakconcurrent;
 
-import co.elastic.apm.agent.sdk.DynamicTransformer;
-import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+public interface WeakSet<E> extends Iterable<E> {
 
-import java.util.Collection;
+    boolean add(E element);
 
-public class DynamicTransformerImpl implements DynamicTransformer {
+    boolean contains(E element);
 
-    @Override
-    public void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses) {
-        ElasticApmAgent.ensureInstrumented(classToInstrument, instrumentationClasses);
-    }
+    boolean remove(E element);
 }

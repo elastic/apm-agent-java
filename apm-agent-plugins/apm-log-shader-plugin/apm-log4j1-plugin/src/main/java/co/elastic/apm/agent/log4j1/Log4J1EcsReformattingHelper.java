@@ -35,6 +35,7 @@ class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAp
 
     Log4J1EcsReformattingHelper() {}
 
+    @Nullable
     @Override
     protected Layout getFormatterFrom(WriterAppender appender) {
         return appender.getLayout();
