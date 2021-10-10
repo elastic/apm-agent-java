@@ -23,6 +23,7 @@ import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
@@ -35,6 +36,9 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ForkJoinTask;
 
+// Not strictly necessary as AbstractJavaConcurrentInstrumentation returns an empty collection for pluginClassLoaderRootPackages
+// but this signals the intent that this class must not be loaded from the IndyBootstrapClassLoader so that the state in this class applies globally
+@GlobalState
 public class JavaConcurrent {
 
     private static final WeakMap<Object, AbstractSpan<?>> contextMap = WeakConcurrentProviderImpl.createWeakSpanMap();
