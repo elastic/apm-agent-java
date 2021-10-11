@@ -51,6 +51,12 @@ import static net.bytebuddy.matcher.ElementMatchers.none;
 public class CustomElementMatchers {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomElementMatchers.class);
+    private static final ElementMatcher.Junction.AbstractBase<ClassLoader> AGENT_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
+        @Override
+        public boolean matches(@Nullable ClassLoader classLoader) {
+            return classLoader != null && classLoader.getClass().getName().startsWith("co.elastic.apm");
+        }
+    };
 
     public static ElementMatcher.Junction<NamedElement> isInAnyPackage(Collection<String> includedPackages,
                                                                        ElementMatcher.Junction<NamedElement> defaultIfEmpty) {
@@ -154,6 +160,10 @@ public class CustomElementMatchers {
                 return true;
             }
         };
+    }
+
+    public static ElementMatcher.Junction<ClassLoader> isAgentClassLoader() {
+        return AGENT_CLASS_LOADER_MATCHER;
     }
 
     private enum Matcher {
