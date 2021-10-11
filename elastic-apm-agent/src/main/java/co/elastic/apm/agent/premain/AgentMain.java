@@ -36,6 +36,9 @@ import java.security.ProtectionDomain;
  */
 public class AgentMain {
 
+    private static ClassLoader lookupKeyClassLoader;
+    private static URLClassLoader agentClassLoader;
+
     /**
      * Allows the installation of this agent via the {@code javaagent} command line argument.
      *
@@ -141,13 +144,49 @@ public class AgentMain {
                 agentVersion = "";
             }
             File agentJar = getAgentJarFile();
-            URLClassLoader agentClassLoader = new ShadedClassLoader(agentJar, getAgentClassLoaderParent(), "agent/", ".esclass");
+            if (lookupKeyClassLoader == null) {
+                // loads the CachedLookupKey class in a dedicated class loader that will never be un-loaded
+                lookupKeyClassLoader = new ShadedClassLoader(agentJar, getAgentClassLoaderParent(), "cached-lookup-key/");
+            }
+            // the agent class loader that may be unloaded if/when we support detaching the agent
+            agentClassLoader = new ShadedClassLoader(agentJar, lookupKeyClassLoader, "agent/");
             Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, agentClassLoader)
                 .getMethod("initialize", String.class, Instrumentation.class, File.class, boolean.class)
                 .invoke(null, agentArguments, instrumentation, agentJar, premain);
             System.setProperty("ElasticApm.attached", Boolean.TRUE.toString());
         } catch (Exception | LinkageError e) {
             System.err.println("[elastic-apm-agent] ERROR Failed to start agent");
+            e.printStackTrace();
+        }
+    }
+
+    /*
+     * Agent detachment is not functional yet, so this is just for demonstration purposes.
+     * Missing bits:
+     * - Instead of adding apm-agent.jar in the agent/ folder of elastic-apm-agent.jar, load apm-agent.jar the file system
+     *   (Otherwise the resources of the old agent would still stick around)
+     * - Install a java.nio.file.WatchService or similar to get notified about changes in the folder
+     * - When a new version of the agent is placed to the agents folder:
+     *   - Call detach
+     *   - Create a new agent class loader with the new agent jar
+     *   - Call ElasticApmAgent#initialize
+     *
+     * Also, we'll have to make sure that we don't keep references to the agent class loader alive.
+     * Thus, the usage of ThreadLocal should be replaced with DetachedThreadLocal across the code base.
+     */
+    private synchronized static void detach() {
+        try {
+            if (Boolean.getBoolean("ElasticApm.attached") || agentClassLoader == null) {
+                throw new IllegalStateException("Agent is not initialized");
+            }
+            Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, agentClassLoader)
+                .getMethod("reset")
+                .invoke(null);
+            agentClassLoader.close();
+            agentClassLoader = null;
+            System.setProperty("ElasticApm.attached", Boolean.FALSE.toString());
+        } catch (Exception e) {
+            System.err.println("[elastic-apm-agent] ERROR Failed to detach agent");
             e.printStackTrace();
         }
     }
