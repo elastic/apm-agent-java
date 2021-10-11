@@ -322,7 +322,7 @@ public class ElasticApmAgent {
                     agentBuilder = applyAdvice(tracer, agentBuilder, advice, advice.getTypeMatcher());
                     numberOfAdvices++;
                 } catch (Exception e) {
-                    logger.warn("Exception occurred while applying instrumentation {}", advice.getClass().getName(), e);
+                    logger.error("Exception occurred while applying instrumentation {}", advice.getClass().getName(), e);
                     // this should fail tests but skip the instrumentations in prod
                     assert false;
                 }
