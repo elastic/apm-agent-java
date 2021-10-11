@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.testapp;
 
+import com.sun.tools.attach.AttachNotSupportedException;
 import com.sun.tools.attach.VirtualMachine;
 import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.AfterEach;
@@ -45,7 +46,10 @@ import static org.awaitility.Awaitility.await;
 
 class RuntimeAttachTest {
 
-    private static ObjectName JMX_BEAN;
+    private static final ObjectName JMX_BEAN;
+
+    // set to true for easier debugging
+    private static final boolean IS_DEBUG = false;
 
     private static final int APP_TIMEOUT;
 
@@ -55,11 +59,7 @@ class RuntimeAttachTest {
         } catch (MalformedObjectNameException e) {
             throw new IllegalStateException(e);
         }
-        boolean isDebug = false;
-        assert isDebug = true;
-
-        // leave enough time for proper debugging when required
-        APP_TIMEOUT = isDebug ? 10000 : 100;
+        APP_TIMEOUT = IS_DEBUG ? 10000 : 100;
     }
 
     private final List<ProcessHandle> forkedJvms = new ArrayList<>();
@@ -75,12 +75,18 @@ class RuntimeAttachTest {
             try {
                 jmxConnector.close();
             } catch (IOException ignored) {
+            } finally {
+                jmxConnector = null;
+                jmxConnection = null;
+                jmxUrl = null;
             }
         }
 
         for (ProcessHandle jvm : forkedJvms) {
-            jvm.destroy();
+            terminateJvm(jvm);
         }
+        forkedJvms.clear();
+        jmxUrl = null;
     }
 
     @Test
@@ -111,7 +117,7 @@ class RuntimeAttachTest {
 
         waitForJmxRegistration(pid);
 
-        await().until(()-> getWorkUnitCount(false) > 0);
+        await().until(() -> getWorkUnitCount(false) > 0);
 
         // both should be equal, but a 1 offset is expected as updates are not atomic
         assertThat(getWorkUnitCount(true))
@@ -147,25 +153,32 @@ class RuntimeAttachTest {
     }
 
     private void initJmx(long pid) {
-        try {
-            VirtualMachine vm = VirtualMachine.attach(Long.toString(pid));
-            String url = vm.startLocalManagementAgent();
+        await("JVM start and JMX connection").timeout(2, TimeUnit.SECONDS).until(() -> {
+            String url;
+            VirtualMachine vm;
+            try {
+                vm = VirtualMachine.attach(Long.toString(pid));
+                assertThat(vm).describedAs("unable to attach to JVM with PID %d", pid)
+                    .isNotNull();
+                url = vm.startLocalManagementAgent();
 
-            if (null == jmxUrl) {
                 jmxUrl = new JMXServiceURL(url);
                 jmxConnector = JMXConnectorFactory.connect(jmxUrl);
                 jmxConnection = jmxConnector.getMBeanServerConnection();
-            }
 
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
+                vm.detach();
+                return true;
+            } catch (IOException | AttachNotSupportedException e) {
+                return false;
+            }
+        });
+
     }
 
     private ProcessHandle startAppForkedJvm(boolean selfAttach) {
         ArrayList<String> args = new ArrayList<>();
         args.add(Integer.toString(APP_TIMEOUT));
-        if(selfAttach){
+        if (selfAttach) {
             args.add("self-attach");
         }
         return startForkedJvm(getAppJar(), args);
@@ -183,6 +196,7 @@ class RuntimeAttachTest {
         return getClassJarLocation("apm-agent-attach-cli", "co.elastic.apm.attach.AgentAttacher");
     }
 
+    // might be later refactored and merged with AgentFileAccessor as it provides similar features
     private Path getClassJarLocation(String jarPrefix, String className) {
         Class<?> main;
         try {
@@ -209,9 +223,12 @@ class RuntimeAttachTest {
         cmd.addAll(args);
 
         ProcessBuilder builder = new ProcessBuilder(cmd);
-        builder.redirectErrorStream(true);
+
+        if (IS_DEBUG) {
+            builder = builder.redirectErrorStream(true).inheritIO();
+        }
         try {
-            ProcessHandle handle = builder.inheritIO().start().toHandle();
+            ProcessHandle handle = builder.start().toHandle();
             forkedJvms.add(handle);
             System.out.format("Started forked JVM, PID = %d, CMD = %s\n", handle.pid(), String.join(" ", cmd));
             return handle;
@@ -249,6 +266,21 @@ class RuntimeAttachTest {
         return found.findFirst().orElseThrow(() -> {
             throw new IllegalStateException("Unable to find packaged test application in folder :" + folder.toAbsolutePath());
         });
+    }
+
+    private static void terminateJvm(ProcessHandle jvm) {
+        int retryCount = 5;
+        while (jvm.isAlive() && retryCount-- > 0) {
+            jvm.destroy();
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignored) {
+            }
+        }
+        if (jvm.isAlive()) {
+            jvm.destroyForcibly();
+        }
+
     }
 }
 
