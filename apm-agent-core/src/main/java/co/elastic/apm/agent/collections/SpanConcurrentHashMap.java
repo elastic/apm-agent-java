@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.util;
+package co.elastic.apm.agent.collections;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.sdk.weakmap.NullSafeWeakConcurrentMap;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import com.blogspot.mydailyjava.weaklockfree.AbstractWeakConcurrentMap;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
@@ -39,11 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class SpanConcurrentHashMap<K, V extends AbstractSpan<?>> extends ConcurrentHashMap<K, V> {
 
-    public static <K, V extends AbstractSpan<?>> WeakConcurrentMap<K, V> createWeakMap() {
-        SpanConcurrentHashMap<AbstractWeakConcurrentMap.WeakKey<K>, V> map = new SpanConcurrentHashMap<>();
-        WeakConcurrentMap<K, V> result = new NullSafeWeakConcurrentMap<>(false, map);
-        WeakMapSupplier.registerMap(result);
-        return result;
+    SpanConcurrentHashMap() {
     }
 
     @Nullable
@@ -64,7 +56,9 @@ public class SpanConcurrentHashMap<K, V extends AbstractSpan<?>> extends Concurr
     @Override
     public V putIfAbsent(K key, V value) {
         V previous = super.putIfAbsent(key, value);
-        onPut(previous, value);
+        if (previous == null) {
+            onPut(null, value);
+        }
         return previous;
     }
 

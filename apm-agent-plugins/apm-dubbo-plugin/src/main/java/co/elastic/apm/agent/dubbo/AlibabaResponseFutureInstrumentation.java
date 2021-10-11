@@ -21,15 +21,12 @@ package co.elastic.apm.agent.dubbo;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
@@ -69,7 +66,7 @@ public class AlibabaResponseFutureInstrumentation extends AbstractAlibabaDubboIn
                 return;
             }
             AlibabaCallbackHolder.callbackSpanMap.put(callback, active);
-            DynamicTransformer.Accessor.get().ensureInstrumented(callback.getClass(), RESPONSE_CALLBACK_INSTRUMENTATIONS);
+            DynamicTransformer.ensureInstrumented(callback.getClass(), RESPONSE_CALLBACK_INSTRUMENTATIONS);
         }
     }
 

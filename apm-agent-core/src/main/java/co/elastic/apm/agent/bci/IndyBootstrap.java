@@ -43,6 +43,7 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,7 +53,6 @@ import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -66,8 +66,9 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * This will also create the plugin class loader.
  * </p>
  * <pre>
- *   Bootstrap CL ←──────────────────────────── Agent CL
- *       ↑ └java.lang.IndyBootstrapDispatcher ─ ↑ ─→ └ {@link IndyBootstrap#bootstrap}
+ *                      {@code co.elastic.apm.agent.premain.ShadedClassLoader}
+ *   Bootstrap CL ←─────Cached Lookup Key────── Agent CL {@code co.elastic.apm.agent.premain.ShadedClassLoader}
+ *       ↑ └java.lang.IndyBootstrapDispatcher ─ ↑ ───→ └ {@link IndyBootstrap#bootstrap}
  *     Ext/Platform CL               ↑          │                        ╷
  *       ↑                           ╷          │                        ↓
  *     System CL                     ╷          │        {@link IndyPluginClassLoaderFactory#getOrCreatePluginClassLoader}
@@ -77,8 +78,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * WebApp1  WebApp2                  ╷          │ ├ AdviceHelper      creates
  *          ↑ - InstrumentedClass    ╷          │ ├ GlobalState          ╷
  *          │                ╷       ╷          │ └ LookupExposer        ╷
- *          │                INVOKEDYNAMIC      │                        ↓
- *          └────────────────┼──────────────────{@link IndyPluginClassLoader}
+ *          │                INVOKEDYNAMIC      │                        ╷
+ *          └────────────────┼──────────────────{@link co.elastic.apm.agent.bci.classloading.DiscriminatingMultiParentClassLoader}
+ *                           │                  ↑                        ↓
+ *                           │                  {@link IndyPluginClassLoader}
  *                           └╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶→ ├ AdviceClass
  *                                              ├ AdviceHelper
  *                                              └ LookupExposer
@@ -348,9 +351,6 @@ public class IndyBootstrap {
                 instrumentationClassLoader,
                 classFileLocator,
                 isAnnotatedWith(named(GlobalState.class.getName()))
-                    // no plugin CL necessary as all types are available form bootstrap CL
-                    // also, this plugin is used as a dependency in other plugins
-                    .or(nameStartsWith("co.elastic.apm.agent.concurrent"))
                     // if config classes would be loaded from the plugin CL,
                     // tracer.getConfig(Config.class) would return null when called from an advice as the classes are not the same
                     .or(nameContains("Config").and(hasSuperType(is(ConfigurationOptionProvider.class)))));
@@ -375,7 +375,12 @@ public class IndyBootstrap {
         String pluginPackage = adviceClassName.substring(0, adviceClassName.indexOf('.', EMBEDDED_PLUGINS_PACKAGE_PREFIX.length()));
         List<String> pluginClasses = classesByPackage.get(pluginPackage);
         if (pluginClasses == null) {
-            classesByPackage.putIfAbsent(pluginPackage, PackageScanner.getClassNames(pluginPackage, adviceClassLoader));
+            pluginClasses = new ArrayList<>();
+            Collection<String> pluginClassLoaderRootPackages = ElasticApmAgent.getPluginClassLoaderRootPackages(pluginPackage);
+            for (String pkg : pluginClassLoaderRootPackages) {
+                pluginClasses.addAll(PackageScanner.getClassNames(pkg, adviceClassLoader));
+            }
+            classesByPackage.putIfAbsent(pluginPackage, pluginClasses);
             pluginClasses = classesByPackage.get(pluginPackage);
         }
         return pluginClasses;

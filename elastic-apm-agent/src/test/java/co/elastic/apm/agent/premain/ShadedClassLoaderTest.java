@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
+import static co.elastic.apm.agent.premain.ShadedClassLoader.SHADED_CLASS_EXTENSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -36,8 +37,8 @@ class ShadedClassLoaderTest {
 
     @Test
     void testLoadShadedClass(@TempDir File tmp) throws Exception {
-        File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "agent/", ".esclass");
-        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/", ".esclass");
+        File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "agent/", SHADED_CLASS_EXTENSION);
+        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/");
         Class<?> clazz = cl.loadClass(ShadedClassLoaderTest.class.getName());
         assertThat(clazz).isNotNull();
         assertThat(clazz).isNotSameAs(ShadedClassLoaderTest.class);
@@ -45,8 +46,8 @@ class ShadedClassLoaderTest {
 
     @Test
     void testLoadClassFromParent(@TempDir File tmp) throws Exception {
-        File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "agent/", ".esclass");
-        ClassLoader cl = new ShadedClassLoader(jar, ShadedClassLoaderTest.class.getClassLoader(), "agent/", ".esclass");
+        File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "agent/", SHADED_CLASS_EXTENSION);
+        ClassLoader cl = new ShadedClassLoader(jar, ShadedClassLoaderTest.class.getClassLoader(), "agent/");
         Class<?> clazz = cl.loadClass(ShadedClassLoaderTest.class.getName());
         assertThat(clazz).isNotNull();
         assertThat(clazz).isSameAs(ShadedClassLoaderTest.class);
@@ -55,7 +56,7 @@ class ShadedClassLoaderTest {
     @Test
     void testCannotLoadNonShadedClass(@TempDir File tmp) throws Exception {
         File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "", ".class");
-        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/", ".esclass");
+        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/");
         assertThatThrownBy(() -> cl.loadClass(ShadedClassLoaderTest.class.getName()))
             .isInstanceOf(ClassNotFoundException.class);
     }
@@ -63,7 +64,7 @@ class ShadedClassLoaderTest {
     @Test
     void testGetShadedResource(@TempDir File tmp) throws Exception {
         File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "agent/", ".resource");
-        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/", ".esclass");
+        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/");
         byte[] expected = ClassLoader.getSystemClassLoader().getResourceAsStream(ShadedClassLoaderTest.class.getName().replace('.', '/') + ".class").readAllBytes();
         String resourceName = ShadedClassLoaderTest.class.getName().replace('.', '/') + ".resource";
 
@@ -77,7 +78,7 @@ class ShadedClassLoaderTest {
     @Test
     void testCannotGetNonShadedResource(@TempDir File tmp) throws Exception {
         File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "", ".resource");
-        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/", ".esclass");
+        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/");
         String resourceName = ShadedClassLoaderTest.class.getName().replace('.', '/') + ".resource";
 
         assertThat(cl.getResourceAsStream(resourceName)).isNull();
@@ -86,7 +87,7 @@ class ShadedClassLoaderTest {
     @Test
     void testGetParentResource(@TempDir File tmp) throws Exception {
         File jar = createEmptyJar(tmp);
-        ClassLoader cl = new ShadedClassLoader(jar, ShadedClassLoaderTest.class.getClassLoader(), "agent/", ".esclass");
+        ClassLoader cl = new ShadedClassLoader(jar, ShadedClassLoaderTest.class.getClassLoader(), "agent/");
         String resourceName = ShadedClassLoaderTest.class.getName().replace('.', '/') + ".class";
         byte[] expected = ShadedClassLoaderTest.class.getClassLoader().getResourceAsStream(resourceName).readAllBytes();
 

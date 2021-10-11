@@ -16,42 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.sdk.weakmap;
+package co.elastic.apm.agent.collections;
 
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.ConcurrentMap;
 
-import static co.elastic.apm.agent.sdk.weakmap.NullCheck.isNullKey;
-import static co.elastic.apm.agent.sdk.weakmap.NullCheck.isNullValue;
+import static co.elastic.apm.agent.collections.NullCheck.isNullKey;
+import static co.elastic.apm.agent.collections.NullCheck.isNullValue;
 
 /**
- * {@link WeakConcurrentMap} implementation that prevents throwing {@link NullPointerException} and helps debugging if needed
+ * {@link CachedKeyWeakConcurrentMap} implementation that prevents throwing {@link NullPointerException} and helps debugging if needed
  *
  * @param <K> key type
  * @param <V> value type
  */
-public class NullSafeWeakConcurrentMap<K, V> extends WeakConcurrentMap<K, V> {
+public class NullSafeWeakConcurrentMap<K, V> extends CachedKeyWeakConcurrentMap<K, V> {
 
-    public NullSafeWeakConcurrentMap(boolean cleanerThread) {
-        super(cleanerThread);
+    private final DefaultValueSupplier<K, V> defaultValueSupplier;
+
+    NullSafeWeakConcurrentMap(ConcurrentMap<WeakKey<K>, V> target) {
+        this(target, new NullValueSupplier<K, V>());
     }
 
-    public NullSafeWeakConcurrentMap(boolean cleanerThread, ConcurrentMap<WeakKey<K>, V> target){
-        super(cleanerThread, isPersistentClassLoader(WeakConcurrentMap.class.getClassLoader()), target);
-    }
-
-    // duplicated from WeakConcurrentMap because it's not protected
-    // might be removed once (and if) https://github.com/raphw/weak-lock-free/pull/14 is released.
-    private static boolean isPersistentClassLoader(@Nullable ClassLoader classLoader) {
-        try {
-            return classLoader == null // bootstrap class loader
-                || classLoader == ClassLoader.getSystemClassLoader()
-                || classLoader == ClassLoader.getSystemClassLoader().getParent();
-        } catch (Throwable ignored) {
-            return false;
-        }
+    NullSafeWeakConcurrentMap(ConcurrentMap<WeakKey<K>, V> target, @Nullable DefaultValueSupplier<K, V> defaultValueSupplier) {
+        super(target);
+        this.defaultValueSupplier = defaultValueSupplier != null ? defaultValueSupplier : new NullValueSupplier<K, V>();
     }
 
     @Nullable
@@ -116,5 +107,19 @@ public class NullSafeWeakConcurrentMap<K, V> extends WeakConcurrentMap<K, V> {
             return null;
         }
         return super.remove(key);
+    }
+
+    @Nullable
+    @Override
+    protected V defaultValue(K key) {
+        return defaultValueSupplier.getDefaultValue(key);
+    }
+
+    private static class NullValueSupplier<K, V> implements WeakMap.DefaultValueSupplier<K, V> {
+        @Nullable
+        @Override
+        public V getDefaultValue(K key) {
+            return null;
+        }
     }
 }
