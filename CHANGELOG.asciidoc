@@ -40,6 +40,10 @@ exclude known static files in all applications might be changed to `/app/static/
 * Update to async-profiler 1.8.7 and set configured `safemode` at load time though a new system property - {pull}2165[#2165]
 
 [float]
+===== Performance improvements
+* Disable compression when sending data to a local APM Server
+
+[float]
 ===== Bug fixes
 * Fix k8s metadata discovery for containerd-cri envs - {pull}2126[#2126]
 * Fixing/reducing startup delays related to `ensureInstrumented` - {pull}2150[#2150]
