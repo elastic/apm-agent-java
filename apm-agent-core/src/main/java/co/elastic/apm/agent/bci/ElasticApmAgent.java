@@ -78,7 +78,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -121,7 +120,8 @@ public class ElasticApmAgent {
      * We need this in order to locate the advice class file. This implies that the advice class needs to be collocated
      * with the corresponding instrumentation class.
      */
-    private static final Map<String, ClassLoader> adviceClassName2instrumentationClassLoader = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, ClassLoader> adviceClassName2instrumentationClassLoader = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, Collection<String>> pluginPackages2pluginClassLoaderRootPackages = new ConcurrentHashMap<>();
 
     /**
      * Called reflectively by {@code co.elastic.apm.agent.premain.AgentMain} to initialize the agent
@@ -232,6 +232,18 @@ public class ElasticApmAgent {
                 } catch (Exception e) {
                     System.err.println("[elastic-apm-agent] WARN Failed to create directory to dump instrumented bytecode: " + e.getMessage());
                 }
+            }
+        }
+        final List<PluginClassLoaderRootPackageCustomizer> rootPackageCustomizers = DependencyInjectingServiceLoader.load(
+            PluginClassLoaderRootPackageCustomizer.class,
+            getAgentClassLoader());
+        for (PluginClassLoaderRootPackageCustomizer rootPackageCustomizer : rootPackageCustomizers) {
+            Collection<String> previous = pluginPackages2pluginClassLoaderRootPackages.put(
+                rootPackageCustomizer.getPluginPackage(),
+                Collections.unmodifiableList(new ArrayList<>(rootPackageCustomizer.pluginClassLoaderRootPackages())));
+            if (previous != null) {
+                throw new IllegalStateException("Only one PluginClassLoaderRootPackageCustomizer is allowed per plugin package: "
+                    + rootPackageCustomizer.getPluginPackage());
             }
         }
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
@@ -470,7 +482,10 @@ public class ElasticApmAgent {
             // if classes are added via java.lang.instrument.Instrumentation.appendToBootstrapClassLoaderSearch
             adviceClassLoader = ClassLoader.getSystemClassLoader();
         }
-        TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.of(adviceClassLoader), TypePool.Default.ReaderMode.FAST);
+        TypePool pool = new TypePool.Default.WithLazyResolution(
+            TypePool.CacheProvider.NoOp.INSTANCE,
+            ClassFileLocator.ForClassLoader.of(adviceClassLoader),
+            TypePool.Default.ReaderMode.FAST);
         TypeDescription typeDescription = pool.describe(adviceClassName).resolve();
         int adviceModifiers = typeDescription.getModifiers();
         if (!Modifier.isPublic(adviceModifiers)) {
@@ -525,9 +540,11 @@ public class ElasticApmAgent {
         String adviceMethod = advice.getInternalName();
         try {
             checkNotAgentType(advice.getReturnType(), "return type", adviceClass, adviceMethod);
+            checkNotSlf4jType(advice.getReturnType(), "return type", adviceClass, adviceMethod);
 
             for (ParameterDescription.InDefinedShape parameter : advice.getParameters()) {
                 checkNotAgentType(parameter.getType(), "parameter", adviceClass, adviceMethod);
+                checkNotSlf4jType(parameter.getType(), "parameter", adviceClass, adviceMethod);
 
                 AnnotationDescription.Loadable<Advice.Return> returnAnnotation = parameter.getDeclaredAnnotations().ofType(Advice.Return.class);
                 if (returnAnnotation != null && !returnAnnotation.load().readOnly()) {
@@ -546,6 +563,15 @@ public class ElasticApmAgent {
         String name = type.asRawType().getTypeName();
         if (name.startsWith("co.elastic.apm")) {
             throw new IllegalStateException(String.format("Advice %s in %s#%s must not be an agent type: %s", description, adviceClass, adviceMethod, name));
+        }
+    }
+
+    private static void checkNotSlf4jType(TypeDescription.Generic type, String description, String adviceClass, String adviceMethod) {
+        // When trying to instrument slf4j classes from the application, advices would instead resolve the types from the agent class loader
+        // This would lead to errors on indy bootstrap, similar to the ones reported at https://github.com/elastic/apm-agent-java/issues/2163
+        String name = type.asRawType().getTypeName();
+        if (name.startsWith("org.slf4j.")) {
+            throw new IllegalStateException(String.format("Advice %s in %s#%s must not reference slf4j types: %s", description, adviceClass, adviceMethod, name));
         }
     }
 
@@ -626,6 +652,8 @@ public class ElasticApmAgent {
         dynamicClassFileTransformers.clear();
         instrumentation = null;
         IndyPluginClassLoaderFactory.clear();
+        adviceClassName2instrumentationClassLoader.clear();
+        pluginPackages2pluginClassLoaderRootPackages.clear();
     }
 
     private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, final Logger logger,
@@ -861,5 +889,13 @@ public class ElasticApmAgent {
             throw new IllegalStateException("There's no mapping for key " + adviceClass);
         }
         return classLoader;
+    }
+
+    public static Collection<String> getPluginClassLoaderRootPackages(String pluginPackage) {
+        Collection<String> pluginPackages = pluginPackages2pluginClassLoaderRootPackages.get(pluginPackage);
+        if (pluginPackages != null) {
+            return pluginPackages;
+        }
+        return Collections.singleton(pluginPackage);
     }
 }

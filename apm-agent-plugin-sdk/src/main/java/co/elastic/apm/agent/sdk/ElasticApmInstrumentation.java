@@ -38,10 +38,12 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  * The actual instrumentation of the matched methods is performed by static methods within this class,
  * which are annotated by {@link net.bytebuddy.asm.Advice.OnMethodEnter} or {@link net.bytebuddy.asm.Advice.OnMethodExit}.
  * </p>
- * For internal plugins, the whole package (starting at {@code co.elastic.apm.agent.<plugin-root>})
+ * For internal plugins, by default, the whole package (starting at {@code co.elastic.apm.agent.<plugin-root>})
  * will be loaded from a plugin class loader that has both the agent class loader and the class loader of the
  * instrumented class as parents.
  * This class loader is also known as the {@code IndyPluginClassLoader}.
+ * To include more packages (for example, to add 3rd party dependencies),
+ * internal plugins can override {@code co.elastic.apm.agent.bci.TracerAwareInstrumentation#pluginClassLoaderRootPackages()}.
  * For external plugins, the whole jar will be loaded from the indy plugin class loader.
  * <p>
  * The advice methods will be dispatched via an {@code INVOKEDYNAMIC} instruction.
