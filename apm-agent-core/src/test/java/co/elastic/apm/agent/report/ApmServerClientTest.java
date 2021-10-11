@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
@@ -71,6 +72,7 @@ public class ApmServerClientTest {
     private ElasticApmTracer tracer;
     private TestObjectPoolFactory objectPoolFactory;
     private ReporterConfiguration reporterConfiguration;
+    private CoreConfiguration coreConfiguration;
     private List<URL> urlList;
 
     @Before
@@ -88,6 +90,7 @@ public class ApmServerClientTest {
 
         config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
+        coreConfiguration = config.getConfig(CoreConfiguration.class);
         objectPoolFactory = new TestObjectPoolFactory();
         config.save("server_urls", url1.toString() + "," + url2.toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
         urlList = List.of(UrlValueConverter.INSTANCE.convert(url1.toString()), UrlValueConverter.INSTANCE.convert(url2.toString()));
@@ -301,7 +304,7 @@ public class ApmServerClientTest {
 
     @Test
     public void testWithEmptyServerUrlList() {
-        ApmServerClient client = new ApmServerClient(reporterConfiguration);
+        ApmServerClient client = new ApmServerClient(reporterConfiguration, null);
         client.start(Collections.emptyList());
         Exception exception = null;
         try {
