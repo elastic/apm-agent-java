@@ -18,6 +18,7 @@
  */
 package specs;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -26,9 +27,8 @@ import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,7 +36,8 @@ import static org.mockito.Mockito.when;
 
 public class ApiKeysStepsDefinitions {
 
-    private ReporterConfiguration configuration = null;
+    private ReporterConfiguration reporterConfiguration = null;
+    private CoreConfiguration coreConfiguration = null;
 
     private final SpecMockServer server = new SpecMockServer("{{request.headers.Authorization}}");
 
@@ -45,9 +46,11 @@ public class ApiKeysStepsDefinitions {
         server.start();
 
         // we just initialize configuration as reporter is initialized lazily
-        configuration = SpyConfiguration.createSpyConfig().getConfig(ReporterConfiguration.class);
+        ConfigurationRegistry spyConfig = SpyConfiguration.createSpyConfig();
+        reporterConfiguration = spyConfig.getConfig(ReporterConfiguration.class);
+        coreConfiguration = spyConfig.getConfig(CoreConfiguration.class);
 
-        when(configuration.getServerUrls())
+        when(reporterConfiguration.getServerUrls())
             .thenReturn(Collections.singletonList(server.getUrl()));
     }
 
@@ -60,14 +63,14 @@ public class ApiKeysStepsDefinitions {
 
     @When("an api key is set to {string} in the config")
     public void setApiKeyConfig(String value) {
-        when(configuration.getApiKey())
+        when(reporterConfiguration.getApiKey())
             .thenReturn(value);
     }
 
     @Given("an api key is not set in the config")
     public void apiKeyNotSetInConfig() {
         // this is the default, thus there is nothing to do but to assert for it just in case
-        assertThat(configuration.getApiKey())
+        assertThat(reporterConfiguration.getApiKey())
             .isNull();
     }
 
@@ -75,7 +78,7 @@ public class ApiKeysStepsDefinitions {
 
     @When("a secret_token is set to {string} in the config")
     public void setSecretToken(String value) {
-        when(configuration.getSecretToken())
+        when(reporterConfiguration.getSecretToken())
             .thenReturn(value);
     }
 
@@ -83,18 +86,10 @@ public class ApiKeysStepsDefinitions {
 
     @Then("the Authorization header is {string}")
     public void checkExpectedHeader(String expectedHeaderValue) {
-        ApmServerClient apmServerClient = new ApmServerClient(configuration, null);
+        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
         apmServerClient.start();
 
         server.executeRequest(apmServerClient, (body) -> assertThat(body).isEqualTo(expectedHeaderValue));
-    }
-
-    private static URL buildUrl(String spec) {
-        try {
-            return new URL(spec);
-        } catch (MalformedURLException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
 }

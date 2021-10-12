@@ -304,7 +304,7 @@ public class ApmServerClientTest {
 
     @Test
     public void testWithEmptyServerUrlList() {
-        ApmServerClient client = new ApmServerClient(reporterConfiguration, null);
+        ApmServerClient client = new ApmServerClient(reporterConfiguration, coreConfiguration);
         client.start(Collections.emptyList());
         Exception exception = null;
         try {
