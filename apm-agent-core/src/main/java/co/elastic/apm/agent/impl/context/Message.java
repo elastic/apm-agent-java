@@ -162,6 +162,7 @@ public class Message implements Recyclable {
             stringBuilderPool.recycle(body);
             body = null;
         }
+        routingKey = null;
     }
 
     public void copyFrom(Message other) {
@@ -172,5 +173,6 @@ public class Message implements Recyclable {
         }
         this.headers.copyFrom(other.getHeaders());
         this.age = other.getAge();
+        this.routingKey = other.getRoutingKey();
     }
 }
