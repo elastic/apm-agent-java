@@ -228,7 +228,7 @@ public class ElasticApmAgent {
                     if (!bytecodeDumpDir.exists()) {
                         bytecodeDumpDir.mkdirs();
                     }
-                    System.setProperty("co.elastic.apm.agent.shaded.bytebuddy.dump", bytecodeDumpDir.getPath());
+                    System.setProperty("net.bytebuddy.dump", bytecodeDumpDir.getPath());
                 } catch (Exception e) {
                     System.err.println("[elastic-apm-agent] WARN Failed to create directory to dump instrumented bytecode: " + e.getMessage());
                 }
