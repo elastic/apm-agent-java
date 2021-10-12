@@ -67,7 +67,7 @@ public abstract class AbstractServletApiTestApp extends TestApp {
             test.clearMockServerLog();
             final Response response = test.getHttpClient().newCall(new Request.Builder()
                 .post(RequestBody.create(MediaType.parse("text/plain"), "{foo}\n{bar}"))
-                .url(test.getBaseUrl() + servicePath + "/echo?read-method=" + readMethod)
+                .url(test.getBaseUrl() + "/" + servicePath + "/echo?read-method=" + readMethod)
                 .build())
                 .execute();
             assertThat(response.code()).isEqualTo(200);
