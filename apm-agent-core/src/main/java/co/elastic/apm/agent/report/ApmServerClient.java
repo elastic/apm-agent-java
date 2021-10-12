@@ -378,7 +378,7 @@ public class ApmServerClient {
         String serviceVersion = coreConfiguration.getServiceVersion();
         if (!serviceName.isEmpty()) {
             userAgent.append(" (").append(serviceName);
-            if (!serviceVersion.isEmpty()) {
+            if (serviceVersion != null && !serviceVersion.isEmpty()) {
                 userAgent.append(" ").append(serviceVersion);
             }
             userAgent.append(")");
