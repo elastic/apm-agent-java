@@ -32,6 +32,7 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import java.io.IOException;
 import java.net.URL;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,6 +51,8 @@ class RuntimeAttachTest {
 
     // set to true for easier debugging
     private static final boolean IS_DEBUG = false;
+
+    private static final int TIMEOUT_SECONDS = 10;
 
     private static final int APP_TIMEOUT;
 
@@ -107,7 +110,9 @@ class RuntimeAttachTest {
             "application_packages=co.elastic.apm.testapp",
             "cloud_provider=NONE");
 
-        await().until(() -> getWorkUnitCount(true) > 0);
+        await()
+            .timeout(TIMEOUT_SECONDS * 2, TimeUnit.SECONDS)
+            .until(() -> getWorkUnitCount(true) > 0);
     }
 
     @Test
@@ -127,7 +132,9 @@ class RuntimeAttachTest {
     private void waitForJmxRegistration(long pid) {
         initJmx(pid);
 
-        await().timeout(1, TimeUnit.SECONDS).untilAsserted(() -> jmxConnection.getMBeanInfo(JMX_BEAN));
+        await()
+            .timeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .untilAsserted(() -> jmxConnection.getMBeanInfo(JMX_BEAN));
 
         System.out.println("JMX registration OK for JVM PID = " + pid);
 
@@ -153,7 +160,7 @@ class RuntimeAttachTest {
     }
 
     private void initJmx(long pid) {
-        await("JVM start and JMX connection").timeout(2, TimeUnit.SECONDS).until(() -> {
+        await("JVM start and JMX connection").timeout(TIMEOUT_SECONDS, TimeUnit.SECONDS).until(() -> {
             String url;
             VirtualMachine vm;
             try {
@@ -168,7 +175,8 @@ class RuntimeAttachTest {
 
                 vm.detach();
                 return true;
-            } catch (IOException | AttachNotSupportedException e) {
+            } catch (Exception e) {
+                // Windows might throw InternalError
                 return false;
             }
         });
@@ -205,7 +213,13 @@ class RuntimeAttachTest {
             throw new IllegalStateException(e);
         }
         URL location = main.getProtectionDomain().getCodeSource().getLocation();
-        Path path = Paths.get(location.getPath());
+        Path path = null;
+        try {
+            // get path through URI is required on Windows because raw path starts with drive letter '/C:/'
+            path = Paths.get(location.toURI());
+        } catch (URISyntaxException e){
+            throw new IllegalStateException(e);
+        }
 
         if (path.endsWith(Paths.get("target", "classes"))) {
             return findJar(path.getParent(), jarPrefix);
@@ -225,7 +239,7 @@ class RuntimeAttachTest {
         ProcessBuilder builder = new ProcessBuilder(cmd);
 
         if (IS_DEBUG) {
-            builder = builder.redirectErrorStream(true).inheritIO();
+            builder.redirectErrorStream(true).inheritIO();
         }
         try {
             ProcessHandle handle = builder.start().toHandle();
