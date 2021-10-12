@@ -902,16 +902,13 @@ public class DslJsonSerializer implements PayloadSerializer {
                 jw.writeByte(OBJECT_END);
                 jw.writeByte(COMMA);
             }
-
+            if (message.getRoutingKey() != null && !message.getRoutingKey().isEmpty()) {
+                writeField("routing_key", message.getRoutingKey());
+            }
             writeFieldName("queue");
             jw.writeByte(OBJECT_START);
             writeLastField("name", message.getQueueName());
             jw.writeByte(OBJECT_END);
-
-            if (message.getRoutingKey() != null && !message.getRoutingKey().isEmpty()) {
-                jw.writeByte(COMMA);
-                writeLastField("routing_key", message.getRoutingKey());
-            }
 
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);

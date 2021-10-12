@@ -567,6 +567,21 @@ class DslJsonSerializerTest {
     }
 
     @Test
+    void testSpanMessageContextSerializationWithoutRoutingKey() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getMessage()
+            .withQueue("test-queue")
+            .withBody("test-body")
+            .addHeader("text-header", "text-value")
+            .addHeader("binary-header", "binary-value".getBytes(StandardCharsets.UTF_8))
+            .withAge(20);
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode routingKey = spanJson.get("context").get("message").get("routing_key");
+        assertThat(routingKey).isNull();
+    }
+
+    @Test
     void testSpanMessageContextInvalidTimestamp() {
         Span span = new Span(MockTracer.create());
         span.getContext().getMessage()
