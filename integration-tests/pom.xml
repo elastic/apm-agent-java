@@ -22,6 +22,7 @@
         <module>cdi-app</module>
         <module>external-plugin-test</module>
         <module>runtime-attach</module>
+        <module>main-app-test</module>
     </modules>
 
     <properties>
