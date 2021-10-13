@@ -29,7 +29,6 @@
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy-dep</artifactId>
-            <version>${version.byte-buddy}</version>
         </dependency>
     </dependencies>
 

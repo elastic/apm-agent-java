@@ -33,17 +33,19 @@ import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.Map;
 
+import static co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader.startsWith;
+import static net.bytebuddy.matcher.ElementMatchers.any;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class IndyPluginClassLoaderParentTest {
+public class DiscriminatingMultiParentClassLoaderTest {
 
     private final Class<?> targetClass;
     private final ClassLoader targetClassLoader;
     private final ClassLoader agentClassLoader;
-    private final IndyPluginClassLoaderParent indyPluginClassLoaderParent;
+    private final DiscriminatingMultiParentClassLoader discriminatingMultiParentClassLoader;
 
-    IndyPluginClassLoaderParentTest() throws IOException, ClassNotFoundException {
+    DiscriminatingMultiParentClassLoaderTest() throws IOException, ClassNotFoundException {
         // Constructing a target class loader outside the main application class loader hierarchy to load a test class of a non-agent packages
         String targetClassName = TestClass.class.getName();
         Map<String, byte[]> targetTypeDefinitions = Map.of(
@@ -56,20 +58,22 @@ public class IndyPluginClassLoaderParentTest {
         // never returns null
         agentClassLoader = ElasticApmAgent.getAgentClassLoader();
 
-        indyPluginClassLoaderParent = new IndyPluginClassLoaderParent(agentClassLoader, targetClassLoader);
+        discriminatingMultiParentClassLoader = new DiscriminatingMultiParentClassLoader(
+            agentClassLoader, startsWith("co.elastic.apm.agent"),
+            targetClassLoader, any());
     }
 
     @Test
     void testAgentClassLoading() throws ClassNotFoundException {
         Class<ElasticApmTracer> elasticApmTracerClass = ElasticApmTracer.class;
         assertThrows(ClassNotFoundException.class, () -> targetClassLoader.loadClass(elasticApmTracerClass.getName()));
-        assertThat(indyPluginClassLoaderParent.loadClass(elasticApmTracerClass.getName())).isEqualTo(elasticApmTracerClass);
+        assertThat(discriminatingMultiParentClassLoader.loadClass(elasticApmTracerClass.getName())).isEqualTo(elasticApmTracerClass);
     }
 
     @Test
     void testTargetClassLoading() throws ClassNotFoundException {
         assertThat(agentClassLoader.loadClass(targetClass.getName())).isNotEqualTo(targetClass);
-        assertThat(indyPluginClassLoaderParent.loadClass(targetClass.getName())).isEqualTo(targetClass);
+        assertThat(discriminatingMultiParentClassLoader.loadClass(targetClass.getName())).isEqualTo(targetClass);
     }
 
     @Test
@@ -78,7 +82,7 @@ public class IndyPluginClassLoaderParentTest {
         assertThat(targetClassLoader.getResource(agentClassResourcePath)).isNull();
         URL agentClassResource = agentClassLoader.getResource(agentClassResourcePath);
         assertThat(agentClassResource).isNotNull();
-        assertThat(indyPluginClassLoaderParent.getResource(agentClassResourcePath)).isEqualTo(agentClassResource);
+        assertThat(discriminatingMultiParentClassLoader.getResource(agentClassResourcePath)).isEqualTo(agentClassResource);
     }
 
     @Test
@@ -86,12 +90,13 @@ public class IndyPluginClassLoaderParentTest {
         String targetClassResourcePath = targetClass.getName().replace('.', '/') + ".class";
         URL targetClassResource = targetClassLoader.getResource(targetClassResourcePath);
         assertThat(targetClassResource).isNotNull();
-        assertThat(indyPluginClassLoaderParent.getResource(targetClassResourcePath)).isEqualTo(targetClassResource);
+        assertThat(discriminatingMultiParentClassLoader.getResource(targetClassResourcePath)).isEqualTo(targetClassResource);
 
         // ensure that resource lookup was made through target CL, even though it is available in agent CL
         assertThat(agentClassLoader.getResource(targetClassResourcePath)).isNotNull();
-        IndyPluginClassLoaderParent parentWithoutTargetClassOnCP = new IndyPluginClassLoaderParent(
-            agentClassLoader, new URLClassLoader(new URL[0], null)
+        DiscriminatingMultiParentClassLoader parentWithoutTargetClassOnCP = new DiscriminatingMultiParentClassLoader(
+            agentClassLoader, startsWith("co.elastic.apm.agent"),
+            new URLClassLoader(new URL[0], null), any()
         );
         assertThat(parentWithoutTargetClassOnCP.getResource(targetClassResourcePath)).isNull();
     }
@@ -106,7 +111,7 @@ public class IndyPluginClassLoaderParentTest {
         Enumeration<URL> agentResources = agentClassLoader.getResources(testPropFile);
         assertThat(agentResources.hasMoreElements()).isTrue();
         URL resourceFromEnumeration = agentResources.nextElement();
-        assertThat(indyPluginClassLoaderParent.getResources(testPropFile).nextElement()).isEqualTo(resourceFromEnumeration);
+        assertThat(discriminatingMultiParentClassLoader.getResources(testPropFile).nextElement()).isEqualTo(resourceFromEnumeration);
     }
 
     @Test
@@ -118,7 +123,9 @@ public class IndyPluginClassLoaderParentTest {
         assertThat(resourceLoader.getResources(resourceFileName.toString()).hasMoreElements()).isTrue();
         assertThat(agentClassLoader.getResource(resourceFileName.toString())).isNull();
         assertThat(agentClassLoader.getResources(resourceFileName.toString()).hasMoreElements()).isFalse();
-        IndyPluginClassLoaderParent indyParentClWithResourcePath = new IndyPluginClassLoaderParent(agentClassLoader, resourceLoader);
+        DiscriminatingMultiParentClassLoader indyParentClWithResourcePath = new DiscriminatingMultiParentClassLoader(
+            agentClassLoader, startsWith("co.elastic.apm.agent"),
+            resourceLoader, any());
         assertThat(indyParentClWithResourcePath.getResource(resourceFileName.toString())).isNotNull();
         assertThat(indyParentClWithResourcePath.getResources(resourceFileName.toString()).hasMoreElements()).isTrue();
         Files.deleteIfExists(tempResource);

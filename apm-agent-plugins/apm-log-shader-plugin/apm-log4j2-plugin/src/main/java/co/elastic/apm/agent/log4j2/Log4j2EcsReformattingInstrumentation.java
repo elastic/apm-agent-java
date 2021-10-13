@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.log4j2;
 
+import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.log.shader.AbstractLogShadingInstrumentation;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -49,7 +50,7 @@ public abstract class Log4j2EcsReformattingInstrumentation extends AbstractLogSh
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
-            .and(not(ofType(nameStartsWith("co.elastic.apm."))))
+            .and(not(CustomElementMatchers.isAgentClassLoader()))
             .and(classLoaderCanLoadClass("org.apache.logging.log4j.core.Appender"));
     }
 
