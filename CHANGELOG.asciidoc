@@ -38,12 +38,18 @@ exclude known static files in all applications might be changed to `/app/static/
 ===== Features
 * Improved capturing of logged exceptions when using Log4j2 - {pull}2139[#2139]
 * Update to async-profiler 1.8.7 and set configured `safemode` at load time though a new system property - {pull}2165[#2165]
+* Added support to capture `context.message.routing-key` in rabbitmq, spring amqp instrumentations - {pull}1767[#1767]
 * Added support for instrumenting Struts 2 static resource requests - {pull}1949[#1949]
+
+[float]
+===== Performance improvements
+* Disable compression when sending data to a local APM Server
 
 [float]
 ===== Bug fixes
 * Fix k8s metadata discovery for containerd-cri envs - {pull}2126[#2126]
 * Fixing/reducing startup delays related to `ensureInstrumented` - {pull}2150[#2150]
+* Fix runtime attach when bytebuddy is in application classpath - {pull}2116[#2116]
 
 [float]
 ===== Refactorings
