@@ -126,6 +126,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
             @Nullable
             public static Object[] onBasicPublish(@Advice.This Channel channel,
                                                   @Advice.Argument(0) @Nullable String exchange,
+                                                  @Advice.Argument(1) @Nullable String routingKey,
                                                   @Advice.Argument(4) @Nullable AMQP.BasicProperties properties) {
                 if (!tracer.isRunning()) {
                     return null;
@@ -144,7 +145,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
 
                 properties = propagateTraceContext(exitSpan, properties);
 
-                captureMessage(exchange, getTimestamp(properties.getTimestamp()), exitSpan);
+                captureMessage(exchange, routingKey, getTimestamp(properties.getTimestamp()), exitSpan);
                 Connection connection = channel.getConnection();
                 RabbitMqHelper.captureDestination(exchange, connection.getAddress(), connection.getPort(), exitSpan);
 
@@ -246,7 +247,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                     span.requestDiscarding();
                 }
 
-                captureMessage(queue, getTimestamp(properties != null ? properties.getTimestamp() : null), span);
+                captureMessage(queue, envelope != null ? envelope.getRoutingKey() : null, getTimestamp(properties != null ? properties.getTimestamp() : null), span);
                 Connection connection = channel.getConnection();
                 RabbitMqHelper.captureDestination(exchange, connection.getAddress(), connection.getPort(), span);
 

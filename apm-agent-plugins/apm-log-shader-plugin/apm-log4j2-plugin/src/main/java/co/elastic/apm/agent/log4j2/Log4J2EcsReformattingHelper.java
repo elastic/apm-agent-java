@@ -46,6 +46,7 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
 
     Log4J2EcsReformattingHelper() {}
 
+    @Nullable
     @Override
     protected Layout<? extends Serializable> getFormatterFrom(Appender appender) {
         return appender.getLayout();
