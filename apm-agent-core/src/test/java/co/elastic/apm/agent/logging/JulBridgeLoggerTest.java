@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.logging;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -38,7 +37,7 @@ import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 class JulBridgeLoggerTest extends AbstractInstrumentationTest {
 
@@ -215,6 +214,6 @@ class JulBridgeLoggerTest extends AbstractInstrumentationTest {
         julLogger.removeHandler(null);
         julLogger.setUseParentHandlers(true);
         julLogger.setParent(null);
-        verifyZeroInteractions(slf4jLogger);
+        verifyNoMoreInteractions(slf4jLogger);
     }
 }

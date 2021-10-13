@@ -59,9 +59,10 @@ public abstract class AbstractBaseInstrumentation extends TracerAwareInstrumenta
      * @param context         span/transaction context
      * @return captured message
      */
-    protected static Message captureMessage(String queueOrExchange, long age, AbstractSpan<?> context) {
+    protected static Message captureMessage(String queueOrExchange, @Nullable String routingKey, long age, AbstractSpan<?> context) {
         return context.getContext().getMessage()
             .withQueue(queueOrExchange)
+            .withRoutingKey(routingKey)
             .withAge(age);
     }
 
