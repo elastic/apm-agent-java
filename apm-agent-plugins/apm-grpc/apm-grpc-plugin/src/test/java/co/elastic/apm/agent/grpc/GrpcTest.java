@@ -24,11 +24,8 @@ import co.elastic.apm.agent.testutils.TestPort;
 
 public class GrpcTest {
 
-    private static final int PORT = TestPort.getAvailableRandomPort();
-    private static final String HOST = "localhost";
-
-    public static GrpcApp getApp(GrpcAppProvider provider){
-        return provider.getGrpcApp(HOST, PORT);
+    public static GrpcApp getApp(GrpcAppProvider provider) {
+        return provider.getGrpcApp("localhost", TestPort.getAvailableRandomPort());
     }
 
 }

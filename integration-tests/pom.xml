@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.25.1-SNAPSHOT</version>
+        <version>1.26.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>integration-tests</artifactId>
@@ -21,6 +21,7 @@
         <module>soap-test</module>
         <module>cdi-app</module>
         <module>external-plugin-test</module>
+        <module>runtime-attach</module>
     </modules>
 
     <properties>

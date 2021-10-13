@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
@@ -36,14 +37,13 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
-import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -70,7 +70,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class ElasticApmTracer implements Tracer {
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
 
-    private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = WeakMapSupplier.createMap();
+    private static final WeakMap<ClassLoader, String> serviceNameByClassLoader = WeakConcurrent.buildMap();
 
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
@@ -737,8 +737,11 @@ public class ElasticApmTracer implements Tracer {
             || coreConfiguration.getServiceNameConfig().getUsedKey() != null) {
             return;
         }
+
+        String sanitizedServiceName = ServiceNameUtil.replaceDisallowedChars(serviceName);
+        logger.debug("Using `{}` as the service name for class loader [{}]", sanitizedServiceName, classLoader);
         if (!serviceNameByClassLoader.containsKey(classLoader)) {
-            serviceNameByClassLoader.putIfAbsent(classLoader, ServiceNameUtil.replaceDisallowedChars(serviceName));
+            serviceNameByClassLoader.putIfAbsent(classLoader, sanitizedServiceName);
         }
     }
 

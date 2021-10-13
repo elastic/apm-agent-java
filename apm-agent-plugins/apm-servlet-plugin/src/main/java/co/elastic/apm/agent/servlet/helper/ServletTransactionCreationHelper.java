@@ -49,7 +49,7 @@ public class ServletTransactionCreationHelper {
         if (tracer.currentTransaction() != null) {
             return null;
         }
-        if (isExcluded(request.getServletPath(), request.getPathInfo(), request.getHeader("User-Agent"))) {
+        if (isExcluded(request)) {
             return null;
         }
         ClassLoader cl = getClassloader(request.getServletContext());
@@ -60,27 +60,28 @@ public class ServletTransactionCreationHelper {
         return transaction;
     }
 
-    private boolean isExcluded(String servletPath, @Nullable String pathInfo, @Nullable String userAgentHeader) {
-        final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), servletPath, pathInfo);
+    boolean isExcluded(HttpServletRequest request) {
+        String userAgent = request.getHeader("User-Agent");
+
+        String requestUri = request.getRequestURI();
+
+        final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), requestUri);
         if (excludeUrlMatcher != null && logger.isDebugEnabled()) {
-            logger.debug("Not tracing this request as the URL {}{} is ignored by the matcher {}",
-                servletPath, Objects.toString(pathInfo, ""), excludeUrlMatcher);
+            logger.debug("Not tracing this request as the URL {} is ignored by the matcher {}", requestUri, excludeUrlMatcher);
         }
-        final WildcardMatcher excludeAgentMatcher = userAgentHeader != null ? WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgentHeader) : null;
+        final WildcardMatcher excludeAgentMatcher = userAgent != null ? WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgent) : null;
         if (excludeAgentMatcher != null) {
-            logger.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}",
-                userAgentHeader, excludeAgentMatcher);
+            logger.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}", userAgent, excludeAgentMatcher);
         }
         boolean isExcluded = excludeUrlMatcher != null || excludeAgentMatcher != null;
         if (!isExcluded && logger.isTraceEnabled()) {
-            logger.trace("No matcher found for excluding this request with servlet-path: {}, path-info: {} and User-Agent: {}",
-                servletPath, pathInfo, userAgentHeader);
+            logger.trace("No matcher found for excluding this request with URL: {}, and User-Agent: {}", requestUri, userAgent);
         }
         return isExcluded;
     }
 
     @Nullable
-    public ClassLoader getClassloader(@Nullable ServletContext servletContext){
+    public ClassLoader getClassloader(@Nullable ServletContext servletContext) {
         if (servletContext == null) {
             return null;
         }

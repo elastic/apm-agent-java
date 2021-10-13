@@ -76,7 +76,6 @@ public class HttpHandlerAdvice {
         Request request = transaction.getContext().getRequest();
 
         request.getSocket()
-            .withEncrypted(exchange instanceof HttpsExchange)
             .withRemoteAddress(exchange.getRemoteAddress().getAddress().getHostAddress());
 
         request.withHttpVersion(exchange.getProtocol())

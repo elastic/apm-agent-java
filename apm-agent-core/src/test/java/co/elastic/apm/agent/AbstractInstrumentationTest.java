@@ -19,6 +19,7 @@
 package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
@@ -26,7 +27,6 @@ import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -83,8 +83,6 @@ public abstract class AbstractInstrumentationTest {
     @After
     @AfterEach
     public final void cleanUp() {
-        // re-enable all reporter checks
-        reporter.resetChecks();
 
         SpyConfiguration.reset(config);
         try {
@@ -103,6 +101,9 @@ public abstract class AbstractInstrumentationTest {
             }
         }
         tracer.resetServiceNameOverrides();
+
+        // reset reporter to default behaviour on all checks
+        reporter.resetChecks();
 
         assertThat(tracer.getActive())
             .describedAs("nothing should be left active at end of test, failure will likely indicate a span/transaction still active")
@@ -143,24 +144,26 @@ public abstract class AbstractInstrumentationTest {
     /**
      * Triggers a GC + stale entry cleanup in order to trigger GC-based expiration
      *
-     * @param map   map to flush
      * @param count number of cleanup loops to execute
      */
-    protected static void flushGcExpiry(WeakConcurrentMap<?, ?> map, int count) {
+    protected static void flushGcExpiry(int count) {
         // note: we can't rely on map size as it might report zero when not empty
         int left = count;
         do {
-            System.out.printf("flushGcExpiry - before gc execution%n");
+            int index = count - left + 1;
+            System.out.printf("flushGcExpiry - before gc execution (%d/%d) %n", index, count);
             long start = System.currentTimeMillis();
             System.gc();
             long duration = System.currentTimeMillis() - start;
-            System.out.printf("flushGcExpiry - after gc execution %d ms%n", duration);
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                // silently ignored
+            System.out.printf("flushGcExpiry - after gc execution %d ms (%d/%d) %n", duration, index, count);
+            if (count > 1 && index < count) {
+                try {
+                    Thread.sleep(5);
+                } catch (InterruptedException e) {
+                    // silently ignored
+                }
             }
-            map.expungeStaleEntries();
-        } while (left-- > 0);
+            WeakConcurrentProviderImpl.expungeStaleEntries();
+        } while (--left > 0);
     }
 }

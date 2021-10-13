@@ -18,8 +18,6 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.dubbo.advice.ApacheMonitorFilterAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -33,10 +31,6 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class ApacheMonitorFilterInstrumentation extends AbstractDubboInstrumentation {
-
-    public ApacheMonitorFilterInstrumentation(ElasticApmTracer tracer) {
-        ApacheMonitorFilterAdvice.init(tracer);
-    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

@@ -21,8 +21,7 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.LookupExposer;
-import co.elastic.apm.agent.premain.JavaVersionBootstrapCheck;
-import co.elastic.apm.agent.premain.JvmRuntimeInfo;
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.asm.Advice;
@@ -32,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.util.IOUtils;
-import sun.misc.Unsafe;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -45,6 +43,7 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,12 +53,10 @@ import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * When {@link TracerAwareInstrumentation#indyPlugin()} returns {@code true},
- * we instruct Byte Buddy (via {@link Advice.WithCustomMapping#bootstrap(java.lang.reflect.Method)})
+ * We instruct Byte Buddy (via {@link Advice.WithCustomMapping#bootstrap(java.lang.reflect.Method)})
  * to dispatch {@linkplain Advice.OnMethodEnter#inline() non-inlined advices} via an invokedynamic (indy) instruction.
  * The target method is linked to a dynamically created plugin class loader that is specific to an instrumentation plugin
  * and the class loader of the instrumented method.
@@ -69,8 +66,9 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * This will also create the plugin class loader.
  * </p>
  * <pre>
- *   Bootstrap CL ←──────────────────────────── Agent CL
- *       ↑ └java.lang.IndyBootstrapDispatcher ─ ↑ ─→ └ {@link IndyBootstrap#bootstrap}
+ *                      {@code co.elastic.apm.agent.premain.ShadedClassLoader}
+ *   Bootstrap CL ←─────Cached Lookup Key────── Agent CL {@code co.elastic.apm.agent.premain.ShadedClassLoader}
+ *       ↑ └java.lang.IndyBootstrapDispatcher ─ ↑ ───→ └ {@link IndyBootstrap#bootstrap}
  *     Ext/Platform CL               ↑          │                        ╷
  *       ↑                           ╷          │                        ↓
  *     System CL                     ╷          │        {@link IndyPluginClassLoaderFactory#getOrCreatePluginClassLoader}
@@ -80,8 +78,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * WebApp1  WebApp2                  ╷          │ ├ AdviceHelper      creates
  *          ↑ - InstrumentedClass    ╷          │ ├ GlobalState          ╷
  *          │                ╷       ╷          │ └ LookupExposer        ╷
- *          │                INVOKEDYNAMIC      │                        ↓
- *          └────────────────┼──────────────────{@link IndyPluginClassLoader}
+ *          │                INVOKEDYNAMIC      │                        ╷
+ *          └────────────────┼──────────────────{@link co.elastic.apm.agent.bci.classloading.DiscriminatingMultiParentClassLoader}
+ *                           │                  ↑                        ↓
+ *                           │                  {@link IndyPluginClassLoader}
  *                           └╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶→ ├ AdviceClass
  *                                              ├ AdviceHelper
  *                                              └ LookupExposer
@@ -155,14 +155,14 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  *     <li>
  *         The {@code INVOKEDYNAMIC} support of early Java 7 versions is not reliable.
  *         That's why we disable the agent on them.
- *         See also {@link JavaVersionBootstrapCheck}
+ *         See also {@code co.elastic.apm.agent.premain.JavaVersionBootstrapCheck}
  *     </li>
  *     <li>
  *         There are some things to watch out for when writing plugins,
- *         as explained in {@link TracerAwareInstrumentation#indyPlugin()}
+ *         as explained in {@link co.elastic.apm.agent.sdk.ElasticApmInstrumentation}
  *     </li>
  * </ul>
- * @see TracerAwareInstrumentation#indyPlugin()
+ * @see co.elastic.apm.agent.sdk.ElasticApmInstrumentation
  */
 @SuppressWarnings("JavadocReference")
 public class IndyBootstrap {
@@ -172,7 +172,7 @@ public class IndyBootstrap {
      */
     private static final String INDY_BOOTSTRAP_CLASS_NAME = "java.lang.IndyBootstrapDispatcher";
     /**
-     * Needs to be loaded from the bootstrap CL because it uses {@link Unsafe}.
+     * Needs to be loaded from the bootstrap CL because it uses {@code sun.misc.Unsafe}.
      * In addition, needs to be loaded explicitly by name only when running on Java 9, because compiled with Java 9
      */
     private static final String INDY_BOOTSTRAP_MODULE_SETTER_CLASS_NAME = "co.elastic.apm.agent.bci.IndyBootstrapDispatcherModuleSetter";
@@ -224,7 +224,10 @@ public class IndyBootstrap {
         try {
             indyBootstrapDispatcherClass = Class.forName(INDY_BOOTSTRAP_CLASS_NAME, false, null);
         } catch (ClassNotFoundException e) {
-            byte[] bootstrapClass = IOUtils.readToBytes(ClassLoader.getSystemClassLoader().getResourceAsStream(INDY_BOOTSTRAP_RESOURCE));
+            byte[] bootstrapClass = IOUtils.readToBytes(ElasticApmAgent.getAgentClassLoader().getResourceAsStream(INDY_BOOTSTRAP_RESOURCE));
+            if (bootstrapClass == null || bootstrapClass.length == 0) {
+                throw new IllegalStateException("Could not locate " + INDY_BOOTSTRAP_RESOURCE);
+            }
             ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(INDY_BOOTSTRAP_CLASS_NAME, bootstrapClass));
             indyBootstrapDispatcherClass = Class.forName(INDY_BOOTSTRAP_CLASS_NAME, false, null);
         }
@@ -348,14 +351,10 @@ public class IndyBootstrap {
                 instrumentationClassLoader,
                 classFileLocator,
                 isAnnotatedWith(named(GlobalState.class.getName()))
-                    // no plugin CL necessary as all types are available form bootstrap CL
-                    // also, this plugin is used as a dependency in other plugins
-                    .or(nameStartsWith("co.elastic.apm.agent.concurrent"))
                     // if config classes would be loaded from the plugin CL,
                     // tracer.getConfig(Config.class) would return null when called from an advice as the classes are not the same
                     .or(nameContains("Config").and(hasSuperType(is(ConfigurationOptionProvider.class)))));
             Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
-            ElasticApmAgent.validateAdvice(adviceInPluginCL);
             Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass(LOOKUP_EXPOSER_CLASS_NAME);
             // can't use MethodHandle.lookup(), see also https://github.com/elastic/apm-agent-java/issues/1450
             MethodHandles.Lookup indyLookup = (MethodHandles.Lookup) lookupExposer.getMethod("getLookup").invoke(null);
@@ -376,7 +375,12 @@ public class IndyBootstrap {
         String pluginPackage = adviceClassName.substring(0, adviceClassName.indexOf('.', EMBEDDED_PLUGINS_PACKAGE_PREFIX.length()));
         List<String> pluginClasses = classesByPackage.get(pluginPackage);
         if (pluginClasses == null) {
-            classesByPackage.putIfAbsent(pluginPackage, PackageScanner.getClassNames(pluginPackage, adviceClassLoader));
+            pluginClasses = new ArrayList<>();
+            Collection<String> pluginClassLoaderRootPackages = ElasticApmAgent.getPluginClassLoaderRootPackages(pluginPackage);
+            for (String pkg : pluginClassLoaderRootPackages) {
+                pluginClasses.addAll(PackageScanner.getClassNames(pkg, adviceClassLoader));
+            }
+            classesByPackage.putIfAbsent(pluginPackage, pluginClasses);
             pluginClasses = classesByPackage.get(pluginPackage);
         }
         return pluginClasses;

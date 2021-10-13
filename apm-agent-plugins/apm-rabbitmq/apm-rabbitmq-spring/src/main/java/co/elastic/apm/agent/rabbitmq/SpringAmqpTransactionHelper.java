@@ -45,11 +45,13 @@ public class SpringAmqpTransactionHelper {
 
         if (messageProperties != null) {
             long timestamp = AbstractBaseInstrumentation.getTimestamp(messageProperties.getTimestamp());
-            transaction.getContext().getMessage().withAge(timestamp);
+            String receivedRoutingKey = messageProperties.getReceivedRoutingKey();
+            transaction.getContext().getMessage().withAge(timestamp).withRoutingKey(receivedRoutingKey);
         }
         if (exchange != null) {
             transaction.getContext().getMessage().withQueue(exchange);
         }
+
         // only capture incoming messages headers for now (consistent with other messaging plugins)
         AbstractBaseInstrumentation.captureHeaders(messageProperties != null ? messageProperties.getHeaders() : null, transaction.getContext().getMessage());
         return transaction.activate();

@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Request;
+import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.Agent;
 import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
@@ -56,6 +57,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeType;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
@@ -109,13 +112,41 @@ class DslJsonSerializerTest {
         });
     }
 
-    @Test
-    void testSerializeNonStringLabels() {
-        when(apmServerClient.supportsNonStringLabels()).thenReturn(true);
-        assertThat(serializeTags(Map.of("foo", true))).isEqualTo(toJson(Map.of("foo", true)));
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSerializeNonStringLabels(boolean numericLabels) {
+        when(apmServerClient.supportsNonStringLabels()).thenReturn(numericLabels);
 
-        when(apmServerClient.supportsNonStringLabels()).thenReturn(false);
-        assertThat(serializeTags(Map.of("foo", true))).isEqualTo(toJson(Collections.singletonMap("foo", null)));
+        Map<String, Object> expectedMap;
+        if(numericLabels){
+             expectedMap= Map.of("foo", true);
+        } else {
+            expectedMap = Collections.singletonMap("foo", null);
+        }
+        assertThat(serializeTags(Map.of("foo", true))).isEqualTo(toJson(expectedMap));
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSerializeUrlPort(boolean useNumericPort) {
+
+        when(apmServerClient.supportsNumericUrlPort()).thenReturn(useNumericPort);
+
+        Url url = new Url()
+            .withPort(42)
+            .withHostname("hostname")
+            .withProtocol("http")
+            .withPathname("/hello").withSearch("search");
+        serializer.serializeUrl(url);
+        JsonNode json = readJsonString(getAndResetSerializerJson());
+        if (useNumericPort) {
+            assertThat(json.get("port").asInt()).isEqualTo(42);
+        } else {
+            assertThat(json.get("port").asText()).isEqualTo("42");
+        }
+        assertThat(json.get("full").asText()).isEqualTo("http://hostname:42/hello?search");
+        assertThat(json.get("search").asText()).isEqualTo("search");
+        assertThat(json.get("protocol").asText()).isEqualTo("http");
     }
 
     @Test
@@ -506,6 +537,7 @@ class DslJsonSerializerTest {
     void testSpanMessageContextSerialization() {
         Span span = new Span(MockTracer.create());
         span.getContext().getMessage()
+            .withRoutingKey("routing-key")
             .withQueue("test-queue")
             .withBody("test-body")
             .addHeader("text-header", "text-value")
@@ -530,6 +562,23 @@ class DslJsonSerializerTest {
         JsonNode ms = age.get("ms");
         assertThat(ms).isNotNull();
         assertThat(ms.longValue()).isEqualTo(20);
+        JsonNode routingKey = message.get("routing_key");
+        assertThat(routingKey.textValue()).isEqualTo("routing-key");
+    }
+
+    @Test
+    void testSpanMessageContextSerializationWithoutRoutingKey() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getMessage()
+            .withQueue("test-queue")
+            .withBody("test-body")
+            .addHeader("text-header", "text-value")
+            .addHeader("binary-header", "binary-value".getBytes(StandardCharsets.UTF_8))
+            .withAge(20);
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode routingKey = spanJson.get("context").get("message").get("routing_key");
+        assertThat(routingKey).isNull();
     }
 
     @Test
@@ -697,6 +746,10 @@ class DslJsonSerializerTest {
         ElasticApmTracer tracer = MockTracer.create();
         Transaction transaction = new Transaction(tracer);
 
+        // test only the most recent server here
+        when(apmServerClient.supportsMultipleHeaderValues()).thenReturn(true);
+        when(apmServerClient.supportsNumericUrlPort()).thenReturn(true);
+
         transaction.getContext().getUser()
             .withId("42")
             .withEmail("user@email.com")
@@ -720,7 +773,6 @@ class DslJsonSerializerTest {
             .withSearch("q=test");
 
         request.getSocket()
-            .withEncrypted(true)
             .withRemoteAddress("::1");
 
         transaction.getContext().getResponse()
@@ -774,8 +826,7 @@ class DslJsonSerializerTest {
         assertThat(jsonUrl.get("full").asText()).isEqualTo("http://my-hostname:42/path/name?q=test");
 
         JsonNode jsonSocket = jsonRequest.get("socket");
-        assertThat(jsonSocket).hasSize(2);
-        assertThat(jsonSocket.get("encrypted").asBoolean()).isTrue();
+        assertThat(jsonSocket).hasSize(1);
         assertThat(jsonSocket.get("remote_address").asText()).isEqualTo("::1");
 
         JsonNode jsonResponse = jsonContext.get("response");
@@ -1112,6 +1163,66 @@ class DslJsonSerializerTest {
         assertThat(jsonSpan.get("sample_rate").asDouble()).isEqualTo(0.42d);
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {true,false})
+    void multiValueHeaders(boolean supportsMulti) {
+        // older versions of APM server do not support multi-value headers
+        // thus we should make sure to not break those
+
+        Transaction transaction = createRootTransaction();
+
+        transaction.getContext().getRequest()
+            .addHeader("user-agent", "user-agent1")
+            .addHeader("user-agent", "user-agent2")
+            .addHeader("header", "header1")
+            .addHeader("header", "header2")
+            .addCookie("cookie", "cookie1")
+            .addCookie("cookie", "cookie2");
+
+        transaction.getContext().getResponse()
+            .addHeader("content-type", "content-type1")
+            .addHeader("content-type", "content-type2");
+
+        if(supportsMulti){
+            when(apmServerClient.supportsMultipleHeaderValues())
+                .thenReturn(supportsMulti);
+        }
+
+        JsonNode jsonTransaction = readJsonString(serializer.toJsonString(transaction));
+
+        JsonNode requestJson = jsonTransaction.get("context").get("request");
+        JsonNode headersJson = requestJson.get("headers");
+        JsonNode cookiesJson = requestJson.get("cookies");
+        JsonNode responseHeaders = jsonTransaction.get("context").get("response").get("headers");
+        if (supportsMulti) {
+            checkMultiValueHeader(headersJson, "user-agent", "user-agent1", "user-agent2");
+            checkMultiValueHeader(headersJson, "header", "header1", "header2");
+            checkMultiValueHeader(cookiesJson, "cookie", "cookie1", "cookie2");
+            checkMultiValueHeader(responseHeaders, "content-type", "content-type1", "content-type2");
+        } else {
+            checkSingleValueHeader(headersJson, "user-agent", "user-agent1");
+            checkSingleValueHeader(headersJson, "header", "header1");
+            checkSingleValueHeader(cookiesJson, "cookie", "cookie1");
+            checkSingleValueHeader(responseHeaders, "content-type", "content-type1");
+        }
+
+        assertThat(headersJson).isNotNull();
+    }
+
+    private static void checkSingleValueHeader(JsonNode json, String fieldName, String value){
+        JsonNode fieldValue = json.get(fieldName);
+        assertThat(fieldValue.isTextual()).isTrue();
+        assertThat(fieldValue.asText()).isEqualTo(value);
+    }
+
+    private static void checkMultiValueHeader(JsonNode json, String fieldName, String value1, String value2){
+        JsonNode fieldValue = json.get(fieldName);
+        assertThat(fieldValue.isArray()).isTrue();
+        assertThat(fieldValue.size()).isEqualTo(2);
+        assertThat(fieldValue.get(0).asText()).isEqualTo(value1);
+        assertThat(fieldValue.get(1).asText()).isEqualTo(value2);
+    }
+
     private JsonNode readJsonString(String jsonString) {
         try {
             JsonNode json = objectMapper.readTree(jsonString);
@@ -1166,6 +1277,10 @@ class DslJsonSerializerTest {
             }
         }
         serializer.serializeLabels(context);
+        return getAndResetSerializerJson();
+    }
+
+    private String getAndResetSerializerJson() {
         final String jsonString = serializer.jw.toString();
         serializer.jw.reset();
         return jsonString;

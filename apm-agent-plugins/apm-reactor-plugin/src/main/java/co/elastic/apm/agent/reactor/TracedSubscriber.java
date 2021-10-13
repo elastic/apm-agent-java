@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.reactor;
 
+import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
-import co.elastic.apm.agent.util.SpanConcurrentHashMap;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -32,6 +32,7 @@ import reactor.core.CoreSubscriber;
 import reactor.core.Fuseable;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Operators;
+import reactor.util.context.Context;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,7 +45,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
     private static final AtomicBoolean isRegistered = GlobalVariables.get(ReactorInstrumentation.class, "reactor-hook-enabled", new AtomicBoolean(false));
 
-    private static final WeakConcurrentMap<TracedSubscriber<?>, AbstractSpan<?>> contextMap = SpanConcurrentHashMap.createWeakMap();
+    private static final WeakMap<TracedSubscriber<?>, AbstractSpan<?>> contextMap = WeakConcurrentProviderImpl.createWeakSpanMap();
 
     private static final String HOOK_KEY = "elastic-apm";
 
@@ -52,10 +53,20 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
     private final Tracer tracer;
 
+    private final Context context;
+
     TracedSubscriber(CoreSubscriber<? super T> subscriber, Tracer tracer, AbstractSpan<?> context) {
         this.subscriber = subscriber;
         this.tracer = tracer;
         contextMap.put(this, context);
+
+        // store our span/transaction into reactor context for later lookup without relying on active tracer state
+        this.context = subscriber.currentContext().put(AbstractSpan.class, context);
+    }
+
+    @Override
+    public Context currentContext() {
+        return context;
     }
 
     /**
@@ -236,7 +247,13 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
                     return subscriber;
                 }
 
+                // use active span/transaction if directly active
                 AbstractSpan<?> active = tracer.getActive();
+
+                // fallback to using context-stored span/transaction if not already active
+                if (active == null) {
+                    active = subscriber.currentContext().getOrDefault(AbstractSpan.class, null);
+                }
 
                 if (active == null) {
                     // no active context, we have nothing to wrap
@@ -248,14 +265,5 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
                 return new TracedSubscriber<>(subscriber, tracer, active);
             }
         });
-    }
-
-    /**
-     * Only for testing
-     *
-     * @return in-flight storage for active contexts
-     */
-    public static WeakConcurrentMap<TracedSubscriber<?>, AbstractSpan<?>> getContextMap() {
-        return contextMap;
     }
 }
