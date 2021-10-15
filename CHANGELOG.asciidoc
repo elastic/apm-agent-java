@@ -32,7 +32,7 @@ endif::[]
 exclude known static files in all applications might be changed to `/app/static/*.js` or `*/static/*.js`.
 ** It only impacts prefix patterns due to the additional context path in pattern.
 ** It does not impact deployment within the `ROOT` context like Spring-boot which do not have such context path prefix.
-
+* transaction.duration.sum.us, transaction.duration.count and transaciton.breakdown.count are no longer recorded - {pull}2194[#2194]
 
 [float]
 ===== Features
