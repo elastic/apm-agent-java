@@ -394,10 +394,9 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
 
         List<JsonNode> transactions = getReportedTransactions();
-	// TODO COMMENT OUT FAILING TEST FOR NOW
-        //assertThat(transactions.isEmpty())
-        //    .describedAs("status transaction should be ignored by configuration %s", transactions)
-        //    .isTrue();
+        assertThat(transactions.isEmpty())
+            .describedAs("status transaction should be ignored by configuration %s", transactions)
+            .isTrue();
 
     }
 
@@ -418,19 +417,25 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     public Response executePostRequest(String pathToTest, RequestBody postBody) throws IOException {
+        if (!pathToTest.startsWith("/")) {
+            pathToTest = "/"+pathToTest;
+        }
         return httpClient.newCall(new Request.Builder()
                 .post(postBody)
-                .url(getBaseUrl() + "/" + pathToTest)
+                .url(getBaseUrl() + pathToTest)
                 .build())
             .execute();
     }
 
     public Response executeRequest(String pathToTest, Map<String, String> headersMap) throws IOException {
         Headers headers = Headers.of((headersMap != null) ? headersMap : new HashMap<>());
+        if (!pathToTest.startsWith("/")) {
+            pathToTest = "/"+pathToTest;
+        }
 
         return httpClient.newCall(new Request.Builder()
                 .get()
-                .url(getBaseUrl() + "/" + pathToTest)
+                .url(getBaseUrl() + pathToTest)
                 .headers(headers)
                 .build())
             .execute();

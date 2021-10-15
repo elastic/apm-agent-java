@@ -27,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.Objects;
 
 public abstract class ServletTransactionCreationHelper<HTTPREQUEST, CONTEXT> {
 
@@ -76,27 +75,12 @@ public abstract class ServletTransactionCreationHelper<HTTPREQUEST, CONTEXT> {
 
     boolean isExcluded(HTTPREQUEST request) {
         String userAgent = getHeader(request, "User-Agent");
+        String requestUri = getRequestURI(request);
 
-        String pathFirstPart = getServletPath(request);
-        String pathSecondPart = Objects.toString(getPathInfo(request), "");
-
-        if (pathFirstPart.isEmpty()) {
-            // when servlet path is empty, reconstructing the path from the request URI
-            // this can happen when transaction is created by a filter (and thus servlet path is unknown yet)
-            String contextPath = getContextPath(request);
-            if (null != contextPath) {
-                String uri = getRequestURI(request);
-                if (null != uri) {
-                    pathFirstPart = uri.substring(contextPath.length());
-                    pathSecondPart = "";
-                }
-            }
-        }
-
-        final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), pathFirstPart, pathSecondPart);
+        final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), requestUri);
 
         if (excludeUrlMatcher != null && logger.isDebugEnabled()) {
-            logger.debug("Not tracing this request as the URL {}{} is ignored by the matcher {}", pathFirstPart, pathSecondPart, excludeUrlMatcher);
+            logger.debug("Not tracing this request as the URL {} is ignored by the matcher {}", requestUri, excludeUrlMatcher);
         }
         final WildcardMatcher excludeAgentMatcher = userAgent != null ? WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgent) : null;
         if (excludeAgentMatcher != null) {
@@ -104,7 +88,7 @@ public abstract class ServletTransactionCreationHelper<HTTPREQUEST, CONTEXT> {
         }
         boolean isExcluded = excludeUrlMatcher != null || excludeAgentMatcher != null;
         if (!isExcluded && logger.isTraceEnabled()) {
-            logger.trace("No matcher found for excluding this request with URL: {}{}, and User-Agent: {}", pathFirstPart, pathSecondPart, userAgent);
+            logger.trace("No matcher found for excluding this request with URL: {}, and User-Agent: {}", requestUri, userAgent);
         }
         return isExcluded;
     }
