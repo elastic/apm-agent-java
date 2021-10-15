@@ -113,7 +113,7 @@
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.spring-boot>2.2.2.RELEASE</version.spring-boot>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.0.60</version.json-schema-validator>
+        <version.json-schema-validator>1.0.61</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
         <version.byte-buddy>1.11.18</version.byte-buddy>
         <version.asm>9.2</version.asm>
@@ -532,6 +532,23 @@
                 <version>2.5.0</version>
                 <scope>test</scope>
             </dependency>
+
+            <!-- ensures that we always rely on a single bytebuddy version -->
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>${version.byte-buddy}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy-agent</artifactId>
+                <version>${version.byte-buddy}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy-dep</artifactId>
+                <version>${version.byte-buddy}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -590,7 +607,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>3.12.4</version>
+            <version>4.0.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
