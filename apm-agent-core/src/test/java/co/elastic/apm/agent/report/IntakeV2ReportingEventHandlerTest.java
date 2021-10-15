@@ -99,7 +99,7 @@ class IntakeV2ReportingEventHandlerTest {
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         final ProcessInfo title = new ProcessInfo("title");
         final Service service = new Service();
-        apmServerClient = new ApmServerClient(reporterConfiguration, configurationRegistry.getConfig(CoreConfiguration.class));
+        apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
         apmServerClient.start(List.of(
             new URL(HTTP_LOCALHOST + mockApmServer1.port()),
             // testing ability to configure a server url with additional path (ending with "/" in this case)
