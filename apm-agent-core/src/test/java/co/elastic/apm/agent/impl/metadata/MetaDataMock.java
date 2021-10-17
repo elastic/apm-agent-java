@@ -16,34 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.payload;
+package co.elastic.apm.agent.impl.metadata;
 
+import javax.annotation.Nullable;
+import java.util.Map;
+import java.util.concurrent.Future;
 
-/**
- * Name and version of the programming language used
- */
-public class Language {
-
-    /**
-     * (Required)
-     */
-    private final String name;
-    private final String version;
-
-    public Language(String name, String version) {
-        this.name = name;
-        this.version = version;
-    }
+public class MetaDataMock {
 
     /**
-     * (Required)
+     * Creates a metadata mock based on the given info synchronously
+     *
+     * @return a mock future, already containing the medata info
      */
-    public String getName() {
-        return name;
+    public static Future<MetaData> create(ProcessInfo process, Service service, SystemInfo system, @Nullable CloudProviderInfo cloudProviderInfo,
+                                          Map<String, String> globalLabels) {
+        return new MetaData.NoWaitFuture(new MetaData(process, service, system, cloudProviderInfo, globalLabels));
     }
-
-    public String getVersion() {
-        return version;
-    }
-
 }

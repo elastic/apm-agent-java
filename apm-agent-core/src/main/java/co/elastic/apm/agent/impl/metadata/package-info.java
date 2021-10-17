@@ -16,32 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.payload;
+@NonnullApi
+package co.elastic.apm.agent.impl.metadata;
 
-import javax.annotation.Nullable;
-
-/**
- * A representation of a service node, ie JVM
- */
-public class Node {
-
-    /**
-     * (Optional)
-     * A name representing this JVM. Should be unique within the service.
-     */
-    @Nullable
-    private final String name;
-
-    public Node(@Nullable String name) {
-        this.name = name;
-    }
-
-    @Nullable
-    public String getName() {
-        return name;
-    }
-
-    public boolean hasContents() {
-        return name != null && !name.isEmpty();
-    }
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

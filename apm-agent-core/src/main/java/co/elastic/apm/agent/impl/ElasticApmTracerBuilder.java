@@ -26,6 +26,7 @@ import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource
 import co.elastic.apm.agent.configuration.source.SystemPropertyConfigurationSource;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;

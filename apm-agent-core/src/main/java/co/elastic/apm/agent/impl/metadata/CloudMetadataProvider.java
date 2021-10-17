@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl;
+package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.UrlConnectionUtils;
 import com.dslplatform.json.DslJson;
