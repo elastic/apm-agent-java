@@ -29,6 +29,8 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -50,9 +52,15 @@ class MetaDataTest {
     static void setup() {
         config = SpyConfiguration.createSpyConfig();
         coreConfiguration = config.getConfig(CoreConfiguration.class);
-        CloudProviderInfo cloudProviderInfo = CloudMetadataProvider.fetchAndParseCloudProviderInfo(AUTO, 1000);
-        if (cloudProviderInfo != null) {
-            currentCloudProvider = CoreConfiguration.CloudProvider.valueOf(cloudProviderInfo.getProvider().toUpperCase());
+        ExecutorService executorService = Executors.newFixedThreadPool(3);
+        try {
+            // calling the blocking method directly, so we can start tests only after proper discovery
+            CloudProviderInfo cloudProviderInfo = CloudMetadataProvider.fetchAndParseCloudProviderInfo(AUTO, executorService, 1000);
+            if (cloudProviderInfo != null) {
+                currentCloudProvider = CoreConfiguration.CloudProvider.valueOf(cloudProviderInfo.getProvider().toUpperCase());
+            }
+        } finally {
+            executorService.shutdown();
         }
     }
 
@@ -65,7 +73,7 @@ class MetaDataTest {
     void testCloudProvider_NONE() throws InterruptedException, ExecutionException, TimeoutException {
         // The default configuration for cloud_provide is NONE
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
-        assertThat(metaDataFuture).isInstanceOf(MetaData.NoWaitFuture.class);
+        assertThat(metaDataFuture).isInstanceOf(NoWaitFuture.class);
         MetaData metaData = metaDataFuture.get(0, TimeUnit.MILLISECONDS);
         verifyMetaData(metaData, NONE);
     }
@@ -75,7 +83,7 @@ class MetaDataTest {
     void testCloudProvider_SingleProvider(CoreConfiguration.CloudProvider provider) throws InterruptedException, ExecutionException, TimeoutException {
         when(coreConfiguration.getCloudProvider()).thenReturn(provider);
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
-        assertThat(metaDataFuture).isNotInstanceOf(MetaData.NoWaitFuture.class);
+        assertThat(metaDataFuture).isNotInstanceOf(NoWaitFuture.class);
         // In AWS we may need two timeouts - one for the API token and one for the metadata itself
         long timeout = (long) (coreConfiguration.geCloudMetadataDiscoveryTimeoutMs() * ((provider == AWS) ? 2.5 : 1.5));
         MetaData metaData = metaDataFuture.get(timeout, TimeUnit.MILLISECONDS);
@@ -102,7 +110,7 @@ class MetaDataTest {
     void testCloudProvider_AUTO() throws InterruptedException, ExecutionException, TimeoutException {
         when(coreConfiguration.getCloudProvider()).thenReturn(AUTO);
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
-        assertThat(metaDataFuture).isNotInstanceOf(MetaData.NoWaitFuture.class);
+        assertThat(metaDataFuture).isNotInstanceOf(NoWaitFuture.class);
         Exception timeoutException = null;
         MetaData metaData;
         try {
