@@ -27,7 +27,6 @@ import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToPostProcessorFactory;
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
@@ -229,7 +228,7 @@ public class ElasticApmAgent {
                     if (!bytecodeDumpDir.exists()) {
                         bytecodeDumpDir.mkdirs();
                     }
-                    System.setProperty("co.elastic.apm.agent.shaded.bytebuddy.dump", bytecodeDumpDir.getPath());
+                    System.setProperty("net.bytebuddy.dump", bytecodeDumpDir.getPath());
                 } catch (Exception e) {
                     System.err.println("[elastic-apm-agent] WARN Failed to create directory to dump instrumented bytecode: " + e.getMessage());
                 }
@@ -319,8 +318,14 @@ public class ElasticApmAgent {
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
             if (isIncluded(advice, coreConfiguration)) {
-                numberOfAdvices++;
-                agentBuilder = applyAdvice(tracer, agentBuilder, advice, advice.getTypeMatcher());
+                try {
+                    agentBuilder = applyAdvice(tracer, agentBuilder, advice, advice.getTypeMatcher());
+                    numberOfAdvices++;
+                } catch (Exception e) {
+                    logger.error("Exception occurred while applying instrumentation {}", advice.getClass().getName(), e);
+                    // this should fail tests but skip the instrumentations in prod
+                    assert false;
+                }
             } else {
                 logger.debug("Not applying excluded instrumentation {}", advice.getClass().getName());
             }
@@ -428,7 +433,7 @@ public class ElasticApmAgent {
         validateAdvice(instrumentation);
         Advice.WithCustomMapping withCustomMapping = Advice
             .withCustomMapping()
-            .with(new AssignToPostProcessorFactory())
+            .with(new Advice.AssignReturned.Factory().withSuppressed(ClassCastException.class))
             .bind(new SimpleMethodSignatureOffsetMappingFactory())
             .bind(new AnnotationValueOffsetMappingFactory());
         Advice.OffsetMapping.Factory<?> offsetMapping = instrumentation.getOffsetMapping();
@@ -488,6 +493,7 @@ public class ElasticApmAgent {
         }
         for (MethodDescription.InDefinedShape enterAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodEnter.class)))) {
             validateAdviceReturnAndParameterTypes(enterAdvice, adviceClassName);
+            validateLegacyAssignToIsNotUsed(enterAdvice);
 
             for (AnnotationDescription enter : enterAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodEnter.class))) {
                 checkInline(enterAdvice, adviceClassName, enter.prepare(Advice.OnMethodEnter.class).load().inline());
@@ -495,6 +501,7 @@ public class ElasticApmAgent {
         }
         for (MethodDescription.InDefinedShape exitAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodExit.class)))) {
             validateAdviceReturnAndParameterTypes(exitAdvice, adviceClassName);
+            validateLegacyAssignToIsNotUsed(exitAdvice);
             if (exitAdvice.getReturnType().asRawType().getTypeName().startsWith("co.elastic.apm")) {
                 throw new IllegalStateException("Advice return type must be visible from the bootstrap class loader and must not be an agent type.");
             }
@@ -519,6 +526,16 @@ public class ElasticApmAgent {
         }
     }
 
+    private static void validateLegacyAssignToIsNotUsed(MethodDescription.InDefinedShape advice) {
+        boolean usesLegacyAssignToAnnotations = !advice.getDeclaredAnnotations()
+            .asTypeList()
+            .filter(nameStartsWith("co.elastic.apm.agent.sdk.advice.AssignTo"))
+            .isEmpty();
+        if (usesLegacyAssignToAnnotations) {
+            throw new IllegalStateException("@AssignTo.* annotations have been removed in favor of Byte Buddy's @Advice.AssignReturned.* annotations");
+        }
+    }
+
     private static void validateAdviceReturnAndParameterTypes(MethodDescription.InDefinedShape advice, String adviceClass) {
         String adviceMethod = advice.getInternalName();
         try {
@@ -531,7 +548,7 @@ public class ElasticApmAgent {
 
                 AnnotationDescription.Loadable<Advice.Return> returnAnnotation = parameter.getDeclaredAnnotations().ofType(Advice.Return.class);
                 if (returnAnnotation != null && !returnAnnotation.load().readOnly()) {
-                    throw new IllegalStateException("Advice parameter must not use '@Advice.Return(readOnly=false)', use @AssignTo.Return instead");
+                    throw new IllegalStateException("Advice parameter must not use '@Advice.Return(readOnly=false)', use @Advice.AssignReturned.ToReturned instead");
                 }
             }
         } catch (Exception e) {

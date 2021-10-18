@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.testinstr;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
@@ -65,7 +64,7 @@ public abstract class SystemEnvVariableInstrumentation extends TracerAwareInstru
     }
 
     public static class AdviceClass {
-        @AssignTo.Return
+        @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(onThrowable = Throwable.class, inline = false)
         public static Map<String, String> appendToEnvVariables(@Advice.Return Map<String, String> ret) {
             Map<String, String> customEnvVariables = customEnvVariablesTL.get();
