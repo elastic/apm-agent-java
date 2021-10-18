@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.log4j1;
+package co.elastic.apm.testapp;
 
-import co.elastic.apm.agent.bci.PluginClassLoaderRootPackageCustomizer;
+import javax.management.MXBean;
 
-import java.util.Arrays;
-import java.util.Collection;
+@MXBean
+public interface AppJmx {
+    void exit();
 
-public class Log4j1PluginClassLoaderRootPackageCustomizer extends PluginClassLoaderRootPackageCustomizer {
-    @Override
-    public Collection<String> pluginClassLoaderRootPackages() {
-        return Arrays.asList(getPluginPackage(), "co.elastic.logging");
-    }
+    int getWorkUnitsCount();
+
+    int getInstrumentedWorkUnitsCount();
 }
