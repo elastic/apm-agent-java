@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.testinstr;
 
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -37,7 +36,7 @@ public class SystemSingleEnvVariablesInstrumentation extends SystemEnvVariableIn
     }
 
     public static class AdviceClass {
-        @AssignTo.Return
+        @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(onThrowable = Throwable.class, inline = false)
         public static String appendToEnvVariables(@Advice.Argument(0) String varName, @Advice.Return String ret) {
             Map<String, String> customEnvVariables = customEnvVariablesTL.get();
