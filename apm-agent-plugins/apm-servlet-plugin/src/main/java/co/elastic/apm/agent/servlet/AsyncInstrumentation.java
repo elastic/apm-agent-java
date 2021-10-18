@@ -20,7 +20,6 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.concurrent.JavaConcurrent;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl;
 
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
