@@ -64,6 +64,7 @@ exclude known static files in all applications might be changed to `/app/static/
 * Switching last instrumentations (`trace_methods`, sparkjava, JDK `HttpServer` and Struts 2) to
 `TracerAwareInstrumentation` - {pull}#2170[#2170]
 * Replace concurrency plugin maps to `SpanConcurrentHashMap` ones - {pull}#2173[#2173]
+* Align User-Agent HTTP header with other APM agents - {pull}#2177[#2177]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

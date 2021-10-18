@@ -18,16 +18,19 @@
  */
 package co.elastic.apm.agent.impl.payload;
 
+import co.elastic.apm.agent.util.CustomEnvVariables;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnJre;
 import org.junit.jupiter.api.condition.JRE;
 
 import javax.annotation.Nullable;
 
-import static com.github.stefanbirkner.systemlambda.SystemLambda.withEnvironmentVariable;
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ContainerInfoTest {
+public class ContainerInfoTest extends CustomEnvVariables {
 
     @Test
     void testContainerIdParsing() {
@@ -142,24 +145,24 @@ public class ContainerInfoTest {
         String podName = "downward-api-pod-name";
         String nodeName = "downward-api-node-name";
         String namespace = "downward-api-namespace";
-        withEnvironmentVariable("KUBERNETES_NODE_NAME", nodeName)
-            .and("KUBERNETES_POD_NAME", podName)
-            .and("KUBERNETES_NAMESPACE", namespace)
-            .and("KUBERNETES_POD_UID", podUid)
-            .execute(systemInfo::findContainerDetails);
+
+        Map<String, String> mockedEnv = new HashMap<>();
+        mockedEnv.put("KUBERNETES_NODE_NAME", nodeName);
+        mockedEnv.put("KUBERNETES_POD_NAME", podName);
+        mockedEnv.put("KUBERNETES_NAMESPACE", namespace);
+        mockedEnv.put("KUBERNETES_POD_UID", podUid);
+        runWithCustomEnvVariables(mockedEnv, systemInfo::findContainerDetails);
         assertKubernetesInfo(systemInfo, podUid, podName, nodeName, namespace);
 
         // test partial settings
         systemInfo = assertContainerId(line, containerId);
         assertKubernetesInfo(systemInfo, originalPodUid, hostName, null, null);
-        withEnvironmentVariable("KUBERNETES_NODE_NAME", nodeName)
-            .and("KUBERNETES_POD_NAME", null)
-            .and("KUBERNETES_NAMESPACE", namespace)
-            .and("KUBERNETES_POD_UID", null)
-            .execute(systemInfo::findContainerDetails);
-        systemInfo.findContainerDetails();
+        mockedEnv.put("KUBERNETES_POD_NAME", null);
+        mockedEnv.put("KUBERNETES_POD_UID", null);
+        runWithCustomEnvVariables(mockedEnv, systemInfo::findContainerDetails);
         assertKubernetesInfo(systemInfo, originalPodUid, hostName, nodeName, namespace);
     }
+
 
     private SystemInfo createSystemInfo() {
         return new SystemInfo("arch", "my-host", "platform");

@@ -24,7 +24,6 @@ import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
-import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -34,21 +33,21 @@ import java.util.Collections;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-public class ApiKeysStepsDefinitions {
+public class UserAgentStepsDefinitions {
 
-    private ReporterConfiguration reporterConfiguration = null;
     private CoreConfiguration coreConfiguration = null;
+    private ReporterConfiguration reporterConfiguration = null;
 
-    private final SpecMockServer server = new SpecMockServer("{{request.headers.Authorization}}");
+    private final SpecMockServer server = new SpecMockServer("{{request.headers.User-Agent}}");
 
     @Before
     public void init() {
-        server.start();
-
-        // we just initialize configuration as reporter is initialized lazily
         ConfigurationRegistry spyConfig = SpyConfiguration.createSpyConfig();
-        reporterConfiguration = spyConfig.getConfig(ReporterConfiguration.class);
+
         coreConfiguration = spyConfig.getConfig(CoreConfiguration.class);
+        reporterConfiguration = spyConfig.getConfig(ReporterConfiguration.class);
+
+        server.start();
 
         when(reporterConfiguration.getServerUrls())
             .thenReturn(Collections.singletonList(server.getUrl()));
@@ -59,37 +58,36 @@ public class ApiKeysStepsDefinitions {
         server.stop();
     }
 
-    // API Key
-
-    @When("an api key is set to {string} in the config")
-    public void setApiKeyConfig(String value) {
-        when(reporterConfiguration.getApiKey())
-            .thenReturn(value);
+    @When("service name is not set")
+    public void serviceNameIsNotSet() {
+        // In practice, for the Java agent we always have a default service name that is inferred from the JVM main class
+        // thus this case is mostly to ensure proper coverage of the shared specification.
+        when(coreConfiguration.getServiceName()).thenReturn("");
     }
 
-    @Given("an api key is not set in the config")
-    public void apiKeyNotSetInConfig() {
-        // this is the default, thus there is nothing to do but to assert for it just in case
-        assertThat(reporterConfiguration.getApiKey())
-            .isNull();
+    @When("service name is set to {string}")
+    public void serviceNameSetTo(String name) {
+        when(coreConfiguration.getServiceName()).thenReturn(name);
     }
 
-    // Secret token
-
-    @When("a secret_token is set to {string} in the config")
-    public void setSecretToken(String value) {
-        when(reporterConfiguration.getSecretToken())
-            .thenReturn(value);
+    @When("service version is not set")
+    public void serviceVersionIsNotSet() {
+        when(coreConfiguration.getServiceVersion()).thenReturn("");
     }
 
-    // Authorization header
+    @When("service version is set to {string}")
+    public void serviceVersionSetTo(String version) {
+        when(coreConfiguration.getServiceVersion()).thenReturn(version);
+    }
 
-    @Then("the Authorization header is {string}")
-    public void checkExpectedHeader(String expectedHeaderValue) {
+    @Then("the User-Agent header matches regex {string}")
+    public void theUserAgentHeaderMatchesRegex(String regex) {
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
         apmServerClient.start();
 
-        server.executeRequest(apmServerClient, (body) -> assertThat(body).isEqualTo(expectedHeaderValue));
+        server.executeRequest(apmServerClient, (body) -> assertThat(body).matches(regex));
+
+
     }
 
 }
