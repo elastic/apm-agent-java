@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
@@ -93,7 +94,7 @@ class ApmServerReporterIntegrationTest {
         final Service service = new Service();
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
-        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, config.getConfig(CoreConfiguration.class));
         apmServerClient.start();
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
                 reporterConfiguration,

@@ -28,17 +28,10 @@ public class ServiceFactory {
             .withName(coreConfiguration.getServiceName())
             .withVersion(coreConfiguration.getServiceVersion())
             .withEnvironment(coreConfiguration.getEnvironment())
-            .withAgent(new Agent("java", getAgentVersion(), ephemeralId))
+            .withAgent(new Agent("java", VersionUtils.getAgentVersion(), ephemeralId))
             .withRuntime(new RuntimeInfo("Java", System.getProperty("java.version")))
             .withLanguage(new Language("Java", System.getProperty("java.version")))
             .withNode(new Node(coreConfiguration.getServiceNodeName()));
     }
 
-    private String getAgentVersion() {
-        String version = VersionUtils.getAgentVersion();
-        if (version == null) {
-            return "unknown";
-        }
-        return version;
-    }
 }

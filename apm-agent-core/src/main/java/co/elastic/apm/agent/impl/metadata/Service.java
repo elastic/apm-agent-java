@@ -149,7 +149,7 @@ public class Service {
     /**
      * Environment name of the service, e.g. "production" or "staging"
      */
-    public Service withEnvironment(String environment) {
+    public Service withEnvironment(@Nullable String environment) {
         this.environment = environment;
         return this;
     }
@@ -181,7 +181,7 @@ public class Service {
     /**
      * Version of the service emitting this event
      */
-    public Service withVersion(String version) {
+    public Service withVersion(@Nullable String version) {
         this.version = version;
         return this;
     }

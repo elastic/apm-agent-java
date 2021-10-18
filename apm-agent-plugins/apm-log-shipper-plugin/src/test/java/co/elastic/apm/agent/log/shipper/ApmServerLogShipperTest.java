@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.log.shipper;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -76,7 +77,7 @@ class ApmServerLogShipperTest {
         mockApmServer.stubFor(get("/").willReturn(ok()));
         mockApmServer.start();
 
-        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class));
+        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), config.getConfig(CoreConfiguration.class));
         startClientWithValidUrls();
 
         DslJsonSerializer serializer = new DslJsonSerializer(config.getConfig(StacktraceConfiguration.class), apmServerClient, MetaData.create(config, null));

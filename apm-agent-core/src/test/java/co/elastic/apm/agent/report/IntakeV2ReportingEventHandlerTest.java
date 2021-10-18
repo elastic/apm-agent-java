@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -94,10 +95,11 @@ class IntakeV2ReportingEventHandlerTest {
         mockApmServer2.stubFor(post(APM_SERVER_PATH + INTAKE_V2_URL).willReturn(ok()));
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
+        final CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         final ProcessInfo title = new ProcessInfo("title");
         final Service service = new Service();
-        apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
         apmServerClient.start(List.of(
             new URL(HTTP_LOCALHOST + mockApmServer1.port()),
             // testing ability to configure a server url with additional path (ending with "/" in this case)
@@ -114,7 +116,7 @@ class IntakeV2ReportingEventHandlerTest {
             apmServerClient);
         final ProcessInfo title1 = new ProcessInfo("title");
         final Service service1 = new Service();
-        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
         apmServerClient.start(List.of(new URL("http://non.existing:8080")));
         nonConnectedReportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,

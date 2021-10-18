@@ -656,14 +656,17 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return delayTracerStart.get().getMillis();
     }
 
+    @Nullable
     public String getServiceVersion() {
         return serviceVersion.get();
     }
 
+    @Nullable
     public String getHostname() {
         return hostname.get();
     }
 
+    @Nullable
     public String getEnvironment() {
         return environment.get();
     }
