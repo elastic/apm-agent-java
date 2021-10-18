@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.bci;
+package co.elastic.apm.agent.logback;
 
-import co.elastic.apm.agent.sdk.DynamicTransformer;
-import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.PluginClassLoaderRootPackageCustomizer;
 
+import java.util.Arrays;
 import java.util.Collection;
 
-public class DynamicTransformerImpl implements DynamicTransformer {
-
+public class LogbackPluginClassLoaderRootPackageCustomizer extends PluginClassLoaderRootPackageCustomizer {
     @Override
-    public void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses) {
-        ElasticApmAgent.ensureInstrumented(classToInstrument, instrumentationClasses);
+    public Collection<String> pluginClassLoaderRootPackages() {
+        return Arrays.asList(getPluginPackage(), "co.elastic.logging");
     }
 }

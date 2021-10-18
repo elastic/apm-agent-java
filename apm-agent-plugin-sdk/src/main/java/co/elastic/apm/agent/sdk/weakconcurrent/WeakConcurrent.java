@@ -23,15 +23,15 @@ import java.util.ServiceLoader;
 
 public final class WeakConcurrent {
 
-    private static final WeakConcurrentSupplier supplier;
+    private static final WeakConcurrentProvider supplier;
 
     static {
-        ClassLoader classLoader = WeakConcurrentSupplier.class.getClassLoader();
+        ClassLoader classLoader = WeakConcurrentProvider.class.getClassLoader();
         if (classLoader == null) {
             classLoader = ClassLoader.getSystemClassLoader();
         }
         // loads the implementation provided by the core module without depending on the class or class name
-        supplier = ServiceLoader.load(WeakConcurrentSupplier.class, classLoader).iterator().next();
+        supplier = ServiceLoader.load(WeakConcurrentProvider.class, classLoader).iterator().next();
     }
 
     /**
@@ -62,7 +62,11 @@ public final class WeakConcurrent {
         return supplier.buildSet();
     }
 
-    public interface WeakConcurrentSupplier {
+    /**
+     * This is an internal class.
+     * Provides the implementation for creating weak concurrent maps/sets/thread locals.
+     */
+    public interface WeakConcurrentProvider {
 
         <K, V> WeakMapBuilder<K, V> weakMapBuilder();
 

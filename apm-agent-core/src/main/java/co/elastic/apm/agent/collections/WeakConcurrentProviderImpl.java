@@ -33,7 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * The canonical place to get a new instance of a {@link WeakMap}, {@link WeakSet}, or {@link DetachedThreadLocal}.
  * Do not instantiate a {@link AbstractWeakConcurrentMap} directly to benefit from the global cleanup of stale entries.
  */
-public class WeakConcurrentSupplierImpl implements WeakConcurrent.WeakConcurrentSupplier {
+public class WeakConcurrentProviderImpl implements WeakConcurrent.WeakConcurrentProvider {
 
     private static final WeakConcurrentSet<AbstractWeakConcurrentMap<?, ?, ?>> registeredMaps = new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.INLINE);
 
@@ -86,7 +86,7 @@ public class WeakConcurrentSupplierImpl implements WeakConcurrent.WeakConcurrent
 
             @Override
             public DetachedThreadLocal<T> build() {
-                return new DetachedThreadLocalImpl<T>(WeakConcurrentSupplierImpl.this.<Thread, T>weakMapBuilder()
+                return new DetachedThreadLocalImpl<T>(WeakConcurrentProviderImpl.this.<Thread, T>weakMapBuilder()
                     .withDefaultValueSupplier(defaultValueSupplier)
                     .build());
             }

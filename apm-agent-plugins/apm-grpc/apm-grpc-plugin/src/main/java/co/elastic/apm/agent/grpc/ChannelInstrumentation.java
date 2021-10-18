@@ -90,7 +90,7 @@ public class ChannelInstrumentation extends BaseInstrumentation {
                                   @Advice.Enter @Nullable Object span) {
 
             if (clientCall != null) {
-                DynamicTransformer.Accessor.get().ensureInstrumented(clientCall.getClass(), CLIENT_CALL_INSTRUMENTATION);
+                DynamicTransformer.ensureInstrumented(clientCall.getClass(), CLIENT_CALL_INSTRUMENTATION);
             }
             GrpcHelper.getInstance().onClientCallCreationExit(clientCall, (Span) span);
         }

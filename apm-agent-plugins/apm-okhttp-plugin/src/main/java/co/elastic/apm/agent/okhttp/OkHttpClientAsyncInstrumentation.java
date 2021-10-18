@@ -23,12 +23,13 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
+import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -39,6 +40,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.URL;
 
+import static net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
@@ -53,12 +55,10 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
 
     public static class OkHttpClient3ExecuteAdvice {
 
-        @AssignTo(
-            fields = @AssignTo.Field(index = 0, value = "originalRequest"),
-            arguments = @AssignTo.Argument(index = 1, value = 0)
-        )
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.AssignReturned.ToFields(@ToField(index = 0, value = "originalRequest", typing = DYNAMIC))
+        @Advice.AssignReturned.ToArguments(@ToArgument(index = 1, value = 0, typing = DYNAMIC))
         public static Object[] onBeforeEnqueue(final @Advice.Origin Class<? extends Call> clazz,
                                                final @Advice.FieldValue("originalRequest") @Nullable Request originalRequest,
                                                final @Advice.Argument(0) @Nullable Callback originalCallback) {

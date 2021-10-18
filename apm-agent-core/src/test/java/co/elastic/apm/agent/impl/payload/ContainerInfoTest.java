@@ -18,16 +18,19 @@
  */
 package co.elastic.apm.agent.impl.payload;
 
+import co.elastic.apm.agent.util.CustomEnvVariables;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnJre;
 import org.junit.jupiter.api.condition.JRE;
 
 import javax.annotation.Nullable;
 
-import static com.github.stefanbirkner.systemlambda.SystemLambda.withEnvironmentVariable;
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ContainerInfoTest {
+public class ContainerInfoTest extends CustomEnvVariables {
 
     @Test
     void testContainerIdParsing() {
@@ -119,6 +122,15 @@ public class ContainerInfoTest {
     }
 
     @Test
+    void testKubernetesInfo_containerd_cri() {
+        // In such cases- underscores should be replaced with hyphens in the pod UID
+        String line = "1:name=systemd:/system.slice/containerd.service/kubepods-burstable-podff49d0be_16b7_4a49_bb9e_8ec1f1f4e27f.slice" +
+            ":cri-containerd:0f99ad5f45163ed14ab8eaf92ed34bb4a631d007f8755a7d79be614bcb0df0ef";
+        SystemInfo systemInfo = assertContainerId(line, "0f99ad5f45163ed14ab8eaf92ed34bb4a631d007f8755a7d79be614bcb0df0ef");
+        assertKubernetesInfo(systemInfo, "ff49d0be-16b7-4a49-bb9e-8ec1f1f4e27f", "my-host", null, null);
+    }
+
+    @Test
     @DisabledOnJre({JRE.JAVA_15, JRE.JAVA_16}) // https://github.com/elastic/apm-agent-java/issues/1942
     void testKubernetesDownwardApi() throws Exception {
         String line = "1:name=systemd:/kubepods/besteffort/pode9b90526-f47d-11e8-b2a5-080027b9f4fb/15aa6e53-b09a-40c7-8558-c6c31e36c88a";
@@ -133,24 +145,24 @@ public class ContainerInfoTest {
         String podName = "downward-api-pod-name";
         String nodeName = "downward-api-node-name";
         String namespace = "downward-api-namespace";
-        withEnvironmentVariable("KUBERNETES_NODE_NAME", nodeName)
-            .and("KUBERNETES_POD_NAME", podName)
-            .and("KUBERNETES_NAMESPACE", namespace)
-            .and("KUBERNETES_POD_UID", podUid)
-            .execute(systemInfo::findContainerDetails);
+
+        Map<String, String> mockedEnv = new HashMap<>();
+        mockedEnv.put("KUBERNETES_NODE_NAME", nodeName);
+        mockedEnv.put("KUBERNETES_POD_NAME", podName);
+        mockedEnv.put("KUBERNETES_NAMESPACE", namespace);
+        mockedEnv.put("KUBERNETES_POD_UID", podUid);
+        runWithCustomEnvVariables(mockedEnv, systemInfo::findContainerDetails);
         assertKubernetesInfo(systemInfo, podUid, podName, nodeName, namespace);
 
         // test partial settings
         systemInfo = assertContainerId(line, containerId);
         assertKubernetesInfo(systemInfo, originalPodUid, hostName, null, null);
-        withEnvironmentVariable("KUBERNETES_NODE_NAME", nodeName)
-            .and("KUBERNETES_POD_NAME", null)
-            .and("KUBERNETES_NAMESPACE", namespace)
-            .and("KUBERNETES_POD_UID", null)
-            .execute(systemInfo::findContainerDetails);
-        systemInfo.findContainerDetails();
+        mockedEnv.put("KUBERNETES_POD_NAME", null);
+        mockedEnv.put("KUBERNETES_POD_UID", null);
+        runWithCustomEnvVariables(mockedEnv, systemInfo::findContainerDetails);
         assertKubernetesInfo(systemInfo, originalPodUid, hostName, nodeName, namespace);
     }
+
 
     private SystemInfo createSystemInfo() {
         return new SystemInfo("arch", "my-host", "platform");

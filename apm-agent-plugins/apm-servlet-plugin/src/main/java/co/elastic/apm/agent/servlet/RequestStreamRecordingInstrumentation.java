@@ -18,6 +18,10 @@
  */
 package co.elastic.apm.agent.servlet;
 
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.state.CallDepth;
+import co.elastic.apm.agent.servlet.helper.RecordingServletInputStreamWrapper;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -60,4 +64,29 @@ public abstract class RequestStreamRecordingInstrumentation extends AbstractServ
         return Arrays.asList(Constants.SERVLET_API, "servlet-input-stream");
     }
 
+    public static class GetInputStreamAdvice {
+
+        private static final CallDepth callDepth = CallDepth.get(GetInputStreamAdvice.class);
+
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onReadEnter(@Advice.This Object thiz) {
+            callDepth.increment();
+        }
+
+        @Nullable
+        @Advice.AssignReturned.ToReturned
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
+        public static ServletInputStream afterGetInputStream(@Advice.Return @Nullable ServletInputStream inputStream) {
+            if (callDepth.isNestedCallAndDecrement() || inputStream == null) {
+                return inputStream;
+            }
+            final Transaction transaction = tracer.currentTransaction();
+            // only wrap if the body buffer has been initialized via ServletTransactionHelper.startCaptureBody
+            if (transaction != null && transaction.getContext().getRequest().getBodyBuffer() != null) {
+                return new RecordingServletInputStreamWrapper(transaction.getContext().getRequest(), inputStream);
+            } else {
+                return inputStream;
+            }
+        }
+    }
 }

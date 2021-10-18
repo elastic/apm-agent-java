@@ -329,9 +329,10 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
 
     private boolean shouldApplyEcsReformatting(A originalAppender) {
         F formatter = getFormatterFrom(originalAppender);
-        return !isShadingAppender(originalAppender) &&
-            !isEcsFormatter(formatter) &&
-            isAllowedFormatter(formatter, loggingConfiguration.getLogEcsFormatterAllowList());
+        return formatter != null &&
+                !isShadingAppender(originalAppender) &&
+                !isEcsFormatter(formatter) &&
+                isAllowedFormatter(formatter, loggingConfiguration.getLogEcsFormatterAllowList());
     }
 
     protected boolean isAllowedFormatter(F formatter, List<WildcardMatcher> allowList) {
@@ -398,6 +399,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
      * @param appender used appender
      * @return the given appender's formatting entity
      */
+    @Nullable
     protected abstract F getFormatterFrom(A appender);
 
     /**
