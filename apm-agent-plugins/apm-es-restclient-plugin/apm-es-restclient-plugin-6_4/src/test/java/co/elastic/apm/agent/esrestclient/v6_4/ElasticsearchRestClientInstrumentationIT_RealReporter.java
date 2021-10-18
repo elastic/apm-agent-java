@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.esrestclient.v6_4;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
@@ -132,7 +133,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         final Service service = new Service().withName("Eyal-ES-client-test").withAgent(new Agent("java", "Test"));
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
-        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, configurationRegistry.getConfig(CoreConfiguration.class));
         apmServerClient.start();
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
