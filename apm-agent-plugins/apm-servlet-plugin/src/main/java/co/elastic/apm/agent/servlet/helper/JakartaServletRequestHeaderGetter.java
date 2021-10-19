@@ -18,32 +18,24 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-
-import javax.annotation.Nullable;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Enumeration;
 
-class ServletRequestHeaderGetter implements TextHeaderGetter<HttpServletRequest> {
+public class JakartaServletRequestHeaderGetter extends CommonServletRequestHeaderGetter<HttpServletRequest> {
 
-    private static final ServletRequestHeaderGetter INSTANCE = new ServletRequestHeaderGetter();
+    private static final JakartaServletRequestHeaderGetter INSTANCE = new JakartaServletRequestHeaderGetter();
 
-    static ServletRequestHeaderGetter getInstance() {
+    static CommonServletRequestHeaderGetter getInstance() {
         return INSTANCE;
     }
 
-    @Nullable
     @Override
-    public String getFirstHeader(String headerName, HttpServletRequest request) {
-        return request.getHeader(headerName);
+    String getHeader(String headerName, HttpServletRequest carrier) {
+        return carrier.getHeader(headerName);
     }
 
     @Override
-    public <S> void forEach(String headerName, HttpServletRequest carrier, S state, HeaderConsumer<String, S> consumer) {
-        Enumeration<String> headers = carrier.getHeaders(headerName);
-        while (headers.hasMoreElements()) {
-            consumer.accept(headers.nextElement(), state);
-        }
+    Enumeration<String> getHeaders(String headerName, HttpServletRequest carrier) {
+        return carrier.getHeaders(headerName);
     }
-
 }
