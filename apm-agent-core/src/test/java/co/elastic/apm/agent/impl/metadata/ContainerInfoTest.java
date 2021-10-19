@@ -165,7 +165,7 @@ public class ContainerInfoTest extends CustomEnvVariables {
 
 
     private SystemInfo createSystemInfo() {
-        return new SystemInfo("arch", "my-host", "platform");
+        return new SystemInfo("arch", "my-host", null, "platform");
     }
 
     private SystemInfo assertContainerId(String line, String containerId) {

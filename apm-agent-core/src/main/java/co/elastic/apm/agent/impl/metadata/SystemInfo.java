@@ -19,18 +19,24 @@
 package co.elastic.apm.agent.impl.metadata;
 
 
+import co.elastic.apm.agent.common.util.ProcessExecutionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static co.elastic.apm.agent.common.util.ProcessExecutionUtil.cmdAsString;
 
 /**
  * Information about the system the agent is running on.
@@ -46,10 +52,19 @@ public class SystemInfo {
      * Architecture of the system the agent is running on.
      */
     private final String architecture;
+
     /**
-     * Hostname of the system the agent is running on.
+     * Hostname configured manually through {@link co.elastic.apm.agent.configuration.CoreConfiguration#hostname}.
      */
-    private final String hostname;
+    @Nullable
+    private final String configuredHostname;
+
+    /**
+     * Hostname detected automatically.
+     */
+    @Nullable
+    private final String detectedHostname;
+
     /**
      * Name of the system platform the agent is running on.
      */
@@ -67,36 +82,142 @@ public class SystemInfo {
     @Nullable
     private Kubernetes kubernetes;
 
-    public SystemInfo(String architecture, String hostname, String platform) {
-        this(architecture, hostname, platform, null, null);
+    public SystemInfo(String architecture, @Nullable String configuredHostname, @Nullable String detectedHostname, String platform) {
+        this(architecture, configuredHostname, detectedHostname, platform, null, null);
     }
 
-    SystemInfo(String architecture, String hostname, String platform, @Nullable Container container, @Nullable Kubernetes kubernetes) {
+    SystemInfo(String architecture, @Nullable String configuredHostname, @Nullable String detectedHostname,
+               String platform, @Nullable Container container, @Nullable Kubernetes kubernetes) {
         this.architecture = architecture;
-        this.hostname = hostname;
+        this.configuredHostname = configuredHostname;
+        this.detectedHostname = detectedHostname;
         this.platform = platform;
         this.container = container;
         this.kubernetes = kubernetes;
     }
 
-    public static SystemInfo create(@Nullable String hostname) {
-        String reportedHostname = hostname;
-        if (reportedHostname == null || reportedHostname.equals("")) {
-            reportedHostname = getNameOfLocalHost();
+    /**
+     * Starts a task for system info discover on the provided executor service, returning immediately.
+     * @param configuredHostname hostname configured through the {@link co.elastic.apm.agent.configuration.CoreConfiguration#hostname} config
+     * @param metadataExecutorService the executor service which should be used to run the system info discover task
+     * @param timeoutMillis enables to limit the execution of the system discovery task
+     * @return a future from which this system's info can be obtained
+     */
+    public static Future<SystemInfo> create(final @Nullable String configuredHostname, ExecutorService metadataExecutorService, final long timeoutMillis) {
+        final String osName = System.getProperty("os.name");
+        final String osArch = System.getProperty("os.arch");
+
+        if (configuredHostname != null && !configuredHostname.isEmpty()) {
+            SystemInfo systemInfo = new SystemInfo(osArch, configuredHostname, null, osName);
+            systemInfo.findContainerDetails();
+            return new NoWaitFuture.NonNullable<>(systemInfo);
         }
-        return new SystemInfo(System.getProperty("os.arch"), reportedHostname, System.getProperty("os.name")).findContainerDetails();
+
+        return metadataExecutorService.submit(new Callable<SystemInfo>() {
+            @Override
+            public SystemInfo call() {
+                // this call is invoking external commands
+                String detectedHostname = discoverHostname(isWindows(osName), timeoutMillis);
+                SystemInfo systemInfo = new SystemInfo(osArch, configuredHostname, detectedHostname, osName);
+                systemInfo.findContainerDetails();
+                return systemInfo;
+            }
+        });
     }
 
-    public static SystemInfo create() {
-        return create(null);
+    static boolean isWindows(String osName) {
+        return osName.startsWith("Windows");
     }
 
-    public static String getNameOfLocalHost() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (Exception e) {
-            return getHostNameFromEnv();
+    /**
+     * Discover the current host's name. This method separates operating systems only to Windows and non-Windows,
+     * both in the executed hostname-discovery-command and the fallback environment variables.
+     * It always starts with execution of a command on an external process, so it may block up to the specified timeout.
+     * @param isWindows used to decide how hostname discovery should be executed
+     * @param timeoutMillis limits the time this method may block on executing external commands
+     * @return the discovered hostname
+     */
+    @Nullable
+    static String discoverHostname(boolean isWindows, long timeoutMillis) {
+        String hostname = discoverHostnameThroughCommand(isWindows, timeoutMillis);
+        if (hostname == null || hostname.isEmpty()) {
+            hostname = discoverHostnameThroughEnv(isWindows);
         }
+        if (hostname == null || hostname.isEmpty()) {
+            logger.warn("Unable to discover hostname, set log_level to debug for more details");
+        } else {
+            hostname = removeDomain(hostname);
+        }
+        return hostname;
+    }
+
+    @Nullable
+    static String discoverHostnameThroughCommand(boolean isWindows, long timeoutMillis) {
+        String hostname;
+        List<String> cmd;
+        if (isWindows) {
+            cmd = new ArrayList<>();
+            cmd.add("cmd");
+            cmd.add("/c");
+            cmd.add("hostname");
+            hostname = executeHostnameDiscoveryCommand(cmd, timeoutMillis);
+        } else {
+            cmd = new ArrayList<>();
+            cmd.add("uname");
+            cmd.add("-n");
+            hostname = executeHostnameDiscoveryCommand(cmd, timeoutMillis);
+            if (hostname == null || hostname.isEmpty()) {
+                cmd = new ArrayList<>();
+                cmd.add("hostname");
+                hostname = executeHostnameDiscoveryCommand(cmd, timeoutMillis);
+            }
+        }
+        return hostname;
+    }
+
+    /**
+     * Tries to discover the current host name by executing the provided command in a spawned process.
+     * This method may block up to the specified timeout, waiting for the spawned process to terminate.
+     * @param cmd the hostname discovery command
+     * @param timeoutMillis maximum time to allow to the provided command to execute
+     * @return the discovered hostname
+     */
+    @Nullable
+    private static String executeHostnameDiscoveryCommand(List<String> cmd, long timeoutMillis) {
+        String hostname = null;
+        ProcessExecutionUtil.CommandOutput commandOutput = ProcessExecutionUtil.executeCommand(cmd, timeoutMillis);
+        if (commandOutput.exitedNormally()) {
+            hostname = commandOutput.getOutput().toString();
+            if (logger.isDebugEnabled()) {
+                logger.debug("hostname obtained by executing command {}: {}", cmdAsString(cmd), hostname);
+            }
+        } else {
+            logger.info("Failed to execute command {} with exit code {}", cmdAsString(cmd), commandOutput.getExitCode());
+            logger.debug("Command execution error", commandOutput.getExceptionThrown());
+        }
+        return hostname;
+    }
+
+    @Nullable
+    static String discoverHostnameThroughEnv(boolean isWindows) {
+        String hostname;
+        if (isWindows) {
+            hostname = System.getenv("COMPUTERNAME");
+        } else {
+            hostname = System.getenv("HOSTNAME");
+            if (hostname == null || hostname.isEmpty()) {
+                hostname = System.getenv("HOST");
+            }
+        }
+        return hostname;
+    }
+
+    static String removeDomain(String hostname) {
+        int indexOfDot = hostname.indexOf('.');
+        if (indexOfDot > 0) {
+            hostname = hostname.substring(0, indexOfDot);
+        }
+        return hostname;
     }
 
     /**
@@ -203,8 +324,8 @@ public class SystemInfo {
                                 podUid = podUid.replace('_', '-');
                                 logger.debug("Found Kubernetes pod UID: {}", podUid);
                                 // By default, Kubernetes will set the hostname of the pod containers to the pod name. Users that override
-                                // the name should use the Downward API to override the pod name.
-                                kubernetes = new Kubernetes(hostname, null, null, podUid);
+                                // the name should use the Downward API to override the pod name or override the hostname through the hostname config.
+                                kubernetes = new Kubernetes(getHostname(), null, null, podUid);
                                 break;
                             }
                         }
@@ -224,18 +345,6 @@ public class SystemInfo {
         return this;
     }
 
-    private static String getHostNameFromEnv() {
-        // try environment properties.
-        String host = System.getenv("COMPUTERNAME");
-        if (host == null) {
-            host = System.getenv("HOSTNAME");
-        }
-        if (host == null) {
-            host = System.getenv("HOST");
-        }
-        return host;
-    }
-
     /**
      * Architecture of the system the agent is running on.
      */
@@ -244,10 +353,37 @@ public class SystemInfo {
     }
 
     /**
-     * Hostname of the system the agent is running on.
+     * Returns the hostname. If a non-empty hostname was configured manually, it will be returned.
+     * Otherwise, the automatically discovered hostname will be returned.
+     * If both are null or empty, this method returns {@code <unknown>}.
+     * @deprecated should only be used when communicating to APM Server of version lower than 7.4
      */
+     @Deprecated
     public String getHostname() {
-        return hostname;
+         if (configuredHostname != null && !configuredHostname.isEmpty()) {
+             return configuredHostname;
+         }
+         if (detectedHostname != null && !detectedHostname.isEmpty()) {
+             return detectedHostname;
+         }
+         return "<unknown>";
+    }
+
+    /**
+     * The hostname manually configured through {@link co.elastic.apm.agent.configuration.CoreConfiguration#hostname}
+     * @return the manually configured hostname
+     */
+    @Nullable
+    public String getConfiguredHostname() {
+        return configuredHostname;
+    }
+
+    /**
+     * @return the automatically discovered hostname
+     */
+    @Nullable
+    public String getDetectedHostname() {
+        return detectedHostname;
     }
 
     /**

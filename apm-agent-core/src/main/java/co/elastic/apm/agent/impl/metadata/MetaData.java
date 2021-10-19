@@ -88,19 +88,20 @@ public class MetaData {
         if (!configurationRegistry.getConfig(ReporterConfiguration.class).isIncludeProcessArguments()) {
             processInformation.getArgv().clear();
         }
-        final SystemInfo system = SystemInfo.create(coreConfiguration.getHostname());
+        final ThreadPoolExecutor executor = ExecutorUtils.createThreadDaemonPool("metadata", 2, 5);
+        final int metadataDiscoveryTimeoutMs = (int) coreConfiguration.geMetadataDiscoveryTimeoutMs();
+
+        final Future<SystemInfo> systemInfoFuture = SystemInfo.create(coreConfiguration.getHostname(), executor, metadataDiscoveryTimeoutMs);
 
         final CoreConfiguration.CloudProvider cloudProvider = coreConfiguration.getCloudProvider();
-        final int cloudDiscoveryTimeoutMs = (int) coreConfiguration.geCloudMetadataDiscoveryTimeoutMs();
-        final ThreadPoolExecutor executor = ExecutorUtils.createThreadDaemonPool("metadata", 2, 5);
-        final Future<CloudProviderInfo> cloudProviderInfoFuture = CloudMetadataProvider.getCloudInfoProvider(cloudProvider, executor, cloudDiscoveryTimeoutMs);
+        final Future<CloudProviderInfo> cloudProviderInfoFuture = CloudMetadataProvider.getCloudInfoProvider(cloudProvider, executor, metadataDiscoveryTimeoutMs);
 
         // small optimization to avoid execution on the thread pool if not required
-        if (cloudProviderInfoFuture instanceof NoWaitFuture) {
+        if (cloudProviderInfoFuture instanceof NoWaitFuture && systemInfoFuture instanceof NoWaitFuture.NonNullable) {
             MetaData metaData = new MetaData(
                 processInformation,
                 service,
-                system,
+                ((NoWaitFuture.NonNullable<SystemInfo>) systemInfoFuture).safeGetNonNull(),
                 ((NoWaitFuture<CloudProviderInfo>) cloudProviderInfoFuture).safeGet(),
                 coreConfiguration.getGlobalLabels()
             );
@@ -114,7 +115,8 @@ public class MetaData {
                     return new MetaData(
                         processInformation,
                         service,
-                        system,
+                        // This call is blocking on the execution of external commands for hostname discovery
+                        systemInfoFuture.get(),
                         // This call is blocking on outgoing HTTP connections that query cloud provider metadata APIs
                         cloudProviderInfoFuture.get(),
                         coreConfiguration.getGlobalLabels()

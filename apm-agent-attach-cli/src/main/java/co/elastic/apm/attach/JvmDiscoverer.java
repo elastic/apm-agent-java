@@ -159,6 +159,7 @@ public interface JvmDiscoverer {
             this.userRegistry = userRegistry;
         }
 
+        // todo - use ProcessExecutionUtil instead of reimplementing
         @Override
         public Collection<JvmInfo> discoverJvms() throws Exception {
             Collection<JvmInfo> jvms = new ArrayList<>();

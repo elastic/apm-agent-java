@@ -96,7 +96,7 @@ class IntakeV2ReportingEventHandlerTest {
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
         final CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
-        SystemInfo system = new SystemInfo("x64", "localhost", "platform");
+        SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final ProcessInfo title = new ProcessInfo("title");
         final Service service = new Service();
         apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);

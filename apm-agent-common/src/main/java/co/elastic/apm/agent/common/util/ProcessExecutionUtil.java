@@ -20,10 +20,26 @@ package co.elastic.apm.agent.common.util;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class ProcessExecutionUtil {
 
     public static CommandOutput executeCommand(List<String> command) {
+        return executeCommand(command, TimeUnit.SECONDS.toMillis(5));
+    }
+
+    /**
+     * Spawns a process to execute the provided command, applying the requested timeout.
+     * This method always exists quietly.
+     * Process error stream is redirected to the standard output stream.
+     * If the execution of the requested command times out, the process is terminated and this method returns immediately.
+     * The returned output will reflect that by containing a {@link TimeoutException} in its {@link CommandOutput#exceptionThrown}.
+     * @param command the command to execute on a separate process
+     * @param timeoutMillis timeout in millis, after which the process is terminated and this method returns
+     * @return the result of the command execution, including output, exit code and exceptions thrown by the current process.
+     */
+    public static CommandOutput executeCommand(List<String> command, long timeoutMillis) {
         ProcessBuilder buildTheProcess = new ProcessBuilder(command);
         // merge stdout and stderr so we only have to read one stream
         buildTheProcess.redirectErrorStream(true);
@@ -34,14 +50,13 @@ public class ProcessExecutionUtil {
         try {
             spawnedProcess = buildTheProcess.start();
 
-            long timeout = 5 * 1000L; // NOTE 5 second timeout!
             long start = System.currentTimeMillis();
-            long now = start;
+            long duration = 0L;
             boolean isAlive = true;
             byte[] buffer = new byte[4 * 1000];
             try (InputStream in = spawnedProcess.getInputStream()) {
                 // stop trying if the time elapsed exceeds the timeout
-                while (isAlive && (now - start) < timeout) {
+                while (isAlive && duration < timeoutMillis) {
                     while (in.available() > 0) {
                         int lengthRead = in.read(buffer, 0, buffer.length);
                         commandOutput.append(new String(buffer, 0, lengthRead));
@@ -52,7 +67,7 @@ public class ProcessExecutionUtil {
                         //no action, just means the next loop iteration checking
                         //for timeout or process dead, is earlier
                     }
-                    now = System.currentTimeMillis();
+                    duration = System.currentTimeMillis() - start;
                     // if it's not alive but there is still readable input, then continue reading
                     isAlive = processIsAlive(spawnedProcess) || in.available() > 0;
                 }
@@ -63,6 +78,16 @@ public class ProcessExecutionUtil {
                 } catch (InterruptedException e) {
                     //no action, just means the exit is earlier
                 }
+
+                if (duration >= timeoutMillis) {
+                    spawnedProcess.destroy();
+                    throw new TimeoutException(String.format(
+                        "Execution of %s exceeded the specified timeout of %sms. Process killed.",
+                        cmdAsString(command),
+                        timeoutMillis)
+                    );
+                }
+
                 //handle edge case where process terminated but still has unread IO
                 //and in.available() could have returned 0 from IO buffering
                 while (in.available() > 0) {
@@ -110,6 +135,18 @@ public class ProcessExecutionUtil {
         } catch (IllegalThreadStateException e) {
             return true;
         }
+    }
+
+    public static String cmdAsString(List<String> cmd) {
+        StringBuilder cmdToString = new StringBuilder("\"");
+        for (int i = 0; i < cmd.size();) {
+            cmdToString.append(cmd.get(i));
+            if (++i < cmd.size()) {
+                cmdToString.append(" ");
+            }
+        }
+        cmdToString.append("\"");
+        return cmdToString.toString();
     }
 
     public static class CommandOutput {

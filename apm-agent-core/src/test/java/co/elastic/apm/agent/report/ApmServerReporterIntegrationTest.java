@@ -90,7 +90,7 @@ class ApmServerReporterIntegrationTest {
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
         doReturn(Collections.singletonList(new URL("http://localhost:" + port))).when(reporterConfiguration).getServerUrls();
-        SystemInfo system = new SystemInfo("x64", "localhost", "platform");
+        SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final Service service = new Service();
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);

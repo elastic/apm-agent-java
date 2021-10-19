@@ -71,4 +71,23 @@ class NoWaitFuture<V> implements Future<V> {
     public V safeGet() {
         return value;
     }
+
+    public static class NonNullable<V> extends NoWaitFuture<V> {
+
+        NonNullable(V value) {
+            super(value);
+        }
+
+        /**
+         * A convenience method returning the value without declaring thrown Exceptions, verifying it is non-null
+         * @return the value
+         */
+        public V safeGetNonNull() {
+            V value = safeGet();
+            if (value == null) {
+                throw new IllegalStateException("Expected to contain a non-null value");
+            }
+            return value;
+        }
+    }
 }

@@ -129,7 +129,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         when(reporterConfiguration.getMaxQueueSize()).thenReturn(0);
         StacktraceConfiguration stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(30);
-        SystemInfo system = new SystemInfo("x64", "localhost", "platform");
+        SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final Service service = new Service().withName("Eyal-ES-client-test").withAgent(new Agent("java", "Test"));
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);

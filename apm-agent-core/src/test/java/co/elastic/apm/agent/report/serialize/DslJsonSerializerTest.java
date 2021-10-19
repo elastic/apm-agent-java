@@ -932,7 +932,6 @@ class DslJsonSerializerTest {
     void testSystemInfo() throws Exception {
         String arc = System.getProperty("os.arch");
         String platform = System.getProperty("os.name");
-        String hostname = SystemInfo.getNameOfLocalHost();
 
         MetaData metaData = createMetaData();
         DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter());
@@ -941,8 +940,8 @@ class DslJsonSerializerTest {
         JsonNode system = readJsonString(serializer.toString()).get("system");
 
         assertThat(arc).isEqualTo(system.get("architecture").asText());
-        assertThat(hostname).isEqualTo(system.get("hostname").asText());
         assertThat(platform).isEqualTo(system.get("platform").asText());
+        assertThat("hostname").isEqualTo(system.get("hostname").asText());
     }
 
     @Test
@@ -1057,7 +1056,8 @@ class DslJsonSerializerTest {
     }
 
     private MetaData createMetaData() throws Exception {
-        return createMetaData(SystemInfo.create());
+        //noinspection ConstantConditions - null is not allowed, but when providing a configured hostname, executor is not used
+        return createMetaData(SystemInfo.create("hostname", null, 0).get());
     }
 
     private MetaData createMetaData(SystemInfo system) throws Exception {
