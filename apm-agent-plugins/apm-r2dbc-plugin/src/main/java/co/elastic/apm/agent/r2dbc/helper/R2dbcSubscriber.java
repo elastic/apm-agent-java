@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.r2dbc.helper;
 
-import co.elastic.apm.agent.collections.WeakConcurrentSupplierImpl;
+import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Outcome;
@@ -43,7 +43,7 @@ public class R2dbcSubscriber<T> implements CoreSubscriber<T>, Subscription {
 
     private final Tracer tracer;
     private final CoreSubscriber<? super T> subscriber;
-    private static final WeakMap<R2dbcSubscriber<?>, Span> spanMap = WeakConcurrentSupplierImpl.createWeakSpanMap();
+    private static final WeakMap<R2dbcSubscriber<?>, Span> spanMap = WeakConcurrentProviderImpl.createWeakSpanMap();
     private final Connection connection;
     private Subscription subscription;
 

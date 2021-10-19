@@ -18,6 +18,8 @@
         <module>spring-boot-2-jetty</module>
         <module>spring-boot-2-tomcat</module>
         <module>spring-boot-2-undertow</module>
+        <module>spring-boot-2-webflux-base</module>
+        <module>spring-boot-2-webflux-netty</module>
     </modules>
 
     <properties>
@@ -41,9 +43,24 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-spring-webflux-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-servlet-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-reactor-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>${project.groupId}</groupId>-->
+<!--            <artifactId>apm-r2dbc-plugin</artifactId>-->
+<!--            <version>${project.version}</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-api-plugin</artifactId>

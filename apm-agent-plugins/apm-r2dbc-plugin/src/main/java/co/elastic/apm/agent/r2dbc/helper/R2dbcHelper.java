@@ -75,13 +75,19 @@ public class R2dbcHelper {
         batchConnectionMap.putIfAbsent(batch, new Object[]{connection, null});
     }
 
-    public void mapConnectionFactoryData(@Nonnull ConnectionFactory connectionFactory, @Nonnull ConnectionFactoryOptions connectionFactoryOptions) {
+    public void mapConnectionFactoryData(@Nonnull ConnectionFactory connectionFactory, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
         logger.debug("Trying to map connection factory {} with options {}", connectionFactory, connectionFactoryOptions);
+        if (connectionFactoryOptions == null) {
+            return;
+        }
         connectionFactoryMap.putIfAbsent(connectionFactory, connectionFactoryOptions);
     }
 
-    public void mapConnectionOptionsData(@Nonnull Connection connection, @Nonnull ConnectionFactoryOptions connectionFactoryOptions) {
+    public void mapConnectionOptionsData(@Nonnull Connection connection, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
         logger.debug("Trying to map connection {} with options {}", connection, connectionFactoryOptions);
+        if (connectionFactoryOptions == null) {
+            return;
+        }
         connectionOptionsMap.putIfAbsent(connection, connectionFactoryOptions);
     }
 

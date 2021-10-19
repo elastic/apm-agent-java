@@ -32,12 +32,19 @@ import javax.servlet.ServletContext;
 import java.util.Collection;
 import java.util.Collections;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation {
+
+    @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        // introduced in spring-web 3.1
+        return classLoaderCanLoadClass("javax.servlet.ServletContext");
+    }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
