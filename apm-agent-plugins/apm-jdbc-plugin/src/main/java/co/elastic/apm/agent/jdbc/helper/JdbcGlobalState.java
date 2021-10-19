@@ -19,18 +19,18 @@
 package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.sdk.state.GlobalState;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import java.sql.Connection;
 
 @GlobalState
 public class JdbcGlobalState {
 
-    public static final WeakConcurrentMap<Object, String> statementSqlMap = WeakMapSupplier.createMap();
-    public static final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = WeakMapSupplier.createMap();
-    public static final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = WeakMapSupplier.createMap();
-    public static final WeakConcurrentMap<Class<?>, Boolean> connectionSupported = WeakMapSupplier.createMap();
+    public static final WeakMap<Object, String> statementSqlMap = WeakConcurrent.buildMap();
+    public static final WeakMap<Connection, ConnectionMetaData> metaDataMap = WeakConcurrent.buildMap();
+    public static final WeakMap<Class<?>, Boolean> metadataSupported = WeakConcurrent.buildMap();
+    public static final WeakMap<Class<?>, Boolean> connectionSupported = WeakConcurrent.buildMap();
 
     public static void clearInternalStorage() {
         metaDataMap.clear();

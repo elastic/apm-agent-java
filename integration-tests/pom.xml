@@ -14,6 +14,7 @@
 
     <modules>
         <module>simple-webapp</module>
+        <module>jakartaee-simple-webapp</module>
         <module>jsf-app</module>
         <module>application-server-integration-tests</module>
         <module>spring-boot-1-5</module>
@@ -21,6 +22,7 @@
         <module>soap-test</module>
         <module>cdi-app</module>
         <module>external-plugin-test</module>
+        <module>runtime-attach</module>
     </modules>
 
     <properties>

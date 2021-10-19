@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.vertx.v3.web.http1;
 
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.vertx.v3.web.WebHelper;
 import co.elastic.apm.agent.vertx.v3.web.WebInstrumentation;
 import io.vertx.core.Handler;
@@ -65,7 +64,7 @@ public class HttpServerRequestWrapperInstrumentation extends WebInstrumentation 
             return handler instanceof WebHelper.NoopHandler;
         }
 
-        @AssignTo.Return
+        @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static HttpServerRequest exit(@Advice.FieldValue(value = "delegate") HttpServerRequest delegate) {
             return delegate;

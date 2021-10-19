@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -61,7 +61,7 @@ public class SetMessageListenerInstrumentation extends SpringBaseInstrumentation
         private static final MessageListenerHelper helper = new MessageListenerHelper();
 
         @Nullable
-        @AssignTo.Argument(0)
+        @Advice.AssignReturned.ToArguments(@ToArgument(0))
         @Advice.OnMethodEnter(inline = false)
         public static MessageListener beforeSetListener(@Advice.Argument(0) @Nullable MessageListener original) {
             return helper.registerAndWrapLambda(original);

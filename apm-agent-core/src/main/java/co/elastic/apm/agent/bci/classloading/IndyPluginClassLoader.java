@@ -19,8 +19,14 @@
 package co.elastic.apm.agent.bci.classloading;
 
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
+import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.matcher.ElementMatchers;
 
+import javax.annotation.Nullable;
+import java.net.URL;
 import java.util.Map;
+
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
  * The plugin class loader has both the agent class loader and the target class loader as the parent.
@@ -30,11 +36,78 @@ import java.util.Map;
  * @see co.elastic.apm.agent.bci.IndyBootstrap
  */
 public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
-    public IndyPluginClassLoader(ClassLoader targetClassLoader, ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
-        super(new IndyPluginClassLoaderParent(agentClassLoader, targetClassLoader), true, typeDefinitions, PersistenceHandler.MANIFEST);
+
+    private static final ClassLoader SYSTEM_CLASS_LOADER = ClassLoader.getSystemClassLoader();
+
+    public IndyPluginClassLoader(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
+        // See getResource on why we're using PersistenceHandler.LATENT over PersistenceHandler.MANIFEST
+        super(getParent(targetClassLoader, agentClassLoader), true, typeDefinitions, PersistenceHandler.LATENT);
     }
 
-    public IndyPluginClassLoader(ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
-        super(agentClassLoader, true, typeDefinitions, PersistenceHandler.MANIFEST);
+    private static ClassLoader getParent(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader) {
+        if (targetClassLoader == null) {
+            // the MultipleParentClassLoader doesn't support null values
+            // the agent class loader already has the bootstrap class loader as the parent
+            return agentClassLoader;
+        }
+        if (agentClassLoader == SYSTEM_CLASS_LOADER) {
+            // we're inside a unit test
+            // in unit tests, we need to search the target class loader first, unless it's an agent class
+            // that's because the system class loader may contain another version of the library under test
+            // see also co.elastic.apm.agent.TestClassWithDependencyRunner
+            return new DiscriminatingMultiParentClassLoader(
+                agentClassLoader, startsWith("co.elastic.apm.agent").or(startsWith("net.bytebuddy")),
+                targetClassLoader, ElementMatchers.<String>any());
+        } else {
+            // in prod, always search in the agent class loader first
+            // this ensures that we're referencing the agent bundled classes in advices rather than the ones form the application
+            // (for example for slf4j, Byte Buddy, or even dependencies that are bundled in external plugins etc.)
+            // However, we need to avoid looking up classes from the agent class loader that we want to instrument.
+            // For example, we're instrumenting log4j2 to support ecs_log_reformatting which is also available within the agent class loader.
+            // Within the context of an instrumentation plugin, referencing log4j2 should always reference the instrumented types, not the ones shipped with the agent.
+            // The list of packages not to load should correspond with matching dependency exclusions from the apm-agent-core in apm-agent-plugins/pom.xml
+            // As we're using slf4j as the logging facade, plugins don't need to refer to the agent-bundled log4j2.
+            // This implies, we can't reference instrumented slf4j classes in plugins, though.
+            // We ensure this by validating that advice method signatures don't contain slf4j classes.
+            return new DiscriminatingMultiParentClassLoader(
+                agentClassLoader, not(startsWith("org.apache.logging.log4j")),
+                targetClassLoader, ElementMatchers.<String>any());
+        }
+    }
+
+    /**
+     * This class loader uses {@link PersistenceHandler#LATENT} (see {@link #IndyPluginClassLoader})
+     * as it reduces the memory footprint of the class loader compared to {@link PersistenceHandler#MANIFEST}.
+     * With {@link PersistenceHandler#MANIFEST}, after a class has been loaded, the class file byte[] is kept in the typeDefinitions map
+     * so that the class can be looked up as a resource.
+     * With {@link PersistenceHandler#LATENT}, the class file byte[] is removed from the typeDefinitions after the corresponding class has been loaded.
+     * This implies that the class can't be looked up as a resource.
+     * The method from the super class even disallows delegation to the parent (as it's a child-first class loader).
+     * Overriding this method ensures that we can look up the class resource from the parent class loader (agent class loader).
+     */
+    @Override
+    public URL getResource(String name) {
+        URL url = super.getResource(name);
+        return url != null
+            ? url
+            : getParent().getResource(name);
+    }
+
+    public static StartsWithElementMatcher startsWith(String prefix) {
+        return new StartsWithElementMatcher(prefix);
+    }
+
+    private static class StartsWithElementMatcher extends ElementMatcher.Junction.AbstractBase<String> {
+
+        private final String prefix;
+
+        private StartsWithElementMatcher(String prefix) {
+            this.prefix = prefix;
+        }
+
+        @Override
+        public boolean matches(String s) {
+            return s.startsWith(prefix);
+        }
     }
 }

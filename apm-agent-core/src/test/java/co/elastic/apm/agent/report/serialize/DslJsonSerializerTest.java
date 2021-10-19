@@ -537,6 +537,7 @@ class DslJsonSerializerTest {
     void testSpanMessageContextSerialization() {
         Span span = new Span(MockTracer.create());
         span.getContext().getMessage()
+            .withRoutingKey("routing-key")
             .withQueue("test-queue")
             .withBody("test-body")
             .addHeader("text-header", "text-value")
@@ -561,6 +562,23 @@ class DslJsonSerializerTest {
         JsonNode ms = age.get("ms");
         assertThat(ms).isNotNull();
         assertThat(ms.longValue()).isEqualTo(20);
+        JsonNode routingKey = message.get("routing_key");
+        assertThat(routingKey.textValue()).isEqualTo("routing-key");
+    }
+
+    @Test
+    void testSpanMessageContextSerializationWithoutRoutingKey() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getMessage()
+            .withQueue("test-queue")
+            .withBody("test-body")
+            .addHeader("text-header", "text-value")
+            .addHeader("binary-header", "binary-value".getBytes(StandardCharsets.UTF_8))
+            .withAge(20);
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode routingKey = spanJson.get("context").get("message").get("routing_key");
+        assertThat(routingKey).isNull();
     }
 
     @Test
@@ -755,7 +773,6 @@ class DslJsonSerializerTest {
             .withSearch("q=test");
 
         request.getSocket()
-            .withEncrypted(true)
             .withRemoteAddress("::1");
 
         transaction.getContext().getResponse()
@@ -809,8 +826,7 @@ class DslJsonSerializerTest {
         assertThat(jsonUrl.get("full").asText()).isEqualTo("http://my-hostname:42/path/name?q=test");
 
         JsonNode jsonSocket = jsonRequest.get("socket");
-        assertThat(jsonSocket).hasSize(2);
-        assertThat(jsonSocket.get("encrypted").asBoolean()).isTrue();
+        assertThat(jsonSocket).hasSize(1);
         assertThat(jsonSocket.get("remote_address").asText()).isEqualTo("::1");
 
         JsonNode jsonResponse = jsonContext.get("response");
