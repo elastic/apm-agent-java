@@ -179,7 +179,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(NEW_LINE);
     }
 
-    static void serializeMetadata(MetaData metaData, JsonWriter metadataJW) {
+    static void serializeMetadata(MetaData metaData, JsonWriter metadataJW, boolean supportsConfiguredAndDetectedHostname) {
         StringBuilder metadataReplaceBuilder = new StringBuilder();
         metadataJW.writeByte(JsonWriter.OBJECT_START);
         serializeService(metaData.getService(), metadataReplaceBuilder, metadataJW);
@@ -187,7 +187,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         serializeProcess(metaData.getProcess(), metadataReplaceBuilder, metadataJW);
         metadataJW.writeByte(COMMA);
         serializeGlobalLabels(metaData.getGlobalLabelKeys(), metaData.getGlobalLabelValues(), metadataReplaceBuilder, metadataJW);
-        serializeSystem(metaData.getSystem(), metadataReplaceBuilder, metadataJW);
+        serializeSystem(metaData.getSystem(), metadataReplaceBuilder, metadataJW, supportsConfiguredAndDetectedHostname);
         if (metaData.getCloudProviderInfo() != null) {
             metadataJW.writeByte(COMMA);
             serializeCloudProvider(metaData.getCloudProviderInfo(), metadataReplaceBuilder, metadataJW);
@@ -230,7 +230,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     public void blockUntilReady() throws Exception {
         if (serializedMetaData == null) {
             JsonWriter metadataJW = new DslJson<>(new DslJson.Settings<>()).newWriter(4096);
-            serializeMetadata(metaData.get(5, TimeUnit.SECONDS), metadataJW);
+            serializeMetadata(metaData.get(5, TimeUnit.SECONDS), metadataJW, apmServerClient.supportsConfiguredAndDetectedHostname());
             serializedMetaData = metadataJW.toByteArray();
         }
     }
@@ -497,13 +497,26 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    private static void serializeSystem(final SystemInfo system, final StringBuilder replaceBuilder, final JsonWriter jw) {
+    private static void serializeSystem(final SystemInfo system, final StringBuilder replaceBuilder, final JsonWriter jw,
+                                        boolean supportsConfiguredAndDetectedHostname) {
         writeFieldName("system", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
         serializeContainerInfo(system.getContainerInfo(), replaceBuilder, jw);
         serializeKubernetesInfo(system.getKubernetesInfo(), replaceBuilder, jw);
         writeField("architecture", system.getArchitecture(), replaceBuilder, jw);
-        writeField("hostname", system.getHostname(), replaceBuilder, jw);
+        if (supportsConfiguredAndDetectedHostname) {
+            String configuredHostname = system.getConfiguredHostname();
+            if (configuredHostname != null && !configuredHostname.isEmpty()) {
+                writeField("configured_hostname", configuredHostname, replaceBuilder, jw);
+            } else {
+                String detectedHostname = system.getDetectedHostname();
+                if (detectedHostname != null && !detectedHostname.isEmpty()) {
+                    writeField("detected_hostname", detectedHostname, replaceBuilder, jw);
+                }
+            }
+        } else {
+            writeField("hostname", system.getHostname(), replaceBuilder, jw);
+        }
         writeLastField("platform", system.getPlatform(), replaceBuilder, jw);
         jw.writeByte(JsonWriter.OBJECT_END);
     }
