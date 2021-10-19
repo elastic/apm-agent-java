@@ -53,6 +53,10 @@
         </repository>
     </distributionManagement>
 
+    <prerequisites>
+        <maven>3.8.3</maven>
+    </prerequisites>
+
     <modules>
         <module>apm-agent-core</module>
         <module>elastic-apm-agent</module>
