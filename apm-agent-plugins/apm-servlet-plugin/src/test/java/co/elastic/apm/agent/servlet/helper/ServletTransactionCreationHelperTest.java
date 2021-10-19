@@ -47,7 +47,7 @@ class ServletTransactionCreationHelperTest extends AbstractInstrumentationTest {
     @BeforeEach
     void setUp() {
         webConfig = config.getConfig(WebConfiguration.class);
-        helper = new ServletTransactionCreationHelper(tracer);
+        helper = new JavaxServletTransactionCreationHelper(tracer);
     }
 
     @ParameterizedTest

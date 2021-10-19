@@ -51,22 +51,22 @@ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_
  *  - Jetty fails to invoke onError after AsyncContext.dispatch to a Servlet that ends with ServletException
  *  - JBoss EAP 6.4 does not invoke onComplete after onError is invoked
  */
-public class ApmAsyncListener implements AsyncListener, Recyclable {
+public class JavaxApmAsyncListener implements AsyncListener, Recyclable {
 
     private final AtomicBoolean completed = new AtomicBoolean(false);
-    private final AsyncContextAdviceHelperImpl asyncContextAdviceHelperImpl;
+    private final JavaxAsyncContextAdviceHelper asyncContextAdviceHelperImpl;
     private final ServletTransactionHelper servletTransactionHelper;
     @Nullable
     private volatile Transaction transaction;
     @Nullable
     private volatile Throwable throwable;
 
-    ApmAsyncListener(AsyncContextAdviceHelperImpl asyncContextAdviceHelperImpl) {
+    JavaxApmAsyncListener(JavaxAsyncContextAdviceHelper asyncContextAdviceHelperImpl) {
         this.asyncContextAdviceHelperImpl = asyncContextAdviceHelperImpl;
         this.servletTransactionHelper = asyncContextAdviceHelperImpl.getServletTransactionHelper();
     }
 
-    ApmAsyncListener withTransaction(Transaction transaction) {
+    JavaxApmAsyncListener withTransaction(Transaction transaction) {
         this.transaction = transaction;
         return this;
     }

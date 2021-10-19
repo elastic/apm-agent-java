@@ -43,14 +43,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * this makes sure to record a transaction in that case.
  * </p>
  */
-public class ServletInstrumentation extends AbstractServletInstrumentation {
-
-    static final String SERVLET_API = "servlet-api";
-    static final String SERVLET_API_DISPATCH = "servlet-api-dispatch";
+public abstract class ServletInstrumentation extends AbstractServletInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(SERVLET_API, SERVLET_API_DISPATCH);
+        return Arrays.asList(Constants.SERVLET_API, Constants.SERVLET_API_DISPATCH);
     }
 
     @Override
@@ -60,20 +57,20 @@ public class ServletInstrumentation extends AbstractServletInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface())
-            .and(hasSuperType(named("javax.servlet.Servlet")));
+        return not(isInterface()).and(hasSuperType(named(getServletClassName())));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("service")
-            .and(takesArgument(0, named("javax.servlet.ServletRequest")))
-            .and(takesArgument(1, named("javax.servlet.ServletResponse")));
+            .and(takesArgument(0, named(doFilterFirstArgumentClassName())))
+            .and(takesArgument(1, named(doFilterSecondArgumentClassName())));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return "co.elastic.apm.agent.servlet.ServletApiAdvice";
-    }
+    public abstract String getServletClassName();
+
+    abstract String doFilterFirstArgumentClassName();
+
+    abstract String doFilterSecondArgumentClassName();
 
 }
