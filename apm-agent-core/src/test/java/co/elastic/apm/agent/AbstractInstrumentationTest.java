@@ -36,9 +36,22 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.annotation.Nullable;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractInstrumentationTest {
+
+    /**
+     * Set to a valid path in order to make byte buddy dump instrumented classes.
+     * We cannot use the {@link co.elastic.apm.agent.configuration.CoreConfiguration#bytecodeDumpPath} config because
+     * the way it works is by setting the related byte buddy system property, which is set statically, and since we use
+     * Mockito for agent configs, byte buddy gets loaded early and this property gets set before our configuration
+     * can be applied.
+     */
+    @Nullable
+    private static final String BYTE_BUDDY_DUMP_PATH = null;
+
     protected static ElasticApmTracer tracer;
     protected static MockReporter reporter;
     protected static ConfigurationRegistry config;
@@ -48,6 +61,11 @@ public abstract class AbstractInstrumentationTest {
     @BeforeAll
     @BeforeClass
     public static synchronized void beforeAll() {
+
+        if (BYTE_BUDDY_DUMP_PATH != null) {
+            System.setProperty("net.bytebuddy.dump", BYTE_BUDDY_DUMP_PATH);
+        }
+
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         tracer = mockInstrumentationSetup.getTracer();
         config = mockInstrumentationSetup.getConfig();

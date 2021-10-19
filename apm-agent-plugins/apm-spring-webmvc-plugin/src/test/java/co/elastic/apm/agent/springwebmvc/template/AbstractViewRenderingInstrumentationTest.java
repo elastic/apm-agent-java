@@ -23,7 +23,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.servlet.ServletInstrumentation;
+import co.elastic.apm.agent.servlet.JavaxServletInstrumentation;
 import co.elastic.apm.agent.springwebmvc.ViewRenderInstrumentation;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterAll;
@@ -67,7 +67,7 @@ abstract class AbstractViewRenderingInstrumentationTest {
         reporter = mockInstrumentationSetup.getReporter();
         config = mockInstrumentationSetup.getConfig();
         tracer = mockInstrumentationSetup.getTracer();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), Arrays.asList(new ServletInstrumentation(), new ViewRenderInstrumentation()));
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), Arrays.asList(new JavaxServletInstrumentation(), new ViewRenderInstrumentation()));
     }
 
     @AfterAll

@@ -51,9 +51,8 @@ public final class VersionUtils {
     private VersionUtils() {
     }
 
-    @Nullable
     public static String getAgentVersion() {
-        return AGENT_VERSION;
+        return AGENT_VERSION != null ? AGENT_VERSION : "unknown";
     }
 
     @Nullable
