@@ -72,7 +72,7 @@ public class ElasticApmTracer implements Tracer {
 
     private static final WeakMap<ClassLoader, String> serviceNameByClassLoader = WeakConcurrent.buildMap();
 
-    private static final WeakConcurrentMap<ClassLoader, String> serviceVersionByClassLoader = WeakMapSupplier.createMap();
+    private static final WeakMap<ClassLoader, String> serviceVersionByClassLoader = WeakConcurrent.buildMap();
 
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
