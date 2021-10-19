@@ -88,7 +88,7 @@ public class MetaData {
         if (!configurationRegistry.getConfig(ReporterConfiguration.class).isIncludeProcessArguments()) {
             processInformation.getArgv().clear();
         }
-        final ThreadPoolExecutor executor = ExecutorUtils.createThreadDaemonPool("metadata", 2, 5);
+        final ThreadPoolExecutor executor = ExecutorUtils.createThreadDaemonPool("metadata", 5, 5);
         final int metadataDiscoveryTimeoutMs = (int) coreConfiguration.geMetadataDiscoveryTimeoutMs();
 
         final Future<SystemInfo> systemInfoFuture = SystemInfo.create(coreConfiguration.getHostname(), executor, metadataDiscoveryTimeoutMs);
