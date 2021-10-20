@@ -62,7 +62,7 @@ public abstract class AbstractWebfluxSpringBootTest {
     @BeforeEach
     void setUp() throws InterruptedException {
         Mockito.when(config.getConfig(ReporterConfiguration.class).isReportSynchronously()).thenReturn(true);
-
+        reporter.reset();
     }
 
     @AfterAll
@@ -134,6 +134,7 @@ public abstract class AbstractWebfluxSpringBootTest {
     }
 
     protected Transaction getFirstTransaction() {
+        reporter.awaitTransactionCount(1);
         return reporter.getFirstTransaction(200);
     }
 
