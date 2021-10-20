@@ -27,14 +27,8 @@
             <version>${version.slf4j}</version>
         </dependency>
         <dependency>
-            <groupId>com.blogspot.mydailyjava</groupId>
-            <artifactId>weak-lock-free</artifactId>
-            <version>0.18</version>
-        </dependency>
-        <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy-dep</artifactId>
-            <version>${version.byte-buddy}</version>
         </dependency>
     </dependencies>
 

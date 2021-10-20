@@ -20,8 +20,8 @@ package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -66,7 +66,7 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
         public static final KafkaInstrumentationHelper helper = KafkaInstrumentationHelper.get();
 
         @Nullable
-        @AssignTo.Argument(1)
+        @Advice.AssignReturned.ToArguments(@ToArgument(1))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Callback beforeSend(@Advice.Argument(0) final ProducerRecord<?, ?> record,
                                           @Advice.Argument(1) @Nullable Callback callback) {

@@ -26,7 +26,6 @@ import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.reactor.TracedSubscriber;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
@@ -80,8 +79,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     static void flushGcExpiry() {
         // ensure that both reactor & webflux storage maps are properly cleaned
         // if they are not, it means there is a leaked reference that isn't properly decremented.
-        flushGcExpiry(TracedSubscriber.getContextMap(), 3);
-        flushGcExpiry(TransactionAwareSubscriber.getTransactionMap(), 3);
+        flushGcExpiry(3);
     }
 
     protected abstract GreetingWebClient getClient();

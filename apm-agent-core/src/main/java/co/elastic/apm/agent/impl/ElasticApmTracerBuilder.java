@@ -142,7 +142,7 @@ public class ElasticApmTracerBuilder {
             lifecycleListeners.add(scheduleReloadAtRate(configurationRegistry, 30, TimeUnit.SECONDS));
         }
 
-        ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class));
+        ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class), configurationRegistry.getConfig(CoreConfiguration.class));
         Future<MetaData> metaData = MetaData.create(configurationRegistry, ephemeralId);
         if (addApmServerConfigSource) {
             // adding remote configuration source last will make it highest priority
