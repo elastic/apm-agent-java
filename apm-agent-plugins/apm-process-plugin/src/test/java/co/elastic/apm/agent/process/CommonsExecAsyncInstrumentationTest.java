@@ -30,11 +30,16 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentationTest {
+
+    private static final boolean isWindows = System.getProperty("os.name").startsWith("Windows");
 
     @Test
     void asyncProcessWithinTransaction() throws Exception {
@@ -50,6 +55,26 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
         assertThat(asyncProcessHasTransactionContext().get())
             .describedAs("executor runnable should not be in transaction context")
             .isNull();
+    }
+
+    @Test
+    void processWithExitValueCheck() throws Exception {
+        startTransaction();
+        List<String> cmd;
+        if (isWindows) {
+            // todo implement sleep for Windows
+            cmd = List.of();
+        } else {
+            cmd = List.of("sleep", "0.5");
+        }
+        ProcessBuilder processBuilder = new ProcessBuilder(cmd);
+        Process process = processBuilder.start();
+        assertThatThrownBy(process::exitValue).isInstanceOf(IllegalThreadStateException.class);
+        assertThat(reporter.getSpans().stream().filter((span) -> span.getNameAsString().startsWith("sleep"))).isEmpty();
+        process.waitFor(1000, TimeUnit.MILLISECONDS);
+        assertThat(process.exitValue()).isEqualTo(0);
+        assertThat(reporter.getSpans().stream().filter((span) -> span.getNameAsString().startsWith("sleep"))).hasSize(1);
+        terminateTransaction();
     }
 
     private static CompletableFuture<AbstractSpan<?>> asyncProcessHasTransactionContext() throws Exception {

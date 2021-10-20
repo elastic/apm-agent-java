@@ -113,6 +113,42 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void endProcessAfterEndSpanShouldBeIgnored() {
+        Process process = mock(Process.class);
+
+        helper.doStartProcess(transaction, process, "hello");
+        assertThat(storageMap).isNotEmpty();
+
+        helper.doEndProcessSpan(process, 0);
+
+        // this second call should be ignored, thus exception not reported
+        helper.doEndProcess(process, true);
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getErrors())
+            .describedAs("error should not be reported")
+            .isEmpty();
+    }
+
+    @Test
+    void endSpanAfterEndProcessShouldBeIgnored() {
+        Process process = mock(Process.class);
+
+        helper.doStartProcess(transaction, process, "hello");
+        assertThat(storageMap).isNotEmpty();
+
+        helper.doEndProcess(process, true);
+
+        // this second call should be ignored, thus exception not reported
+        helper.doEndProcessSpan(process, 0);
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getErrors())
+            .describedAs("error should not be reported")
+            .isEmpty();
+    }
+
+    @Test
     void executeMultipleProcessesInTransaction() {
         Process process = mock(Process.class);
 
