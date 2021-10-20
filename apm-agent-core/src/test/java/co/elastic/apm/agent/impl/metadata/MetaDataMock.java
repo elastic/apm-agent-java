@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl.metadata;
 import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class MetaDataMock {
 
@@ -32,5 +33,42 @@ public class MetaDataMock {
     public static Future<MetaData> create(ProcessInfo process, Service service, SystemInfo system, @Nullable CloudProviderInfo cloudProviderInfo,
                                           Map<String, String> globalLabels) {
         return new NoWaitFuture<MetaData>(new MetaData(process, service, system, cloudProviderInfo, globalLabels));
+    }
+
+    private static class NoWaitFuture<V> implements Future<V> {
+
+        @Nullable
+        private final V value;
+
+        NoWaitFuture(@Nullable V value) {
+            this.value = value;
+        }
+
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+            return false;
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return false;
+        }
+
+        @Override
+        public boolean isDone() {
+            return true;
+        }
+
+        @Nullable
+        @Override
+        public V get() {
+            return value;
+        }
+
+        @Nullable
+        @Override
+        public V get(long timeout, TimeUnit unit) {
+            return value;
+        }
     }
 }

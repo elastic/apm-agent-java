@@ -88,36 +88,36 @@ public class MetaData {
         if (!configurationRegistry.getConfig(ReporterConfiguration.class).isIncludeProcessArguments()) {
             processInformation.getArgv().clear();
         }
-        final ThreadPoolExecutor executor = ExecutorUtils.createThreadDaemonPool("metadata", 5, 5);
+
+        final ThreadPoolExecutor executor = ExecutorUtils.createThreadDaemonPool("metadata", 2, 3);
         final int metadataDiscoveryTimeoutMs = (int) coreConfiguration.geMetadataDiscoveryTimeoutMs();
 
-        final Future<SystemInfo> systemInfoFuture = SystemInfo.create(coreConfiguration.getHostname(), executor, metadataDiscoveryTimeoutMs);
-
-        final CoreConfiguration.CloudProvider cloudProvider = coreConfiguration.getCloudProvider();
-        final Future<CloudProviderInfo> cloudProviderInfoFuture = CloudMetadataProvider.getCloudInfoProvider(cloudProvider, executor, metadataDiscoveryTimeoutMs);
-
-        // small optimization to avoid execution on the thread pool if not required
-        if (cloudProviderInfoFuture instanceof NoWaitFuture && systemInfoFuture instanceof NoWaitFuture.NonNullable) {
-            MetaData metaData = new MetaData(
-                processInformation,
-                service,
-                ((NoWaitFuture.NonNullable<SystemInfo>) systemInfoFuture).safeGetNonNull(),
-                ((NoWaitFuture<CloudProviderInfo>) cloudProviderInfoFuture).safeGet(),
-                coreConfiguration.getGlobalLabels()
-            );
-            return new NoWaitFuture<MetaData>(metaData);
-        }
-
         try {
+            // System info creation executes external processes for hostname discovery and reads files for container/k8s metadata discovery
+            final Future<SystemInfo> systemInfoFuture = executor.submit(new Callable<SystemInfo>() {
+                @Override
+                public SystemInfo call() {
+                    return SystemInfo.create(coreConfiguration.getHostname(), metadataDiscoveryTimeoutMs);
+                }
+            });
+
+            // Cloud provider metadata discovery relies on HTTP calls to metadata APIs, possibly in a trial-and-error fashion
+            final Future<CloudProviderInfo> cloudProviderInfoFuture = executor.submit(new Callable<CloudProviderInfo>() {
+                @Override
+                @Nullable
+                public CloudProviderInfo call() {
+                    return CloudMetadataProvider.getCloudInfoProvider(coreConfiguration.getCloudProvider(), metadataDiscoveryTimeoutMs);
+                }
+            });
+
+            // may get to queue and not direct execution, but this task must wait for the former two to complete anyway
             return executor.submit(new Callable<MetaData>() {
                 @Override
                 public MetaData call() throws Exception {
                     return new MetaData(
                         processInformation,
                         service,
-                        // This call is blocking on the execution of external commands for hostname discovery
                         systemInfoFuture.get(),
-                        // This call is blocking on outgoing HTTP connections that query cloud provider metadata APIs
                         cloudProviderInfoFuture.get(),
                         coreConfiguration.getGlobalLabels()
                     );

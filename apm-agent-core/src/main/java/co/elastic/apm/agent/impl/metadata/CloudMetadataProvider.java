@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.UrlConnectionUtils;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonReader;
@@ -52,21 +53,22 @@ public class CloudMetadataProvider {
 
     private static final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
 
-    static Future<CloudProviderInfo> getCloudInfoProvider(final CoreConfiguration.CloudProvider cloudProvider,
-                                                          final ExecutorService metadataExecutorService,
-                                                          final int queryTimeoutMs) {
+    /**
+     * This method may block on multiple HTTP calls. See {@link #fetchAndParseCloudProviderInfo(CoreConfiguration.CloudProvider, int)}
+     * for details.
+     * @param cloudProvider the configured cloud provided - used as an optimization to lookup specific APIs instead of trial-and-error
+     * @param queryTimeoutMs a configured limitation for the maximum duration of each metadata discovery task
+     * @return cloud provide metadata, or {@code null} if requested not to do any lookup by using
+     *          {@link co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider#NONE}
+     */
+    @Nullable
+    static CloudProviderInfo getCloudInfoProvider(final CoreConfiguration.CloudProvider cloudProvider, final int queryTimeoutMs) {
+
         if (cloudProvider == NONE) {
-            return new NoWaitFuture<CloudProviderInfo>(null);
+            return null;
         }
 
-        return metadataExecutorService.submit(new Callable<CloudProviderInfo>() {
-            @Nullable
-            @Override
-            public CloudProviderInfo call() {
-                // This call is blocking on outgoing HTTP connections
-                return CloudMetadataProvider.fetchAndParseCloudProviderInfo(cloudProvider, metadataExecutorService, queryTimeoutMs);
-            }
-        });
+        return CloudMetadataProvider.fetchAndParseCloudProviderInfo(cloudProvider, queryTimeoutMs);
     }
 
     /**
@@ -78,15 +80,12 @@ public class CloudMetadataProvider {
      * known endpoints are queried concurrently. In such cases, blocking is expected to be long, bounded by the
      * HTTP requests timing out.
      *
-     * @param cloudProvider             the expected {@link CoreConfiguration.CloudProvider}
-     * @param metadataExecutorService   the executor service to submit discovery tasks to
-     * @param queryTimeoutMs            timeout in milliseconds to limit the discovery duration
+     * @param cloudProvider   the expected {@link CoreConfiguration.CloudProvider}
+     * @param queryTimeoutMs  timeout in milliseconds to limit the discovery duration
      * @return Automatically discovered {@link CloudProviderInfo}, or {@code null} if none found.
      */
     @Nullable
-    static CloudProviderInfo fetchAndParseCloudProviderInfo(final CoreConfiguration.CloudProvider cloudProvider,
-                                                            final ExecutorService metadataExecutorService,
-                                                            final int queryTimeoutMs) {
+    static CloudProviderInfo fetchAndParseCloudProviderInfo(final CoreConfiguration.CloudProvider cloudProvider, final int queryTimeoutMs) {
 
         Throwable unexpectedError = null;
         CloudProviderInfo cloudProviderInfo = null;
@@ -117,7 +116,7 @@ public class CloudMetadataProvider {
                     break;
                 }
                 case AUTO: {
-                    cloudProviderInfo = tryAllCloudProviders(cloudProvider, metadataExecutorService, queryTimeoutMs);
+                    cloudProviderInfo = tryAllCloudProviders(cloudProvider, queryTimeoutMs);
                 }
             }
         } catch (Throwable throwable) {
@@ -128,40 +127,45 @@ public class CloudMetadataProvider {
     }
 
     @Nullable
-    private static CloudProviderInfo tryAllCloudProviders(final CoreConfiguration.CloudProvider cloudProvider,
-                                                          final ExecutorService metadataExecutorService,
-                                                          final int queryTimeoutMs) throws InterruptedException, ExecutionException, TimeoutException {
+    private static CloudProviderInfo tryAllCloudProviders(final CoreConfiguration.CloudProvider cloudProvider, final int queryTimeoutMs)
+        throws InterruptedException, ExecutionException, TimeoutException {
 
+        ExecutorService executor = ExecutorUtils.createThreadDaemonPool("cloud-metadata", 2, 2);
         CloudProviderInfo cloudProviderInfo = null;
         Future<CloudProviderInfo> awsMetadata;
         Future<CloudProviderInfo> gcpMetadata;
-        awsMetadata = metadataExecutorService.submit(new Callable<CloudProviderInfo>() {
-            @Nullable
-            @Override
-            public CloudProviderInfo call() {
-                CloudProviderInfo awsInfo = null;
-                try {
-                    awsInfo = getAwsMetadata(queryTimeoutMs, cloudProvider);
-                } catch (Exception e) {
-                    // Expected - trial and error method
-                }
-                return awsInfo;
-            }
-        });
 
-        gcpMetadata = metadataExecutorService.submit(new Callable<CloudProviderInfo>() {
-            @Nullable
-            @Override
-            public CloudProviderInfo call() {
-                CloudProviderInfo gcpInfo = null;
-                try {
-                    gcpInfo = getGcpMetadata(queryTimeoutMs);
-                } catch (Exception e) {
-                    // Expected - trial and error method
+        try {
+            awsMetadata = executor.submit(new Callable<CloudProviderInfo>() {
+                @Nullable
+                @Override
+                public CloudProviderInfo call() {
+                    CloudProviderInfo awsInfo = null;
+                    try {
+                        awsInfo = getAwsMetadata(queryTimeoutMs, cloudProvider);
+                    } catch (Exception e) {
+                        // Expected - trial and error method
+                    }
+                    return awsInfo;
                 }
-                return gcpInfo;
-            }
-        });
+            });
+
+            gcpMetadata = executor.submit(new Callable<CloudProviderInfo>() {
+                @Nullable
+                @Override
+                public CloudProviderInfo call() {
+                    CloudProviderInfo gcpInfo = null;
+                    try {
+                        gcpInfo = getGcpMetadata(queryTimeoutMs);
+                    } catch (Exception e) {
+                        // Expected - trial and error method
+                    }
+                    return gcpInfo;
+                }
+            });
+        } finally {
+            executor.shutdown();
+        }
 
         long futureTimeout = queryTimeoutMs + 200;
         try {

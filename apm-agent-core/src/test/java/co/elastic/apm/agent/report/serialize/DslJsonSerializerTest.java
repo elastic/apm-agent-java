@@ -1090,8 +1090,7 @@ class DslJsonSerializerTest {
     }
 
     private MetaData createMetaData() throws Exception {
-        //noinspection ConstantConditions - null is not allowed, but when providing a configured hostname, executor is not used
-        return createMetaData(SystemInfo.create("hostname", null, 0).get());
+        return createMetaData(SystemInfo.create("hostname", 0));
     }
 
     private MetaData createMetaData(SystemInfo system) throws Exception {

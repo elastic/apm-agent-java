@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.util.CustomEnvVariables;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -29,13 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class SystemInfoTest extends CustomEnvVariables {
 
-    private static SystemInfo systemInfo;
-
-    @BeforeAll
-    static void initialize() throws Exception {
-        //noinspection ConstantConditions - null is not allowed, but when providing a configured hostname, executor is not used
-        systemInfo = SystemInfo.create("hostname", null, 0).get();
-    }
+    private static final SystemInfo systemInfo = SystemInfo.create("hostname", 0);
 
     @Test
     void testHostnameDiscoveryThroughCommand() {

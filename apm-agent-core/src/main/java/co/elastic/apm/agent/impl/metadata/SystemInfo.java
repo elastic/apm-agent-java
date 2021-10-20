@@ -30,9 +30,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -97,32 +94,28 @@ public class SystemInfo {
     }
 
     /**
-     * Starts a task for system info discover on the provided executor service, returning immediately.
+     * Creates a {@link SystemInfo} containing auto-discovered info about the system.
+     * This method may block on reading files and executing external processes.
      * @param configuredHostname hostname configured through the {@link co.elastic.apm.agent.configuration.CoreConfiguration#hostname} config
-     * @param metadataExecutorService the executor service which should be used to run the system info discover task
      * @param timeoutMillis enables to limit the execution of the system discovery task
      * @return a future from which this system's info can be obtained
      */
-    public static Future<SystemInfo> create(final @Nullable String configuredHostname, ExecutorService metadataExecutorService, final long timeoutMillis) {
+    public static SystemInfo create(final @Nullable String configuredHostname, final long timeoutMillis) {
         final String osName = System.getProperty("os.name");
         final String osArch = System.getProperty("os.arch");
 
+        SystemInfo systemInfo;
         if (configuredHostname != null && !configuredHostname.isEmpty()) {
-            SystemInfo systemInfo = new SystemInfo(osArch, configuredHostname, null, osName);
-            systemInfo.findContainerDetails();
-            return new NoWaitFuture.NonNullable<>(systemInfo);
+            systemInfo = new SystemInfo(osArch, configuredHostname, null, osName);
+        } else {
+            // this call is invoking external commands
+            String detectedHostname = discoverHostname(isWindows(osName), timeoutMillis);
+            systemInfo = new SystemInfo(osArch, configuredHostname, detectedHostname, osName);
         }
+        // this call reads and parses files
+        systemInfo.findContainerDetails();
+        return systemInfo;
 
-        return metadataExecutorService.submit(new Callable<SystemInfo>() {
-            @Override
-            public SystemInfo call() {
-                // this call is invoking external commands
-                String detectedHostname = discoverHostname(isWindows(osName), timeoutMillis);
-                SystemInfo systemInfo = new SystemInfo(osArch, configuredHostname, detectedHostname, osName);
-                systemInfo.findContainerDetails();
-                return systemInfo;
-            }
-        });
     }
 
     static boolean isWindows(String osName) {
