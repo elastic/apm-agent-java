@@ -25,6 +25,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 import org.apache.log4j.PropertyConfigurator;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnJre;
+import org.junit.jupiter.api.condition.JRE;
 
 import java.io.File;
 import java.util.Objects;
@@ -42,6 +45,20 @@ public class Log4j1ShadingTest extends LogShadingInstrumentationTest {
     @Override
     protected void waitForFileRolling() {
         await().untilAsserted(() -> assertThat(new File(getShadeLogFilePath()).length()).isEqualTo(0));
+    }
+
+    @Test
+    @Override
+    @DisabledOnJre(value = JRE.JAVA_17, disabledReason = "log4j1 MDC is broken in Java 17 due to bogus version detection in org.apache.log4j.helpers.Loader")
+    public void testShadingIntoOriginalLogsDir() throws Exception {
+        super.testShadingIntoOriginalLogsDir();
+    }
+
+    @Test
+    @Override
+    @DisabledOnJre(value = JRE.JAVA_17, disabledReason = "log4j1 MDC is broken in Java 17 due to bogus version detection in org.apache.log4j.helpers.Loader")
+    public void testSimpleLogShading() throws Exception {
+        super.testSimpleLogShading();
     }
 
     private static class Log4j1LoggerFacade implements LoggerFacade {

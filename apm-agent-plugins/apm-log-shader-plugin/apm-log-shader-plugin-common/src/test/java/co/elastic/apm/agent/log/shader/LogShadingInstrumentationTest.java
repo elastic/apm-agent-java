@@ -344,10 +344,13 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
         assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo("v42");
         assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
+        JsonNode jsonTraceId = ecsLogLineTree.get("trace.id");
         if (traceId != null) {
-            assertThat(ecsLogLineTree.get("trace.id").textValue()).isEqualTo(traceId);
+            assertThat(jsonTraceId)
+                .map(JsonNode::asText)
+                .isEqualTo(traceId);
         } else {
-            assertThat(ecsLogLineTree.get("trace.id")).isNull();
+            assertThat(jsonTraceId).isNull();
         }
     }
 
