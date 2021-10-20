@@ -47,11 +47,11 @@ public class ProcessExecutionUtil {
         int exitValue = -1;
         Throwable exception = null;
         StringBuilder commandOutput = new StringBuilder();
+        long duration = 0L;
         try {
             spawnedProcess = buildTheProcess.start();
 
             long start = System.currentTimeMillis();
-            long duration = 0L;
             boolean isAlive = true;
             byte[] buffer = new byte[4 * 1000];
             try (InputStream in = spawnedProcess.getInputStream()) {
@@ -123,7 +123,7 @@ public class ProcessExecutionUtil {
                 }
             }
         }
-        return new CommandOutput(commandOutput, exitValue, exception);
+        return new CommandOutput(commandOutput, exitValue, exception, duration);
     }
 
     public static boolean processIsAlive(Process proc) {
@@ -153,13 +153,17 @@ public class ProcessExecutionUtil {
         StringBuilder output;
         int exitCode;
         Throwable exceptionThrown;
+        long timeTakenInMilliseconds;
 
-        public CommandOutput(StringBuilder output, int exitCode, Throwable exception) {
+        public CommandOutput(StringBuilder output, int exitCode, Throwable exception, long time) {
             super();
             this.output = output;
             this.exitCode = exitCode;
             this.exceptionThrown = exception;
+            this.timeTakenInMilliseconds = time;
         }
+
+        public long getTimeTakenInMilliseconds() {return timeTakenInMilliseconds;}
 
         public StringBuilder getOutput() {
             return output;
@@ -179,10 +183,10 @@ public class ProcessExecutionUtil {
 
         public String toString() {
             if (this.exceptionThrown != null) {
-                return "Exit Code: " + this.exitCode + "; Output: " + this.output.toString() +
+                return "Exit Code: " + this.exitCode + "; Time: " + this.timeTakenInMilliseconds + "ms; Output: " + this.output.toString() +
                     "\r\nException: " + this.exceptionThrown;
             } else {
-                return "Exit Code: " + this.exitCode + "; Output: " + this.output.toString();
+                return "Exit Code: " + this.exitCode + "; Time: " + this.timeTakenInMilliseconds + "ms; Output: " + this.output.toString();
             }
         }
     }
