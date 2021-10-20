@@ -233,7 +233,7 @@ pipeline {
                   git fetch origin ${BRANCH_SPECIFIER} # ensure remote branch is fetched for local checkout
                   git checkout --track origin/${BRANCH_SPECIFIER}
                   """)
-              sh(script: "./scripts/jenkins/update_cloudfoundry.sh")
+              sh(script: "./scripts/jenkins/update_cloudfoundry.sh ${TAG_VER}")
               gitPush()
             }
           }
