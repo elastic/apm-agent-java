@@ -42,7 +42,7 @@ class ProcessHelper {
      * instrumented in order to detect process termination. When this method is invoked by the plugin itself, we want to
      * avoid applying its instrumentation logic.
      */
-    private static final ThreadLocal<Boolean> inTracingContext = GlobalVariables.get(ProcessHelper.class, "inTracingContext", new ThreadLocal<>());
+    private static final ThreadLocal<Boolean> inTracingContext = GlobalVariables.get(ProcessHelper.class, "inTracingContext", new ThreadLocal<Boolean>());
 
     private final WeakMap<Process, Span> inFlightSpans;
 
