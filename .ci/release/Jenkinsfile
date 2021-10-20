@@ -47,11 +47,6 @@ pipeline {
             }
 
             dir("${BASE_DIR}") {
-              script {
-                env.BRANCH_DOT_X = sh(script: "./scripts/jenkins/tags.sh dot_x", returnStdout: true)
-              }
-            }
-            dir("${BASE_DIR}") {
               withEnv(["BRANCH_NAME=${BRANCH_SPECIFIER}"]){
                 withGitRelease() { // sets up the git release setup (remote branches, current workspace state, ...)
                   stash(allowEmpty: true, name: 'source', useDefaultExcludes: false)
