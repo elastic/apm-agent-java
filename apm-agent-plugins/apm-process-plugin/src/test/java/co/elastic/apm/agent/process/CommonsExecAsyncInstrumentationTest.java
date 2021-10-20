@@ -62,18 +62,21 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
         startTransaction();
         List<String> cmd;
         if (isWindows) {
-            // todo implement sleep for Windows
-            cmd = List.of();
+            // other options: bash -c "sleep 0.2" (bash not guaranteed)
+            // powershell -nop -c "& {sleep -m 2}" (too long to start)
+            // timeout /NOBREAK /T 1 (output redirection fails)
+            cmd = List.of("ping", "192.0.2.1", "-n", "1", "-w", "200");
         } else {
             cmd = List.of("sleep", "0.5");
         }
         ProcessBuilder processBuilder = new ProcessBuilder(cmd);
         Process process = processBuilder.start();
         assertThatThrownBy(process::exitValue).isInstanceOf(IllegalThreadStateException.class);
-        assertThat(reporter.getSpans().stream().filter((span) -> span.getNameAsString().startsWith("sleep"))).isEmpty();
+        assertThat(reporter.getSpans().stream().filter((span) -> span.getNameAsString().startsWith(isWindows ? "ping" : "sleep"))).isEmpty();
         process.waitFor(1000, TimeUnit.MILLISECONDS);
-        assertThat(process.exitValue()).isEqualTo(0);
-        assertThat(reporter.getSpans().stream().filter((span) -> span.getNameAsString().startsWith("sleep"))).hasSize(1);
+        // Windows: either ping or the call times out, so it always returns exitcode 1
+        assertThat(process.exitValue()).isEqualTo(isWindows ? 1 : 0);
+        assertThat(reporter.getSpans().stream().filter((span) -> span.getNameAsString().startsWith(isWindows ? "ping" : "sleep"))).hasSize(1);
         terminateTransaction();
     }
 

@@ -44,21 +44,25 @@ class ProcessExecutionUtilTest {
     void testTimeout() {
         List<String> cmd;
         if (isWindows) {
-            // todo implement sleep for Windows
-            cmd = List.of();
+            // other options: bash -c "sleep 0.2" (bash not guaranteed)
+            // powershell -nop -c "& {sleep -m 2}" (too long to start)
+            // timeout /NOBREAK /T 1 (output redirection fails)
+            cmd = List.of("ping", "192.0.2.1", "-n", "1", "-w", "200");
         } else {
             cmd = List.of("sleep", "0.2");
         }
         ProcessExecutionUtil.CommandOutput commandOutput = ProcessExecutionUtil.executeCommand(cmd, 100);
         System.out.println("commandOutput = " + commandOutput);
         assertThat(commandOutput.getExceptionThrown()).isInstanceOf(TimeoutException.class);
-        // exit code 143 is related to the SIGTERM termination signal invoked by killing the process
-        assertThat(commandOutput.getExitCode()).isEqualTo(143);
+        // Unix: exit code 143 is related to SIGTERM termination signal invoked by killing the process
+        // Windows: either ping or the call times out, so this always returns exitcode 1
+        assertThat(commandOutput.getExitCode()).isEqualTo(isWindows? 1 : 143);
 
-        commandOutput = ProcessExecutionUtil.executeCommand(cmd, 300);
+        //Windows ping timeout duration is unreliable, 800 seems safe in testing
+        commandOutput = ProcessExecutionUtil.executeCommand(cmd, 800);
         System.out.println("commandOutput = " + commandOutput);
         assertThat(commandOutput.getExceptionThrown()).isNull();
-        assertThat(commandOutput.getExitCode()).isEqualTo(0);
+        assertThat(commandOutput.getExitCode()).isEqualTo(isWindows? 1 : 0);
     }
 
     @Test
