@@ -49,6 +49,7 @@ exclude known static files in all applications might be changed to `/app/static/
 * Fix k8s metadata discovery for containerd-cri envs - {pull}2126[#2126]
 * Fixing/reducing startup delays related to `ensureInstrumented` - {pull}2150[#2150]
 * Fix runtime attach when bytebuddy is in application classpath - {pull}2116[#2116]
+* Fix few Webflux exceptions and missing reactor module - {pull}2207[#2207]
 
 [float]
 ===== Refactorings
