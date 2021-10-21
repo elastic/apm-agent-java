@@ -316,6 +316,7 @@ Fields:
 
 You can filter and group by these dimensions:
 
+* `service.name`: The name of the service
 * `transaction.name`: The name of the transaction
 * `transaction.type`: The type of the transaction, for example `request`
 * `span.type`: The type of the span, for example `app`, `template` or `db`
