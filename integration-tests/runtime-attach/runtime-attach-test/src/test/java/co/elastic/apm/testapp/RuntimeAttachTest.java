@@ -18,9 +18,7 @@
  */
 package co.elastic.apm.testapp;
 
-import com.sun.tools.attach.AttachNotSupportedException;
 import com.sun.tools.attach.VirtualMachine;
-import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,8 +29,8 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import java.io.IOException;
-import java.net.URL;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -122,11 +120,9 @@ class RuntimeAttachTest {
 
         waitForJmxRegistration(pid);
 
-        await().until(() -> getWorkUnitCount(false) > 0);
+        await("wait for application to start work").until(() -> getWorkUnitCount(false) > 0);
 
-        // both should be equal, but a 1 offset is expected as updates are not atomic
-        assertThat(getWorkUnitCount(true))
-            .isCloseTo(getWorkUnitCount(false), Offset.offset(1));
+        await("wait for application work instrumentation").until(() -> getWorkUnitCount(true) > 0);
     }
 
     private void waitForJmxRegistration(long pid) {

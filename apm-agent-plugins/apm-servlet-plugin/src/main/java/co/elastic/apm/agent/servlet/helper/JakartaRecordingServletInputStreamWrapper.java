@@ -21,18 +21,18 @@ package co.elastic.apm.agent.servlet.helper;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.util.IOUtils;
 
-import javax.servlet.ReadListener;
-import javax.servlet.ServletInputStream;
+import jakarta.servlet.ReadListener;
+import jakarta.servlet.ServletInputStream;
 import java.io.IOException;
 import java.nio.CharBuffer;
 import java.nio.charset.CoderResult;
 
-public class RecordingServletInputStreamWrapper extends ServletInputStream {
+public class JakartaRecordingServletInputStreamWrapper extends ServletInputStream {
 
     private final Request request;
     private final ServletInputStream servletInputStream;
 
-    public RecordingServletInputStreamWrapper(Request request, ServletInputStream servletInputStream) {
+    public JakartaRecordingServletInputStreamWrapper(Request request, ServletInputStream servletInputStream) {
         this.request = request;
         this.servletInputStream = servletInputStream;
     }

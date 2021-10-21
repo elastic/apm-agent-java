@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -71,7 +70,7 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
         }
 
         @Nullable
-        @AssignTo.Return(typing = Assigner.Typing.DYNAMIC) // required to provide the Mono<?> return value type
+        @Advice.AssignReturned.ToReturned(typing = Assigner.Typing.DYNAMIC) // required to provide the Mono<?> return value type
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static Object onExit(@Advice.Enter @Nullable Object enterTransaction,
                                     @Advice.Argument(0) ServerWebExchange exchange,
