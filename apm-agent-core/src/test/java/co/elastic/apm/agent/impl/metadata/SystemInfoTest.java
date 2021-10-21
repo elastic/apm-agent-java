@@ -38,9 +38,6 @@ public class SystemInfoTest extends CustomEnvVariables {
 
     @Test
     void testHostnameDiscoveryThroughEnv() {
-        assertThat(SystemInfo.discoverHostnameThroughEnv(true)).isNull();
-        assertThat(SystemInfo.discoverHostnameThroughEnv(false)).isNull();
-
         boolean isWindows = SystemInfo.isWindows(systemInfo.getPlatform());
         Map<String, String> customEnvVariables = new HashMap<>();
         if (isWindows) {
