@@ -33,6 +33,8 @@ exclude known static files in all applications might be changed to `/app/static/
 ** It only impacts prefix patterns due to the additional context path in pattern.
 ** It does not impact deployment within the `ROOT` context like Spring-boot which do not have such context path prefix.
 * The metrics `transaction.duration.sum.us`, `transaction.duration.count` and `transaciton.breakdown.count` are no longer recorded - {pull}2194[#2194]
+* Automatic hostname discovery mechanism had changed, so the resulted `host.name` and `host.hostname` in events reported
+by the agent may be different. This was done in order to improve the integration with host metrics in the APM UI.
 
 [float]
 ===== Features
@@ -49,6 +51,8 @@ exclude known static files in all applications might be changed to `/app/static/
 * Fix k8s metadata discovery for containerd-cri envs - {pull}2126[#2126]
 * Fixing/reducing startup delays related to `ensureInstrumented` - {pull}2150[#2150]
 * Fix runtime attach when bytebuddy is in application classpath - {pull}2116[#2116]
+* Fix failed integration between agent traces and host metrics coming from Beats/Elastic-Agent due to incorrect hostname
+discovery - {pull}2205[#2205]
 
 [float]
 ===== Refactorings

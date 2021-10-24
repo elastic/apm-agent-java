@@ -26,7 +26,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class CustomEnvVariables extends AbstractInstrumentationTest {
+public abstract class CustomEnvVariables extends AbstractInstrumentationTest {
 
     protected void runWithCustomEnvVariables(Map<String, String> customEnvVariables, Runnable task) {
         try {
@@ -35,33 +35,5 @@ public class CustomEnvVariables extends AbstractInstrumentationTest {
         } finally {
             SystemSingleEnvVariablesInstrumentation.clearCustomEnvVariables();
         }
-    }
-
-    @Test
-    void testCustomSingleEnvVariable() {
-        String pathVariable = "PATH";
-        final String originalPath = System.getenv(pathVariable);
-        String mockPath = "mock/path";
-        final Map<String, String> customVariables = Map.of("key1", "value1", pathVariable, mockPath);
-        runWithCustomEnvVariables(customVariables, () -> {
-            String returnedPath = System.getenv(pathVariable);
-            assertThat(returnedPath).isEqualTo(mockPath);
-        });
-        String returnedPath = System.getenv(pathVariable);
-        assertThat(returnedPath).isEqualTo(originalPath);
-    }
-
-    @Test
-    void testSingleEnvVariables() {
-        final Map<String, String> originalVariables = System.getenv();
-        final Map<String, String> customVariables = Map.of("key1", "value1", "key2", "value2");
-        runWithCustomEnvVariables(customVariables, () -> {
-            Map<String, String> returnedEnvVariables = System.getenv();
-            assertThat(returnedEnvVariables).containsAllEntriesOf(originalVariables);
-            assertThat(returnedEnvVariables).containsAllEntriesOf(customVariables);
-        });
-        Map<String, String> returnedEnvVariables = System.getenv();
-        assertThat(returnedEnvVariables).containsAllEntriesOf(originalVariables);
-        customVariables.forEach((key, value) -> assertThat(returnedEnvVariables).doesNotContainEntry(key, value));
     }
 }

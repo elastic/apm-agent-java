@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl;
+package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.UrlConnectionUtils;
 import com.dslplatform.json.DslJson;
@@ -46,12 +45,31 @@ import java.util.concurrent.TimeoutException;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AWS;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AZURE;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.GCP;
+import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.NONE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class CloudMetadataProvider {
     private static final Logger logger = LoggerFactory.getLogger(CloudMetadataProvider.class);
 
     private static final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
+
+    /**
+     * This method may block on multiple HTTP calls. See {@link #fetchAndParseCloudProviderInfo(CoreConfiguration.CloudProvider, int)}
+     * for details.
+     * @param cloudProvider the configured cloud provided - used as an optimization to lookup specific APIs instead of trial-and-error
+     * @param queryTimeoutMs a configured limitation for the maximum duration of each metadata discovery task
+     * @return cloud provide metadata, or {@code null} if requested not to do any lookup by using
+     *          {@link co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider#NONE}
+     */
+    @Nullable
+    static CloudProviderInfo getCloudInfoProvider(final CoreConfiguration.CloudProvider cloudProvider, final int queryTimeoutMs) {
+
+        if (cloudProvider == NONE) {
+            return null;
+        }
+
+        return CloudMetadataProvider.fetchAndParseCloudProviderInfo(cloudProvider, queryTimeoutMs);
+    }
 
     /**
      * Automatic discovery of cloud provider and related metadata. This method is fetching data from public APIs
@@ -62,8 +80,8 @@ public class CloudMetadataProvider {
      * known endpoints are queried concurrently. In such cases, blocking is expected to be long, bounded by the
      * HTTP requests timing out.
      *
-     * @param cloudProvider  the expected {@link co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider}
-     * @param queryTimeoutMs timeout in milliseconds to limit the discovery duration
+     * @param cloudProvider   the expected {@link CoreConfiguration.CloudProvider}
+     * @param queryTimeoutMs  timeout in milliseconds to limit the discovery duration
      * @return Automatically discovered {@link CloudProviderInfo}, or {@code null} if none found.
      */
     @Nullable
@@ -98,7 +116,7 @@ public class CloudMetadataProvider {
                     break;
                 }
                 case AUTO: {
-                    cloudProviderInfo = tryAllCloudProviders(queryTimeoutMs, cloudProvider);
+                    cloudProviderInfo = tryAllCloudProviders(cloudProvider, queryTimeoutMs);
                 }
             }
         } catch (Throwable throwable) {
@@ -109,15 +127,17 @@ public class CloudMetadataProvider {
     }
 
     @Nullable
-    private static CloudProviderInfo tryAllCloudProviders(final int queryTimeoutMs, final CoreConfiguration.CloudProvider cloudProvider)
+    private static CloudProviderInfo tryAllCloudProviders(final CoreConfiguration.CloudProvider cloudProvider, final int queryTimeoutMs)
         throws InterruptedException, ExecutionException, TimeoutException {
 
-        CloudProviderInfo cloudProviderInfo = null;
         ExecutorService executor = ExecutorUtils.createThreadDaemonPool("cloud-metadata", 2, 2);
+        CloudProviderInfo cloudProviderInfo = null;
         Future<CloudProviderInfo> awsMetadata;
         Future<CloudProviderInfo> gcpMetadata;
+
         try {
             awsMetadata = executor.submit(new Callable<CloudProviderInfo>() {
+                @Nullable
                 @Override
                 public CloudProviderInfo call() {
                     CloudProviderInfo awsInfo = null;
@@ -131,6 +151,7 @@ public class CloudMetadataProvider {
             });
 
             gcpMetadata = executor.submit(new Callable<CloudProviderInfo>() {
+                @Nullable
                 @Override
                 public CloudProviderInfo call() {
                     CloudProviderInfo gcpInfo = null;

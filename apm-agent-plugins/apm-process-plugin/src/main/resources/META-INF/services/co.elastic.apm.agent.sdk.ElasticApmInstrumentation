@@ -1,4 +1,5 @@
 co.elastic.apm.agent.process.ProcessStartInstrumentation
 co.elastic.apm.agent.process.ProcessExitInstrumentation$WaitFor
 co.elastic.apm.agent.process.ProcessExitInstrumentation$Destroy
+co.elastic.apm.agent.process.ProcessExitInstrumentation$ExitValue
 co.elastic.apm.agent.process.CommonsExecAsyncInstrumentation
