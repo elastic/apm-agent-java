@@ -24,7 +24,6 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderSetter;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -32,6 +31,7 @@ import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.GetResponse;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -45,6 +45,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -121,11 +122,12 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                 .and(takesArguments(6));
         }
         public static class AdviceClass {
-            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            @AssignTo(arguments = @AssignTo.Argument(index = 0, value = 4))
             @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            @Advice.AssignReturned.ToArguments(@ToArgument(index = 0, value = 4, typing = DYNAMIC))
             public static Object[] onBasicPublish(@Advice.This Channel channel,
                                                   @Advice.Argument(0) @Nullable String exchange,
+                                                  @Advice.Argument(1) @Nullable String routingKey,
                                                   @Advice.Argument(4) @Nullable AMQP.BasicProperties properties) {
                 if (!tracer.isRunning()) {
                     return null;
@@ -144,7 +146,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
 
                 properties = propagateTraceContext(exitSpan, properties);
 
-                captureMessage(exchange, getTimestamp(properties.getTimestamp()), exitSpan);
+                captureMessage(exchange, routingKey, getTimestamp(properties.getTimestamp()), exitSpan);
                 Connection connection = channel.getConnection();
                 RabbitMqHelper.captureDestination(exchange, connection.getAddress(), connection.getPort(), exitSpan);
 
@@ -246,7 +248,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                     span.requestDiscarding();
                 }
 
-                captureMessage(queue, getTimestamp(properties != null ? properties.getTimestamp() : null), span);
+                captureMessage(queue, envelope != null ? envelope.getRoutingKey() : null, getTimestamp(properties != null ? properties.getTimestamp() : null), span);
                 Connection connection = channel.getConnection();
                 RabbitMqHelper.captureDestination(exchange, connection.getAddress(), connection.getPort(), span);
 

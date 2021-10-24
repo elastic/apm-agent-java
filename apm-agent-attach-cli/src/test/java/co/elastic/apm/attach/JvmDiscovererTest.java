@@ -44,7 +44,7 @@ class JvmDiscovererTest {
     }
 
     @Test
-    void testPsDiscovererNotAvailableOnHotspot() throws Exception {
+    void testPsDiscovererNotAvailableOnHotspot() {
         assumeFalse(JvmInfo.isJ9());
         JvmDiscoverer.UsingPs usingPs = new JvmDiscoverer.UsingPs(UserRegistry.empty());
         assertThat(usingPs.isAvailable()).isFalse();

@@ -18,13 +18,11 @@
  */
 package co.elastic.apm.attach;
 
-import net.bytebuddy.agent.ByteBuddyAgent;
-
 import java.util.Locale;
 import java.util.Properties;
 
 class JvmInfo {
-    public static final String CURRENT_PID = ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE.resolve();
+    public static final String CURRENT_PID = JvmAttachUtils.CURRENT_PID;
 
     private final String pid;
     private final String userName;

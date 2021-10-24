@@ -18,8 +18,9 @@
  */
 package co.elastic.apm.agent.log.shipper;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -76,7 +77,7 @@ class ApmServerLogShipperTest {
         mockApmServer.stubFor(get("/").willReturn(ok()));
         mockApmServer.start();
 
-        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class));
+        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), config.getConfig(CoreConfiguration.class));
         startClientWithValidUrls();
 
         DslJsonSerializer serializer = new DslJsonSerializer(config.getConfig(StacktraceConfiguration.class), apmServerClient, MetaData.create(config, null));
@@ -121,7 +122,7 @@ class ApmServerLogShipperTest {
         // Wait until first failure to send file lines
         Awaitility.await()
             .pollInterval(1, TimeUnit.MILLISECONDS)
-            .timeout(100, TimeUnit.MILLISECONDS)
+            .timeout(500, TimeUnit.MILLISECONDS)
             .untilAsserted(() -> assertThat(logShipper.getErrorCount()).isGreaterThan(0));
         // Set valid APM server URLs
         startClientWithValidUrls();

@@ -21,8 +21,8 @@ package co.elastic.apm.agent.kafka;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
+import static net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
@@ -64,7 +65,7 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
         private static boolean headersSupported = true;
 
         @Nullable
-        @AssignTo.Argument(value = 1, index = 1)
+        @Advice.AssignReturned.ToArguments(@ToArgument(value = 1, index = 1, typing = DYNAMIC))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] beforeSend(@Advice.FieldValue("apiVersions") final ApiVersions apiVersions,
                                           @Advice.Argument(0) final ProducerRecord<?, ?> record,
@@ -97,7 +98,7 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
          * We want to avoid assigning that null value as that will have unintended consequences.
          */
         @Nullable
-        @AssignTo.Thrown(index = 0)
+        @Advice.AssignReturned.ToThrown(index = 0, typing = DYNAMIC)
         @SuppressWarnings({"unchecked", "rawtypes"})
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
         public static Object[] afterSend(@Advice.Enter @Nullable Object[] enter,

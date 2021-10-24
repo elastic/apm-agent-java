@@ -23,8 +23,8 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.payload.Service;
-import co.elastic.apm.agent.impl.payload.ServiceFactory;
+import co.elastic.apm.agent.impl.metadata.Service;
+import co.elastic.apm.agent.impl.metadata.ServiceFactory;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -330,9 +330,10 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
 
     private boolean shouldApplyEcsReformatting(A originalAppender) {
         F formatter = getFormatterFrom(originalAppender);
-        return !isShadingAppender(originalAppender) &&
-            !isEcsFormatter(formatter) &&
-            isAllowedFormatter(formatter, loggingConfiguration.getLogEcsFormatterAllowList());
+        return formatter != null &&
+                !isShadingAppender(originalAppender) &&
+                !isEcsFormatter(formatter) &&
+                isAllowedFormatter(formatter, loggingConfiguration.getLogEcsFormatterAllowList());
     }
 
     protected boolean isAllowedFormatter(F formatter, List<WildcardMatcher> allowList) {
@@ -399,6 +400,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
      * @param appender used appender
      * @return the given appender's formatting entity
      */
+    @Nullable
     protected abstract F getFormatterFrom(A appender);
 
     /**
