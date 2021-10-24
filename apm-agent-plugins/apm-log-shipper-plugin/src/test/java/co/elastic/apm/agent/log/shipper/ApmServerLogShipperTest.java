@@ -122,7 +122,7 @@ class ApmServerLogShipperTest {
         // Wait until first failure to send file lines
         Awaitility.await()
             .pollInterval(1, TimeUnit.MILLISECONDS)
-            .timeout(100, TimeUnit.MILLISECONDS)
+            .timeout(500, TimeUnit.MILLISECONDS)
             .untilAsserted(() -> assertThat(logShipper.getErrorCount()).isGreaterThan(0));
         // Set valid APM server URLs
         startClientWithValidUrls();
