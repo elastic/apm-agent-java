@@ -21,6 +21,8 @@ package co.elastic.apm.agent.impl.metadata;
 import co.elastic.apm.agent.util.CustomEnvVariables;
 import org.junit.jupiter.api.Test;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,17 +30,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class SystemInfoTest extends CustomEnvVariables {
 
-    private static final SystemInfo systemInfo = SystemInfo.create("hostname", 0);
+    private static final SystemInfo systemInfo;
+    private static final boolean isWindows;
+
+    static {
+        systemInfo = SystemInfo.create("hostname", 0);
+        isWindows = SystemInfo.isWindows(systemInfo.getPlatform());
+    }
+
 
     @Test
     void testHostnameDiscoveryThroughCommand() {
-        String hostname = SystemInfo.discoverHostnameThroughCommand(SystemInfo.isWindows(systemInfo.getPlatform()), 300);
+        String hostname = SystemInfo.discoverHostnameThroughCommand(isWindows, 300);
         assertThat(hostname).isNotNull();
     }
 
     @Test
     void testHostnameDiscoveryThroughEnv() {
-        boolean isWindows = SystemInfo.isWindows(systemInfo.getPlatform());
         Map<String, String> customEnvVariables = new HashMap<>();
         if (isWindows) {
             customEnvVariables.put("COMPUTERNAME", "Windows_hostname");
@@ -48,6 +56,22 @@ public class SystemInfoTest extends CustomEnvVariables {
             runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(false)).isEqualTo("macOS_hostname"));
             customEnvVariables.put("HOSTNAME", "Linux_hostname");
             runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(false)).isEqualTo("Linux_hostname"));
+        }
+    }
+
+    @Test
+    void testHostnameDiscoveryFallbackThroughInetAddress() throws UnknownHostException {
+        String expectedHostname = InetAddress.getLocalHost().getHostName();
+
+        Map<String, String> customEnvVariables = new HashMap<>();
+        if (isWindows) {
+            customEnvVariables.put("COMPUTERNAME", null);
+            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.fallbackHostnameDiscovery(true)).isEqualTo(expectedHostname));
+        } else {
+            customEnvVariables.put("HOST", null);
+            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.fallbackHostnameDiscovery(false)).isEqualTo(expectedHostname));
+            customEnvVariables.put("HOSTNAME", null);
+            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.fallbackHostnameDiscovery(false)).isEqualTo(expectedHostname));
         }
     }
 

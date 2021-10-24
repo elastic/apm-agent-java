@@ -30,7 +30,7 @@ public class CustomEnvVariablesTest extends CustomEnvVariables {
     void testCustomSingleEnvVariable() {
         String pathVariable = "PATH";
         final String originalPath = System.getenv(pathVariable);
-        String mockPath = "mock/path";
+        final String mockPath = "mock/path";
         final Map<String, String> customVariables = Map.of("key1", "value1", pathVariable, mockPath);
         runWithCustomEnvVariables(customVariables, () -> {
             String returnedPath = System.getenv(pathVariable);
@@ -41,7 +41,7 @@ public class CustomEnvVariablesTest extends CustomEnvVariables {
     }
 
     @Test
-    void testSingleEnvVariables() {
+    void testMultipleEnvVariables() {
         final Map<String, String> originalVariables = System.getenv();
         final Map<String, String> customVariables = Map.of("key1", "value1", "key2", "value2");
         runWithCustomEnvVariables(customVariables, () -> {

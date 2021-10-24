@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -134,12 +135,25 @@ public class SystemInfo {
     static String discoverHostname(boolean isWindows, long timeoutMillis) {
         String hostname = discoverHostnameThroughCommand(isWindows, timeoutMillis);
         if (hostname == null || hostname.isEmpty()) {
-            hostname = discoverHostnameThroughEnv(isWindows);
+            hostname = fallbackHostnameDiscovery(isWindows);
         }
         if (hostname == null || hostname.isEmpty()) {
             logger.warn("Unable to discover hostname, set log_level to debug for more details");
         } else {
             hostname = removeDomain(hostname);
+        }
+        return hostname;
+    }
+
+    @Nullable
+    static String fallbackHostnameDiscovery(boolean isWindows) {
+        String hostname = discoverHostnameThroughEnv(isWindows);
+        if (hostname == null || hostname.isEmpty()) {
+            try {
+                hostname = InetAddress.getLocalHost().getHostName();
+            } catch (Exception e) {
+                logger.warn("Last fallback for hostname discovery of localhost failed", e);
+            }
         }
         return hostname;
     }
