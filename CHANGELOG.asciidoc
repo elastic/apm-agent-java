@@ -53,6 +53,7 @@ by the agent may be different. This was done in order to improve the integration
 * Fix runtime attach when bytebuddy is in application classpath - {pull}2116[#2116]
 * Fix failed integration between agent traces and host metrics coming from Beats/Elastic-Agent due to incorrect hostname
 discovery - {pull}2205[#2205]
+* Fix infinitely kept-alive transactions in Hikari connection pool - {pull}2210[#2210]
 
 [float]
 ===== Refactorings
