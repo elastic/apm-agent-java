@@ -22,6 +22,7 @@
         <module>apm-es-restclient-plugin-5_6</module>
         <module>apm-es-restclient-plugin-6_4</module>
         <module>apm-es-restclient-plugin-7_x</module>
+        <module>apm-es-java-client-test</module>
     </modules>
 
 
