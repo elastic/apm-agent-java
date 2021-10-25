@@ -22,6 +22,9 @@ import co.elastic.clients.elasticsearch._core.SearchTemplateRequest;
 import co.elastic.clients.elasticsearch._core.SearchTemplateResponse;
 import co.elastic.clients.elasticsearch._core.UpdateRequest;
 import co.elastic.clients.elasticsearch._core.UpdateResponse;
+import co.elastic.clients.elasticsearch._core.bulk.DeleteOperation;
+import co.elastic.clients.elasticsearch._core.bulk.IndexOperation;
+import co.elastic.clients.elasticsearch._core.bulk.Operation;
 import co.elastic.clients.elasticsearch._core.msearch_template.TemplateItem;
 import co.elastic.clients.elasticsearch._core.search.Hit;
 import co.elastic.clients.elasticsearch._core.search.HitsMetadata;
@@ -63,13 +66,12 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
     public void testCreateAndDeleteIndex() throws IOException, ExecutionException, InterruptedException {
         // Create an Index
         doCreateIndex(new CreateRequest(builder -> builder.index(SECOND_INDEX)));
-
         validateSpanContentAfterIndexCreateRequest();
-        // Delete the index
+
         reporter.reset();
 
+        // Delete the index
         doDeleteIndex(new DeleteRequest(builder -> builder.index(SECOND_INDEX)));
-
         validateSpanContentAfterIndexDeleteRequest();
     }
 
@@ -270,52 +272,18 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         }
     }
 
-    //
-//    @Test
-//    public void testScenarioAsBulkRequest() throws IOException, ExecutionException, InterruptedException {
-//        doBulk(new BulkRequest()
-//            .add(new IndexRequest(INDEX, DOC_TYPE, "2").source(
-//                jsonBuilder()
-//                    .startObject()
-//                    .field(FOO, BAR)
-//                    .endObject()
-//            ))
-//            .add(new DeleteRequest(INDEX, DOC_TYPE, "2")));
-//
-//        validateSpanContentAfterBulkRequest();
-//    }
+    @Test
+    public void testScenarioAsBulkRequest() throws IOException, ExecutionException, InterruptedException {
+        BulkRequest bulkRequest = new BulkRequest(new BulkRequest.Builder()
+            .addOperation(new Operation.Builder().index(new IndexOperation(indexOperationBuilder -> indexOperationBuilder.index(INDEX).id("2"))).build())
+            .addOperation(new Operation.Builder().delete(new DeleteOperation(deleteOperationBuilder -> deleteOperationBuilder.index(INDEX).id("2"))).build()));
 
-    private void createDocument() throws IOException, ExecutionException, InterruptedException {
-        IndexResponse ir = doIndex(new IndexRequest(new IndexRequest.Builder()
-            .index(INDEX)
-            .type(DOC_TYPE)
-            .id(DOC_ID)
-            .refresh(JsonValue.TRUE)
-            .document(Map.of(FOO, BAR))));
-        assertThat(ir).isNotNull();
-        assertThat(ir.result().jsonValue()).isEqualTo("created");
-        assertThat(ir.id()).isNotBlank();
-        assertThat(ir.index()).isEqualTo(INDEX);
+        doBulk(bulkRequest);
+
+        validateSpanContentAfterBulkRequest();
     }
 
-    private co.elastic.clients.elasticsearch._core.DeleteResponse deleteDocument() throws InterruptedException, ExecutionException, IOException {
-        return doDocumentDelete(new co.elastic.clients.elasticsearch._core.DeleteRequest(builder -> builder.index(INDEX).type(DOC_TYPE).id(DOC_ID)));
-    }
-
-    private SearchTemplateRequest prepareSearchTemplateRequest(String templateId) {
-        Map<String, JsonData> scriptParams = new HashMap<>();
-        scriptParams.put("field", JsonData.of(FOO));
-        scriptParams.put("value", JsonData.of(BAR));
-        scriptParams.put("size", JsonData.of(5));
-        SearchTemplateRequest searchTemplateRequest = new SearchTemplateRequest(builder -> builder
-            .index(INDEX)
-            .id(templateId)
-            .params(scriptParams)
-        );
-        return searchTemplateRequest;
-    }
-
-    protected void verifyMultiSearchTemplateSpanContent(Span span) {
+    private void verifyMultiSearchTemplateSpanContent(Span span) {
         validateDbContextContent(span, "{\"index\":[\"my-index\"],\"types\":[],\"search_type\":\"query_then_fetch\"}\n" +
             "{\"source\":\"{  \\\"query\\\": { \\\"term\\\" : { \\\"{{field}}\\\" : \\\"{{value}}\\\" } },  \\\"size\\\" : \\\"{{size}}\\\"}\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"},\"explain\":false,\"profile\":false}\n");
     }
@@ -358,7 +326,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         return client.indices().delete(deleteIndexRequest);
     }
 
-    private IndexResponse doIndex(IndexRequest indexRequest) throws ExecutionException, InterruptedException, IOException {
+    private IndexResponse doIndexDocument(IndexRequest indexRequest) throws ExecutionException, InterruptedException, IOException {
         return client.index(indexRequest);
     }
 
@@ -405,15 +373,6 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         return client.update(updateRequest, updateClass);
     }
 
-    private DeleteResponse doDelete(DeleteRequest deleteRequest) throws IOException, ExecutionException, InterruptedException {
-//        if (async) {
-//            AbstractEs6_4ClientInstrumentationTest.ClientMethod<DeleteRequest, DeleteResponse> method =
-//                (request, options, listener) -> client.deleteAsync(request, options, listener);
-//            return invokeAsync(deleteRequest, method);
-//        }
-        return client.indices().delete(deleteRequest);
-    }
-
     private co.elastic.clients.elasticsearch._core.DeleteResponse doDocumentDelete(co.elastic.clients.elasticsearch._core.DeleteRequest deleteRequest) throws IOException {
         return client.delete(deleteRequest);
     }
@@ -438,7 +397,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
     }
 
     private void createMustachePutScriptAndSave() throws IOException {
-        PutScriptRequest putScriptRequest = new PutScriptRequest(builder -> builder
+        client.putScript(new PutScriptRequest(builder -> builder
             .id("elastic-search-template")
             .script(new StoredScript(scriptBuilder ->
                 scriptBuilder.lang(ScriptLanguage.Mustache)
@@ -446,9 +405,36 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
                         "  \"query\": { \"term\" : { \"{{field}}\" : \"{{value}}\" } }," +
                         "  \"size\" : \"{{size}}\"" +
                         "}")
-            )));
-
-        client.putScript(putScriptRequest);
+            ))));
     }
 
+    private void createDocument() throws IOException, ExecutionException, InterruptedException {
+        IndexResponse ir = doIndexDocument(new IndexRequest(new IndexRequest.Builder()
+            .index(INDEX)
+            .type(DOC_TYPE)
+            .id(DOC_ID)
+            .refresh(JsonValue.TRUE)
+            .document(Map.of(FOO, BAR))));
+        assertThat(ir).isNotNull();
+        assertThat(ir.result().jsonValue()).isEqualTo("created");
+        assertThat(ir.id()).isNotBlank();
+        assertThat(ir.index()).isEqualTo(INDEX);
+    }
+
+    private co.elastic.clients.elasticsearch._core.DeleteResponse deleteDocument() throws InterruptedException, ExecutionException, IOException {
+        return doDocumentDelete(new co.elastic.clients.elasticsearch._core.DeleteRequest(builder -> builder.index(INDEX).type(DOC_TYPE).id(DOC_ID)));
+    }
+
+    private SearchTemplateRequest prepareSearchTemplateRequest(String templateId) {
+        Map<String, JsonData> scriptParams = new HashMap<>();
+        scriptParams.put("field", JsonData.of(FOO));
+        scriptParams.put("value", JsonData.of(BAR));
+        scriptParams.put("size", JsonData.of(5));
+        SearchTemplateRequest searchTemplateRequest = new SearchTemplateRequest(builder -> builder
+            .index(INDEX)
+            .id(templateId)
+            .params(scriptParams)
+        );
+        return searchTemplateRequest;
+    }
 }
