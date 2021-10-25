@@ -46,7 +46,7 @@ public interface Labels {
     Labels EMPTY = Labels.Immutable.empty();
 
     @Nullable
-    CharSequence getServiceName();
+    String getServiceName();
 
     @Nullable
     CharSequence getTransactionName();
@@ -116,7 +116,7 @@ public interface Labels {
                 Objects.equals(getSpanSubType(), labels.getSpanSubType()) &&
                 Objects.equals(getTransactionType(), labels.getTransactionType()) &&
                 contentEquals(getTransactionName(), labels.getTransactionName()) &&
-                contentEquals(getServiceName(), labels.getServiceName()) &&
+                Objects.equals(getServiceName(), labels.getServiceName()) &&
                 keys.equals(labels.keys) &&
                 isEqual(values, labels.values);
         }
@@ -203,7 +203,7 @@ public interface Labels {
     class Mutable extends AbstractBase implements Recyclable {
 
         @Nullable
-        private CharSequence serviceName;
+        private String serviceName;
         @Nullable
         private CharSequence transactionName;
         @Nullable
@@ -241,7 +241,7 @@ public interface Labels {
             return this;
         }
 
-        public Labels.Mutable serviceName(@Nullable CharSequence serviceName) {
+        public Labels.Mutable serviceName(@Nullable String serviceName) {
             this.serviceName = serviceName;
             return this;
         }
@@ -267,7 +267,7 @@ public interface Labels {
         }
 
         @Nullable
-        public CharSequence getServiceName() {
+        public String getServiceName() {
             return serviceName;
         }
 
@@ -333,8 +333,7 @@ public interface Labels {
 
         public Immutable(Labels labels) {
             super(new ArrayList<>(labels.getKeys()), copy(labels.getValues()));
-            final CharSequence serviceName = labels.getServiceName();
-            this.serviceName = serviceName != null ? serviceName.toString() : null;
+            this.serviceName = labels.getServiceName();
             final CharSequence transactionName = labels.getTransactionName();
             this.transactionName = transactionName != null ? transactionName.toString() : null;
             this.transactionType = labels.getTransactionType();
