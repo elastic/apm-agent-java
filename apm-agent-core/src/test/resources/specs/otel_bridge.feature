@@ -3,7 +3,7 @@ Feature: OpenTelemetry bridge
 
   # --- Creating Elastic span or transaction from OTel span
 
-  Sceario: Create transaction from OTel span with remote context
+  Scenario: Create transaction from OTel span with remote context
     Given an agent
     And OTel span is created with remote context as parent
     Then Elastic bridged object is a transaction
@@ -56,7 +56,6 @@ Feature: OpenTelemetry bridge
   # --- HTTP client
 
   # https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/http.md#http-client
-  @wip
   Scenario Outline: HTTP client [ <http.url> <http.scheme> <http.host> <net.peer.ip> <net.peer.name> <net.peer.port> ]
     Given an agent
     And an active transaction
@@ -75,10 +74,10 @@ Feature: OpenTelemetry bridge
     Examples:
       | http.url                      | http.scheme | http.host       | net.peer.ip | net.peer.name | net.peer.port | resource             |
       | https://testing.invalid:8443/ |             |                 |             |               |               | testing.invalid:8443 |
-      | https://testing.invalid/      |             |                 |             |               |               | testing.invalid      |
-      | http://testing.invalid/       |             |                 |             |               |               | testing.invalid      |
-      |                               | http        | testing.invalid |             |               |               | testing.invalid      |
-      |                               | https       | testing.invalid | 127.0.0.1   |               |               | testing.invalid      |
+      | https://[::1]/                |             |                 |             |               |               | [::1]:443            |
+      | http://testing.invalid/       |             |                 |             |               |               | testing.invalid:80   |
+      |                               | http        | testing.invalid |             |               |               | testing.invalid:80   |
+      |                               | https       | testing.invalid | 127.0.0.1   |               |               | testing.invalid:443  |
       |                               | http        |                 | 127.0.0.1   |               | 81            | 127.0.0.1:81         |
       |                               | https       |                 | 127.0.0.1   |               | 445           | 127.0.0.1:445        |
       |                               | http        |                 | 127.0.0.1   | host1         | 445           | host1:445            |
@@ -86,8 +85,6 @@ Feature: OpenTelemetry bridge
 
   # --- DB client
 
-  @wip
-  @db-client
   Scenario Outline: DB client [ <db.system> <net.peer.ip> <net.peer.name> <net.peer.port>]
     Given an agent
     And an active transaction
@@ -103,9 +100,9 @@ Feature: OpenTelemetry bridge
     Then Elastic bridged span destination resource is set to "<resource>"
     Examples:
       | db.system       | net.peer.ip | net.peer.name | net.peer.port | resource       |
-      | mysql           |             |               |               | mysql:3306     |
-      | oracle          |             | oracledb      |               | oracledb:1521  |
-      | oracle          | 127.0.0.1   |               |               | 127.0.0.1:1521 |
+      | mysql           |             |               |               | mysql          |
+      | oracle          |             | oracledb      |               | oracledb       |
+      | oracle          | 127.0.0.1   |               |               | 127.0.0.1      |
       | mysql           | 127.0.0.1   | dbserver      | 3307          | dbserver:3307  |
 
 

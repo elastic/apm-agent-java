@@ -263,7 +263,9 @@ public class OTelBridgeStepsDefinitions {
 
     @Then("Elastic bridged span destination resource is set to {string}")
     public void bridgeObjectDestinationResource(String expected) {
-        assertThat(getDestinationResource()).isEqualTo(expected);
+        assertThat(getDestinationResource())
+            .describedAs("destination resource expected for otel attributes: %s", getBridgedSpan().getOtelAttributes())
+            .isEqualTo(expected);
     }
 
     private String getDestinationResource() {

@@ -18,9 +18,7 @@
  */
 package co.elastic.apm.agent.opentelemetry.sdk;
 
-import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.context.AbstractContext;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
@@ -237,34 +235,111 @@ public class OTelSpan implements Span {
     }
 
     private void onSpanEnd(co.elastic.apm.agent.impl.transaction.Span s) {
-        co.elastic.apm.agent.impl.context.SpanContext context = s.getContext();
-        Destination destination = context.getDestination();
-        if (context.getHttp().hasContent()) {
-            s.withType("external").withSubtype("http");
-            Url url = context.getHttp().getInternalUrl();
-            if (context.getDestination().getAddress().length() > 0) {
-                url.withHostname(context.getDestination().getAddress().toString());
+
+        Map<String, Object> attributes = s.getOtelAttributes();
+
+        String type = null;
+        String subType = null;
+        StringBuilder destinationResource = s.getContext().getDestination().getService().getResource();
+
+        String netPeerIp = (String) attributes.get("net.peer.ip");
+        String netPeerName = (String) attributes.get("net.peer.name");
+        Long port = (Long) attributes.get("net.peer.port");
+        if (null != port && port < 0) {
+            port = null;
+        }
+
+        String netPeer = netPeerName != null ? netPeerName : netPeerIp;
+
+        String httpUrl = (String) attributes.get("http.url");
+        String httpScheme = (String) attributes.get("http.scheme");
+        String dbSystem = (String) attributes.get("db.system");
+        String messagingSystem = (String) attributes.get("messaging.system");
+        if (null != dbSystem) {
+            type = "db";
+            subType = dbSystem;
+            destinationResource.append(netPeer != null ? netPeer : dbSystem);
+        } else if (messagingSystem != null) {
+            type = "messaging";
+            subType = messagingSystem;
+            String messagingDestination = (String) attributes.get("messaging.destination");
+            if (messagingDestination != null) {
+                destinationResource.append(messagingSystem).append('/').append(messagingDestination);
+                port = null; // skip appending port when destination is known
+            } else {
+                destinationResource.append(netPeer != null ? netPeer : messagingSystem);
             }
-            if (context.getDestination().getPort() > 0) {
-                url.withPort(context.getDestination().getPort());
+        } else if (httpUrl != null || httpScheme != null) {
+            type = "external";
+            subType = "http";
+            s.withType("external").withSubtype("http");
+
+            String httpHost = (String) attributes.get("http.host");
+            if (null == httpHost) {
+                httpHost = netPeer;
+            }
+            if (httpHost == null && httpUrl != null) {
+                // use HTTP context internal for temp parsing without extra allocation
+                Url internalUrl = s.getContext().getHttp().getInternalUrl();
+                internalUrl.withFull(httpUrl);
+                httpHost = internalUrl.getHostname();
+                port = (long) internalUrl.getPort();
+                internalUrl.resetState();
             }
 
-            HttpClientHelper.setDestinationServiceDetails(s, url.getProtocol(), url.getHostname(), url.getPort());
-        } else if (context.getDb().hasContent()) {
-            s.withType("db").withSubtype(context.getDb().getType());
-            if (s.getSubtype() != null) {
-                destination
-                    .getService()
-                    .withName(s.getSubtype())
-                    .withResource(s.getSubtype())
-                    .withType("db");
+            if (httpHost != null) {
+                destinationResource.append(httpHost);
+            }
+
+            if (port == null) {
+                if ("http".equals(httpScheme)) {
+                    port = 80L;
+                } else if ("https".equals(httpScheme)) {
+                    port = 443L;
+                }
             }
         } else {
-            s.withType("app");
-            if (destination.getService().hasContent()) {
-                destination.getService().withType("app");
-            }
         }
+
+        if (port != null) {
+            destinationResource.append(':').append(port);
+        }
+
+        s.withType(type).withSubtype(subType);
+
+
+//        co.elastic.apm.agent.impl.context.SpanContext context = s.getContext();
+//        Destination destination = context.getDestination();
+//        if (context.getHttp().hasContent()) {
+//            s.withType("external").withSubtype("http");
+//            Url url = context.getHttp().getInternalUrl();
+//            if (context.getDestination().getAddress().length() > 0) {
+//                url.withHostname(context.getDestination().getAddress().toString());
+//            }
+//            if (context.getDestination().getPort() > 0) {
+//                url.withPort(context.getDestination().getPort());
+//            }
+//
+//            HttpClientHelper.setDestinationServiceDetails(s, url.getProtocol(), url.getHostname(), url.getPort());
+//        } else if (context.getDb().hasContent()) {
+//            s.withType("db").withSubtype(context.getDb().getType());
+//            if (s.getSubtype() != null) {
+//                destination
+//                    .getService()
+//                    .withName(s.getSubtype())
+//                    .withResource(s.getSubtype())
+//                    .withType("db");
+//            }
+////        } else {
+////            s.withType("app");
+////            if (destination.getService().hasContent()) {
+////                destination.getService().withType("app");
+////            }
+//        }
+    }
+
+    private void getResource() {
+
     }
 
     /**
