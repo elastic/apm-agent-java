@@ -27,9 +27,9 @@ import java.util.function.Function;
 
 public class OutcomeGrpcStepsDefinitions {
 
-    private final OutcomeState state;
+    private final SpecTracerState state;
 
-    public OutcomeGrpcStepsDefinitions(OutcomeState state) {
+    public OutcomeGrpcStepsDefinitions(SpecTracerState state) {
         this.state = state;
     }
 

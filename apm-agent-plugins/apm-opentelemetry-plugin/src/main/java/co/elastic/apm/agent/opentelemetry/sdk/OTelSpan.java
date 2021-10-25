@@ -25,6 +25,7 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.LoggerUtils;
@@ -57,6 +58,7 @@ public class OTelSpan implements Span {
 
     @Override
     public <T> Span setAttribute(AttributeKey<T> key, @Nonnull T value) {
+        span.getOtelAttributes().put(key.getKey(), value);
         mapAttribute(key, value);
         return this;
     }
@@ -64,7 +66,7 @@ public class OTelSpan implements Span {
     public void mapAttribute(AttributeKey<?> key, Object value) {
         if (span instanceof Transaction) {
             mapTransactionAttributes((Transaction) span, key, value);
-        } else if (span instanceof co.elastic.apm.agent.impl.transaction.Span) {
+        } else {
             mapSpanAttributes((co.elastic.apm.agent.impl.transaction.Span) span, key, value);
         }
     }
@@ -133,6 +135,7 @@ public class OTelSpan implements Span {
     private void mapTransactionAttributes(Transaction t, AttributeKey<?> key, Object value) {
         Request request = t.getContext().getRequest();
         Url url = request.getUrl();
+
         // http.*
         if (key.equals(SemanticAttributes.HTTP_STATUS_CODE)) {
             t.getContext().getResponse().withStatusCode(((Number) value).intValue());
@@ -189,6 +192,17 @@ public class OTelSpan implements Span {
 
     private void mapSpanAttributes(co.elastic.apm.agent.impl.transaction.Span s, AttributeKey<?> key, Object value) {
         co.elastic.apm.agent.impl.context.SpanContext context = s.getContext();
+
+        if (OTelSpanKind.CLIENT == span.getOtelKind()) {
+            // HTTP client span
+            if (key.equals(SemanticAttributes.HTTP_URL) || key.equals(SemanticAttributes.HTTP_SCHEME) || key.getKey().startsWith("http.")) {
+                s.withType("external").withSubtype("http");
+            }
+            if (key.equals(SemanticAttributes.DB_SYSTEM)) {
+                s.withType("db").withSubtype((String) value);
+            }
+        }
+
 
         // http.*
         if (mapHttpUrlAttributes(key, value, context.getHttp().getInternalUrl())) {

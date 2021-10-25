@@ -21,6 +21,7 @@ package co.elastic.apm.agent.opentelemetry;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.opentelemetry.sdk.ElasticOpenTelemetry;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
+import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -29,6 +30,9 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
+/**
+ * Instruments {@link GlobalOpenTelemetry#get()}
+ */
 public class GlobalOpenTelemetryInstrumentation extends AbstractOpenTelemetryInstrumentation {
 
     @Override

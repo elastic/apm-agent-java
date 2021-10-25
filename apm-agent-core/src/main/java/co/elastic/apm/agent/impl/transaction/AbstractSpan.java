@@ -30,6 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -104,6 +106,11 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     private Outcome userOutcome = null;
 
     private boolean hasCapturedExceptions;
+
+    @Nullable
+    private OTelSpanKind otelKind = null;
+
+    private Map<String, Object> otelAttributes = new HashMap<>();
 
     public int getReferenceCount() {
         return references.get();
@@ -353,6 +360,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         outcome = null;
         userOutcome = null;
         hasCapturedExceptions = false;
+        otelKind = null;
+        otelAttributes.clear();
     }
 
     public Span createSpan() {
@@ -664,4 +673,19 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public AbstractSpan<?> getSpan() {
         return this;
     }
+
+    public T withOtelKind(OTelSpanKind kind) {
+        this.otelKind = kind;
+        return thiz();
+    }
+
+    @Nullable
+    public OTelSpanKind getOtelKind() {
+        return otelKind;
+    }
+
+    public Map<String, Object> getOtelAttributes() {
+        return otelAttributes;
+    }
+
 }

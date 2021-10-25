@@ -37,7 +37,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 
 /**
  * Instruments {@code io.opentelemetry.context.ArrayBasedContext#root()} to capture original context root
- * and allow relying ot the provided context implementation for key/value storage in context
+ * and allows relying on the provided context implementation for key/value storage in context
  */
 public class ArrayBasedContextInstrumentation extends AbstractOpenTelemetryInstrumentation {
 

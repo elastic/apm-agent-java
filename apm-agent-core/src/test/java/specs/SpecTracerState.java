@@ -25,13 +25,13 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class OutcomeState {
+public class SpecTracerState {
 
     private final ElasticApmTracer tracer;
     private Transaction transaction;
     private Span span;
 
-    public OutcomeState() {
+    public SpecTracerState() {
         tracer = MockTracer.createRealTracer();
     }
 

@@ -109,7 +109,9 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
 
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("transaction");
+        Transaction reportedTransaction = reporter.getFirstTransaction();
+        assertThat(reportedTransaction.getNameAsString()).isEqualTo("transaction");
+
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("span");
         assertThat(reporter.getFirstSpan().isChildOf(reporter.getFirstTransaction())).isTrue();
     }
@@ -211,7 +213,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     public ElasticContext<?> checkBridgedContext(Context context) {
         assertThat(context).isInstanceOf(ElasticContext.class);
 
-        // we have to check classs name as the wrapper class is loaded in the plugin CL and it also loadable from
+        // we have to check class name as the wrapper class is loaded in the plugin CL and it is also loadable from
         // the current CL, thus making class equality not work as expected
         assertThat(context.getClass().getName())
             .describedAs("root context should be wrapped")

@@ -32,25 +32,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class OutcomeStepsDefinitions {
 
-    private final OutcomeState state;
+    private final SpecTracerState state;
 
-    public OutcomeStepsDefinitions(OutcomeState state) {
+    public OutcomeStepsDefinitions(SpecTracerState state) {
         this.state = state;
-    }
-
-    @Given("an active transaction")
-    public void startTransaction() {
-        assertThat(state.getTransaction()).isNull();
-
-        state.startTransaction();
-    }
-
-    @Given("an active span")
-    public void startSpan() {
-        // spans can't exist outside of a transaction, thus we have to create it if not explicitly asked to
-        state.startRootTransactionIfRequired();
-
-        state.startSpan();
     }
 
     @Then("{} outcome is {string}")

@@ -127,6 +127,8 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
         return span != null ? span.getTransaction() : null;
     }
 
+    // OTel context implementation
+
     @Nullable
     @Override
     public <V> V get(ContextKey<V> key) {
@@ -137,6 +139,8 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
     public <V> Context with(ContextKey<V> key, V value) {
         return new OTelBridgeContext(tracer, otelContext.with(key, value));
     }
+
+    // OTel scope implementation
 
     @Override
     public void close() {

@@ -21,6 +21,7 @@ package co.elastic.apm.agent.opentelemetry.sdk;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.MultiValueMapAccessor;
+import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import io.opentelemetry.api.common.AttributeKey;
@@ -52,6 +53,9 @@ class OTelSpanBuilder implements SpanBuilder {
     private AbstractSpan<?> parent;
     @Nullable
     private Context remoteContext;
+
+    @Nullable
+    private SpanKind kind;
 
     public OTelSpanBuilder(String spanName, ElasticApmTracer elasticApmTracer) {
         this.spanName = spanName;
@@ -121,6 +125,7 @@ class OTelSpanBuilder implements SpanBuilder {
 
     @Override
     public SpanBuilder setSpanKind(SpanKind spanKind) {
+        kind = spanKind;
         return this;
     }
 
@@ -146,8 +151,13 @@ class OTelSpanBuilder implements SpanBuilder {
             return Span.getInvalid();
         }
         span.withName(spanName);
+        if (kind != null) {
+            span.withOtelKind(OTelSpanKind.valueOf(kind.name()));
+        }
         OTelSpan otelSpan = new OTelSpan(span);
         attributes.forEach(otelSpan::mapAttribute);
+        otelSpan.inferAttributes();
         return otelSpan;
     }
+
 }

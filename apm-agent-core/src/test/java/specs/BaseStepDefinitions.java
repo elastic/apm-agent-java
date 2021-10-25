@@ -20,10 +20,33 @@ package specs;
 
 import io.cucumber.java.en.Given;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 public class BaseStepDefinitions {
+
+    private final SpecTracerState state;
 
     @Given("an agent")
     public void initAgent() {
         // not used, use before/after hooks instead for init & cleanup
+    }
+
+    public BaseStepDefinitions(SpecTracerState state) {
+        this.state = state;
+    }
+
+    @Given("an active transaction")
+    public void startTransaction() {
+        assertThat(state.getTransaction()).isNull();
+
+        state.startTransaction();
+    }
+
+    @Given("an active span")
+    public void startSpan() {
+        // spans can't exist outside  a transaction, thus we have to create it if not explicitly asked to
+        state.startRootTransactionIfRequired();
+
+        state.startSpan();
     }
 }
