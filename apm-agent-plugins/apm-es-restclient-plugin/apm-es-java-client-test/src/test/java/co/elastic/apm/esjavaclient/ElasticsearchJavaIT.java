@@ -19,7 +19,7 @@ import java.io.IOException;
 
 public class ElasticsearchJavaIT extends AbstractElasticsearchJavaTest {
 
-    private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.12.1";
+    private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.15.0";
 
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
