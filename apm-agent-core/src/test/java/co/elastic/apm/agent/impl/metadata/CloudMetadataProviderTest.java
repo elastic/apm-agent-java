@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl;
+package co.elastic.apm.agent.impl.metadata;
 
-import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
 import org.junit.jupiter.api.Test;
 import specs.TestJsonSpec;
 

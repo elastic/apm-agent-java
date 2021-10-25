@@ -16,26 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl;
-
-import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
-import co.elastic.apm.agent.impl.payload.ProcessInfo;
-import co.elastic.apm.agent.impl.payload.Service;
-import co.elastic.apm.agent.impl.payload.SystemInfo;
+package co.elastic.apm.agent.impl.metadata;
 
 import javax.annotation.Nullable;
-import java.util.Map;
-import java.util.concurrent.Future;
 
-public class MetaDataMock {
+/**
+ * A representation of a service node, ie JVM
+ */
+public class Node {
 
     /**
-     * Creates a metadata mock based on the given info synchronously
-     *
-     * @return a mock future, already containing the medata info
+     * (Optional)
+     * A name representing this JVM. Should be unique within the service.
      */
-    public static Future<MetaData> create(ProcessInfo process, Service service, SystemInfo system, @Nullable CloudProviderInfo cloudProviderInfo,
-                                          Map<String, String> globalLabels) {
-        return new MetaData.NoWaitFuture(new MetaData(process, service, system, cloudProviderInfo, globalLabels));
+    @Nullable
+    private final String name;
+
+    public Node(@Nullable String name) {
+        this.name = name;
+    }
+
+    @Nullable
+    public String getName() {
+        return name;
+    }
+
+    public boolean hasContents() {
+        return name != null && !name.isEmpty();
     }
 }

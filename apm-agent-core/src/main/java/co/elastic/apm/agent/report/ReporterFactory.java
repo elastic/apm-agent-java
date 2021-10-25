@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
