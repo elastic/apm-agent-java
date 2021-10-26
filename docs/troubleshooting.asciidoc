@@ -49,14 +49,14 @@ The most important one is <<config-log-level>>.
 
 Set the log level to `DEBUG` or even `TRACE` to get more information about the behavior of the agent.
 
-* `DEBUG` allows to show:
+* `DEBUG` shows:
 ** Agent configuration as read by the agent
 ** Transaction and spans creation, activation and deactivation events
 * `TRACE` is even more verbose than `DEBUG`:
 ** A stack trace is printed every time a transaction or span is activated or deactivated
 ** All data sent to apm-server is included in JSON format
 
-Please always post the whole content of your log files when asking for help. Use the <<trouble-shooting-logging-procedure,procedure>
+Please always post the whole content of your log files when asking for help. Use the <<trouble-shooting-logging-procedure,procedure>>
 to ensure consistent logs when reporting potential issues.
 
 When the agent starts up,
@@ -119,12 +119,12 @@ The log would then contain the actual documents which failed to validate:
 
 Ideally this should be done outside of production.
 
-* It requires to restart the application
+* It requires restarting the application
 * With log level set to `DEBUG` logs can be verbose, with `TRACE` they are even more verbose.
-* Having only a few transactions in the log make investigation easier, production traffic creates noise.
+* Having only a few transactions in the log makes investigations easier, production traffic creates noise.
 * If not possible, we can still use it for a few minutes in production, when using an external configuration file (<<configuration,doc>>) the `log_level` can be changed at runtime.
 
-Most investigations require to use `DEBUG` log level, thus use `DEBUG` unless asked for `TRACE`.
+Most investigations require using `DEBUG` log level, thus use `DEBUG` unless asked for `TRACE`.
 
 Here, we will refer to the agent log file as `/tmp/agent.log`, but any other location could be used.
 
