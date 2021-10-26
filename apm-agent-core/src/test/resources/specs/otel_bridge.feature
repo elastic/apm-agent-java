@@ -127,7 +127,7 @@ Feature: OpenTelemetry bridge
       | mysql     | myDb    | 127.0.0.1   | dbserver      | 3307          | dbserver:3307/myDb |
 
   # --- Messaging consumer (transaction consuming/receiving a message)
-
+  # https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/messaging.md
   Scenario:
     Given an agent
     And an active transaction
@@ -165,6 +165,7 @@ Feature: OpenTelemetry bridge
       | rabbitmq         | myQueue               |                       | 127.0.0.1   |               |               | 127.0.0.1/myQueue          |
 
   # --- RPC client
+  # https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md
   Scenario Outline: RPC client [ <rpc.system>  <rpc.service> <net.peer.ip> <net.peer.name> <net.peer.port>]
     Given an agent
     And an active transaction
@@ -190,6 +191,7 @@ Feature: OpenTelemetry bridge
       | grpc       | myService   | 127.0.0.1   |               | 7777          | 127.0.0.1:7777/myService  |
 
   # --- RPC server
+  # https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md
   Scenario: RPC server
     Given an agent
     And OTel span is created with kind 'SERVER'

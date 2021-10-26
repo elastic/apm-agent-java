@@ -128,8 +128,7 @@ public class OTelSpan implements Span {
         String type = "custom";
         if (span.getOtelKind() == OTelSpanKind.SERVER && (isRpc || isHttp)) {
             type = "request";
-        }
-        if (span.getOtelKind() == OTelSpanKind.CONSUMER && isMessaging) {
+        } else if (span.getOtelKind() == OTelSpanKind.CONSUMER && isMessaging) {
             type = "messaging";
         }
 
@@ -188,7 +187,6 @@ public class OTelSpan implements Span {
         } else if (httpUrl != null || httpScheme != null) {
             type = "external";
             subType = "http";
-            s.withType("external").withSubtype("http");
 
             String httpHost = (String) attributes.get("http.host");
             if (null == httpHost) {
