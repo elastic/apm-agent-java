@@ -349,14 +349,14 @@ class SpanTypeBreakdownTest {
     void testBreakdown_serviceName() {
         final Transaction transaction = createTransaction();
         transaction.getTraceContext().setServiceName("service_name");
-        transaction.createSpan(10).withType("db").withSubtype("mysql").end(20);
-        transaction.end(30);
+        transaction.createSpan(11).withType("db").withSubtype("mysql").end(23);
+        transaction.end(27);
 
         tracer.getMetricRegistry().flipPhaseAndReport(metricSets -> {
             assertThat(getTimer(metricSets, "span.self_time", "service_name", "app", null).getCount()).isEqualTo(1);
-            assertThat(getTimer(metricSets, "span.self_time", "service_name", "app", null).getTotalTimeUs()).isEqualTo(20);
+            assertThat(getTimer(metricSets, "span.self_time", "service_name", "app", null).getTotalTimeUs()).isEqualTo(15);
             assertThat(getTimer(metricSets, "span.self_time", "service_name", "db", "mysql").getCount()).isEqualTo(1);
-            assertThat(getTimer(metricSets, "span.self_time", "service_name", "db", "mysql").getTotalTimeUs()).isEqualTo(10);
+            assertThat(getTimer(metricSets, "span.self_time", "service_name", "db", "mysql").getTotalTimeUs()).isEqualTo(12);
         });
     }
 
