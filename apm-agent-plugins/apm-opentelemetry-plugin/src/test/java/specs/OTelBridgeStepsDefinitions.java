@@ -211,6 +211,18 @@ public class OTelBridgeStepsDefinitions {
                 return SemanticAttributes.NET_PEER_PORT;
             case "db.system":
                 return SemanticAttributes.DB_SYSTEM;
+            case "db.name":
+                return SemanticAttributes.DB_NAME;
+            case "messaging.system":
+                return SemanticAttributes.MESSAGING_SYSTEM;
+            case "messaging.url":
+                return SemanticAttributes.MESSAGING_URL;
+            case "messaging.destination":
+                return SemanticAttributes.MESSAGING_DESTINATION;
+            case "rpc.system":
+                return SemanticAttributes.RPC_SYSTEM;
+            case "rpc.service":
+                return SemanticAttributes.RPC_SERVICE;
             default:
                 throw new IllegalArgumentException("unknown key for name " + name);
         }
@@ -247,6 +259,9 @@ public class OTelBridgeStepsDefinitions {
 
     @Then("Elastic bridged span subtype is {string}")
     public void bridgeObjectSubtype(String expected) {
+        if (expected.isEmpty()) {
+            expected = null;
+        }
         assertThat(getBridgedSpan().getSubtype()).isEqualTo(expected);
     }
 

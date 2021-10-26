@@ -260,7 +260,7 @@ public class Url implements Recyclable {
         }
     }
 
-    private static int normalizePort(int port, @Nullable String protocol) {
+    public static int normalizePort(int port, @Nullable String protocol) {
         int portValue = port;
         if (portValue < 0 && protocol != null) {
             // Work around java.net.URL bug

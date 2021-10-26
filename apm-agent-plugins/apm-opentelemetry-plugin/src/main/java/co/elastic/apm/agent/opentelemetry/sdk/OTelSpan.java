@@ -18,10 +18,7 @@
  */
 package co.elastic.apm.agent.opentelemetry.sdk;
 
-import co.elastic.apm.agent.impl.context.AbstractContext;
-import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Outcome;
@@ -34,13 +31,13 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.StatusCode;
-import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Iterator;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -57,16 +54,7 @@ public class OTelSpan implements Span {
     @Override
     public <T> Span setAttribute(AttributeKey<T> key, @Nonnull T value) {
         span.getOtelAttributes().put(key.getKey(), value);
-        mapAttribute(key, value);
         return this;
-    }
-
-    public void mapAttribute(AttributeKey<?> key, Object value) {
-        if (span instanceof Transaction) {
-            mapTransactionAttributes((Transaction) span, key, value);
-        } else {
-            mapSpanAttributes((co.elastic.apm.agent.impl.transaction.Span) span, key, value);
-        }
     }
 
     @Override
@@ -130,108 +118,25 @@ public class OTelSpan implements Span {
         span.end();
     }
 
-    private void mapTransactionAttributes(Transaction t, AttributeKey<?> key, Object value) {
-        Request request = t.getContext().getRequest();
-        Url url = request.getUrl();
-
-        // http.*
-        if (key.equals(SemanticAttributes.HTTP_STATUS_CODE)) {
-            t.getContext().getResponse().withStatusCode(((Number) value).intValue());
-            t.withResult(ResultUtil.getResultByHttpStatus(((Number) value).intValue()));
-        } else if (mapHttpUrlAttributes(key, value, url)) {
-            // successfully mapped inside mapHttpUrlAttributes
-        } else if (key.equals(SemanticAttributes.HTTP_METHOD)) {
-            request.withMethod((String) value);
-        } else if (key.equals(SemanticAttributes.HTTP_FLAVOR)) {
-            request.withHttpVersion((String) value);
-        } else if (key.equals(SemanticAttributes.HTTP_CLIENT_IP)) {
-            request.getHeaders().add("X-Forwarded-For", (String) value);
-        } else if (key.equals(SemanticAttributes.HTTP_USER_AGENT)) {
-            request.getHeaders().add("User-Agent", (String) value);
-        } else {
-            setAttributeAsLabel(t, key, value);
-        }
-    }
 
     private void onTransactionEnd(Transaction t) {
-        Request request = t.getContext().getRequest();
-        if (request.hasContent()) {
-            t.withType("request");
-            Url url = request.getUrl();
-            captureNetHostUrlAttributes(url, span.getContext());
-            request.getSocket().withRemoteAddress(getClientRemoteAddress(span.getContext()));
-        } else {
-            t.withType("unknown");
+
+        Map<String, Object> attributes = span.getOtelAttributes();
+        boolean isRpc = attributes.containsKey("rpc.system");
+        boolean isHttp = attributes.containsKey("http.url") || attributes.containsKey("http.scheme");
+        boolean isMessaging = attributes.containsKey("messaging.system");
+        String type = "custom";
+        if (span.getOtelKind() == OTelSpanKind.SERVER && (isRpc || isHttp)) {
+            type = "request";
         }
+        if (span.getOtelKind() == OTelSpanKind.CONSUMER && isMessaging) {
+            type = "messaging";
+        }
+
+        t.withType(type);
+
         t.setFrameworkName("OpenTelemetry");
         t.setFrameworkVersion(VersionUtils.getVersion(OpenTelemetry.class, "io.opentelemetry", "opentelemetry-api"));
-
-    }
-
-    @Nullable
-    public String getClientRemoteAddress(AbstractContext context) {
-        String netPeerIp = null;
-        Long netPeerPort = null;
-        Iterator<? extends Map.Entry<String, ?>> iterator = context.getLabelIterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, ?> entry = iterator.next();
-            // net.*
-            if (entry.getKey().equals(SemanticAttributes.NET_PEER_IP.getKey())) {
-                netPeerIp = (String) entry.getValue();
-            } else if (entry.getKey().equals(SemanticAttributes.NET_PEER_PORT.getKey())) {
-                netPeerPort = (Long) entry.getValue();
-            }
-        }
-        if (netPeerIp != null && netPeerPort != null) {
-            return netPeerIp + ":" + netPeerPort;
-        }
-        return null;
-    }
-
-    private void mapSpanAttributes(co.elastic.apm.agent.impl.transaction.Span s, AttributeKey<?> key, Object value) {
-        co.elastic.apm.agent.impl.context.SpanContext context = s.getContext();
-
-        if (OTelSpanKind.CLIENT == span.getOtelKind()) {
-            // HTTP client span
-            if (key.equals(SemanticAttributes.HTTP_URL) || key.equals(SemanticAttributes.HTTP_SCHEME) || key.getKey().startsWith("http.")) {
-                s.withType("external").withSubtype("http");
-            }
-            if (key.equals(SemanticAttributes.DB_SYSTEM)) {
-                s.withType("db").withSubtype((String) value);
-            }
-        }
-
-
-        // http.*
-        if (mapHttpUrlAttributes(key, value, context.getHttp().getInternalUrl())) {
-            // successfully mapped inside mapHttpUrlAttributes
-        } else if (key.equals(SemanticAttributes.HTTP_STATUS_CODE)) {
-            context.getHttp().withStatusCode(((Number) value).intValue());
-        } else if (key.equals(SemanticAttributes.HTTP_METHOD)) {
-            context.getHttp().withMethod((String) value);
-        }
-        // net.*
-        else if (key.equals(SemanticAttributes.NET_PEER_NAME)) {
-            context.getDestination().withAddress((String) value);
-        } else if (key.equals(SemanticAttributes.NET_PEER_IP)) {
-            if (context.getDestination().getAddress().length() == 0) {
-                context.getDestination().withAddress((String) value);
-            }
-        } else if (key.equals(SemanticAttributes.NET_PEER_PORT)) {
-            context.getDestination().withPort(((Number) value).intValue());
-        }
-        // db.*
-        else if (key.equals(SemanticAttributes.DB_SYSTEM)) {
-            s.withType((String) value);
-        } else if (key.equals(SemanticAttributes.DB_NAME)) {
-            context.getDb().withInstance((String) value);
-        } else if (key.equals(SemanticAttributes.DB_STATEMENT)) {
-            context.getDb().withStatement((String) value);
-        } else if (key.equals(SemanticAttributes.DB_USER)) {
-            context.getDb().withUser((String) value);
-        } else {
-            setAttributeAsLabel(s, key, value);
-        }
     }
 
     private void onSpanEnd(co.elastic.apm.agent.impl.transaction.Span s) {
@@ -244,9 +149,10 @@ public class OTelSpan implements Span {
 
         String netPeerIp = (String) attributes.get("net.peer.ip");
         String netPeerName = (String) attributes.get("net.peer.name");
-        Long port = (Long) attributes.get("net.peer.port");
-        if (null != port && port < 0) {
-            port = null;
+        Long netPortLong = (Long) attributes.get("net.peer.port");
+        int netPort = -1;
+        if (null != netPortLong && netPortLong > 0L) {
+            netPort = netPortLong.intValue();
         }
 
         String netPeer = netPeerName != null ? netPeerName : netPeerIp;
@@ -255,20 +161,30 @@ public class OTelSpan implements Span {
         String httpScheme = (String) attributes.get("http.scheme");
         String dbSystem = (String) attributes.get("db.system");
         String messagingSystem = (String) attributes.get("messaging.system");
+        String rpcSystem = (String) attributes.get("rpc.system");
         if (null != dbSystem) {
             type = "db";
             subType = dbSystem;
-            destinationResource.append(netPeer != null ? netPeer : dbSystem);
+            String dbName = (String) attributes.get("db.name");
+            setSpanResource(destinationResource, netPeer, netPort, dbSystem, dbName);
         } else if (messagingSystem != null) {
             type = "messaging";
             subType = messagingSystem;
             String messagingDestination = (String) attributes.get("messaging.destination");
-            if (messagingDestination != null) {
-                destinationResource.append(messagingSystem).append('/').append(messagingDestination);
-                port = null; // skip appending port when destination is known
-            } else {
-                destinationResource.append(netPeer != null ? netPeer : messagingSystem);
+            URI messagingUri = parseURI((String) attributes.get("messaging.url"));
+
+            if (netPeer == null && messagingUri != null) {
+                netPeer = messagingUri.getHost();
+                netPort = messagingUri.getPort();
             }
+            setSpanResource(destinationResource, netPeer, netPort, messagingSystem, messagingDestination);
+        } else if (rpcSystem != null) {
+            type = "external";
+            subType = rpcSystem;
+            String service = (String) attributes.get("rpc.service");
+
+            setSpanResource(destinationResource, netPeer, netPort, rpcSystem, service);
+
         } else if (httpUrl != null || httpScheme != null) {
             type = "external";
             subType = "http";
@@ -279,157 +195,59 @@ public class OTelSpan implements Span {
                 httpHost = netPeer;
             }
             if (httpHost == null && httpUrl != null) {
-                // use HTTP context internal for temp parsing without extra allocation
-                Url internalUrl = s.getContext().getHttp().getInternalUrl();
-                internalUrl.withFull(httpUrl);
-                httpHost = internalUrl.getHostname();
-                port = (long) internalUrl.getPort();
-                internalUrl.resetState();
-            }
-
-            if (httpHost != null) {
-                destinationResource.append(httpHost);
-            }
-
-            if (port == null) {
-                if ("http".equals(httpScheme)) {
-                    port = 80L;
-                } else if ("https".equals(httpScheme)) {
-                    port = 443L;
+                URI httpUri = parseURI(httpUrl);
+                if (httpUri != null) {
+                    httpHost = httpUri.getHost();
+                    netPort = httpUri.getPort();
+                    httpScheme = httpUri.getScheme();
                 }
             }
-        } else {
+
+            netPort = Url.normalizePort(netPort, httpScheme);
+
+            setSpanResource(destinationResource, httpHost, netPort, null, null);
         }
 
-        if (port != null) {
-            destinationResource.append(':').append(port);
+        if (type == null && s.getOtelKind() == OTelSpanKind.INTERNAL) {
+            type = "app";
+            subType = "internal";
         }
 
         s.withType(type).withSubtype(subType);
-
-
-//        co.elastic.apm.agent.impl.context.SpanContext context = s.getContext();
-//        Destination destination = context.getDestination();
-//        if (context.getHttp().hasContent()) {
-//            s.withType("external").withSubtype("http");
-//            Url url = context.getHttp().getInternalUrl();
-//            if (context.getDestination().getAddress().length() > 0) {
-//                url.withHostname(context.getDestination().getAddress().toString());
-//            }
-//            if (context.getDestination().getPort() > 0) {
-//                url.withPort(context.getDestination().getPort());
-//            }
-//
-//            HttpClientHelper.setDestinationServiceDetails(s, url.getProtocol(), url.getHostname(), url.getPort());
-//        } else if (context.getDb().hasContent()) {
-//            s.withType("db").withSubtype(context.getDb().getType());
-//            if (s.getSubtype() != null) {
-//                destination
-//                    .getService()
-//                    .withName(s.getSubtype())
-//                    .withResource(s.getSubtype())
-//                    .withType("db");
-//            }
-////        } else {
-////            s.withType("app");
-////            if (destination.getService().hasContent()) {
-////                destination.getService().withType("app");
-////            }
-//        }
     }
 
-    private void getResource() {
-
-    }
-
-    /**
-     * Only one of the following is required per OpenTelemetry's semantic conventions:
-     * <p>
-     * Client:
-     * - http.url
-     * - http.scheme, http.host, http.target
-     * - http.scheme, net.peer.name, net.peer.port, http.target
-     * - http.scheme, net.peer.ip, net.peer.port, http.target
-     * <p>
-     * Server:
-     * - http.url
-     * - http.scheme, http.host, http.target
-     * - http.scheme, http.server_name, net.host.port, http.target
-     * - http.scheme, net.host.name, net.host.port, http.target
-     * <p>
-     * The net.* fields are captured on span/transaction end because by the time they are set,
-     * we don't necessarily know whether the span represents an http operation
-     */
-    private boolean mapHttpUrlAttributes(AttributeKey<?> key, Object value, Url url) {
-        if (key.equals(SemanticAttributes.HTTP_URL)) {
-            url.withFull((String) value);
-            // ensure other fields or URL are populated through parsing
-            url.parseAndFillFromFull();
-        } else if (key.equals(SemanticAttributes.HTTP_TARGET)) {
-            String httpTarget = (String) value;
-            int indexOfQuery = httpTarget.indexOf('?');
-            if (indexOfQuery > 0) {
-                url.withPathname(httpTarget.substring(0, indexOfQuery));
-                url.withSearch(httpTarget.substring(Math.min(indexOfQuery + 1, httpTarget.length())));
-            }
-        } else if (key.equals(SemanticAttributes.HTTP_HOST)) {
-            String httpHost = (String) value;
-            int indexOfColon = httpHost.indexOf(':');
-            if (indexOfColon > 0) {
-                url.withHostname(httpHost.substring(0, indexOfColon));
-                try {
-                    url.withPort(Integer.parseInt(httpHost.substring(indexOfColon + 1)));
-                } catch (NumberFormatException ignore) {
-                }
-            } else {
-                url.withHostname(httpHost);
-            }
-        } else if (key.equals(SemanticAttributes.HTTP_SERVER_NAME)) {
-            url.withHostname((String) value);
-        } else if (key.equals(SemanticAttributes.HTTP_SCHEME)) {
-            url.withProtocol((String) value);
-        } else if (key.equals(SemanticAttributes.HTTP_ROUTE)) {
-            url.withPathname((String) value);
-        } else {
-            return false;
+    @Nullable
+    private static URI parseURI(@Nullable String s) {
+        if (null == s) {
+            return null;
         }
-        return true;
-    }
-
-    /**
-     * these properties may have been set before we know it's an http request, that's why this capture is called on span end
-     */
-    private void captureNetHostUrlAttributes(Url url, AbstractContext context) {
-        if (url.getHostname() != null && url.getPort() > 0) {
-            return;
-        }
-        Iterator<? extends Map.Entry<String, ?>> iterator = context.getLabelIterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, ?> entry = iterator.next();
-            // net.*
-            if (entry.getKey().equals(SemanticAttributes.NET_HOST_NAME.getKey())) {
-                if (url.getHostname() == null) {
-                    url.withHostname((String) entry.getValue());
-                }
-            } else if (entry.getKey().equals(SemanticAttributes.NET_HOST_IP.getKey())) {
-                if (url.getHostname() == null) {
-                    url.withHostname((String) entry.getValue());
-                }
-            } else if (entry.getKey().equals(SemanticAttributes.NET_HOST_PORT.getKey())) {
-                if (url.getPort() <= 0) {
-                    url.withPort(((Number) entry.getValue()).intValue());
-                }
-            }
+        try {
+            return new URI(s);
+        } catch (URISyntaxException e) {
+            return null;
         }
     }
 
-    private static void setAttributeAsLabel(AbstractSpan<?> span, AttributeKey<?> key, Object value) {
-        if (value instanceof Boolean) {
-            span.addLabel(key.getKey(), (Boolean) value);
-        } else if (value instanceof Number) {
-            span.addLabel(key.getKey(), (Number) value);
-        } else {
-            span.addLabel(key.getKey(), value.toString());
+    private static void setSpanResource(StringBuilder resource,
+                                        @Nullable String netPeer,
+                                        int netPort,
+                                        @Nullable String system,
+                                        @Nullable String suffix) {
+
+        boolean allowSuffix = false;
+        if (netPeer == null && system != null) {
+            resource.append(system);
+            allowSuffix = true;
+        } else if (netPeer != null) {
+            resource.append(netPeer);
+            allowSuffix = true;
+            if (netPort > 0) {
+                resource.append(':').append(netPort);
+            }
+        }
+
+        if (allowSuffix && suffix != null) {
+            resource.append('/').append(suffix);
         }
     }
 

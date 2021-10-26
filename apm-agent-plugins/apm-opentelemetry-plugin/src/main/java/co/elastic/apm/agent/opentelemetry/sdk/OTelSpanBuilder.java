@@ -155,8 +155,7 @@ class OTelSpanBuilder implements SpanBuilder {
             span.withOtelKind(OTelSpanKind.valueOf(kind.name()));
         }
         OTelSpan otelSpan = new OTelSpan(span);
-        attributes.forEach(otelSpan::mapAttribute);
-        otelSpan.inferAttributes();
+        attributes.forEach((AttributeKey<?> k, Object v) -> otelSpan.setAttribute((AttributeKey<? super Object>) k, (Object) v));
         return otelSpan;
     }
 
