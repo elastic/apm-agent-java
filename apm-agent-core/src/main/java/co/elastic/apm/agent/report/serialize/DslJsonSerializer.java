@@ -438,6 +438,16 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
+    private static void serializeServiceName(final CharSequence serviceName, final StringBuilder replaceBuilder, final JsonWriter jw) {
+        if (serviceName != null) {
+            writeFieldName("service", jw);
+            jw.writeByte(OBJECT_START);
+            writeLastField("name", serviceName, replaceBuilder, jw);
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
     private static void serializeAgent(final Agent agent, final StringBuilder replaceBuilder, final JsonWriter jw) {
         writeFieldName("agent", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
@@ -671,17 +681,6 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_END);
     }
 
-    private void serializeServiceName(TraceContext traceContext) {
-        String serviceName = traceContext.getServiceName();
-        if (serviceName != null) {
-            writeFieldName("service");
-            jw.writeByte(OBJECT_START);
-            writeLastField("name", serviceName);
-            jw.writeByte(OBJECT_END);
-            jw.writeByte(COMMA);
-        }
-    }
-
     private void serializeServiceNameWithFramework(@Nullable final Transaction transaction, final TraceContext traceContext) {
         String serviceName = traceContext.getServiceName();
         boolean isFrameworkNameNotNull = transaction != null && transaction.getFrameworkName() != null;
@@ -847,7 +846,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
 
-        serializeServiceName(traceContext);
+        serializeServiceName(traceContext.getServiceName(), replaceBuilder, jw);
         serializeMessageContext(context.getMessage());
         serializeDbContext(context.getDb());
         serializeHttpContext(context.getHttp());
@@ -1055,6 +1054,7 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     static void serializeLabels(Labels labels, final StringBuilder replaceBuilder, final JsonWriter jw) {
         if (!labels.isEmpty()) {
+            serializeServiceName(labels.getServiceName(), replaceBuilder, jw);
             if (labels.getTransactionName() != null || labels.getTransactionType() != null) {
                 writeFieldName("transaction", jw);
                 jw.writeByte(OBJECT_START);
