@@ -21,7 +21,6 @@ package co.elastic.apm.agent.httpclient;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
@@ -35,7 +34,7 @@ public class HttpRequestHeadersAdvice {
     private static final Tracer tracer = GlobalTracer.get();
 
     @Nullable
-    @AssignTo.Return
+    @Advice.AssignReturned.ToReturned
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static HttpHeaders onAfterExecute(@Advice.Return @Nullable final HttpHeaders httpHeaders) {
         Span span = tracer.getActiveSpan();

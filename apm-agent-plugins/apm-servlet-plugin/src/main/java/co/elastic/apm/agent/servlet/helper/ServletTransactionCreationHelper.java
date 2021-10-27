@@ -27,11 +27,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import java.util.Objects;
 
-public class ServletTransactionCreationHelper {
+public abstract class ServletTransactionCreationHelper<HTTPREQUEST, CONTEXT> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServletTransactionCreationHelper.class);
 
@@ -44,7 +41,7 @@ public class ServletTransactionCreationHelper {
     }
 
     @Nullable
-    public Transaction createAndActivateTransaction(HttpServletRequest request) {
+    public Transaction createAndActivateTransaction(HTTPREQUEST request) {
         // only create a transaction if there is not already one
         if (tracer.currentTransaction() != null) {
             return null;
@@ -52,20 +49,36 @@ public class ServletTransactionCreationHelper {
         if (isExcluded(request)) {
             return null;
         }
-        ClassLoader cl = getClassloader(request.getServletContext());
-        Transaction transaction = tracer.startChildTransaction(request, ServletRequestHeaderGetter.getInstance(), cl);
+        ClassLoader cl = getClassloader(getServletContext(request));
+        Transaction transaction = tracer.startChildTransaction(request, getRequestHeaderGetter(), cl);
         if (transaction != null) {
             transaction.activate();
         }
         return transaction;
     }
 
-    boolean isExcluded(HttpServletRequest request) {
-        String userAgent = request.getHeader("User-Agent");
+    protected abstract String getServletPath(HTTPREQUEST request);
 
-        String requestUri = request.getRequestURI();
+    protected abstract String getPathInfo(HTTPREQUEST request);
+
+    protected abstract String getHeader(HTTPREQUEST request, String headerName);
+
+    protected abstract CONTEXT getServletContext(HTTPREQUEST request);
+
+    protected abstract ClassLoader getClassLoader(CONTEXT servletContext);
+
+    protected abstract CommonServletRequestHeaderGetter getRequestHeaderGetter();
+
+    protected abstract String getContextPath(HTTPREQUEST request);
+
+    protected abstract String getRequestURI(HTTPREQUEST request);
+
+    boolean isExcluded(HTTPREQUEST request) {
+        String userAgent = getHeader(request, "User-Agent");
+        String requestUri = getRequestURI(request);
 
         final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), requestUri);
+
         if (excludeUrlMatcher != null && logger.isDebugEnabled()) {
             logger.debug("Not tracing this request as the URL {} is ignored by the matcher {}", requestUri, excludeUrlMatcher);
         }
@@ -81,7 +94,7 @@ public class ServletTransactionCreationHelper {
     }
 
     @Nullable
-    public ClassLoader getClassloader(@Nullable ServletContext servletContext) {
+    public ClassLoader getClassloader(@Nullable CONTEXT servletContext) {
         if (servletContext == null) {
             return null;
         }
@@ -90,7 +103,7 @@ public class ServletTransactionCreationHelper {
         // see Section 4.4 of the Servlet 3.0 specification
         ClassLoader classLoader = null;
         try {
-            return servletContext.getClassLoader();
+            return getClassLoader(servletContext);
         } catch (UnsupportedOperationException e) {
             // silently ignored
             return null;

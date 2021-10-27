@@ -175,6 +175,16 @@ class MetricSetSerializationTest {
         assertThat(reportAsJson()).isNull();
     }
 
+    @Test
+    void testServiceName() throws Exception {
+        registry.updateTimer("foo", Labels.Mutable.of().serviceName("bar"), 1);
+
+        JsonNode jsonNode = reportAsJson();
+        assertThat(jsonNode).isNotNull();
+        JsonNode serviceName = jsonNode.get("metricset").get("service").get("name");
+        assertThat(serviceName.asText()).isEqualTo("bar");
+    }
+
     @Nullable
     private JsonNode reportAsJson() throws Exception {
         final CompletableFuture<JsonWriter> jwFuture = new CompletableFuture<>();

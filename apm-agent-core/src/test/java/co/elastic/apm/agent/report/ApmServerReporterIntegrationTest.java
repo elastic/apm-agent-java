@@ -19,13 +19,14 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.MetaDataMock;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.payload.ProcessInfo;
-import co.elastic.apm.agent.impl.payload.Service;
-import co.elastic.apm.agent.impl.payload.SystemInfo;
+import co.elastic.apm.agent.impl.metadata.ProcessInfo;
+import co.elastic.apm.agent.impl.metadata.Service;
+import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -89,11 +90,11 @@ class ApmServerReporterIntegrationTest {
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
         doReturn(Collections.singletonList(new URL("http://localhost:" + port))).when(reporterConfiguration).getServerUrls();
-        SystemInfo system = new SystemInfo("x64", "localhost", "platform");
+        SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final Service service = new Service();
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
-        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, config.getConfig(CoreConfiguration.class));
         apmServerClient.start();
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
                 reporterConfiguration,
