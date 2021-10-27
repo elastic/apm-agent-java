@@ -16,22 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.payload;
+package co.elastic.apm.agent.impl.metadata;
 
 
 /**
- * Name and version of the language runtime running this service
+ * Name and version of the programming language used
  */
-public class RuntimeInfo {
+public class Language {
 
+    /**
+     * (Required)
+     */
     private final String name;
     private final String version;
 
-    public RuntimeInfo(String name, String version) {
+    public Language(String name, String version) {
         this.name = name;
         this.version = version;
     }
 
+    /**
+     * (Required)
+     */
     public String getName() {
         return name;
     }

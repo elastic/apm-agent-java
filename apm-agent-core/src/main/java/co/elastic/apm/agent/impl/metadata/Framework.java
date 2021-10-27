@@ -16,7 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@NonnullApi
-package co.elastic.apm.agent.impl.payload;
+package co.elastic.apm.agent.impl.metadata;
 
-import co.elastic.apm.agent.sdk.NonnullApi;
+
+/**
+ * Name and version of the web framework used
+ */
+public class Framework {
+
+    /**
+     * (Required)
+     */
+    private final String name;
+    /**
+     * (Required)
+     */
+    private final String version;
+
+    public Framework(String name, String version) {
+        this.name = name;
+        this.version = version;
+    }
+
+    /**
+     * (Required)
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * (Required)
+     */
+    public String getVersion() {
+        return version;
+    }
+
+}

@@ -55,6 +55,7 @@ public class JavaConcurrent {
         EXCLUDED_EXECUTABLE_TYPES.add(CallableLambdaWrapper.class.getName());
         // Spring-JMS polling mechanism that translates to passive onMessage handling
         EXCLUDED_EXECUTABLE_TYPES.add("org.springframework.jms.listener.DefaultMessageListenerContainer$AsyncMessageListenerInvoker");
+        EXCLUDED_EXECUTABLE_TYPES.add("com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator");
     }
 
     private static void removeContext(Object o) {
