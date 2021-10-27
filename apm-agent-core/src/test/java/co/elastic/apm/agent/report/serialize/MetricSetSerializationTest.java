@@ -185,6 +185,19 @@ class MetricSetSerializationTest {
         assertThat(serviceName.asText()).isEqualTo("bar");
     }
 
+    @Test
+    void testServiceNameAndVersion() throws Exception {
+        registry.updateTimer("foo", Labels.Mutable.of().serviceName("bar").serviceVersion("1.0"), 1);
+
+        JsonNode jsonNode = reportAsJson();
+        assertThat(jsonNode).isNotNull();
+        JsonNode service = jsonNode.get("metricset").get("service");
+        JsonNode serviceName = service.get("name");
+        JsonNode serviceVersion = service.get("version");
+        assertThat(serviceName.asText()).isEqualTo("bar");
+        assertThat(serviceVersion.asText()).isEqualTo("1.0");
+    }
+
     @Nullable
     private JsonNode reportAsJson() throws Exception {
         final CompletableFuture<JsonWriter> jwFuture = new CompletableFuture<>();
