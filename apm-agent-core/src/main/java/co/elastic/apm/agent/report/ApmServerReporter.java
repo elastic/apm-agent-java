@@ -170,6 +170,7 @@ public class ApmServerReporter implements Reporter {
             throw new IllegalStateException("Ring buffer has no available slots");
         }
         final long cursor = disruptor.getCursor();
+        // todo - replace with a CompletableFuture
         return new Future<Void>() {
             private volatile boolean cancelled = false;
 

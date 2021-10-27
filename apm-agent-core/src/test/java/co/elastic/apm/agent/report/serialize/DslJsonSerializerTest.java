@@ -24,6 +24,7 @@ import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.Tracer;
@@ -36,6 +37,7 @@ import co.elastic.apm.agent.impl.metadata.Agent;
 import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
 import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.Language;
+import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
 import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
@@ -652,7 +654,6 @@ class DslJsonSerializerTest {
             .withAgent(new Agent("MyAgent", "1.11.1"))
             .withFramework(new Framework("Lambda_Java", "1.2.3"))
             .withName("MyService")
-            .withId("MyServiceId")
             .withVersion("1.0")
             .withLanguage(new Language("c++", "14"));
 
@@ -664,7 +665,10 @@ class DslJsonSerializerTest {
         serializer = new DslJsonSerializer(
             mock(StacktraceConfiguration.class),
             apmServerClient,
-            MetaDataMock.create(processInfo, service, systemInfo, cloudProviderInfo, Map.of("foo", "bar", "עברית", "בדיקה"))
+            MetaDataMock.create(
+                processInfo, service, systemInfo, cloudProviderInfo,
+                Map.of("foo", "bar", "עברית", "בדיקה"), createFaaSMetaDataExtension()
+            )
         );
         serializer.blockUntilReady();
         serializer.appendMetaDataNdJsonToStream();
@@ -673,7 +677,7 @@ class DslJsonSerializerTest {
         JsonNode serviceJson = metaDataJson.get("service");
         assertThat(service).isNotNull();
         assertThat(serviceJson.get("name").textValue()).isEqualTo("MyService");
-        assertThat(serviceJson.get("id").textValue()).isEqualTo("MyServiceId");
+        assertThat(serviceJson.get("id").textValue()).isEqualTo("service-id");
         assertThat(serviceJson.get("version").textValue()).isEqualTo("1.0");
 
         JsonNode languageJson = serviceJson.get("language");
@@ -723,6 +727,7 @@ class DslJsonSerializerTest {
         assertThat(jsonCloud.get("region").asText()).isEqualTo("region");
         JsonNode jsonCloudAccount = jsonCloud.get("account");
         assertThat(jsonCloudAccount).isNotNull();
+        assertThat(jsonCloudAccount.get("name")).isNull();
         assertThat(jsonCloudAccount.get("id").asText()).isEqualTo("accountId");
         JsonNode jsonCloudInstance = jsonCloud.get("instance");
         assertThat(jsonCloudInstance.get("id").asText()).isEqualTo("instanceId");
@@ -1090,10 +1095,10 @@ class DslJsonSerializerTest {
     void testCloudProviderInfoWithNullNameAndIdFields() throws Exception {
         MetaData metaData = createMetaData();
         CloudProviderInfo cloudProviderInfo = Objects.requireNonNull(metaData.getCloudProviderInfo());
-        CloudProviderInfo.NameAndIdField project = Objects.requireNonNull(cloudProviderInfo.getProject());
+        NameAndIdField project = Objects.requireNonNull(cloudProviderInfo.getProject());
         project.setName(null);
         project.setId(null);
-        CloudProviderInfo.NameAndIdField instance = Objects.requireNonNull(cloudProviderInfo.getInstance());
+        NameAndIdField instance = Objects.requireNonNull(cloudProviderInfo.getInstance());
         instance.setName(null);
         instance.setId(null);
 
@@ -1149,19 +1154,28 @@ class DslJsonSerializerTest {
         Service service = new Service().withAgent(new Agent("name", "version")).withName("name");
         final ProcessInfo processInfo = new ProcessInfo("title");
         processInfo.getArgv().add("test");
-        return MetaDataMock.create(processInfo, service, system, createCloudProviderInfo(), new HashMap<>(0)).get();
+        return MetaDataMock.create(processInfo, service, system, createCloudProviderInfo(), new HashMap<>(0), createFaaSMetaDataExtension()).get();
     }
 
     private CloudProviderInfo createCloudProviderInfo() {
         CloudProviderInfo cloudProviderInfo = new CloudProviderInfo("aws");
         cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine("machineType"));
-        cloudProviderInfo.setInstance(new CloudProviderInfo.NameAndIdField("instanceName", "instanceId"));
+        cloudProviderInfo.setInstance(new NameAndIdField("instanceName", "instanceId"));
         cloudProviderInfo.setAvailabilityZone("availabilityZone");
         cloudProviderInfo.setAccount(new CloudProviderInfo.ProviderAccount("accountId"));
         cloudProviderInfo.setRegion("region");
-        cloudProviderInfo.setProject(new CloudProviderInfo.NameAndIdField("projectName", "projectId"));
+        cloudProviderInfo.setProject(new NameAndIdField("projectName", "projectId"));
         cloudProviderInfo.setService(new CloudProviderInfo.Service("ec2"));
         return cloudProviderInfo;
+    }
+
+    private FaaSMetaDataExtension createFaaSMetaDataExtension() {
+        return new FaaSMetaDataExtension(
+            new Framework("Lambda_Java", "1.2.3"),
+            "service-id",
+            new NameAndIdField(null, "accountId"),
+            "region"
+        );
     }
 
     private Transaction createRootTransaction(Sampler sampler) {

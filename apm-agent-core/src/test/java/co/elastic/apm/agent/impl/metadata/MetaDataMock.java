@@ -31,8 +31,8 @@ public class MetaDataMock {
      * @return a mock future, already containing the medata info
      */
     public static Future<MetaData> create(ProcessInfo process, Service service, SystemInfo system, @Nullable CloudProviderInfo cloudProviderInfo,
-                                          Map<String, String> globalLabels) {
-        return new NoWaitFuture<MetaData>(new MetaData(process, service, system, cloudProviderInfo, globalLabels));
+                                          Map<String, String> globalLabels, @Nullable FaaSMetaDataExtension faaSMetaDataExtension) {
+        return new NoWaitFuture<MetaData>(new MetaData(process, service, system, cloudProviderInfo, globalLabels, faaSMetaDataExtension));
     }
 
     private static class NoWaitFuture<V> implements Future<V> {

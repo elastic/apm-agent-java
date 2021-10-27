@@ -21,11 +21,10 @@ package co.elastic.apm.agent.awslambda.helper;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
-import co.elastic.apm.agent.impl.payload.Framework;
-import co.elastic.apm.agent.impl.payload.Node;
+import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
+import co.elastic.apm.agent.impl.metadata.Framework;
+import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.VersionUtils;
@@ -35,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -68,8 +66,8 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
     public Transaction startTransaction(I input, Context lambdaContext) {
         boolean isColdStart = coldStart;
         if (isColdStart) {
+            completeMetaData(lambdaContext);
             coldStart = false;
-            updateMetaData(lambdaContext);
         }
         Transaction transaction = doStartTransaction(input, lambdaContext);
         if (null != transaction) {
@@ -98,60 +96,28 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
         }
     }
 
-    private void updateMetaData(Context lambdaContext) {
+    private void completeMetaData(Context lambdaContext) {
         try {
-            Future<MetaData> future = tracer.getMetaData();
-            if (future instanceof MetaData.EditableMetadataFuture) {
-                String functionArn = lambdaContext.getInvokedFunctionArn();
-                String[] arnSegments = functionArn.split(":");
-                String region = arnSegments[3];
-                String accountId = arnSegments[4];
-                if (arnSegments.length > 6) {
-                    functionArn = functionArn.substring(0, functionArn.lastIndexOf(':'));
-                }
-
-                // set service.id
-                MetaData.EditableMetadataFuture editableMDFuture = (MetaData.EditableMetadataFuture) future;
-                MetaData metaData = editableMDFuture.getEditableMetaData();
-                metaData.getService().withId(functionArn);
-
-                // set service.name if not set yet
-                if (null == metaData.getService().getName()) {
-                    metaData.getService().withName(lambdaContext.getFunctionName());
-                }
-
-                // set service.version if not set yet
-                if (null == metaData.getService().getVersion()) {
-                    metaData.getService().withVersion(lambdaContext.getFunctionVersion());
-                }
-
-                // set service.node.name if not set yet
-                if (null == metaData.getService().getNode() || null == metaData.getService().getNode().getName()) {
-                    metaData.getService().withNode(new Node(lambdaContext.getLogStreamName()));
-                }
-
-                CloudProviderInfo cloudProviderInfo = metaData.getCloudProviderInfo();
-                if (null != cloudProviderInfo) {
-                    // set cloud.account.id
-                    if (!accountId.isEmpty()) {
-                        cloudProviderInfo.setAccount(new CloudProviderInfo.NameAndIdField(null, accountId));
-                    }
-
-                    // set cloud.region if not set yet
-                    if (null == cloudProviderInfo.getRegion() && !region.isEmpty()) {
-                        cloudProviderInfo.setRegion(region);
-                    }
-                }
-
-                // set framework
-                String lambdaLibVersion = VersionUtils.getVersion(RequestHandler.class, "com.amazonaws", "aws-lambda-java-core");
-                if (lambdaLibVersion == null) {
-                    lambdaLibVersion = "unknown";
-                }
-                metaData.getService().withFramework(new Framework("AWS Lambda", lambdaLibVersion));
-
-                editableMDFuture.setReady();
+            String functionArn = lambdaContext.getInvokedFunctionArn();
+            String[] arnSegments = functionArn.split(":");
+            String region = arnSegments[3];
+            String accountId = arnSegments[4];
+            if (arnSegments.length > 6) {
+                functionArn = functionArn.substring(0, functionArn.lastIndexOf(':'));
             }
+
+            // set framework
+            String lambdaLibVersion = VersionUtils.getVersion(RequestHandler.class, "com.amazonaws", "aws-lambda-java-core");
+            if (lambdaLibVersion == null) {
+                lambdaLibVersion = "unknown";
+            }
+
+            tracer.getMetaDataFuture().getFaaSMetaDataExtensionFuture().complete(new FaaSMetaDataExtension(
+                new Framework("AWS Lambda", lambdaLibVersion),
+                functionArn,
+                new NameAndIdField(null, accountId),
+                region
+            ));
         } catch (Exception e) {
             logger.error("Failed updating metadata for first lambda execution!", e);
         }

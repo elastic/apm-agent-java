@@ -141,7 +141,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
             new DslJsonSerializer(
                 mock(StacktraceConfiguration.class),
                 apmServerClient,
-                MetaDataMock.create(title, service, system, null, Collections.emptyMap())
+                MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
             ),
             apmServerClient);
         realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler);

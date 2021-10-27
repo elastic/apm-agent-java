@@ -161,7 +161,11 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
         ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
         loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
         additionalFields = loggingConfiguration.getLogEcsReformattingAdditionalFields();
-        Service service = new ServiceFactory().createService(tracer.getConfig(CoreConfiguration.class), "", tracer.getConfig(ServerlessConfiguration.class).runsOnAwsLambda());
+        Service service = new ServiceFactory().createService(
+            tracer.getConfig(CoreConfiguration.class),
+            "",
+            tracer.getConfig(ServerlessConfiguration.class)
+        );
         configuredServiceName = service.getName();
         if (service.getNode() != null) {
             configuredServiceNodeName = service.getNode().getName();

@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.UrlConnectionUtils;
 import com.dslplatform.json.DslJson;
@@ -62,7 +63,15 @@ public class CloudMetadataProvider {
      *          {@link co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider#NONE}
      */
     @Nullable
-    static CloudProviderInfo getCloudInfoProvider(final CoreConfiguration.CloudProvider cloudProvider, final int queryTimeoutMs) {
+    static CloudProviderInfo getCloudInfoProvider(final CoreConfiguration.CloudProvider cloudProvider, final int queryTimeoutMs,
+                                                  ServerlessConfiguration serverlessConfiguration) {
+
+        if (serverlessConfiguration.runsOnAwsLambda()) {
+            CloudProviderInfo awsLambdaInfo = new CloudProviderInfo("aws");
+            awsLambdaInfo.setRegion(System.getenv("AWS_REGION"));
+            awsLambdaInfo.setService(new CloudProviderInfo.Service("lambda"));
+            return awsLambdaInfo;
+        }
 
         if (cloudProvider == NONE) {
             return null;
@@ -270,7 +279,7 @@ public class CloudMetadataProvider {
         if (instanceType != null) {
             cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine(instanceType));
         }
-        cloudProviderInfo.setInstance(new CloudProviderInfo.NameAndIdField(null, instanceId));
+        cloudProviderInfo.setInstance(new NameAndIdField(null, instanceId));
         cloudProviderInfo.setAvailabilityZone(availabilityZone);
         cloudProviderInfo.setAccount(new CloudProviderInfo.ProviderAccount(accountId));
         cloudProviderInfo.setRegion(region);
@@ -313,7 +322,7 @@ public class CloudMetadataProvider {
             Long instanceId = (instanceMap.get("id") instanceof Long) ? (Long) instanceMap.get("id") : null;
             String instanceName = (instanceMap.get("name") instanceof String) ? (String) instanceMap.get("name") : null;
             String zone = instanceMap.get("zone") instanceof String ? (String) instanceMap.get("zone") : null;
-            cloudProviderInfo.setInstance(new CloudProviderInfo.NameAndIdField(instanceName, instanceId));
+            cloudProviderInfo.setInstance(new NameAndIdField(instanceName, instanceId));
             String machineType = instanceMap.get("machineType") instanceof String ? (String) instanceMap.get("machineType") : null;
             if (machineType != null) {
                 String[] machinePathParts = machineType.split("/");
@@ -334,7 +343,7 @@ public class CloudMetadataProvider {
             @SuppressWarnings("unchecked") Map<String, Object> projectMap = (Map<String, Object>) projectData;
             String projectId = projectMap.get("projectId") instanceof String ? (String) projectMap.get("projectId") : null;
             Long numericProjectId = projectMap.get("numericProjectId") instanceof Long ? (Long) projectMap.get("numericProjectId") : null;
-            cloudProviderInfo.setProject(new CloudProviderInfo.NameAndIdField(projectId, numericProjectId));
+            cloudProviderInfo.setProject(new NameAndIdField(projectId, numericProjectId));
         } else {
             logger.warn("Error while parsing GCP metadata - expecting the value of the 'project' entry to be a map but it is not");
         }
@@ -388,8 +397,8 @@ public class CloudMetadataProvider {
 
         CloudProviderInfo cloudProviderInfo = new CloudProviderInfo("azure");
         cloudProviderInfo.setAccount(new CloudProviderInfo.ProviderAccount(subscriptionId));
-        cloudProviderInfo.setInstance(new CloudProviderInfo.NameAndIdField(vmName, vmId));
-        cloudProviderInfo.setProject(new CloudProviderInfo.NameAndIdField(resourceGroupName));
+        cloudProviderInfo.setInstance(new NameAndIdField(vmName, vmId));
+        cloudProviderInfo.setProject(new NameAndIdField(resourceGroupName));
         cloudProviderInfo.setAvailabilityZone(zone);
         if (vmSize != null) {
             cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine(vmSize));

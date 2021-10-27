@@ -40,6 +40,7 @@ import co.elastic.apm.agent.impl.metadata.Agent;
 import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
 import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.Language;
+import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.metadata.Node;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
 import co.elastic.apm.agent.impl.metadata.RuntimeInfo;
@@ -567,7 +568,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_END);
     }
 
-    private static void serializeNameAndIdField(@Nullable CloudProviderInfo.NameAndIdField nameAndIdField, String fieldName,
+    private static void serializeNameAndIdField(@Nullable NameAndIdField nameAndIdField, String fieldName,
                                                 StringBuilder replaceBuilder, JsonWriter jw) {
         if (nameAndIdField != null && !nameAndIdField.isEmpty()) {
             writeFieldName(fieldName, jw);

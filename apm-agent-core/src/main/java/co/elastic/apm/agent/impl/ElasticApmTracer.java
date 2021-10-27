@@ -25,6 +25,7 @@ import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -109,17 +110,17 @@ public class ElasticApmTracer implements Tracer {
     private volatile boolean currentlyUnderStress = false;
     private volatile boolean recordingConfigOptionSet;
     private final String ephemeralId;
-    private final Future<MetaData> metaData;
+    private final MetaDataFuture metaDataFuture;
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory,
-                     ApmServerClient apmServerClient, final String ephemeralId, Future<MetaData> metaData) {
+                     ApmServerClient apmServerClient, final String ephemeralId, MetaDataFuture metaDataFuture) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.apmServerClient = apmServerClient;
         this.ephemeralId = ephemeralId;
-        this.metaData = metaData;
+        this.metaDataFuture = metaDataFuture;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
 
@@ -766,8 +767,8 @@ public class ElasticApmTracer implements Tracer {
         return ephemeralId;
     }
 
-    public Future<MetaData> getMetaData() {
-        return metaData;
+    public MetaDataFuture getMetaDataFuture() {
+        return metaDataFuture;
     }
 
     public ScheduledThreadPoolExecutor getSharedSingleThreadedPool() {

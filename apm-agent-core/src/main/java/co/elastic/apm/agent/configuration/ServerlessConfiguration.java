@@ -26,7 +26,7 @@ public class ServerlessConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<String> awsLambdaHandler = ConfigurationOption.stringOption()
             .key("aws_lambda_handler")
-            .tags("added[1.25.0]")
+            .tags("added[1.28.0]")
             .configurationCategory(SERVERLESS_CATEGORY)
             .description("This config option must be used when running the agent in an AWS Lambda context. \n" +
                     "This config value allows to specify the fully qualified name of the class handling the lambda function. \n" +
@@ -35,7 +35,7 @@ public class ServerlessConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Long> dataFlushTimeout = ConfigurationOption.longOption()
             .key("data_flush_timeout")
-            .tags("added[1.25.0]")
+            .tags("added[1.28.0]")
             .configurationCategory(SERVERLESS_CATEGORY)
             .description("This config value allows to specify the timeout in milliseconds for flushing APM data at the end of a serverless function. \n" +
                     "For serverless functions, APM data is written in a synchronous way, thus, blocking the termination of the function util data is written or the specified timeout is reached.")

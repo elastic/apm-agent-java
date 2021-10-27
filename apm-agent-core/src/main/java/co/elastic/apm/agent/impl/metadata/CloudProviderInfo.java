@@ -117,58 +117,6 @@ public class CloudProviderInfo {
         this.service = service;
     }
 
-    public static class NameAndIdField {
-        @Nullable
-        protected String id;
-        @Nullable
-        protected String name;
-
-        public NameAndIdField(@Nullable String name) {
-            this.name = name;
-        }
-
-        public NameAndIdField(@Nullable String name, @Nullable Long id) {
-            this.name = name;
-            this.id = id != null ? id.toString() : null;
-        }
-
-        public NameAndIdField(@Nullable String name, @Nullable String id) {
-            this.name = name;
-            this.id = id;
-        }
-
-        public boolean isEmpty() {
-            return id == null && name == null;
-        }
-
-        @Nullable
-        public String getId() {
-            return id;
-        }
-
-        @Nullable
-        public String getName() {
-            return name;
-        }
-
-        public void setName(@Nullable String name) {
-            this.name = name;
-        }
-
-        public void setId(@Nullable String id) {
-            this.id = id;
-        }
-
-        @Override
-        public String toString() {
-            final StringBuilder sb = new StringBuilder("{");
-            sb.append("id='").append(id).append('\'');
-            sb.append(", name='").append(name).append('\'');
-            sb.append("}");
-            return sb.toString();
-        }
-    }
-
     /**
      * Currently, we only fill the {@code account.id} field, however the intake API supports the {@code account.name}
      * as well and we may wont to use it in the future. This is a convenience type for the time being that can be

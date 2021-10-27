@@ -20,15 +20,16 @@ package co.elastic.apm.agent.awslambda;
 
 import co.elastic.apm.agent.awslambda.lambdas.PlainLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.VersionUtils;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import org.junit.BeforeClass;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -51,12 +52,10 @@ public class PlainLambdaTest extends AbstractLambdaTest {
     public void testMetaData() throws Exception {
         function.handleRequest(null, context);
 
-        MetaData metaData = tracer.getMetaData().get();
+        MetaData metaData = tracer.getMetaDataFuture().get(100, TimeUnit.MILLISECONDS);
         assertThat(metaData).isNotNull();
         assertThat(metaData.getService()).isNotNull();
-        assertThat(metaData.getService().getName()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(metaData.getService().getId()).isEqualTo(TestContext.FUNCTION_ARN);
-        assertThat(metaData.getService().getVersion()).isEqualTo(TestContext.FUNCTION_VERSION);
         assertThat(metaData.getService().getRuntime()).isNotNull();
         assertThat(metaData.getService().getRuntime().getName()).startsWith("AWS_Lambda_java");
         assertThat(metaData.getService().getRuntime().getVersion()).isEqualTo(System.getProperty("java.version"));
@@ -64,7 +63,6 @@ public class PlainLambdaTest extends AbstractLambdaTest {
         assertThat(metaData.getService().getFramework().getName()).isEqualTo("AWS Lambda");
         assertThat(metaData.getService().getFramework().getVersion()).isEqualTo(VersionUtils.getVersion(RequestHandler.class, "com.amazonaws", "aws-lambda-java-core"));
         assertThat(metaData.getService().getNode()).isNotNull();
-        assertThat(metaData.getService().getNode().getName()).isEqualTo(TestContext.LOG_STREAM_NAME);
         assertThat(metaData.getCloudProviderInfo()).isNotNull();
         assertThat(metaData.getCloudProviderInfo().getProvider()).isEqualTo("aws");
         assertThat(metaData.getCloudProviderInfo().getRegion()).isEqualTo(TestContext.FUNCTION_REGION);
