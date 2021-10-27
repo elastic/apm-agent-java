@@ -44,12 +44,7 @@ public class StartupInfo extends AbstractLifecycleListener {
     private final String elasticApmVersion;
 
     public StartupInfo() {
-        final String version = VersionUtils.getAgentVersion();
-        if (version != null) {
-            elasticApmVersion = version;
-        } else {
-            elasticApmVersion = "(unknown version)";
-        }
+        elasticApmVersion = VersionUtils.getAgentVersion();
     }
 
     private static String getJvmAndOsVersionString() {

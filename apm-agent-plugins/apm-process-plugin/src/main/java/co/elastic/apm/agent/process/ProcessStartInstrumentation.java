@@ -71,8 +71,6 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
                 // when an exception is thrown, there is no return value
                 ProcessHelper.startProcess(parentSpan, process, processBuilder.command());
             }
-
-
         }
     }
 }

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.attach;
 
-import co.elastic.apm.attach.UserRegistry.CommandOutput;
+import co.elastic.apm.agent.common.util.ProcessExecutionUtil;
 import co.elastic.logging.log4j2.EcsLayout;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -231,7 +231,7 @@ public class AgentAttacher {
         }
     }
 
-    private boolean attach(JvmInfo jvmInfo, Map<String, String> agentArgs) throws Exception {
+    private boolean attach(JvmInfo jvmInfo, Map<String, String> agentArgs) {
         UserRegistry.User user = jvmInfo.getUser(userRegistry);
         if (user == null) {
             logger.error("Could not load user {}", jvmInfo.getUserName());
@@ -257,7 +257,7 @@ public class AgentAttacher {
         }
     }
 
-    private boolean attachAsUser(UserRegistry.User user, Map<String, String> agentArgs, String pid) throws IOException, InterruptedException {
+    private boolean attachAsUser(UserRegistry.User user, Map<String, String> agentArgs, String pid) {
 
         List<String> args = new ArrayList<>();
         args.add("--include-pid");
@@ -274,7 +274,7 @@ public class AgentAttacher {
             args.add("--log-file");
             args.add(arguments.getLogFile());
         }
-        CommandOutput output = user.executeAsUserWithCurrentClassPath(AgentAttacher.class, args);
+        ProcessExecutionUtil.CommandOutput output = user.executeAsUserWithCurrentClassPath(AgentAttacher.class, args);
         return output.exitedNormally();
     }
 

@@ -602,13 +602,16 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "provider or, if that fails, will use trial and error to collect the metadata.")
         .buildWithDefault(CloudProvider.AUTO);
 
-    private final ConfigurationOption<TimeDuration> cloudMetadataTimeoutMs = TimeDurationValueConverter.durationOption("ms")
-        .key("cloud_metadata_timeout_ms")
+    private final ConfigurationOption<TimeDuration> metadataTimeoutMs = TimeDurationValueConverter.durationOption("ms")
+        .key("metadata_timeout_ms")
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
-        .description("Automatic cloud provider information is fetched by querying APIs in external services, which means \n" +
-            "they impose a delay. In some cases, this discovery process relies on trial-and-error, by querying these \n" +
-            "services. We use this config option to determine the timeout for this purpose. Increase if timed out when shouldn't.")
+        .description("Some metadata auto-discovery tasks require long execution. For example, cloud provider information \n" +
+            "is fetched by querying APIs through HTTP and hostname discovery relies on running external commands. \n" +
+            "In some cases, such discovery tasks rely on trial-and-error. This config option is used to limit the time \n" +
+            "spent on metadata discovery. Wherever possible, these tasks are executed in parallel, but in some cases \n" +
+            "they can't be, which means that this config doesn't indicate the absolute limit for the entire metadata \n" +
+            "discovery. Rather, it defines the timeout for each metadata discovery task.")
         .buildWithDefault(TimeDuration.of("1000ms"));
 
     private final ConfigurationOption<Boolean> enablePublicApiAnnotationInheritance = ConfigurationOption.booleanOption()
@@ -656,14 +659,17 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return delayTracerStart.get().getMillis();
     }
 
+    @Nullable
     public String getServiceVersion() {
         return serviceVersion.get();
     }
 
+    @Nullable
     public String getHostname() {
         return hostname.get();
     }
 
+    @Nullable
     public String getEnvironment() {
         return environment.get();
     }
@@ -808,8 +814,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         }
     }
 
-    public long geCloudMetadataDiscoveryTimeoutMs() {
-        return cloudMetadataTimeoutMs.get().getMillis();
+    public long geMetadataDiscoveryTimeoutMs() {
+        return metadataTimeoutMs.get().getMillis();
     }
 
     public CloudProvider getCloudProvider() {

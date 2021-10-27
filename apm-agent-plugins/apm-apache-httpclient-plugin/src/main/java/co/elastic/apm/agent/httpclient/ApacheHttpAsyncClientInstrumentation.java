@@ -22,8 +22,8 @@ import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.helper.ApacheHttpAsyncClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -35,6 +35,7 @@ import org.apache.http.protocol.HttpContext;
 import javax.annotation.Nullable;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -79,9 +80,9 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
     public static class ApacheHttpAsyncClientAdvice {
         private static ApacheHttpAsyncClientHelper asyncHelper = new ApacheHttpAsyncClientHelper();
 
-        @AssignTo(arguments = {
-            @AssignTo.Argument(index = 0, value = 0),
-            @AssignTo.Argument(index = 1, value = 3)
+        @Advice.AssignReturned.ToArguments({
+            @ToArgument(index = 0, value = 0, typing = DYNAMIC),
+            @ToArgument(index = 1, value = 3, typing = DYNAMIC)
         })
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
