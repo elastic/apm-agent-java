@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.attach;
 
+import co.elastic.apm.agent.common.util.ProcessExecutionUtil;
 import com.sun.jna.Platform;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -85,7 +85,7 @@ public class UserRegistry {
         return get(getCurrentUserName());
     }
 
-    public Collection<String> getAllTempDirs() throws IOException, InterruptedException {
+    public Collection<String> getAllTempDirs() {
         Set<String> tempDirs = new HashSet<>();
         for (User user : users.values()) {
             tempDirs.add(findTempDir(user));
@@ -94,12 +94,12 @@ public class UserRegistry {
         return tempDirs;
     }
 
-    private String findTempDir(User user) throws IOException, InterruptedException {
+    private String findTempDir(User user) {
         if (user.canSwitchToUser()) {
             // every user has their own temp folder on MacOS
             // to discover it, we're starting a simple Java program in the context of the user
             // that outputs the value of the java.io.tmpdir system property
-            CommandOutput output = user.executeAsUserWithCurrentClassPath(UserRegistry.class, Collections.<String>emptyList());
+            ProcessExecutionUtil.CommandOutput output = user.executeAsUserWithCurrentClassPath(UserRegistry.class, Collections.<String>emptyList());
             if (output.exitedNormally()) {
                 return output.getOutput().toString().trim();
             }
@@ -167,7 +167,7 @@ public class UserRegistry {
                 (Platform.isWindows() ? ".exe" : "");
         }
 
-        public CommandOutput executeAsUserWithCurrentClassPath(Class<?> mainClass, List<String> args) {
+        public ProcessExecutionUtil.CommandOutput executeAsUserWithCurrentClassPath(Class<?> mainClass, List<String> args) {
             List<String> cmd = new ArrayList<>();
             cmd.add(getCurrentJvm());
             cmd.add("-cp");
@@ -177,7 +177,7 @@ public class UserRegistry {
             return executeAs(cmd);
         }
 
-        public CommandOutput executeAs(List<String> cmd) {
+        public ProcessExecutionUtil.CommandOutput executeAs(List<String> cmd) {
             if (!canSwitchToUser) {
                 throw new IllegalStateException(String.format("Cannot run as user %s", username));
             }
@@ -188,7 +188,7 @@ public class UserRegistry {
                 // sudo only when required
                 cmd = sudoCmd(username, cmd);
             }
-            return executeCommand(cmd);
+            return ProcessExecutionUtil.executeCommand(cmd);
         }
 
         /**
@@ -219,133 +219,5 @@ public class UserRegistry {
         public String getUsername() {
             return username;
         }
-
-        public static CommandOutput executeCommand(List<String> command) {
-            ProcessBuilder buildTheProcess = new ProcessBuilder(command);
-            // merge stdout and stderr so we only have to read one stream
-            buildTheProcess.redirectErrorStream(true);
-            Process spawnedProcess = null;
-            int exitValue = -1;
-            Throwable exception = null;
-            StringBuilder commandOutput = new StringBuilder();
-            try {
-                spawnedProcess = buildTheProcess.start();
-
-                long timeout = 5 * 1000L; // NOTE 5 second timeout!
-                long start = System.currentTimeMillis();
-                long now = start;
-                boolean isAlive = true;
-                byte[] buffer = new byte[4 * 1000];
-                try (InputStream in = spawnedProcess.getInputStream()) {
-                    // stop trying if the time elapsed exceeds the timeout
-                    while (isAlive && (now - start) < timeout) {
-                        while (in.available() > 0) {
-                            int lengthRead = in.read(buffer, 0, buffer.length);
-                            commandOutput.append(new String(buffer, 0, lengthRead));
-                        }
-                        try {
-                            Thread.sleep(50);
-                        } catch (InterruptedException e) {
-                            //no action, just means the next loop iteration checking
-                            //for timeout or process dead, is earlier
-                        }
-                        now = System.currentTimeMillis();
-                        // if it's not alive but there is still readable input, then continue reading
-                        isAlive = processIsAlive(spawnedProcess) || in.available() > 0;
-                    }
-                    //would like to call waitFor(TIMEOUT) here, but that is 1.8+
-                    //so pause for a bit, and just ensure that the output buffers are empty
-                    try {
-                        Thread.sleep(50);
-                    } catch (InterruptedException e) {
-                        //no action, just means the exit is earlier
-                    }
-                    //handle edge case where process terminated but still has unread IO
-                    //and in.available() could have returned 0 from IO buffering
-                    while (in.available() > 0) {
-                        int lengthRead = in.read(buffer, 0, buffer.length);
-                        commandOutput.append(new String(buffer, 0, lengthRead));
-                    }
-                }
-
-            } catch (Throwable e1) {
-                exception = e1;
-            } finally {
-                // Cleanup as well as we can
-                if (spawnedProcess != null && processIsAlive(spawnedProcess)) {
-                    spawnedProcess.destroy();
-                    try {
-                        Thread.sleep(50);
-                    } catch (InterruptedException e) {
-                        //no action, just means the next loop iteration is earlier
-                    }
-                    // when no longer need 1.7 compatibility, add these lines
-                    // try{Thread.sleep(50);}catch (InterruptedException e) {}
-                    // if (p.isAlive()) {
-                    // p.destroyForcibly();
-                    // }
-                }
-                if (spawnedProcess != null) {
-                    try {
-                        exitValue = spawnedProcess.exitValue();
-                    } catch (IllegalThreadStateException e2) {
-                        if (exception == null) {
-                            exception = e2;
-                        }
-                    }
-                }
-            }
-            return new CommandOutput(commandOutput, exitValue, exception);
-        }
-
-        public static boolean processIsAlive(Process proc) {
-            //1.7 doesn't have Process.isAlive() so need to implement it
-            //This implementation is essentially what it does in 1.8
-            try {
-                proc.exitValue();
-                return false;
-            } catch (IllegalThreadStateException e) {
-                return true;
-            }
-        }
-    }
-
-    public static class CommandOutput {
-        StringBuilder output;
-        int exitCode;
-        Throwable exceptionThrown;
-
-        public CommandOutput(StringBuilder output, int exitCode, Throwable exception) {
-            super();
-            this.output = output;
-            this.exitCode = exitCode;
-            this.exceptionThrown = exception;
-        }
-
-        public StringBuilder getOutput() {
-            return output;
-        }
-
-        public boolean exitedNormally() {
-            return getExceptionThrown() == null && exitCode == 0;
-        }
-
-        public int getExitCode() {
-            return exitCode;
-        }
-
-        public Throwable getExceptionThrown() {
-            return exceptionThrown;
-        }
-
-        public String toString() {
-            if (this.exceptionThrown != null) {
-                return "Exit Code: " + this.exitCode + "; Output: " + this.output.toString() +
-                        "\r\nException: " + this.exceptionThrown;
-            } else {
-                return "Exit Code: " + this.exitCode + "; Output: " + this.output.toString();
-            }
-        }
-
     }
 }

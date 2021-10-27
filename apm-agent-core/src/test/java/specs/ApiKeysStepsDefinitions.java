@@ -18,59 +18,40 @@
  */
 package specs;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.report.HttpUtils;
 import co.elastic.apm.agent.report.ReporterConfiguration;
-import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.extension.responsetemplating.ResponseTemplateTransformer;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Collections;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Fail.fail;
 import static org.mockito.Mockito.when;
 
 public class ApiKeysStepsDefinitions {
 
-    // so far, only reporter and it's configuration is being tested
-    private ReporterConfiguration configuration = null;
+    private ReporterConfiguration reporterConfiguration = null;
+    private CoreConfiguration coreConfiguration = null;
 
-    private WireMockServer server = new WireMockServer(WireMockConfiguration.options()
-        .extensions(new ResponseTemplateTransformer(false))
-        .dynamicPort());
+    private final SpecMockServer server = new SpecMockServer("{{request.headers.Authorization}}");
 
     @Before
     public void init() {
-        server.stubFor(get(urlEqualTo("/"))
-            .willReturn(aResponse()
-                .withTransformers("response-template")
-                // just send back auth header (if any) for easy parsing on client side
-                .withBody("{{request.headers.Authorization}}")));
-
         server.start();
 
         // we just initialize configuration as reporter is initialized lazily
-        configuration = SpyConfiguration.createSpyConfig().getConfig(ReporterConfiguration.class);
+        ConfigurationRegistry spyConfig = SpyConfiguration.createSpyConfig();
+        reporterConfiguration = spyConfig.getConfig(ReporterConfiguration.class);
+        coreConfiguration = spyConfig.getConfig(CoreConfiguration.class);
 
-        URL serverUrl = buildUrl(String.format("http://localhost:%d/", server.port()));
-
-        when(configuration.getServerUrls())
-            .thenReturn(Collections.singletonList(serverUrl));
+        when(reporterConfiguration.getServerUrls())
+            .thenReturn(Collections.singletonList(server.getUrl()));
     }
 
     @After
@@ -82,14 +63,14 @@ public class ApiKeysStepsDefinitions {
 
     @When("an api key is set to {string} in the config")
     public void setApiKeyConfig(String value) {
-        when(configuration.getApiKey())
+        when(reporterConfiguration.getApiKey())
             .thenReturn(value);
     }
 
     @Given("an api key is not set in the config")
     public void apiKeyNotSetInConfig() {
         // this is the default, thus there is nothing to do but to assert for it just in case
-        assertThat(configuration.getApiKey())
+        assertThat(reporterConfiguration.getApiKey())
             .isNull();
     }
 
@@ -97,7 +78,7 @@ public class ApiKeysStepsDefinitions {
 
     @When("a secret_token is set to {string} in the config")
     public void setSecretToken(String value) {
-        when(configuration.getSecretToken())
+        when(reporterConfiguration.getSecretToken())
             .thenReturn(value);
     }
 
@@ -105,36 +86,10 @@ public class ApiKeysStepsDefinitions {
 
     @Then("the Authorization header is {string}")
     public void checkExpectedHeader(String expectedHeaderValue) {
-        ApmServerClient apmServerClient = new ApmServerClient(configuration);
+        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
         apmServerClient.start();
 
-        try {
-            apmServerClient.execute("/", new ApmServerClient.ConnectionHandler<Object>() {
-                @Nullable
-                @Override
-                public Object withConnection(HttpURLConnection connection) throws IOException {
-                    assertThat(connection.getResponseCode())
-                        .describedAs("unexpected response code from server")
-                        .isEqualTo(200);
-
-
-                    String body = HttpUtils.readToString(connection.getInputStream());
-                    assertThat(body).isEqualTo(expectedHeaderValue);
-
-                    return null;
-                }
-            });
-        } catch (Exception e) {
-            fail(e.getMessage(), e);
-        }
-    }
-
-    private static URL buildUrl(String spec) {
-        try {
-            return new URL(spec);
-        } catch (MalformedURLException e) {
-            throw new IllegalStateException(e);
-        }
+        server.executeRequest(apmServerClient, (body) -> assertThat(body).isEqualTo(expectedHeaderValue));
     }
 
 }

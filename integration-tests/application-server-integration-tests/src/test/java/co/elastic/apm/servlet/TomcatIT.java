@@ -25,21 +25,16 @@ import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.testcontainers.containers.GenericContainer;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 @RunWith(Parameterized.class)
-public class TomcatIT extends AbstractServletContainerIntegrationTest {
+public class TomcatIT extends AbstractTomcatIT {
 
     public TomcatIT(final String tomcatVersion) {
-        super(new GenericContainer<>("tomcat:" + tomcatVersion),
-            "tomcat-application",
-            "/usr/local/tomcat/webapps",
-            "tomcat");
+        super(tomcatVersion);
     }
 
     @Parameterized.Parameters(name = "Tomcat {0}")
@@ -50,21 +45,13 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
             {"8.5-jre8-slim"},
             {"9-jre9-slim"},
             {"9-jre10-slim"},
-            {"9-jre11-slim"}
+            {"9-jre11-slim"},
+            {"9.0.39-jdk14-openjdk-oracle"},
+            {"jdk8-adoptopenjdk-openj9"},
+            // TODO openj9 on JDK11 has an access problem from java.base
+            //{"jdk11-adoptopenjdk-openj9"},
+            //{"9.0.50-jdk11-adoptopenjdk-openj9"}
         });
-    }
-
-    @Override
-    protected void enableDebugging(GenericContainer<?> servletContainer) {
-        // using directly CATALINA_OPTS allows to set the debugger options without having to change the command to start
-        // the container. Using the JPDA_* env variables requires using "catalina.sh jpda start" command otherwise
-        // they are ignored
-        servletContainer.withEnv("CATALINA_OPTS", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
-    }
-
-    @Nullable
-    protected String getServerLogsPath() {
-        return "/usr/local/tomcat/logs/*";
     }
 
     @Override
@@ -78,15 +65,5 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
             testClasses.add(JsfServletContainerTestApp.class);
         }
         return testClasses;
-    }
-
-    @Override
-    protected boolean runtimeAttachSupported() {
-        return true;
-    }
-
-    @Override
-    protected String getJavaagentEnvVariable() {
-        return "CATALINA_OPTS";
     }
 }
