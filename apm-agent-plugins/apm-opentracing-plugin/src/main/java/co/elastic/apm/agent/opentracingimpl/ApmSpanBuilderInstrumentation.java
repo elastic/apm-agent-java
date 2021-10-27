@@ -25,7 +25,6 @@ import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -69,7 +68,7 @@ public abstract class ApmSpanBuilderInstrumentation extends OpenTracingBridgeIns
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Object createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object parentContext,
                                             @Advice.Origin Class<?> spanBuilderClass,

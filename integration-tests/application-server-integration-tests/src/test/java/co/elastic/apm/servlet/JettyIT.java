@@ -24,52 +24,24 @@ import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.testcontainers.containers.GenericContainer;
 
 import java.util.Arrays;
 import java.util.List;
 
 @RunWith(Parameterized.class)
-public class JettyIT extends AbstractServletContainerIntegrationTest {
-
-    private String version;
+public class JettyIT extends AbstractJettyIT {
 
     public JettyIT(final String version) {
-        super(new GenericContainer<>("jetty:" + version)
-                .withExposedPorts(8080),
-            "jetty-application",
-            "/var/lib/jetty/webapps",
-            "jetty");
-
-        this.version = version;
+        super(version);
     }
 
     @Parameterized.Parameters(name = "Jetty {0}")
     public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{{"9.2"}, {"9.3"}, {"9.4"}});
-    }
-
-    @Override
-    protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("JAVA_OPTIONS", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005");
-    }
-
-    public List<String> getPathsToTestErrors() {
-        return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet");
-    }
-
-    @Override
-    public boolean isExpectedStacktrace(String path) {
-        return !path.equals("/async-dispatch-servlet");
+        return Arrays.asList(new Object[][]{{"9.2"}, {"9.3"}, {"9.4"}, {"10.0.6"}, {"10.0.6-jdk11"}, {"10.0.6-jdk16"}});
     }
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
         return Arrays.asList(ServletApiTestApp.class, JsfServletContainerTestApp.class, ExternalPluginTestApp.class);
-    }
-
-    @Override
-    protected boolean runtimeAttachSupported() {
-        return true;
     }
 }

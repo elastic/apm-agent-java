@@ -20,7 +20,6 @@ package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -91,7 +90,7 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
         }
 
         @Nullable
-        @AssignTo.Return
+        @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static Mono<HandlerResult> onExit(@Advice.Argument(0) ServerWebExchange exchange,
                                                  @Advice.Thrown @Nullable Throwable thrown,

@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -57,7 +56,7 @@ public class ConsumerRecordsIteratorInstrumentation extends KafkaConsumerRecords
         private static final KafkaInstrumentationHeadersHelper helper = KafkaInstrumentationHeadersHelper.get();
 
         @Nullable
-        @AssignTo.Return
+        @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
         public static Iterator<ConsumerRecord<?, ?>> wrapIterator(@Advice.Return @Nullable final Iterator<ConsumerRecord<?, ?>> iterator) {
             if (!tracer.isRunning() || tracer.currentTransaction() != null || iterator == null) {
