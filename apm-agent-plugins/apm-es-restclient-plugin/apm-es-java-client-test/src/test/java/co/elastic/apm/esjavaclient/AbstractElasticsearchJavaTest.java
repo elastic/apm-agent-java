@@ -97,8 +97,8 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         ElasticsearchError elasticsearchError = (ElasticsearchError) apiException.error();
         assertThat(elasticsearchError.status()).isEqualTo(404);
         LOGGER.debug("Elasticsearch error = {}", elasticsearchError.error().toString());
-// T      ODO - check why error not captured..
-//        assertThatErrorsExistWhenDeleteNonExistingIndex();
+
+        // no errors captured, because in this case event come to ResponseListener#onSuccess
     }
 
     @Test
@@ -194,9 +194,21 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
 
         MsearchRequest multiSearchRequest = new MsearchRequest(builder -> builder
             .index(INDEX)
-            .searches(Json.createArrayBuilder().add(Json.createObjectBuilder()
-                .add("query", Json.createObjectBuilder().add("match", Json.createObjectBuilder().add(FOO, BAR)))
-                .build()).build()));
+            .searches(
+                Json.createObjectBuilder()
+                    .add("index", Json.createArrayBuilder().add(INDEX))
+                    .add("types", Json.createArrayBuilder())
+                    .add("search_type", "query_then_fetch")
+                    .add("ccs_minimize_roundtrips", true)
+                    .build(),
+                Json.createObjectBuilder()
+                    .add("query", Json.createObjectBuilder()
+                        .add("match", Json.createObjectBuilder()
+                            .add(FOO, Json.createObjectBuilder()
+                                .add("query", BAR)
+                                .add("operator", "OR")))
+                        .build()).build())
+            .typedKeys(true));
 
         ApiException apiException = null;
         try {
@@ -279,7 +291,6 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
 
             List<JsonValue> items = response.responses();
             assertThat(items.size()).isEqualTo(1);
-            // TODO
 //        verifyTotalHits(items.get(0).getResponse().getResponse().getHits());
             List<Span> spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
@@ -301,7 +312,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             .refresh(JsonValue.TRUE)
             .timeout("1m"));
 
-        BulkResponse bulkResponse = doBulk(bulkRequest);
+        doBulk(bulkRequest);
 
         validateSpanContentAfterBulkRequest();
     }
