@@ -16,34 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.payload;
+@NonnullApi
+package co.elastic.apm.agent.impl.metadata;
 
-
-/**
- * Name and version of the programming language used
- */
-public class Language {
-
-    /**
-     * (Required)
-     */
-    private final String name;
-    private final String version;
-
-    public Language(String name, String version) {
-        this.name = name;
-        this.version = version;
-    }
-
-    /**
-     * (Required)
-     */
-    public String getName() {
-        return name;
-    }
-
-    public String getVersion() {
-        return version;
-    }
-
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

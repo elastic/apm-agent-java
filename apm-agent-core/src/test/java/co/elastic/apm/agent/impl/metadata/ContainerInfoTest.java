@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.payload;
+package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.util.CustomEnvVariables;
 import org.junit.jupiter.api.Test;
@@ -165,7 +165,7 @@ public class ContainerInfoTest extends CustomEnvVariables {
 
 
     private SystemInfo createSystemInfo() {
-        return new SystemInfo("arch", "my-host", "platform");
+        return new SystemInfo("arch", "my-host", null, "platform");
     }
 
     private SystemInfo assertContainerId(String line, String containerId) {
