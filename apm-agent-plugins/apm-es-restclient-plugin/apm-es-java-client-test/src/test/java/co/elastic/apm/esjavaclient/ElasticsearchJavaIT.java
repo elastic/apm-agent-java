@@ -2,6 +2,7 @@ package co.elastic.apm.esjavaclient;
 
 import co.elastic.clients.base.RestClientTransport;
 import co.elastic.clients.base.Transport;
+import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.indices.CreateRequest;
 import co.elastic.clients.elasticsearch.indices.DeleteRequest;
@@ -14,12 +15,19 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.elasticsearch.client.RestClient;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.IOException;
 
+@RunWith(Parameterized.class)
 public class ElasticsearchJavaIT extends AbstractElasticsearchJavaTest {
 
     private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.15.0";
+
+    public ElasticsearchJavaIT(boolean async) {
+        this.async = async;
+    }
 
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
@@ -34,6 +42,7 @@ public class ElasticsearchJavaIT extends AbstractElasticsearchJavaTest {
 
         Transport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
         client = new ElasticsearchClient(transport);
+        asyncClient = new ElasticsearchAsyncClient(transport);
 
         client.indices().create(new CreateRequest(builder -> builder.index(INDEX)));
         reporter.reset();
