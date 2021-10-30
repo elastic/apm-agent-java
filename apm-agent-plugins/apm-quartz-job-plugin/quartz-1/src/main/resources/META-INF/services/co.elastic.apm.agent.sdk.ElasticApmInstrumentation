@@ -1,1 +1,1 @@
-co.elastic.apm.agent.quartzjob.Quartz2JobTransactionNameInstrumentationTest
+co.elastic.apm.agent.quartzjob.Quartz1JobTransactionNameInstrumentation
