@@ -35,6 +35,7 @@ exclude known static files in all applications might be changed to `/app/static/
 * The metrics `transaction.duration.sum.us`, `transaction.duration.count` and `transaciton.breakdown.count` are no longer recorded - {pull}2194[#2194]
 * Automatic hostname discovery mechanism had changed, so the resulted `host.name` and `host.hostname` in events reported
 by the agent may be different. This was done in order to improve the integration with host metrics in the APM UI.
+* Renamed `span_frames_min_duration` to `span_stack_trace_min_duration`. Updated logic with enabling and disabling of the stack traces capturing. - {pull}2220[#2220]
 
 [float]
 ===== Features
