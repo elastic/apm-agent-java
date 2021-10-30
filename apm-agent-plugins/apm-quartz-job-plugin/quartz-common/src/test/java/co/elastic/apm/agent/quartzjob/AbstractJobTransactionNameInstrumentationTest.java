@@ -25,12 +25,11 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.quartz.Job;
 import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
-import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
@@ -38,7 +37,6 @@ import org.quartz.SimpleTrigger;
 import org.quartz.impl.StdSchedulerFactory;
 import org.quartz.jobs.DirectoryScanJob;
 import org.quartz.jobs.DirectoryScanListener;
-import org.springframework.scheduling.quartz.QuartzJobBean;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,7 +44,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 
 abstract class AbstractJobTransactionNameInstrumentationTest extends AbstractInstrumentationTest {
@@ -66,7 +63,7 @@ abstract class AbstractJobTransactionNameInstrumentationTest extends AbstractIns
 
     @Test
     void testJobWithGroup() throws SchedulerException {
-        JobDetail job = buildJobDetail(TestJob.class, "dummyJobName", "group1");
+        JobDetail job = buildJobDetailTestJob("dummyJobName", "group1");
         scheduler.scheduleJob(job, createTrigger());
 
         verifyTransactionFromJobDetails(job, Outcome.SUCCESS);
@@ -74,7 +71,7 @@ abstract class AbstractJobTransactionNameInstrumentationTest extends AbstractIns
 
     @Test
     void testJobWithoutGroup() throws SchedulerException {
-        JobDetail job = buildJobDetail(TestJob.class, "dummyJobName");
+        JobDetail job = buildJobDetailTestJob("dummyJobName", null);
         scheduler.scheduleJob(job, createTrigger());
 
         verifyTransactionFromJobDetails(job, Outcome.SUCCESS);
@@ -82,7 +79,7 @@ abstract class AbstractJobTransactionNameInstrumentationTest extends AbstractIns
 
     @Test
     void testJobManualCall() throws SchedulerException, InterruptedException {
-        new TestJobCreatingSpan(tracer, true).execute(null);
+        executeTestJobCreatingSpan(tracer, true);
 
         reporter.awaitTransactionCount(1);
         Transaction transaction = reporter.getFirstTransaction();
@@ -100,7 +97,7 @@ abstract class AbstractJobTransactionNameInstrumentationTest extends AbstractIns
         int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
         int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
 
-        new TestJobCreatingSpan(tracer, false).execute(null);
+        executeTestJobCreatingSpan(tracer, false);
 
         assertThat(reporter.getTransactions()).isEmpty();
         assertThat(reporter.getSpans()).isEmpty();
@@ -108,45 +105,46 @@ abstract class AbstractJobTransactionNameInstrumentationTest extends AbstractIns
         assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
-    // TODO
     @Test
     void testSpringJob() throws SchedulerException {
-        JobDetail job = buildJobDetail(TestSpringJob.class, "dummyJobName", "group1");
+        Assumptions.assumeFalse(ignoreTestSpringJob());
+
+        JobDetail job = buildJobDetailTestSpringJob("dummyJobName", "group1");
         scheduler.scheduleJob(job, createTrigger());
 
         verifyTransactionFromJobDetails(job, Outcome.SUCCESS);
     }
 
-    // TODO
     @Test
     void testJobWithResult() throws SchedulerException {
-        JobDetail job = buildJobDetail(TestJobWithResult.class, "dummyJobName");
+        JobDetail job = buildJobDetailTestJobWithResult("dummyJobName");
         scheduler.scheduleJob(job, createTrigger());
 
         Transaction transaction = verifyTransactionFromJobDetails(job, Outcome.SUCCESS);
         assertThat(transaction.getResult()).isEqualTo("this is the result");
     }
 
-    // TODO
-//    @Test
-//    void testDirectoryScan() throws SchedulerException, IOException {
-//        Path directoryScanTest = Files.createTempDirectory("DirectoryScanTest");
-//
-//        final JobDetail job = JobBuilder.newJob(DirectoryScanJob.class)
-//            .withIdentity("dummyJobName")
-//            .usingJobData(DirectoryScanJob.DIRECTORY_NAME, directoryScanTest.toAbsolutePath().toString())
-//            .usingJobData(DirectoryScanJob.DIRECTORY_SCAN_LISTENER_NAME, TestDirectoryScanListener.class.getSimpleName())
-//            .build();
-//
-//        scheduler.getContext().put(TestDirectoryScanListener.class.getSimpleName(), new TestDirectoryScanListener());
-//        scheduler.scheduleJob(job, createTrigger());
-//
-//        verifyTransactionFromJobDetails(job, Outcome.SUCCESS);
-//    }
+    @Test
+    void testDirectoryScan() throws SchedulerException, IOException {
+        Assumptions.assumeFalse(ignoreDirectoryScanTest());
+
+        Path directoryScanTest = Files.createTempDirectory("DirectoryScanTest");
+
+        final JobDetail job = JobBuilder.newJob(DirectoryScanJob.class)
+            .withIdentity("dummyJobName")
+            .usingJobData(DirectoryScanJob.DIRECTORY_NAME, directoryScanTest.toAbsolutePath().toString())
+            .usingJobData(DirectoryScanJob.DIRECTORY_SCAN_LISTENER_NAME, TestDirectoryScanListener.class.getSimpleName())
+            .build();
+
+        scheduler.getContext().put(TestDirectoryScanListener.class.getSimpleName(), new TestDirectoryScanListener());
+        scheduler.scheduleJob(job, createTrigger());
+
+        verifyTransactionFromJobDetails(job, Outcome.SUCCESS);
+    }
 
     @Test
     void testJobWithException() throws SchedulerException {
-        JobDetail job = buildJobDetail(TestJobWithException.class, "dummyJobName");
+        JobDetail job = buildJobDetailTestJobWithException("dummyJobName");
         scheduler.scheduleJob(job, createTrigger());
 
         verifyTransactionFromJobDetails(job, Outcome.FAILURE);
@@ -168,59 +166,19 @@ abstract class AbstractJobTransactionNameInstrumentationTest extends AbstractIns
 
     abstract String quartzVersion();
 
-    abstract JobDetail buildJobDetail(Class jobClass, String name);
+    abstract JobDetail buildJobDetailTestJob(String name, String groupName);
 
-    abstract JobDetail buildJobDetail(Class jobClass, String name, String groupName);
+    abstract void executeTestJobCreatingSpan(ElasticApmTracer tracer, boolean traced) throws JobExecutionException;
 
-    public static class TestJob implements Job {
-        @Override
-        public void execute(JobExecutionContext context) throws JobExecutionException {
-        }
-    }
+    abstract JobDetail buildJobDetailTestJobWithResult(String name);
 
-    public static class TestJobCreatingSpan implements Job {
-        private final ElasticApmTracer tracer;
-        private final boolean traced;
+    abstract JobDetail buildJobDetailTestJobWithException(String name);
 
-        public TestJobCreatingSpan(ElasticApmTracer tracer, boolean traced) {
-            this.tracer = tracer;
-            this.traced = traced;
-        }
+    abstract JobDetail buildJobDetailTestSpringJob(String name, String groupName);
 
-        @Override
-        public void execute(JobExecutionContext context) throws JobExecutionException {
-            Transaction transaction = tracer.currentTransaction();
-            if (traced) {
-                assertThat(transaction).isNotNull();
-                transaction.createSpan().end();
-            } else {
-                assertThat(transaction).isNull();
-                assertThat(tracer.getActive()).isNull();
-            }
-        }
-    }
+    abstract boolean ignoreTestSpringJob();
 
-    public static class TestJobWithResult implements Job {
-        @Override
-        public void execute(JobExecutionContext context) throws JobExecutionException {
-            context.setResult("this is the result");
-        }
-    }
-
-    public static class TestJobWithException implements Job {
-        @Override
-        public void execute(JobExecutionContext context) throws JobExecutionException {
-            throw new JobExecutionException("intentional job exception");
-        }
-    }
-
-    public static class TestSpringJob extends QuartzJobBean {
-
-        @Override
-        protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        }
-
-    }
+    abstract boolean ignoreDirectoryScanTest();
 
     public static class TestDirectoryScanListener implements DirectoryScanListener {
 
