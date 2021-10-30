@@ -119,7 +119,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testDisableStacktraces() {
-        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(0L);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs()).thenReturn(-1L);
         Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
@@ -133,7 +133,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testEnableStacktraces() throws InterruptedException {
-        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(-1L);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs()).thenReturn(0L);
         Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
@@ -148,7 +148,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testDisableStacktracesForFastSpans() {
-        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(100L);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs()).thenReturn(100L);
         Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
@@ -163,7 +163,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testEnableStacktracesForSlowSpans() throws InterruptedException {
-        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(1L);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs()).thenReturn(1L);
         Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
