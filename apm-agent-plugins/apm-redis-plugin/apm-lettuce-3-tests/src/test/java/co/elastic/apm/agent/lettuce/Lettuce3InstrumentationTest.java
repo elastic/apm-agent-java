@@ -29,27 +29,27 @@ import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class Lettuce3InstrumentationTest extends AbstractRedisInstrumentationTest {
+class Lettuce3InstrumentationTest extends AbstractRedisInstrumentationTest {
 
     private RedisClient client;
     private RedisConnection<String, String> connection;
 
     @BeforeEach
-    public void setUpLettuce() {
+    void setUpLettuce() {
         client = new RedisClient("localhost", redisPort);
         connection = client.connect();
         reporter.disableCheckDestinationAddress();
     }
 
     @Test
-    public void testSyncLettuce() {
+    void testSyncLettuce() {
         connection.set("foo", "bar");
         assertThat(connection.get("foo")).isEqualTo("bar");
         assertTransactionWithRedisSpans("SET", "GET");
     }
 
     @AfterEach
-    public void tearDownLettuce() throws ExecutionException, InterruptedException {
+    void tearDownLettuce() throws ExecutionException, InterruptedException {
         connection.close();
     }
 

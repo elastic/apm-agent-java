@@ -29,20 +29,20 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTest {
+class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTest {
 
     private RedisClient client;
     private StatefulRedisConnection<String, String> connection;
 
     @BeforeEach
-    public void setUpLettuce() {
+    void setUpLettuce() {
         client = RedisClient.create("redis://localhost:" + redisPort);
         connection = client.connect();
         reporter.disableCheckDestinationAddress();
     }
 
     @Test
-    public void testClusterCommand() {
+    void testClusterCommand() {
         RedisCommands<String, String> sync = connection.sync();
         sync.set("foo", "bar");
         assertThat(sync.get("foo")).isEqualTo("bar");
@@ -50,7 +50,7 @@ public class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTes
     }
 
     @Test
-    public void testSyncLettuce() {
+    void testSyncLettuce() {
         RedisCommands<String, String> sync = connection.sync();
         sync.set("foo", "bar");
         assertThat(sync.get("foo")).isEqualTo("bar");
@@ -58,7 +58,7 @@ public class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTes
     }
 
     @Test
-    public void testAsyncLettuce() throws Exception {
+    void testAsyncLettuce() throws Exception {
         RedisAsyncCommands<String, String> async = connection.async();
         async.set("foo", "bar").get();
         assertThat(async.get("foo").get()).isEqualTo("bar");
@@ -66,7 +66,7 @@ public class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTes
     }
 
     @AfterEach
-    public void tearDownLettuce() {
+    void tearDownLettuce() {
         connection.close();
     }
 

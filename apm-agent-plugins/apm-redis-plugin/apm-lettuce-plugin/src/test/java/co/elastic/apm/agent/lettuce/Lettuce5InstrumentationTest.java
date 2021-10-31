@@ -36,19 +36,19 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTest {
+class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTest {
 
     private StatefulRedisConnection<String, String> connection;
 
     @BeforeEach
-    public void setUpLettuce() {
+    void setUpLettuce() {
         RedisClient client = RedisClient.create(RedisURI.create("localhost", redisPort));
         connection = client.connect();
         reporter.disableCheckDestinationAddress();
     }
 
     @Test
-    public void testClusterCommand() {
+    void testClusterCommand() {
         RedisCommands<String, String> sync = connection.sync();
         sync.set("foo", "bar");
         assertThat(sync.get("foo")).isEqualTo("bar");
@@ -56,7 +56,7 @@ public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTes
     }
 
     @Test
-    public void testSyncLettuce() {
+    void testSyncLettuce() {
         RedisCommands<String, String> sync = connection.sync();
         sync.set("foo", "bar");
         assertThat(sync.get("foo")).isEqualTo("bar");
@@ -64,7 +64,7 @@ public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTes
     }
 
     @Test
-    public void testAsyncLettuce() throws Exception {
+    void testAsyncLettuce() throws Exception {
         RedisAsyncCommands<String, String> async = connection.async();
         async.set("foo", "bar").get();
         assertThat(async.get("foo").get()).isEqualTo("bar");
@@ -72,7 +72,7 @@ public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTes
     }
 
     @Test
-    public void testBatchedLettuce() throws Exception {
+    void testBatchedLettuce() throws Exception {
         RedisAsyncCommands<String, String> async = connection.async();
         async.set("foo", "bar").get();
         async.setAutoFlushCommands(false);
@@ -83,7 +83,7 @@ public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTes
     }
 
     @Test
-    public void testReactiveLettuce() {
+    void testReactiveLettuce() {
         RedisReactiveCommands<String, String> async = connection.reactive();
         async.set("foo", "bar").block();
         assertThat(async.get("foo").block()).isEqualTo("bar");
@@ -91,7 +91,7 @@ public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTes
     }
 
     @AfterEach
-    public void tearDownLettuce() {
+    void tearDownLettuce() {
         connection.close();
     }
 

@@ -48,7 +48,7 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
     }
 
     @BeforeEach
-    public final void initRedis() throws IOException {
+    final void initRedis() throws IOException {
         redisContainer = new GenericContainer("redis:6.2.6").withExposedPorts(6379);
         redisContainer.start();
         redisContainer.waitingFor(Wait.forLogMessage("Started!", 1));
@@ -57,7 +57,7 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
     }
 
     @AfterEach
-    public final void stopRedis() {
+    final void stopRedis() {
         Transaction transaction = tracer.currentTransaction();
         if (transaction != null) {
             transaction.deactivate().end();
