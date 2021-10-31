@@ -27,9 +27,9 @@ import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisAsyncCommands;
 import io.lettuce.core.api.reactive.RedisReactiveCommands;
 import io.lettuce.core.api.sync.RedisCommands;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.List;
@@ -40,7 +40,7 @@ public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTes
 
     private StatefulRedisConnection<String, String> connection;
 
-    @Before
+    @BeforeEach
     public void setUpLettuce() {
         RedisClient client = RedisClient.create(RedisURI.create("localhost", redisPort));
         connection = client.connect();
@@ -90,7 +90,7 @@ public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTes
         assertTransactionWithRedisSpans("SET", "GET");
     }
 
-    @After
+    @AfterEach
     public void tearDownLettuce() {
         connection.close();
     }

@@ -23,25 +23,21 @@ import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import redis.embedded.RedisServer;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 
-import javax.net.ServerSocketFactory;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.ServerSocket;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumentationTest {
-    protected RedisServer server;
     protected int redisPort;
     private String expectedAddress;
+    protected static GenericContainer redisContainer;
 
     public AbstractRedisInstrumentationTest() {
         this.expectedAddress = "localhost";
@@ -51,34 +47,22 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
         this.expectedAddress = expectedAddress;
     }
 
-    private static int getAvailablePort() throws IOException {
-        try (ServerSocket socket = ServerSocketFactory.getDefault().createServerSocket(0, 1, InetAddress.getByName("localhost"))) {
-            return socket.getLocalPort();
-        }
-    }
-
-    @Before
     @BeforeEach
     public final void initRedis() throws IOException {
-        redisPort = getAvailablePort();
-        server = RedisServer.builder()
-            // workaround https://github.com/kstyrc/embedded-redis/issues/51
-            .setting("maxmemory 128M")
-            .setting("bind 127.0.0.1")
-            .port(redisPort)
-            .build();
-        server.start();
+        redisContainer = new GenericContainer("redis:6.2.6").withExposedPorts(6379);
+        redisContainer.start();
+        redisContainer.waitingFor(Wait.forLogMessage("Started!", 1));
+        redisPort = redisContainer.getFirstMappedPort();
         tracer.startRootTransaction(null).activate();
     }
 
-    @After
     @AfterEach
     public final void stopRedis() {
         Transaction transaction = tracer.currentTransaction();
         if (transaction != null) {
             transaction.deactivate().end();
         }
-        server.stop();
+        redisContainer.stop();
     }
 
     public void assertTransactionWithRedisSpans(String... commands) {

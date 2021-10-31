@@ -21,9 +21,9 @@ package co.elastic.apm.agent.lettuce;
 import co.elastic.apm.agent.redis.AbstractRedisInstrumentationTest;
 import com.lambdaworks.redis.RedisClient;
 import com.lambdaworks.redis.RedisConnection;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ExecutionException;
 
@@ -34,7 +34,7 @@ public class Lettuce3InstrumentationTest extends AbstractRedisInstrumentationTes
     private RedisClient client;
     private RedisConnection<String, String> connection;
 
-    @Before
+    @BeforeEach
     public void setUpLettuce() {
         client = new RedisClient("localhost", redisPort);
         connection = client.connect();
@@ -48,7 +48,7 @@ public class Lettuce3InstrumentationTest extends AbstractRedisInstrumentationTes
         assertTransactionWithRedisSpans("SET", "GET");
     }
 
-    @After
+    @AfterEach
     public void tearDownLettuce() throws ExecutionException, InterruptedException {
         connection.close();
     }

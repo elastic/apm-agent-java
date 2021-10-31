@@ -23,9 +23,9 @@ import com.lambdaworks.redis.RedisClient;
 import com.lambdaworks.redis.api.StatefulRedisConnection;
 import com.lambdaworks.redis.api.async.RedisAsyncCommands;
 import com.lambdaworks.redis.api.sync.RedisCommands;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,7 +34,7 @@ public class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTes
     private RedisClient client;
     private StatefulRedisConnection<String, String> connection;
 
-    @Before
+    @BeforeEach
     public void setUpLettuce() {
         client = RedisClient.create("redis://localhost:" + redisPort);
         connection = client.connect();
@@ -65,7 +65,7 @@ public class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTes
         assertTransactionWithRedisSpans("SET", "GET");
     }
 
-    @After
+    @AfterEach
     public void tearDownLettuce() {
         connection.close();
     }
