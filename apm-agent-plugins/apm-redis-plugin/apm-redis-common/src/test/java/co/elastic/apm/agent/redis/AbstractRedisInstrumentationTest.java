@@ -23,6 +23,8 @@ import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.testcontainers.containers.GenericContainer;
@@ -47,8 +49,9 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
         this.expectedAddress = expectedAddress;
     }
 
+    @Before
     @BeforeEach
-    final void initRedis() throws IOException {
+    public final void initRedis() throws IOException {
         redisContainer = new GenericContainer("redis:6.2.6").withExposedPorts(6379);
         redisContainer.start();
         redisContainer.waitingFor(Wait.forLogMessage("Started!", 1));
@@ -56,8 +59,9 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
         tracer.startRootTransaction(null).activate();
     }
 
+    @After
     @AfterEach
-    final void stopRedis() {
+    public final void stopRedis() {
         Transaction transaction = tracer.currentTransaction();
         if (transaction != null) {
             transaction.deactivate().end();

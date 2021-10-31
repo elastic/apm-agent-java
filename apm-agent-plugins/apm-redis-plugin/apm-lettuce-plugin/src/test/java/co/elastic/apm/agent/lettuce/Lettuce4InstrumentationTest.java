@@ -23,26 +23,26 @@ import com.lambdaworks.redis.RedisClient;
 import com.lambdaworks.redis.api.StatefulRedisConnection;
 import com.lambdaworks.redis.api.async.RedisAsyncCommands;
 import com.lambdaworks.redis.api.sync.RedisCommands;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTest {
+public class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTest {
 
     private RedisClient client;
     private StatefulRedisConnection<String, String> connection;
 
-    @BeforeEach
-    void setUpLettuce() {
+    @Before
+    public void setUpLettuce() {
         client = RedisClient.create("redis://localhost:" + redisPort);
         connection = client.connect();
         reporter.disableCheckDestinationAddress();
     }
 
     @Test
-    void testClusterCommand() {
+    public void testClusterCommand() {
         RedisCommands<String, String> sync = connection.sync();
         sync.set("foo", "bar");
         assertThat(sync.get("foo")).isEqualTo("bar");
@@ -50,7 +50,7 @@ class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTest {
     }
 
     @Test
-    void testSyncLettuce() {
+    public void testSyncLettuce() {
         RedisCommands<String, String> sync = connection.sync();
         sync.set("foo", "bar");
         assertThat(sync.get("foo")).isEqualTo("bar");
@@ -58,15 +58,15 @@ class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTest {
     }
 
     @Test
-    void testAsyncLettuce() throws Exception {
+    public void testAsyncLettuce() throws Exception {
         RedisAsyncCommands<String, String> async = connection.async();
         async.set("foo", "bar").get();
         assertThat(async.get("foo").get()).isEqualTo("bar");
         assertTransactionWithRedisSpans("SET", "GET");
     }
 
-    @AfterEach
-    void tearDownLettuce() {
+    @After
+    public void tearDownLettuce() {
         connection.close();
     }
 
