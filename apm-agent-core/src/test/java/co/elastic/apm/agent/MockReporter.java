@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -52,10 +53,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -433,6 +432,11 @@ public class MockReporter implements Reporter {
         this.bytes.add(jsonWriter.toByteArray());
     }
 
+    @Override
+    public boolean flush() {
+        return true;
+    }
+
     public synchronized Span getFirstSpan() {
         assertThat(spans)
             .describedAs("at least one span expected, none have been reported")
@@ -483,33 +487,8 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public Future<Void> flush() {
-        return new Future<>() {
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                return false;
-            }
-
-            @Override
-            public boolean isCancelled() {
-                return false;
-            }
-
-            @Override
-            public boolean isDone() {
-                return false;
-            }
-
-            @Override
-            public Void get() throws InterruptedException, ExecutionException {
-                return null;
-            }
-
-            @Override
-            public Void get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                return null;
-            }
-        };
+    public boolean flush(long timeout, TimeUnit unit) {
+        return true;
     }
 
     @Override

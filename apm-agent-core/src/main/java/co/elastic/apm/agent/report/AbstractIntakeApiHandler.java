@@ -53,11 +53,19 @@ public class AbstractIntakeApiHandler {
     protected OutputStream os;
     protected int errorCount;
     protected volatile boolean shutDown;
+    private volatile boolean healthy = true;
+    private final NanoClock clock;
+    private long requestStartedNanos;
 
     public AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
+        this(reporterConfiguration, payloadSerializer, apmServerClient, new SystemNanoClock());
+    }
+
+    public AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient, NanoClock clock) {
         this.reporterConfiguration = reporterConfiguration;
         this.payloadSerializer = payloadSerializer;
         this.apmServerClient = apmServerClient;
+        this.clock = clock;
         this.deflater = new Deflater();
     }
 
@@ -106,10 +114,11 @@ public class AbstractIntakeApiHandler {
                 connection.setRequestProperty("Content-Type", "application/x-ndjson");
                 connection.setUseCaches(false);
                 connection.connect();
-                os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
+                os = new DeflaterOutputStream(connection.getOutputStream(), deflater, true);
                 payloadSerializer.setOutputStream(os);
                 payloadSerializer.appendMetaDataNdJsonToStream();
                 payloadSerializer.flushToOutputStream();
+                requestStartedNanos = clock.nanoTicks();
             } catch (IOException e) {
                 logger.error("Error trying to connect to APM Server at {}. Some details about SSL configurations corresponding " +
                     "the current connection are logged at INFO level.", connection.getURL());
@@ -184,6 +193,10 @@ public class AbstractIntakeApiHandler {
         }
     }
 
+    protected boolean isApiRequestTimeExpired() {
+        return clock.nanoTicks() >= requestStartedNanos + TimeUnit.MILLISECONDS.toNanos(reporterConfiguration.getApiRequestTime().getMillis());
+    }
+
     protected void onRequestError(Integer responseCode, InputStream inputStream, @Nullable IOException e) {
         // TODO read accepted, dropped and invalid
         onConnectionError(responseCode, currentlyTransmitting, 0);
@@ -212,19 +225,30 @@ public class AbstractIntakeApiHandler {
                 "Please use APM Server 6.5.0 or newer.");
         }
 
+        backoff();
+    }
+
+    private void backoff() {
         long backoffTimeSeconds = getBackoffTimeSeconds(errorCount++);
         logger.info("Backing off for {} seconds (+/-10%)", backoffTimeSeconds);
         final long backoffTimeMillis = TimeUnit.SECONDS.toMillis(backoffTimeSeconds);
         if (backoffTimeMillis > 0) {
             // back off because there are connection issues with the apm server
             try {
+                healthy = false;
                 synchronized (WAIT_LOCK) {
                     WAIT_LOCK.wait(backoffTimeMillis + getRandomJitter(backoffTimeMillis));
                 }
             } catch (InterruptedException e) {
                 logger.info("APM Agent ReportingEventHandler had been interrupted", e);
+            } finally {
+                healthy = true;
             }
         }
+    }
+
+    public boolean isHealthy() {
+        return healthy;
     }
 
     public long getReported() {
@@ -249,5 +273,17 @@ public class AbstractIntakeApiHandler {
     protected void onRequestSuccess() {
         errorCount = 0;
         reported += currentlyTransmitting;
+    }
+
+    interface NanoClock {
+        long nanoTicks();
+    }
+
+    static class SystemNanoClock implements NanoClock {
+
+        @Override
+        public long nanoTicks() {
+            return System.nanoTime();
+        }
     }
 }
