@@ -23,7 +23,6 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.r2dbc.helper.R2dbcHelper;
 import co.elastic.apm.agent.r2dbc.helper.R2dbcReactorHelper;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
@@ -92,7 +91,7 @@ public class R2dbcStatementInstrumentation extends AbstractR2dbcInstrumentation 
 
 
         @Nullable
-        @AssignTo.Return(typing = Assigner.Typing.DYNAMIC)
+        @Advice.AssignReturned.ToReturned(typing = Assigner.Typing.DYNAMIC)
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static Object onAfterExecute(@Advice.Enter @Nullable Object[] spanConnectionObj,
                                             @Advice.Thrown @Nullable Throwable t,

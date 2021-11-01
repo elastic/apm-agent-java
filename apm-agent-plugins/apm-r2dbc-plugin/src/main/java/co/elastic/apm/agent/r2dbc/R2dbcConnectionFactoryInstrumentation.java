@@ -20,7 +20,6 @@ package co.elastic.apm.agent.r2dbc;
 
 import co.elastic.apm.agent.r2dbc.helper.R2dbcHelper;
 import co.elastic.apm.agent.r2dbc.helper.R2dbcReactorHelper;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
@@ -58,7 +57,7 @@ public class R2dbcConnectionFactoryInstrumentation extends AbstractR2dbcInstrume
     public static class AdviceClass {
 
         @Nullable
-        @AssignTo.Return(typing = Assigner.Typing.DYNAMIC)
+        @Advice.AssignReturned.ToReturned(typing = Assigner.Typing.DYNAMIC)
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static Object onAfterExecute(@Advice.This ConnectionFactory connectionFactory,
                                             @Advice.Thrown @Nullable Throwable t,

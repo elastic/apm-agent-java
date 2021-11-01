@@ -56,11 +56,11 @@
             <artifactId>apm-reactor-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>${project.groupId}</groupId>-->
-<!--            <artifactId>apm-r2dbc-plugin</artifactId>-->
-<!--            <version>${project.version}</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-r2dbc-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-api-plugin</artifactId>

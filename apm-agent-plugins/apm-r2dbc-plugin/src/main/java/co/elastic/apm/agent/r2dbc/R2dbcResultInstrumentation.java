@@ -21,7 +21,6 @@ package co.elastic.apm.agent.r2dbc;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.r2dbc.helper.R2dbcReactorHelper;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import io.r2dbc.spi.Result;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -57,7 +56,7 @@ public class R2dbcResultInstrumentation extends AbstractR2dbcInstrumentation {
     public static class AdviceClass {
 
         @Nullable
-        @AssignTo.Return(typing = Assigner.Typing.DYNAMIC)
+        @Advice.AssignReturned.ToReturned(typing = Assigner.Typing.DYNAMIC)
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static Object onAfterExecute(@Advice.This Result result,
                                             @Advice.Thrown @Nullable Throwable t,
