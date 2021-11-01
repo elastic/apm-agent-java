@@ -44,9 +44,12 @@ import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -106,11 +109,11 @@ class ApmServerReporterIntegrationTest {
                 ),
                 apmServerClient);
         reporter = new ApmServerReporter(false, reporterConfiguration, v2handler);
-        reporter.start();
     }
 
     @Test
     void testReportTransaction() throws ExecutionException, InterruptedException {
+        reporter.start();
         reporter.report(new Transaction(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
@@ -119,6 +122,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testReportSpan() throws ExecutionException, InterruptedException {
+        reporter.start();
         reporter.report(new Span(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
@@ -135,6 +139,7 @@ class ApmServerReporterIntegrationTest {
             }
             exchange.setStatusCode(200).endExchange();
         };
+        reporter.start();
         reporter.report(new Transaction(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
@@ -143,10 +148,24 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testReportErrorCapture() throws ExecutionException, InterruptedException {
+        reporter.start();
         reporter.report(new ErrorCapture(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
     }
 
+    @Test
+    void testDelayedStart() throws ExecutionException, InterruptedException {
+        reporter.report(new Transaction(tracer));
+        reporter.report(new Span(tracer));
+        reporter.report(new ErrorCapture(tracer));
+        assertThatThrownBy(() -> reporter.flush().get(100, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+        assertThat(reporter.getDropped()).isEqualTo(0);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(0);
+        reporter.start();
+        reporter.flush().get();
+        assertThat(reporter.getDropped()).isEqualTo(0);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
+    }
 }

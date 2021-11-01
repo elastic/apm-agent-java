@@ -113,8 +113,8 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public void start() {
-        disruptor.start();
         reportingEventHandler.init(this);
+        disruptor.start();
     }
 
     @Override
