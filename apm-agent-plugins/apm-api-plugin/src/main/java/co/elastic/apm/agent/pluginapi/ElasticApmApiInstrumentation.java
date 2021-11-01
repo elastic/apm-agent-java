@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -59,7 +58,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Object doStartTransaction(@Advice.Origin Class<?> clazz) {
                 Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
@@ -79,7 +78,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @SuppressWarnings({"UnusedAssignment", "ParameterCanBeLocal", "unused"})
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Object doStartTransaction(@Advice.Origin Class<?> clazz,
@@ -112,7 +111,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Object doGetCurrentTransaction() {
                 return tracer.currentTransaction();
@@ -127,7 +126,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Object doGetCurrentSpan() {
                 return tracer.getActive();

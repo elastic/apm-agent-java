@@ -104,8 +104,8 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
             }
 
             if (listener != null) {
-                DynamicTransformer.Accessor.get().ensureInstrumented(serverCall.getClass(), SERVER_CALL_INSTRUMENTATION);
-                DynamicTransformer.Accessor.get().ensureInstrumented(listener.getClass(), SERVER_CALL_LISTENER_INSTRUMENTATIONS);
+                DynamicTransformer.ensureInstrumented(serverCall.getClass(), SERVER_CALL_INSTRUMENTATION);
+                DynamicTransformer.ensureInstrumented(listener.getClass(), SERVER_CALL_LISTENER_INSTRUMENTATIONS);
                 GrpcHelper.getInstance().registerTransaction(serverCall, listener, transaction);
             }
         }

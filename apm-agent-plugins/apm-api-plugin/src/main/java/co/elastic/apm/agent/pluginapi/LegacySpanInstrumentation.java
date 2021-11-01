@@ -20,7 +20,6 @@ package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -102,7 +101,7 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(inline = false)
             public static Object doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span) {
                 if (span instanceof Span) {
@@ -152,7 +151,7 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(inline = false)
             public static String getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
                                        @Advice.Return @Nullable String returnValue) {
@@ -172,7 +171,7 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(inline = false)
             public static String getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
                                             @Advice.Return @Nullable String returnValue) {
@@ -223,7 +222,7 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
 
         public static class AdviceClass {
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(inline = false)
             public static boolean isSampled(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
                                             @Advice.Return boolean returnValue) {

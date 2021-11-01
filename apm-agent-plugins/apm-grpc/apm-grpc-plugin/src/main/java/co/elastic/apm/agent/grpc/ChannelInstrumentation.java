@@ -33,13 +33,14 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
  * Instruments {@link Channel#newCall(MethodDescriptor, CallOptions)} to add channel authority (host+port) to the span
@@ -48,7 +49,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 public class ChannelInstrumentation extends BaseInstrumentation {
 
     private static final Collection<Class<? extends ElasticApmInstrumentation>> CLIENT_CALL_INSTRUMENTATION =
-        Collections.<Class<? extends ElasticApmInstrumentation>>singletonList(ClientCallImplInstrumentation.Start.class);
+        Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
+            ClientCallImplInstrumentation.Start.class,
+            ClientCallImplInstrumentation.Cancel.class
+        );
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -57,7 +61,8 @@ public class ChannelInstrumentation extends BaseInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("io.grpc.Channel"));
+        return hasSuperType(named("io.grpc.Channel")
+            .and(not(named("io.grpc.internal.ForwardingManagedChannel"))));
     }
 
     @Override
@@ -85,7 +90,7 @@ public class ChannelInstrumentation extends BaseInstrumentation {
                                   @Advice.Enter @Nullable Object span) {
 
             if (clientCall != null) {
-                DynamicTransformer.Accessor.get().ensureInstrumented(clientCall.getClass(), CLIENT_CALL_INSTRUMENTATION);
+                DynamicTransformer.ensureInstrumented(clientCall.getClass(), CLIENT_CALL_INSTRUMENTATION);
             }
             GrpcHelper.getInstance().onClientCallCreationExit(clientCall, (Span) span);
         }

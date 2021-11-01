@@ -141,7 +141,8 @@
       "mssql": {
         "__description": "Microsoft SQL Server",
         "__used_by": [
-          "nodejs"
+          "nodejs",
+          "java"
         ]
       },
       "mysql": {
@@ -183,9 +184,8 @@
         ]
       },
       "sqlserver": {
-        "__description": "Microsoft SQL Server",
+        "__description": "Microsoft SQL Server (deprecated, use mssql instead)",
         "__used_by": [
-          "java"
         ]
       },
       "unknown": {

@@ -31,10 +31,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class ExternalPluginTestApp extends TestApp {
     public ExternalPluginTestApp() {
-        super(
-            "../external-plugin-test/external-plugin-app",
+        super("../external-plugin-test/external-plugin-app",
             "external-plugin-webapp.war",
-            "/external-plugin-webapp/status.html",
+            "external-plugin-webapp",
+            "status.html",
             "external-plugin-webapp"
         );
     }

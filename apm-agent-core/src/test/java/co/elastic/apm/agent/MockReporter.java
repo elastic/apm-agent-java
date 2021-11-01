@@ -19,7 +19,7 @@
 package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -38,8 +38,6 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import org.awaitility.core.ThrowingRunnable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import specs.TestJsonSpec;
 
@@ -83,6 +81,11 @@ public class MockReporter implements Reporter {
     // Allows optional opt-out from strick span type/sub-type checking
     private boolean checkStrictSpanType = true;
 
+    /**
+     * If set to {@code true}, the reporter will attempt to execute gc when asserting that all objects were properly
+     * recycled. This is useful for tests that use weak maps and rely on GC to clear reference and recycle objects.
+     */
+    private boolean gcWhenAssertingRecycling;
 
     private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
     private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
@@ -110,14 +113,16 @@ public class MockReporter implements Reporter {
     }
 
     /**
-     * Sets all optional checks to their default value (enabled), should be used as a shortcut to reset mock reporter state
-     * after/before using it for a single test execution
+     * Resets checks to be executed based on the default behaviour.
+     * All optional checks are enabled and special requested behaviour is disabled.
+     * Should be used as a shortcut to reset mock reporter state after/before using it for a single test execution.
      */
     public void resetChecks() {
         checkDestinationAddress = true;
         checkDestinationService = true;
         checkUnknownOutcomes = true;
         checkStrictSpanType = true;
+        gcWhenAssertingRecycling = false;
     }
 
     /**
@@ -150,6 +155,14 @@ public class MockReporter implements Reporter {
      */
     public void disableCheckStrictSpanType() {
         checkStrictSpanType = false;
+    }
+
+    /**
+     * If invoked, the reporter will attempt to execute gc when asserting that all objects were properly
+     * recycled. This is useful for tests that use weak maps and rely on GC to clear reference and recycle objects.
+     */
+    public void enableGcWhenAssertingObjectRecycling() {
+        gcWhenAssertingRecycling = true;
     }
 
     @Override
@@ -226,7 +239,7 @@ public class MockReporter implements Reporter {
                 }
             } else {
                 if (!allowUnlistedSubtype && hasSubtypes) {
-                    getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' is not allowed by the sped for type '%s'", subType, type));
+                    getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' is not allowed by the spec for type '%s'", subType, type));
                 }
             }
 
@@ -545,6 +558,9 @@ public class MockReporter implements Reporter {
         transactionsToFlush.forEach(Transaction::decrementReferences);
         spansToFlush.forEach(Span::decrementReferences);
 
+        if (gcWhenAssertingRecycling) {
+            System.gc();
+        }
         awaitUntilAsserted(() -> {
             spans.forEach(s -> {
                 assertThat(s.isReferenced())

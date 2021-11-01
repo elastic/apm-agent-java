@@ -20,8 +20,8 @@ package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.concurrent.JavaConcurrent;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -85,7 +85,7 @@ public class CommonsExecAsyncInstrumentation extends TracerAwareInstrumentation 
     public static final class CommonsExecAdvice {
 
         @Nullable
-        @AssignTo.Argument(0)
+        @Advice.AssignReturned.ToArguments(@ToArgument(0))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Runnable onEnter(Runnable runnable) {
             return JavaConcurrent.withContext(runnable, tracer);
