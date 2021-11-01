@@ -22,6 +22,7 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
@@ -1032,6 +1033,30 @@ class DslJsonSerializerTest {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSystemInfo_nullHostname(boolean supportsConfiguredAndDetectedHostname) throws Exception {
+        String arc = "test-arc";
+        String platform = "test-platform";
+
+        MetaData metaData = createMetaData(new SystemInfo(arc, null, null, platform));
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname);
+        serializer.appendMetadataToStream();
+
+        JsonNode system = readJsonString(serializer.toString()).get("system");
+        assertThat(arc).isEqualTo(system.get("architecture").asText());
+        assertThat(platform).isEqualTo(system.get("platform").asText());
+        if (supportsConfiguredAndDetectedHostname) {
+            assertThat(system.get("configured_hostname")).isNull();
+            assertThat(system.get("detected_hostname")).isNull();
+            assertThat(system.get("hostname")).isNull();
+        } else {
+            assertThat(system.get("configured_hostname")).isNull();
+            assertThat(system.get("detected_hostname")).isNull();
+            assertThat(system.get("hostname").asText()).isEqualTo("<unknown>");
+        }
+    }
+
     @Test
     void testCloudProviderInfoWithNullObjectFields() throws Exception {
         MetaData metaData = createMetaData();
@@ -1147,7 +1172,7 @@ class DslJsonSerializerTest {
     }
 
     private MetaData createMetaData() throws Exception {
-        return createMetaData(SystemInfo.create("hostname", 0));
+        return createMetaData(SystemInfo.create("hostname", 0, mock(ServerlessConfiguration.class)));
     }
 
     private MetaData createMetaData(SystemInfo system) throws Exception {

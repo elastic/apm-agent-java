@@ -20,6 +20,7 @@ package co.elastic.apm.agent.impl.metadata;
 
 
 import co.elastic.apm.agent.common.util.ProcessExecutionUtil;
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,11 +100,16 @@ public class SystemInfo {
      * This method may block on reading files and executing external processes.
      * @param configuredHostname hostname configured through the {@link co.elastic.apm.agent.configuration.CoreConfiguration#hostname} config
      * @param timeoutMillis enables to limit the execution of the system discovery task
+     * @param serverlessConfiguration serverless config
      * @return a future from which this system's info can be obtained
      */
-    public static SystemInfo create(final @Nullable String configuredHostname, final long timeoutMillis) {
+    public static SystemInfo create(final @Nullable String configuredHostname, final long timeoutMillis, ServerlessConfiguration serverlessConfiguration) {
         final String osName = System.getProperty("os.name");
         final String osArch = System.getProperty("os.arch");
+
+        if (serverlessConfiguration.runsOnAwsLambda()) {
+            return new SystemInfo(osArch, null, null, osName);
+        }
 
         SystemInfo systemInfo;
         if (configuredHostname != null && !configuredHostname.isEmpty()) {

@@ -120,7 +120,7 @@ public class MetaData {
             final Future<SystemInfo> systemInfoFuture = executor.submit(new Callable<SystemInfo>() {
                 @Override
                 public SystemInfo call() {
-                    return SystemInfo.create(coreConfiguration.getHostname(), metadataDiscoveryTimeoutMs);
+                    return SystemInfo.create(coreConfiguration.getHostname(), metadataDiscoveryTimeoutMs, serverlessConfiguration);
                 }
             });
 
