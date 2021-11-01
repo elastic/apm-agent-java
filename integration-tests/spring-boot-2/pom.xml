@@ -20,6 +20,7 @@
         <module>spring-boot-2-undertow</module>
         <module>spring-boot-2-webflux-base</module>
         <module>spring-boot-2-webflux-netty</module>
+        <module>spring-boot-2-webflux-netty-postgresql</module>
     </modules>
 
     <properties>

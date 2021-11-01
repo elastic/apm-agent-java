@@ -43,11 +43,17 @@ public abstract class AbstractWebfluxSpringBootTest {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractWebfluxSpringBootTest.class);
 
+    private String dbVendor;
+
     @LocalServerPort
     private int port;
 
     private static MockReporter reporter;
     private static ConfigurationRegistry config;
+
+    public AbstractWebfluxSpringBootTest(String dbVendor) {
+        this.dbVendor = dbVendor;
+    }
 
     @BeforeAll
     static void beforeClass() {
@@ -145,17 +151,28 @@ public abstract class AbstractWebfluxSpringBootTest {
 
         assertThat(firstSpan.getNameAsString()).isEqualTo(expectedName);
         assertThat(firstSpan.getType()).isEqualTo("db");
-        assertThat(firstSpan.getSubtype()).isEqualTo("h2");
+        assertThat(firstSpan.getSubtype()).isEqualTo(expectedDbVendor());
         assertThat(firstSpan.getAction()).isEqualTo("query");
         assertThat(firstSpan.getContext().getDb().getInstance()).isEqualTo("testdb");
         assertThat(firstSpan.getContext().getDb().getStatement()).isEqualTo(expectedStatement);
         assertThat(firstSpan.getContext().getDb().getType()).isEqualTo("sql");
         assertThat(firstSpan.getContext().getDb().getUser()).isEqualTo("sa");
 
-        assertThat(firstSpan.getContext().getDestination().getAddress().toString()).isEqualTo("in-memory");
-        assertThat(firstSpan.getContext().getDestination().getPort()).isEqualTo(-1);
+        assertThat(firstSpan.getContext().getDestination().getAddress().toString()).isEqualTo(expectedAddress());
+        switch (dbVendor) {
+            case "h2":
+                assertThat(firstSpan.getContext().getDestination().getPort()).isEqualTo(-1);
+                break;
+            default:
+                assertThat(firstSpan.getContext().getDestination().getPort()).isGreaterThan(0);
+                break;
+        }
         assertThat(firstSpan.getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
+
+    abstract String expectedAddress();
+
+    abstract String expectedDbVendor();
 
     @RestController
     @SpringBootApplication
@@ -183,7 +200,6 @@ public abstract class AbstractWebfluxSpringBootTest {
         private void setUserContext() {
             ElasticApm.currentTransaction().setUser("id", "email", "username", "domain");
         }
-
     }
 
 }

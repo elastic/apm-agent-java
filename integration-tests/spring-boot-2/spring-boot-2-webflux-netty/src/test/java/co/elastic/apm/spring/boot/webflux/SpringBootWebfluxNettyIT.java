@@ -19,4 +19,17 @@
 package co.elastic.apm.spring.boot.webflux;
 
 public class SpringBootWebfluxNettyIT extends AbstractWebfluxSpringBootTest {
+    public SpringBootWebfluxNettyIT() {
+        super("h2");
+    }
+
+    @Override
+    String expectedAddress() {
+        return "in-memory";
+    }
+
+    @Override
+    String expectedDbVendor() {
+        return "h2";
+    }
 }
