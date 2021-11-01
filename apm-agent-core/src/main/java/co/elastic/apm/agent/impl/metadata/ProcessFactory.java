@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.payload;
+package co.elastic.apm.agent.impl.metadata;
 
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 
-import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.InvocationTargetException;
@@ -94,7 +93,7 @@ public interface ProcessFactory {
 
         private String getTitle() {
             String javaHome = java.lang.System.getProperty("java.home");
-            final String title = javaHome + System.getProperty("file.separator") + 
+            final String title = javaHome + System.getProperty("file.separator") +
                     "bin" + System.getProperty("file.separator") + "java";
             if (java.lang.System.getProperty("os.name").startsWith("Win")) {
                 return title + ".exe";

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.attach;
 
+import co.elastic.apm.agent.common.util.ProcessExecutionUtil;
 import com.sun.jna.Platform;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -158,6 +159,7 @@ public interface JvmDiscoverer {
             this.userRegistry = userRegistry;
         }
 
+        // todo - use ProcessExecutionUtil instead of reimplementing
         @Override
         public Collection<JvmInfo> discoverJvms() throws Exception {
             Collection<JvmInfo> jvms = new ArrayList<>();
@@ -211,11 +213,11 @@ public interface JvmDiscoverer {
                     List<String> args = new ArrayList<>();
                     args.add("ps");
                     args.add("aux");
-                    return 
+                    return
                             // attachment under hotspot involves executing a kill -3
                             // this would terminate false positive matching processes (ps aux | grep java)
                             JvmInfo.isJ9()
-                            && UserRegistry.User.executeCommand(args).exitedNormally();
+                            && ProcessExecutionUtil.executeCommand(args).exitedNormally();
                 }
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);

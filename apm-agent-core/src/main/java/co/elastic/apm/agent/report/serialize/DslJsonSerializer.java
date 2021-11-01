@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.collections.LongList;
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
@@ -34,14 +34,14 @@ import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.User;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.payload.Agent;
-import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
-import co.elastic.apm.agent.impl.payload.Language;
-import co.elastic.apm.agent.impl.payload.Node;
-import co.elastic.apm.agent.impl.payload.ProcessInfo;
-import co.elastic.apm.agent.impl.payload.RuntimeInfo;
-import co.elastic.apm.agent.impl.payload.Service;
-import co.elastic.apm.agent.impl.payload.SystemInfo;
+import co.elastic.apm.agent.impl.metadata.Agent;
+import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
+import co.elastic.apm.agent.impl.metadata.Language;
+import co.elastic.apm.agent.impl.metadata.Node;
+import co.elastic.apm.agent.impl.metadata.ProcessInfo;
+import co.elastic.apm.agent.impl.metadata.RuntimeInfo;
+import co.elastic.apm.agent.impl.metadata.Service;
+import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -179,7 +179,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(NEW_LINE);
     }
 
-    static void serializeMetadata(MetaData metaData, JsonWriter metadataJW) {
+    static void serializeMetadata(MetaData metaData, JsonWriter metadataJW, boolean supportsConfiguredAndDetectedHostname) {
         StringBuilder metadataReplaceBuilder = new StringBuilder();
         metadataJW.writeByte(JsonWriter.OBJECT_START);
         serializeService(metaData.getService(), metadataReplaceBuilder, metadataJW);
@@ -187,7 +187,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         serializeProcess(metaData.getProcess(), metadataReplaceBuilder, metadataJW);
         metadataJW.writeByte(COMMA);
         serializeGlobalLabels(metaData.getGlobalLabelKeys(), metaData.getGlobalLabelValues(), metadataReplaceBuilder, metadataJW);
-        serializeSystem(metaData.getSystem(), metadataReplaceBuilder, metadataJW);
+        serializeSystem(metaData.getSystem(), metadataReplaceBuilder, metadataJW, supportsConfiguredAndDetectedHostname);
         if (metaData.getCloudProviderInfo() != null) {
             metadataJW.writeByte(COMMA);
             serializeCloudProvider(metaData.getCloudProviderInfo(), metadataReplaceBuilder, metadataJW);
@@ -230,7 +230,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     public void blockUntilReady() throws Exception {
         if (serializedMetaData == null) {
             JsonWriter metadataJW = new DslJson<>(new DslJson.Settings<>()).newWriter(4096);
-            serializeMetadata(metaData.get(5, TimeUnit.SECONDS), metadataJW);
+            serializeMetadata(metaData.get(5, TimeUnit.SECONDS), metadataJW, apmServerClient.supportsConfiguredAndDetectedHostname());
             serializedMetaData = metadataJW.toByteArray();
         }
     }
@@ -438,6 +438,16 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
+    private static void serializeServiceName(final CharSequence serviceName, final StringBuilder replaceBuilder, final JsonWriter jw) {
+        if (serviceName != null) {
+            writeFieldName("service", jw);
+            jw.writeByte(OBJECT_START);
+            writeLastField("name", serviceName, replaceBuilder, jw);
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
     private static void serializeAgent(final Agent agent, final StringBuilder replaceBuilder, final JsonWriter jw) {
         writeFieldName("agent", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
@@ -497,13 +507,26 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    private static void serializeSystem(final SystemInfo system, final StringBuilder replaceBuilder, final JsonWriter jw) {
+    private static void serializeSystem(final SystemInfo system, final StringBuilder replaceBuilder, final JsonWriter jw,
+                                        boolean supportsConfiguredAndDetectedHostname) {
         writeFieldName("system", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
         serializeContainerInfo(system.getContainerInfo(), replaceBuilder, jw);
         serializeKubernetesInfo(system.getKubernetesInfo(), replaceBuilder, jw);
         writeField("architecture", system.getArchitecture(), replaceBuilder, jw);
-        writeField("hostname", system.getHostname(), replaceBuilder, jw);
+        if (supportsConfiguredAndDetectedHostname) {
+            String configuredHostname = system.getConfiguredHostname();
+            if (configuredHostname != null && !configuredHostname.isEmpty()) {
+                writeField("configured_hostname", configuredHostname, replaceBuilder, jw);
+            } else {
+                String detectedHostname = system.getDetectedHostname();
+                if (detectedHostname != null && !detectedHostname.isEmpty()) {
+                    writeField("detected_hostname", detectedHostname, replaceBuilder, jw);
+                }
+            }
+        } else {
+            writeField("hostname", system.getHostname(), replaceBuilder, jw);
+        }
         writeLastField("platform", system.getPlatform(), replaceBuilder, jw);
         jw.writeByte(JsonWriter.OBJECT_END);
     }
@@ -656,17 +679,6 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
         serializeSpanType(span);
         jw.writeByte(OBJECT_END);
-    }
-
-    private void serializeServiceName(TraceContext traceContext) {
-        String serviceName = traceContext.getServiceName();
-        if (serviceName != null) {
-            writeFieldName("service");
-            jw.writeByte(OBJECT_START);
-            writeLastField("name", serviceName);
-            jw.writeByte(OBJECT_END);
-            jw.writeByte(COMMA);
-        }
     }
 
     private void serializeServiceNameWithFramework(@Nullable final Transaction transaction, final TraceContext traceContext) {
@@ -834,7 +846,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
 
-        serializeServiceName(traceContext);
+        serializeServiceName(traceContext.getServiceName(), replaceBuilder, jw);
         serializeMessageContext(context.getMessage());
         serializeDbContext(context.getDb());
         serializeHttpContext(context.getHttp());
@@ -1042,6 +1054,7 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     static void serializeLabels(Labels labels, final StringBuilder replaceBuilder, final JsonWriter jw) {
         if (!labels.isEmpty()) {
+            serializeServiceName(labels.getServiceName(), replaceBuilder, jw);
             if (labels.getTransactionName() != null || labels.getTransactionType() != null) {
                 writeFieldName("transaction", jw);
                 jw.writeByte(OBJECT_START);

@@ -16,15 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl;
+package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
-import co.elastic.apm.agent.impl.payload.ProcessFactory;
-import co.elastic.apm.agent.impl.payload.ProcessInfo;
-import co.elastic.apm.agent.impl.payload.Service;
-import co.elastic.apm.agent.impl.payload.ServiceFactory;
-import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -36,7 +30,6 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class MetaData {
 
@@ -95,33 +88,37 @@ public class MetaData {
         if (!configurationRegistry.getConfig(ReporterConfiguration.class).isIncludeProcessArguments()) {
             processInformation.getArgv().clear();
         }
-        final SystemInfo system = SystemInfo.create(coreConfiguration.getHostname());
 
-        final CoreConfiguration.CloudProvider cloudProvider = coreConfiguration.getCloudProvider();
-        if (cloudProvider == CoreConfiguration.CloudProvider.NONE) {
-            MetaData metaData = new MetaData(
-                processInformation,
-                service,
-                system,
-                null,
-                coreConfiguration.getGlobalLabels()
-            );
-            return new NoWaitFuture(metaData);
-        }
+        final ThreadPoolExecutor executor = ExecutorUtils.createThreadDaemonPool("metadata", 2, 3);
+        final int metadataDiscoveryTimeoutMs = (int) coreConfiguration.geMetadataDiscoveryTimeoutMs();
 
-        final int cloudDiscoveryTimeoutMs = (int) coreConfiguration.geCloudMetadataDiscoveryTimeoutMs();
-        ThreadPoolExecutor executor = ExecutorUtils.createSingleThreadDaemonPool("metadata", 1);
         try {
+            // System info creation executes external processes for hostname discovery and reads files for container/k8s metadata discovery
+            final Future<SystemInfo> systemInfoFuture = executor.submit(new Callable<SystemInfo>() {
+                @Override
+                public SystemInfo call() {
+                    return SystemInfo.create(coreConfiguration.getHostname(), metadataDiscoveryTimeoutMs);
+                }
+            });
+
+            // Cloud provider metadata discovery relies on HTTP calls to metadata APIs, possibly in a trial-and-error fashion
+            final Future<CloudProviderInfo> cloudProviderInfoFuture = executor.submit(new Callable<CloudProviderInfo>() {
+                @Override
+                @Nullable
+                public CloudProviderInfo call() {
+                    return CloudMetadataProvider.getCloudInfoProvider(coreConfiguration.getCloudProvider(), metadataDiscoveryTimeoutMs);
+                }
+            });
+
+            // may get to queue and not direct execution, but this task must wait for the former two to complete anyway
             return executor.submit(new Callable<MetaData>() {
                 @Override
-                public MetaData call() {
-                    // This call is blocking on outgoing HTTP connections
-                    CloudProviderInfo cloudProviderInfo = CloudMetadataProvider.fetchAndParseCloudProviderInfo(cloudProvider, cloudDiscoveryTimeoutMs);
+                public MetaData call() throws Exception {
                     return new MetaData(
                         processInformation,
                         service,
-                        system,
-                        cloudProviderInfo,
+                        systemInfoFuture.get(),
+                        cloudProviderInfoFuture.get(),
                         coreConfiguration.getGlobalLabels()
                     );
                 }
@@ -172,37 +169,4 @@ public class MetaData {
         return cloudProviderInfo;
     }
 
-    static class NoWaitFuture implements Future<MetaData> {
-
-        private final MetaData metaData;
-
-        NoWaitFuture(MetaData metaData) {
-            this.metaData = metaData;
-        }
-
-        @Override
-        public boolean cancel(boolean mayInterruptIfRunning) {
-            return false;
-        }
-
-        @Override
-        public boolean isCancelled() {
-            return false;
-        }
-
-        @Override
-        public boolean isDone() {
-            return false;
-        }
-
-        @Override
-        public MetaData get() {
-            return metaData;
-        }
-
-        @Override
-        public MetaData get(long timeout, TimeUnit unit) {
-            return metaData;
-        }
-    }
 }
