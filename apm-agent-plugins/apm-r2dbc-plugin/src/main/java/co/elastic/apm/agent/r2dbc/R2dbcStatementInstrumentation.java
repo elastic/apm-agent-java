@@ -83,9 +83,9 @@ public class R2dbcStatementInstrumentation extends AbstractR2dbcInstrumentation 
             Object sqlObject = connectionSqlObj != null ? connectionSqlObj[1] : null;
             @Nullable String sql = sqlObject instanceof String ? (String) sqlObject : null;
             @Nullable Connection connection = connectionObj instanceof Connection ? (Connection) connectionObj : null;
-
             AbstractSpan<?> parent = tracer.getActive();
-            Span span = R2dbcHelper.get().createR2dbcSpan(sql, parent);
+            logger.debug("Connection is null {} with sql = {} and activeParent = {}", (connection == null), sql, parent);
+            Span span = R2dbcHelper.get().createR2dbcSpan(sql, parent, connection);
             return new Object[]{span, connection};
         }
 

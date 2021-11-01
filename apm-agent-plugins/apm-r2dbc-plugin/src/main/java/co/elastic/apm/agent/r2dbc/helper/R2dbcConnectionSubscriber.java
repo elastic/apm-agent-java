@@ -58,8 +58,10 @@ public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T>, Subscrip
         try {
             if (next instanceof Connection) {
                 Connection connection = (Connection) next;
-                R2dbcHelper helper = R2dbcHelper.get();
-                helper.mapConnectionOptionsData(connection, connectionFactoryOptions);
+                if (connectionFactoryOptions != null) {
+                    R2dbcHelper helper = R2dbcHelper.get();
+                    helper.mapConnectionOptionsData(connection, connectionFactoryOptions);
+                }
             }
             subscriber.onNext(next);
         } catch (Throwable e) {

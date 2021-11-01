@@ -29,6 +29,7 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -70,10 +71,10 @@ public abstract class R2dbcAbstractConnectionInstrumentation extends AbstractR2d
         public static class AdviceClass {
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-            public static void storeConnection(@Advice.This Object connectionObject,
+            public static void storeConnection(@Advice.This @Nonnull Object connectionObject,
                                                @Advice.Return @Nullable Statement statement,
                                                @Advice.Argument(0) String sql) {
-                if (statement != null) {
+                if (statement != null && sql != null) {
                     R2dbcHelper.get().mapStatementToSql(statement, connectionObject, sql);
                 }
             }
@@ -91,7 +92,7 @@ public abstract class R2dbcAbstractConnectionInstrumentation extends AbstractR2d
         public static class AdviceClass {
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-            public static void storeConnection(@Advice.This Object connectionObject,
+            public static void storeConnection(@Advice.This @Nonnull Object connectionObject,
                                                @Advice.Return @Nullable Batch batch) {
                 if (batch != null) {
                     R2dbcHelper.get().mapBatch(batch, connectionObject);

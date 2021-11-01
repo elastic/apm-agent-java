@@ -49,7 +49,7 @@ public class R2dbcConnectionFactoryInstrumentation extends AbstractR2dbcInstrume
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("create")
+            return named("create")
             .and(takesNoArguments())
             .and(isPublic());
     }

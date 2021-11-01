@@ -65,7 +65,9 @@ public class R2dbcHelper {
      *
      * @param statement javax.sql.Statement object
      */
-    public void mapStatementToSql(Object statement, @Nonnull Object connection, @Nullable String sql) {
+    public void mapStatementToSql(@Nonnull Object statement, @Nonnull Object connection, @Nonnull String sql) {
+        boolean contains = statementConnectionMap.containsKey(statement);
+        logger.debug("Trying to mapStatementToSql(isContains = {}): sql = {}", contains, sql);
         statementConnectionMap.putIfAbsent(statement, new Object[]{connection, sql});
     }
 
@@ -75,33 +77,27 @@ public class R2dbcHelper {
         batchConnectionMap.putIfAbsent(batch, new Object[]{connection, null});
     }
 
-    public void mapConnectionFactoryData(@Nonnull ConnectionFactory connectionFactory, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
+    public void mapConnectionFactoryData(@Nonnull ConnectionFactory connectionFactory, @Nonnull ConnectionFactoryOptions connectionFactoryOptions) {
         logger.debug("Trying to map connection factory {} with options {}", connectionFactory, connectionFactoryOptions);
-        if (connectionFactoryOptions == null) {
-            return;
-        }
         connectionFactoryMap.putIfAbsent(connectionFactory, connectionFactoryOptions);
     }
 
-    public void mapConnectionOptionsData(@Nonnull Connection connection, @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
+    public void mapConnectionOptionsData(@Nonnull Connection connection, @Nonnull ConnectionFactoryOptions connectionFactoryOptions) {
         logger.debug("Trying to map connection {} with options {}", connection, connectionFactoryOptions);
-        if (connectionFactoryOptions == null) {
-            return;
-        }
         connectionOptionsMap.putIfAbsent(connection, connectionFactoryOptions);
     }
 
     @Nullable
     public ConnectionFactoryOptions getConnectionFactoryOptions(@Nonnull ConnectionFactory connectionFactory) {
         ConnectionFactoryOptions options = connectionFactoryMap.get(connectionFactory);
-        logger.debug("Trying to get options ({}) by connection factory {}", (options == null), connectionFactory);
+        logger.debug("Trying to get options (isNull = {}) by connection factory ({})", (options == null), connectionFactory);
         return options;
     }
 
     @Nullable
     public ConnectionFactoryOptions getConnectionOptions(@Nonnull Connection connection) {
         ConnectionFactoryOptions options = connectionOptionsMap.get(connection);
-        logger.debug("Trying to get options ({}) by connection {}", (options == null), connection);
+        logger.debug("Trying to get options (isNull = {}) by connection ({})", (options == null), connection);
         return options;
     }
 
@@ -115,17 +111,20 @@ public class R2dbcHelper {
      */
     @Nullable
     public Object[] retrieveConnectionForStatement(Object statement) {
+        logger.debug("Trying to retrieve connection-sql by statement");
         return statementConnectionMap.get(statement);
     }
 
     @Nullable
     public Object[] retrieveMetaForBatch(Object batch) {
+        logger.debug("Trying to retrieve connection-sql by batch");
         return batchConnectionMap.get(batch);
     }
 
     @Nullable
-    public Span createR2dbcSpan(@Nullable String sql, @Nullable AbstractSpan<?> parent) {
-        if (sql == null || parent == null) {
+    public Span createR2dbcSpan(@Nullable String sql, @Nullable AbstractSpan<?> parent, @Nullable Connection connection) {
+        if (sql == null || parent == null || connection == null) {
+            logger.debug("Input sql or parent or connection is null.");
             return null;
         }
         Span span = parent.createSpan().activate();

@@ -27,6 +27,8 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 
+import javax.annotation.Nullable;
+
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -52,9 +54,9 @@ public class R2dbcConnectionFactoryProviderInstrumentation extends AbstractR2dbc
 
     public static class AdviceClass {
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void storeConnectionFactoryOptions(@Advice.Return ConnectionFactory connectionFactory,
-                                                         @Advice.Argument(0) ConnectionFactoryOptions connectionFactoryOptions) {
-            if (connectionFactory == null) {
+        public static void storeConnectionFactoryOptions(@Advice.Return @Nullable ConnectionFactory connectionFactory,
+                                                         @Advice.Argument(0) @Nullable ConnectionFactoryOptions connectionFactoryOptions) {
+            if (connectionFactory == null && connectionFactoryOptions == null) {
                 return;
             }
             R2dbcHelper helper = R2dbcHelper.get();

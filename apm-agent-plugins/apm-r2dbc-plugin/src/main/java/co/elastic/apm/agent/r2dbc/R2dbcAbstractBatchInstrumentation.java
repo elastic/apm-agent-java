@@ -61,6 +61,7 @@ public abstract class R2dbcAbstractBatchInstrumentation extends AbstractR2dbcIns
             .and(hasSuperType(named("io.r2dbc.spi.Batch")));
     }
 
+    // Helper instrumentation, requires for adding first sql.
     public static class AddBatchInstrumentation extends R2dbcAbstractBatchInstrumentation {
 
         @Override
@@ -109,7 +110,7 @@ public abstract class R2dbcAbstractBatchInstrumentation extends AbstractR2dbcIns
                 @Nullable Connection connection = connectionObj instanceof Connection ? (Connection) connectionObj : null;
 
                 AbstractSpan<?> parent = tracer.getActive();
-                Span span = R2dbcHelper.get().createR2dbcSpan(sql, parent);
+                Span span = R2dbcHelper.get().createR2dbcSpan(sql, parent, connection);
                 return new Object[]{span, connection};
             }
 
