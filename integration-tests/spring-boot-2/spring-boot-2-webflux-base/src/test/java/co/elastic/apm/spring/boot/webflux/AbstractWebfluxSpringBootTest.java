@@ -138,7 +138,6 @@ public abstract class AbstractWebfluxSpringBootTest {
     }
 
     private void assertSpans(String expectedName, String expectedStatement) {
-        // TODO - remove me in the future
         reporter.awaitSpanCount(1);
         List<Span> spans = reporter.getSpans();
         assertThat(spans.size()).isEqualTo(1);
