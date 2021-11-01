@@ -112,8 +112,9 @@ class CompletableFutureTest {
         for (int i = 0; i < NUM_THREADS; i++) {
             executorService.submit(new CompletableFutureTester(completableFuture, 0));
         }
-        assertThatThrownBy(() -> completableFuture.get(100, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+        assertThatThrownBy(() -> completableFuture.get(200, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
         assertThat(finished.get()).isEqualTo(0);
+        assertThat(started.get()).isEqualTo(NUM_THREADS);
         Object value = new Object();
         assertThat(completableFuture.complete(value)).isTrue();
         assertThat(completableFuture.complete(new Object())).isFalse();
