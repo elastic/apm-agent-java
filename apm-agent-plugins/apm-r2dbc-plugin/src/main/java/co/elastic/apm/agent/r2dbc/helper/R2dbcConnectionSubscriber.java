@@ -50,7 +50,7 @@ public class R2dbcConnectionSubscriber<T> implements CoreSubscriber<T>, Subscrip
     public void onSubscribe(Subscription subscription) {
         this.subscription = subscription;
 
-        subscriber.onSubscribe(subscription);
+        subscriber.onSubscribe(this);
     }
 
     @Override

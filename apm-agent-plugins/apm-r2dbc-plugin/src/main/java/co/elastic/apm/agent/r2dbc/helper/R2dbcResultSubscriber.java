@@ -37,9 +37,9 @@ public class R2dbcResultSubscriber<T> implements CoreSubscriber<T>, Subscription
     }
 
     @Override
-    public void onSubscribe(Subscription s) {
+    public void onSubscribe(Subscription subscription) {
         this.subscription = subscription;
-        subscriber.onSubscribe(s);
+        subscriber.onSubscribe(this);
     }
 
     @Override

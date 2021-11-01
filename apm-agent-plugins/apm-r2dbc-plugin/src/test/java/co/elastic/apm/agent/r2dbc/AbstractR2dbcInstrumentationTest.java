@@ -25,7 +25,6 @@ import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.r2dbc.helper.R2dbcGlobalState;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.R2dbcException;
@@ -129,7 +128,8 @@ public abstract class AbstractR2dbcInstrumentationTest extends AbstractInstrumen
     private void testUpdateStatement() {
         final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER' WHERE FOO=11";
         Statement statement = connection.createStatement(sql);
-        Flux.from(statement.execute())
+        Integer affectedRowCount = Flux.from(statement.execute())
+            .flatMap(result -> Mono.from(result.getRowsUpdated()))
             .blockLast();
 
         sleep(SLEEP_TIME_AFTER_EXECUTE);
@@ -162,7 +162,9 @@ public abstract class AbstractR2dbcInstrumentationTest extends AbstractInstrumen
                 statement = statement.bind(0, 1);
                 break;
         }
-        Flux.from(statement.execute()).blockLast();
+        Flux.from(statement.execute())
+            .flatMap(result -> result.getRowsUpdated())
+            .blockLast();
 
         sleep(SLEEP_TIME_AFTER_EXECUTE);
 
@@ -184,7 +186,8 @@ public abstract class AbstractR2dbcInstrumentationTest extends AbstractInstrumen
     private void sleep(long millis) {
         try {
             Thread.sleep(millis);
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
     }
 
     private void testBatch() {
@@ -193,7 +196,9 @@ public abstract class AbstractR2dbcInstrumentationTest extends AbstractInstrumen
             .add(insert)
             .add("UPDATE ELASTIC_APM SET BAR='AFTER' WHERE FOO=111");
 
-        Flux.from(batch.execute()).blockLast();
+        Integer batchAffectedRowCount = Flux.from(batch.execute())
+            .flatMap(result -> Mono.from(result.getRowsUpdated()))
+            .blockLast();
 
         sleep(SLEEP_TIME_AFTER_EXECUTE);
 

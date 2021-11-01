@@ -76,7 +76,7 @@ public class R2dbcSubscriber<T> implements CoreSubscriber<T>, Subscription {
         boolean hasActivated = doEnter("onSubscribe", span);
         Throwable thrown = null;
         try {
-            subscriber.onSubscribe(subscription);
+            subscriber.onSubscribe(this);
         } catch (Throwable e) {
             thrown = e;
             throw e;
@@ -113,14 +113,14 @@ public class R2dbcSubscriber<T> implements CoreSubscriber<T>, Subscription {
                 }
                 span.withSubtype(vendor).withAction(DB_SPAN_ACTION);
             }
-            if (next instanceof Result) {
-                Result result = (Result) next;
-                if (result.getRowsUpdated() instanceof Mono) {
-                    ((Mono<Integer>) result.getRowsUpdated()).cache().subscribe();
-                } else if (result.getRowsUpdated() instanceof Flux) {
-                    ((Flux<Integer>) result.getRowsUpdated()).cache().subscribe();
-                }
-            }
+//            if (next instanceof Result) {
+//                Result result = (Result) next;
+//                if (result.getRowsUpdated() instanceof Mono) {
+//                    ((Mono<Integer>) result.getRowsUpdated()).cache().subscribe();
+//                } else if (result.getRowsUpdated() instanceof Flux) {
+//                    ((Flux<Integer>) result.getRowsUpdated()).cache().subscribe();
+//                }
+//            }
         } catch (Throwable e) {
             thrown = e;
             throw e;
