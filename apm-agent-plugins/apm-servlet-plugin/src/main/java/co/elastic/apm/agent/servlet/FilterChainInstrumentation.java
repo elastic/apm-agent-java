@@ -33,7 +33,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 /**
  * Instruments {@link javax.servlet.FilterChain}s to create transactions.
  */
-public class FilterChainInstrumentation extends AbstractServletInstrumentation {
+public abstract class FilterChainInstrumentation extends AbstractServletInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -43,19 +43,19 @@ public class FilterChainInstrumentation extends AbstractServletInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(hasSuperType(named("javax.servlet.FilterChain")));
+            .and(hasSuperType(named(filterChainTypeMatcherClassName())));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("doFilter")
-            .and(takesArgument(0, named("javax.servlet.ServletRequest")))
-            .and(takesArgument(1, named("javax.servlet.ServletResponse")));
+            .and(takesArgument(0, named(doFilterFirstArgumentClassName())))
+            .and(takesArgument(1, named(doFilterSecondArgumentClassName())));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return "co.elastic.apm.agent.servlet.ServletApiAdvice";
-    }
+    abstract String filterChainTypeMatcherClassName();
 
+    abstract String doFilterFirstArgumentClassName();
+
+    abstract String doFilterSecondArgumentClassName();
 }
