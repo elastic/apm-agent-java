@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.webflux.client;
+package co.elastic.apm.agent.webfluxclient;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -67,7 +66,7 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.webflux.client.WebfluxClientInstrumentation$DefaultWebClientConstructorInstrumentation$DefaultWebClientConstructorAdvice";
+            return "co.elastic.apm.agent.webflux.WebfluxClientInstrumentation$DefaultWebClientConstructorInstrumentation$DefaultWebClientConstructorAdvice";
         }
 
         public static class DefaultWebClientConstructorAdvice {
@@ -101,12 +100,12 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.webflux.client.WebfluxClientInstrumentation$ExchangeFunctionExchangeInstrumentation$ExchangeFunctionExchangeAdvice";
+            return "co.elastic.apm.agent.webflux.WebfluxClientInstrumentation$ExchangeFunctionExchangeInstrumentation$ExchangeFunctionExchangeAdvice";
         }
 
         public static class ExchangeFunctionExchangeAdvice {
-            @AssignTo.Return(index = 0)
             @Nullable
+            @Advice.AssignReturned.ToReturned(index = 0)
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Object[] onAfter(
                 @Advice.Argument(0) ClientRequest clientRequest,
@@ -141,12 +140,12 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.webflux.client.WebfluxClientInstrumentation$DefaultClientResponseBodyInstrumentation$DefaultClientResponseBodyAdvice";
+            return "co.elastic.apm.agent.webflux.WebfluxClientInstrumentation$DefaultClientResponseBodyInstrumentation$DefaultClientResponseBodyAdvice";
         }
 
         public static class DefaultClientResponseBodyAdvice {
-            @AssignTo.Return(index = 0)
             @Nullable
+            @Advice.AssignReturned.ToReturned(index = 0)
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Object[] onAfter(
                 @Advice.Return Object result,
@@ -179,7 +178,7 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.webflux.client.WebfluxClientInstrumentation$BodyInsertersWriteStaticInstrumentation$BodyInsertersWriteStaticAdvice";
+            return "co.elastic.apm.agent.webflux.WebfluxClientInstrumentation$BodyInsertersWriteStaticInstrumentation$BodyInsertersWriteStaticAdvice";
         }
 
         public static class BodyInsertersWriteStaticAdvice {
@@ -187,8 +186,7 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onBefore(
                 @Advice.Argument(0) Publisher publisher,
-                @Advice.Argument(4) BodyInserter.Context context
-            ) {
+                @Advice.Argument(4) BodyInserter.Context context) {
                 if (context.hints() != null && context.hints().containsKey(Hints.LOG_PREFIX_HINT)) {
                     String logPrefix = (String) context.hints().get(Hints.LOG_PREFIX_HINT);
                     Span httpSpan = (Span) WebfluxClientSubscriber.getLogPrefixMap().get(logPrefix);
