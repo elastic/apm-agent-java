@@ -136,7 +136,6 @@ public class WebfluxHelper {
                 return wrappedSubscriber;
             }
         }));
-
         return mono;
     }
 

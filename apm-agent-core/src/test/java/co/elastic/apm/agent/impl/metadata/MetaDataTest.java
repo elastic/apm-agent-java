@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl;
+package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,6 +50,7 @@ class MetaDataTest {
     static void setup() {
         config = SpyConfiguration.createSpyConfig();
         coreConfiguration = config.getConfig(CoreConfiguration.class);
+        // calling the blocking method directly, so we can start tests only after proper discovery
         CloudProviderInfo cloudProviderInfo = CloudMetadataProvider.fetchAndParseCloudProviderInfo(AUTO, 1000);
         if (cloudProviderInfo != null) {
             currentCloudProvider = CoreConfiguration.CloudProvider.valueOf(cloudProviderInfo.getProvider().toUpperCase());
@@ -63,12 +63,12 @@ class MetaDataTest {
     }
 
     @Test
-    void testCloudProvider_NONE() throws InterruptedException, ExecutionException, TimeoutException {
+    void testCloudProvider_NONE_and_configured_hostname() throws InterruptedException, ExecutionException, TimeoutException {
+        when(coreConfiguration.getHostname()).thenReturn("hostname");
         // The default configuration for cloud_provide is NONE
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
-        assertThat(metaDataFuture).isInstanceOf(MetaData.NoWaitFuture.class);
-        MetaData metaData = metaDataFuture.get(0, TimeUnit.MILLISECONDS);
-        verifyMetaData(metaData, NONE);
+        MetaData metaData = metaDataFuture.get(50, TimeUnit.MILLISECONDS);
+        verifyMetaData(metaData, NONE, "hostname");
     }
 
     @ParameterizedTest
@@ -76,9 +76,8 @@ class MetaDataTest {
     void testCloudProvider_SingleProvider(CoreConfiguration.CloudProvider provider) throws InterruptedException, ExecutionException, TimeoutException {
         when(coreConfiguration.getCloudProvider()).thenReturn(provider);
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
-        assertThat(metaDataFuture).isNotInstanceOf(MetaData.NoWaitFuture.class);
         // In AWS we may need two timeouts - one for the API token and one for the metadata itself
-        long timeout = (long) (coreConfiguration.geCloudMetadataDiscoveryTimeoutMs() * ((provider == AWS) ? 2.5 : 1.5));
+        long timeout = (long) (coreConfiguration.geMetadataDiscoveryTimeoutMs() * ((provider == AWS) ? 2.5 : 1.5));
         MetaData metaData = metaDataFuture.get(timeout, TimeUnit.MILLISECONDS);
         verifyMetaData(metaData, provider);
     }
@@ -86,7 +85,7 @@ class MetaDataTest {
     @Test
     void testTimeoutConfiguration() throws InterruptedException, ExecutionException, TimeoutException {
         when(coreConfiguration.getCloudProvider()).thenReturn(AUTO);
-        when(coreConfiguration.geCloudMetadataDiscoveryTimeoutMs()).thenReturn(200L);
+        when(coreConfiguration.geMetadataDiscoveryTimeoutMs()).thenReturn(200L);
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
         Exception timeoutException = null;
         try {
@@ -103,7 +102,6 @@ class MetaDataTest {
     void testCloudProvider_AUTO() throws InterruptedException, ExecutionException, TimeoutException {
         when(coreConfiguration.getCloudProvider()).thenReturn(AUTO);
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
-        assertThat(metaDataFuture).isNotInstanceOf(MetaData.NoWaitFuture.class);
         Exception timeoutException = null;
         MetaData metaData;
         try {
@@ -113,15 +111,29 @@ class MetaDataTest {
         }
         assertThat(timeoutException).isInstanceOf(TimeoutException.class);
         // verifying discovery occurs concurrently - should take less than twice the configured timeout (AWS and Azure are timing out)
-        long timeout = (long) (coreConfiguration.geCloudMetadataDiscoveryTimeoutMs() * 2.5);
+        long timeout = (long) (coreConfiguration.geMetadataDiscoveryTimeoutMs() * 2.5);
         metaData = metaDataFuture.get(timeout, TimeUnit.MILLISECONDS);
         verifyMetaData(metaData, AUTO);
     }
 
     private void verifyMetaData(MetaData metaData, CoreConfiguration.CloudProvider cloudProvider) {
+        verifyMetaData(metaData, cloudProvider, null);
+    }
+
+    private void verifyMetaData(MetaData metaData, CoreConfiguration.CloudProvider cloudProvider, @Nullable String configuredHostname) {
         assertThat(metaData.getService()).isNotNull();
         assertThat(metaData.getProcess()).isNotNull();
-        assertThat(metaData.getSystem()).isNotNull();
+        SystemInfo system = metaData.getSystem();
+        assertThat(system).isNotNull();
+        if (configuredHostname == null) {
+            assertThat(system.getDetectedHostname()).isNotNull();
+            assertThat(system.getConfiguredHostname()).isNull();
+            assertThat(system.getHostname()).isEqualTo(system.getDetectedHostname());
+        } else {
+            assertThat(system.getDetectedHostname()).isNull();
+            assertThat(system.getConfiguredHostname()).isEqualTo(configuredHostname);
+            assertThat(system.getHostname()).isEqualTo(system.getConfiguredHostname());
+        }
         assertThat(metaData.getGlobalLabelKeys()).isEmpty();
         if (cloudProvider == currentCloudProvider || (cloudProvider == AUTO && currentCloudProvider != null)) {
             assertThat(metaData.getCloudProviderInfo()).isNotNull();

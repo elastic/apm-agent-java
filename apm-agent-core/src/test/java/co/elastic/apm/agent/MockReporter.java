@@ -19,7 +19,7 @@
 package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -38,8 +38,6 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import org.awaitility.core.ThrowingRunnable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import specs.TestJsonSpec;
 
