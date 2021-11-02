@@ -37,7 +37,7 @@ public class S3TransactionHelper extends AbstractLambdaTransactionHelper<S3Event
     @Nullable
     private static S3TransactionHelper INSTANCE;
 
-    public S3TransactionHelper(ElasticApmTracer tracer) {
+    private S3TransactionHelper(ElasticApmTracer tracer) {
         super(tracer);
     }
 

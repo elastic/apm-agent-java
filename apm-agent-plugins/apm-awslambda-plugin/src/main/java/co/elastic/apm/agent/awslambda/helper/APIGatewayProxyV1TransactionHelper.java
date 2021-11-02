@@ -34,7 +34,7 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
     @Nullable
     private static APIGatewayProxyV1TransactionHelper INSTANCE;
 
-    public APIGatewayProxyV1TransactionHelper(ElasticApmTracer tracer) {
+    private APIGatewayProxyV1TransactionHelper(ElasticApmTracer tracer) {
         super(tracer);
     }
 

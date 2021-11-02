@@ -32,7 +32,7 @@ public class PlainTransactionHelper extends AbstractLambdaTransactionHelper<Obje
     @Nullable
     private static PlainTransactionHelper INSTANCE;
 
-    public PlainTransactionHelper(ElasticApmTracer tracer) {
+    private PlainTransactionHelper(ElasticApmTracer tracer) {
         super(tracer);
     }
 

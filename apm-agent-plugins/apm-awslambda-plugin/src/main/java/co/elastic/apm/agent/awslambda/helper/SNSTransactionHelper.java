@@ -35,7 +35,7 @@ public class SNSTransactionHelper extends AbstractMessageBasedTransactionHelper<
 
     private final SNSEvent.SNSRecord placeholderRecord = new SNSEvent.SNSRecord();
 
-    public SNSTransactionHelper(ElasticApmTracer tracer) {
+    private SNSTransactionHelper(ElasticApmTracer tracer) {
         super(tracer);
     }
 

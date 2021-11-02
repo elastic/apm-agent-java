@@ -37,7 +37,7 @@ public class SQSTransactionHelper extends AbstractMessageBasedTransactionHelper<
 
     private final SQSEvent.SQSMessage placeholderMessage = new SQSEvent.SQSMessage();
 
-    public SQSTransactionHelper(ElasticApmTracer tracer) {
+    private SQSTransactionHelper(ElasticApmTracer tracer) {
         super(tracer);
     }
 
