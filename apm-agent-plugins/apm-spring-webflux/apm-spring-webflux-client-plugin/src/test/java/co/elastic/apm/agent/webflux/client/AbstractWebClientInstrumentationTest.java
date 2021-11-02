@@ -27,9 +27,11 @@ public abstract class AbstractWebClientInstrumentationTest extends AbstractHttpC
 
     protected final WebClient webClient;
 
+    /**
+     * reactor.netty.http.client.HttpClient#followRedirect(boolean) will redirect when 301|302|307|308
+     * by this reason I add workaround via BiConsumer.
+     */
     public AbstractWebClientInstrumentationTest() {
-// reactor.netty.http.client.HttpClient#followRedirect(boolean) will redirect when 301|302|307|308
-// by this reason I add workaround via BiConsumer.
         HttpClient httpClient = HttpClient.create().followRedirect((req, res) -> res.status().code() == 303);
         webClient = WebClient.builder()
             .clientConnector(new ReactorClientHttpConnector(httpClient))
