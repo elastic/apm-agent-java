@@ -18,37 +18,41 @@
  */
 package co.elastic.apm.agent.awslambda;
 
+import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.S3EventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification;
-import org.junit.BeforeClass;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-public class S3EventLambdaTest extends AbstractLambdaTest {
-
-    protected S3EventLambdaFunction function = new S3EventLambdaFunction();
+public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
 
     @BeforeAll
-    @BeforeClass
     // Need to overwrite the beforeAll() method from parent,
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(serverlessConfiguration.getAwsLambdaHandler()).thenReturn(S3EventLambdaFunction.class.getName());
+        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(S3EventLambdaFunction.class.getName());
         AbstractLambdaTest.initInstrumentation();
     }
 
-    private S3Event createDefaultS3Event() {
+    @Override
+    protected AbstractFunction<S3Event, Void> createHandler() {
+        return new S3EventLambdaFunction();
+    }
+
+    @Override
+    protected S3Event createInput() {
         return new S3Event((List.of(createS3NotificationRecord())));
     }
 
@@ -64,7 +68,7 @@ public class S3EventLambdaTest extends AbstractLambdaTest {
 
     @Test
     public void testBasicCall() {
-        function.handleRequest(createDefaultS3Event(), context);
+        getFunction().handleRequest(createInput(), context);
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
@@ -94,7 +98,7 @@ public class S3EventLambdaTest extends AbstractLambdaTest {
 
     @Test
     public void testCallWithNullInput() {
-        function.handleRequest(null, context);
+        getFunction().handleRequest(null, context);
 
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
@@ -123,7 +127,7 @@ public class S3EventLambdaTest extends AbstractLambdaTest {
     @Test
     public void testCallWithMultipleRecordsPerEvent() {
         S3Event event = new S3Event(List.of(createS3NotificationRecord(), createS3NotificationRecord()));
-        function.handleRequest(event, context);
+        getFunction().handleRequest(event, context);
 
         validateResultsForUnspecifiedRecord();
     }
@@ -132,7 +136,7 @@ public class S3EventLambdaTest extends AbstractLambdaTest {
     public void testCallWithEmptyRecord() {
         S3EventNotification.S3EventNotificationRecord record = new S3EventNotification.S3EventNotificationRecord(null, null,
             null, null, null, null, null, null, null);
-        function.handleRequest(new S3Event(List.of(record)), context);
+        getFunction().handleRequest(new S3Event(List.of(record)), context);
         validateResultsForUnspecifiedRecord();
     }
 

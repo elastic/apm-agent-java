@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.awslambda;
 
+import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.SNSEventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.context.Headers;
@@ -25,7 +26,6 @@ import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 import org.joda.time.DateTime;
-import org.junit.BeforeClass;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -38,24 +38,26 @@ import java.util.Objects;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-public class SNSEventLambdaTest extends AbstractLambdaTest {
-
-    protected SNSEventLambdaFunction function = new SNSEventLambdaFunction();
+public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
 
     @BeforeAll
-    @BeforeClass
     // Need to overwrite the beforeAll() method from parent,
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(serverlessConfiguration.getAwsLambdaHandler()).thenReturn(SNSEventLambdaFunction.class.getName());
+        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(SNSEventLambdaFunction.class.getName());
         AbstractLambdaTest.initInstrumentation();
     }
 
-    private SNSEvent createDefaultSNSEvent() {
+    @Override
+    protected AbstractFunction<SNSEvent, Void> createHandler() {
+        return  new SNSEventLambdaFunction();
+    }
+
+    @Override
+    protected SNSEvent createInput() {
         SNSEvent snsEvent = new SNSEvent();
         snsEvent.setRecords(List.of(createSnsRecord()));
-
         return snsEvent;
     }
 
@@ -84,7 +86,7 @@ public class SNSEventLambdaTest extends AbstractLambdaTest {
     @Test
     public void testBasicCall() {
         long beforeFunctionTimestamp = System.currentTimeMillis();
-        function.handleRequest(createDefaultSNSEvent(), context);
+        getFunction().handleRequest(createInput(), context);
         long afterFunctionTimestamp = System.currentTimeMillis();
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
@@ -128,7 +130,7 @@ public class SNSEventLambdaTest extends AbstractLambdaTest {
 
     @Test
     public void testCallWithNullInput() {
-        function.handleRequest(null, context);
+        getFunction().handleRequest(null, context);
 
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
@@ -158,7 +160,7 @@ public class SNSEventLambdaTest extends AbstractLambdaTest {
     public void testCallWithMultipleMessagesPerEvent() {
         SNSEvent snsEvent = new SNSEvent();
         snsEvent.setRecords(List.of(createSnsRecord(), createSnsRecord()));
-        function.handleRequest(snsEvent, context);
+        getFunction().handleRequest(snsEvent, context);
 
         validateResultsForUnspecifiedRecord();
     }
@@ -167,7 +169,7 @@ public class SNSEventLambdaTest extends AbstractLambdaTest {
     public void testCallWithEmptyRecord() {
         SNSEvent snsEvent = new SNSEvent();
         snsEvent.setRecords(List.of(new SNSEvent.SNSRecord()));
-        function.handleRequest(snsEvent, context);
+        getFunction().handleRequest(snsEvent, context);
         validateResultsForUnspecifiedRecord();
     }
 
@@ -177,7 +179,7 @@ public class SNSEventLambdaTest extends AbstractLambdaTest {
         SNSEvent.SNSRecord snsRecord = new SNSEvent.SNSRecord();
         snsRecord.setSns(new SNSEvent.SNS());
         snsEvent.setRecords(List.of(snsRecord));
-        function.handleRequest(snsEvent, context);
+        getFunction().handleRequest(snsEvent, context);
         validateResultsForUnspecifiedRecord();
     }
 

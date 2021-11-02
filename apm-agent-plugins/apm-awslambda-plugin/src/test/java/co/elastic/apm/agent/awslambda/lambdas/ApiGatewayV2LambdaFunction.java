@@ -18,16 +18,13 @@
  */
 package co.elastic.apm.agent.awslambda.lambdas;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 
 import java.util.Map;
 
-public class ApiGatewayV2LambdaFunction implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
+public class ApiGatewayV2LambdaFunction extends AbstractFunction<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
 
     public static final String EXPECTED_BODY = "This is some body";
     public static final String EXPECTED_RESPONSE_HEADER_1_KEY = "EXPECTED_HEADER_1_KEY";
@@ -35,19 +32,24 @@ public class ApiGatewayV2LambdaFunction implements RequestHandler<APIGatewayV2HT
     public static final String EXPECTED_RESPONSE_HEADER_2_KEY = "EXPECTED_HEADER_2_KEY";
     public static final String EXPECTED_RESPONSE_HEADER_2_VALUE = "EXPECTED_HEADER_2_VALUE";
     public static final int EXPECTED_STATUS_CODE = 202;
+    public static final int ERROR_STATUS_CODE = 505;
 
     @Override
     public APIGatewayV2HTTPResponse handleRequest(APIGatewayV2HTTPEvent httpEvent, Context context) {
-        Span child = GlobalTracer.requireTracerImpl().getActive().createSpan();
-        child.withName("child-span");
-        child.activate();
+        createChildSpan();
 
         APIGatewayV2HTTPResponse response = new APIGatewayV2HTTPResponse();
-        response.setStatusCode(EXPECTED_STATUS_CODE);
         response.setBody(EXPECTED_BODY);
         response.setHeaders(Map.of(EXPECTED_RESPONSE_HEADER_1_KEY, EXPECTED_RESPONSE_HEADER_1_VALUE, EXPECTED_RESPONSE_HEADER_2_KEY, EXPECTED_RESPONSE_HEADER_2_VALUE));
 
-        child.deactivate().end();
+        if (((TestContext) context).shouldSetErrorStatusCode()) {
+            response.setStatusCode(ERROR_STATUS_CODE);
+        } else {
+            response.setStatusCode(EXPECTED_STATUS_CODE);
+        }
+
+        raiseException(context);
+
         return response;
     }
 }

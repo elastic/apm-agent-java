@@ -20,22 +20,26 @@ package co.elastic.apm.agent.awslambda;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import com.amazonaws.services.lambda.runtime.Context;
+import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-public abstract class AbstractLambdaTest extends AbstractInstrumentationTest {
+public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumentationTest {
 
     // API Gateway data
     protected static final String API_ID = "API_ID";
@@ -85,11 +89,23 @@ public abstract class AbstractLambdaTest extends AbstractInstrumentationTest {
     protected static final String S3_BUCKET_ARN = "arn:aws:s3:::" + S3_BUCKET_NAME;
 
     @Nullable
-    protected static ServerlessConfiguration serverlessConfiguration;
-    @Nullable
-    protected Context context;
+    static ServerlessConfiguration serverlessConfiguration;
 
-    protected static synchronized void initAllButInstrumentation() {
+    @Nullable
+    protected TestContext context;
+
+    @Nullable
+    private AbstractFunction<ReqE, ResE> function;
+
+    protected AbstractFunction<ReqE, ResE> getFunction() {
+        return Objects.requireNonNull(function);
+    }
+
+    protected abstract AbstractFunction<ReqE, ResE> createHandler();
+
+    protected abstract ReqE createInput();
+
+    static synchronized void initAllButInstrumentation() {
         config = SpyConfiguration.createSpyConfig();
         serverlessConfiguration = config.getConfig(ServerlessConfiguration.class);
         when(serverlessConfiguration.runsOnAwsLambda()).thenReturn(true);
@@ -100,14 +116,26 @@ public abstract class AbstractLambdaTest extends AbstractInstrumentationTest {
         assertThat(tracer.isRunning()).isTrue();
     }
 
-    protected static synchronized void initInstrumentation() {
+    static synchronized void initInstrumentation() {
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
-
 
     @BeforeEach
     public void initTests() {
         context = new TestContext();
+        function = createHandler();
     }
 
+    @Test
+    public void testCallWithHandlerError() {
+        Objects.requireNonNull(context).raiseException();
+        assertThatThrownBy(() -> getFunction().handleRequest(createInput(), context)).isInstanceOf(RuntimeException.class);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
+        assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
+        Transaction transaction = reporter.getFirstTransaction();
+        assertThat(transaction.getResult()).isNull();
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
+    }
 }

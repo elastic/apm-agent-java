@@ -34,6 +34,9 @@ public class TestContext implements Context {
     public static final String FUNCTION_ARN = "arn:aws:lambda:"+FUNCTION_REGION+":"+FUNCTION_ACCOUNT_ID+":function:" + FUNCTION_NAME;
     public static final String FUNCTION_ARN_WITH_LABEL = FUNCTION_ARN + ":someLabel";
 
+    private boolean raiseException;
+    private boolean setErrorStatusCode;
+
     @Override
     public String getAwsRequestId() {
         return AWS_REQUEST_ID;
@@ -87,5 +90,21 @@ public class TestContext implements Context {
     @Override
     public LambdaLogger getLogger() {
         return null;
+    }
+
+    public boolean shouldRaiseException() {
+        return raiseException;
+    }
+
+    public void raiseException() {
+        raiseException = true;
+    }
+
+    public boolean shouldSetErrorStatusCode() {
+        return setErrorStatusCode;
+    }
+
+    public void setErrorStatusCode() {
+        setErrorStatusCode = true;
     }
 }

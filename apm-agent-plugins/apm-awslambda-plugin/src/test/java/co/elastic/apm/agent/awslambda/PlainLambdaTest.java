@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.awslambda;
 
+import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.PlainLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.metadata.MetaData;
@@ -25,32 +26,29 @@ import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.VersionUtils;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import org.junit.BeforeClass;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-public class PlainLambdaTest extends AbstractLambdaTest {
-
-    protected PlainLambdaFunction function = new PlainLambdaFunction();
+public class PlainLambdaTest extends AbstractLambdaTest<Object, Void> {
 
     @BeforeAll
-    @BeforeClass
     // Need to overwrite the beforeAll() method from parent,
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(serverlessConfiguration.getAwsLambdaHandler()).thenReturn(PlainLambdaFunction.class.getName());
+        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(PlainLambdaFunction.class.getName());
         AbstractLambdaTest.initInstrumentation();
     }
 
     @Test
     public void testMetaData() throws Exception {
-        function.handleRequest(null, context);
+        getFunction().handleRequest(null, context);
 
         MetaData metaData = tracer.getMetaDataFuture().get(100, TimeUnit.MILLISECONDS);
         assertThat(metaData).isNotNull();
@@ -75,7 +73,7 @@ public class PlainLambdaTest extends AbstractLambdaTest {
 
     @Test
     public void testBasicCall() {
-        function.handleRequest(null, context);
+        getFunction().handleRequest(null, context);
 
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
@@ -99,5 +97,15 @@ public class PlainLambdaTest extends AbstractLambdaTest {
 
         assertThat(faas.getTrigger().getType()).isEqualTo("other");
         assertThat(faas.getTrigger().getRequestId()).isNull();
+    }
+
+    @Override
+    protected AbstractFunction<Object, Void> createHandler() {
+        return new PlainLambdaFunction();
+    }
+
+    @Override
+    protected Object createInput() {
+        return null;
     }
 }

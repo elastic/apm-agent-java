@@ -18,21 +18,15 @@
  */
 package co.elastic.apm.agent.awslambda.lambdas;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 
-public class S3EventLambdaFunction implements RequestHandler<S3Event, Void> {
+public class S3EventLambdaFunction extends AbstractFunction<S3Event, Void> {
 
     @Override
     public Void handleRequest(S3Event s3Event, Context context) {
-        Span child = GlobalTracer.requireTracerImpl().getActive().createSpan();
-        child.withName("child-span");
-        child.activate();
-
-        child.deactivate().end();
+        createChildSpan();
+        raiseException(context);
         return null;
     }
 }

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.awslambda;
 
+import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.ApiGatewayV1LambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.ApiGatewayV2LambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
@@ -25,9 +26,11 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.Faas;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 import org.junit.BeforeClass;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -36,13 +39,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import javax.annotation.Nullable;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-public class ApiGatewayV2LambdaTest extends AbstractLambdaTest {
-
-    protected ApiGatewayV2LambdaFunction function = new ApiGatewayV2LambdaFunction();
+public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
 
     @BeforeAll
     @BeforeClass
@@ -50,13 +52,12 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest {
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(serverlessConfiguration.getAwsLambdaHandler()).thenReturn(ApiGatewayV2LambdaFunction.class.getName());
+        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(ApiGatewayV2LambdaFunction.class.getName());
         AbstractLambdaTest.initInstrumentation();
     }
 
-
-    public APIGatewayV2HTTPEvent createDefaultRequestEvent() {
-        function = new ApiGatewayV2LambdaFunction();
+    @Override
+    protected APIGatewayV2HTTPEvent createInput() {
         APIGatewayV2HTTPEvent.RequestContext.Http.HttpBuilder httpBuilder = APIGatewayV2HTTPEvent.RequestContext.Http.builder();
         httpBuilder.withPath(PATH);
         httpBuilder.withMethod(HTTP_METHOD);
@@ -87,7 +88,7 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest {
 
     @Test
     public void testBasicCall() {
-        function.handleRequest(createDefaultRequestEvent(), context);
+        getFunction().handleRequest(createInput(), context);
 
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
@@ -141,7 +142,7 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest {
 
     @Test
     public void testCallWithNullInput() {
-        function.handleRequest(null, context);
+        getFunction().handleRequest(null, context);
 
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
@@ -172,7 +173,7 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest {
     public void testCallWithNullRequestContext(boolean isObjectNull) {
         APIGatewayV2HTTPEvent.RequestContext requestContext = isObjectNull ? null : new APIGatewayV2HTTPEvent.RequestContext();
         APIGatewayV2HTTPEvent apiGatewayProxyRequestEvent = createRequestEvent(requestContext);
-        function.handleRequest(apiGatewayProxyRequestEvent, context);
+        getFunction().handleRequest(apiGatewayProxyRequestEvent, context);
 
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
@@ -197,5 +198,23 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest {
 
         assertThat(faas.getTrigger().getType()).isEqualTo("http");
         assertThat(faas.getTrigger().getRequestId()).isNull();
+    }
+
+    @Test
+    public void testCallWithHErrorStatusCode() {
+        Objects.requireNonNull(context).setErrorStatusCode();
+        getFunction().handleRequest(createInput(), context);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
+        assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
+        Transaction transaction = reporter.getFirstTransaction();
+        assertThat(transaction.getResult()).isEqualTo("HTTP 5xx");
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
+    }
+
+    @Override
+    protected AbstractFunction<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> createHandler() {
+        return new ApiGatewayV2LambdaFunction();
     }
 }

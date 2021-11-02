@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.awslambda;
 
+import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.SQSEventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
-import org.junit.BeforeClass;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -37,24 +37,26 @@ import java.util.Objects;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-public class SQSEventLambdaTest extends AbstractLambdaTest {
-
-    protected SQSEventLambdaFunction function = new SQSEventLambdaFunction();
+public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
 
     @BeforeAll
-    @BeforeClass
     // Need to overwrite the beforeAll() method from parent,
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(serverlessConfiguration.getAwsLambdaHandler()).thenReturn(SQSEventLambdaFunction.class.getName());
+        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(SQSEventLambdaFunction.class.getName());
         AbstractLambdaTest.initInstrumentation();
     }
 
-    private SQSEvent createDefaultSQSEvent() {
+    @Override
+    protected AbstractFunction<SQSEvent, Void> createHandler() {
+        return new SQSEventLambdaFunction();
+    }
+
+    @Override
+    protected SQSEvent createInput() {
         SQSEvent sqsEvent = new SQSEvent();
         sqsEvent.setRecords(List.of(createSqsMessage()));
-
         return sqsEvent;
     }
 
@@ -84,7 +86,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest {
     @Test
     public void testBasicCall() {
         long beforeFunctionTimestamp = System.currentTimeMillis();
-        function.handleRequest(createDefaultSQSEvent(), context);
+        getFunction().handleRequest(createInput(), context);
         long afterFunctionTimestamp = System.currentTimeMillis();
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
@@ -128,7 +130,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest {
 
     @Test
     public void testCallWithNullInput() {
-        function.handleRequest(null, context);
+        getFunction().handleRequest(null, context);
 
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
@@ -158,14 +160,14 @@ public class SQSEventLambdaTest extends AbstractLambdaTest {
     public void testCallWithMultipleMessagesPerEvent() {
         SQSEvent sqsEvent = new SQSEvent();
         sqsEvent.setRecords(List.of(createSqsMessage(), createSqsMessage()));
-        function.handleRequest(sqsEvent, context);
+        getFunction().handleRequest(sqsEvent, context);
 
         validateResultsForUnspecifiedMessage();
     }
 
     @Test
     public void testCallWithEmptyMessage() {
-        function.handleRequest(createSQSEventWithNulls(), context);
+        getFunction().handleRequest(createSQSEventWithNulls(), context);
         validateResultsForUnspecifiedMessage();
     }
 

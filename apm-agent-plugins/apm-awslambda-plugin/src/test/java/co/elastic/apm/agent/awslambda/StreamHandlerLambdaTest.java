@@ -18,40 +18,42 @@
  */
 package co.elastic.apm.agent.awslambda;
 
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.awslambda.lambdas.StreamHandlerLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.transaction.Faas;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.VersionUtils;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import org.junit.BeforeClass;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import static co.elastic.apm.agent.awslambda.AbstractLambdaTest.serverlessConfiguration;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-public class StreamHandlerLambdaTest extends AbstractLambdaTest {
+public class StreamHandlerLambdaTest extends AbstractInstrumentationTest {
 
     protected StreamHandlerLambdaFunction function = new StreamHandlerLambdaFunction();
 
     @BeforeAll
-    @BeforeClass
     // Need to overwrite the beforeAll() method from parent,
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(serverlessConfiguration.getAwsLambdaHandler()).thenReturn(StreamHandlerLambdaFunction.class.getName());
+        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(StreamHandlerLambdaFunction.class.getName());
         AbstractLambdaTest.initInstrumentation();
     }
 
     @Test
     public void testMetaData() throws Exception {
-        function.handleRequest(null, null, context);
+        function.handleRequest(null, null, new TestContext());
 
         MetaData metaData = tracer.getMetaDataFuture().get(100, TimeUnit.MILLISECONDS);
         assertThat(metaData).isNotNull();
@@ -75,8 +77,8 @@ public class StreamHandlerLambdaTest extends AbstractLambdaTest {
     }
 
     @Test
-    public void testBasicCall() throws IOException {
-        function.handleRequest(null, null, context);
+    public void testBasicCall() {
+        function.handleRequest(null, null, new TestContext());
 
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
@@ -86,6 +88,7 @@ public class StreamHandlerLambdaTest extends AbstractLambdaTest {
         assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isNull();
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
         assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
         assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");
@@ -100,5 +103,19 @@ public class StreamHandlerLambdaTest extends AbstractLambdaTest {
 
         assertThat(faas.getTrigger().getType()).isEqualTo("other");
         assertThat(faas.getTrigger().getRequestId()).isNull();
+    }
+
+    @Test
+    public void testCallWithHandlerError() {
+        TestContext context = new TestContext();
+        Objects.requireNonNull(context).raiseException();
+        assertThatThrownBy(() -> function.handleRequest(null, null, context)).isInstanceOf(RuntimeException.class);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
+        assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
+        Transaction transaction = reporter.getFirstTransaction();
+        assertThat(transaction.getResult()).isNull();
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
     }
 }

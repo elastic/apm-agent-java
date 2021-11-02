@@ -19,23 +19,26 @@
 package co.elastic.apm.agent.awslambda.lambdas;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Objects;
 
 public class StreamHandlerLambdaFunction implements RequestStreamHandler {
 
     @Override
-    public void handleRequest(InputStream inputStream, OutputStream outputStream, Context context) throws IOException {
-        Span child = GlobalTracer.requireTracerImpl().getActive().createSpan();
-        child.withName("child-span");
-        child.activate();
+    public void handleRequest(InputStream inputStream, OutputStream outputStream, Context context) {
+        Objects.requireNonNull(GlobalTracer.requireTracerImpl().getActive())
+            .createSpan()
+            .withName("child-span")
+            .activate()
+            .deactivate()
+            .end();
 
-        child.deactivate().end();
+        if (((TestContext) context).shouldRaiseException()) {
+            throw new RuntimeException("Requested to raise error");
+        }
     }
 }

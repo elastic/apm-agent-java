@@ -18,21 +18,15 @@
  */
 package co.elastic.apm.agent.awslambda.lambdas;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 
-public class SQSEventLambdaFunction implements RequestHandler<SQSEvent, Void> {
+public class SQSEventLambdaFunction extends AbstractFunction<SQSEvent, Void> {
 
     @Override
     public Void handleRequest(SQSEvent sqsEvent, Context context) {
-        Span child = GlobalTracer.requireTracerImpl().getActive().createSpan();
-        child.withName("child-span");
-        child.activate();
-
-        child.deactivate().end();
+        createChildSpan();
+        raiseException(context);
         return null;
     }
 }
