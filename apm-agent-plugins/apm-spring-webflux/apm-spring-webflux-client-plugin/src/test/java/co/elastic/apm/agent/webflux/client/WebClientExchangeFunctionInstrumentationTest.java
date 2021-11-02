@@ -1,10 +1,10 @@
 package co.elastic.apm.agent.webflux.client;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
-import org.eclipse.jetty.client.HttpClient;
-import org.springframework.http.client.reactive.JettyClientHttpConnector;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
 
 
 public class WebClientExchangeFunctionInstrumentationTest extends AbstractHttpClientInstrumentationTest {
@@ -12,10 +12,10 @@ public class WebClientExchangeFunctionInstrumentationTest extends AbstractHttpCl
     private final WebClient webClient;
 
     public WebClientExchangeFunctionInstrumentationTest() {
-        HttpClient httpClient = new HttpClient();
+        HttpClient httpClient = HttpClient.create().followRedirect(true);
 
         webClient = WebClient.builder()
-            .clientConnector(new JettyClientHttpConnector(httpClient))
+            .clientConnector(new ReactorClientHttpConnector(httpClient))
             .build();
     }
 
