@@ -126,6 +126,7 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T>, Subscripti
     @Override
     public void cancel() {
         subscription.cancel();
+        cancelSpan();
     }
 
     @Nullable

@@ -41,7 +41,7 @@ public class WebfluxClientHelper {
             new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
                 @Override
                 public CoreSubscriber<? super T> apply(Publisher publisher, CoreSubscriber<? super T> subscriber) {
-                    log.debug("Trying to subscribe with span {}", span);
+                    log.trace("Trying to subscribe with span {}", span);
                     if (tracer.getActive() == null) {
                         return subscriber;
                     }

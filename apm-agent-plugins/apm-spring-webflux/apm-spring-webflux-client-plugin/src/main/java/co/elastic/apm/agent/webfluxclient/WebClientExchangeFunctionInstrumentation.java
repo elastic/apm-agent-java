@@ -13,7 +13,6 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.reactive.function.client.ClientRequest;
-import org.springframework.web.reactive.function.client.ClientResponse;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -46,7 +45,6 @@ public class WebClientExchangeFunctionInstrumentation extends AbstractWebClientI
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @Advice.AssignReturned.ToArguments(@ToArgument(index = 0, value = 0, typing = Assigner.Typing.DYNAMIC))
         public static Object[] onBefore(@Advice.Argument(0) ClientRequest clientRequest) {
-            logger.debug("Enter advice for method exchange");
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent == null) {
                 return null;
@@ -70,7 +68,6 @@ public class WebClientExchangeFunctionInstrumentation extends AbstractWebClientI
         public static Object afterExecute(@Advice.Return @Nullable Publisher returnValue,
                                           @Advice.Enter @Nullable Object[] spanRequestObj,
                                           @Advice.Thrown @Nullable Throwable t) {
-            logger.trace("Exit advice for RestTemplate client execute() method, span object");
             if (spanRequestObj == null || spanRequestObj.length < 2) {
                 return returnValue;
             }
