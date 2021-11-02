@@ -74,7 +74,7 @@ class CompletableFutureTest {
         assertThat(completableFuture.cancel(false)).isTrue();
         assertThat(completableFuture.cancel(false)).isFalse();
         await()
-            .timeout(500, TimeUnit.MILLISECONDS)
+            .timeout(1, TimeUnit.SECONDS)
             .untilAsserted(() -> assertThat(finished.get()).isEqualTo(NUM_THREADS));
         assertThat(cancellationExceptionCounter.get()).isEqualTo(NUM_THREADS);
         assertThat(isCancelledCounter.get()).isEqualTo(NUM_THREADS);
