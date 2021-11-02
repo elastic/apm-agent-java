@@ -16,7 +16,7 @@ public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentat
         HttpClient httpClient = new HttpClient();
 
         webClient =  WebClient.builder()
-            .clientConnector(new JettyClientHttpConnector())
+            .clientConnector(new JettyClientHttpConnector(httpClient))
             .build();
     }
 

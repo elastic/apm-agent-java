@@ -26,6 +26,7 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import reactor.core.CoreSubscriber;
 
 import javax.annotation.Nullable;
@@ -69,6 +70,9 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T>, Subscripti
         boolean hasActivated = doEnter("onNext", span);
         Throwable thrown = null;
         try {
+            if (t instanceof ClientResponse) {
+                span.getContext().getHttp().withStatusCode(((ClientResponse) t).rawStatusCode());
+            }
             subscriber.onNext(t);
         } catch (Throwable e) {
             thrown = e;
