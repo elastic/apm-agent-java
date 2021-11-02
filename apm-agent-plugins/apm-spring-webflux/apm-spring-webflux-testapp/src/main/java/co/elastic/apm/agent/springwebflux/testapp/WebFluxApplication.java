@@ -156,10 +156,6 @@ public class WebFluxApplication {
         public void close() {
             context.close();
         }
-
-        public int getPort(){
-            return this.port;
-        }
     }
 
     /**

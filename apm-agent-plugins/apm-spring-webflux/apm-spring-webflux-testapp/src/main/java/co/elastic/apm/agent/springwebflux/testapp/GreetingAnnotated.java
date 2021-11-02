@@ -29,10 +29,17 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -116,39 +123,6 @@ public class GreetingAnnotated {
         return greetingHandler.helloMessage(request.getMethodValue());
     }
 
-    @RequestMapping(value = "/error-handler-body", method = {RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH})
-    public Mono<String> handlerErrorBodyMapping(@RequestBody String string) {
-        return greetingHandler.throwException();
-    }
-
-    @RequestMapping(value = "/error-handler-form", method = {RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH})
-    public Mono<String> handlerErrorFormMapping(ServerWebExchange serverWebExchange) {
-        return greetingHandler.throwException();
-    }
-
-    @RequestMapping(value = "/error-handler-other", method = {RequestMethod.OPTIONS, RequestMethod.HEAD, RequestMethod.TRACE})
-    public Mono<String> handlerErrorOtherMapping() {
-        return greetingHandler.throwException();
-    }
-
-    @RequestMapping(value = "/hello-body-mapping", method = {RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH})
-    public Mono<String> postRequestBodyMapping(@RequestBody String string) {
-        return greetingHandler.helloMessage("POST" + string);
-    }
-
-    @RequestMapping(value = "/hello-form-mapping", method = {RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH})
-    public Mono<String> postFormMapping(ServerWebExchange serverWebExchange) {
-        MultiValueMap<String, String> formData = getFormData(serverWebExchange);
-        String formDataTest = formData.getFirst("test");//TODO:param
-        return greetingHandler.helloMessage("POST" + formDataTest);
-    }
-
-    private static MultiValueMap<String, String> getFormData(ServerWebExchange serverWebExchange) {
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        serverWebExchange.getFormData().subscribe(formData::addAll);
-        return formData;
-    }
-
     @GetMapping("/with-parameters/{id}")
     public Mono<String> withParameters(@PathVariable("id") String id) {
         return greetingHandler.helloMessage(id);
@@ -162,38 +136,10 @@ public class GreetingAnnotated {
         return greetingHandler.childSpans(count, delayMillis, durationMillis);
     }
 
-    @RequestMapping(path = "/child-flux-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE,
-        method = {RequestMethod.GET, RequestMethod.TRACE, RequestMethod.HEAD, RequestMethod.OPTIONS,
-            RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH
-    })
-    public Flux<String> getChildSpansStream(@RequestParam(value = "count", required = false, defaultValue = "3") int count,
-                                            @RequestParam(value = "duration", required = false, defaultValue = "5") long durationMillis,
-                                            @RequestParam(value = "delay", required = false, defaultValue = "5") long delayMillis) {
-
-        return greetingHandler.childSpans(count, delayMillis, durationMillis);
-    }
-
-    @GetMapping(path = "/child-flux-stream2", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> getChildSpansStream2(@RequestParam(value = "count", required = false, defaultValue = "3") int count,
-                                             @RequestParam(value = "duration", required = false, defaultValue = "5") long durationMillis,
-                                             @RequestParam(value = "delay", required = false, defaultValue = "5") long delayMillis) {
-
-        return greetingHandler.childSpans(count, delayMillis, durationMillis);
-    }
-
     @GetMapping(path = "/child-flux/sse")
     public Flux<ServerSentEvent<String>> getChildSpansSSE(@RequestParam(value = "count", required = false, defaultValue = "3") int count,
                                                           @RequestParam(value = "duration", required = false, defaultValue = "5") long durationMillis,
                                                           @RequestParam(value = "delay", required = false, defaultValue = "5") long delayMillis) {
-
-        return greetingHandler.childSpans(count, durationMillis, delayMillis)
-            .map(greetingHandler::toSSE);
-    }
-
-    @GetMapping(path = "/child-flux-stream/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> getChildSpansSSEStream(@RequestParam(value = "count", required = false, defaultValue = "3") int count,
-                                                                @RequestParam(value = "duration", required = false, defaultValue = "5") long durationMillis,
-                                                                @RequestParam(value = "delay", required = false, defaultValue = "5") long delayMillis) {
 
         return greetingHandler.childSpans(count, durationMillis, delayMillis)
             .map(greetingHandler::toSSE);

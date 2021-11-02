@@ -43,6 +43,7 @@ by the agent may be different. This was done in order to improve the integration
 * Added support to capture `context.message.routing-key` in rabbitmq, spring amqp instrumentations - {pull}1767[#1767]
 * Breakdown metrics are now tracked per service (when using APM Server 8.0) - {pull}2208[#2208]
 * Add support for Spring AMQP batch API - {pull}1716[#1716]
+* Add support for Spring WebClient - {pull}2229[#2229]
 
 [float]
 ===== Performance improvements
@@ -66,7 +67,7 @@ discovery - {pull}2205[#2205]
 ** `GlobalThreadLocal` has been removed in favor of `DetachedThreadLocal`. To make it global, use `GlobalVariables` - {pull}2136[#2136]
 ** `DynamicTransformer.Accessor.get().ensureInstrumented` is now `DynamicTransformer.ensureInstrumented` - {pull}#2164[#2164]
 ** The `@AssignTo.*` annotations have been removed.
-   Use the `@Advice.AssignReturned.*` annotations that come with the latest version of Byte Buddy.
+   Use the `@Advice.AssignReturned.*` annowebflux-plugintations that come with the latest version of Byte Buddy.
    If your plugin uses the old annotations, it will be skipped.
    {pull}2171[#2171]
 * Switching last instrumentations (`trace_methods`, sparkjava, JDK `HttpServer` and Struts 2) to
