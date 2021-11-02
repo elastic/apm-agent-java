@@ -67,7 +67,7 @@ public class WebClientExchangeFunctionInstrumentation extends AbstractWebClientI
 
         @Advice.AssignReturned.ToReturned(typing = Assigner.Typing.DYNAMIC)
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static Object afterExecute(@Advice.Return @Nullable Publisher<? extends ClientResponse> returnValue,
+        public static Object afterExecute(@Advice.Return @Nullable Publisher returnValue,
                                           @Advice.Enter @Nullable Object[] spanRequestObj,
                                           @Advice.Thrown @Nullable Throwable t) {
             logger.trace("Exit advice for RestTemplate client execute() method, span object");
