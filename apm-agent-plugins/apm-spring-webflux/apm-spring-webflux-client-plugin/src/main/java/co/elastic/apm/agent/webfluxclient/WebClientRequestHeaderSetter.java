@@ -21,15 +21,12 @@ package co.elastic.apm.agent.webfluxclient;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import org.springframework.web.reactive.function.client.ClientRequest;
 
-public class WebClientRequestHeaderSetter implements TextHeaderSetter<ClientRequest> {
+public class WebClientRequestHeaderSetter implements TextHeaderSetter<ClientRequest.Builder> {
 
     public static final WebClientRequestHeaderSetter INSTANCE = new WebClientRequestHeaderSetter();
 
     @Override
-    public void setHeader(String headerName, String headerValue, ClientRequest request) {
-        if (!request.headers().containsKey(headerName)) {
-            // TODO - headers() readonly list
-//            request.headers().add(headerName, headerValue);
-        }
+    public void setHeader(String headerName, String headerValue, ClientRequest.Builder request) {
+        request.header(headerName, headerValue);
     }
 }

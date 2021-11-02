@@ -4,6 +4,7 @@ import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
@@ -43,30 +44,37 @@ public class WebClientExchangeFunctionInstrumentation extends AbstractWebClientI
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onBefore(@Advice.Argument(0) ClientRequest clientRequest) {
+        @Advice.AssignReturned.ToArguments(@ToArgument(index = 0, value = 0, typing = Assigner.Typing.DYNAMIC))
+        public static Object[] onBefore(@Advice.Argument(0) ClientRequest clientRequest) {
             logger.debug("Enter advice for method exchange");
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent == null) {
                 return null;
             }
+            ClientRequest.Builder builder = ClientRequest.from(clientRequest);
             URI uri = clientRequest.url();
             Span span = HttpClientHelper.startHttpClientSpan(parent, clientRequest.method().name(), uri, uri.getHost());
             if (span != null) {
                 span.activate();
-                span.propagateTraceContext(clientRequest, WebClientRequestHeaderSetter.INSTANCE);
+                span.propagateTraceContext(builder, WebClientRequestHeaderSetter.INSTANCE);
             } else {
-                parent.propagateTraceContext(clientRequest, WebClientRequestHeaderSetter.INSTANCE);
+                parent.propagateTraceContext(builder, WebClientRequestHeaderSetter.INSTANCE);
             }
-            return span;
+            clientRequest = builder.build();
+            return new Object[]{clientRequest, span};
         }
 
 
         @Advice.AssignReturned.ToReturned(typing = Assigner.Typing.DYNAMIC)
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static Object afterExecute(@Advice.Return @Nullable Publisher<? extends ClientResponse> returnValue,
-                                          @Advice.Enter @Nullable Object spanObj,
+                                          @Advice.Enter @Nullable Object[] spanRequestObj,
                                           @Advice.Thrown @Nullable Throwable t) {
-            logger.trace("Exit advice for RestTemplate client execute() method, span object: {}", spanObj);
+            logger.trace("Exit advice for RestTemplate client execute() method, span object");
+            if (spanRequestObj == null || spanRequestObj.length < 2) {
+                return returnValue;
+            }
+            Object spanObj = spanRequestObj[1];
             if (!(spanObj instanceof Span)) {
                 return returnValue;
             }

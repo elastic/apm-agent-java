@@ -47,8 +47,14 @@
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-reactive-httpclient</artifactId>
             <version>3.0.4</version>
+            <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>2.0.0-alpha1</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>co.elastic.apm</groupId>
             <artifactId>apm-httpclient-core</artifactId>
