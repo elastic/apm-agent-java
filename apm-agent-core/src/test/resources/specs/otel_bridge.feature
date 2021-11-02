@@ -34,17 +34,17 @@ Feature: OpenTelemetry bridge
     Examples:
       | kind     | default_type | default_subtype |
       | INTERNAL | app          | internal        |
-      | SERVER   | custom       |                 |
-      | CLIENT   | custom       |                 |
-      | PRODUCER | custom       |                 |
-      | CONSUMER | custom       |                 |
+      | SERVER   | unknown      |                 |
+      | CLIENT   | unknown      |                 |
+      | PRODUCER | unknown      |                 |
+      | CONSUMER | unknown      |                 |
 
   Scenario Outline: OTel span kind <kind> for transactions & default transaction type
     Given an agent
     And OTel span is created with kind "<kind>"
     Then Elastic bridged object is a transaction
     Then Elastic bridged transaction OTel kind is "<kind>"
-    Then Elastic bridged transaction type is 'custom'
+    Then Elastic bridged transaction type is 'unknown'
     Examples:
       | kind     |
       | INTERNAL |

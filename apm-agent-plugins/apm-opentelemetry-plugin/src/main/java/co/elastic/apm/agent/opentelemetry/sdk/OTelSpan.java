@@ -125,7 +125,7 @@ public class OTelSpan implements Span {
         boolean isRpc = attributes.containsKey("rpc.system");
         boolean isHttp = attributes.containsKey("http.url") || attributes.containsKey("http.scheme");
         boolean isMessaging = attributes.containsKey("messaging.system");
-        String type = "custom";
+        String type = "unknown";
         if (span.getOtelKind() == OTelSpanKind.SERVER && (isRpc || isHttp)) {
             type = "request";
         } else if (span.getOtelKind() == OTelSpanKind.CONSUMER && isMessaging) {
@@ -206,9 +206,12 @@ public class OTelSpan implements Span {
             setSpanResource(destinationResource, httpHost, netPort, null, null);
         }
 
-        if (type == null && s.getOtelKind() == OTelSpanKind.INTERNAL) {
-            type = "app";
-            subType = "internal";
+        if (type == null) {
+            type = "unknown";
+            if (s.getOtelKind() == OTelSpanKind.INTERNAL) {
+                type = "app";
+                subType = "internal";
+            }
         }
 
         s.withType(type).withSubtype(subType);
