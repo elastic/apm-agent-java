@@ -3,19 +3,18 @@ package co.elastic.apm.agent.webflux.client;
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import org.eclipse.jetty.client.HttpClient;
 import org.springframework.http.client.reactive.JettyClientHttpConnector;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 
 
-public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
+public class WebClientExchangeFunctionInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     private final WebClient webClient;
 
-    public WebClientInstrumentationTest() {
+    public WebClientExchangeFunctionInstrumentationTest() {
         HttpClient httpClient = new HttpClient();
 
-        webClient =  WebClient.builder()
+        webClient = WebClient.builder()
             .clientConnector(new JettyClientHttpConnector(httpClient))
             .build();
     }

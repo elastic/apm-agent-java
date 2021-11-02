@@ -71,7 +71,12 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T>, Subscripti
         Throwable thrown = null;
         try {
             if (t instanceof ClientResponse) {
-                span.getContext().getHttp().withStatusCode(((ClientResponse) t).rawStatusCode());
+                ClientResponse clientResponse = (ClientResponse) t;
+                int statusCode = clientResponse.rawStatusCode();
+                if (400 <= statusCode && statusCode < 500 && span.getOutcome() == null){
+                    span.withOutcome(Outcome.FAILURE);
+                }
+                span.getContext().getHttp().withStatusCode(clientResponse.rawStatusCode());
             }
             subscriber.onNext(t);
         } catch (Throwable e) {
@@ -99,11 +104,13 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T>, Subscripti
 
     @Override
     public void onComplete() {
-        Span span = getSpan();
+        final Span span = getSpan();
         boolean hasActivated = doEnter("onComplete", span);
         try {
             subscriber.onComplete();
-            span = span.withOutcome(Outcome.SUCCESS);
+            if (span.getOutcome() == null) {
+                span.withOutcome(Outcome.SUCCESS);
+            }
         } finally {
             doExit(hasActivated, "onComplete", span);
             discardIf(true);
