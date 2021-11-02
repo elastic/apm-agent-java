@@ -21,6 +21,7 @@ package co.elastic.apm.agent.awslambda;
 import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.ApiGatewayV1LambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Url;
@@ -83,6 +84,7 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
 
     @Test
     public void testBasicCall() {
+        when(config.getConfig(CoreConfiguration.class).getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
         getFunction().handleRequest(createInput(), context);
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
@@ -96,7 +98,7 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
 
         Request request = transaction.getContext().getRequest();
         assertThat(request.getMethod()).isEqualTo(HTTP_METHOD);
-        assertThat(request.getBody()).isNull();
+        assertThat(String.valueOf(request.getBody())).isEqualTo(BODY);
         assertThat(request.getHttpVersion()).isNull();
 
         Url url = request.getUrl();

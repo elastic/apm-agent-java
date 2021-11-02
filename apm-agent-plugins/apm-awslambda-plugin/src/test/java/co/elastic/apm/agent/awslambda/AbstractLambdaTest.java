@@ -57,9 +57,16 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
     protected static final String HEADER_1_VALUE = "HEADER_1_VALUE";
     protected static final String HEADER_2_KEY = "HEADER_2_KEY";
     protected static final String HEADER_2_VALUE = "HEADER_2_VALUE";
+    protected static final String CONTENT_TYPE_HEADER = "Content-Type";
+    protected static final String TEXT_CONTENT_TYPE = "text/plain";
     protected static final String QUERY_PARAM_KEY = "QUERY_PARAM_KEY";
     protected static final String QUERY_PARAM_VALUE = "QUERY_PARAM_VALUE";
-    protected static final Map<String, String> REQUEST_HEADERS = Map.of(HEADER_1_KEY, HEADER_1_VALUE, HEADER_2_KEY, HEADER_2_VALUE, "Host", API_GATEWAY_HOST);
+    protected static final Map<String, String> REQUEST_HEADERS = Map.of(
+        HEADER_1_KEY, HEADER_1_VALUE,
+        HEADER_2_KEY, HEADER_2_VALUE,
+        CONTENT_TYPE_HEADER, TEXT_CONTENT_TYPE,
+        "Host", API_GATEWAY_HOST
+    );
     protected static final String PATH = "/some/url/path";
 
     // event source data
