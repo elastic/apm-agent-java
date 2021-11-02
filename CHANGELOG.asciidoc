@@ -42,6 +42,7 @@ by the agent may be different. This was done in order to improve the integration
 * Update to async-profiler 1.8.7 and set configured `safemode` at load time though a new system property - {pull}2165[#2165]
 * Added support to capture `context.message.routing-key` in rabbitmq, spring amqp instrumentations - {pull}1767[#1767]
 * Breakdown metrics are now tracked per service (when using APM Server 8.0) - {pull}2208[#2208]
+* Add support for Spring AMQP batch API - {pull}1716[#1716]
 * Added support for overwritting the service version per classloader - {pull}#1726[#1726]
 
 [float]
