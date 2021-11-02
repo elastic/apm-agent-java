@@ -24,27 +24,29 @@
             <version>${version.spring}</version>
             <scope>provided</scope>
         </dependency>
-
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webflux</artifactId>
             <version>${version.spring}</version>
             <scope>provided</scope>
         </dependency>
-
+<!--        <dependency>-->
+<!--            <groupId>io.projectreactor.netty</groupId>-->
+<!--            <artifactId>reactor-netty-http</artifactId>-->
+<!--            <version>1.0.12</version>-->
+<!--            <scope>test</scope>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>io.projectreactor.netty</groupId>-->
+<!--            <artifactId>reactor-netty-core</artifactId>-->
+<!--            <version>1.0.12</version>-->
+<!--            <scope>test</scope>-->
+<!--        </dependency>-->
+        <!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-reactive-httpclient -->
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-spring-webflux-testapp</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- required to test integration with API, for example custom transaction naming -->
-        <dependency>
-            <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-api-plugin</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-reactive-httpclient</artifactId>
+            <version>3.0.4</version>
         </dependency>
 
         <dependency>
@@ -53,36 +55,13 @@
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
-
-
-<!--        unsure about the version
-spring boot -> 9.4.25.v20191220
--->
         <dependency>
-            <groupId>org.eclipse.jetty.websocket</groupId>
-            <artifactId>websocket-client</artifactId>
-            <version>9.4.25.v20191220</version>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-httpclient-core</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-reactive-httpclient</artifactId>
-            <version>1.0.3</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.undertow</groupId>
-            <artifactId>undertow-websockets-jsr</artifactId>
-            <version>2.0.26.Final</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jboss.xnio</groupId>
-            <artifactId>xnio-api</artifactId>
-            <version>3.3.8.Final</version>
-            <scope>test</scope>
-        </dependency>
-
     </dependencies>
 
 </project>
