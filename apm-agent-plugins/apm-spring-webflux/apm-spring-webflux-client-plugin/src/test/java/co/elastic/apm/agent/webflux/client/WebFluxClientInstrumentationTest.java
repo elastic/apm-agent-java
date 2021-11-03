@@ -260,9 +260,6 @@ public class WebFluxClientInstrumentationTest extends AbstractInstrumentationTes
             Arguments.of(BodyInserters.fromProducer(Flux.just("foo"), String.class), HttpMethod.POST, webClientFunction3, bodyToFluxFunction2, "/annotated/hello-body-mapping", 3),
             Arguments.of(BodyInserters.fromProducer(Flux.just("foo"), String.class), HttpMethod.PUT, webClientFunction3, bodyToFluxFunction2, "/annotated/hello-body-mapping", 3),
             Arguments.of(BodyInserters.fromProducer(Flux.just("foo"), String.class), HttpMethod.PATCH, webClientFunction3, bodyToFluxFunction2, "/annotated/hello-body-mapping", 3)
-
-//            Arguments.of(BodyInserters.fromMultipartAsyncData(map), HttpMethod.POST ),
-
         );
     }
 
