@@ -54,18 +54,12 @@ public class AbstractIntakeApiHandler {
     protected int errorCount;
     protected volatile boolean shutDown;
     private volatile boolean healthy = true;
-    private final NanoClock clock;
     private long requestStartedNanos;
 
     public AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
-        this(reporterConfiguration, payloadSerializer, apmServerClient, new SystemNanoClock());
-    }
-
-    public AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient, NanoClock clock) {
         this.reporterConfiguration = reporterConfiguration;
         this.payloadSerializer = payloadSerializer;
         this.apmServerClient = apmServerClient;
-        this.clock = clock;
         this.deflater = new Deflater();
     }
 
@@ -118,7 +112,7 @@ public class AbstractIntakeApiHandler {
                 payloadSerializer.setOutputStream(os);
                 payloadSerializer.appendMetaDataNdJsonToStream();
                 payloadSerializer.flushToOutputStream();
-                requestStartedNanos = clock.nanoTicks();
+                requestStartedNanos = System.nanoTime();
             } catch (IOException e) {
                 logger.error("Error trying to connect to APM Server at {}. Some details about SSL configurations corresponding " +
                     "the current connection are logged at INFO level.", connection.getURL());
@@ -194,7 +188,7 @@ public class AbstractIntakeApiHandler {
     }
 
     protected boolean isApiRequestTimeExpired() {
-        return clock.nanoTicks() >= requestStartedNanos + TimeUnit.MILLISECONDS.toNanos(reporterConfiguration.getApiRequestTime().getMillis());
+        return System.nanoTime() >= requestStartedNanos + TimeUnit.MILLISECONDS.toNanos(reporterConfiguration.getApiRequestTime().getMillis());
     }
 
     protected void onRequestError(Integer responseCode, InputStream inputStream, @Nullable IOException e) {
@@ -273,17 +267,5 @@ public class AbstractIntakeApiHandler {
     protected void onRequestSuccess() {
         errorCount = 0;
         reported += currentlyTransmitting;
-    }
-
-    interface NanoClock {
-        long nanoTicks();
-    }
-
-    static class SystemNanoClock implements NanoClock {
-
-        @Override
-        public long nanoTicks() {
-            return System.nanoTime();
-        }
     }
 }

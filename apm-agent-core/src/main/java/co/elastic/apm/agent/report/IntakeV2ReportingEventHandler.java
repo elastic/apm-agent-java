@@ -20,13 +20,11 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
-import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -43,13 +41,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     @Nullable
     private Runnable timeoutTask;
     private final AtomicLong processed = new AtomicLong();
-
-    public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
-                                         PayloadSerializer payloadSerializer, ApmServerClient apmServerClient, NanoClock clock) {
-        super(reporterConfiguration, payloadSerializer, apmServerClient, clock);
-        this.processorEventHandler = processorEventHandler;
-        this.timeoutTimer = ExecutorUtils.createSingleThreadSchedulingDaemonPool("request-timeout-timer");
-    }
+    private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
 
     public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
                                          PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
@@ -203,7 +195,12 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
         @Override
         public void run() {
-            reporter.scheduleWakeupEvent();
+            try {
+                reporter.scheduleWakeupEvent();
+            } catch (Exception e) {
+                // should never happen in practice as we're not expecting this method to throw any exception
+                logger.warn(e.getMessage(), e);
+            }
         }
     }
 }

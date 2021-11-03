@@ -68,7 +68,7 @@ public interface Reporter extends Closeable {
     boolean flush(long timeout, TimeUnit unit);
 
     /**
-     * Same as {@code hardFlush(-1, NANOSECONDS)}
+     * Same as {@link #flush(long, TimeUnit) flush(-1, NANOSECONDS)}
      * @see #flush(long, TimeUnit)
      */
     boolean flush();
