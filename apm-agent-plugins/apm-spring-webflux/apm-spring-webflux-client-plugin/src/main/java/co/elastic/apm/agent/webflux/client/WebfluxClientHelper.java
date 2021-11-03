@@ -21,8 +21,6 @@ package co.elastic.apm.agent.webflux.client;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.reactivestreams.Publisher;
 import org.springframework.http.HttpMethod;
 import reactor.core.CoreSubscriber;

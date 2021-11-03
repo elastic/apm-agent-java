@@ -22,7 +22,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
+
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -105,10 +105,10 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
         }
 
         public static class ExchangeFunctionExchangeAdvice {
-            @AssignTo.Return(index = 0)
+            @Advice.AssignReturned.ToReturned
             @Nullable
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-            public static Object[] onAfter(
+            public static Mono<ClientResponse> onAfter(
                 @Advice.Argument(0) ClientRequest clientRequest,
                 @Advice.Return Mono<ClientResponse> clientResponseMono,
                 @Advice.This Object thiz
@@ -119,10 +119,10 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
                     String monoKey = ObjectUtils.getIdentityHexString(clientResponseMono);
                     AbstractSpan httpSpan = WebfluxClientHelper.createHttpSpan(t, clientRequest.method(), clientRequest.url());
                     WebfluxClientSubscriber.getLogPrefixMap().put(clientRequest.logPrefix(), httpSpan);
-                    return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) clientResponseMono, clientRequest.logPrefix(), tracer,
-                        "ExchangeFunctionsExchange-" + monoKey)};
+                    return (Mono<ClientResponse>)WebfluxClientHelper.wrapSubscriber((Publisher) clientResponseMono, clientRequest.logPrefix(), tracer,
+                        "ExchangeFunctionsExchange-" + monoKey);
                 } else {
-                    return new Object[]{clientResponseMono};
+                    return clientResponseMono;
                 }
             }
         }
@@ -145,10 +145,10 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
         }
 
         public static class DefaultClientResponseBodyAdvice {
-            @AssignTo.Return(index = 0)
+            @Advice.AssignReturned.ToReturned
             @Nullable
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-            public static Object[] onAfter(
+            public static Object onAfter(
                 @Advice.Return Object result,
                 @Advice.FieldValue("logPrefix") String logPrefix
             ) {
@@ -156,10 +156,10 @@ public abstract class WebfluxClientInstrumentation extends TracerAwareInstrument
                 Span httpSpan = (Span) WebfluxClientSubscriber.getLogPrefixMap().get(logPrefix);
                 if (httpSpan != null && result instanceof Publisher) {
                     String fluxKey = ObjectUtils.getIdentityHexString(result);
-                    return new Object[]{WebfluxClientHelper.wrapSubscriber((Publisher) result, logPrefix, tracer,
-                        "DefaultClientResponseBodyLift-" + fluxKey)};
+                    return WebfluxClientHelper.wrapSubscriber((Publisher) result, logPrefix, tracer,
+                        "DefaultClientResponseBodyLift-" + fluxKey);
                 } else {
-                    return new Object[]{result};
+                    return result;
                 }
             }
         }
