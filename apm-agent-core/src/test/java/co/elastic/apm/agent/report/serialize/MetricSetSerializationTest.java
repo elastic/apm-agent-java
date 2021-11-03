@@ -27,8 +27,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -185,11 +188,26 @@ class MetricSetSerializationTest {
         assertThat(serviceName.asText()).isEqualTo("bar");
     }
 
+    @Test
+    void testServiceNameOverride() throws Exception {
+        registry.updateTimer("foo", Labels.Mutable.of(), 1);
+
+        JsonNode jsonNode = reportAsJson(singletonList("bar"));
+        assertThat(jsonNode).isNotNull();
+        JsonNode serviceName = jsonNode.get("metricset").get("service").get("name");
+        assertThat(serviceName.asText()).isEqualTo("bar");
+    }
+
     @Nullable
     private JsonNode reportAsJson() throws Exception {
+        return  reportAsJson(emptyList());
+    }
+
+    @Nullable
+    private JsonNode reportAsJson(List<String> serviceNames) throws Exception {
         final CompletableFuture<JsonWriter> jwFuture = new CompletableFuture<>();
         registry.flipPhaseAndReport(
-            metricSets -> jwFuture.complete(metricRegistrySerializer.serialize(metricSets.values().iterator().next()))
+            metricSets -> jwFuture.complete(metricRegistrySerializer.serialize(metricSets.values().iterator().next(), serviceNames))
         );
         JsonNode json = null;
         JsonWriter jw = jwFuture.getNow(null);
