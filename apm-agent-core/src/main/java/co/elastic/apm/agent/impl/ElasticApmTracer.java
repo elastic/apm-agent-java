@@ -330,7 +330,7 @@ public class ElasticApmTracer implements Tracer {
             Transaction currentTransaction = currentTransaction();
             if (currentTransaction != null) {
                 if (currentTransaction.getNameForSerialization().length() > 0) {
-                    error.setTransactionName(currentTransaction.getNameAsString());
+                    error.setTransactionName(currentTransaction.getNameForSerialization());
                 }
                 error.setTransactionType(currentTransaction.getType());
                 error.setTransactionSampled(currentTransaction.isSampled());

@@ -241,8 +241,7 @@ public class ErrorCapture implements Recyclable {
         /**
          * The related TransactionInfo name
          */
-        @Nullable
-        private String name;
+        private StringBuilder name = new StringBuilder();
         /**
          * The related TransactionInfo type
          */
@@ -252,7 +251,7 @@ public class ErrorCapture implements Recyclable {
         @Override
         public void resetState() {
             isSampled = false;
-            name = null;
+            name.setLength(0);
             type = null;
         }
 
@@ -260,8 +259,7 @@ public class ErrorCapture implements Recyclable {
             return isSampled;
         }
 
-        @Nullable
-        public String getName() {
+        public StringBuilder getName() {
             return name;
         }
 
@@ -279,8 +277,9 @@ public class ErrorCapture implements Recyclable {
         transactionInfo.isSampled = transactionSampled;
     }
 
-    public void setTransactionName(@Nullable String name) {
-        transactionInfo.name = name;
+    public void setTransactionName(@Nullable StringBuilder name) {
+        transactionInfo.name.setLength(0);
+        transactionInfo.name.append(name);
     }
 
     public void setTransactionType(@Nullable String type) {

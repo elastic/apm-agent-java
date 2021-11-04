@@ -497,7 +497,7 @@ class ElasticApmTracerTest {
 
         assertThat(reporter.getErrors()).hasSize(1);
         ErrorCapture error = reporter.getFirstError();
-        assertThat(error.getTransactionInfo().getName()).isEqualTo("My Transaction");
+        assertThat(error.getTransactionInfo().getName().toString()).isEqualTo("My Transaction");
     }
 
 }
