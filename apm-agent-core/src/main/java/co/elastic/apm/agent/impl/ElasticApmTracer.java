@@ -733,9 +733,8 @@ public class ElasticApmTracer implements Tracer {
 
     public List<String> getServiceNameOverrides() {
         List<String> serviceNames = new ArrayList<>(serviceNameByClassLoader.approximateSize());
-        Iterator<Map.Entry<ClassLoader, String>> it = serviceNameByClassLoader.iterator();
-        while (it.hasNext()) {
-            serviceNames.add(it.next().getValue());
+        for (Map.Entry<ClassLoader, String> entry : serviceNameByClassLoader) {
+            serviceNames.add(entry.getValue());
         }
         return serviceNames;
     }
