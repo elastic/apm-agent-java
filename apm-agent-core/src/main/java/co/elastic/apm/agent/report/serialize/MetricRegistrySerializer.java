@@ -51,7 +51,7 @@ public class MetricRegistrySerializer {
     public JsonWriter serialize(MetricSet metricSet, List<String> serviceNames) {
         JsonWriter jw = dslJson.newWriter(maxSerializedSize);
         boolean hasSamples = false;
-        if (serviceNames.isEmpty() || metricSet.getLabels().getServiceName() == null) {
+        if (serviceNames.isEmpty() || metricSet.getLabels().getServiceName() != null) {
             hasSamples = serialize(metricSet, null, jw);
         } else {
             hasSamples = serialize(metricSet, serviceNames.get(0), jw);
