@@ -338,6 +338,9 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeErrorTransactionInfo(ErrorCapture.TransactionInfo errorTransactionInfo) {
         writeFieldName("transaction");
         jw.writeByte(JsonWriter.OBJECT_START);
+        if (errorTransactionInfo.getName() != null) {
+            writeField("name", errorTransactionInfo.getName());
+        }
         if (errorTransactionInfo.getType() != null) {
             writeField("type", errorTransactionInfo.getType());
         }

@@ -239,6 +239,11 @@ public class ErrorCapture implements Recyclable {
          */
         private boolean isSampled;
         /**
+         * The related TransactionInfo name
+         */
+        @Nullable
+        private String name;
+        /**
          * The related TransactionInfo type
          */
         @Nullable
@@ -247,11 +252,17 @@ public class ErrorCapture implements Recyclable {
         @Override
         public void resetState() {
             isSampled = false;
+            name = null;
             type = null;
         }
 
         public boolean isSampled() {
             return isSampled;
+        }
+
+        @Nullable
+        public String getName() {
+            return name;
         }
 
         @Nullable
@@ -266,6 +277,10 @@ public class ErrorCapture implements Recyclable {
 
     public void setTransactionSampled(boolean transactionSampled) {
         transactionInfo.isSampled = transactionSampled;
+    }
+
+    public void setTransactionName(@Nullable String name) {
+        transactionInfo.name = name;
     }
 
     public void setTransactionType(@Nullable String type) {
