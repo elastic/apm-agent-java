@@ -37,7 +37,7 @@ class MetricRegistryReporterTest {
         try {
             MockReporter reporter = new MockReporter();
             tracer = new ElasticApmTracerBuilder()
-                .configurationRegistry(SpyConfiguration.createSpyConfig(new PropertyFileConfigurationSource("test.elasticapm.with-service-name.properties")))
+                .configurationRegistry(SpyConfiguration.createSpyConfig(SimpleSource.forTest("service_name", "foo")))
                 .reporter(reporter)
                 .buildAndStart();
             tracer.overrideServiceNameForClassLoader(MetricRegistryReporterTest.class.getClassLoader(), "MetricRegistryReporterTest");
