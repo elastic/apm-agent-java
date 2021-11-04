@@ -26,6 +26,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.stagemonitor.configuration.source.SimpleSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
