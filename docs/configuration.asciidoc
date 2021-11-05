@@ -2622,7 +2622,6 @@ While this is very helpful to find the exact place in your code that causes the 
 When setting this option to value `0ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 
 To disable stack trace collection for spans completely, set the value to `-1ms`.
-This option works together with `span_frames_min_duration`.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -3947,7 +3946,6 @@ The default unit for this option is `ms`.
 # When setting this option to value `0ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 # 
 # To disable stack trace collection for spans completely, set the value to `-1ms`.
-# This option works together with `span_frames_min_duration`.
 #
 # This setting can be changed at runtime
 # Type: TimeDuration
