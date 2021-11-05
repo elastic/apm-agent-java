@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MetricRegistryReporterTest {
 
     @Test
-    void test() throws Exception {
+    void testReportedMetricsUseDefaultServiceNameIfServiceNameIsExplicitlySet() throws Exception {
         ElasticApmTracer tracer = null;
         try {
             MockReporter reporter = new MockReporter();
