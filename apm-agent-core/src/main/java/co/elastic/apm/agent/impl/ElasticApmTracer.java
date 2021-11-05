@@ -401,12 +401,15 @@ public class ElasticApmTracer implements Tracer {
         }
         // makes sure that parents are also non-discardable
         span.setNonDiscardable();
-        long spanFramesMinDurationMs = stacktraceConfiguration.getSpanStackTraceMinDurationMs();
-        if (spanFramesMinDurationMs >= 0 && span.isSampled() && span.getStackFrames() == null) {
-            if (spanFramesMinDurationMs == 0 || span.getDurationMs() >= spanFramesMinDurationMs) {
+        long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
+        long spanStackTraceMinDurationMs = stacktraceConfiguration.getSpanStackTraceMinDurationMs();
+
+        if (spanFramesMinDurationMs != 0 && spanStackTraceMinDurationMs >= 0 && span.isSampled() && span.getStackFrames() == null) {
+            if (span.getDurationMs() >= spanFramesMinDurationMs && (spanStackTraceMinDurationMs == 0 || span.getDurationMs() >= spanStackTraceMinDurationMs)) {
                 span.withStacktrace(new Throwable());
             }
         }
+
         reporter.report(span);
     }
 

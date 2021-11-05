@@ -64,9 +64,25 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(50);
 
+    private final ConfigurationOption<TimeDuration> spanFramesMinDurationMs = TimeDurationValueConverter.durationOption("ms")
+        .key("span_frames_min_duration")
+        .aliasKeys("span_frames_min_duration_ms")
+        .tags("internal", "performance")
+        .configurationCategory(STACKTRACE_CATEGORY)
+        .description("While this is very helpful to find the exact place in your code that causes the span, " +
+            "collecting this stack trace does have some overhead. " +
+            "\n" +
+            "When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. " +
+            "Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans " +
+            "with durations equal to or longer than the given value, e.g. 5 milliseconds.\n" +
+            "\n" +
+            "To disable stack trace collection for spans completely, set the value to `0ms`.")
+        .dynamic(true)
+        .buildWithDefault(TimeDuration.of("5ms"));
+
     private final ConfigurationOption<TimeDuration> spanStackTraceMinDurationMs = TimeDurationValueConverter.durationOption("ms")
         .key("span_stack_trace_min_duration")
-        .aliasKeys("span_frames_min_duration", "span_frames_min_duration_ms")
+        .aliasKeys("span_stack_trace_min_duration_ms")
         .tags("performance")
         .configurationCategory(STACKTRACE_CATEGORY)
         .description("While this is very helpful to find the exact place in your code that causes the span, " +
@@ -76,7 +92,9 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
             "Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans " +
             "with durations equal to or longer than the given value, e.g. 5 milliseconds.\n" +
             "\n" +
-            "To disable stack trace collection for spans completely, set the value to `-1ms`.")
+            "To disable stack trace collection for spans completely, set the value to `-1ms`." +
+            "\n" +
+            "This option works together with `span_frames_min_duration`.")
         .dynamic(true)
         .buildWithDefault(TimeDuration.of("5ms"));
 
@@ -86,6 +104,10 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
 
     public int getStackTraceLimit() {
         return stackTraceLimit.get();
+    }
+
+    public long getSpanFramesMinDurationMs() {
+        return spanFramesMinDurationMs.getValue().getMillis();
     }
 
     public long getSpanStackTraceMinDurationMs() {
