@@ -79,7 +79,9 @@ public class AbstractIntakeApiHandler {
     }
 
     protected boolean shouldEndRequest() {
-        assert countingOs != null;
+        if (countingOs == null) {
+            return false;
+        }
         final long written = countingOs.getCount() + payloadSerializer.getBufferSize();
         final boolean endRequest = written >= reporterConfiguration.getApiRequestSize();
         if (endRequest && logger.isDebugEnabled()) {

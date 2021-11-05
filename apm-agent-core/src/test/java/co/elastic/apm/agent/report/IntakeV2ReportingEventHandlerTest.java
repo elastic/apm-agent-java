@@ -262,7 +262,7 @@ class IntakeV2ReportingEventHandlerTest {
         return Stream.of(mockApmServer1, mockApmServer2)
             .flatMap(apmServer -> apmServer.findAll(postRequestedFor(urlEqualTo(INTAKE_V2_URL))).stream())
             .findFirst()
-            .map(request -> new BufferedReader(new InputStreamReader(new InflaterInputStream(new ByteArrayInputStream(request.getBody()))))
+            .map(request -> new BufferedReader(new InputStreamReader(new ByteArrayInputStream(request.getBody())))
                 .lines()
                 .map(IntakeV2ReportingEventHandlerTest::getReadTree)
                 .collect(Collectors.toList()))
