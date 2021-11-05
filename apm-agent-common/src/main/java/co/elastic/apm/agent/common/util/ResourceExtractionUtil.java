@@ -18,17 +18,29 @@
  */
 package co.elastic.apm.agent.common.util;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.nio.file.attribute.UserPrincipal;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.EnumSet;
+
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
+import static java.nio.file.StandardOpenOption.READ;
+import static java.nio.file.StandardOpenOption.WRITE;
+import static java.nio.file.attribute.PosixFilePermission.OWNER_READ;
+import static java.nio.file.attribute.PosixFilePermission.OWNER_WRITE;
 
 public class ResourceExtractionUtil {
 
@@ -36,64 +48,80 @@ public class ResourceExtractionUtil {
      * Extracts a classpath resource to {@code ${System.getProperty("java.io.tmpdir")}/$prefix-$hash.$suffix}.
      * If the file has already been extracted it will not be extracted again.
      *
-     * @param resource       The classpath resource to extract.
-     * @param prefix         The prefix of the extracted file.
-     * @param suffix         The suffix of the extracted file.
+     * @param resource The classpath resource to extract.
+     * @param prefix   The prefix of the extracted file.
+     * @param suffix   The suffix of the extracted file.
      * @return the extracted file.
      */
-    public static synchronized File extractResourceToTempDirectory(String resource, String prefix, String suffix) {
-        return extractResourceToDirectory(resource, prefix, suffix, System.getProperty("java.io.tmpdir"));
+    public static synchronized Path extractResourceToTempDirectory(String resource, String prefix, String suffix) {
+        return extractResourceToDirectory(resource, prefix, suffix, Paths.get(System.getProperty("java.io.tmpdir")));
     }
 
     /**
      * Extracts a classpath resource to {@code $directory/$prefix-$userHash-$hash.$suffix}.
      * If the file has already been extracted it will not be extracted again.
      *
-     * @param resource       The classpath resource to extract.
-     * @param prefix         The prefix of the extracted file.
-     * @param suffix         The suffix of the extracted file.
-     * @param directory      The directory in which the file is to be created, or null if the default temporary-file directory is to be used.
+     * @param resource  The classpath resource to extract.
+     * @param prefix    The prefix of the extracted file.
+     * @param suffix    The suffix of the extracted file.
+     * @param directory The directory in which the file is to be created, or null if the default temporary-file directory is to be used.
      * @return the extracted file.
      */
     /*
      * Why it's synchronized : if the same JVM try to lock file, we got an java.nio.channels.OverlappingFileLockException.
      * So we need to block until the file is totally written.
      */
-    public static synchronized File extractResourceToDirectory(String resource, String prefix, String suffix, String directory) {
+    public static synchronized Path extractResourceToDirectory(String resource, String prefix, String suffix, Path directory) {
         try (InputStream resourceStream = ResourceExtractionUtil.class.getResourceAsStream("/" + resource)) {
             if (resourceStream == null) {
                 throw new IllegalStateException(resource + " not found");
             }
-            String userHash = "";
-            if (System.getProperties().contains("user.name")) {
-                // we have to include current user name as multiple copies of the same agent could be attached
-                // to multiple JVMs, each running under a different user. Also, we have to make it path-friendly.
-                userHash = md5Hash(System.getProperty("user.name"));
-                userHash += "-";
-            }
+            UserPrincipal currentUserPrincipal = getCurrentUserPrincipal();
+            // we have to include current user name as multiple copies of the same agent could be attached
+            // to multiple JVMs, each running under a different user. Hashing makes the name path-friendly.
+            String userHash = md5Hash(currentUserPrincipal.getName()) + "-";
+            // to guard against re-using previous versions
             String resourceHash = md5Hash(ResourceExtractionUtil.class.getResourceAsStream("/" + resource));
 
-            File tempFile = new File(directory, prefix + "-" + userHash + resourceHash + suffix);
-            if (!tempFile.exists()) {
-                try (FileOutputStream out = new FileOutputStream(tempFile)) {
-                    FileChannel channel = out.getChannel();
-                    // If multiple JVM start on same compute, they can write in same file
-                    // and this file will be corrupted.
-                    try (FileLock ignored = channel.lock()) {
-                        if (tempFile.length() == 0) {
-                            byte[] buffer = new byte[1024];
-                            for (int length; (length = resourceStream.read(buffer)) != -1; ) {
-                                out.write(buffer, 0, length);
-                            }
+            Path tempFile = directory.resolve(prefix + "-" + userHash + resourceHash + suffix);
+            try {
+                FileAttribute<?>[] attr;
+                if (tempFile.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+                    attr = new FileAttribute[]{PosixFilePermissions.asFileAttribute(EnumSet.of(OWNER_WRITE, OWNER_READ))};
+                } else {
+                    attr = new FileAttribute[0];
+                }
+                try (FileChannel channel = FileChannel.open(tempFile, EnumSet.of(CREATE_NEW, WRITE), attr)) {
+                    // make other JVM instances wait until fully written
+                    try (FileLock lock = channel.lock()) {
+                        channel.transferFrom(Channels.newChannel(resourceStream), 0, Long.MAX_VALUE);
+                    }
+                }
+            } catch (FileAlreadyExistsException e) {
+                try (FileChannel channel = FileChannel.open(tempFile, READ, WRITE)) {
+                    // wait until other JVM instances have fully written the file
+                    // this comes at the expense that only one JVM can read the file
+                    try (FileLock lock = channel.lock()) {
+                        if (!md5Hash(Files.newInputStream(tempFile)).equals(resourceHash)) {
+                            throw new IllegalStateException("Invalid MD5 checksum of " + tempFile + ". Please delete this file.");
+                        } else if (!Files.getOwner(tempFile).equals(currentUserPrincipal)) {
+                            throw new IllegalStateException("File " + tempFile + " is not owned by '" + currentUserPrincipal.getName() + "'. Please delete this file.");
                         }
                     }
                 }
-            } else if (!md5Hash(new FileInputStream(tempFile)).equals(resourceHash)) {
-                throw new IllegalStateException("Invalid MD5 checksum of " + tempFile + ". Please delete this file.");
             }
-            return tempFile;
+            return tempFile.toAbsolutePath();
         } catch (NoSuchAlgorithmException | IOException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    private static UserPrincipal getCurrentUserPrincipal() throws IOException {
+        Path whoami = Files.createTempFile("whoami", ".tmp");
+        try {
+            return Files.getOwner(whoami);
+        } finally {
+            Files.delete(whoami);
         }
     }
 
