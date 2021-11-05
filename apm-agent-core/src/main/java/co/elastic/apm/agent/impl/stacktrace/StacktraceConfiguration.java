@@ -67,7 +67,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<TimeDuration> spanFramesMinDurationMs = TimeDurationValueConverter.durationOption("ms")
         .key("span_frames_min_duration")
         .aliasKeys("span_frames_min_duration_ms")
-        .tags("internal", "performance")
+        .tags("internal")
         .configurationCategory(STACKTRACE_CATEGORY)
         .description("While this is very helpful to find the exact place in your code that causes the span, " +
             "collecting this stack trace does have some overhead. " +
@@ -92,9 +92,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
             "Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans " +
             "with durations equal to or longer than the given value, e.g. 5 milliseconds.\n" +
             "\n" +
-            "To disable stack trace collection for spans completely, set the value to `-1ms`." +
-            "\n" +
-            "This option works together with `span_frames_min_duration`.")
+            "To disable stack trace collection for spans completely, set the value to `-1ms`.")
         .dynamic(true)
         .buildWithDefault(TimeDuration.of("5ms"));
 
@@ -106,11 +104,15 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         return stackTraceLimit.get();
     }
 
-    public long getSpanFramesMinDurationMs() {
-        return spanFramesMinDurationMs.getValue().getMillis();
-    }
-
     public long getSpanStackTraceMinDurationMs() {
+        if (!spanFramesMinDurationMs.isDefault()) {
+            if (spanFramesMinDurationMs.getValue().getMillis() == 0) {
+                return -1;
+            }
+            if (spanFramesMinDurationMs.getValue().getMillis() == -1) {
+                return 0;
+            }
+        }
         return spanStackTraceMinDurationMs.getValue().getMillis();
     }
 }
