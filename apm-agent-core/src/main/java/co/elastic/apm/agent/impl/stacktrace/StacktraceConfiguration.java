@@ -82,7 +82,6 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<TimeDuration> spanStackTraceMinDurationMs = TimeDurationValueConverter.durationOption("ms")
         .key("span_stack_trace_min_duration")
-        .aliasKeys("span_stack_trace_min_duration_ms")
         .tags("performance")
         .configurationCategory(STACKTRACE_CATEGORY)
         .description("While this is very helpful to find the exact place in your code that causes the span, " +
