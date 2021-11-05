@@ -105,12 +105,14 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
     }
 
     public long getSpanStackTraceMinDurationMs() {
-        if (!spanFramesMinDurationMs.isDefault()) {
+        if (spanStackTraceMinDurationMs.isDefault()) {
             long spanFramesMinDurationMsValue = spanFramesMinDurationMs.getValue().getMillis();
             if (spanFramesMinDurationMsValue == 0) {
                 return -1;
-            } else if (spanFramesMinDurationMsValue == -1) {
+            } else if (spanFramesMinDurationMsValue < 0) {
                 return 0;
+            } else {
+                return spanFramesMinDurationMsValue;
             }
         }
         return spanStackTraceMinDurationMs.getValue().getMillis();
