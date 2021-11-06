@@ -1,0 +1,2 @@
+co.elastic.apm.agent.mongoclient4.ConnectionCommandInstrumentation
+co.elastic.apm.agent.mongoclient4.ConnectionInstrumentation

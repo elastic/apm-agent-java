@@ -47,7 +47,7 @@
         <module>apm-scala-concurrent-plugin</module>
         <module>apm-error-logging-plugin</module>
         <module>apm-jmx-plugin</module>
-        <module>apm-mongoclient-plugin</module>
+        <module>apm-mongoclient</module>
         <module>apm-process-plugin</module>
         <module>apm-kafka-plugin</module>
         <module>apm-profiling-plugin</module>

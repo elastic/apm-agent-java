@@ -203,7 +203,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-mongoclient-plugin</artifactId>
+            <artifactId>apm-mongoclient3-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-mongoclient4-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
