@@ -36,6 +36,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.EnumSet;
 
+import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
@@ -93,15 +94,15 @@ public class ResourceExtractionUtil {
                 }
                 try (FileChannel channel = FileChannel.open(tempFile, EnumSet.of(CREATE_NEW, WRITE), attr)) {
                     // make other JVM instances wait until fully written
-                    try (FileLock lock = channel.lock()) {
+                    try (FileLock writeLock = channel.lock()) {
                         channel.transferFrom(Channels.newChannel(resourceStream), 0, Long.MAX_VALUE);
                     }
                 }
             } catch (FileAlreadyExistsException e) {
-                try (FileChannel channel = FileChannel.open(tempFile, READ, WRITE)) {
+                try (FileChannel channel = FileChannel.open(tempFile, READ, NOFOLLOW_LINKS)) {
                     // wait until other JVM instances have fully written the file
-                    // this comes at the expense that only one JVM can read the file
-                    try (FileLock lock = channel.lock()) {
+                    // multiple JVMs can read the file at the same time
+                    try (FileLock readLock = channel.lock(0, Long.MAX_VALUE, true)) {
                         if (!md5Hash(Files.newInputStream(tempFile)).equals(resourceHash)) {
                             throw new IllegalStateException("Invalid MD5 checksum of " + tempFile + ". Please delete this file.");
                         } else if (!Files.getOwner(tempFile).equals(currentUserPrincipal)) {
