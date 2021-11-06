@@ -43,8 +43,9 @@ by the agent may be different. This was done in order to improve the integration
 * Added support to capture `context.message.routing-key` in rabbitmq, spring amqp instrumentations - {pull}1767[#1767]
 * Breakdown metrics are now tracked per service (when using APM Server 8.0) - {pull}2208[#2208]
 * Add support for Spring AMQP batch API - {pull}1716[#1716]
-* Added <<config-span-stack-trace-min-duration,`span_stack_trace_min_duration`>> option. This options sets the minimum duration of a span
-for which stack frames will be captured. - {pull}2220[#2220]
+* Added <<config-span-stack-trace-min-duration,`span_stack_trace_min_duration`>> option.
+ This replaces the now deprecated `span_frames_min_duration` option.
+ The difference is that the new option has more intuitive semantics for negative values (never collect stack trace) and zero (always collect stack trace). - {pull}2220[#2220]
 
 [float]
 ===== Performance improvements

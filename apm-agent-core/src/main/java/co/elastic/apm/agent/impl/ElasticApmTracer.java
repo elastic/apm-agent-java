@@ -403,7 +403,7 @@ public class ElasticApmTracer implements Tracer {
         span.setNonDiscardable();
 
         long spanStackTraceMinDurationMs = stacktraceConfiguration.getSpanStackTraceMinDurationMs();
-        if (spanStackTraceMinDurationMs >=0 && span.isSampled() && span.getStackFrames() == null) {
+        if (spanStackTraceMinDurationMs >= 0 && span.isSampled() && span.getStackFrames() == null) {
             if (span.getDurationMs() >= spanStackTraceMinDurationMs) {
                 span.withStacktrace(new Throwable());
             }

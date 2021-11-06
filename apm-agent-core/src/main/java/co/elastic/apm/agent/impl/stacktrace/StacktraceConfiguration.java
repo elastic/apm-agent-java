@@ -67,7 +67,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<TimeDuration> spanFramesMinDurationMs = TimeDurationValueConverter.durationOption("ms")
         .key("span_frames_min_duration")
         .aliasKeys("span_frames_min_duration_ms")
-        .tags("internal")
+        .tags("internal", "deprecated")
         .configurationCategory(STACKTRACE_CATEGORY)
         .description("While this is very helpful to find the exact place in your code that causes the span, " +
             "collecting this stack trace does have some overhead. " +
