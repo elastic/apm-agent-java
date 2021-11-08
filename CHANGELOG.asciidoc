@@ -100,6 +100,7 @@ to `mssql` to align with other agents.
 * Add `-download-agent-version` to the agent <<setup-attach-cli-usage-options, attach CLI tool options>>, allowing the
 user to configure an arbitrary agent version that will be downloaded from maven and attached - {pull}1959[#1959]
 * Add extra check to detect improper agent setup - {pull}2076[#2076]
+* In redis tests - embedded RedisServer is replaced by testcontainers - {pull}2221[#2221]
 
 [float]
 ===== Performance improvements
