@@ -43,6 +43,8 @@ by the agent may be different. This was done in order to improve the integration
 * Added support to capture `context.message.routing-key` in rabbitmq, spring amqp instrumentations - {pull}1767[#1767]
 * Breakdown metrics are now tracked per service (when using APM Server 8.0) - {pull}2208[#2208]
 * Add support for Spring AMQP batch API - {pull}1716[#1716]
+* Add the (current) transaction name to the error (when using APM Server 8.0) - {pull}2235[#2235]
+* The JVM/JMX metrics are reported for each service name individually (when using APM Server 8.0) - {pull}2233[#2233]
 * Add the instance name to `context.destination.service.resource` to JDBC spans, if use_jdbc_service_resource_auto_inference is set to true - {pull}1928[#1928]
 
 [float]
@@ -100,6 +102,7 @@ to `mssql` to align with other agents.
 * Add `-download-agent-version` to the agent <<setup-attach-cli-usage-options, attach CLI tool options>>, allowing the
 user to configure an arbitrary agent version that will be downloaded from maven and attached - {pull}1959[#1959]
 * Add extra check to detect improper agent setup - {pull}2076[#2076]
+* In redis tests - embedded RedisServer is replaced by testcontainers - {pull}2221[#2221]
 
 [float]
 ===== Performance improvements
