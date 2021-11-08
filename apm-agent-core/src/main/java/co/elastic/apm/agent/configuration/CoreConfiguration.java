@@ -814,7 +814,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         }
     }
 
-    public long geMetadataDiscoveryTimeoutMs() {
+    public long getMetadataDiscoveryTimeoutMs() {
         return metadataTimeoutMs.get().getMillis();
     }
 
