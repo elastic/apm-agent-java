@@ -20,8 +20,7 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.TransactionUtils;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.metadata.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
@@ -42,7 +41,7 @@ class TransactionTest {
         jsonSerializer = new DslJsonSerializer(
             mock(StacktraceConfiguration.class),
             mock(ApmServerClient.class),
-            MetaData.create(SpyConfiguration.createSpyConfig(), null)
+            MetaDataMock.create()
         );
     }
 
