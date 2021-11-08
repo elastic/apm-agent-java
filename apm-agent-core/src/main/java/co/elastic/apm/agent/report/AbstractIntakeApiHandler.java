@@ -113,7 +113,7 @@ public class AbstractIntakeApiHandler {
                 connection.connect();
                 countingOs = new CountingOutputStream(connection.getOutputStream());
                 if (useCompression) {
-                    os = new DeflaterOutputStream(countingOs, deflater);
+                    os = new DeflaterOutputStream(countingOs, deflater, true);
                 } else {
                     os = countingOs;
                 }
