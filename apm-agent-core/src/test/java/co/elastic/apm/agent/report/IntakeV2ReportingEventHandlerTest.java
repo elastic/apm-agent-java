@@ -55,7 +55,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.zip.InflaterInputStream;
 
 import static co.elastic.apm.agent.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
