@@ -44,12 +44,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.InflaterInputStream;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -92,7 +92,7 @@ class ApmServerReporterIntegrationTest {
         handler = new BlockingHandler(exchange -> {
             if (statusCode < 300 && exchange.getRequestPath().equals("/intake/v2/events")) {
                 receivedIntakeApiCalls.incrementAndGet();
-                InflaterInputStream in = new InflaterInputStream(exchange.getInputStream());
+                InputStream in = exchange.getInputStream();
                 try (in) {
                     for (int n = 0; -1 != n; n = in.read()) {
                         if (n == '\n') {
