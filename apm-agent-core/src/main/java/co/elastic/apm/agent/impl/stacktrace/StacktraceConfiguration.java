@@ -89,9 +89,6 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
     }
 
     public long getSpanFramesMinDurationMs() {
-        if (spanFramesMinDurationMs.isDefault()) {
-
-        }
         return spanFramesMinDurationMs.getValue().getMillis();
     }
 }
