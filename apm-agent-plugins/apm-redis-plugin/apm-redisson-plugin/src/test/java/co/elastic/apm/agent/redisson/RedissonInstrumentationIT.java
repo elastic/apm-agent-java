@@ -39,11 +39,11 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class RedissonInstrumentationTest extends AbstractRedisInstrumentationTest {
+class RedissonInstrumentationIT extends AbstractRedisInstrumentationTest {
 
     protected RedissonClient redisson;
 
-    public RedissonInstrumentationTest() {
+    public RedissonInstrumentationIT() {
         super("127.0.0.1");
     }
 

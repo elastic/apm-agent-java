@@ -27,6 +27,7 @@ import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import com.dslplatform.json.JsonWriter;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -67,8 +68,9 @@ public class MetricRegistryReporter extends AbstractLifecycleListener implements
     @Override
     public void report(Map<? extends Labels, MetricSet> metricSets) {
         if (tracer.isRunning()) {
+            List<String> serviceNames = tracer.getServiceNameOverrides();
             for (MetricSet metricSet : metricSets.values()) {
-                JsonWriter jw = serializer.serialize(metricSet);
+                JsonWriter jw = serializer.serialize(metricSet, serviceNames);
                 if (jw != null) {
                     reporter.report(jw);
                 }
