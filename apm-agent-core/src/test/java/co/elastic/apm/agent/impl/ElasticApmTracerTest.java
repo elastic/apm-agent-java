@@ -268,6 +268,9 @@ class ElasticApmTracerTest {
             .describedAs("error trace context [%s] should be a child of span trace context [%s]", error.getTraceContext(), span.getTraceContext())
             .isTrue();
         assertThat(error.getTransactionInfo().isSampled()).isEqualTo(sampled);
+        if (!transaction.getNameAsString().isEmpty()) {
+            assertThat(error.getTransactionInfo().getName()).isEqualTo(transaction.getNameAsString());
+        }
         assertThat(error.getTransactionInfo().getType()).isEqualTo(transaction.getType());
         return error;
     }
@@ -483,6 +486,19 @@ class ElasticApmTracerTest {
         assertThat(errorId).isNotNull();
         ErrorCapture error = reporter.getFirstError();
         assertThat(error.getTraceContext().getId().toString()).isEqualTo(errorId);
+    }
+
+    @Test
+    void testCaptureExceptionWithTransactionName() {
+        Transaction transaction = startTestRootTransaction().withName("My Transaction");
+        try (Scope scope = transaction.activateInScope()) {
+            transaction.captureException(new Exception("test"));
+            transaction.end();
+        }
+
+        assertThat(reporter.getErrors()).hasSize(1);
+        ErrorCapture error = reporter.getFirstError();
+        assertThat(error.getTransactionInfo().getName().toString()).isEqualTo("My Transaction");
     }
 
 }

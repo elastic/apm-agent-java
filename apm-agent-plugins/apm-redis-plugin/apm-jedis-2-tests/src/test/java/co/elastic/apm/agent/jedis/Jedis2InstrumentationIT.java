@@ -18,41 +18,47 @@
  */
 package co.elastic.apm.agent.jedis;
 
-import co.elastic.apm.agent.redis.AbstractRedisInstrumentationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import redis.clients.jedis.Jedis;
+import redis.clients.jedis.BinaryJedis;
+import redis.clients.jedis.JedisShardInfo;
+import redis.clients.jedis.ShardedJedis;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class Jedis1InstrumentationTest extends AbstractRedisInstrumentationTest {
+class Jedis2InstrumentationIT extends Jedis1InstrumentationIT {
 
-    protected Jedis jedis;
+    private ShardedJedis shardedJedis;
+    private BinaryJedis binaryJedis;
 
     @BeforeEach
-    void setUpJedis() {
-        jedis = new Jedis("localhost", redisPort);
+    void setUp() {
+        shardedJedis = new ShardedJedis(List.of(new JedisShardInfo("localhost", redisPort)));
+        binaryJedis = new BinaryJedis("localhost", redisPort);
     }
 
     @AfterEach
-    void tearDownJedis() {
-        try {
-            // this method does not exist in Jedis 1
-            Jedis.class.getMethod("close").invoke(jedis);
-        } catch (NoSuchMethodException e) {
-            // ignore, this version of redis does not support close
-        } catch (ReflectiveOperationException e) {
-            e.printStackTrace();
-        }
+    void tearDown() {
+        shardedJedis.close();
+        binaryJedis.close();
     }
 
     @Test
-    void testJedis() {
-        jedis.set("foo", "bar");
-        assertThat(jedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
+    void testShardedJedis() {
+        shardedJedis.set("foo", "bar");
+        assertThat(shardedJedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
 
         assertTransactionWithRedisSpans("SET", "GET");
     }
 
+    @Test
+    void testBinaryJedis() {
+        binaryJedis.set("foo".getBytes(), "bar".getBytes());
+        assertThat(binaryJedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
+
+        assertTransactionWithRedisSpans("SET", "GET");
+    }
 }
