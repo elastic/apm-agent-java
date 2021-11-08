@@ -54,8 +54,11 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -729,6 +732,14 @@ public class ElasticApmTracer implements Tracer {
 
     public MetricRegistry getMetricRegistry() {
         return metricRegistry;
+    }
+
+    public List<String> getServiceNameOverrides() {
+        List<String> serviceNames = new ArrayList<>(serviceNameByClassLoader.approximateSize());
+        for (Map.Entry<ClassLoader, String> entry : serviceNameByClassLoader) {
+            serviceNames.add(entry.getValue());
+        }
+        return serviceNames;
     }
 
     @Override
