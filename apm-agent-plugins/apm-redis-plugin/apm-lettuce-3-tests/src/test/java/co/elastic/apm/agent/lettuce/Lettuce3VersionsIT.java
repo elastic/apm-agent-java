@@ -33,7 +33,7 @@ public class Lettuce3VersionsIT {
 
     public Lettuce3VersionsIT(List<String> dependencies) throws Exception {
         System.setProperty("io.lettuce.core.kqueue", "false");
-        runner = new TestClassWithDependencyRunner(dependencies, Lettuce3InstrumentationTest.class);
+        runner = new TestClassWithDependencyRunner(dependencies, Lettuce3InstrumentationIT.class);
     }
 
     @Parameterized.Parameters(name= "{0}")
