@@ -80,11 +80,11 @@ public class ResourceExtractionUtil {
             UserPrincipal currentUserPrincipal = getCurrentUserPrincipal();
             // we have to include current user name as multiple copies of the same agent could be attached
             // to multiple JVMs, each running under a different user. Hashing makes the name path-friendly.
-            String userHash = md5Hash(currentUserPrincipal.getName()) + "-";
+            String userHash = hash(currentUserPrincipal.getName());
             // to guard against re-using previous versions
-            String resourceHash = md5Hash(ResourceExtractionUtil.class.getResourceAsStream("/" + resource));
+            String resourceHash = hash(ResourceExtractionUtil.class.getResourceAsStream("/" + resource));
 
-            Path tempFile = directory.resolve(prefix + "-" + userHash + resourceHash + suffix);
+            Path tempFile = directory.resolve(prefix + "-" + userHash.substring(0, 32) + "-" + resourceHash.substring(0, 32) + suffix);
             try {
                 FileAttribute<?>[] attr;
                 if (tempFile.getFileSystem().supportedFileAttributeViews().contains("posix")) {
@@ -103,8 +103,8 @@ public class ResourceExtractionUtil {
                     // wait until other JVM instances have fully written the file
                     // multiple JVMs can read the file at the same time
                     try (FileLock readLock = channel.lock(0, Long.MAX_VALUE, true)) {
-                        if (!md5Hash(Files.newInputStream(tempFile)).equals(resourceHash)) {
-                            throw new IllegalStateException("Invalid MD5 checksum of " + tempFile + ". Please delete this file.");
+                        if (!hash(Files.newInputStream(tempFile)).equals(resourceHash)) {
+                            throw new IllegalStateException("Invalid checksum of " + tempFile + ". Please delete this file.");
                         } else if (!Files.getOwner(tempFile).equals(currentUserPrincipal)) {
                             throw new IllegalStateException("File " + tempFile + " is not owned by '" + currentUserPrincipal.getName() + "'. Please delete this file.");
                         }
@@ -126,18 +126,18 @@ public class ResourceExtractionUtil {
         }
     }
 
-    private static String md5Hash(InputStream resourceAsStream) throws IOException, NoSuchAlgorithmException {
+    private static String hash(InputStream resourceAsStream) throws IOException, NoSuchAlgorithmException {
         try (InputStream is = resourceAsStream) {
-            MessageDigest md = MessageDigest.getInstance("MD5");
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] buffer = new byte[1024];
             DigestInputStream dis = new DigestInputStream(is, md);
             while (dis.read(buffer) != -1) {}
-            return String.format("%032x", new BigInteger(1, md.digest()));
+            return new BigInteger(1, md.digest()).toString(16);
         }
     }
 
-    private static String md5Hash(String s) throws NoSuchAlgorithmException {
-        MessageDigest md = MessageDigest.getInstance("MD5");
+    private static String hash(String s) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
         md.update(s.getBytes());
         return String.format("%032x", new BigInteger(1, md.digest()));
     }
