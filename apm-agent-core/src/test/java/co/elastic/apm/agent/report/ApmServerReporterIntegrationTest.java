@@ -53,7 +53,6 @@ import java.util.zip.InflaterInputStream;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -69,7 +68,6 @@ class ApmServerReporterIntegrationTest {
     private ApmServerReporter reporter;
     private final AtomicInteger receivedEvents = new AtomicInteger();
     private IntakeV2ReportingEventHandler v2handler;
-    private AbstractIntakeApiHandler.NanoClock clock;
 
     @BeforeAll
     static void startServer() {
@@ -116,7 +114,6 @@ class ApmServerReporterIntegrationTest {
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, config.getConfig(CoreConfiguration.class));
         apmServerClient.start();
-        clock = mock(AbstractIntakeApiHandler.NanoClock.class);
         v2handler = new IntakeV2ReportingEventHandler(
                 reporterConfiguration,
                 processorEventHandler,
@@ -125,8 +122,7 @@ class ApmServerReporterIntegrationTest {
                         apmServerClient,
                         MetaDataMock.create(title, service, system, null, Collections.emptyMap())
                 ),
-                apmServerClient,
-                clock);
+                apmServerClient);
         reporter = new ApmServerReporter(false, reporterConfiguration, v2handler);
         reporter.start();
     }
@@ -180,7 +176,6 @@ class ApmServerReporterIntegrationTest {
     @Test
     void testTimeout() {
         doReturn(TimeDuration.of("1ms")).when(reporterConfiguration).getApiRequestTime();
-        doAnswer(invocation -> System.nanoTime()).when(clock).nanoTicks();
         reporter.report(new Transaction(tracer));
         await().untilAsserted(() -> assertThat(reporter.getReported()).isEqualTo(1));
         assertThat(reporter.getDropped()).isEqualTo(0);
