@@ -139,6 +139,6 @@ public class ResourceExtractionUtil {
     private static String hash(String s) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         md.update(s.getBytes());
-        return String.format("%032x", new BigInteger(1, md.digest()));
+        return new BigInteger(1, md.digest()).toString(16);
     }
 }
