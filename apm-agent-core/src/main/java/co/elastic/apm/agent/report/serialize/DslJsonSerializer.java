@@ -77,7 +77,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static co.elastic.apm.agent.util.ObjectUtils.defaultIfNull;
 import static com.dslplatform.json.JsonWriter.ARRAY_END;
 import static com.dslplatform.json.JsonWriter.ARRAY_START;
 import static com.dslplatform.json.JsonWriter.COMMA;
@@ -1059,8 +1058,12 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_END);
     }
 
-    static void serializeLabels(Labels labels, final String serviceName, final StringBuilder replaceBuilder, final JsonWriter jw) {
-        serializeServiceNameAndVersion(defaultIfNull(labels.getServiceName(), serviceName), labels.getServiceVersion(), replaceBuilder, jw);
+    static void serializeLabels(Labels labels, final String serviceName, final String serviceVersion, final StringBuilder replaceBuilder, final JsonWriter jw) {
+        if (labels.getServiceName() != null) {
+            serializeServiceNameAndVersion(labels.getServiceName(), labels.getServiceVersion(), replaceBuilder, jw);
+        } else {
+            serializeServiceNameAndVersion(serviceName, serviceVersion, replaceBuilder, jw);
+        }
         if (!labels.isEmpty()) {
             if (labels.getTransactionName() != null || labels.getTransactionType() != null) {
                 writeFieldName("transaction", jw);

@@ -21,6 +21,7 @@ package co.elastic.apm.agent.report.serialize;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.util.ServiceNameAndVersion;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -205,10 +206,12 @@ class MetricSetSerializationTest {
     void testServiceNameOverrideWithOneService() throws Exception {
         registry.updateTimer("foo", Labels.Mutable.of(), 1);
 
-        JsonNode jsonNode = reportAsJson(singletonList("bar"));
+        JsonNode jsonNode = reportAsJson(singletonList(new ServiceNameAndVersion("bar", "1.0")));
         assertThat(jsonNode).isNotNull();
         JsonNode serviceName = jsonNode.get("metricset").get("service").get("name");
         assertThat(serviceName.asText()).isEqualTo("bar");
+        JsonNode serviceVersion = jsonNode.get("metricset").get("service").get("version");
+        assertThat(serviceVersion.asText()).isEqualTo("1.0");
     }
 
     @Test
@@ -217,22 +220,27 @@ class MetricSetSerializationTest {
 
         final CompletableFuture<JsonWriter> jwFuture = new CompletableFuture<>();
         registry.flipPhaseAndReport(
-            metricSets -> jwFuture.complete(metricRegistrySerializer.serialize(metricSets.values().iterator().next(), List.of("bar1", "bar2")))
+            metricSets -> jwFuture.complete(metricRegistrySerializer.serialize(
+                metricSets.values().iterator().next(),
+                List.of(new ServiceNameAndVersion("bar1", "2.0"), new ServiceNameAndVersion("bar2", null))
+            ))
         );
 
         String[] jsonStrings = jwFuture.getNow(null).toString().split("\n");
         assertThat(jsonStrings.length).isEqualTo(2);
 
         JsonNode jsonNode1 = objectMapper.readTree(jsonStrings[0]);
-        String serviceName1 = jsonNode1.get("metricset").get("service").get("name").asText();
-        assertThat(serviceName1).isEqualTo("bar1");
+        JsonNode service1 = jsonNode1.get("metricset").get("service");
+        assertThat(service1.get("name").asText()).isEqualTo("bar1");
+        assertThat(service1.get("version").asText()).isEqualTo("2.0");
         JsonNode samples1 = jsonNode1.get("metricset").get("samples");
         assertThat(samples1.get("foo.sum.us").get("value").intValue()).isOne();
         assertThat(samples1.get("foo.count").get("value").intValue()).isOne();
 
         JsonNode jsonNode2 = objectMapper.readTree(jsonStrings[1]);
-        String serviceName2 = jsonNode2.get("metricset").get("service").get("name").asText();
-        assertThat(serviceName2).isEqualTo("bar2");
+        JsonNode service2 = jsonNode2.get("metricset").get("service");
+        assertThat(service2.get("name").asText()).isEqualTo("bar2");
+        assertThat(service2.get("version")).isNull();
         JsonNode samples2 = jsonNode2.get("metricset").get("samples");
         assertThat(samples2.get("foo.sum.us").get("value").intValue()).isOne();
         assertThat(samples2.get("foo.count").get("value").intValue()).isOne();
@@ -244,7 +252,7 @@ class MetricSetSerializationTest {
     }
 
     @Nullable
-    private JsonNode reportAsJson(List<String> serviceNames) throws Exception {
+    private JsonNode reportAsJson(List<ServiceNameAndVersion> serviceNames) throws Exception {
         final CompletableFuture<JsonWriter> jwFuture = new CompletableFuture<>();
         registry.flipPhaseAndReport(
             metricSets -> jwFuture.complete(metricRegistrySerializer.serialize(metricSets.values().iterator().next(), serviceNames))

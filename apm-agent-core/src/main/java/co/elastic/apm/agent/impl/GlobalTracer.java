@@ -209,8 +209,8 @@ public class GlobalTracer implements Tracer {
     }
 
     @Override
-    public void overrideServiceVersionForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceVersion) {
-        tracer.overrideServiceVersionForClassLoader(classLoader, serviceVersion);
+    public void overrideServiceNameAndVersionForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName, @Nullable String serviceVersion) {
+        tracer.overrideServiceNameAndVersionForClassLoader(classLoader, serviceName, serviceVersion);
     }
 
     @Override

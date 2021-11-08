@@ -664,10 +664,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return serviceVersion.get();
     }
 
-    public ConfigurationOption<String> getServiceVersionConfig() {
-        return serviceVersion;
-    }
-
     @Nullable
     public String getHostname() {
         return hostname.get();

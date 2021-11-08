@@ -72,7 +72,7 @@ class ElasticApmTracerTest {
     void cleanupAndCheck() {
         reporter.assertRecycledAfterDecrementingReferences();
         objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
-        tracerImpl.resetServiceNameOverrides();
+        tracerImpl.resetServiceNamesAndVersionOverrides();
     }
 
     @Test
@@ -480,11 +480,12 @@ class ElasticApmTracerTest {
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)
             .buildAndStart();
-        tracer.overrideServiceVersionForClassLoader(getClass().getClassLoader(), "overridden");
+        tracer.overrideServiceNameAndVersionForClassLoader(getClass().getClassLoader(), "overridden_name", "overridden_version");
 
         startTestRootTransaction().end();
 
-        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("overridden");
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden_name");
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("overridden_version");
     }
 
     @Test
@@ -494,11 +495,12 @@ class ElasticApmTracerTest {
             .reporter(reporter)
             .configurationRegistry(localConfig)
             .buildAndStart();
-        tracer.overrideServiceVersionForClassLoader(getClass().getClassLoader(), "overridden");
+        tracer.overrideServiceNameAndVersionForClassLoader(getClass().getClassLoader(), "overridden_name", "overridden_version");
 
         startTestRootTransaction().end();
 
-        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isNull();
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden_name");
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("overridden_version");
     }
 
     @Test
