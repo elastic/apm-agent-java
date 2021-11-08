@@ -18,6 +18,6 @@
  */
 package co.elastic.apm.agent.jedis;
 
-class Jedis3InstrumentationTest extends Jedis2InstrumentationTest {
+class Jedis3InstrumentationIT extends Jedis2InstrumentationIT {
 
 }

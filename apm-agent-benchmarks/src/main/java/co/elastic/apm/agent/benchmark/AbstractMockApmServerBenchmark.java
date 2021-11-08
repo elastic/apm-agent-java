@@ -98,7 +98,7 @@ public class AbstractMockApmServerBenchmark extends AbstractBenchmark {
     @TearDown
     public void tearDown() throws ExecutionException, InterruptedException {
         Thread.sleep(1000);
-        tracer.getReporter().flush().get();
+        tracer.getReporter().flush();
         server.stop();
         System.out.println("Reported: " + tracer.getReporter().getReported());
         System.out.println("Dropped: " + tracer.getReporter().getDropped());

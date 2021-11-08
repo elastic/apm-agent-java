@@ -36,7 +36,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTest {
+public class Lettuce5InstrumentationIT extends AbstractRedisInstrumentationTest {
 
     private StatefulRedisConnection<String, String> connection;
 
