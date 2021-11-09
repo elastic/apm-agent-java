@@ -1,14 +1,34 @@
+/*
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package co.elastic.apm.agent.jaxrs;
 
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.core.Application;
 import org.glassfish.jersey.server.ResourceConfig;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.core.Application;
-
-public class JaxRsTransactionNameInstrumentationTest extends AbstractJaxRsTransactionNameInstrumentationTest {
+/**
+ * Test jax-rs instrumentation
+ */
+public class JakartaeeJaxRsTransactionNameInstrumentationTest extends AbstractJaxRsTransactionNameInstrumentationTest {
 
     /**
      * @return configuration for the jersey test server. Includes all resource classes in the co.elastic.apm.agent.jaxrs.resources package.
@@ -28,7 +48,6 @@ public class JaxRsTransactionNameInstrumentationTest extends AbstractJaxRsTransa
             EmptyPathResource.class,
             ResourceWithPathAndWithPathOnInterface.class);
     }
-
 
     public interface SuperResourceInterface {
         @GET
@@ -76,13 +95,13 @@ public class JaxRsTransactionNameInstrumentationTest extends AbstractJaxRsTransa
     public static class MethodDelegationResource {
         @GET
         @Path("methodA")
-        public String methodA(){
+        public String methodA() {
             methodB();
             return "ok";
         }
 
         @POST
-        public void methodB(){
+        public void methodB() {
         }
     }
 
