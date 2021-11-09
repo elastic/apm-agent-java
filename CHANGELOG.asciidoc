@@ -48,6 +48,7 @@ by the agent may be different. This was done in order to improve the integration
 * Added <<config-span-stack-trace-min-duration,`span_stack_trace_min_duration`>> option.
  This replaces the now deprecated `span_frames_min_duration` option.
  The difference is that the new option has more intuitive semantics for negative values (never collect stack trace) and zero (always collect stack trace). - {pull}2220[#2220]
+* Add support to Jakarta EE for JAX-WS - {pull}2247[#2247]
 
 [float]
 ===== Performance improvements
