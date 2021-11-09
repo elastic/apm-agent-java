@@ -18,18 +18,149 @@
  */
 package co.elastic.apm.agent.jaxrs;
 
+import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Application;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.test.JerseyTest;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.stagemonitor.configuration.ConfigurationRegistry;
+
+import java.io.IOException;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Test jax-rs instrumentation
  */
-public class JakartaeeJaxRsTransactionNameInstrumentationTest extends AbstractJaxRsTransactionNameInstrumentationTest {
+public class JakartaeeJaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
+    private ElasticApmTracer tracer;
+    private MockReporter reporter;
+    private ConfigurationRegistry config;
+    private TestObjectPoolFactory objectPoolFactory;
+
+    private JaxRsTransactionNameInstrumentationTestHelper helper;
+
+    @Before
+    public void before() {
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
+        reporter = mockInstrumentationSetup.getReporter();
+        config = mockInstrumentationSetup.getConfig();
+        tracer = mockInstrumentationSetup.getTracer();
+        objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
+        helper = new JaxRsTransactionNameInstrumentationTestHelper(tracer, reporter, config, objectPoolFactory, this::doRequest);
+    }
+
+    @After
+    public void after() {
+        try {
+            reporter.assertRecycledAfterDecrementingReferences();
+            objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+        } finally {
+            reporter.reset();
+            objectPoolFactory.reset();
+            ElasticApmAgent.reset();
+        }
+    }
+
+    @Test
+    public void testJaxRsTransactionNameWithoutJaxrsAnnotationInheritance() {
+        helper.testJaxRsTransactionNameWithoutJaxrsAnnotationInheritance();
+    }
+
+    @Test
+    public void testJaxRsTransactionNameWithJaxrsAnnotationInheritance() {
+        helper.testJaxRsTransactionNameWithJaxrsAnnotationInheritance();
+    }
+
+    @Test
+    public void testJaxRsTransactionNameMethodDelegation() {
+        helper.testJaxRsTransactionNameMethodDelegation();
+    }
+
+    @Test
+    public void testProxyClassInstrumentationExclusion() {
+        helper.testProxyClassInstrumentationExclusion();
+    }
+
+    @Test
+    public void testJaxRsTransactionNameNonSampledTransactions() throws IOException {
+        helper.testJaxRsTransactionNameNonSampledTransactions();
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabled() {
+        helper.testJaxRsTransactionNameFromPathAnnotationInheritanceEnabled();
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceDisabled() {
+        helper.testJaxRsTransactionNameFromPathAnnotationInheritanceDisabled();
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithPathAnnotation() {
+        helper.testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithPathAnnotation();
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithPathAnnotationWithSlash() {
+        helper.testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithPathAnnotationWithSlash();
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithComplexPath() {
+        helper.testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithComplexPath();
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnEmptyPathResource() {
+        helper.testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnEmptyPathResource();
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnResourceWithPathAndPathOnInterface() {
+        helper.testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnResourceWithPathAndPathOnInterface();
+    }
+
+    @Test
+    public void testJaxRsFrameworkNameAndVersion() throws IOException {
+        helper.testJaxRsFrameworkNameAndVersion("3.0.0");
+    }
+
+    @Test
+    public void testJaxRsFrameworkNameAndVersionWithNonSampledTransaction() throws IOException {
+        helper.testJaxRsFrameworkNameAndVersionWithNonSampledTransaction("3.0.0");
+    }
+
+    /**
+     * Make a GET request against the target path wrapped in an apm transaction.
+     *
+     * @param path the path to make the get request against
+     */
+    private void doRequest(String path) {
+        final Transaction request = tracer.startRootTransaction(null)
+            .withType("request")
+            .activate();
+        try {
+            assertThat(getClient().target(getBaseUri()).path(path).request().buildGet().invoke(String.class)).isEqualTo("ok");
+        } finally {
+            request
+                .deactivate()
+                .end();
+        }
+    }
     /**
      * @return configuration for the jersey test server. Includes all resource classes in the co.elastic.apm.agent.jaxrs.resources package.
      */
