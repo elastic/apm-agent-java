@@ -76,20 +76,21 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
         // the implementations have to be annotated as well
         // quote from javadoc:
         // "Marks a Java class as implementing a Web Service, or a Java interface as defining a Web Service interface."
-        return isAnnotatedWith(named("javax.jws.WebService")).and(not(isInterface()));
+        return isAnnotatedWith(named("javax.jws.WebService").or(named("jakarta.jws.WebService"))).and(not(isInterface()));
     }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("javax.jws.WebService"));
+            .and(classLoaderCanLoadClass("javax.jws.WebService")
+                .or(classLoaderCanLoadClass("jakarta.jws.WebService")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return overridesOrImplementsMethodThat(
             isAnnotatedWith(
-                named("javax.jws.WebMethod")))
+                named("javax.jws.WebMethod").or(named("jakarta.jws.WebMethod"))))
             .onSuperClassesThat(isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any()));
     }
 
