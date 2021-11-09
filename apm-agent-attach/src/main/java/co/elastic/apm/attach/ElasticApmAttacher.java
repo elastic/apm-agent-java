@@ -188,7 +188,7 @@ public class ElasticApmAttacher {
             if (ElasticApmAttacher.class.getResource("/elastic-apm-agent.jar") == null) {
                 return null;
             }
-            return ResourceExtractionUtil.extractResourceToTempDirectory("elastic-apm-agent.jar", "elastic-apm-agent", ".jar");
+            return ResourceExtractionUtil.extractResourceToTempDirectory("elastic-apm-agent.jar", "elastic-apm-agent", ".jar").toFile();
         }
     }
 

@@ -51,6 +51,8 @@ public class AbstractIntakeApiHandler {
     protected HttpURLConnection connection;
     @Nullable
     protected OutputStream os;
+    @Nullable
+    private CountingOutputStream countingOs;
     protected int errorCount;
     protected volatile boolean shutDown;
     private volatile boolean healthy = true;
@@ -60,7 +62,7 @@ public class AbstractIntakeApiHandler {
         this.reporterConfiguration = reporterConfiguration;
         this.payloadSerializer = payloadSerializer;
         this.apmServerClient = apmServerClient;
-        this.deflater = new Deflater();
+        this.deflater = new Deflater(Deflater.BEST_SPEED);
     }
 
     /*
@@ -79,7 +81,10 @@ public class AbstractIntakeApiHandler {
     }
 
     protected boolean shouldEndRequest() {
-        final long written = deflater.getBytesWritten() + DslJsonSerializer.BUFFER_SIZE;
+        if (countingOs == null) {
+            return false;
+        }
+        final long written = countingOs.getCount() + payloadSerializer.getBufferSize();
         final boolean endRequest = written >= reporterConfiguration.getApiRequestSize();
         if (endRequest && logger.isDebugEnabled()) {
             logger.debug("Flushing, because request size limit exceeded {}/{}", written, reporterConfiguration.getApiRequestSize());
@@ -92,11 +97,7 @@ public class AbstractIntakeApiHandler {
         payloadSerializer.blockUntilReady();
         final HttpURLConnection connection = apmServerClient.startRequest(endpoint);
         if (connection != null) {
-            if (isLocalhost(connection)) {
-                deflater.setLevel(Deflater.NO_COMPRESSION);
-            } else {
-                deflater.setLevel(Deflater.BEST_SPEED);
-            }
+            boolean useCompression = !isLocalhost(connection);
             try {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Starting new request to {}", connection.getURL());
@@ -104,11 +105,18 @@ public class AbstractIntakeApiHandler {
                 connection.setRequestMethod("POST");
                 connection.setDoOutput(true);
                 connection.setChunkedStreamingMode(DslJsonSerializer.BUFFER_SIZE);
-                connection.setRequestProperty("Content-Encoding", "deflate");
+                if (useCompression) {
+                    connection.setRequestProperty("Content-Encoding", "deflate");
+                }
                 connection.setRequestProperty("Content-Type", "application/x-ndjson");
                 connection.setUseCaches(false);
                 connection.connect();
-                os = new DeflaterOutputStream(connection.getOutputStream(), deflater, true);
+                countingOs = new CountingOutputStream(connection.getOutputStream());
+                if (useCompression) {
+                    os = new DeflaterOutputStream(countingOs, deflater, true);
+                } else {
+                    os = countingOs;
+                }
                 payloadSerializer.setOutputStream(os);
                 payloadSerializer.appendMetaDataNdJsonToStream();
                 payloadSerializer.flushToOutputStream();
@@ -181,6 +189,7 @@ public class AbstractIntakeApiHandler {
                 HttpUtils.consumeAndClose(connection);
                 connection = null;
                 os = null;
+                countingOs = null;
                 deflater.reset();
                 currentlyTransmitting = 0;
             }
