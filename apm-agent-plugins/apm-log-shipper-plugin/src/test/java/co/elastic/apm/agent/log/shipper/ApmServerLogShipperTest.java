@@ -51,7 +51,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.zip.InflaterInputStream;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
@@ -143,7 +142,7 @@ class ApmServerLogShipperTest {
     private List<String> getEvents() {
         return mockApmServer.findAll(postRequestedFor(urlEqualTo(ApmServerLogShipper.LOGS_ENDPOINT)))
             .stream()
-            .flatMap(request -> new BufferedReader(new InputStreamReader(new InflaterInputStream(new ByteArrayInputStream(request.getBody())))).lines())
+            .flatMap(request -> new BufferedReader(new InputStreamReader(new ByteArrayInputStream(request.getBody()))).lines())
             .collect(Collectors.toList());
     }
 }

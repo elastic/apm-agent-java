@@ -67,7 +67,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<TimeDuration> spanFramesMinDurationMs = TimeDurationValueConverter.durationOption("ms")
         .key("span_frames_min_duration")
         .aliasKeys("span_frames_min_duration_ms")
-        .tags("performance")
+        .tags("internal", "deprecated")
         .configurationCategory(STACKTRACE_CATEGORY)
         .description("While this is very helpful to find the exact place in your code that causes the span, " +
             "collecting this stack trace does have some overhead. " +
@@ -80,6 +80,21 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(TimeDuration.of("5ms"));
 
+    private final ConfigurationOption<TimeDuration> spanStackTraceMinDurationMs = TimeDurationValueConverter.durationOption("ms")
+        .key("span_stack_trace_min_duration")
+        .tags("performance")
+        .configurationCategory(STACKTRACE_CATEGORY)
+        .description("While this is very helpful to find the exact place in your code that causes the span, " +
+            "collecting this stack trace does have some overhead. " +
+            "\n" +
+            "When setting this option to value `0ms`, stack traces will be collected for all spans. " +
+            "Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans " +
+            "with durations equal to or longer than the given value, e.g. 5 milliseconds.\n" +
+            "\n" +
+            "To disable stack trace collection for spans completely, set the value to `-1ms`.")
+        .dynamic(true)
+        .buildWithDefault(TimeDuration.of("5ms"));
+
     public Collection<String> getApplicationPackages() {
         return applicationPackages.get();
     }
@@ -88,7 +103,17 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         return stackTraceLimit.get();
     }
 
-    public long getSpanFramesMinDurationMs() {
-        return spanFramesMinDurationMs.getValue().getMillis();
+    public long getSpanStackTraceMinDurationMs() {
+        if (spanStackTraceMinDurationMs.isDefault() && !spanFramesMinDurationMs.isDefault()) {
+            long spanFramesMinDurationMsValue = spanFramesMinDurationMs.getValue().getMillis();
+            if (spanFramesMinDurationMsValue == 0) {
+                return -1;
+            } else if (spanFramesMinDurationMsValue < 0) {
+                return 0;
+            } else {
+                return spanFramesMinDurationMsValue;
+            }
+        }
+        return spanStackTraceMinDurationMs.getValue().getMillis();
     }
 }
