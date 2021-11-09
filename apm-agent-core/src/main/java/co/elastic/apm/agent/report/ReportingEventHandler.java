@@ -28,5 +28,9 @@ public interface ReportingEventHandler extends EventHandler<ReportingEvent> {
 
     long getDropped();
 
+    boolean isProcessed(long sequence);
+
     void close();
+
+    boolean isHealthy();
 }

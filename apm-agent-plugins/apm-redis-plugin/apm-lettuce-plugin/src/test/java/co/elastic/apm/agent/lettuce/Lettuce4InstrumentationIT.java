@@ -20,36 +20,53 @@ package co.elastic.apm.agent.lettuce;
 
 import co.elastic.apm.agent.redis.AbstractRedisInstrumentationTest;
 import com.lambdaworks.redis.RedisClient;
-import com.lambdaworks.redis.RedisConnection;
+import com.lambdaworks.redis.api.StatefulRedisConnection;
+import com.lambdaworks.redis.api.async.RedisAsyncCommands;
+import com.lambdaworks.redis.api.sync.RedisCommands;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.concurrent.ExecutionException;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class Lettuce3InstrumentationTest extends AbstractRedisInstrumentationTest {
+public class Lettuce4InstrumentationIT extends AbstractRedisInstrumentationTest {
 
     private RedisClient client;
-    private RedisConnection<String, String> connection;
+    private StatefulRedisConnection<String, String> connection;
 
     @Before
     public void setUpLettuce() {
-        client = new RedisClient("localhost", redisPort);
+        client = RedisClient.create("redis://localhost:" + redisPort);
         connection = client.connect();
         reporter.disableCheckDestinationAddress();
     }
 
     @Test
+    public void testClusterCommand() {
+        RedisCommands<String, String> sync = connection.sync();
+        sync.set("foo", "bar");
+        assertThat(sync.get("foo")).isEqualTo("bar");
+        assertTransactionWithRedisSpans("SET", "GET");
+    }
+
+    @Test
     public void testSyncLettuce() {
-        connection.set("foo", "bar");
-        assertThat(connection.get("foo")).isEqualTo("bar");
+        RedisCommands<String, String> sync = connection.sync();
+        sync.set("foo", "bar");
+        assertThat(sync.get("foo")).isEqualTo("bar");
+        assertTransactionWithRedisSpans("SET", "GET");
+    }
+
+    @Test
+    public void testAsyncLettuce() throws Exception {
+        RedisAsyncCommands<String, String> async = connection.async();
+        async.set("foo", "bar").get();
+        assertThat(async.get("foo").get()).isEqualTo("bar");
         assertTransactionWithRedisSpans("SET", "GET");
     }
 
     @After
-    public void tearDownLettuce() throws ExecutionException, InterruptedException {
+    public void tearDownLettuce() {
         connection.close();
     }
 
