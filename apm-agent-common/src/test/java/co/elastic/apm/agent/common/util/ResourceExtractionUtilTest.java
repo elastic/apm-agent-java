@@ -19,11 +19,13 @@
 package co.elastic.apm.agent.common.util;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
-import java.io.File;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -40,54 +42,57 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ResourceExtractionUtilTest {
 
     @Test
-    void exportResourceToDirectory() throws URISyntaxException {
-        File tmp = ResourceExtractionUtil.extractResourceToTempDirectory("test.txt", UUID.randomUUID().toString(), ".tmp");
-        tmp.deleteOnExit();
+    void exportResourceToDirectory(@TempDir Path tmpDir) throws URISyntaxException {
+        Path tmp = ResourceExtractionUtil.extractResourceToDirectory("test.txt", "test", ".tmp", tmpDir);
 
         Path referenceFile = Paths.get(ResourceExtractionUtil.class.getResource("/test.txt").toURI());
 
-        assertThat(tmp)
-            .hasSameTextualContentAs(referenceFile.toFile());
+        assertThat(tmp).hasSameTextualContentAs(referenceFile);
     }
 
     @Test
-    void exportResourceToDirectoryIdempotence() throws InterruptedException {
-        String destination = UUID.randomUUID().toString();
-        File tmp = ResourceExtractionUtil.extractResourceToTempDirectory("test.txt", destination, ".tmp");
-        tmp.deleteOnExit();
-        long actual = tmp.lastModified();
+    void exportResourceToDirectoryIdempotence(@TempDir Path tmpDir) throws Exception {
+        Path tmp = ResourceExtractionUtil.extractResourceToDirectory("test.txt", "test", ".tmp", tmpDir);
+        FileTime created = Files.getLastModifiedTime(tmp);
         Thread.sleep(1000);
-        File after = ResourceExtractionUtil.extractResourceToTempDirectory("test.txt", destination, ".tmp");
-        assertThat(actual).isEqualTo(after.lastModified());
+        Path after = ResourceExtractionUtil.extractResourceToDirectory("test.txt", "test", ".tmp", tmpDir);
+        assertThat(created).isEqualTo(Files.getLastModifiedTime(after));
     }
 
     @Test
-    void exportResourceToDirectory_throwExceptionIfNotFound() {
-        assertThatThrownBy(() -> ResourceExtractionUtil.extractResourceToTempDirectory("nonexist", UUID.randomUUID().toString(), ".tmp")).hasMessage("nonexist not found");
+    void testContentDoesNotMatch(@TempDir Path tmpDir) throws Exception {
+        Path tmp = ResourceExtractionUtil.extractResourceToDirectory("test.txt", "test", ".tmp", tmpDir);
+        Files.writeString(tmp, "changed");
+        assertThatThrownBy(() -> ResourceExtractionUtil.extractResourceToDirectory("test.txt", "test", ".tmp", tmpDir))
+            .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
-    void exportResourceToDirectoryInMultipleThreads() throws InterruptedException, ExecutionException {
+    void exportResourceToDirectory_throwExceptionIfNotFound(@TempDir Path tmpDir) {
+        assertThatThrownBy(() -> ResourceExtractionUtil.extractResourceToDirectory("nonexist", "nonexist", ".tmp", tmpDir))
+            .hasMessage("nonexist not found");
+    }
+
+    @Test
+    void exportResourceToDirectoryInMultipleThreads(@TempDir Path tmpDir) throws InterruptedException, ExecutionException {
         final int nbThreads = 10;
         final ExecutorService executorService = Executors.newFixedThreadPool(nbThreads);
         final CountDownLatch countDownLatch = new CountDownLatch(nbThreads);
-        final List<Future<File>> futureList = new ArrayList<>(nbThreads);
+        final List<Future<Path>> futureList = new ArrayList<>(nbThreads);
         final String tempFileNamePrefix = UUID.randomUUID().toString();
 
         for (int i = 0; i < nbThreads; i++) {
             futureList.add(executorService.submit(() -> {
                 countDownLatch.countDown();
                 countDownLatch.await();
-                File file = ResourceExtractionUtil.extractResourceToTempDirectory("test.txt", tempFileNamePrefix, ".tmp");
-                file.deleteOnExit();
-                return file;
+                return ResourceExtractionUtil.extractResourceToDirectory("test.txt", tempFileNamePrefix, ".tmp", tmpDir);
             }));
         }
 
         executorService.shutdown();
         executorService.awaitTermination(1, TimeUnit.SECONDS);
 
-        for (Future<File> future : futureList) {
+        for (Future<Path> future : futureList) {
             assertThat(future.get()).isNotNull();
             assertThat(future.get()).exists();
         }
