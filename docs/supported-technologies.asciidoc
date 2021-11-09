@@ -444,7 +444,9 @@ When using a scheduling framework a transaction for every execution will be crea
 `org.springframework.scheduling.annotation.Scheduled`
 `org.springframework.scheduling.annotation.Schedules`
 `javax.ejb.Schedule`
-`javax.ejb.Schedules` in order to create a transaction with the type `scheduled`, representing the scheduled task execution
+`javax.ejb.Schedules`
+`jakarta.ejb.Schedule`
+`jakarta.ejb.Schedules` in order to create a transaction with the type `scheduled`, representing the scheduled task execution
 |1.6.0
 
 |Quartz
