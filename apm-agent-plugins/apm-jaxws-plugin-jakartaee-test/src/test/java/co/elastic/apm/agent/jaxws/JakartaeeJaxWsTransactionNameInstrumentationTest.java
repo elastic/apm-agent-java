@@ -18,13 +18,12 @@
  */
 package co.elastic.apm.agent.jaxws;
 
+import jakarta.jws.WebMethod;
+import jakarta.jws.WebService;
+import jakarta.jws.soap.SOAPBinding;
 import org.junit.jupiter.api.BeforeEach;
 
-import javax.jws.WebMethod;
-import javax.jws.WebService;
-import javax.jws.soap.SOAPBinding;
-
-class JaxWsTransactionNameInstrumentationTest extends AbstractJaxWsInstrumentationTest {
+class JakartaeeJaxWsTransactionNameInstrumentationTest extends AbstractJaxWsInstrumentationTest {
 
     @BeforeEach
     void setUp() {
@@ -34,7 +33,6 @@ class JaxWsTransactionNameInstrumentationTest extends AbstractJaxWsInstrumentati
     @SOAPBinding(style = SOAPBinding.Style.RPC)
     @WebService(targetNamespace = "elastic")
     public interface HelloWorldService extends BaseHelloWorldService {
-        @Override
         @WebMethod
         String sayHello();
     }
