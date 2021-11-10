@@ -1,2 +1,4 @@
 co.elastic.apm.agent.jsf.JsfLifecycleExecuteInstrumentation
 co.elastic.apm.agent.jsf.JsfLifecycleRenderInstrumentation
+co.elastic.apm.agent.jsf.JakartaeeJsfLifecycleExecuteInstrumentation
+co.elastic.apm.agent.jsf.JakartaeeJsfLifecycleRenderInstrumentation
