@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jsf;
+package co.elastic.apm.servlet.tests;
 
-public class JsfLifecycleRenderInstrumentation extends AbstractJsfLifecycleRenderInstrumentation {
-    @Override
-    String lifecycleClassName() {
-        return "javax.faces.lifecycle.Lifecycle";
-    }
+public class JakartaeeJsfApplicationServerTestApp extends AbstractJsfApplicationServerTestApp {
 
-    @Override
-    String facesContextClassName() {
-        return "javax.faces.context.FacesContext";
+    public JakartaeeJsfApplicationServerTestApp() {
+        super("/jakartaee-jsf-http-get",
+            "../jakartaee-jsf-app/jakartaee-jsf-app-dependent",
+            "jakartaee-jsf-http-get.war",
+            "jakartaee-jsf-http-get",
+            "status.html",
+            "jakartaee-jsf-http-get");
     }
 }

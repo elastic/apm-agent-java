@@ -23,6 +23,7 @@
         <module>cdi-app</module>
         <module>external-plugin-test</module>
         <module>runtime-attach</module>
+        <module>jakartaee-jsf-app</module>
     </modules>
 
     <properties>

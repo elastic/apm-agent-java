@@ -16,16 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jsf;
+package co.elastic.apm.test;
 
-public class JsfLifecycleRenderInstrumentation extends AbstractJsfLifecycleRenderInstrumentation {
-    @Override
-    String lifecycleClassName() {
-        return "javax.faces.lifecycle.Lifecycle";
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.faces.event.AbortProcessingException;
+import jakarta.faces.event.ComponentSystemEvent;
+import jakarta.inject.Named;
+
+@Named
+@ApplicationScoped
+public class User {
+
+    private String name;
+
+    public String getName() {
+        System.out.println("getName: " + name);
+        return name;
     }
 
-    @Override
-    String facesContextClassName() {
-        return "javax.faces.context.FacesContext";
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    // Both process and process2 are valid method signatures
+    public void process(ComponentSystemEvent event) throws AbortProcessingException {
+        System.out.println("process called");
+        name = name.toUpperCase();
+    }
+
+    public void process2() {
+        System.out.println("process2 called");
+        name = name.toUpperCase();
     }
 }
