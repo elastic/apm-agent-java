@@ -1,2 +1,2 @@
-co.elastic.apm.agent.jsf.JsfLifecycleInstrumentation$JsfLifecycleExecuteInstrumentation
-co.elastic.apm.agent.jsf.JsfLifecycleInstrumentation$JsfLifecycleRenderInstrumentation
+co.elastic.apm.agent.jsf.JsfLifecycleExecuteInstrumentation
+co.elastic.apm.agent.jsf.JsfLifecycleRenderInstrumentation
