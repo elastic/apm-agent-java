@@ -16,8 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jedis;
+package co.elastic.apm.agent.rabbitmq;
 
-class Jedis3InstrumentationTest extends Jedis2InstrumentationTest {
+public class AmqpConstants {
 
+    private AmqpConstants() {}
+
+    public static final String SPRING_AMQP_TRANSACTION_PREFIX = "Spring AMQP";
 }

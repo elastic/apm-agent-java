@@ -90,7 +90,7 @@ public class MetaData {
         }
 
         final ThreadPoolExecutor executor = ExecutorUtils.createThreadDaemonPool("metadata", 2, 3);
-        final int metadataDiscoveryTimeoutMs = (int) coreConfiguration.geMetadataDiscoveryTimeoutMs();
+        final int metadataDiscoveryTimeoutMs = (int) coreConfiguration.getMetadataDiscoveryTimeoutMs();
 
         try {
             // System info creation executes external processes for hostname discovery and reads files for container/k8s metadata discovery

@@ -27,8 +27,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -185,11 +188,53 @@ class MetricSetSerializationTest {
         assertThat(serviceName.asText()).isEqualTo("bar");
     }
 
-    @Nullable
-    private JsonNode reportAsJson() throws Exception {
+    @Test
+    void testServiceNameOverrideWithOneService() throws Exception {
+        registry.updateTimer("foo", Labels.Mutable.of(), 1);
+
+        JsonNode jsonNode = reportAsJson(singletonList("bar"));
+        assertThat(jsonNode).isNotNull();
+        JsonNode serviceName = jsonNode.get("metricset").get("service").get("name");
+        assertThat(serviceName.asText()).isEqualTo("bar");
+    }
+
+    @Test
+    void testServiceNameOverrideWithMultipleService() throws Exception {
+        registry.updateTimer("foo", Labels.Mutable.of(), 1);
+
         final CompletableFuture<JsonWriter> jwFuture = new CompletableFuture<>();
         registry.flipPhaseAndReport(
-            metricSets -> jwFuture.complete(metricRegistrySerializer.serialize(metricSets.values().iterator().next()))
+            metricSets -> jwFuture.complete(metricRegistrySerializer.serialize(metricSets.values().iterator().next(), List.of("bar1", "bar2")))
+        );
+
+        String[] jsonStrings = jwFuture.getNow(null).toString().split("\n");
+        assertThat(jsonStrings.length).isEqualTo(2);
+
+        JsonNode jsonNode1 = objectMapper.readTree(jsonStrings[0]);
+        String serviceName1 = jsonNode1.get("metricset").get("service").get("name").asText();
+        assertThat(serviceName1).isEqualTo("bar1");
+        JsonNode samples1 = jsonNode1.get("metricset").get("samples");
+        assertThat(samples1.get("foo.sum.us").get("value").intValue()).isOne();
+        assertThat(samples1.get("foo.count").get("value").intValue()).isOne();
+
+        JsonNode jsonNode2 = objectMapper.readTree(jsonStrings[1]);
+        String serviceName2 = jsonNode2.get("metricset").get("service").get("name").asText();
+        assertThat(serviceName2).isEqualTo("bar2");
+        JsonNode samples2 = jsonNode2.get("metricset").get("samples");
+        assertThat(samples2.get("foo.sum.us").get("value").intValue()).isOne();
+        assertThat(samples2.get("foo.count").get("value").intValue()).isOne();
+    }
+
+    @Nullable
+    private JsonNode reportAsJson() throws Exception {
+        return  reportAsJson(emptyList());
+    }
+
+    @Nullable
+    private JsonNode reportAsJson(List<String> serviceNames) throws Exception {
+        final CompletableFuture<JsonWriter> jwFuture = new CompletableFuture<>();
+        registry.flipPhaseAndReport(
+            metricSets -> jwFuture.complete(metricRegistrySerializer.serialize(metricSets.values().iterator().next(), serviceNames))
         );
         JsonNode json = null;
         JsonWriter jw = jwFuture.getNow(null);
