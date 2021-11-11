@@ -24,6 +24,11 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.core.Application;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.junit.After;
@@ -31,16 +36,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.core.Application;
 import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
+/**
+ * Test jax-rs instrumentation
+ */
+public class JakartaeeJaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     private ElasticApmTracer tracer;
     private MockReporter reporter;
@@ -133,12 +136,12 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Test
     public void testJaxRsFrameworkNameAndVersion() throws IOException {
-        helper.testJaxRsFrameworkNameAndVersion("2.1");
+        helper.testJaxRsFrameworkNameAndVersion("3.0.0");
     }
 
     @Test
     public void testJaxRsFrameworkNameAndVersionWithNonSampledTransaction() throws IOException {
-        helper.testJaxRsFrameworkNameAndVersionWithNonSampledTransaction("2.1");
+        helper.testJaxRsFrameworkNameAndVersionWithNonSampledTransaction("3.0.0");
     }
 
     /**
@@ -158,7 +161,6 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
                 .end();
         }
     }
-
     /**
      * @return configuration for the jersey test server. Includes all resource classes in the co.elastic.apm.agent.jaxrs.resources package.
      */
@@ -177,7 +179,6 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
             EmptyPathResource.class,
             ResourceWithPathAndWithPathOnInterface.class);
     }
-
 
     public interface SuperResourceInterface {
         @GET
