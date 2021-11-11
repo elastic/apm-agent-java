@@ -20,13 +20,12 @@ package co.elastic.apm.agent.quartzjob;
 
 import org.quartz.JobExecutionContext;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class Quartz1JobExecutionContextHandler implements JobExecutionContextHandler<JobExecutionContext> {
     @Override
     @Nullable
-    public String getJobDetailKey(@Nonnull JobExecutionContext jobExecutionContext) {
+    public String getJobDetailKey(JobExecutionContext jobExecutionContext) {
         if (jobExecutionContext.getJobDetail() == null) {
             return null;
         }
@@ -35,7 +34,7 @@ public class Quartz1JobExecutionContextHandler implements JobExecutionContextHan
 
     @Override
     @Nullable
-    public Object getResult(@Nonnull JobExecutionContext jobExecutionContext) {
+    public Object getResult(JobExecutionContext jobExecutionContext) {
         return jobExecutionContext.getResult();
     }
 }

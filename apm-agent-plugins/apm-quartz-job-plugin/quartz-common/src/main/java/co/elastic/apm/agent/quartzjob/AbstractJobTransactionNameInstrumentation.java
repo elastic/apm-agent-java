@@ -34,10 +34,9 @@ import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
@@ -51,7 +50,7 @@ public abstract class AbstractJobTransactionNameInstrumentation extends TracerAw
 
     private final Collection<String> applicationPackages;
 
-    public AbstractJobTransactionNameInstrumentation(ElasticApmTracer tracer) {
+    protected AbstractJobTransactionNameInstrumentation(ElasticApmTracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 
@@ -65,7 +64,7 @@ public abstract class AbstractJobTransactionNameInstrumentation extends TracerAw
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(INSTRUMENTATION_TYPE);
+        return Collections.singletonList(INSTRUMENTATION_TYPE);
     }
 
     static class BaseAdvice {
@@ -73,14 +72,20 @@ public abstract class AbstractJobTransactionNameInstrumentation extends TracerAw
         private static final Logger logger = LoggerFactory.getLogger(BaseAdvice.class);
 
         @Nullable
-        protected static <T> Transaction createAndActivateTransaction(@Nullable T jobExecutionContext, @Nonnull String signature, @Nonnull Class<?> clazz, @Nonnull JobExecutionContextHandler<T> helper) {
+        protected static <T> Transaction createAndActivateTransaction(@Nullable T jobExecutionContext, String signature, Class<?> clazz, JobExecutionContextHandler<T> helper) {
             Transaction transaction = null;
             AbstractSpan<?> active = GlobalTracer.get().getActive();
-            if (jobExecutionContext == null) {
-                logger.warn("Cannot correctly name transaction for method {} because JobExecutionContext is null", signature);
-                transaction = createAndActivateTransaction(clazz, signature);
-            } else if (active == null) {
-                transaction = createAndActivateTransaction(clazz, helper.getJobDetailKey(jobExecutionContext));
+            if (active == null) {
+                String transactionName = null;
+                if (jobExecutionContext != null) {
+                    transactionName = helper.getJobDetailKey(jobExecutionContext);
+                }
+                if (transactionName != null) {
+                    transaction = createAndActivateTransaction(clazz, transactionName);
+                } else {
+                    logger.warn("Cannot correctly name transaction for method {} because JobExecutionContext is null or lacking job details", signature);
+                    transaction = createAndActivateTransaction(clazz, signature);
+                }
             } else {
                 logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
             }
@@ -90,11 +95,14 @@ public abstract class AbstractJobTransactionNameInstrumentation extends TracerAw
         protected static <T> void endTransaction(@Nullable T jobExecutionContext,
                                                  @Nullable Object transactionObj,
                                                  @Nullable Throwable t,
-                                                 @Nonnull JobExecutionContextHandler<T> helper) {
+                                                 JobExecutionContextHandler<T> helper) {
             if (transactionObj instanceof Transaction) {
                 Transaction transaction = (Transaction) transactionObj;
-                if (jobExecutionContext != null && helper.getResult(jobExecutionContext) != null) {
-                    transaction.withResultIfUnset(helper.getResult(jobExecutionContext).toString());
+                if (jobExecutionContext != null) {
+                    Object result = helper.getResult(jobExecutionContext);
+                    if (result != null) {
+                        transaction.withResultIfUnset(result.toString());
+                    }
                 }
                 transaction.captureException(t)
                     .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)

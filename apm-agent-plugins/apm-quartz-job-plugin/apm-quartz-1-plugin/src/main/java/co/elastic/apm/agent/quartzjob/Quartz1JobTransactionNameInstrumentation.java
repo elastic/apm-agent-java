@@ -44,7 +44,7 @@ public class Quartz1JobTransactionNameInstrumentation extends AbstractJobTransac
     }
 
     public static class AdviceClass extends BaseAdvice {
-        private static final JobExecutionContextHandler helper;
+        private static final JobExecutionContextHandler<JobExecutionContext> helper;
 
         static {
             helper = new Quartz1JobExecutionContextHandler();

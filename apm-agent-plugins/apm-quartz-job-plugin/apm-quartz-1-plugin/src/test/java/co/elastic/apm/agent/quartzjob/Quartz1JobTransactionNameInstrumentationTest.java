@@ -32,7 +32,6 @@ import javax.annotation.Nullable;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-
 class Quartz1JobTransactionNameInstrumentationTest extends AbstractJobTransactionNameInstrumentationTest {
 
     @Override
