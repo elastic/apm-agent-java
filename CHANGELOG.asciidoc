@@ -49,6 +49,7 @@ by the agent may be different. This was done in order to improve the integration
  This replaces the now deprecated `span_frames_min_duration` option.
  The difference is that the new option has more intuitive semantics for negative values (never collect stack trace) and zero (always collect stack trace). - {pull}2220[#2220]
 * Add support to Jakarta EE for JAX-WS - {pull}2247[#2247]
+* Add support to Jakarta EE for JAX-RS - {pull}2248[#2248]
 * Add support for Jakarta EE EJB annotations `@Schedule`, `@Schedules` - {pull}2250[#2250]
 
 [float]
