@@ -51,6 +51,7 @@ by the agent may be different. This was done in order to improve the integration
 * Add support to Jakarta EE for JAX-WS - {pull}2247[#2247]
 * Add support to Jakarta EE for JAX-RS - {pull}2248[#2248]
 * Add support for Jakarta EE EJB annotations `@Schedule`, `@Schedules` - {pull}2250[#2250]
+* Add support for Google HTTP Client - {pull}2257[#2257]
 
 [float]
 ===== Performance improvements
