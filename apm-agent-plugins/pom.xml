@@ -66,6 +66,9 @@
         <module>apm-javalin-plugin</module>
         <module>apm-awslambda-plugin</module>
         <module>apm-servlet-jakarta-test</module>
+        <module>apm-jaxws-plugin-jakartaee-test</module>
+        <module>apm-jaxrs-plugin-jakartaee-test</module>
+        <module>apm-scheduled-annotation-plugin-jakartaee-test</module>
     </modules>
 
     <dependencies>

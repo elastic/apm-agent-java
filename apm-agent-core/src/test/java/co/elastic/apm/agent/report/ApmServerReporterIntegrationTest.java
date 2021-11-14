@@ -21,6 +21,7 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -34,19 +35,24 @@ import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
+import io.undertow.server.handlers.BlockingHandler;
+import org.eclipse.jetty.http.HttpStatus;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.Collections;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -57,8 +63,11 @@ class ApmServerReporterIntegrationTest {
     private static AtomicInteger receivedIntakeApiCalls = new AtomicInteger();
     private static HttpHandler handler;
     private final ElasticApmTracer tracer = MockTracer.create();
+    private volatile int statusCode = HttpStatus.OK_200;
     private ReporterConfiguration reporterConfiguration;
     private ApmServerReporter reporter;
+    private final AtomicInteger receivedEvents = new AtomicInteger();
+    private IntakeV2ReportingEventHandler v2handler;
 
     @BeforeAll
     static void startServer() {
@@ -80,15 +89,24 @@ class ApmServerReporterIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        handler = exchange -> {
-            if (exchange.getRequestPath().equals("/intake/v2/events")) {
+        handler = new BlockingHandler(exchange -> {
+            if (statusCode < 300 && exchange.getRequestPath().equals("/intake/v2/events")) {
                 receivedIntakeApiCalls.incrementAndGet();
+                InputStream in = exchange.getInputStream();
+                try (in) {
+                    for (int n = 0; -1 != n; n = in.read()) {
+                        if (n == '\n') {
+                            receivedEvents.incrementAndGet();
+                        }
+                    }
+                }
             }
-            exchange.setStatusCode(200).endExchange();
-        };
+            exchange.setStatusCode(statusCode).endExchange();
+        });
         receivedIntakeApiCalls.set(0);
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
+        doReturn(TimeDuration.of("60m")).when(reporterConfiguration).getApiRequestTime();
         doReturn(Collections.singletonList(new URL("http://localhost:" + port))).when(reporterConfiguration).getServerUrls();
         SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final Service service = new Service();
@@ -96,7 +114,7 @@ class ApmServerReporterIntegrationTest {
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, config.getConfig(CoreConfiguration.class));
         apmServerClient.start();
-        final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
+        v2handler = new IntakeV2ReportingEventHandler(
                 reporterConfiguration,
                 processorEventHandler,
                 new DslJsonSerializer(
@@ -109,24 +127,30 @@ class ApmServerReporterIntegrationTest {
         reporter.start();
     }
 
+    @AfterEach
+    void tearDown() {
+        reporter.close();
+    }
+
     @Test
-    void testReportTransaction() throws ExecutionException, InterruptedException {
+    void testReportTransaction() {
         reporter.report(new Transaction(tracer));
-        reporter.flush().get();
+        assertThat(reporter.flush(5, TimeUnit.SECONDS)).isTrue();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
+        assertThat(reporter.getReported()).isEqualTo(1);
     }
 
     @Test
-    void testReportSpan() throws ExecutionException, InterruptedException {
+    void testReportSpan() {
         reporter.report(new Span(tracer));
-        reporter.flush().get();
+        reporter.flush();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
     }
 
     @Test
-    void testSecretToken() throws ExecutionException, InterruptedException {
+    void testSecretToken() {
         doReturn("token").when(reporterConfiguration).getSecretToken();
         handler = exchange -> {
             if (exchange.getRequestPath().equals("/intake/v2/events")) {
@@ -136,17 +160,52 @@ class ApmServerReporterIntegrationTest {
             exchange.setStatusCode(200).endExchange();
         };
         reporter.report(new Transaction(tracer));
-        reporter.flush().get();
+        reporter.flush();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
     }
 
     @Test
-    void testReportErrorCapture() throws ExecutionException, InterruptedException {
+    void testReportErrorCapture() {
         reporter.report(new ErrorCapture(tracer));
-        reporter.flush().get();
+        reporter.flush();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
+    }
+
+    @Test
+    void testTimeout() {
+        doReturn(TimeDuration.of("1ms")).when(reporterConfiguration).getApiRequestTime();
+        reporter.report(new Transaction(tracer));
+        await().untilAsserted(() -> assertThat(reporter.getReported()).isEqualTo(1));
+        assertThat(reporter.getDropped()).isEqualTo(0);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
+        assertThat(receivedEvents.get()).isEqualTo(2);
+    }
+
+    @Test
+    void testFlush() {
+        reporter.report(new Transaction(tracer));
+        assertThat(receivedEvents.get()).isEqualTo(0);
+        assertThat(reporter.flush(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(reporter.getDropped()).isEqualTo(0);
+        assertThat(reporter.getReported()).isEqualTo(1);
+    }
+
+    @Test
+    void testFailingApmServer() {
+        statusCode = HttpStatus.SERVICE_UNAVAILABLE_503;
+        // try to report a few events to trigger backoff
+        reporter.report(new Transaction(tracer));
+        reporter.flush(1, TimeUnit.SECONDS);
+        reporter.report(new Transaction(tracer));
+        reporter.flush(1, TimeUnit.SECONDS);
+        reporter.report(new Transaction(tracer));
+        reporter.flush(1, TimeUnit.SECONDS);
+        reporter.report(new Transaction(tracer));
+
+        assertThat(v2handler.isHealthy()).isFalse();
+        assertThat(reporter.flush(1, TimeUnit.SECONDS)).isFalse();
     }
 
 }

@@ -180,7 +180,7 @@ Click on a key to get more information.
 * <<config-stacktrace>>
 ** <<config-application-packages>>
 ** <<config-stack-trace-limit>>
-** <<config-span-frames-min-duration>>
+** <<config-span-stack-trace-min-duration>>
 
 [[config-circuit-breaker]]
 === Circuit-Breaker configuration options
@@ -1003,7 +1003,7 @@ The more methods you match the more overhead will be caused by the agent.
 Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).
 
 NOTE: The agent will create stack traces for spans which took longer than
-<<config-span-frames-min-duration, `span_frames_min_duration`>>.
+<<config-span-stack-trace-min-duration, `span_stack_trace_min_duration`>>.
 When tracing a large number of methods (for example by using wildcards),
 this may lead to high overhead.
 Consider increasing the threshold or disabling stack trace collection altogether.
@@ -2669,13 +2669,13 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-span-frames-min-duration]]
-==== `span_frames_min_duration` (performance)
+[[config-span-stack-trace-min-duration]]
+==== `span_stack_trace_min_duration` (performance)
 
 While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
-When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
+When setting this option to value `0ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 
-To disable stack trace collection for spans completely, set the value to `0ms`.
+To disable stack trace collection for spans completely, set the value to `-1ms`.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -2693,7 +2693,7 @@ The default unit for this option is `ms`.
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.span_frames_min_duration` | `span_frames_min_duration` | `ELASTIC_APM_SPAN_FRAMES_MIN_DURATION`
+| `elastic.apm.span_stack_trace_min_duration` | `span_stack_trace_min_duration` | `ELASTIC_APM_SPAN_STACK_TRACE_MIN_DURATION`
 |============
 
 
@@ -3134,7 +3134,7 @@ The default unit for this option is `ms`.
 # Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).
 # 
 # NOTE: The agent will create stack traces for spans which took longer than
-# <<config-span-frames-min-duration, `span_frames_min_duration`>>.
+# <<config-span-stack-trace-min-duration, `span_stack_trace_min_duration`>>.
 # When tracing a large number of methods (for example by using wildcards),
 # this may lead to high overhead.
 # Consider increasing the threshold or disabling stack trace collection altogether.
@@ -4020,9 +4020,9 @@ The default unit for this option is `ms`.
 # stack_trace_limit=50
 
 # While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
-# When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
+# When setting this option to value `0ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 # 
-# To disable stack trace collection for spans completely, set the value to `0ms`.
+# To disable stack trace collection for spans completely, set the value to `-1ms`.
 #
 # This setting can be changed at runtime
 # Type: TimeDuration
@@ -4030,6 +4030,6 @@ The default unit for this option is `ms`.
 # The default unit for this option is ms.
 # Default value: 5ms
 #
-# span_frames_min_duration=5ms
+# span_stack_trace_min_duration=5ms
 
 ----

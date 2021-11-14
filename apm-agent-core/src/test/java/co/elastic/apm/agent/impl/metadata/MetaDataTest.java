@@ -145,7 +145,7 @@ class MetaDataTest extends CustomEnvVariables {
         when(coreConfiguration.getCloudProvider()).thenReturn(provider);
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
         // In AWS we may need two timeouts - one for the API token and one for the metadata itself
-        long timeout = (long) (coreConfiguration.geMetadataDiscoveryTimeoutMs() * ((provider == AWS) ? 2.5 : 1.5));
+        long timeout = (long) (coreConfiguration.getMetadataDiscoveryTimeoutMs() * ((provider == AWS) ? 2.5 : 1.5));
         MetaData metaData = metaDataFuture.get(timeout, TimeUnit.MILLISECONDS);
         verifyMetaData(metaData, provider);
     }
@@ -153,7 +153,7 @@ class MetaDataTest extends CustomEnvVariables {
     @Test
     void testTimeoutConfiguration() throws InterruptedException, ExecutionException, TimeoutException {
         when(coreConfiguration.getCloudProvider()).thenReturn(AUTO);
-        when(coreConfiguration.geMetadataDiscoveryTimeoutMs()).thenReturn(200L);
+        when(coreConfiguration.getMetadataDiscoveryTimeoutMs()).thenReturn(200L);
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
         Exception timeoutException = null;
         try {
@@ -179,7 +179,7 @@ class MetaDataTest extends CustomEnvVariables {
         }
         assertThat(timeoutException).isInstanceOf(TimeoutException.class);
         // verifying discovery occurs concurrently - should take less than twice the configured timeout (AWS and Azure are timing out)
-        long timeout = (long) (coreConfiguration.geMetadataDiscoveryTimeoutMs() * 2.5);
+        long timeout = (long) (coreConfiguration.getMetadataDiscoveryTimeoutMs() * 2.5);
         metaData = metaDataFuture.get(timeout, TimeUnit.MILLISECONDS);
         verifyMetaData(metaData, AUTO);
     }

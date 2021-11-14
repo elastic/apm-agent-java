@@ -96,7 +96,7 @@ class DslJsonSerializerTest {
         StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
         when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(15);
         apmServerClient = mock(ApmServerClient.class);
-        metaData = MetaData.create(SpyConfiguration.createSpyConfig(), null);
+        metaData = MetaDataMock.create();
         serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData);
         serializer.blockUntilReady();
         objectMapper = new ObjectMapper();
@@ -161,6 +161,7 @@ class DslJsonSerializerTest {
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
+        error.setTransactionName(new StringBuilder("Test Transaction"));
         error.setException(new Exception("test"));
         error.getContext().addLabel("foo", "bar");
 
@@ -180,8 +181,10 @@ class DslJsonSerializerTest {
         JsonNode stacktrace = exception.get("stacktrace");
         assertThat(stacktrace).hasSize(15);
 
-        assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isTrue();
-        assertThat(errorTree.get("transaction").get("type").textValue()).isEqualTo("test-type");
+        JsonNode transactionTree = errorTree.get("transaction");
+        assertThat(transactionTree.get("sampled").booleanValue()).isTrue();
+        assertThat(transactionTree.get("type").textValue()).isEqualTo("test-type");
+        assertThat(transactionTree.get("name").asText()).isEqualTo("Test Transaction");
     }
 
     @Test
@@ -216,6 +219,11 @@ class DslJsonSerializerTest {
         assertThat(errorTree.get("trace_id")).isNull();
         assertThat(errorTree.get("parent_id")).isNull();
         assertThat(errorTree.get("transaction_id")).isNull();
+
+        JsonNode transactionTree = errorTree.get("transaction");
+        assertThat(transactionTree.get("sampled").booleanValue()).isFalse();
+        assertThat(transactionTree.get("type")).isNull();
+        assertThat(transactionTree.get("name")).isNull();
     }
 
     @Test
