@@ -21,6 +21,7 @@ package co.elastic.apm.agent.awslambda;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.transaction.Faas;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.VersionUtils;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
@@ -61,7 +62,8 @@ public abstract class AbstractPlainLambdaTest extends AbstractLambdaTest<Object,
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(transaction.getType()).isEqualTo("request");
-        assertThat(transaction.getResult()).isNull();
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
+        assertThat(transaction.getResult()).isEqualTo("success");
 
         assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
         assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");

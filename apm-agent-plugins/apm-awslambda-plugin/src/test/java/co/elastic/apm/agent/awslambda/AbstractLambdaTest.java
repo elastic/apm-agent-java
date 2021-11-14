@@ -146,7 +146,7 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
         Transaction transaction = reporter.getFirstTransaction();
-        assertThat(transaction.getResult()).isNull();
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
+        assertThat(transaction.getResult()).isEqualTo("failure");
     }
 }

@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public abstract class AbstractLambdaTransactionHelper<I, O> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractLambdaTransactionHelper.class);
@@ -85,7 +84,13 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
         if (null != output) {
             captureOutputForTransaction(transaction, output);
         }
-        transaction.captureException(thrown).deactivate().end();
+        if (thrown != null) {
+            transaction.captureException(thrown);
+            transaction.withResultIfUnset("failure");
+        } else {
+            transaction.withResultIfUnset("success");
+        }
+        transaction.deactivate().end();
         long flushTimeout = serverlessConfiguration.getDataFlushTimeout();
         try {
             if (!tracer.getReporter().flush(flushTimeout, TimeUnit.MILLISECONDS)) {

@@ -74,8 +74,8 @@ public abstract class AbstractStreamHandlerLambdaTest extends AbstractInstrument
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(transaction.getType()).isEqualTo("request");
-        assertThat(transaction.getResult()).isNull();
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
+        assertThat(transaction.getResult()).isEqualTo("success");
 
         assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
         assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");
@@ -102,8 +102,8 @@ public abstract class AbstractStreamHandlerLambdaTest extends AbstractInstrument
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
         Transaction transaction = reporter.getFirstTransaction();
-        assertThat(transaction.getResult()).isNull();
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
+        assertThat(transaction.getResult()).isEqualTo("failure");
     }
 
     protected abstract ThrowableAssert.ThrowingCallable getRequestHandlingInvocation(Context context);

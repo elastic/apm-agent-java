@@ -22,6 +22,7 @@ import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.S3EventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.transaction.Faas;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification;
@@ -76,7 +77,8 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo(S3_EVENT_NAME + " " + S3_BUCKET_NAME);
         assertThat(transaction.getType()).isEqualTo("messaging");
-        assertThat(transaction.getResult()).isNull();
+        assertThat(transaction.getResult()).isEqualTo("success");
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isTrue();
         assertThat(transaction.getContext().getServiceOrigin().getName()).isEqualTo(S3_BUCKET_NAME);
@@ -107,7 +109,8 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(transaction.getType()).isEqualTo("request");
-        assertThat(transaction.getResult()).isNull();
+        assertThat(transaction.getResult()).isEqualTo("success");
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
         assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
         assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");
@@ -148,7 +151,8 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(transaction.getType()).isEqualTo("messaging");
-        assertThat(transaction.getResult()).isNull();
+        assertThat(transaction.getResult()).isEqualTo("success");
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
         assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
         assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");

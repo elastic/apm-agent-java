@@ -23,6 +23,7 @@ import co.elastic.apm.agent.awslambda.lambdas.SNSEventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.transaction.Faas;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 import org.joda.time.DateTime;
@@ -95,8 +96,8 @@ public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo("RECEIVE " + SNS_TOPIC);
         assertThat(transaction.getType()).isEqualTo("messaging");
-        assertThat(transaction.getResult()).isNull();
-
+        assertThat(transaction.getResult()).isEqualTo("success");
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
         assertThat(transaction.getContext().getMessage().hasContent()).isTrue();
         assertThat(transaction.getContext().getMessage().getQueueName()).isEqualTo(SNS_EVENT_SOURCE_ARN);
@@ -139,7 +140,8 @@ public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(transaction.getType()).isEqualTo("request");
-        assertThat(transaction.getResult()).isNull();
+        assertThat(transaction.getResult()).isEqualTo("success");
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
         assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
         assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");
@@ -191,7 +193,8 @@ public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(transaction.getType()).isEqualTo("messaging");
-        assertThat(transaction.getResult()).isNull();
+        assertThat(transaction.getResult()).isEqualTo("success");
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
         assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
         assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");
