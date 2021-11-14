@@ -51,6 +51,7 @@ by the agent may be different. This was done in order to improve the integration
 * Add support to Jakarta EE for JAX-WS - {pull}2247[#2247]
 * Add support to Jakarta EE for JAX-RS - {pull}2248[#2248]
 * Add support for Jakarta EE EJB annotations `@Schedule`, `@Schedules` - {pull}2250[#2250]
+* Added support to Quartz 1.x - {pull}2219[#2219]
 * When the MANIFEST.MF of the main jar contains the Implementation-Title attribute, it is used as the default service name - {pull}1921[#1921]
 
 [float]
