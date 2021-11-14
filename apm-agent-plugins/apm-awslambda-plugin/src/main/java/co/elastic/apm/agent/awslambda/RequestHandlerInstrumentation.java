@@ -24,9 +24,6 @@ import co.elastic.apm.agent.awslambda.helper.PlainTransactionHelper;
 import co.elastic.apm.agent.awslambda.helper.S3TransactionHelper;
 import co.elastic.apm.agent.awslambda.helper.SNSTransactionHelper;
 import co.elastic.apm.agent.awslambda.helper.SQSTransactionHelper;
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
@@ -37,44 +34,22 @@ import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
 
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class RequestHandlerInstrumentation extends TracerAwareInstrumentation {
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("aws-lambda");
-    }
-
-    @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return named(GlobalTracer.requireTracerImpl().getConfig(ServerlessConfiguration.class).getAwsLambdaHandler());
-    }
-
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface())
-            .and(hasSuperType(named("com.amazonaws.services.lambda.runtime.RequestHandler")));
-    }
+public class RequestHandlerInstrumentation extends AbstractAwsLambdaHandlerInstrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        String matchMethod = (handlerMethodName != null) ? handlerMethodName : "handleRequest";
         return isPublic()
-            .and(named("handleRequest"))
+            .and(named(matchMethod))
             .and(takesArgument(1, named("com.amazonaws.services.lambda.runtime.Context")));
     }
 

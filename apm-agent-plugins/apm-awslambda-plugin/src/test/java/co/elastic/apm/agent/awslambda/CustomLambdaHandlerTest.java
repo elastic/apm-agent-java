@@ -19,39 +19,59 @@
 package co.elastic.apm.agent.awslambda;
 
 import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
-import co.elastic.apm.agent.awslambda.lambdas.PlainLambdaFunction;
+import co.elastic.apm.agent.awslambda.lambdas.CustomHandler;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.Objects;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-public class PlainLambdaTest extends AbstractPlainLambdaTest {
+public class CustomLambdaHandlerTest extends AbstractPlainLambdaTest {
+
+    private final CustomHandler customHandler = new CustomHandler();
 
     @BeforeAll
     // Need to overwrite the beforeAll() method from parent,
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(PlainLambdaFunction.class.getName());
+        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(
+            "co.elastic.apm.agent.awslambda.lambdas.CustomHandler::customHandleRequest"
+        );
         AbstractLambdaTest.initInstrumentation();
     }
 
     @Test
     public void testMetaData() throws Exception {
-        getFunction().handleRequest(null, context);
+        customHandler.customHandleRequest(null, context);
         verifyMetaData();
     }
 
     @Test
     public void testBasicCall() {
-        getFunction().handleRequest(null, context);
+        customHandler.customHandleRequest(null, context);
         verifyTransactionDetails();
     }
 
+    /**
+     * Overriding the base test that relies on {@link com.amazonaws.services.lambda.runtime.RequestHandler} implementation
+     */
+    @Test
+    public void testCallWithHandlerError() {
+        Objects.requireNonNull(context).raiseException();
+        assertThatThrownBy(() -> customHandler.customHandleRequest(createInput(), context)).isInstanceOf(RuntimeException.class);
+        verifyFailure();
+    }
+
+    /**
+     * The handler returned by this method should not be used for the custom handler tests
+     * @return {@code null}
+     */
     @Override
     protected AbstractFunction<Object, Void> createHandler() {
-        return new PlainLambdaFunction();
+        //noinspection ConstantConditions
+        return null;
     }
 }

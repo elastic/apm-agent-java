@@ -19,51 +19,26 @@
 package co.elastic.apm.agent.awslambda;
 
 import co.elastic.apm.agent.awslambda.helper.PlainTransactionHelper;
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 import java.io.InputStream;
-import java.util.Collection;
-import java.util.Collections;
 
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class RequestStreamHandlerInstrumentation extends TracerAwareInstrumentation {
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("aws-lambda");
-    }
-
-    @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return named(GlobalTracer.requireTracerImpl().getConfig(ServerlessConfiguration.class).getAwsLambdaHandler());
-    }
-
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface())
-            .and(hasSuperType(named("com.amazonaws.services.lambda.runtime.RequestStreamHandler")));
-    }
+public class RequestStreamHandlerInstrumentation extends AbstractAwsLambdaHandlerInstrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        String matchMethod = (handlerMethodName != null) ? handlerMethodName : "handleRequest";
         return isPublic()
-            .and(named("handleRequest"))
+            .and(named(matchMethod))
             .and(takesArgument(0, named("java.io.InputStream")))
             .and(takesArgument(1, named("java.io.OutputStream")))
             .and(takesArgument(2, named("com.amazonaws.services.lambda.runtime.Context")));

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.awslambda;
 
-import co.elastic.apm.agent.awslambda.lambdas.StreamHandlerLambdaFunction;
+import co.elastic.apm.agent.awslambda.lambdas.CustomStreamHandler;
 import com.amazonaws.services.lambda.runtime.Context;
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,21 +28,23 @@ import java.util.Objects;
 import static co.elastic.apm.agent.awslambda.AbstractLambdaTest.serverlessConfiguration;
 import static org.mockito.Mockito.when;
 
-public class StreamHandlerLambdaTest extends AbstractStreamHandlerLambdaTest {
+public class CustomStreamHandlerLambdaTest extends AbstractStreamHandlerLambdaTest {
 
-    private final StreamHandlerLambdaFunction function = new StreamHandlerLambdaFunction();
+    private final CustomStreamHandler customStreamHandler = new CustomStreamHandler();
 
     @BeforeAll
     // Need to overwrite the beforeAll() method from parent,
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(StreamHandlerLambdaFunction.class.getName());
+        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(
+            "co.elastic.apm.agent.awslambda.lambdas.CustomStreamHandler::customHandleRequest"
+        );
         AbstractLambdaTest.initInstrumentation();
     }
 
     @Override
     protected ThrowableAssert.ThrowingCallable getRequestHandlingInvocation(Context context) {
-        return () -> function.handleRequest(null, null, context);
+        return () -> customStreamHandler.customHandleRequest(null, null, context);
     }
 }

@@ -137,6 +137,10 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
     public void testCallWithHandlerError() {
         Objects.requireNonNull(context).raiseException();
         assertThatThrownBy(() -> getFunction().handleRequest(createInput(), context)).isInstanceOf(RuntimeException.class);
+        verifyFailure();
+    }
+
+    protected void verifyFailure() {
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
