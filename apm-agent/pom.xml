@@ -235,7 +235,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-quartz-job-plugin</artifactId>
+            <artifactId>apm-quartz-1-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-quartz-2-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
