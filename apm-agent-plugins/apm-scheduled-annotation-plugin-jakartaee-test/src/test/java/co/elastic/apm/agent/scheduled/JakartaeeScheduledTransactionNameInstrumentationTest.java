@@ -18,9 +18,10 @@
  */
 package co.elastic.apm.agent.scheduled;
 
-import javax.ejb.Schedule;
+import jakarta.ejb.Schedule;
 
-public class ScheduledTransactionNameInstrumentationTest extends AbstractScheduledTransactionNameInstrumentationTest{
+
+public class JakartaeeScheduledTransactionNameInstrumentationTest extends AbstractScheduledTransactionNameInstrumentationTest {
     @Override
     JeeCounter createJeeCounterImpl() {
         return new JeeCounterImpl();
@@ -38,7 +39,7 @@ public class ScheduledTransactionNameInstrumentationTest extends AbstractSchedul
             this.count.incrementAndGet();
         }
 
-        @javax.ejb.Schedules({
+        @jakarta.ejb.Schedules({
             @Schedule(minute = "5"),
             @Schedule(minute = "10")
         })
