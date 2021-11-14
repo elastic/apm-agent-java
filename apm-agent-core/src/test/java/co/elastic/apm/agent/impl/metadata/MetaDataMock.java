@@ -47,8 +47,9 @@ public class MetaDataMock {
             new Service(),
             new SystemInfo("x64", "localhost", null, "platform"),
             null,
-            Collections.emptyMap())
-        );
+            Collections.emptyMap(),
+            null
+        ));
     }
 
     private static class NoWaitFuture<V> implements Future<V> {
