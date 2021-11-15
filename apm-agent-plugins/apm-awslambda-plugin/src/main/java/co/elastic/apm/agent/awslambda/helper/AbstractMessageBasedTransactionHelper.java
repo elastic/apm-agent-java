@@ -75,8 +75,8 @@ public abstract class AbstractMessageBasedTransactionHelper<I, O, R> extends Abs
         Transaction transaction = tracer.startChildTransaction(record, getTextHeaderGetter(), lambdaContext.getClass().getClassLoader());
 
         if (null != transaction) {
+            // Setting the queue name only later when parsing it from the full ARN
             Message messageCtx = transaction.getContext().getMessage();
-            messageCtx.withQueue(getQueueArn(record));
             long messageTimestampMs = getMessageTimestampMs(record);
             long transactionTimestampMs = transaction.getTimestamp() / 1000L;
             if (messageTimestampMs > 0 && transactionTimestampMs > messageTimestampMs) {
@@ -130,6 +130,7 @@ public abstract class AbstractMessageBasedTransactionHelper<I, O, R> extends Abs
             }
 
             updateTransactionName(transaction, queueName);
+            transaction.getContext().getMessage().withQueue(queueName);
 
             serviceOrigin.withId(queueArn);
             serviceOrigin.withName(queueName);

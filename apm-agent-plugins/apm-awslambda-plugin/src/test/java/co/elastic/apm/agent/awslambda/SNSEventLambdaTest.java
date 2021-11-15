@@ -94,13 +94,15 @@ public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
         Transaction transaction = reporter.getFirstTransaction();
+        printTransactionJson(transaction);
+
         assertThat(transaction.getNameAsString()).isEqualTo("RECEIVE " + SNS_TOPIC);
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getResult()).isEqualTo("success");
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
         assertThat(transaction.getContext().getMessage().hasContent()).isTrue();
-        assertThat(transaction.getContext().getMessage().getQueueName()).isEqualTo(SNS_EVENT_SOURCE_ARN);
+        assertThat(transaction.getContext().getMessage().getQueueName()).isEqualTo(SNS_TOPIC);
         assertThat(transaction.getContext().getMessage().getBodyForRead()).isNull();
         assertThat(transaction.getContext().getMessage().getHeaders().isEmpty()).isFalse();
         Map<String, String> attributesMap = new HashMap<>();

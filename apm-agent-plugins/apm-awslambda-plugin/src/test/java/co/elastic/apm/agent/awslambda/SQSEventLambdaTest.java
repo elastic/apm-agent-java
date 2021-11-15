@@ -94,13 +94,15 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
         Transaction transaction = reporter.getFirstTransaction();
+        printTransactionJson(transaction);
+
         assertThat(transaction.getNameAsString()).isEqualTo("RECEIVE " + SQS_QUEUE);
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getResult()).isEqualTo("success");
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
         assertThat(transaction.getContext().getMessage().hasContent()).isTrue();
-        assertThat(transaction.getContext().getMessage().getQueueName()).isEqualTo(SQS_EVENT_SOURCE_ARN);
+        assertThat(transaction.getContext().getMessage().getQueueName()).isEqualTo(SQS_QUEUE);
         assertThat(transaction.getContext().getMessage().getBodyForRead()).isNull();
         assertThat(transaction.getContext().getMessage().getHeaders().isEmpty()).isFalse();
         Map<String, String> attributesMap = new HashMap<>();

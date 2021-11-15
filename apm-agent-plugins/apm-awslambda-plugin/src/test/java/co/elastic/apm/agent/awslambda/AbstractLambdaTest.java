@@ -25,8 +25,14 @@ import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +43,7 @@ import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumentationTest {
@@ -104,6 +111,18 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
     @Nullable
     private AbstractFunction<ReqE, ResE> function;
 
+    private DslJsonSerializer jsonSerializer;
+    private ObjectMapper objectMapper;
+
+    public AbstractLambdaTest() {
+        jsonSerializer = new DslJsonSerializer(
+            mock(StacktraceConfiguration.class),
+            mock(ApmServerClient.class),
+            MetaDataMock.create()
+        );
+        objectMapper = new ObjectMapper();
+    }
+
     protected AbstractFunction<ReqE, ResE> getFunction() {
         return Objects.requireNonNull(function);
     }
@@ -148,5 +167,15 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
         assertThat(transaction.getResult()).isEqualTo("failure");
+    }
+
+    protected void printTransactionJson(Transaction transaction) {
+        String transactionJson = jsonSerializer.toJsonString(transaction);
+        try {
+            System.out.println(objectMapper.readTree(transactionJson).toPrettyString());
+        } catch (JsonProcessingException e) {
+            System.err.println("Failed to deserialize transaction JSON");
+            e.printStackTrace();
+        }
     }
 }
