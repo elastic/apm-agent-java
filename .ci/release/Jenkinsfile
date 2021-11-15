@@ -81,12 +81,14 @@ pipeline {
           when {
             allOf {
               expression { params.check_branch_ci_status }
-              not { branch 'stable' }
+              expression { env.BRANCH_SPECIFIER != 'stable' }
             }
           }
           steps {
             // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/"${BRANCH_SPECIFIER}"/
             whenTrue(!buildStatus(host: 'apm-ci.elastic.co', job: ['apm-agent-java', 'apm-agent-java-mbp', "${BRANCH_SPECIFIER}"], return_boolean: true)) {
+              notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] The ${BRANCH_SPECIFIER} build is not passing",
+                           body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")
               input(message: "WARNING! The ${BRANCH_SPECIFIER} build is not passing. Do you wish to continue?")
             }
           }
