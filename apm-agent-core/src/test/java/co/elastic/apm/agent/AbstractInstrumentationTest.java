@@ -19,6 +19,7 @@
 package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
@@ -26,7 +27,6 @@ import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -36,9 +36,22 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.annotation.Nullable;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractInstrumentationTest {
+
+    /**
+     * Set to a valid path in order to make byte buddy dump instrumented classes.
+     * We cannot use the {@link co.elastic.apm.agent.configuration.CoreConfiguration#bytecodeDumpPath} config because
+     * the way it works is by setting the related byte buddy system property, which is set statically, and since we use
+     * Mockito for agent configs, byte buddy gets loaded early and this property gets set before our configuration
+     * can be applied.
+     */
+    @Nullable
+    private static final String BYTE_BUDDY_DUMP_PATH = null;
+
     protected static ElasticApmTracer tracer;
     protected static MockReporter reporter;
     protected static ConfigurationRegistry config;
@@ -48,6 +61,11 @@ public abstract class AbstractInstrumentationTest {
     @BeforeAll
     @BeforeClass
     public static synchronized void beforeAll() {
+
+        if (BYTE_BUDDY_DUMP_PATH != null) {
+            System.setProperty("net.bytebuddy.dump", BYTE_BUDDY_DUMP_PATH);
+        }
+
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         tracer = mockInstrumentationSetup.getTracer();
         config = mockInstrumentationSetup.getConfig();
@@ -144,10 +162,9 @@ public abstract class AbstractInstrumentationTest {
     /**
      * Triggers a GC + stale entry cleanup in order to trigger GC-based expiration
      *
-     * @param map   map to flush
      * @param count number of cleanup loops to execute
      */
-    protected static void flushGcExpiry(WeakConcurrentMap<?, ?> map, int count) {
+    protected static void flushGcExpiry(int count) {
         // note: we can't rely on map size as it might report zero when not empty
         int left = count;
         do {
@@ -164,8 +181,7 @@ public abstract class AbstractInstrumentationTest {
                     // silently ignored
                 }
             }
-
-            map.expungeStaleEntries();
+            WeakConcurrentProviderImpl.expungeStaleEntries();
         } while (--left > 0);
     }
 }

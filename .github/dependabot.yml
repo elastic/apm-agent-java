@@ -32,3 +32,7 @@ updates:
       - dependency-name: "com.datastax.cassandra:cassandra-driver-core"
       - dependency-name: "com.datastax.oss:java-driver-core"
       - dependency-name: "io.opentelemetry:opentelemetry-api"
+    ignore:
+      - dependency-name: "net.bytebuddy:byte-buddy-agent"
+        # We deliberately want to keep this older version of Byte Buddy for our runtime attach test
+        versions: ["1.9.16"]
