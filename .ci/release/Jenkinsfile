@@ -157,6 +157,7 @@ pipeline {
                 if (isMajor) {
                   // major release, create '.x' branch
                   sh(script: """
+                    git fetch origin ${RELEASE_TAG} # ensure remote tag is fetched for local checkout
                     git checkout ${RELEASE_TAG}
                     git checkout -b ${BRANCH_DOT_X}
                   """)
@@ -167,6 +168,7 @@ pipeline {
                   // fix doc or release notes should also have been applied to master/stable branch we are releasing from
                   sh(script: """
                     git fetch origin ${BRANCH_DOT_X} # ensure remote branch is fetched for local checkout
+                    git fetch origin ${RELEASE_TAG} # ensure remote tag is fetched for local checkout
                     git checkout --track origin/${BRANCH_DOT_X}
                     git reset --hard ${RELEASE_TAG}
                     """)
