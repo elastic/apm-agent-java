@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.httpserver;
 
-import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
 import java.util.Arrays;
 import java.util.Collection;
 
-public abstract class JdkHttpServerInstrumentation extends ElasticApmInstrumentation {
+public abstract class JdkHttpServerInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

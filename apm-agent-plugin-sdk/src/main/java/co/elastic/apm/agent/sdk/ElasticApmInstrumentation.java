@@ -18,8 +18,6 @@
  */
 package co.elastic.apm.agent.sdk;
 
-import co.elastic.apm.agent.sdk.advice.AssignTo;
-import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -40,10 +38,12 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  * The actual instrumentation of the matched methods is performed by static methods within this class,
  * which are annotated by {@link net.bytebuddy.asm.Advice.OnMethodEnter} or {@link net.bytebuddy.asm.Advice.OnMethodExit}.
  * </p>
- * For internal plugins, the whole package (starting at {@code co.elastic.apm.agent.<plugin-root>})
+ * For internal plugins, by default, the whole package (starting at {@code co.elastic.apm.agent.<plugin-root>})
  * will be loaded from a plugin class loader that has both the agent class loader and the class loader of the
  * instrumented class as parents.
  * This class loader is also known as the {@code IndyPluginClassLoader}.
+ * To include more packages (for example, to add 3rd party dependencies),
+ * internal plugins can override {@code co.elastic.apm.agent.bci.TracerAwareInstrumentation#pluginClassLoaderRootPackages()}.
  * For external plugins, the whole jar will be loaded from the indy plugin class loader.
  * <p>
  * The advice methods will be dispatched via an {@code INVOKEDYNAMIC} instruction.
@@ -58,7 +58,7 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  *         Set {@link Advice.OnMethodEnter#inline()} and {@link Advice.OnMethodExit#inline()} to {@code false} on all advices.
  *         As the {@code readOnly} flag in Byte Buddy annotations such as {@link Advice.Return#readOnly()} cannot be used with non
  *         {@linkplain Advice.OnMethodEnter#inline() inlined advices},
- *         use {@link AssignTo} and friends.
+ *         use the annotations in {@link Advice.AssignReturned}.
  *     </li>
  *     <li>
  *         Both the return type and the arguments of advice methods must not contain types from the agent.
@@ -78,7 +78,7 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  *     </li>
  *     <li>
  *         Don't use {@link ThreadLocal}s as it can lead to class loader leaks.
- *         Use {@link GlobalThreadLocal} instead.
+ *         Use {@link co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal} instead.
  *     </li>
  *     <li>
  *         This applies to internal plugins only:

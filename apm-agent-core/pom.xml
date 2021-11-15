@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.26.1-SNAPSHOT</version>
+        <version>1.27.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
@@ -32,6 +32,16 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-common</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-cached-lookup-key</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.blogspot.mydailyjava</groupId>
+            <artifactId>weak-lock-free</artifactId>
+            <version>0.18</version>
         </dependency>
         <dependency>
             <groupId>com.lmax</groupId>
@@ -128,13 +138,6 @@
             <groupId>commons-math</groupId>
             <artifactId>commons-math</artifactId>
             <version>1.2</version>
-            <scope>test</scope>
-        </dependency>
-        <!--For setting environment variables-->
-        <dependency>
-            <groupId>com.github.stefanbirkner</groupId>
-            <artifactId>system-lambda</artifactId>
-            <version>1.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

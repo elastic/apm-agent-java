@@ -39,11 +39,13 @@ import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * Java API for in-process profiling. Serves as a wrapper around
  * async-profiler native library. This class is a singleton.
- * The first call to {@link #getInstance(String profilerLibDirectory)} initiates loading of
+ * The first call to {@link #getInstance(String, int)} initiates loading of
  * libasyncProfiler.so.
  * <p>
  * This is based on https://github.com/jvm-profiling-tools/async-profiler/blob/master/src/java/one/profiler/AsyncProfiler.java,
@@ -53,13 +55,15 @@ import java.io.IOException;
  */
 public class AsyncProfiler {
 
+    public static final String SAFEMODE_SYSTEM_PROPERTY_NAME = "AsyncProfiler.safemode";
+
     @Nullable
     private static volatile AsyncProfiler instance;
 
     private AsyncProfiler() {
     }
 
-    public static AsyncProfiler getInstance(String profilerLibDirectory) {
+    public static AsyncProfiler getInstance(String profilerLibDirectory, int safemode) {
         AsyncProfiler result = AsyncProfiler.instance;
         if (result != null) {
             return result;
@@ -71,6 +75,13 @@ public class AsyncProfiler {
                         "profiling_inferred_spans_enabled to false");
                 }
                 try {
+                    // set the AsyncProfiler.safemode system property with the configured safemode, so that optimizations
+                    // can be applied already at load time. Specifically, if (safemode & 14) == 14 (2, 4 and 8 bits are set), then
+                    // async profiler will avoid enabling CompiledMethodLoad events at load time, so to workaround a relatd JVM bug
+                    // (https://bugs.openjdk.java.net/browse/JDK-8202883, https://bugs.openjdk.java.net/browse/JDK-8173361 and friends).
+                    // safemode can still be set for each profiling session, but it can only be stricter than the safemode
+                    // configured at load time.
+                    System.setProperty(SAFEMODE_SYSTEM_PROPERTY_NAME, String.valueOf(safemode));
                     loadNativeLibrary(profilerLibDirectory);
                 } catch (UnsatisfiedLinkError e) {
                     throw new IllegalStateException(String.format("It is likely that %s is not an executable location. Consider setting " +
@@ -92,11 +103,11 @@ public class AsyncProfiler {
 
     private static void loadNativeLibrary(String libraryDirectory) {
         String libraryName = getLibraryFileName();
-        File file = ResourceExtractionUtil.extractResourceToDirectory("asyncprofiler/" + libraryName + ".so", libraryName, ".so", libraryDirectory);
-        System.load(file.getAbsolutePath());
+        Path file = ResourceExtractionUtil.extractResourceToDirectory("asyncprofiler/" + libraryName + ".so", libraryName, ".so", Paths.get(libraryDirectory));
+        System.load(file.toString());
     }
 
-    private static String getLibraryFileName() {
+    static String getLibraryFileName() {
         String os = System.getProperty("os.name").toLowerCase();
         String arch = System.getProperty("os.arch").toLowerCase();
         if (os.contains("linux")) {

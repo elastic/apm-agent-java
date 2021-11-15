@@ -47,15 +47,8 @@ pipeline {
             }
 
             dir("${BASE_DIR}") {
-              script {
-                env.TAG_BARE = sh(script: "./scripts/jenkins/tags.sh bare", returnStdout: true)
-                env.TAG_VER = sh(script: "./scripts/jenkins/tags.sh ver", returnStdout: true)
-                env.BRANCH_DOT_X = sh(script: "./scripts/jenkins/tags.sh dot_x", returnStdout: true)
-              }
-            }
-            dir("${BASE_DIR}") {
-              withEnv(["BRANCH_NAME=tags/${env.TAG_BARE}"]){
-                withGitRelease() {
+              withEnv(["BRANCH_NAME=${BRANCH_SPECIFIER}"]){
+                withGitRelease() { // sets up the git release setup (remote branches, current workspace state, ...)
                   stash(allowEmpty: true, name: 'source', useDefaultExcludes: false)
                 }
               }
@@ -72,9 +65,6 @@ pipeline {
       options { skipDefaultCheckout () }
       stages{
         stage('Check oss.sonatype.org') {
-          when {
-            expression { return false }
-          }
           steps {
             // If this fails, an exception should be thrown and execution will halt
             dir("${BASE_DIR}"){
@@ -91,20 +81,19 @@ pipeline {
           when {
             allOf {
               expression { params.check_branch_ci_status }
-              not { branch 'stable' }
+              expression { env.BRANCH_SPECIFIER != 'stable' }
             }
           }
           steps {
             // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/"${BRANCH_SPECIFIER}"/
             whenTrue(!buildStatus(host: 'apm-ci.elastic.co', job: ['apm-agent-java', 'apm-agent-java-mbp', "${BRANCH_SPECIFIER}"], return_boolean: true)) {
+              notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] The ${BRANCH_SPECIFIER} build is not passing",
+                           body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")
               input(message: "WARNING! The ${BRANCH_SPECIFIER} build is not passing. Do you wish to continue?")
             }
           }
         }
         stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
-          when {
-            expression { return false }
-          }
           steps {
             input(message: """
             Update CHANGELOG.asciidoc to reflect the new version release:
@@ -120,9 +109,6 @@ pipeline {
           }
         }
         stage('Set release version') {
-          when {
-            expression { return false }
-          }
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -134,6 +120,7 @@ pipeline {
                     defaultValue: "${release_version}",
                     description: "Current project version is ${snapshot_version}, will be released as ${release_version} if unchanged. Input release version without '-SNAPSHOT' suffix"
                   ]])
+
                 if( release_version.equals(user_release_version) ) {
                     echo "changing project version '${snapshot_version}' not required to release ${release_version}"
                 } else {
@@ -142,14 +129,15 @@ pipeline {
                     sh(script: "git commit -a -m 'Version bump ${user_release_version}'")
                     gitPush()
                 }
+
+                env.RELEASE_TAG = "v" + user_release_version
+                env.RELEASE_VERSION = user_release_version
+                env.BRANCH_DOT_X = user_release_version.substring(0, user_release_version.indexOf('.'))+'.x'
               }
             }
           }
         }
         stage('Wait on internal CI') {
-          when {
-            expression { return false }
-          }
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
                           body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")
@@ -164,17 +152,14 @@ pipeline {
           }
         }
         stage('Major Branch create/update') {
-          when {
-            expression { return false }
-          }
           steps {
             dir("${BASE_DIR}") {
               script {
-                def isMajor = "${TAG_VER}".endsWith(".0.0")
+                def isMajor = env.RELEASE_VERSION.endsWith(".0.0")
                 if (isMajor) {
                   // major release, create '.x' branch
                   sh(script: """
-                    git checkout ${TAG_BARE}
+                    git checkout ${RELEASE_TAG}
                     git checkout -b ${BRANCH_DOT_X}
                   """)
                   gitPush()
@@ -185,7 +170,7 @@ pipeline {
                   sh(script: """
                     git fetch origin ${BRANCH_DOT_X} # ensure remote branch is fetched for local checkout
                     git checkout --track origin/${BRANCH_DOT_X}
-                    git reset --hard ${TAG_BARE}
+                    git reset --hard ${RELEASE_TAG}
                     """)
                   gitPush(args: "-f ${BRANCH_DOT_X}")
                 }
@@ -211,13 +196,13 @@ pipeline {
               script {
                 // Construct the URL with anchor for the release notes
                 // Ex: https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-1.x.html#release-notes-1.13.0
-                def finalUrl = "https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html#release-notes-${TAG_VER}"
+                def finalUrl = "https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html#release-notes-${RELEASE_VERSION}"
                 githubEnv()
                 def ret = githubReleaseCreate(
                         draft: true,
-                        tagName: "${TAG_BARE}",
-                        releaseName: "Release ${TAG_VER}",
-                        body: "[Release Notes for ${TAG_VER}](${finalUrl})")
+                        tagName: "${RELEASE_TAG}",
+                        releaseName: "Release ${RELEASE_VERSION}",
+                        body: "[Release Notes for ${RELEASE_VERSION}](${finalUrl})")
                 env.RELEASE_ID = ret['id']
                 env.RELEASE_NOTES_URL = finalUrl
               }
@@ -225,13 +210,10 @@ pipeline {
           }
         }
         stage('Wait for artifact to be available in Maven Central') {
-          when {
-            expression { return false }
-          }
           steps {
             dir("${BASE_DIR}"){
               script {
-                def fullUrl = "https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/${TAG_VER}/elastic-apm-agent-${TAG_VER}.pom"
+                def fullUrl = "https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/${RELEASE_VERSION}/elastic-apm-agent-${RELEASE_VERSION}.pom"
                 waitUntil(initialRecurrencePeriod: 60000) {
                   script {
                     def ret = sh(script: "curl -fs '${fullUrl}' >/dev/null 2>&1", returnStatus: true)
@@ -251,7 +233,7 @@ pipeline {
                   git fetch origin ${BRANCH_SPECIFIER} # ensure remote branch is fetched for local checkout
                   git checkout --track origin/${BRANCH_SPECIFIER}
                   """)
-              sh(script: "./scripts/jenkins/update_cloudfoundry.sh")
+              sh(script: "./scripts/jenkins/update_cloudfoundry.sh ${RELEASE_VERSION}")
               gitPush()
             }
           }
@@ -262,12 +244,12 @@ pipeline {
               waitUntil(initialRecurrencePeriod: 60000) {
                 script {
                   echo "Waiting for the release notes to be available"
-                    def ret = sh(script: "curl -fs https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html | grep ${TAG_VER}", returnStatus: true)
+                    def ret = sh(script: "curl -fs https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html | grep ${RELEASE_VERSION}", returnStatus: true)
                     return ret == 0
                 }
               }
               githubEnv()
-              githubReleasePublish(id: "${env.RELEASE_ID}", name: "Release ${TAG_VER}")
+              githubReleasePublish(id: "${env.RELEASE_ID}", name: "Release ${RELEASE_VERSION}")
             }
           }
         }

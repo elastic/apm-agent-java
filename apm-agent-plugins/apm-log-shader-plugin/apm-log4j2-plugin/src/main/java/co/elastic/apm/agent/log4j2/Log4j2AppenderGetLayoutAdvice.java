@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.log4j2;
 
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import org.apache.logging.log4j.core.Appender;
@@ -39,7 +38,7 @@ public class Log4j2AppenderGetLayoutAdvice {
 
     @SuppressWarnings({"unused"})
     @Nullable
-    @AssignTo.Return
+    @Advice.AssignReturned.ToReturned
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
     public static Layout<?> shadeLoggingEvent(@Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender,
                                               @Advice.Return @Nullable Layout<?> originalLayout) {

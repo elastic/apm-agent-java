@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.26.1-SNAPSHOT</version>
+        <version>1.27.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-benchmarks</artifactId>
@@ -122,7 +122,6 @@
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy-agent</artifactId>
-            <version>${version.byte-buddy}</version>
         </dependency>
         <dependency>
             <groupId>org.agrona</groupId>

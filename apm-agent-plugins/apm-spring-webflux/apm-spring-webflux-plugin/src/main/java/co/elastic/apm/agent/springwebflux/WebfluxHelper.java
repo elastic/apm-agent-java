@@ -26,10 +26,10 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.util.TransactionNameUtils;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +74,7 @@ public class WebfluxHelper {
     private static final CoreConfiguration coreConfig;
     private static final WebConfiguration webConfig;
 
-    private static final WeakConcurrentMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakMapSupplier.createMap();
+    private static final WeakMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakConcurrent.buildMap();
 
     static {
         coreConfig = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);
@@ -136,10 +136,6 @@ public class WebfluxHelper {
                 return wrappedSubscriber;
             }
         }));
-
-        if (log.isTraceEnabled()) {
-            mono = mono.log(description);
-        }
         return mono;
     }
 
@@ -240,8 +236,10 @@ public class WebfluxHelper {
         request.withMethod(serverRequest.getMethodValue());
 
         InetSocketAddress remoteAddress = serverRequest.getRemoteAddress();
-        request.getSocket()
-            .withRemoteAddress(remoteAddress == null ? null : remoteAddress.getAddress().getHostAddress());
+        if (remoteAddress != null && remoteAddress.getAddress() != null) {
+            request.getSocket()
+                .withRemoteAddress(remoteAddress.getAddress().getHostAddress());
+        }
 
         request.getUrl().fillFrom(serverRequest.getURI());
 

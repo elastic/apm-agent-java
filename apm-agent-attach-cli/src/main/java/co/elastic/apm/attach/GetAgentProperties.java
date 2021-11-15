@@ -18,16 +18,13 @@
  */
 package co.elastic.apm.attach;
 
-import net.bytebuddy.agent.ByteBuddyAgent;
-import net.bytebuddy.agent.VirtualMachine;
+import co.elastic.apm.agent.common.util.ProcessExecutionUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Properties;
-
-import co.elastic.apm.attach.UserRegistry.CommandOutput;
 
 public class GetAgentProperties {
 
@@ -46,11 +43,11 @@ public class GetAgentProperties {
      * @throws Exception
      */
     public static void main(String[] args) throws Exception {
-        getAgentAndSystemPropertiesCurrentUser(args[0]).store(System.out, null);
+        JvmAttachUtils.getAgentAndSystemProperties(args[0]).store(System.out, null);
     }
 
     /**
-     * Attaches to the VM with the given pid and gets the {@link VirtualMachine#getAgentProperties()} and {@link VirtualMachine#getSystemProperties()}.
+     * Attaches to the VM with the given pid and gets the agent and system properties.
      *
      * @param pid  The pid of the target VM, If it is current VM, this method will fork a VM for self-attachment.
      * @param user The user that runs the target VM. If this is not the current user, this method will fork a VM that runs under this user.
@@ -59,44 +56,20 @@ public class GetAgentProperties {
      */
     public static Properties getAgentAndSystemProperties(String pid, UserRegistry.User user) throws Exception {
         if (user.isCurrentUser() && !JvmInfo.CURRENT_PID.equals(pid)) {
-            return getAgentAndSystemPropertiesCurrentUser(pid);
+            return JvmAttachUtils.getAgentAndSystemProperties(pid);
         } else {
             return getAgentAndSystemPropertiesSwitchUser(pid, user);
         }
     }
 
-    static Properties getAgentAndSystemPropertiesSwitchUser(String pid, UserRegistry.User user) throws IOException, InterruptedException {
-        CommandOutput output = user.executeAsUserWithCurrentClassPath(GetAgentProperties.class, Arrays.asList(pid, user.getUsername()));
+    static Properties getAgentAndSystemPropertiesSwitchUser(String pid, UserRegistry.User user) throws IOException {
+        ProcessExecutionUtil.CommandOutput output = user.executeAsUserWithCurrentClassPath(GetAgentProperties.class, Arrays.asList(pid, user.getUsername()));
         if (output.getExitCode() == 0) {
             Properties properties = new Properties();
             properties.load(new StringReader(output.getOutput().toString()));
             return properties;
         } else {
-            throw new RuntimeException(output.getOutput().toString(), output.exceptionThrown);
-        }
-    }
-
-    static Properties getAgentAndSystemPropertiesCurrentUser(String pid) {
-        ByteBuddyAgent.AttachmentProvider.Accessor accessor = ElasticAttachmentProvider.get().attempt();
-        if (!accessor.isAvailable()) {
-            throw new IllegalStateException("No compatible attachment provider is available");
-        }
-
-        try {
-            Class<?> vm = accessor.getVirtualMachineType();
-            Object virtualMachineInstance = vm
-                .getMethod("attach", String.class)
-                .invoke(null, pid);
-            try {
-                Properties agentProperties = (Properties) vm.getMethod("getAgentProperties").invoke(virtualMachineInstance);
-                Properties systemProperties = (Properties) vm.getMethod("getSystemProperties").invoke(virtualMachineInstance);
-                systemProperties.putAll(agentProperties);
-                return systemProperties;
-            } finally {
-                vm.getMethod("detach").invoke(virtualMachineInstance);
-            }
-        } catch (Exception exception) {
-            throw new IllegalStateException("Error during attachment using: " + accessor, exception);
+            throw new RuntimeException(output.getOutput().toString(), output.getExceptionThrown());
         }
     }
 }

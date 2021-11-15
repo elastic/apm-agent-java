@@ -5,7 +5,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.26.1-SNAPSHOT</version>
+        <version>1.27.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>application-server-integration-tests</artifactId>
@@ -20,6 +20,12 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>simple-webapp</artifactId>
+            <version>${project.version}</version>
+            <type>war</type>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jakartaee-simple-webapp</artifactId>
             <version>${project.version}</version>
             <type>war</type>
         </dependency>
