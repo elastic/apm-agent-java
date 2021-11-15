@@ -24,20 +24,20 @@ import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.MetaData;
-import co.elastic.apm.agent.impl.MetaDataMock;
+import co.elastic.apm.agent.impl.metadata.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.payload.Agent;
-import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
-import co.elastic.apm.agent.impl.payload.Language;
-import co.elastic.apm.agent.impl.payload.ProcessInfo;
-import co.elastic.apm.agent.impl.payload.Service;
-import co.elastic.apm.agent.impl.payload.SystemInfo;
+import co.elastic.apm.agent.impl.metadata.Agent;
+import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
+import co.elastic.apm.agent.impl.metadata.Language;
+import co.elastic.apm.agent.impl.metadata.ProcessInfo;
+import co.elastic.apm.agent.impl.metadata.Service;
+import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -92,7 +92,7 @@ class DslJsonSerializerTest {
         StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
         when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(15);
         apmServerClient = mock(ApmServerClient.class);
-        metaData = MetaData.create(SpyConfiguration.createSpyConfig(), null);
+        metaData = MetaDataMock.create();
         serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData);
         serializer.blockUntilReady();
         objectMapper = new ObjectMapper();
@@ -157,6 +157,7 @@ class DslJsonSerializerTest {
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
+        error.setTransactionName(new StringBuilder("Test Transaction"));
         error.setException(new Exception("test"));
         error.getContext().addLabel("foo", "bar");
 
@@ -176,8 +177,10 @@ class DslJsonSerializerTest {
         JsonNode stacktrace = exception.get("stacktrace");
         assertThat(stacktrace).hasSize(15);
 
-        assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isTrue();
-        assertThat(errorTree.get("transaction").get("type").textValue()).isEqualTo("test-type");
+        JsonNode transactionTree = errorTree.get("transaction");
+        assertThat(transactionTree.get("sampled").booleanValue()).isTrue();
+        assertThat(transactionTree.get("type").textValue()).isEqualTo("test-type");
+        assertThat(transactionTree.get("name").asText()).isEqualTo("Test Transaction");
     }
 
     @Test
@@ -212,6 +215,11 @@ class DslJsonSerializerTest {
         assertThat(errorTree.get("trace_id")).isNull();
         assertThat(errorTree.get("parent_id")).isNull();
         assertThat(errorTree.get("transaction_id")).isNull();
+
+        JsonNode transactionTree = errorTree.get("transaction");
+        assertThat(transactionTree.get("sampled").booleanValue()).isFalse();
+        assertThat(transactionTree.get("type")).isNull();
+        assertThat(transactionTree.get("name")).isNull();
     }
 
     @Test
@@ -537,6 +545,7 @@ class DslJsonSerializerTest {
     void testSpanMessageContextSerialization() {
         Span span = new Span(MockTracer.create());
         span.getContext().getMessage()
+            .withRoutingKey("routing-key")
             .withQueue("test-queue")
             .withBody("test-body")
             .addHeader("text-header", "text-value")
@@ -561,6 +570,23 @@ class DslJsonSerializerTest {
         JsonNode ms = age.get("ms");
         assertThat(ms).isNotNull();
         assertThat(ms.longValue()).isEqualTo(20);
+        JsonNode routingKey = message.get("routing_key");
+        assertThat(routingKey.textValue()).isEqualTo("routing-key");
+    }
+
+    @Test
+    void testSpanMessageContextSerializationWithoutRoutingKey() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getMessage()
+            .withQueue("test-queue")
+            .withBody("test-body")
+            .addHeader("text-header", "text-value")
+            .addHeader("binary-header", "binary-value".getBytes(StandardCharsets.UTF_8))
+            .withAge(20);
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode routingKey = spanJson.get("context").get("message").get("routing_key");
+        assertThat(routingKey).isNull();
     }
 
     @Test
@@ -910,21 +936,54 @@ class DslJsonSerializerTest {
         assertThat(transactionNode.get("span_count").get("started").asInt()).isEqualTo(0);
     }
 
-    @Test
-    void testSystemInfo() throws Exception {
-        String arc = System.getProperty("os.arch");
-        String platform = System.getProperty("os.name");
-        String hostname = SystemInfo.getNameOfLocalHost();
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSystemInfo_configuredHostname(boolean supportsConfiguredAndDetectedHostname) throws Exception {
+        String arc = "test-arc";
+        String platform = "test-platform";
 
-        MetaData metaData = createMetaData();
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter());
+        MetaData metaData = createMetaData(new SystemInfo(arc, "configured", "detected", platform));
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname);
         serializer.appendMetadataToStream();
 
         JsonNode system = readJsonString(serializer.toString()).get("system");
 
         assertThat(arc).isEqualTo(system.get("architecture").asText());
-        assertThat(hostname).isEqualTo(system.get("hostname").asText());
         assertThat(platform).isEqualTo(system.get("platform").asText());
+        if (supportsConfiguredAndDetectedHostname) {
+            assertThat(system.get("configured_hostname").asText()).isEqualTo("configured");
+            assertThat(system.get("detected_hostname")).isNull();
+            assertThat(system.get("hostname")).isNull();
+        } else {
+            assertThat(system.get("configured_hostname")).isNull();
+            assertThat(system.get("detected_hostname")).isNull();
+            assertThat(system.get("hostname").asText()).isEqualTo("configured");
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSystemInfo_detectedHostname(boolean supportsConfiguredAndDetectedHostname) throws Exception {
+        String arc = "test-arc";
+        String platform = "test-platform";
+
+        MetaData metaData = createMetaData(new SystemInfo(arc, null, "detected", platform));
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname);
+        serializer.appendMetadataToStream();
+
+        JsonNode system = readJsonString(serializer.toString()).get("system");
+
+        assertThat(arc).isEqualTo(system.get("architecture").asText());
+        assertThat(platform).isEqualTo(system.get("platform").asText());
+        if (supportsConfiguredAndDetectedHostname) {
+            assertThat(system.get("configured_hostname")).isNull();
+            assertThat(system.get("detected_hostname").asText()).isEqualTo("detected");
+            assertThat(system.get("hostname")).isNull();
+        } else {
+            assertThat(system.get("configured_hostname")).isNull();
+            assertThat(system.get("detected_hostname")).isNull();
+            assertThat(system.get("hostname").asText()).isEqualTo("detected");
+        }
     }
 
     @Test
@@ -936,7 +995,7 @@ class DslJsonSerializerTest {
         cloudProviderInfo.setProject(null);
         cloudProviderInfo.setInstance(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter());
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true);
         serializer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
@@ -961,7 +1020,7 @@ class DslJsonSerializerTest {
         Objects.requireNonNull(cloudProviderInfo.getProject()).setName(null);
         Objects.requireNonNull(cloudProviderInfo.getInstance()).setName(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter());
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true);
         serializer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
@@ -994,7 +1053,7 @@ class DslJsonSerializerTest {
         instance.setName(null);
         instance.setId(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter());
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true);
         serializer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
@@ -1018,7 +1077,7 @@ class DslJsonSerializerTest {
         Objects.requireNonNull(cloudProviderInfo.getInstance()).setId(null);
         Objects.requireNonNull(cloudProviderInfo.getAccount()).setId(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter());
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true);
         serializer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
@@ -1039,7 +1098,7 @@ class DslJsonSerializerTest {
     }
 
     private MetaData createMetaData() throws Exception {
-        return createMetaData(SystemInfo.create());
+        return createMetaData(SystemInfo.create("hostname", 0));
     }
 
     private MetaData createMetaData(SystemInfo system) throws Exception {

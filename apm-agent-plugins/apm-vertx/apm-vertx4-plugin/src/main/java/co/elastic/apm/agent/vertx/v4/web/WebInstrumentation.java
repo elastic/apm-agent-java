@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.vertx.v4.web;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.vertx.v4.Vertx4Instrumentation;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
@@ -77,7 +76,7 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
 
         public static class ContextImplTracerAdvice {
 
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static VertxTracer<?, ?> receiveRequest(@Advice.Return @Nullable VertxTracer<?, ?> currentTracer) {
                 return currentTracer == null ? NoopVertxTracer.INSTANCE : currentTracer;

@@ -23,7 +23,8 @@ import co.elastic.apm.agent.TransactionUtils;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -47,7 +48,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
     private Transaction transaction;
 
-    private WeakConcurrentMap<Process, Span> storageMap;
+    private WeakMap<Process, Span> storageMap;
     private ProcessHelper helper;
 
     @BeforeEach
@@ -55,7 +56,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         transaction = new Transaction(tracer);
         TransactionUtils.fillTransaction(transaction);
 
-        storageMap = new WeakConcurrentMap.WithInlinedExpunction<>();
+        storageMap = WeakConcurrent.buildMap();
         helper = new ProcessHelper(storageMap);
     }
 
@@ -104,6 +105,42 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
         // this second call should be ignored, thus exception not reported
         helper.doEndProcess(process, true);
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getErrors())
+            .describedAs("error should not be reported")
+            .isEmpty();
+    }
+
+    @Test
+    void endProcessAfterEndSpanShouldBeIgnored() {
+        Process process = mock(Process.class);
+
+        helper.doStartProcess(transaction, process, "hello");
+        assertThat(storageMap).isNotEmpty();
+
+        helper.doEndProcessSpan(process, 0);
+
+        // this second call should be ignored, thus exception not reported
+        helper.doEndProcess(process, true);
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getErrors())
+            .describedAs("error should not be reported")
+            .isEmpty();
+    }
+
+    @Test
+    void endSpanAfterEndProcessShouldBeIgnored() {
+        Process process = mock(Process.class);
+
+        helper.doStartProcess(transaction, process, "hello");
+        assertThat(storageMap).isNotEmpty();
+
+        helper.doEndProcess(process, true);
+
+        // this second call should be ignored, thus exception not reported
+        helper.doEndProcessSpan(process, 0);
 
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getErrors())

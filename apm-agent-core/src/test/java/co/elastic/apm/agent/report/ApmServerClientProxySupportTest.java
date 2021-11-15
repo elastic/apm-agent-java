@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import io.undertow.Undertow;
 import io.undertow.io.Sender;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
@@ -212,10 +214,11 @@ public class ApmServerClientProxySupportTest {
     }
 
     private static ApmServerClient createAndStartClient(boolean useProxy) {
-        ReporterConfiguration config = SpyConfiguration.createSpyConfig().getConfig(ReporterConfiguration.class);
+        ConfigurationRegistry spyConfig = SpyConfiguration.createSpyConfig();
+        ReporterConfiguration config = spyConfig.getConfig(ReporterConfiguration.class);
 
         doReturn(Collections.singletonList(useProxy ? proxyUrl : directUrl)).when(config).getServerUrls();
-        ApmServerClient client = new ApmServerClient(config);
+        ApmServerClient client = new ApmServerClient(config, spyConfig.getConfig(CoreConfiguration.class));
         client.start();
         return client;
     }

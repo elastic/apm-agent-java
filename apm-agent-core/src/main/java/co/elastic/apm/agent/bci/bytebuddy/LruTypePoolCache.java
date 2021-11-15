@@ -19,10 +19,9 @@
 package co.elastic.apm.agent.bci.bytebuddy;
 
 import co.elastic.apm.agent.configuration.converter.ByteValue;
-import co.elastic.apm.agent.util.ClassLoaderUtils;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import com.blogspot.mydailyjava.weaklockfree.AbstractWeakConcurrentMap;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.googlecode.concurrentlinkedhashmap.EntryWeigher;
 import net.bytebuddy.agent.builder.AgentBuilder;
@@ -34,7 +33,6 @@ import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -65,7 +63,7 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
      * Wrapped in a SoftReference so that the whole cache can be cleared if the JVM is under memory pressure
      */
     private final AtomicReference<SoftReference<ConcurrentMap<String, ResolutionsByClassLoader>>> sharedCache;
-    private final WeakConcurrentMap<ClassLoader, TypePool.CacheProvider> cacheProviders;
+    private final WeakMap<ClassLoader, TypePool.CacheProvider> cacheProviders;
     private final ScheduledThreadPoolExecutor executor;
 
     /**
@@ -92,7 +90,7 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
         super(readerMode);
         this.maxCacheSize = maxCacheSize;
         this.sharedCache = new AtomicReference<>(new SoftReference<>(createCache()));
-        this.cacheProviders = new WeakConcurrentMap<>(false);
+        this.cacheProviders = WeakConcurrent.buildMap();
         this.executor = ExecutorUtils.createSingleThreadSchedulingDaemonPool("type-cache-pool-cleaner");
     }
 
@@ -137,7 +135,6 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
                 iterator.remove();
             }
         }
-        cacheProviders.expungeStaleEntries();
     }
 
     private ConcurrentMap<String, ResolutionsByClassLoader> createCache() {
@@ -216,14 +213,14 @@ public class LruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCach
 
     public static class ResolutionsByClassLoader {
         private final AtomicLong lastAccess = new AtomicLong(System.currentTimeMillis());
-        private final WeakConcurrentMap<ClassLoader, TypePool.Resolution> typeByClassLoader;
+        private final WeakMap<ClassLoader, TypePool.Resolution> typeByClassLoader;
 
         public ResolutionsByClassLoader() {
-            typeByClassLoader = new WeakConcurrentMap<ClassLoader, TypePool.Resolution>(false,
-                ClassLoaderUtils.isPersistentClassLoader(getClass().getClassLoader()),
+            typeByClassLoader = WeakConcurrent
+                .<ClassLoader, TypePool.Resolution>weakMapBuilder()
                 // we expect that most classes are loaded by just one class loader
-                new ConcurrentHashMap<AbstractWeakConcurrentMap.WeakKey<ClassLoader>, TypePool.Resolution>(1)
-            );
+                .withInitialCapacity(1)
+                .build();
         }
 
         @Nullable

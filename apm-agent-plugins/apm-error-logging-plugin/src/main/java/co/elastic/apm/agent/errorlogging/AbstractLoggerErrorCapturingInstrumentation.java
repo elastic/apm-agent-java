@@ -80,8 +80,7 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Tracer
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("error")
-            .and(takesArgument(0, named("java.lang.String"))
-                .and(takesArgument(1, named("java.lang.Throwable"))));
+            .and(takesArgument(1, named("java.lang.Throwable")));
     }
 
     @Override

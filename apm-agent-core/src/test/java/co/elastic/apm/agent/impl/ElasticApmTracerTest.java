@@ -119,7 +119,8 @@ class ElasticApmTracerTest {
 
     @Test
     void testDisableStacktraces() {
-        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(0L);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs()).thenReturn(-1L);
+
         Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
@@ -133,7 +134,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testEnableStacktraces() throws InterruptedException {
-        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(-1L);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs()).thenReturn(0L);
         Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
@@ -148,7 +149,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testDisableStacktracesForFastSpans() {
-        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(100L);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs()).thenReturn(100L);
         Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
@@ -163,7 +164,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testEnableStacktracesForSlowSpans() throws InterruptedException {
-        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(1L);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs()).thenReturn(1L);
         Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
@@ -267,6 +268,9 @@ class ElasticApmTracerTest {
             .describedAs("error trace context [%s] should be a child of span trace context [%s]", error.getTraceContext(), span.getTraceContext())
             .isTrue();
         assertThat(error.getTransactionInfo().isSampled()).isEqualTo(sampled);
+        if (!transaction.getNameAsString().isEmpty()) {
+            assertThat(error.getTransactionInfo().getName()).isEqualTo(transaction.getNameAsString());
+        }
         assertThat(error.getTransactionInfo().getType()).isEqualTo(transaction.getType());
         return error;
     }
@@ -482,6 +486,19 @@ class ElasticApmTracerTest {
         assertThat(errorId).isNotNull();
         ErrorCapture error = reporter.getFirstError();
         assertThat(error.getTraceContext().getId().toString()).isEqualTo(errorId);
+    }
+
+    @Test
+    void testCaptureExceptionWithTransactionName() {
+        Transaction transaction = startTestRootTransaction().withName("My Transaction");
+        try (Scope scope = transaction.activateInScope()) {
+            transaction.captureException(new Exception("test"));
+            transaction.end();
+        }
+
+        assertThat(reporter.getErrors()).hasSize(1);
+        ErrorCapture error = reporter.getFirstError();
+        assertThat(error.getTransactionInfo().getName().toString()).isEqualTo("My Transaction");
     }
 
 }

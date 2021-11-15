@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -106,7 +106,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Argument(0)
+            @Advice.AssignReturned.ToArguments(@ToArgument(0))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Runnable onExecute(@Advice.This Executor thiz,
                                              @Advice.Argument(0) @Nullable Runnable runnable) {
@@ -144,7 +144,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Argument(0)
+            @Advice.AssignReturned.ToArguments(@ToArgument(0))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Callable<?> onSubmit(@Advice.This Executor thiz,
                                                @Advice.Argument(0) @Nullable Callable<?> callable) {
@@ -194,7 +194,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Argument(0)
+            @Advice.AssignReturned.ToArguments(@ToArgument(0))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static <T> Collection<? extends Callable<T>> onEnter(@Advice.This Executor thiz,
                                                                         @Nullable @Advice.Argument(0) Collection<? extends Callable<T>> callables) {
@@ -240,7 +240,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Argument(0)
+            @Advice.AssignReturned.ToArguments(@ToArgument(0))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static ForkJoinTask<?> onExecute(@Advice.This Executor thiz,
                                                     @Advice.Argument(0) @Nullable ForkJoinTask<?> task) {
