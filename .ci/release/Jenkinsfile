@@ -81,7 +81,7 @@ pipeline {
           when {
             allOf {
               expression { params.check_branch_ci_status }
-              expression { BRANCH_SPECIFIER != 'stable' }
+              expression { env.BRANCH_SPECIFIER != 'stable' }
             }
           }
           steps {
