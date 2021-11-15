@@ -20,8 +20,20 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.28.0]]
+==== 1.28.0 - YYYY/MM/DD
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.27.0]]
-==== 1.27.0 - YYYY/MM/DD
+==== 1.27.0 - 2021/11/15
 
 [float]
 ===== Potentially breaking changes
@@ -52,10 +64,12 @@ by the agent may be different. This was done in order to improve the integration
 * Add support to Jakarta EE for JAX-RS - {pull}2248[#2248]
 * Add support for Jakarta EE EJB annotations `@Schedule`, `@Schedules` - {pull}2250[#2250]
 * Add support to Jakarta EE for JSF - {pull}2254[#2254]
+* Added support to Quartz 1.x - {pull}2219[#2219]
 
 [float]
 ===== Performance improvements
 * Disable compression when sending data to a local APM Server
+* Reducing startup contention related to instrumentation through `ensureInstrumented` - {pull}2150[#2150]
 
 [float]
 ===== Bug fixes
@@ -82,9 +96,6 @@ discovery - {pull}2205[#2205]
 `TracerAwareInstrumentation` - {pull}#2170[#2170]
 * Replace concurrency plugin maps to `SpanConcurrentHashMap` ones - {pull}#2173[#2173]
 * Align User-Agent HTTP header with other APM agents - {pull}#2177[#2177]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.26.0]]
 ==== 1.26.0 - 2021/09/14
