@@ -69,15 +69,15 @@ class CompletableFutureTest {
     void testCancelBeforeStart() {
         final CompletableFuture<Object> completableFuture = new CompletableFuture<>();
         for (int i = 0; i < NUM_THREADS; i++) {
-            scheduledExecutorService.schedule(new CompletableFutureTester(completableFuture, 5), 100, TimeUnit.MILLISECONDS);
+            scheduledExecutorService.schedule(new CompletableFutureTester(completableFuture, 5), 200, TimeUnit.MILLISECONDS);
         }
         assertThat(completableFuture.cancel(false)).isTrue();
         assertThat(completableFuture.cancel(false)).isFalse();
         await()
             .timeout(1, TimeUnit.SECONDS)
             .untilAsserted(() -> assertThat(finished.get()).isEqualTo(NUM_THREADS));
-        assertThat(cancellationExceptionCounter.get()).isEqualTo(NUM_THREADS);
         assertThat(isCancelledCounter.get()).isEqualTo(NUM_THREADS);
+        assertThat(cancellationExceptionCounter.get()).isEqualTo(NUM_THREADS);
         assertThat(completableFuture.complete(new Object())).isFalse();
         assertThat(isDoneCounter.get()).isEqualTo(NUM_THREADS);
         assertThat(valueObtainedCounter.get()).isEqualTo(0);
