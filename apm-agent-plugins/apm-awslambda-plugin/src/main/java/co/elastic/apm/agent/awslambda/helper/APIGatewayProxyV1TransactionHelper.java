@@ -64,10 +64,11 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
         return transaction;
     }
 
+    @Nullable
     private String getQueryString(APIGatewayProxyRequestEvent apiGatewayEvent) {
-        StringBuilder queryString = new StringBuilder();
         Map<String, String> queryParameters = apiGatewayEvent.getQueryStringParameters();
-        if (null != queryParameters) {
+        if (null != queryParameters && !queryParameters.isEmpty()) {
+            StringBuilder queryString = new StringBuilder();
             int i = 0;
             for (Map.Entry<String, String> entry : apiGatewayEvent.getQueryStringParameters().entrySet()) {
                 if (i > 0) {
@@ -78,8 +79,9 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
                 queryString.append(entry.getValue());
                 i++;
             }
+            return queryString.toString();
         }
-        return queryString.toString();
+        return null;
     }
 
     @Override

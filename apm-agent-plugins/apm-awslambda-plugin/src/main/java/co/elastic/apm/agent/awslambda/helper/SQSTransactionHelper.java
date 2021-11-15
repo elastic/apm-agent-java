@@ -122,6 +122,4 @@ public class SQSTransactionHelper extends AbstractMessageBasedTransactionHelper<
 
         return record != null ? record : placeholderMessage;
     }
-
-
 }

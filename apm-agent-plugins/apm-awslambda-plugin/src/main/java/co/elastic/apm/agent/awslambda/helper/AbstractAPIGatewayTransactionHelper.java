@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.nio.CharBuffer;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -57,16 +58,14 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
 
     protected void fillHttpRequestData(Transaction transaction, @Nullable String httpMethod, @Nullable Map<String, String> headers, @Nullable String serverName, @Nullable String path, @Nullable String queryString, @Nullable String body) {
         Request request = transaction.getContext().getRequest();
-        if (null != httpMethod) {
-            request.withMethod(httpMethod);
-            fillUrlRelatedFields(request, serverName, path, queryString);
-            if (null != headers) {
-                String contentType = headers.get(CONTENT_TYPE_HEADER);
-                setRequestHeaders(transaction, headers);
-                startCaptureBody(transaction, httpMethod, contentType);
-                if (request.getBodyBuffer() != null) {
-                    request.getBodyBuffer().append(body);
-                }
+        request.withMethod(httpMethod);
+        fillUrlRelatedFields(request, serverName, path, queryString);
+        if (null != headers) {
+            String contentType = headers.get(CONTENT_TYPE_HEADER);
+            setRequestHeaders(transaction, headers);
+            CharBuffer bodyBuffer = startCaptureBody(transaction, httpMethod, contentType);
+            if (bodyBuffer != null) {
+                bodyBuffer.append(body);
             }
         }
     }
@@ -84,17 +83,18 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
         transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(statusCode));
     }
 
-    private void fillUrlRelatedFields(Request request, @Nullable String serverName, @Nullable String requestURI, @Nullable String queryString) {
+    private void fillUrlRelatedFields(Request request, @Nullable String serverName, @Nullable String path, @Nullable String queryString) {
         request.getUrl().resetState();
         request.getUrl()
             .withProtocol("https")
             .withHostname(serverName)
             .withPort(443)
-            .withPathname(requestURI)
+            .withPathname(path)
             .withSearch(queryString);
     }
 
-    private void startCaptureBody(Transaction transaction, String method, @Nullable String contentTypeHeader) {
+    @Nullable
+    private CharBuffer startCaptureBody(Transaction transaction, @Nullable String method, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
             if (coreConfiguration.getCaptureBody() != OFF
@@ -103,7 +103,7 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
                 // as the container might not call ServletRequest.getInputStream
                 && !contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
                 && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader)) {
-                request.withBodyBuffer();
+                return request.withBodyBuffer();
             } else {
                 request.redactBody();
                 if (coreConfiguration.getCaptureBody() == OFF) {
@@ -117,14 +117,15 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
                 }
             }
         }
+        return null;
     }
 
     private boolean isCaptureHeaders() {
         return coreConfiguration.isCaptureHeaders();
     }
 
-    private boolean hasBody(@Nullable String contentTypeHeader, String method) {
-        return METHODS_WITH_BODY.contains(method) && contentTypeHeader != null;
+    private boolean hasBody(@Nullable String contentTypeHeader, @Nullable String method) {
+        return method != null && METHODS_WITH_BODY.contains(method) && contentTypeHeader != null;
     }
 
     @Override

@@ -27,7 +27,6 @@ import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Objects;
 
 public class SNSTransactionHelper extends AbstractMessageBasedTransactionHelper<SNSEvent, Void, SNSEvent.SNSRecord> {
     @Nullable
@@ -124,5 +123,4 @@ public class SNSTransactionHelper extends AbstractMessageBasedTransactionHelper<
 
         return record != null ? record : placeholderRecord;
     }
-
 }
