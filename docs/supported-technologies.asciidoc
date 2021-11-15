@@ -337,7 +337,7 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |Google Http Client
 | 1.19.0+
 |
-| 1.27.0
+| 1.28.0
 
 |===
 
