@@ -20,7 +20,7 @@ package co.elastic.apm.agent.awslambda;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -33,14 +33,17 @@ import static net.bytebuddy.matcher.ElementMatchers.none;
 
 public abstract class AbstractAwsLambdaHandlerInstrumentation extends TracerAwareInstrumentation {
 
+    protected final ServerlessConfiguration serverlessConfiguration;
+
     @Nullable
     protected String handlerClassName;
 
     @Nullable
     protected String handlerMethodName;
 
-    public AbstractAwsLambdaHandlerInstrumentation() {
-        String awsLambdaHandler = GlobalTracer.requireTracerImpl().getConfig(ServerlessConfiguration.class).getAwsLambdaHandler();
+    public AbstractAwsLambdaHandlerInstrumentation(ElasticApmTracer tracer) {
+        serverlessConfiguration = tracer.getConfig(ServerlessConfiguration.class);
+        String awsLambdaHandler = serverlessConfiguration.getAwsLambdaHandler();
         //noinspection ConstantConditions
         if (awsLambdaHandler != null && !awsLambdaHandler.isEmpty()) {
             String[] handlerConfigParts = awsLambdaHandler.split("::");

@@ -24,6 +24,7 @@ import co.elastic.apm.agent.awslambda.helper.PlainTransactionHelper;
 import co.elastic.apm.agent.awslambda.helper.S3TransactionHelper;
 import co.elastic.apm.agent.awslambda.helper.SNSTransactionHelper;
 import co.elastic.apm.agent.awslambda.helper.SQSTransactionHelper;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
@@ -44,6 +45,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class RequestHandlerInstrumentation extends AbstractAwsLambdaHandlerInstrumentation {
+
+    public RequestHandlerInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
