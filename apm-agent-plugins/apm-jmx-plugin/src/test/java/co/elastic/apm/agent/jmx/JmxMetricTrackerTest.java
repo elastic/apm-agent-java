@@ -33,6 +33,7 @@ import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 
+import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JmxMetricTrackerTest {
@@ -162,7 +163,7 @@ class JmxMetricTrackerTest {
         metricRegistry.flipPhaseAndReport(
             metricSets -> {
                 metricSets.values().forEach(
-                    metricSet -> System.out.println(new MetricRegistrySerializer().serialize(metricSet).toString())
+                    metricSet -> System.out.println(new MetricRegistrySerializer().serialize(metricSet, emptyList()).toString())
                 );
             }
         );

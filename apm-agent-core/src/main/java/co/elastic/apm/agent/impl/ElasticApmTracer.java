@@ -24,6 +24,7 @@ import co.elastic.apm.agent.configuration.ServiceNameUtil;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -53,8 +54,11 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -328,6 +332,9 @@ public class ElasticApmTracer implements Tracer {
             error.setException(e);
             Transaction currentTransaction = currentTransaction();
             if (currentTransaction != null) {
+                if (currentTransaction.getNameForSerialization().length() > 0) {
+                    error.setTransactionName(currentTransaction.getNameForSerialization());
+                }
                 error.setTransactionType(currentTransaction.getType());
                 error.setTransactionSampled(currentTransaction.isSampled());
             }
@@ -400,9 +407,10 @@ public class ElasticApmTracer implements Tracer {
         }
         // makes sure that parents are also non-discardable
         span.setNonDiscardable();
-        long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
-        if (spanFramesMinDurationMs != 0 && span.isSampled() && span.getStackFrames() == null) {
-            if (span.getDurationMs() >= spanFramesMinDurationMs) {
+
+        long spanStackTraceMinDurationMs = stacktraceConfiguration.getSpanStackTraceMinDurationMs();
+        if (spanStackTraceMinDurationMs >= 0 && span.isSampled() && span.getStackFrames() == null) {
+            if (span.getDurationMs() >= spanStackTraceMinDurationMs) {
                 span.withStacktrace(new Throwable());
             }
         }
@@ -725,6 +733,14 @@ public class ElasticApmTracer implements Tracer {
 
     public MetricRegistry getMetricRegistry() {
         return metricRegistry;
+    }
+
+    public List<String> getServiceNameOverrides() {
+        List<String> serviceNames = new ArrayList<>(serviceNameByClassLoader.approximateSize());
+        for (Map.Entry<ClassLoader, String> entry : serviceNameByClassLoader) {
+            serviceNames.add(entry.getValue());
+        }
+        return serviceNames;
     }
 
     @Override

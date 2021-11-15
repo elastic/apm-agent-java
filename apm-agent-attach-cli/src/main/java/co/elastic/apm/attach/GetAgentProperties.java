@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.attach;
 
-import co.elastic.apm.attach.UserRegistry.CommandOutput;
+import co.elastic.apm.agent.common.util.ProcessExecutionUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -63,14 +63,13 @@ public class GetAgentProperties {
     }
 
     static Properties getAgentAndSystemPropertiesSwitchUser(String pid, UserRegistry.User user) throws IOException {
-        CommandOutput output = user.executeAsUserWithCurrentClassPath(GetAgentProperties.class, Arrays.asList(pid, user.getUsername()));
+        ProcessExecutionUtil.CommandOutput output = user.executeAsUserWithCurrentClassPath(GetAgentProperties.class, Arrays.asList(pid, user.getUsername()));
         if (output.getExitCode() == 0) {
             Properties properties = new Properties();
             properties.load(new StringReader(output.getOutput().toString()));
             return properties;
         } else {
-            throw new RuntimeException(output.getOutput().toString(), output.exceptionThrown);
+            throw new RuntimeException(output.getOutput().toString(), output.getExceptionThrown());
         }
     }
-
 }

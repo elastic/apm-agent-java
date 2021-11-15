@@ -100,7 +100,7 @@ If a span, e.g., a captured JDBC query, takes longer than 5ms,
 we capture the stack trace so that you can easily find the code path which lead to the query.
 Stack traces can be quite long, taking up bandwidth and disk space, and also requiring object allocations.
 But because we are processing the stack trace asynchronously, it adds very little latency.
-Upping the <<config-span-frames-min-duration>> or disabling stack trace collection altogether can gain you a bit of performance if needed.
+Upping the <<config-span-stack-trace-min-duration>> or disabling stack trace collection altogether can gain you a bit of performance if needed.
 
 [float]
 ==== Recording headers and cookies

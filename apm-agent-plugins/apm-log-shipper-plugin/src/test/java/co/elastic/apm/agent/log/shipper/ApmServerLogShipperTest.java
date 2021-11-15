@@ -18,8 +18,9 @@
  */
 package co.elastic.apm.agent.log.shipper;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -28,7 +29,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import org.assertj.core.util.Lists;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,12 +45,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.zip.InflaterInputStream;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
@@ -76,10 +76,10 @@ class ApmServerLogShipperTest {
         mockApmServer.stubFor(get("/").willReturn(ok()));
         mockApmServer.start();
 
-        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class));
+        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), config.getConfig(CoreConfiguration.class));
         startClientWithValidUrls();
 
-        DslJsonSerializer serializer = new DslJsonSerializer(config.getConfig(StacktraceConfiguration.class), apmServerClient, MetaData.create(config, null));
+        DslJsonSerializer serializer = new DslJsonSerializer(config.getConfig(StacktraceConfiguration.class), apmServerClient, MetaDataMock.create());
         logShipper = new ApmServerLogShipper(apmServerClient, config.getConfig(ReporterConfiguration.class), serializer);
         logFile = File.createTempFile("test", ".log");
         tailableFile = new TailableFile(logFile);
@@ -114,14 +114,14 @@ class ApmServerLogShipperTest {
 
     @Test
     void testSendLogsAfterServerUrlsSet() throws Exception {
-        apmServerClient.start(Lists.emptyList());
+        apmServerClient.start(Collections.emptyList());
         Files.write(logFile.toPath(), List.of("foo"));
         assertThat(logShipper.getErrorCount()).isEqualTo(0);
         Future<Integer> readLinesFuture = Executors.newSingleThreadExecutor().submit(() -> tailableFile.tail(buffer, logShipper, 100));
         // Wait until first failure to send file lines
         Awaitility.await()
             .pollInterval(1, TimeUnit.MILLISECONDS)
-            .timeout(100, TimeUnit.MILLISECONDS)
+            .timeout(500, TimeUnit.MILLISECONDS)
             .untilAsserted(() -> assertThat(logShipper.getErrorCount()).isGreaterThan(0));
         // Set valid APM server URLs
         startClientWithValidUrls();
@@ -142,7 +142,7 @@ class ApmServerLogShipperTest {
     private List<String> getEvents() {
         return mockApmServer.findAll(postRequestedFor(urlEqualTo(ApmServerLogShipper.LOGS_ENDPOINT)))
             .stream()
-            .flatMap(request -> new BufferedReader(new InputStreamReader(new InflaterInputStream(new ByteArrayInputStream(request.getBody())))).lines())
+            .flatMap(request -> new BufferedReader(new InputStreamReader(new ByteArrayInputStream(request.getBody()))).lines())
             .collect(Collectors.toList());
     }
 }
