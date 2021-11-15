@@ -73,7 +73,7 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
         if (null != rContext) {
             String httpMethod = null != rContext.getHttp() ? rContext.getHttp().getMethod() : null;
             setApiGatewayContextData(transaction, rContext.getRequestId(), rContext.getApiId(), httpMethod,
-                    apiGatewayRequest.getRouteKey(), rContext.getStage(), rContext.getAccountId());
+                    apiGatewayRequest.getRouteKey(), rContext.getAccountId());
         }
     }
 

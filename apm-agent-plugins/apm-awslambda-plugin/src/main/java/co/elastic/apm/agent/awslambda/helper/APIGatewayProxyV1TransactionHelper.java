@@ -94,7 +94,7 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
 
         if (null != rContext) {
             setApiGatewayContextData(transaction, rContext.getRequestId(), rContext.getApiId(), rContext.getHttpMethod(),
-                    rContext.getResourcePath(), rContext.getStage(), rContext.getAccountId());
+                    rContext.getResourcePath(), rContext.getAccountId());
         }
     }
 
