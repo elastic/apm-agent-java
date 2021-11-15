@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.26.1-SNAPSHOT</version>
+        <version>1.27.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
@@ -114,7 +114,7 @@
                             <target name="move-and-rename" description="Move and Rename">
                                 <move todir="${project.basedir}/target/classes/cached-lookup-key" overwrite="true">
                                     <fileset dir="${project.basedir}/target/classes/cached-lookup-key" includes="**/*.class" />
-                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz"/>
+                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz" />
                                 </move>
                             </target>
 
@@ -131,7 +131,7 @@
                             <target name="move-and-rename" description="Move and Rename">
                                 <move todir="${project.basedir}/target/classes/agent" overwrite="true">
                                     <fileset dir="${project.basedir}/target/classes/agent" includes="**/*.class" />
-                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz"/>
+                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz" />
                                 </move>
                             </target>
 
