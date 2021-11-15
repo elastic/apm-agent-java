@@ -81,7 +81,7 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isTrue();
-        assertThat(transaction.getContext().getServiceOrigin().getName()).isEqualTo(S3_BUCKET_NAME);
+        assertThat(transaction.getContext().getServiceOrigin().getName().toString()).isEqualTo(S3_BUCKET_NAME);
         assertThat(transaction.getContext().getServiceOrigin().getId()).isEqualTo(S3_BUCKET_ARN);
         assertThat(transaction.getContext().getServiceOrigin().getVersion()).isEqualTo(S3_EVENT_VERSION);
 

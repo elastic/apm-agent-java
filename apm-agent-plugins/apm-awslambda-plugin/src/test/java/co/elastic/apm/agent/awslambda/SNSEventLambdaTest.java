@@ -114,7 +114,7 @@ public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
         assertThat(transaction.getContext().getMessage().getAge()).isBetween(MESSAGE_AGE, MESSAGE_AGE + (afterFunctionTimestamp - beforeFunctionTimestamp));
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isTrue();
-        assertThat(transaction.getContext().getServiceOrigin().getName()).isEqualTo(SNS_TOPIC);
+        assertThat(transaction.getContext().getServiceOrigin().getName().toString()).isEqualTo(SNS_TOPIC);
         assertThat(transaction.getContext().getServiceOrigin().getId()).isEqualTo(SNS_EVENT_SOURCE_ARN);
         assertThat(transaction.getContext().getServiceOrigin().getVersion()).isEqualTo(SNS_EVENT_VERSION);
 

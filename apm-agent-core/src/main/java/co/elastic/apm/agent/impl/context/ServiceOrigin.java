@@ -31,13 +31,12 @@ import javax.annotation.Nullable;
 public class ServiceOrigin implements Recyclable {
 
     @Nullable
-    protected String id;
+    private String id;
+
+    private final StringBuilder name = new StringBuilder();
 
     @Nullable
-    protected String name;
-
-    @Nullable
-    protected String version;
+    private String version;
 
     @Nullable
     public String getId() {
@@ -49,13 +48,22 @@ public class ServiceOrigin implements Recyclable {
         return this;
     }
 
-    @Nullable
-    public String getName() {
+    public StringBuilder getName() {
         return name;
     }
 
-    public ServiceOrigin withName(@Nullable String name) {
-        this.name = name;
+    public ServiceOrigin withName(@Nullable CharSequence name) {
+        this.name.setLength(0);
+        if (name != null) {
+            this.name.append(name);
+        }
+        return this;
+    }
+
+    public ServiceOrigin appendToName(@Nullable String namePart) {
+        if (namePart != null) {
+            this.name.append(namePart);
+        }
         return this;
     }
 
@@ -72,19 +80,19 @@ public class ServiceOrigin implements Recyclable {
     @Override
     public void resetState() {
         id = null;
-        name = null;
+        name.setLength(0);
         version = null;
     }
 
     public boolean hasContent() {
         return id != null ||
-                name != null ||
-                version != null;
+            name.length() > 0 ||
+            version != null;
     }
 
     public void copyFrom(ServiceOrigin other) {
         id = other.id;
-        name = other.name;
+        withName(other.getName());
         version = other.version;
     }
 

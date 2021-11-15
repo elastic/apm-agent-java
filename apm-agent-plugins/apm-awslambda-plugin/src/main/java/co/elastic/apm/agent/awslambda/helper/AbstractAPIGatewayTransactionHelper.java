@@ -141,9 +141,11 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
                                             @Nullable String httpMethod, @Nullable String resourcePath, @Nullable String stage, @Nullable String accountId) {
         transaction.getFaas().getTrigger().withRequestId(requestId);
         ServiceOrigin serviceOrigin = transaction.getContext().getServiceOrigin();
-        if (null != httpMethod && null != resourcePath && null != stage) {
-            serviceOrigin.withName(httpMethod + " " + resourcePath + "/" + stage);
+        serviceOrigin.withName(httpMethod);
+        if (httpMethod != null) {
+            serviceOrigin.appendToName(" ");
         }
+        serviceOrigin.appendToName(resourcePath).appendToName("/").appendToName(stage);
         serviceOrigin.withId(apiId);
 
         transaction.getContext().getCloudOrigin().withAccountId(accountId);

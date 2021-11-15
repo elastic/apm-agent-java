@@ -114,7 +114,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
         assertThat(transaction.getContext().getMessage().getAge()).isBetween(MESSAGE_AGE, MESSAGE_AGE + (afterFunctionTimestamp - beforeFunctionTimestamp));
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isTrue();
-        assertThat(transaction.getContext().getServiceOrigin().getName()).isEqualTo(SQS_QUEUE);
+        assertThat(transaction.getContext().getServiceOrigin().getName().toString()).isEqualTo(SQS_QUEUE);
         assertThat(transaction.getContext().getServiceOrigin().getId()).isEqualTo(SQS_EVENT_SOURCE_ARN);
         assertThat(transaction.getContext().getServiceOrigin().getVersion()).isNull();
 

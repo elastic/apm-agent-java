@@ -126,7 +126,7 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
         assertThat(transaction.getContext().getCloudOrigin().getAccountId()).isEqualTo(API_GATEWAY_ACCOUNT_ID);
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isTrue();
-        assertThat(transaction.getContext().getServiceOrigin().getName()).isEqualTo(HTTP_METHOD + " " + API_GATEWAY_RESOURCE_PATH + "/" + API_GATEWAY_STAGE);
+        assertThat(transaction.getContext().getServiceOrigin().getName().toString()).isEqualTo(HTTP_METHOD + " " + API_GATEWAY_RESOURCE_PATH + "/" + API_GATEWAY_STAGE);
         assertThat(transaction.getContext().getServiceOrigin().getId()).isEqualTo(API_ID);
         assertThat(transaction.getContext().getServiceOrigin().getVersion()).isEqualTo("1.0");
 
