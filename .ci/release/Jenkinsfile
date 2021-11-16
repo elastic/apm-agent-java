@@ -216,8 +216,8 @@ pipeline {
               dir("${BASE_DIR}") {
                 // restore git state before updating .x branch, otherwise later external scripts will use
                 // the version when the tag was created, which might not match the release branch state
-                sh(label: "remote branch is fetched for local checkout", script: "git fetch origin ${BRANCH_SPECIFIER}")
                 sh(label: "restore to previous updating version", script: """
+                  git fetch origin ${BRANCH_SPECIFIER}
                   git checkout ${BRANCH_SPECIFIER}
                   git reset --hard origin/${BRANCH_SPECIFIER}""")
               }
@@ -263,8 +263,8 @@ pipeline {
           steps {
             dir("${BASE_DIR}"){
               // ensure that we don't rely on side effect of another step
-              sh(label: "remote branch is fetched for local checkout", script: "git fetch origin ${BRANCH_SPECIFIER}")
               sh(label: "restore to previous updating version", script: """
+                  git fetch origin ${BRANCH_SPECIFIER}
                   git checkout ${BRANCH_SPECIFIER}
                   git reset --hard origin/${BRANCH_SPECIFIER}""")
               sh(script: "./scripts/jenkins/update_cloudfoundry.sh ${RELEASE_VERSION}")
