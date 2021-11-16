@@ -211,16 +211,6 @@ pipeline {
               }
             }
           }
-          post {
-            cleanup {
-              dir("${BASE_DIR}") {
-                // restore git state before updating .x branch, otherwise later external scripts will use
-                // the version when the tag was created, which might not match the release branch state
-                sh(label: "remote branch is fetched for local checkout", script: "git fetch origin ${BRANCH_SPECIFIER}")
-                sh(label: "restore to previous updating version", script: "git branch -f ${BRANCH_SPECIFIER} origin/${BRANCH_SPECIFIER} && git checkout ${BRANCH_SPECIFIER}")
-              }
-            }
-          }
         }
         stage('Create GitHub release draft') {
           steps {
@@ -261,8 +251,10 @@ pipeline {
           steps {
             dir("${BASE_DIR}"){
               // ensure that we don't rely on side effect of another step
-              sh(label: "remote branch is fetched for local checkout", script: "git fetch origin ${BRANCH_SPECIFIER}")
-              sh(label: "restore to previous updating version", script: "git branch -f ${BRANCH_SPECIFIER} origin/${BRANCH_SPECIFIER} && git checkout ${BRANCH_SPECIFIER}")
+              sh(label: "restore to previous updating version", script: """
+                  git fetch origin master
+                  git checkout master
+                  git reset --hard origin/master""")
               sh(script: "./scripts/jenkins/update_cloudfoundry.sh ${RELEASE_VERSION}")
               gitPush()
             }
