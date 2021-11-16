@@ -112,6 +112,9 @@ pipeline {
           }
         }
         stage('Set release version') {
+          when {
+            expression { return false }
+          }
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -132,6 +135,24 @@ pipeline {
                     sh(script: "git commit -a -m 'Version bump ${user_release_version}'")
                     gitPush()
                 }
+
+                env.RELEASE_TAG = "v" + user_release_version
+                env.RELEASE_VERSION = user_release_version
+                env.BRANCH_DOT_X = user_release_version.substring(0, user_release_version.indexOf('.'))+'.x'
+              }
+            }
+          }
+        }
+        stage('Set release version manually') {
+          steps {
+            dir("${BASE_DIR}"){
+              script {
+                def user_release_version = input(message: "Please enter version to release:", parameters: [[
+                    $class: 'StringParameterDefinition',
+                    name: 'Release version',
+                    defaultValue: "",
+                    description: "Input release version without '-SNAPSHOT' suffix"
+                  ]])
 
                 env.RELEASE_TAG = "v" + user_release_version
                 env.RELEASE_VERSION = user_release_version
