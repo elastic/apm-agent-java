@@ -264,9 +264,9 @@ pipeline {
             dir("${BASE_DIR}"){
               // ensure that we don't rely on side effect of another step
               sh(label: "restore to previous updating version", script: """
-                  git fetch origin ${BRANCH_SPECIFIER}
-                  git checkout ${BRANCH_SPECIFIER}
-                  git reset --hard origin/${BRANCH_SPECIFIER}""")
+                  git fetch origin master
+                  git checkout master
+                  git reset --hard origin/master""")
               sh(script: "./scripts/jenkins/update_cloudfoundry.sh ${RELEASE_VERSION}")
               gitPush()
             }
