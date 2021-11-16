@@ -167,22 +167,21 @@ pipeline {
                 def isMajor = env.RELEASE_VERSION.endsWith(".0.0")
                 if (isMajor) {
                   // major release, create '.x' branch
-                  sh(script: """
-                    git fetch origin ${RELEASE_TAG} # ensure remote tag is fetched for local checkout
-                    git checkout ${RELEASE_TAG}
-                    git checkout -b ${BRANCH_DOT_X}
-                  """)
+                  sh(label: "remote tag is fetched for local checkout", script: "git fetch origin ${RELEASE_TAG}")
+                  sh(label: "create .x branch from ${RELEASE_TAG}", script: """
+                    git checkout ${RELEASE_TAG} --force
+                    git checkout -b ${BRANCH_DOT_X} --force""")
                   gitPush()
                   input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
                 } else {
                   // minor release, force-update existing '.x' branch. any change applied to '.x' branch, for example to
                   // fix doc or release notes should also have been applied to master/stable branch we are releasing from
-                  sh(script: """
-                    git fetch origin ${BRANCH_DOT_X} # ensure remote branch is fetched for local checkout
-                    git fetch origin ${RELEASE_TAG} # ensure remote tag is fetched for local checkout
-                    git checkout --track origin/${BRANCH_DOT_X}
-                    git reset --hard ${RELEASE_TAG}
-                    """)
+                  sh(label: "remote tag and branch are fetched for local checkout", script: """
+                    git fetch origin ${BRANCH_DOT_X}
+                    git fetch origin ${RELEASE_TAG}""")
+                  sh(label: "force-update .x branch from ${RELEASE_TAG}", script: """
+                    git checkout --track origin/${BRANCH_DOT_X} --force
+                    git reset --hard ${RELEASE_TAG}""")
                   gitPush(args: "-f ${BRANCH_DOT_X}")
                 }
               }
@@ -193,10 +192,8 @@ pipeline {
               dir("${BASE_DIR}") {
                 // restore git state before updating .x branch, otherwise later external scripts will use
                 // the version when the tag was created, which might not match the release branch state
-                sh(script: """
-                    git fetch origin ${BRANCH_SPECIFIER} # ensure remote branch is fetched for local checkout
-                    git checkout --track origin/${BRANCH_SPECIFIER}
-                """)
+                sh(label: "remote branch is fetched for local checkout", script: "git fetch origin ${BRANCH_SPECIFIER}")
+                sh(label: "restore to previous updating version", script: "git checkout --track origin/${BRANCH_SPECIFIER}")
               }
             }
           }
