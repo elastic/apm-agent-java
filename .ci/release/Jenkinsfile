@@ -219,7 +219,7 @@ pipeline {
                 sh(label: "remote branch is fetched for local checkout", script: "git fetch origin ${BRANCH_SPECIFIER}")
                 sh(label: "restore to previous updating version", script: """
                   git checkout ${BRANCH_SPECIFIER}
-                  git merge -f origin/${BRANCH_SPECIFIER}""")
+                  git merge origin/${BRANCH_SPECIFIER}""")
               }
             }
           }
@@ -266,7 +266,7 @@ pipeline {
               sh(label: "remote branch is fetched for local checkout", script: "git fetch origin ${BRANCH_SPECIFIER}")
               sh(label: "restore to previous updating version", script: """
                   git checkout ${BRANCH_SPECIFIER}
-                  git merge -f origin/${BRANCH_SPECIFIER}""")
+                  git merge origin/${BRANCH_SPECIFIER}""")
               sh(script: "./scripts/jenkins/update_cloudfoundry.sh ${RELEASE_VERSION}")
               gitPush()
             }
