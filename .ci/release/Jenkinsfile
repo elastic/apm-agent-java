@@ -112,9 +112,6 @@ pipeline {
           }
         }
         stage('Set release version') {
-          when {
-            expression { return false }
-          }
           steps {
             dir("${BASE_DIR}"){
               script {
