@@ -214,7 +214,7 @@ pipeline {
                 // restore git state before updating .x branch, otherwise later external scripts will use
                 // the version when the tag was created, which might not match the release branch state
                 sh(label: "remote branch is fetched for local checkout", script: "git fetch origin ${BRANCH_SPECIFIER}")
-                sh(label: "restore to previous updating version", script: "git checkout --track origin/${BRANCH_SPECIFIER}")
+                sh(label: "restore to previous updating version", script: "git checkout --track origin/${BRANCH_SPECIFIER} --force")
               }
             }
           }
