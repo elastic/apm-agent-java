@@ -265,7 +265,7 @@ pipeline {
               sh(label: "restore to previous updating version", script: "git checkout -f ${BRANCH_SPECIFIER} origin/${BRANCH_SPECIFIER}")
               sh(script: "./scripts/jenkins/update_cloudfoundry.sh ${RELEASE_VERSION}")
               gitPush()
-            }git branch -f BRANCH… origin/BRANCH…?
+            }
           }
         }
         stage('Publish release on GitHub') {
