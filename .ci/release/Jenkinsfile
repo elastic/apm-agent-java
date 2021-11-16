@@ -136,6 +136,8 @@ pipeline {
                     gitPush()
                 }
 
+                stash(allowEmpty: true, name: 'source-with-changes', useDefaultExcludes: false)
+
                 env.RELEASE_TAG = "v" + user_release_version
                 env.RELEASE_VERSION = user_release_version
                 env.BRANCH_DOT_X = user_release_version.substring(0, user_release_version.indexOf('.'))+'.x'
@@ -153,6 +155,7 @@ pipeline {
                     defaultValue: "",
                     description: "Input release version without '-SNAPSHOT' suffix"
                   ]])
+                stash(allowEmpty: true, name: 'source-with-changes', useDefaultExcludes: false)
 
                 env.RELEASE_TAG = "v" + user_release_version
                 env.RELEASE_VERSION = user_release_version
@@ -217,7 +220,7 @@ pipeline {
               // the version when the tag was created, which might not match the release branch state
               deleteDir()
               dir("${BASE_DIR}") {
-                unstash 'source'
+                unstash 'source-with-changes'
                 sh(label: "remote branch is fetched for local checkout", script: "git fetch origin ${BRANCH_SPECIFIER}")
               }
             }
@@ -263,7 +266,7 @@ pipeline {
             // ensure that we don't rely on side effect of another step
             deleteDir()
             dir("${BASE_DIR}") {
-              unstash 'source'
+              unstash 'source-with-changes'
               sh(label: "remote branch is fetched for local checkout", script: "git fetch origin ${BRANCH_SPECIFIER}")
               sh(script: "./scripts/jenkins/update_cloudfoundry.sh ${RELEASE_VERSION}")
               gitPush()
