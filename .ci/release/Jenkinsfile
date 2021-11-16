@@ -218,8 +218,8 @@ pipeline {
                 // the version when the tag was created, which might not match the release branch state
                 sh(label: "remote branch is fetched for local checkout", script: "git fetch origin ${BRANCH_SPECIFIER}")
                 sh(label: "restore to previous updating version", script: """
-                  git branch -D ${BRANCH_SPECIFIER}
-                  git checkout --track origin/${BRANCH_SPECIFIER}""")
+                  git checkout ${BRANCH_SPECIFIER}
+                  git merge -f origin/${BRANCH_SPECIFIER}""")
               }
             }
           }
@@ -265,8 +265,8 @@ pipeline {
               // ensure that we don't rely on side effect of another step
               sh(label: "remote branch is fetched for local checkout", script: "git fetch origin ${BRANCH_SPECIFIER}")
               sh(label: "restore to previous updating version", script: """
-                  git branch -D ${BRANCH_SPECIFIER}
-                  git checkout --track origin/${BRANCH_SPECIFIER}""")
+                  git checkout ${BRANCH_SPECIFIER}
+                  git merge -f origin/${BRANCH_SPECIFIER}""")
               sh(script: "./scripts/jenkins/update_cloudfoundry.sh ${RELEASE_VERSION}")
               gitPush()
             }
