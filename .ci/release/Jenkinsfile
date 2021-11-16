@@ -213,11 +213,12 @@ pipeline {
           }
           post {
             cleanup {
+              // restore git state before updating .x branch, otherwise later external scripts will use
+              // the version when the tag was created, which might not match the release branch state
+              deleteDir()
               dir("${BASE_DIR}") {
-                // restore git state before updating .x branch, otherwise later external scripts will use
-                // the version when the tag was created, which might not match the release branch state
+                unstash 'source'
                 sh(label: "remote branch is fetched for local checkout", script: "git fetch origin ${BRANCH_SPECIFIER}")
-                sh(label: "restore to previous updating version", script: "git branch -f ${BRANCH_SPECIFIER} origin/${BRANCH_SPECIFIER} && git checkout ${BRANCH_SPECIFIER}")
               }
             }
           }
@@ -259,10 +260,11 @@ pipeline {
         }
         stage('Update Cloudfoundry') {
           steps {
-            dir("${BASE_DIR}"){
-              // ensure that we don't rely on side effect of another step
+            // ensure that we don't rely on side effect of another step
+            deleteDir()
+            dir("${BASE_DIR}") {
+              unstash 'source'
               sh(label: "remote branch is fetched for local checkout", script: "git fetch origin ${BRANCH_SPECIFIER}")
-              sh(label: "restore to previous updating version", script: "git branch -f ${BRANCH_SPECIFIER} origin/${BRANCH_SPECIFIER} && git checkout ${BRANCH_SPECIFIER}")
               sh(script: "./scripts/jenkins/update_cloudfoundry.sh ${RELEASE_VERSION}")
               gitPush()
             }
