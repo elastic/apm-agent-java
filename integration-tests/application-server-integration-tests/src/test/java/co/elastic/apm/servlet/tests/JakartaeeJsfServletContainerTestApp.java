@@ -18,14 +18,19 @@
  */
 package co.elastic.apm.servlet.tests;
 
-public class JsfApplicationServerTestApp extends AbstractJsfApplicationServerTestApp {
+import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
 
-    public JsfApplicationServerTestApp() {
-        super("/jsf-http-get",
-            "../jsf-app/jsf-app-dependent",
-            "jsf-http-get.war",
-            "jsf-http-get",
+public class JakartaeeJsfServletContainerTestApp extends TestApp {
+    public JakartaeeJsfServletContainerTestApp() {
+        super("../jakartaee-jsf-app/jakartaee-jsf-app-standalone",
+            "jakartaee-jsf-http-get.war",
+            "jakartaee-jsf-http-get",
             "status.html",
-            "jsf-http-get");
+            "jakartaee-jsf-http-get");
+    }
+
+    @Override
+    public void test(AbstractServletContainerIntegrationTest test) throws Exception {
+        new JakartaeeJsfApplicationServerTestApp().test(test);
     }
 }
