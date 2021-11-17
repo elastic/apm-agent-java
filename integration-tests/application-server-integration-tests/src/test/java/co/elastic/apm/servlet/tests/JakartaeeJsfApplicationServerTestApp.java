@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.servlet.tests;
 
-public class JsfApplicationServerTestApp extends AbstractJsfApplicationServerTestApp {
+public class JakartaeeJsfApplicationServerTestApp extends AbstractJsfApplicationServerTestApp {
 
-    public JsfApplicationServerTestApp() {
-        super("/jsf-http-get",
-            "../jsf-app/jsf-app-dependent",
-            "jsf-http-get.war",
-            "jsf-http-get",
+    public JakartaeeJsfApplicationServerTestApp() {
+        super("/jakartaee-jsf-http-get",
+            "../jakartaee-jsf-app/jakartaee-jsf-app-dependent",
+            "jakartaee-jsf-http-get.war",
+            "jakartaee-jsf-http-get",
             "status.html",
-            "jsf-http-get");
+            "jakartaee-jsf-http-get");
     }
 }
