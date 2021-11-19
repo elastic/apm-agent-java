@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -28,10 +27,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageProducer;
+import jakarta.jms.Destination;
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+import jakarta.jms.MessageProducer;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -47,10 +46,10 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Currently tested using ActiveMQ Artemis, which is the successor of HornetQ, both of which are traced properly when
  * using JMS 2 API, buy this instrumentation of JMS 1 API.
  */
-public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumentation {
+public abstract class JakartaJmsMessageProducerInstrumentation extends JakartaBaseJmsInstrumentation {
 
     @SuppressWarnings("WeakerAccess")
-    public static final Logger logger = LoggerFactory.getLogger(JmsMessageProducerInstrumentation.class);
+    public static final Logger logger = LoggerFactory.getLogger(JakartaJmsMessageProducerInstrumentation.class);
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -62,22 +61,22 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface()).and(hasSuperType(named("javax.jms.MessageProducer")));
+        return not(isInterface()).and(hasSuperType(named("jakarta.jms.MessageProducer")));
     }
 
-    public static class JmsMessageProducerNoDestinationInstrumentation extends JmsMessageProducerInstrumentation {
+    public static class JmsMessageProducerNoDestinationInstrumentation extends JakartaJmsMessageProducerInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("send").and(takesArgument(0, named("javax.jms.Message"))).and(isPublic());
+            return named("send").and(takesArgument(0, named("jakarta.jms.Message"))).and(isPublic());
         }
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.jms.JmsMessageProducerInstrumentation$JmsMessageProducerNoDestinationInstrumentation$MessageProducerNoDestinationAdvice";
+            return "co.elastic.apm.agent.jms.JakartaJmsMessageProducerInstrumentation$JmsMessageProducerNoDestinationInstrumentation$MessageProducerNoDestinationAdvice";
         }
 
-        public static class MessageProducerNoDestinationAdvice extends BaseAdvice {
+        public static class MessageProducerNoDestinationAdvice extends JakartaBaseAdvice {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             @Nullable
             public static Object beforeSend(@Advice.Argument(0) final Message message,
@@ -95,32 +94,27 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
             @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
             public static void afterSend(@Advice.Enter @Nullable final Object spanObj,
                                          @Advice.Thrown final Throwable throwable) {
-
-                if (spanObj instanceof Span) {
-                    Span span = (Span) spanObj;
-                    span.captureException(throwable);
-                    span.deactivate().end();
-                }
+                helper.deactivateSpan(spanObj, throwable);
             }
         }
     }
 
-    public static class JmsMessageProducerWithDestinationInstrumentation extends JmsMessageProducerInstrumentation {
+    public static class JmsMessageProducerWithDestinationInstrumentation extends JakartaJmsMessageProducerInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("send")
-                .and(takesArgument(0, named("javax.jms.Destination")))
-                .and(takesArgument(1, named("javax.jms.Message")))
+                .and(takesArgument(0, named("jakarta.jms.Destination")))
+                .and(takesArgument(1, named("jakarta.jms.Message")))
                 .and(isPublic());
         }
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.jms.JmsMessageProducerInstrumentation$JmsMessageProducerWithDestinationInstrumentation$MessageProducerWithDestinationAdvice";
+            return "co.elastic.apm.agent.jms.JakartaJmsMessageProducerInstrumentation$JmsMessageProducerWithDestinationInstrumentation$MessageProducerWithDestinationAdvice";
         }
 
-        public static class MessageProducerWithDestinationAdvice extends BaseAdvice {
+        public static class MessageProducerWithDestinationAdvice extends JakartaBaseAdvice {
 
             @Nullable
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -132,12 +126,7 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
             @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
             public static void endSpan(@Advice.Enter @Nullable final Object spanObj,
                                        @Advice.Thrown final Throwable throwable) {
-
-                if (spanObj instanceof Span) {
-                    Span span = (Span) spanObj;
-                    span.captureException(throwable);
-                    span.deactivate().end();
-                }
+                helper.deactivateSpan(spanObj, throwable);
             }
         }
     }

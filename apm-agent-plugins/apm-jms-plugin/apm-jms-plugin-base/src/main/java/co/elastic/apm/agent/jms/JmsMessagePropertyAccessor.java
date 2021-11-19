@@ -27,33 +27,24 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageNotWriteableException;
 
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
+import static co.elastic.apm.agent.jms.JavaxJmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
 
-public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Message> implements TextHeaderGetter<Message>, TextHeaderSetter<Message> {
+abstract public class JmsMessagePropertyAccessor<MESSAGE, JMSEXCEPTION extends Exception> extends AbstractHeaderGetter<String, MESSAGE> implements TextHeaderGetter<MESSAGE>, TextHeaderSetter<MESSAGE> {
 
     private static final Logger logger = LoggerFactory.getLogger(JmsMessagePropertyAccessor.class);
 
-    private static final JmsMessagePropertyAccessor INSTANCE = new JmsMessagePropertyAccessor();
-
-    public static JmsMessagePropertyAccessor instance() {
-        return INSTANCE;
-    }
-
-    private JmsMessagePropertyAccessor() {
+    protected JmsMessagePropertyAccessor() {
     }
 
     @Nullable
     @Override
-    public String getFirstHeader(String headerName, Message message) {
+    public String getFirstHeader(String headerName, MESSAGE message) {
         headerName = jmsifyHeaderName(headerName);
         String value = null;
         try {
-            value = message.getStringProperty(headerName);
-        } catch (JMSException e) {
+            value = getStringProperty(message, headerName);
+        } catch (Exception e) {
             logger.error("Failed to extract JMS message property {}", headerName, e);
         }
         return value;
@@ -69,18 +60,25 @@ public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Mes
     }
 
     @Override
-    public void setHeader(String headerName, String headerValue, Message message) {
+    public void setHeader(String headerName, String headerValue, MESSAGE message) {
         headerName = jmsifyHeaderName(headerName);
         if (getFirstHeader(headerName, message) != null) {
             return;
         }
         try {
-            message.setStringProperty(headerName, headerValue);
-        } catch (MessageNotWriteableException e) {
-            logger.debug("Failed to set JMS message property {} due to read-only message", headerName, e);
-        } catch (JMSException e) {
+            setStringProperty(message, headerName, headerValue);
+        } catch (Exception e) {
+            if (isMessageNotWriteableException(e)) {
+                logger.debug("Failed to set JMS message property {} due to read-only message", headerName, e);
+            }
             logger.warn("Failed to set JMS message property {}. Distributed tracing may not work.", headerName);
             logger.debug("Detailed error: ", e);
         }
     }
+
+    abstract String getStringProperty(MESSAGE message, String name) throws JMSEXCEPTION;
+
+    abstract void setStringProperty(MESSAGE message, String name, String value) throws JMSEXCEPTION;
+
+    abstract boolean isMessageNotWriteableException(Exception e);
 }

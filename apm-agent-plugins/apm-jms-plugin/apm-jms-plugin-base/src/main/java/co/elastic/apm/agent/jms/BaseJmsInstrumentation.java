@@ -41,23 +41,18 @@ public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation 
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("javax.jms.Message"));
+        return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass(rootClassNameThatClassloaderCanLoad()));
     }
+
+    public abstract String rootClassNameThatClassloaderCanLoad();
 
     protected static class BaseAdvice {
 
-        protected static final JmsInstrumentationHelper helper;
         protected static final MessagingConfiguration messagingConfiguration;
         protected static final CoreConfiguration coreConfiguration;
 
         static {
             ElasticApmTracer elasticApmTracer = GlobalTracer.requireTracerImpl();
-
-            // loading helper class will load JMS-related classes if loaded from Instrumentation static init
-            // that fails when trying to load instrumentation classes without JMS dependencies, for example when generating
-            // documentation that relies on instrumentation group names
-            helper = new JmsInstrumentationHelper(elasticApmTracer);
-
             messagingConfiguration = elasticApmTracer.getConfig(MessagingConfiguration.class);
             coreConfiguration = elasticApmTracer.getConfig(CoreConfiguration.class);
         }
