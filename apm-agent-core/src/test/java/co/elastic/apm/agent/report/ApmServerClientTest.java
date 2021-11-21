@@ -314,4 +314,11 @@ public class ApmServerClientTest {
         }
         assertThat(exception).isNull();
     }
+
+    @Test
+    public void testUserAgentHeaderEscaping() {
+        assertThat(ApmServerClient.escapeHeaderComment("8()9")).isEqualTo("8__9");
+        assertThat(ApmServerClient.escapeHeaderComment("iPad; U; CPU OS 3_2_1 like Mac OS X; en-us")).isEqualTo("iPad; U; CPU OS 3_2_1 like Mac OS X; en-us");
+        assertThat(ApmServerClient.escapeHeaderComment("iPad; U; CPU \\OS 3_2_1 like Mac OS X; en-us")).isEqualTo("iPad; U; CPU _OS 3_2_1 like Mac OS X; en-us");
+    }
 }
