@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.26.1-SNAPSHOT</version>
+        <version>1.27.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-plugins</artifactId>
@@ -66,6 +66,8 @@
         <module>apm-javalin-plugin</module>
         <module>apm-servlet-jakarta-test</module>
         <module>apm-jaxws-plugin-jakartaee-test</module>
+        <module>apm-jaxrs-plugin-jakartaee-test</module>
+        <module>apm-scheduled-annotation-plugin-jakartaee-test</module>
     </modules>
 
     <dependencies>
