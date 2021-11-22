@@ -40,7 +40,7 @@ abstract public class JmsInstrumentationHelper<MESSAGE, DESTINATION, JMSEXCEPTIO
     /**
      * In some cases, dashes are not allowed in JMS Message property names
      */
-    protected static String JMS_TRACE_PARENT_PROPERTY = TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME.replace('-', '_');
+    public static final String JMS_TRACE_PARENT_PROPERTY = TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME.replace('-', '_');
 
     /**
      * When the agent computes a destination name instead of using the default queue name- it should be passed as a
@@ -48,33 +48,33 @@ abstract public class JmsInstrumentationHelper<MESSAGE, DESTINATION, JMSEXCEPTIO
      * identified based on the queue type and all receive the same generic name. In Artemis Active MQ, the queue
      * generated at the receiver side is not of the temporary type, so this name computation cannot be made.
      */
-    protected static String JMS_DESTINATION_NAME_PROPERTY = "elastic_apm_dest_name";
+    public static final String JMS_DESTINATION_NAME_PROPERTY = "elastic_apm_dest_name";
 
     /**
      * Indicates a transaction is created for the message handling flow, but should not be used as the actual type of
      * reported transactions.
      */
-    protected static String MESSAGE_HANDLING = "message-handling";
+    public static final String MESSAGE_HANDLING = "message-handling";
 
     /**
      * Indicates a transaction is created for a message polling method, but should not be used as the actual type of
      * reported transactions.
      */
-    protected static String MESSAGE_POLLING = "message-polling";
+    public static final String MESSAGE_POLLING = "message-polling";
 
-    protected static String MESSAGING_TYPE = "messaging";
+    public static final String MESSAGING_TYPE = "messaging";
 
-    protected static String RECEIVE_NAME_PREFIX = "JMS RECEIVE";
+    public static final String RECEIVE_NAME_PREFIX = "JMS RECEIVE";
 
     // JMS known headers
     //----------------------
-    protected static String JMS_MESSAGE_ID_HEADER = "JMSMessageID";
-    protected static String JMS_EXPIRATION_HEADER = "JMSExpiration";
-    protected static String JMS_TIMESTAMP_HEADER = "JMSTimestamp";
+    public static final String JMS_MESSAGE_ID_HEADER = "JMSMessageID";
+    public static final String JMS_EXPIRATION_HEADER = "JMSExpiration";
+    public static final String JMS_TIMESTAMP_HEADER = "JMSTimestamp";
 
-    static final String TIBCO_TMP_QUEUE_PREFIX = "$TMP$";
-    static final String TEMP = "<temporary>";
-    static final String FRAMEWORK_NAME = "JMS";
+    public static final String TIBCO_TMP_QUEUE_PREFIX = "$TMP$";
+    public static final String TEMP = "<temporary>";
+    public static final String FRAMEWORK_NAME = "JMS";
 
     protected static final Logger logger = LoggerFactory.getLogger(JmsInstrumentationHelper.class);
     private final ElasticApmTracer tracer;
