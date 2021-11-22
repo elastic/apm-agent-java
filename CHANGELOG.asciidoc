@@ -25,7 +25,6 @@ endif::[]
 
 [float]
 ===== Features
-* Add support to Jakarta EE for JSF - {pull}2254[#2254]
 
 [float]
 ===== Bug fixes
@@ -65,6 +64,7 @@ by the agent may be different. This was done in order to improve the integration
 * Add support to Jakarta EE for JAX-RS - {pull}2248[#2248]
 * Add support for Jakarta EE EJB annotations `@Schedule`, `@Schedules` - {pull}2250[#2250]
 * Added support to Quartz 1.x - {pull}2219[#2219]
+* Add support to Jakarta EE for JSF - {pull}2254[#2254]
 
 [float]
 ===== Performance improvements
