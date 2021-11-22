@@ -419,7 +419,7 @@ abstract public class JmsInstrumentationHelper<MESSAGE, DESTINATION, JMSEXCEPTIO
 
     abstract Enumeration getPropertyNames(MESSAGE message) throws JMSEXCEPTION;
 
-    abstract String getObjectProperty(MESSAGE message, String propertyName) throws JMSEXCEPTION;
+    abstract Object getObjectProperty(MESSAGE message, String propertyName) throws JMSEXCEPTION;
 
     abstract DESTINATION getDestination(MESSAGE message) throws JMSEXCEPTION;
 }

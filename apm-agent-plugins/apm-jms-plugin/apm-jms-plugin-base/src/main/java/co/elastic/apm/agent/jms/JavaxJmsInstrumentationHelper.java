@@ -115,8 +115,8 @@ public class JavaxJmsInstrumentationHelper extends JmsInstrumentationHelper<Mess
     }
 
     @Override
-    String getObjectProperty(Message message, String propertyName) throws JMSException {
-        return null;
+    Object getObjectProperty(Message message, String propertyName) throws JMSException {
+        return message.getObjectProperty(propertyName);
     }
 
     @Override
