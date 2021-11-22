@@ -27,7 +27,7 @@ import javax.jms.TextMessage;
 import javax.jms.Topic;
 import java.util.concurrent.CompletableFuture;
 
-interface BrokerFacade {
+interface JavaxBrokerFacade {
 
     void prepareResources() throws Exception;
 

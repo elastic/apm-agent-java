@@ -45,7 +45,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * ActiveMQ Artemis tests for JMS 2 API
  */
-public class ActiveMqArtemisFacade implements BrokerFacade {
+public class JavaxActiveMqArtemisFacade implements JavaxBrokerFacade {
 
     private ActiveMQConnectionFactory connectionFactory;
     private ActiveMQServerImpl activeMQServer;

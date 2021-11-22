@@ -74,21 +74,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
 @RunWith(Parameterized.class)
-public class JmsInstrumentationIT extends AbstractInstrumentationTest {
+public class JavaxJmsInstrumentationIT extends AbstractInstrumentationTest {
 
     // Keeping a static reference for resource cleaning
-    private final static Set<BrokerFacade> staticBrokerFacade = new HashSet<>();
+    private final static Set<JavaxBrokerFacade> staticBrokerFacade = new HashSet<>();
 
     private static final BlockingQueue<Message> resultQ = new ArrayBlockingQueue<>(5);
 
-    private final BrokerFacade brokerFacade;
+    private final JavaxBrokerFacade brokerFacade;
     private final CoreConfiguration coreConfiguration;
     private final ThreadLocal<Boolean> receiveNoWaitFlow = new ThreadLocal<>();
     private final ThreadLocal<Boolean> expectNoTraces = new ThreadLocal<>();
 
     private Queue noopQ;
 
-    public JmsInstrumentationIT(BrokerFacade brokerFacade, Class<? extends BrokerFacade> clazz) throws Exception {
+    public JavaxJmsInstrumentationIT(JavaxBrokerFacade brokerFacade, Class<? extends JavaxBrokerFacade> clazz) throws Exception {
         this.brokerFacade = brokerFacade;
         if (staticBrokerFacade.add(brokerFacade)) {
             brokerFacade.prepareResources();
@@ -96,14 +96,14 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         coreConfiguration = config.getConfig(CoreConfiguration.class);
     }
 
-    @Parameterized.Parameters(name = "BrokerFacade={1}")
+    @Parameterized.Parameters(name = "JavaxBrokerFacade={1}")
     public static Iterable<Object[]> brokerFacades() {
-        return Arrays.asList(new Object[][]{{new ActiveMqFacade(), ActiveMqFacade.class}, {new ActiveMqArtemisFacade(), ActiveMqArtemisFacade.class}});
+        return Arrays.asList(new Object[][]{{new JavaxActiveMqFacade(), JavaxActiveMqFacade.class}, {new JavaxActiveMqArtemisFacade(), JavaxActiveMqArtemisFacade.class}});
     }
 
     @AfterClass
     public static void closeResources() throws Exception {
-        for (BrokerFacade brokerFacade : staticBrokerFacade) {
+        for (JavaxBrokerFacade brokerFacade : staticBrokerFacade) {
             brokerFacade.closeResources();
         }
         staticBrokerFacade.clear();

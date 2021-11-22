@@ -42,7 +42,7 @@ import java.util.concurrent.CompletableFuture;
  * ActiveMQ tests for JMS 1 API.
  * Testing with the Pooled connection factory adds testing for name-based pre-matcher-filter, and tests for nested receives
  */
-class ActiveMqFacade implements BrokerFacade {
+class JavaxActiveMqFacade implements JavaxBrokerFacade {
 
     private Connection connection;
     private Session session;
