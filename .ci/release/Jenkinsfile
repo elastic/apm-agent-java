@@ -45,7 +45,6 @@ pipeline {
             dir("${BASE_DIR}") {
               setupAPMGitEmail()
             }
-
             dir("${BASE_DIR}") {
               withEnv(["BRANCH_NAME=${BRANCH_SPECIFIER}"]){
                 withGitRelease() { // sets up the git release setup (remote branches, current workspace state, ...)
@@ -81,12 +80,14 @@ pipeline {
           when {
             allOf {
               expression { params.check_branch_ci_status }
-              not { branch 'stable' }
+              expression { env.BRANCH_SPECIFIER != 'stable' }
             }
           }
           steps {
             // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/"${BRANCH_SPECIFIER}"/
             whenTrue(!buildStatus(host: 'apm-ci.elastic.co', job: ['apm-agent-java', 'apm-agent-java-mbp', "${BRANCH_SPECIFIER}"], return_boolean: true)) {
+              notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] The ${BRANCH_SPECIFIER} build is not passing",
+                           body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")
               input(message: "WARNING! The ${BRANCH_SPECIFIER} build is not passing. Do you wish to continue?")
             }
           }
@@ -135,6 +136,24 @@ pipeline {
             }
           }
         }
+        stage('Set release version manually') {
+          steps {
+            dir("${BASE_DIR}"){
+              script {
+                def user_release_version = input(message: "Please enter version to release:", parameters: [[
+                    $class: 'StringParameterDefinition',
+                    name: 'Release version',
+                    defaultValue: "",
+                    description: "Input release version without '-SNAPSHOT' suffix"
+                  ]])
+
+                env.RELEASE_TAG = "v" + user_release_version
+                env.RELEASE_VERSION = user_release_version
+                env.BRANCH_DOT_X = user_release_version.substring(0, user_release_version.indexOf('.'))+'.x'
+              }
+            }
+          }
+        }
         stage('Wait on internal CI') {
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
@@ -156,34 +175,23 @@ pipeline {
                 def isMajor = env.RELEASE_VERSION.endsWith(".0.0")
                 if (isMajor) {
                   // major release, create '.x' branch
-                  sh(script: """
-                    git checkout ${RELEASE_TAG}
-                    git checkout -b ${BRANCH_DOT_X}
-                  """)
+                  sh(label: "remote tag is fetched for local checkout", script: "git fetch origin ${RELEASE_TAG}")
+                  sh(label: "create .x branch from ${RELEASE_TAG}", script: """
+                    git checkout ${RELEASE_TAG} --force
+                    git checkout -b ${BRANCH_DOT_X} --force""")
                   gitPush()
                   input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
                 } else {
                   // minor release, force-update existing '.x' branch. any change applied to '.x' branch, for example to
                   // fix doc or release notes should also have been applied to master/stable branch we are releasing from
-                  sh(script: """
-                    git fetch origin ${BRANCH_DOT_X} # ensure remote branch is fetched for local checkout
-                    git checkout --track origin/${BRANCH_DOT_X}
-                    git reset --hard ${RELEASE_TAG}
-                    """)
+                  sh(label: "remote tag and branch are fetched for local checkout", script: """
+                    git fetch origin ${BRANCH_DOT_X}
+                    git fetch origin ${RELEASE_TAG}""")
+                  sh(label: "force-update .x branch from ${RELEASE_TAG}", script: """
+                    git checkout --track origin/${BRANCH_DOT_X} --force
+                    git reset --hard ${RELEASE_TAG}""")
                   gitPush(args: "-f ${BRANCH_DOT_X}")
                 }
-              }
-            }
-          }
-          post {
-            cleanup {
-              dir("${BASE_DIR}") {
-                // restore git state before updating .x branch, otherwise later external scripts will use
-                // the version when the tag was created, which might not match the release branch state
-                sh(script: """
-                    git fetch origin ${BRANCH_SPECIFIER} # ensure remote branch is fetched for local checkout
-                    git checkout --track origin/${BRANCH_SPECIFIER}
-                """)
               }
             }
           }
@@ -227,10 +235,10 @@ pipeline {
           steps {
             dir("${BASE_DIR}"){
               // ensure that we don't rely on side effect of another step
-              sh(script: """
-                  git fetch origin ${BRANCH_SPECIFIER} # ensure remote branch is fetched for local checkout
-                  git checkout --track origin/${BRANCH_SPECIFIER}
-                  """)
+              sh(label: "restore to previous updating version", script: """
+                  git fetch origin master
+                  git checkout master
+                  git reset --hard origin/master""")
               sh(script: "./scripts/jenkins/update_cloudfoundry.sh ${RELEASE_VERSION}")
               gitPush()
             }

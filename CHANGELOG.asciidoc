@@ -20,8 +20,21 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.28.0]]
+==== 1.28.0 - YYYY/MM/DD
+
+[float]
+===== Features
+* Add support to Jakarta EE for JSF - {pull}2254[#2254]
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.27.0]]
-==== 1.27.0 - YYYY/MM/DD
+==== 1.27.0 - 2021/11/15
 
 [float]
 ===== Potentially breaking changes
@@ -56,6 +69,7 @@ by the agent may be different. This was done in order to improve the integration
 [float]
 ===== Performance improvements
 * Disable compression when sending data to a local APM Server
+* Reducing startup contention related to instrumentation through `ensureInstrumented` - {pull}2150[#2150]
 
 [float]
 ===== Bug fixes
@@ -73,18 +87,15 @@ discovery - {pull}2205[#2205]
 * Refactorings in the `apm-agent-plugin-sdk` that may imply breaking changes for beta users of the external plugin mechanism
 ** `WeakMapSupplier.createMap()` is now `WeakConcurrent.buildMap()` and contains more builders - {pull}2136[#2136]
 ** `GlobalThreadLocal` has been removed in favor of `DetachedThreadLocal`. To make it global, use `GlobalVariables` - {pull}2136[#2136]
-** `DynamicTransformer.Accessor.get().ensureInstrumented` is now `DynamicTransformer.ensureInstrumented` - {pull}#2164[#2164]
+** `DynamicTransformer.Accessor.get().ensureInstrumented` is now `DynamicTransformer.ensureInstrumented` - {pull}2164[#2164]
 ** The `@AssignTo.*` annotations have been removed.
    Use the `@Advice.AssignReturned.*` annotations that come with the latest version of Byte Buddy.
    If your plugin uses the old annotations, it will be skipped.
    {pull}2171[#2171]
 * Switching last instrumentations (`trace_methods`, sparkjava, JDK `HttpServer` and Struts 2) to
-`TracerAwareInstrumentation` - {pull}#2170[#2170]
-* Replace concurrency plugin maps to `SpanConcurrentHashMap` ones - {pull}#2173[#2173]
-* Align User-Agent HTTP header with other APM agents - {pull}#2177[#2177]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+`TracerAwareInstrumentation` - {pull}2170[#2170]
+* Replace concurrency plugin maps to `SpanConcurrentHashMap` ones - {pull}2173[#2173]
+* Align User-Agent HTTP header with other APM agents - {pull}2177[#2177]
 
 [[release-notes-1.26.0]]
 ==== 1.26.0 - 2021/09/14
