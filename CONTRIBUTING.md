@@ -298,6 +298,10 @@ For illustration purpose, `1.2.3` will be the target release version, and the gi
 1. Build and push a Docker image using the instructions below
    Use `SONATYPE_FALLBACK=1 scripts/jenkins/build_docker.sh` to build image with released artifact.
    Requires credentials, thus need to delegate this manual step to someone that has them.
+1. Create a layer ZIP archive named `elastic-apm-java-aws-lambda-layer-<VERSION>.zip` containing:
+   1. The agent jar from maven central
+   1. The `elastic-apm-handler` wrapper script
+1. Upload the AWS Lambda Layer ZIP archive to the release draft
 1. Update [`cloudfoundry/index.yml`](cloudfoundry/index.yml) on  `master`.
 1. Publish release on Github. This will notify users watching repository.
 
