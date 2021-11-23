@@ -26,6 +26,7 @@ endif::[]
 [float]
 ===== Features
 * Add support to Jakarta EE for JSF - {pull}2254[#2254]
+* Added support for Java/Jakarta WebSocket ServerEndpoint - {pull}2281[#2281]
 
 [float]
 ===== Bug fixes
