@@ -55,7 +55,7 @@ public class ElasticApmAttacher {
      * @throws IllegalStateException if there was a problem while attaching the agent to this VM
      */
     public static void attach() {
-        attach(loadProperties("elasticapm.properties"));
+        attach(loadPropertiesFromClasspath("elasticapm.properties"));
     }
 
     /**
@@ -69,10 +69,10 @@ public class ElasticApmAttacher {
      * @since 1.11.0
      */
     public static void attach(String propertiesLocation) {
-        attach(loadProperties(propertiesLocation));
+        attach(loadPropertiesFromClasspath(propertiesLocation));
     }
 
-    private static Map<String, String> loadProperties(String propertiesLocation) {
+    private static Map<String, String> loadPropertiesFromClasspath(String propertiesLocation) {
         Map<String, String> propertyMap = new HashMap<>();
         final Properties props = new Properties();
         try (InputStream resourceStream = ElasticApmAttacher.class.getClassLoader().getResourceAsStream(propertiesLocation)) {

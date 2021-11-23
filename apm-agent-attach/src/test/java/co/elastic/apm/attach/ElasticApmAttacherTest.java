@@ -20,7 +20,6 @@ package co.elastic.apm.attach;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import wiremock.org.apache.commons.codec.digest.DigestUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -53,7 +52,15 @@ class ElasticApmAttacherTest {
         toClean.add(tempProperties);
 
         Properties properties = readProperties(tempProperties);
-        assertThat(properties.get("foo")).isEqualTo("bär");
+        assertThat(properties)
+            .hasSize(1)
+            .containsEntry("foo", "bär");
+    }
+
+    @Test
+    void testCreateEmptyConfigDoesNotCreateFile() {
+        File tempProperties = ElasticApmAttacher.createTempProperties(Map.of());
+        assertThat(tempProperties).isNull();
     }
 
     @Test
@@ -72,7 +79,7 @@ class ElasticApmAttacherTest {
 
         Map<String, String> config = Map.of(
             "foo", "bär",
-            "to_be_overriden", "--config param",
+            "to_be_overriden", "--config param", // Must be overriden by value in external config file
             "config_file", externalConfigFile.getAbsolutePath());
 
         File tempProperties = ElasticApmAttacher.createTempProperties(config);
