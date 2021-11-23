@@ -69,6 +69,7 @@ class RuntimeAttachTest {
 
     private static final int APP_TIMEOUT;
     public static final String CONFIG_ATTACHMENT = "Attachment configuration";
+    public static final String ELASTICAPM_PROPERTIES = "elasticapm.properties";
 
     static {
         try {
@@ -86,7 +87,7 @@ class RuntimeAttachTest {
     private JMXConnector jmxConnector;
 
     @AfterEach
-    void after() {
+    void after() throws IOException {
         if (jmxConnector != null) {
             askAppStopJmx();
             try {
@@ -104,6 +105,10 @@ class RuntimeAttachTest {
         }
         forkedJvms.clear();
         jmxUrl = null;
+
+        assertThat(Path.of(System.getProperty("java.io.tmpdir"), ELASTICAPM_PROPERTIES))
+            .doesNotExist();
+
     }
 
     enum AttachType {
@@ -113,7 +118,7 @@ class RuntimeAttachTest {
 
     @ParameterizedTest
     @EnumSource(value = AttachType.class)
-    void testAttach(AttachType attachType) {
+    void simpleAttach(AttachType attachType, @TempDir File tmp) {
         ProcessHandle appJvm = startAppForkedJvm(attachType == AttachType.SELF_ATTACH, null);
         long pid = appJvm.pid();
 
@@ -195,7 +200,7 @@ class RuntimeAttachTest {
         String serviceName = "cli-attach-external-default-config";
 
         Path logFile = getAgentLog(tmp.toPath());
-        Path configFile = writeAgentConfig(tmp.getParentFile().toPath(), "elasticapm.properties", Map.of(
+        Path configFile = writeAgentConfig(tmp.getParentFile().toPath(), ELASTICAPM_PROPERTIES, Map.of(
             "service_name", serviceName,
             "log_level", "DEBUG"
         ));

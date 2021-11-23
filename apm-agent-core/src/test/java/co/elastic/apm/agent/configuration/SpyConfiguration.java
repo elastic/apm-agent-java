@@ -61,7 +61,7 @@ public class SpyConfiguration {
         }
         return builder
             .addConfigSource(configurationSource)
-            .addConfigSource(new PropertyFileConfigurationSource("test.elasticapm.properties"))
+            .addConfigSource(PropertyFileConfigurationSource.fromClasspath("test.elasticapm.properties"))
             .build();
     }
 

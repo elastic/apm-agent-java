@@ -21,10 +21,16 @@ package co.elastic.apm.agent.configuration.source;
 
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
 
-import java.io.FileInputStream;
+import javax.annotation.Nullable;
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Reader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 /**
@@ -36,27 +42,30 @@ import java.util.Properties;
  */
 public final class PropertyFileConfigurationSource extends AbstractConfigurationSource {
 
+    private static final String SOURCE_PREFIX = "#source:";
+
+    /**
+     * Path of the configuration location
+     */
     private final String location;
+
+    /**
+     * User-friendly configuration source path, might be a path or a classpath path
+     */
+    private final String sourceName;
+
+    /**
+     * Properties
+     */
     private Properties properties;
 
-    public PropertyFileConfigurationSource(String location) {
+    private final boolean fromClasspath;
+
+    private PropertyFileConfigurationSource(String location, boolean fromClasspath, String sourceName, Properties properties) {
         this.location = location;
-        reload();
-    }
-
-    public static boolean isPresent(String location) {
-        return getProperties(location) != null;
-    }
-
-    private static Properties getProperties(String location) {
-        if (location == null) {
-            return null;
-        }
-        Properties props = getFromClasspath(location, ClassLoader.getSystemClassLoader());
-        if (props == null) {
-            props = getFromFileSystem(location);
-        }
-        return props;
+        this.fromClasspath = fromClasspath;
+        this.sourceName = sourceName;
+        this.properties = properties;
     }
 
     public static Properties getFromClasspath(String classpathLocation, ClassLoader classLoader) {
@@ -72,10 +81,55 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
         return null;
     }
 
-    public static Properties getFromFileSystem(String location) {
+    @Nullable
+    public static PropertyFileConfigurationSource fromClasspath(String location) {
+        Properties properties = getFromClasspath(location, ClassLoader.getSystemClassLoader());
+        if (properties == null) {
+            return null;
+        }
+        return new PropertyFileConfigurationSource(location, true, "classpath:" + location, properties);
+    }
+
+    @Nullable
+    public static PropertyFileConfigurationSource fromFileSystem(@Nullable String location) {
+        if (location == null) {
+            return null;
+        }
+
+        Path file = Paths.get(location).toAbsolutePath();
+        if (!Files.exists(file) || !Files.isReadable(file)) {
+            return null;
+        }
+
+        Properties properties = readProperties(file);
+        if (null == properties) {
+            return null;
+        }
+
+        String sourceName = parseSource(file);
+        if (sourceName == null) {
+            sourceName = file.toString();
+        }
+
+        return new PropertyFileConfigurationSource(location, false, sourceName, properties);
+    }
+
+    private static String parseSource(Path file) {
+        try (BufferedReader reader = Files.newBufferedReader(file)) {
+            String firstLine = reader.readLine();
+            if (firstLine != null && firstLine.startsWith(SOURCE_PREFIX)) {
+                return firstLine.substring(SOURCE_PREFIX.length());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private static Properties readProperties(Path location) {
         Properties props = new Properties();
-        try (InputStream input = new FileInputStream(location)) {
-            props.load(input);
+        try (Reader reader = Files.newBufferedReader(location)) {
+            props.load(reader);
             return props;
         } catch (FileNotFoundException ex) {
             return null;
@@ -87,15 +141,16 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
 
     @Override
     public void reload() {
-        properties = getProperties(location);
-        if (properties == null) {
-            properties = new Properties();
+        if (location == null || fromClasspath) {
+            return;
         }
+
+        properties = readProperties(new File(location).toPath());
     }
 
     @Override
     public String getName() {
-        return location;
+        return sourceName;
     }
 
     @Override

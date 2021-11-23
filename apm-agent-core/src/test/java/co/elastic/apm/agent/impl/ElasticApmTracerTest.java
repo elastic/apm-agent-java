@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -439,7 +440,9 @@ class ElasticApmTracerTest {
 
     @Test
     void testNotOverrideServiceNameWhenServiceNameConfigured() {
-        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(new PropertyFileConfigurationSource("test.elasticapm.with-service-name.properties"));
+        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
+            Objects.requireNonNull(PropertyFileConfigurationSource.fromClasspath("test.elasticapm.with-service-name.properties")));
+
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)
             .configurationRegistry(localConfig)
@@ -457,7 +460,7 @@ class ElasticApmTracerTest {
         String command = System.setProperty("sun.java.command", "TEST_SERVICE_NAME");
 
         ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
-            new PropertyFileConfigurationSource("test.elasticapm.with-service-name.properties")
+            Objects.requireNonNull(PropertyFileConfigurationSource.fromClasspath("test.elasticapm.with-service-name.properties"))
         );
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)

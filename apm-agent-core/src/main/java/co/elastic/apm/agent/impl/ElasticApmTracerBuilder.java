@@ -49,7 +49,6 @@ import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -237,15 +236,18 @@ public class ElasticApmTracerBuilder {
         // loads properties file next to agent jar or with path provided from config.
         // while it depends on sources above, it has higher priority and is thus inserted before them
         String configFileLocation = CoreConfiguration.getConfigFileLocation(result);
-        if (configFileLocation != null && PropertyFileConfigurationSource.getFromFileSystem(configFileLocation) != null) {
-            result.add(0, new PropertyFileConfigurationSource(configFileLocation));
+
+        PropertyFileConfigurationSource configFileSource = PropertyFileConfigurationSource.fromFileSystem(configFileLocation);
+        if (configFileSource != null) {
+            result.add(0, configFileSource);
         }
 
         if (agentArguments != null && !agentArguments.isEmpty()) {
             // runtime attachment: self-attachment API and attacher jar
             // configuration is stored in a temporary file to pass it to the agent
             AgentArgumentsConfigurationSource agentArgs = AgentArgumentsConfigurationSource.parse(agentArguments);
-            ConfigurationSource attachmentConfig = getAttachmentConfigSource(agentArgs.getValue(TEMP_PROPERTIES_FILE_KEY));
+
+            ConfigurationSource attachmentConfig = PropertyFileConfigurationSource.fromFileSystem(agentArgs.getValue(TEMP_PROPERTIES_FILE_KEY));
             if (attachmentConfig != null) {
                 result.add(attachmentConfig);
             }
@@ -254,31 +256,14 @@ public class ElasticApmTracerBuilder {
         // only used for testing, will not load elasticapm.properties from app classpath as this code is
         // running in the bootstrap classloader. When testing, it loads elasticapm.properties only because agent classes
         // are loaded by the system classloader and not the bootstrap classloader
-        if (PropertyFileConfigurationSource.isPresent("elasticapm.properties")) {
-            result.add(new PropertyFileConfigurationSource("elasticapm.properties"));
+        PropertyFileConfigurationSource classpathSource = PropertyFileConfigurationSource.fromClasspath("elasticapm.properties");
+        if (classpathSource != null) {
+            result.add(classpathSource);
         }
 
         // lowest priority: implicit default configuration
 
         return result;
-    }
-
-    /**
-     * Loads the configuration from the temporary properties file created by ElasticApmAttacher
-     */
-    @Nullable
-    private static ConfigurationSource getAttachmentConfigSource(@Nullable String configFileLocation) {
-        if (configFileLocation != null) {
-            Properties fromFileSystem = PropertyFileConfigurationSource.getFromFileSystem(configFileLocation);
-            if (fromFileSystem != null) {
-                SimpleSource attachmentConfig = new SimpleSource("Attachment configuration");
-                for (String key : fromFileSystem.stringPropertyNames()) {
-                    attachmentConfig.add(key, fromFileSystem.getProperty(key));
-                }
-                return attachmentConfig;
-            }
-        }
-        return null;
     }
 
 }

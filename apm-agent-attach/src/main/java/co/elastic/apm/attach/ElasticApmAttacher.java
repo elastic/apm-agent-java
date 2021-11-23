@@ -21,11 +21,12 @@ package co.elastic.apm.attach;
 import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
 import net.bytebuddy.agent.ByteBuddyAgent;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -123,8 +124,9 @@ public class ElasticApmAttacher {
 
             try {
                 tempFile = File.createTempFile("elstcapm", ".tmp");
-                try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
-                    properties.store(outputStream, null);
+                try (BufferedWriter writer = Files.newBufferedWriter(tempFile.toPath())) {
+                    // write configuration source hint as comment in the file
+                    properties.store(writer, "source:Attachment configuration");
                 }
             } catch (IOException e) {
                 e.printStackTrace();
