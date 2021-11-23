@@ -26,6 +26,7 @@ endif::[]
 [float]
 ===== Features
 * Add support to Jakarta EE for JSF - {pull}2254[#2254]
+* Add support to Jakarta EE for JMS - {pull}2282[#2282]
 
 [float]
 ===== Bug fixes
