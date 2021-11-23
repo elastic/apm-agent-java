@@ -24,7 +24,11 @@ import co.elastic.apm.attach.ElasticApmAttacher;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import java.io.File;
 import java.lang.management.ManagementFactory;
+import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -50,14 +54,32 @@ public class AppMain implements AppJmx {
         }
 
         boolean selfAttach = false;
+
         if (args.length > 1) {
             selfAttach = args[1].equals("self-attach");
+        }
+
+        File agentConfig = null;
+        if (args.length > 2) {
+            agentConfig = new File(args[2]);
+            if (!Files.isReadable(agentConfig.toPath())) {
+                throw new IllegalStateException("missing/invalid agent configuration " + agentConfig);
+            }
         }
 
         registerJmx(app);
 
         if (selfAttach) {
-            System.out.println("Using self-attach");
+            if (agentConfig == null) {
+                System.out.format("Using self attach with classpath configuration");
+                ElasticApmAttacher.attach();
+            } else {
+                System.out.format("Using self attach with external configuration " + agentConfig.getAbsolutePath());
+                Map<String, String> config = new HashMap<>();
+                config.put("service_name", "self-attach-external-config");
+                config.put("config_file", agentConfig.getAbsolutePath());
+                ElasticApmAttacher.attach(config);
+            }
             ElasticApmAttacher.attach();
         }
 
