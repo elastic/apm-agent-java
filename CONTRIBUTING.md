@@ -292,16 +292,13 @@ For illustration purpose, `1.2.3` will be the target release version, and the gi
 1. If this was a minor release, update the current minor branch (`1.x`, `2.x` etc) to the `v1.2.3` tag
    1. Update local `1.x` branch & update remote: `git branch -f 1.x v1.2.3 && git push upstream 1.x`
 1. Wait for the new version contents to become available on our [release notes page](https://www.elastic.co/guide/en/apm/agent/java/current/release-notes.html)
-1. Go to https://github.com/elastic/apm-agent-java/releases and draft a new release.
-   Provide a link to release notes in documentation (from previous step) as release description.
+1. Go to https://github.com/elastic/apm-agent-java/releases and draft a new release:
+   1. Provide a link to release notes in documentation (from previous step) as release description.
+   1. Download `elastic-apm-java-aws-lambda-layer-<VERSION>.zip` from the CI release job artifacts and upload it to the release draft
 1. Wait for released package to be available in [maven central](https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/)
 1. Build and push a Docker image using the instructions below
    Use `SONATYPE_FALLBACK=1 scripts/jenkins/build_docker.sh` to build image with released artifact.
    Requires credentials, thus need to delegate this manual step to someone that has them.
-1. Create a layer ZIP archive named `elastic-apm-java-aws-lambda-layer-<VERSION>.zip` containing:
-   1. The agent jar from maven central
-   1. The `elastic-apm-handler` wrapper script
-1. Upload the AWS Lambda Layer ZIP archive to the release draft
 1. Update [`cloudfoundry/index.yml`](cloudfoundry/index.yml) on  `master`.
 1. Publish release on Github. This will notify users watching repository.
 
