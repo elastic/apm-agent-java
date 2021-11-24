@@ -21,7 +21,7 @@ endif::[]
 === Unreleased
 
 [[release-notes-1.27.1]]
-==== 1.27.1 - YYYY/MM/D
+==== 1.27.1 - YYYY/MM/DD
 
 [float]
 ===== Features
