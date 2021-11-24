@@ -787,16 +787,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             }
         }
 
-        if (configFileLocation == null || !premain || !configFileLocation.contains(AGENT_HOME_PLACEHOLDER)) {
-            return configFileLocation;
+        if (configFileLocation != null) {
+            String agentHome = ElasticApmAgent.getAgentHome();
+            if (agentHome != null) {
+                configFileLocation = configFileLocation.replace(AGENT_HOME_PLACEHOLDER, agentHome);
+            }
         }
 
-        String agentHome = ElasticApmAgent.getAgentHome();
-        if (agentHome != null) {
-            return configFileLocation.replace(AGENT_HOME_PLACEHOLDER, agentHome);
-        } else {
-            return null;
-        }
+        return configFileLocation;
     }
 
     @Nullable
