@@ -28,9 +28,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.bytebuddy.agent.ByteBuddyAgent;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.util.List;
@@ -38,15 +38,15 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
-class MicrometerInstrumentationTest {
+public class MicrometerInstrumentationTest {
 
     private MockReporter reporter;
     private ConfigurationRegistry config;
     private int lastMeasuredMetricSetNumber;
     private int lastFooSamples;
 
-    @BeforeEach
-    void setUp() {
+    @Before
+    public void setUp() {
         config = SpyConfiguration.createSpyConfig();
         doReturn(50L).when(config.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
         reporter = new MockReporter();
@@ -54,13 +54,13 @@ class MicrometerInstrumentationTest {
         lastFooSamples = 0;
     }
 
-    @AfterEach
-    void tearDown() {
+    @After
+    public void tearDown() {
         ElasticApmAgent.reset();
     }
 
     @Test
-    void testRegisterMeterRegistry() {
+    public void testRegisterMeterRegistry() {
         ElasticApmAgent.initInstrumentation(MockTracer.createRealTracer(reporter, config), ByteBuddyAgent.install());
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         registry.counter("foo").increment();
@@ -68,7 +68,7 @@ class MicrometerInstrumentationTest {
     }
 
     @Test
-    void testReportedWhenInstrumentConfigDisabled() {
+    public void testReportedWhenInstrumentConfigDisabled() {
         doReturn(false).when(config.getConfig(CoreConfiguration.class)).isInstrument();
         ElasticApmAgent.initInstrumentation(MockTracer.createRealTracer(reporter, config), ByteBuddyAgent.install());
         SimpleMeterRegistry registry = new SimpleMeterRegistry();

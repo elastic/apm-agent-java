@@ -20,16 +20,16 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.28.0]]
-==== 1.28.0 - YYYY/MM/DD
+[[release-notes-1.27.1]]
+==== 1.27.1 - YYYY/MM/D
 
 [float]
 ===== Features
-* Add support to Jakarta EE for JSF - {pull}2254[#2254]
 * Added support for instrumenting Struts 2 static resource requests - {pull}1949[#1949]
 
 [float]
 ===== Bug fixes
+* Fixing missing Micrometer metrics in Spring boot due to premature initialization - {pull}2255[#2255]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
