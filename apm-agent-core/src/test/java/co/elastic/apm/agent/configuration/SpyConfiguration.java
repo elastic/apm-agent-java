@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
+import co.elastic.apm.agent.configuration.source.ConfigSources;
 import org.mockito.Mockito;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -61,7 +61,7 @@ public class SpyConfiguration {
         }
         return builder
             .addConfigSource(configurationSource)
-            .addConfigSource(PropertyFileConfigurationSource.fromClasspath("test.elasticapm.properties", ClassLoader.getSystemClassLoader()))
+            .addConfigSource(ConfigSources.fromClasspath("test.elasticapm.properties", ClassLoader.getSystemClassLoader()))
             .build();
     }
 

@@ -22,7 +22,7 @@ import co.elastic.apm.agent.configuration.AgentArgumentsConfigurationSource;
 import co.elastic.apm.agent.configuration.ApmServerConfigurationSource;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.PrefixingConfigurationSourceWrapper;
-import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
+import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.configuration.source.SystemPropertyConfigurationSource;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
@@ -241,7 +241,7 @@ public class ElasticApmTracerBuilder {
             // configuration is stored in a temporary file whose path is provided in agent arguments
             AgentArgumentsConfigurationSource agentArgs = AgentArgumentsConfigurationSource.parse(agentArguments);
 
-            ConfigurationSource attachmentConfig = PropertyFileConfigurationSource.fromRuntimeAttachParameters(agentArgs.getValue(TEMP_PROPERTIES_FILE_KEY));
+            ConfigurationSource attachmentConfig = ConfigSources.fromRuntimeAttachParameters(agentArgs.getValue(TEMP_PROPERTIES_FILE_KEY));
             if (attachmentConfig != null) {
                 result.add(attachmentConfig);
             }
@@ -251,7 +251,7 @@ public class ElasticApmTracerBuilder {
         // priority and is thus inserted before them.
 
         String configFileLocation = CoreConfiguration.getConfigFileLocation(result, premain);
-        ConfigurationSource configFileSource = PropertyFileConfigurationSource.fromFileSystem(configFileLocation);
+        ConfigurationSource configFileSource = ConfigSources.fromFileSystem(configFileLocation);
         if (configFileSource != null) {
             result.add(0, configFileSource);
         }
@@ -260,7 +260,7 @@ public class ElasticApmTracerBuilder {
         // Might also be used when application has 'elasticapm.properties' in the system classpath, however this
         // can't be guaranteed, thus the attacher API (running from any part of the application) will copy configuration
         // from the classpath to runtime attach parameters.
-        ConfigurationSource classpathSource = PropertyFileConfigurationSource.fromClasspath("elasticapm.properties", ClassLoader.getSystemClassLoader());
+        ConfigurationSource classpathSource = ConfigSources.fromClasspath("elasticapm.properties", ClassLoader.getSystemClassLoader());
         if (classpathSource != null) {
             result.add(classpathSource);
         }

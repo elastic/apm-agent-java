@@ -49,72 +49,9 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
      */
     private Properties properties;
 
-    private PropertyFileConfigurationSource(String location, Properties properties) {
+    PropertyFileConfigurationSource(String location, Properties properties) {
         this.location = location;
         this.properties = properties;
-    }
-
-    @Nullable
-    public static ConfigurationSource fromRuntimeAttachParameters(String location) {
-        return buildSimpleSource("Attachment configuration", getPropertiesFromFilesystem(location));
-    }
-
-    @Nullable
-    public static ConfigurationSource fromClasspath(String location, ClassLoader classLoader) {
-        return buildSimpleSource("classpath:" + location, getPropertiesFromClasspath(location, classLoader));
-    }
-
-    @Nullable
-    public static ConfigurationSource fromFileSystem(@Nullable String location) {
-        Properties properties = getPropertiesFromFilesystem(location);
-        if (properties == null) return null;
-
-        return new PropertyFileConfigurationSource(location, properties);
-    }
-
-    private static SimpleSource buildSimpleSource(String name, Properties properties) {
-        if (properties == null) {
-            return null;
-        }
-        SimpleSource source = new SimpleSource(name);
-        for (String key : properties.stringPropertyNames()) {
-            source.add(key, properties.getProperty(key));
-        }
-        return source;
-    }
-
-    private static Properties getPropertiesFromFilesystem(String location) {
-        if (location == null) {
-            return null;
-        }
-
-        return getFromFileSystem(location);
-    }
-
-    private static Properties getPropertiesFromClasspath(String classpathLocation, ClassLoader classLoader) {
-        final Properties props = new Properties();
-        try (InputStream resourceStream = classLoader.getResourceAsStream(classpathLocation)) {
-            if (resourceStream != null) {
-                props.load(resourceStream);
-                return props;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    public static Properties getFromFileSystem(String location) {
-        Properties props = new Properties();
-        try (InputStream input = new FileInputStream(location)) {
-            props.load(input);
-            return props;
-        } catch (FileNotFoundException ex) {
-            return null;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 
     @Override
@@ -123,7 +60,7 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
             return;
         }
 
-        Properties newProperties = getPropertiesFromFilesystem(location);
+        Properties newProperties = ConfigSources.getPropertiesFromFilesystem(location);
         if (newProperties != null) {
             properties = newProperties;
         }

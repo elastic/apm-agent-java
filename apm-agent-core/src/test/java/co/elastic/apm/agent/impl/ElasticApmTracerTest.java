@@ -22,7 +22,7 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
+import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -441,7 +441,7 @@ class ElasticApmTracerTest {
     @Test
     void testNotOverrideServiceNameWhenServiceNameConfigured() {
         ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
-            Objects.requireNonNull(PropertyFileConfigurationSource.fromClasspath("test.elasticapm.with-service-name.properties", ClassLoader.getSystemClassLoader())));
+            Objects.requireNonNull(ConfigSources.fromClasspath("test.elasticapm.with-service-name.properties", ClassLoader.getSystemClassLoader())));
 
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)
@@ -460,7 +460,7 @@ class ElasticApmTracerTest {
         String command = System.setProperty("sun.java.command", "TEST_SERVICE_NAME");
 
         ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
-            Objects.requireNonNull(PropertyFileConfigurationSource.fromClasspath("test.elasticapm.with-service-name.properties", ClassLoader.getSystemClassLoader()))
+            Objects.requireNonNull(ConfigSources.fromClasspath("test.elasticapm.with-service-name.properties", ClassLoader.getSystemClassLoader()))
         );
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)

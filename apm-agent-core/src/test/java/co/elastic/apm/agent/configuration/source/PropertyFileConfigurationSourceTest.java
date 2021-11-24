@@ -34,7 +34,7 @@ class PropertyFileConfigurationSourceTest {
 
     @Test
     void loadFromClasspath() throws IOException {
-        ConfigurationSource source = PropertyFileConfigurationSource.fromClasspath("test.elasticapm.properties", ClassLoader.getSystemClassLoader());
+        ConfigurationSource source = ConfigSources.fromClasspath("test.elasticapm.properties", ClassLoader.getSystemClassLoader());
         assertThat(source).isNotNull();
 
         assertThat(source.getName()).isEqualTo("classpath:test.elasticapm.properties");
@@ -53,7 +53,7 @@ class PropertyFileConfigurationSourceTest {
             "item2=world"
         )).toAbsolutePath();
 
-        ConfigurationSource source = PropertyFileConfigurationSource.fromFileSystem(config.toString());
+        ConfigurationSource source = ConfigSources.fromFileSystem(config.toString());
         assertThat(source).isNotNull();
         assertThat(source.getName()).isEqualTo(config.toString());
         assertThat(source.getValue("item1")).isEqualTo("hello");
@@ -79,7 +79,7 @@ class PropertyFileConfigurationSourceTest {
             "item2=world"
         )).toAbsolutePath();
 
-        ConfigurationSource source = PropertyFileConfigurationSource.fromRuntimeAttachParameters(config.toString());
+        ConfigurationSource source = ConfigSources.fromRuntimeAttachParameters(config.toString());
         assertThat(source).isNotNull();
 
         assertThat(source.getName()).isEqualTo("Attachment configuration");
@@ -95,7 +95,7 @@ class PropertyFileConfigurationSourceTest {
             "msg=hello world"
         )).toAbsolutePath();
 
-        ConfigurationSource source = PropertyFileConfigurationSource.fromFileSystem(config.toString());
+        ConfigurationSource source = ConfigSources.fromFileSystem(config.toString());
         assertThat(source).isNotNull();
         assertThat(source.getName()).isEqualTo(config.toString());
 
