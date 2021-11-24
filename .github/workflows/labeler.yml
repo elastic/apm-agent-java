@@ -26,6 +26,7 @@ jobs:
         usernamesToExclude: |
           apmmachine
           dependabot
+          dependabot[bot]
         GITHUB_TOKEN: ${{ secrets.APM_TECH_USER_TOKEN }}
     - name: Show team membership
       run: |
