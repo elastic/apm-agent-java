@@ -86,4 +86,22 @@ class PropertyFileConfigurationSourceTest {
         assertThat(source.getValue("item2")).isEqualTo("world");
     }
 
+    @Test
+    void tryToReloadDeletedConfig(@TempDir File tmp) throws IOException {
+        // when a temporary file is used to provide configuration
+        // it might be deleted and thus can't be reloaded afterwards
+        Path config = Files.write(tmp.toPath().resolve("my-config.properties"), Arrays.asList(
+            "msg=hello world"
+        )).toAbsolutePath();
+
+        PropertyFileConfigurationSource source = PropertyFileConfigurationSource.fromFileSystem(config.toString());
+        assertThat(source).isNotNull();
+        assertThat(source.getName()).isEqualTo(config.toString());
+
+        Files.delete(config);
+        assertThat(config).doesNotExist();
+
+        source.reload();
+    }
+
 }

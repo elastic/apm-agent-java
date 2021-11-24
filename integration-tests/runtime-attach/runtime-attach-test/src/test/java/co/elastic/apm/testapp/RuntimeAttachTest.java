@@ -22,8 +22,6 @@ import com.sun.tools.attach.VirtualMachine;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 
 import javax.annotation.Nullable;
 import javax.management.MBeanServerConnection;
@@ -87,7 +85,7 @@ class RuntimeAttachTest {
     private JMXConnector jmxConnector;
 
     @AfterEach
-    void after() throws IOException {
+    void after() {
         if (jmxConnector != null) {
             askAppStopJmx();
             try {
@@ -111,15 +109,18 @@ class RuntimeAttachTest {
 
     }
 
-    enum AttachType {
-        CLI_ATTACH,
-        SELF_ATTACH
+    @Test
+    void testSimpleAttachCli() {
+        testSimpleAttach(false);
     }
 
-    @ParameterizedTest
-    @EnumSource(value = AttachType.class)
-    void simpleAttach(AttachType attachType, @TempDir File tmp) {
-        ProcessHandle appJvm = startAppForkedJvm(attachType == AttachType.SELF_ATTACH, null);
+    @Test
+    void testSimpleAttachSelfAttach() {
+        testSimpleAttach(true);
+    }
+
+    private void testSimpleAttach(boolean selfAttach) {
+        ProcessHandle appJvm = startAppForkedJvm(selfAttach, null);
         long pid = appJvm.pid();
 
         waitForJmxRegistration(pid);
@@ -127,7 +128,7 @@ class RuntimeAttachTest {
         await("wait for application to start work")
             .until(() -> getWorkUnitCount(false) > 0);
 
-        if (attachType == AttachType.CLI_ATTACH) {
+        if (!selfAttach) {
             assertThat(getWorkUnitCount(true))
                 .describedAs("instrumentation should not start before using CLI attacher")
                 .isEqualTo(0);
@@ -145,7 +146,7 @@ class RuntimeAttachTest {
     }
 
     @Test
-    void testExternalConfigurationFile(@TempDir File tmp) throws IOException {
+    void testExternalConfigurationCli(@TempDir File tmp) throws IOException {
         // only testing with cli-attach for simplicity as it's easier to provide custom parameters
         // should behave in a similar way with
 
@@ -154,7 +155,7 @@ class RuntimeAttachTest {
         Path logFile = getAgentLog(tmp.toPath());
         Path configFile = writeAgentConfig(tmp.toPath(), "config.properties", Map.of(
             "service_name", serviceName,
-            "log_level", "INFO"
+            "log_level", "DEBUG"
         ));
 
         testCliAttachConfig(
@@ -166,8 +167,8 @@ class RuntimeAttachTest {
                 AgentConfig.of("log_file", logFile.toString(), CONFIG_ATTACHMENT),
                 AgentConfig.of("config_file", configFile.toString(), CONFIG_ATTACHMENT),
                 // those should be loaded from the content if 'config_file', which allows 'log_level' to be dynamic
-                AgentConfig.of("service_name", serviceName, ""),
-                AgentConfig.of("log_level", "INFO", "")
+                AgentConfig.of("service_name", serviceName, configFile.toString()),
+                AgentConfig.of("log_level", "DEBUG", configFile.toString())
             ));
 
     }
@@ -176,7 +177,8 @@ class RuntimeAttachTest {
     void testExternalConfigurationSelfAttach(@TempDir File tmp) throws IOException {
 
         Path logFile = getAgentLog(tmp.toPath());
-        Path configFile = writeAgentConfig(tmp.toPath(), "config.properties", Map.of(
+
+        Path configFile = writeAgentConfig(tmp.toPath(), "setup.properties", Map.of(
             // log file location is provided in the external configuration file
             "log_file", logFile.toString(),
             "log_level", "DEBUG"
@@ -207,12 +209,15 @@ class RuntimeAttachTest {
 
         try {
             testCliAttachConfig(
-                Map.of("log_file", logFile.toString()),
+                Map.of(
+                    "log_file", logFile.toString()),
                 logFile,
                 Set.of(
                     AgentConfig.of("log_file", logFile.toString(), CONFIG_ATTACHMENT),
-                    AgentConfig.of("service_name", "", ""),
-                    AgentConfig.ofMissing("log_level") // should not be set
+                    // the service name we should get is the one from classpath as the one in config file is ignored
+                    AgentConfig.of("service_name", "classpath-service-name", "classpath:elasticapm.properties"),
+                    // should not be set at all
+                    AgentConfig.ofMissing("log_level")
                 )
             );
         } finally {
@@ -436,6 +441,10 @@ class RuntimeAttachTest {
 
         waitForJmxRegistration(pid);
 
+        // for self-attach it's important to wait for instrumented work to begin
+        // otherwise we have no guarantee the agent has been started yet
+        waitForInstrumentedWork();
+
         checkConfigFromAgentLog(agentLog, expectedConfig);
 
     }
@@ -448,9 +457,11 @@ class RuntimeAttachTest {
         return writeAgentConfig(folder.resolve(filename), config).toAbsolutePath();
     }
 
-    private Path writeAgentConfig(Path filePath, Map<String,String> config) throws IOException {
+    private Path writeAgentConfig(Path filePath, Map<String, String> config) throws IOException {
         Properties externalConfig = new Properties();
         externalConfig.putAll(config);
+
+        Files.createDirectories(filePath.getParent());
 
         try (BufferedWriter writer = Files.newBufferedWriter(filePath)) {
             externalConfig.store(writer, "agent external config");

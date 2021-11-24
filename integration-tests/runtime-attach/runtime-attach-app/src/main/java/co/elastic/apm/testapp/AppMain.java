@@ -71,10 +71,10 @@ public class AppMain implements AppJmx {
 
         if (selfAttach) {
             if (agentConfig == null) {
-                System.out.format("Using self attach with classpath configuration");
+                System.out.format("Using self attach with classpath configuration\n");
                 ElasticApmAttacher.attach();
             } else {
-                System.out.format("Using self attach with external configuration " + agentConfig.getAbsolutePath());
+                System.out.format("Using self attach with external configuration %s\n", agentConfig.getAbsolutePath());
                 Map<String, String> config = new HashMap<>();
                 config.put("service_name", "self-attach-external-config");
                 config.put("config_file", agentConfig.getAbsolutePath());
@@ -83,7 +83,7 @@ public class AppMain implements AppJmx {
             ElasticApmAttacher.attach();
         }
 
-        System.out.println("application start, timeout = " + maxArg);
+        System.out.format("application start, timeout = %d\n", maxArg);
         app.start();
 
 
@@ -100,7 +100,7 @@ public class AppMain implements AppJmx {
         if (left == 0) {
             throw new IllegalStateException("timeout");
         } else {
-            System.out.format("application exit, total time = %d ms", endTime - startTime);
+            System.out.format("application exit, total time = %d ms\n", endTime - startTime);
         }
 
 
@@ -111,7 +111,7 @@ public class AppMain implements AppJmx {
         try {
             ObjectName objectName = new ObjectName("co.elastic.apm.testapp:type=AppMXBean");
             mbs.registerMBean(mxBean, objectName);
-            System.out.println("application JMX registration OK " + objectName);
+            System.out.format("application JMX registration OK %s\n", objectName);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

@@ -233,18 +233,14 @@ public class ElasticApmTracerBuilder {
         // environment variables
         result.add(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"));
 
-        // loads properties file next to agent jar or with path provided from config.
-        // while it depends on sources above, it has higher priority and is thus inserted before them
-        String configFileLocation = CoreConfiguration.getConfigFileLocation(result);
 
-        PropertyFileConfigurationSource configFileSource = PropertyFileConfigurationSource.fromFileSystem(configFileLocation);
-        if (configFileSource != null) {
-            result.add(0, configFileSource);
-        }
+        boolean isRuntimeAttach = false;
 
         if (agentArguments != null && !agentArguments.isEmpty()) {
+            isRuntimeAttach = true;
+
             // runtime attachment: self-attachment API and attacher jar
-            // configuration is stored in a temporary file to pass it to the agent
+            // configuration is stored in a temporary file whose path is provided in agent arguments
             AgentArgumentsConfigurationSource agentArgs = AgentArgumentsConfigurationSource.parse(agentArguments);
 
             ConfigurationSource attachmentConfig = PropertyFileConfigurationSource.fromFileSystem(agentArgs.getValue(TEMP_PROPERTIES_FILE_KEY));
@@ -252,6 +248,16 @@ public class ElasticApmTracerBuilder {
                 result.add(attachmentConfig);
             }
         }
+
+        // Optionally loading agent configuration from external file, while it depends on sources above, it has higher
+        // priority and is thus inserted before them.
+
+        String configFileLocation = CoreConfiguration.getConfigFileLocation(result, isRuntimeAttach);
+        PropertyFileConfigurationSource configFileSource = PropertyFileConfigurationSource.fromFileSystem(configFileLocation);
+        if (configFileSource != null) {
+            result.add(0, configFileSource);
+        }
+
 
         // only used for testing, will not load elasticapm.properties from app classpath as this code is
         // running in the bootstrap classloader. When testing, it loads elasticapm.properties only because agent classes

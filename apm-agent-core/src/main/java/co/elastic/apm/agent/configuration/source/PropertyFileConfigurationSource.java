@@ -24,11 +24,11 @@ import org.stagemonitor.configuration.source.AbstractConfigurationSource;
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
@@ -131,7 +131,8 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
         try (Reader reader = Files.newBufferedReader(location)) {
             props.load(reader);
             return props;
-        } catch (FileNotFoundException ex) {
+        } catch (NoSuchFileException e) {
+            // silently ignored as a transient configuration file might have been deleted
             return null;
         } catch (IOException e) {
             e.printStackTrace();
@@ -145,7 +146,10 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
             return;
         }
 
-        properties = readProperties(new File(location).toPath());
+        Properties newProperties = readProperties(new File(location).toPath());
+        if (newProperties != null) {
+            properties = newProperties;
+        }
     }
 
     @Override
