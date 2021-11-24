@@ -20,16 +20,16 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.28.0]]
-==== 1.28.0 - YYYY/MM/DD
+[[release-notes-1.27.1]]
+==== 1.27.1 - YYYY/MM/DD
 
 [float]
 ===== Features
-* Add support to Jakarta EE for JSF - {pull}2254[#2254]
 * When the MANIFEST.MF of the main jar contains the Implementation-Title attribute, it is used as the default service name - {pull}1921[#1921]
 
 [float]
 ===== Bug fixes
+* Fixing missing Micrometer metrics in Spring boot due to premature initialization - {pull}2255[#2255]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
