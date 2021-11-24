@@ -24,14 +24,10 @@ import org.stagemonitor.configuration.source.ConfigurationSource;
 import org.stagemonitor.configuration.source.SimpleSource;
 
 import javax.annotation.Nullable;
-import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Properties;
 
 /**
@@ -92,12 +88,7 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
             return null;
         }
 
-        Path file = Paths.get(location).toAbsolutePath();
-        if (!Files.exists(file) || !Files.isReadable(file)) {
-            return null;
-        }
-
-        return readProperties(file);
+        return getFromFileSystem(location);
     }
 
     private static Properties getPropertiesFromClasspath(String classpathLocation, ClassLoader classLoader) {
@@ -113,13 +104,12 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
         return null;
     }
 
-    private static Properties readProperties(Path location) {
+    public static Properties getFromFileSystem(String location) {
         Properties props = new Properties();
-        try (Reader reader = Files.newBufferedReader(location)) {
-            props.load(reader);
+        try (InputStream input = new FileInputStream(location)) {
+            props.load(input);
             return props;
-        } catch (NoSuchFileException e) {
-            // silently ignored as a transient configuration file might have been deleted
+        } catch (FileNotFoundException ex) {
             return null;
         } catch (IOException e) {
             e.printStackTrace();
@@ -133,7 +123,7 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
             return;
         }
 
-        Properties newProperties = readProperties(new File(location).toPath());
+        Properties newProperties = getPropertiesFromFilesystem(location);
         if (newProperties != null) {
             properties = newProperties;
         }
