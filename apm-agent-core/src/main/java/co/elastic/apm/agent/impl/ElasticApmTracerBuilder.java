@@ -219,7 +219,7 @@ public class ElasticApmTracerBuilder {
      * Provides an ordered list of local configuration sources, sorted in decreasing priority (first wins)
      *
      * @param agentArguments agent arguments (if any)
-     * @param premain
+     * @param premain        {@literal false} when using runtime attach {@literal true} when using -javaagent
      * @return ordered list of configuration sources
      */
     // Must not initialize any loggers with this as the logger is configured based on configuration.
