@@ -30,7 +30,7 @@ import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class PropertyFileConfigurationSourceTest {
+class ConfigSourcesTest {
 
     @Test
     void loadFromClasspath() throws IOException {
