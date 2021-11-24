@@ -29,6 +29,7 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* Improve runtime attach configuration reliability - {pull}2283[#2283]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
