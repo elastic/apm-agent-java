@@ -139,8 +139,6 @@ public class SystemInfo {
         }
         if (hostname == null || hostname.isEmpty()) {
             logger.warn("Unable to discover hostname, set log_level to debug for more details");
-        } else {
-            hostname = removeDomain(hostname);
         }
         return hostname;
     }
@@ -151,6 +149,9 @@ public class SystemInfo {
         if (hostname == null || hostname.isEmpty()) {
             try {
                 hostname = InetAddress.getLocalHost().getHostName();
+                if (hostname != null) {
+                    hostname = removeDomain(hostname);
+                }
             } catch (Exception e) {
                 logger.warn("Last fallback for hostname discovery of localhost failed", e);
             }

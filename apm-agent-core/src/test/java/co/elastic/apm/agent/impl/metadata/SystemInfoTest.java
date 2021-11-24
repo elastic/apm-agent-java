@@ -61,7 +61,7 @@ public class SystemInfoTest extends CustomEnvVariables {
 
     @Test
     void testHostnameDiscoveryFallbackThroughInetAddress() throws UnknownHostException {
-        String expectedHostname = InetAddress.getLocalHost().getHostName();
+        String expectedHostname = SystemInfo.removeDomain(InetAddress.getLocalHost().getHostName());
 
         Map<String, String> customEnvVariables = new HashMap<>();
         if (isWindows) {
