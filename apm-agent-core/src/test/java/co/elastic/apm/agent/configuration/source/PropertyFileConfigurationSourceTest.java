@@ -20,6 +20,7 @@ package co.elastic.apm.agent.configuration.source;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,8 +33,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PropertyFileConfigurationSourceTest {
 
     @Test
-    void loadFromClasspath() {
-        PropertyFileConfigurationSource source = PropertyFileConfigurationSource.fromClasspath("test.elasticapm.properties");
+    void loadFromClasspath() throws IOException {
+        ConfigurationSource source = PropertyFileConfigurationSource.fromClasspath("test.elasticapm.properties", ClassLoader.getSystemClassLoader());
         assertThat(source).isNotNull();
 
         assertThat(source.getName()).isEqualTo("classpath:test.elasticapm.properties");
@@ -52,14 +53,14 @@ class PropertyFileConfigurationSourceTest {
             "item2=world"
         )).toAbsolutePath();
 
-        PropertyFileConfigurationSource source = PropertyFileConfigurationSource.fromFileSystem(config.toString());
+        ConfigurationSource source = PropertyFileConfigurationSource.fromFileSystem(config.toString());
         assertThat(source).isNotNull();
         assertThat(source.getName()).isEqualTo(config.toString());
         assertThat(source.getValue("item1")).isEqualTo("hello");
         assertThat(source.getValue("item2")).isEqualTo("world");
 
 
-        // should support reloading
+        // should support modification and reloading
         Files.write(config, Arrays.asList(
             "item1=byebye",
             "item2=world"
@@ -71,17 +72,17 @@ class PropertyFileConfigurationSourceTest {
     }
 
     @Test
-    void loadFromAttachmentProperties(@TempDir File tmp) throws IOException {
+    void loadFromAttachmentConfig(@TempDir File tmp) throws IOException {
         Path config = Files.write(tmp.toPath().resolve("my-config.properties"), Arrays.asList(
             "#source:config source description", // the configuration location hint is provided by 1st line as comment
             "item1=hello",
             "item2=world"
         )).toAbsolutePath();
 
-        PropertyFileConfigurationSource source = PropertyFileConfigurationSource.fromFileSystem(config.toString());
+        ConfigurationSource source = PropertyFileConfigurationSource.fromRuntimeAttachParameters(config.toString());
         assertThat(source).isNotNull();
 
-        assertThat(source.getName()).isEqualTo("config source description");
+        assertThat(source.getName()).isEqualTo("Attachment configuration");
         assertThat(source.getValue("item1")).isEqualTo("hello");
         assertThat(source.getValue("item2")).isEqualTo("world");
     }
@@ -94,7 +95,7 @@ class PropertyFileConfigurationSourceTest {
             "msg=hello world"
         )).toAbsolutePath();
 
-        PropertyFileConfigurationSource source = PropertyFileConfigurationSource.fromFileSystem(config.toString());
+        ConfigurationSource source = PropertyFileConfigurationSource.fromFileSystem(config.toString());
         assertThat(source).isNotNull();
         assertThat(source.getName()).isEqualTo(config.toString());
 

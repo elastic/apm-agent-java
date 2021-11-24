@@ -441,7 +441,7 @@ class ElasticApmTracerTest {
     @Test
     void testNotOverrideServiceNameWhenServiceNameConfigured() {
         ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
-            Objects.requireNonNull(PropertyFileConfigurationSource.fromClasspath("test.elasticapm.with-service-name.properties")));
+            Objects.requireNonNull(PropertyFileConfigurationSource.fromClasspath("test.elasticapm.with-service-name.properties", ClassLoader.getSystemClassLoader())));
 
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)
@@ -460,7 +460,7 @@ class ElasticApmTracerTest {
         String command = System.setProperty("sun.java.command", "TEST_SERVICE_NAME");
 
         ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
-            Objects.requireNonNull(PropertyFileConfigurationSource.fromClasspath("test.elasticapm.with-service-name.properties"))
+            Objects.requireNonNull(PropertyFileConfigurationSource.fromClasspath("test.elasticapm.with-service-name.properties", ClassLoader.getSystemClassLoader()))
         );
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)

@@ -214,7 +214,9 @@ class RuntimeAttachTest {
                 logFile,
                 Set.of(
                     AgentConfig.of("log_file", logFile.toString(), CONFIG_ATTACHMENT),
-                    // the service name we should get is the one from classpath as the one in config file is ignored
+                    // the service name we should get is the one from the app classpath
+                    // this only works because 'classpath:elasticapm.properties' is in the app system classpath so the
+                    // agent can read it.
                     AgentConfig.of("service_name", "classpath-service-name", "classpath:elasticapm.properties"),
                     // should not be set at all
                     AgentConfig.ofMissing("log_level")

@@ -777,8 +777,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
      * Makes sure to not initialize ConfigurationOption, which would initialize the logger
      */
     @Nullable
-    public static String getConfigFileLocation(List<ConfigurationSource> configurationSources, boolean runtimeAttach) {
-        String configFileLocation = runtimeAttach ? null : DEFAULT_CONFIG_FILE;
+    public static String getConfigFileLocation(List<ConfigurationSource> configurationSources, boolean premain) {
+        String configFileLocation = premain ? DEFAULT_CONFIG_FILE : null;
         for (ConfigurationSource source : configurationSources) {
             String value = source.getValue(CONFIG_FILE);
             if (value != null) {
@@ -787,7 +787,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             }
         }
 
-        if (configFileLocation == null || runtimeAttach || !configFileLocation.contains(AGENT_HOME_PLACEHOLDER)) {
+        if (configFileLocation == null || !premain || !configFileLocation.contains(AGENT_HOME_PLACEHOLDER)) {
             return configFileLocation;
         }
 

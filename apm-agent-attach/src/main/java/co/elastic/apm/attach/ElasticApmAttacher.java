@@ -23,7 +23,6 @@ import net.bytebuddy.agent.ByteBuddyAgent;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -115,8 +114,7 @@ public class ElasticApmAttacher {
             try {
                 tempFile = File.createTempFile("elstcapm", ".tmp");
                 try (BufferedWriter writer = Files.newBufferedWriter(tempFile.toPath())) {
-                    // write configuration source hint as comment in the file
-                    properties.store(writer, "source:Attachment configuration");
+                    properties.store(writer, null);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -140,7 +138,7 @@ public class ElasticApmAttacher {
      *
      * @param pid           the PID of the JVM the agent should be attached on
      * @param configuration the agent configuration
-     * @param agentJarFile
+     * @param agentJarFile  the agent jar file
      */
     public static void attach(String pid, Map<String, String> configuration, File agentJarFile) {
         File tempFile = createTempProperties(configuration);

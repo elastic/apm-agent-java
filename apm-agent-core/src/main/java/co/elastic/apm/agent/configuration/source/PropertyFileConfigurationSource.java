@@ -20,9 +20,10 @@ package co.elastic.apm.agent.configuration.source;
 
 
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
+import org.stagemonitor.configuration.source.ConfigurationSource;
+import org.stagemonitor.configuration.source.SimpleSource;
 
 import javax.annotation.Nullable;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,56 +43,51 @@ import java.util.Properties;
  */
 public final class PropertyFileConfigurationSource extends AbstractConfigurationSource {
 
-    private static final String SOURCE_PREFIX = "#source:";
-
     /**
      * Path of the configuration location
      */
     private final String location;
 
     /**
-     * User-friendly configuration source path, might be a path or a classpath path
-     */
-    private final String sourceName;
-
-    /**
      * Properties
      */
     private Properties properties;
 
-    private final boolean fromClasspath;
-
-    private PropertyFileConfigurationSource(String location, boolean fromClasspath, String sourceName, Properties properties) {
+    private PropertyFileConfigurationSource(String location, Properties properties) {
         this.location = location;
-        this.fromClasspath = fromClasspath;
-        this.sourceName = sourceName;
         this.properties = properties;
     }
 
-    public static Properties getFromClasspath(String classpathLocation, ClassLoader classLoader) {
-        final Properties props = new Properties();
-        try (InputStream resourceStream = classLoader.getResourceAsStream(classpathLocation)) {
-            if (resourceStream != null) {
-                props.load(resourceStream);
-                return props;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
+    @Nullable
+    public static ConfigurationSource fromRuntimeAttachParameters(String location) {
+        return buildSimpleSource("Attachment configuration", getPropertiesFromFilesystem(location));
     }
 
     @Nullable
-    public static PropertyFileConfigurationSource fromClasspath(String location) {
-        Properties properties = getFromClasspath(location, ClassLoader.getSystemClassLoader());
+    public static ConfigurationSource fromClasspath(String location, ClassLoader classLoader) {
+        return buildSimpleSource("classpath:" + location, getPropertiesFromClasspath(location, classLoader));
+    }
+
+    @Nullable
+    public static ConfigurationSource fromFileSystem(@Nullable String location) {
+        Properties properties = getPropertiesFromFilesystem(location);
+        if (properties == null) return null;
+
+        return new PropertyFileConfigurationSource(location, properties);
+    }
+
+    private static SimpleSource buildSimpleSource(String name, Properties properties) {
         if (properties == null) {
             return null;
         }
-        return new PropertyFileConfigurationSource(location, true, "classpath:" + location, properties);
+        SimpleSource source = new SimpleSource(name);
+        for (String key : properties.stringPropertyNames()) {
+            source.add(key, properties.getProperty(key));
+        }
+        return source;
     }
 
-    @Nullable
-    public static PropertyFileConfigurationSource fromFileSystem(@Nullable String location) {
+    private static Properties getPropertiesFromFilesystem(String location) {
         if (location == null) {
             return null;
         }
@@ -101,24 +97,15 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
             return null;
         }
 
-        Properties properties = readProperties(file);
-        if (null == properties) {
-            return null;
-        }
-
-        String sourceName = parseSource(file);
-        if (sourceName == null) {
-            sourceName = file.toString();
-        }
-
-        return new PropertyFileConfigurationSource(location, false, sourceName, properties);
+        return readProperties(file);
     }
 
-    private static String parseSource(Path file) {
-        try (BufferedReader reader = Files.newBufferedReader(file)) {
-            String firstLine = reader.readLine();
-            if (firstLine != null && firstLine.startsWith(SOURCE_PREFIX)) {
-                return firstLine.substring(SOURCE_PREFIX.length());
+    private static Properties getPropertiesFromClasspath(String classpathLocation, ClassLoader classLoader) {
+        final Properties props = new Properties();
+        try (InputStream resourceStream = classLoader.getResourceAsStream(classpathLocation)) {
+            if (resourceStream != null) {
+                props.load(resourceStream);
+                return props;
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -142,7 +129,7 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
 
     @Override
     public void reload() {
-        if (location == null || fromClasspath) {
+        if (location == null) {
             return;
         }
 
@@ -154,7 +141,7 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
 
     @Override
     public String getName() {
-        return sourceName;
+        return location;
     }
 
     @Override
