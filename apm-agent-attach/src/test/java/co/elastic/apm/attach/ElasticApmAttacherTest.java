@@ -50,7 +50,7 @@ class ElasticApmAttacherTest {
     void testCreateEmptyConfigDoesNotCreateFile(@TempDir File tmp) {
         File tempProperties = ElasticApmAttacher.createTempProperties(Map.of(), tmp);
         assertThat(tempProperties).isNull();
-        assertThat(tmp)
+        assertThat(tmp.listFiles())
             .describedAs("no file should be created in temp folder")
             .isEmpty();
     }
