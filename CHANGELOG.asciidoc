@@ -26,6 +26,7 @@ endif::[]
 [float]
 ===== Bug fixes
 * Fixing missing Micrometer metrics in Spring boot due to premature initialization - {pull}2255[#2255]
+* Fixing agent `unknown` version - {pull}2289[#2289]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
