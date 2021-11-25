@@ -26,7 +26,9 @@ endif::[]
 [float]
 ===== Bug fixes
 * Fixing missing Micrometer metrics in Spring boot due to premature initialization - {pull}2255[#2255]
+* Fixing hostname trimming of FQDN too aggressive - {pull}2286[#2286]
 * Fixing agent `unknown` version - {pull}2289[#2289]
+
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
