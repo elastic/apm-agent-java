@@ -148,7 +148,7 @@ class RuntimeAttachTest {
     @Test
     void testExternalConfigurationCli(@TempDir File tmp) throws IOException {
         // only testing with cli-attach for simplicity as it's easier to provide custom parameters
-        // should behave in a similar way with
+        // should behave in a similar way with api attach.
 
         String serviceName = "cli-attach-external-config";
 
