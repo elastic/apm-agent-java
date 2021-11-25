@@ -38,11 +38,13 @@ public class SystemInfoTest extends CustomEnvVariables {
         isWindows = SystemInfo.isWindows(systemInfo.getPlatform());
     }
 
-
     @Test
     void testHostnameDiscoveryThroughCommand() {
         String hostname = SystemInfo.discoverHostnameThroughCommand(isWindows, 300);
-        assertThat(hostname).isNotNull();
+        assertThat(hostname).isNotNull().isNotEmpty();
+        assertThat(hostname)
+            .describedAs("hostname command output should be normalized")
+            .isEqualTo(hostname.trim());
     }
 
     @Test
