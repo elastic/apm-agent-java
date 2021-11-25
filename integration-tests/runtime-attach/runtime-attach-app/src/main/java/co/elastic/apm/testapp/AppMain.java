@@ -80,7 +80,6 @@ public class AppMain implements AppJmx {
                 config.put("config_file", agentConfig.getAbsolutePath());
                 ElasticApmAttacher.attach(config);
             }
-            ElasticApmAttacher.attach();
         }
 
         System.out.format("application start, timeout = %d\n", maxArg);
