@@ -18,16 +18,12 @@
  */
 package co.elastic.apm.attach;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -35,21 +31,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ElasticApmAttacherTest {
 
-    private List<File> toClean = new ArrayList<>();
-
-    @AfterEach
-    void cleanup() throws IOException {
-        for (File file : toClean) {
-            Files.delete(file.toPath());
-        }
-    }
-
     @Test
-    void testCreateTempProperties() throws Exception {
-        File tempProperties = ElasticApmAttacher.createTempProperties(Map.of("foo", "bär"));
+    void testCreateTempProperties(@TempDir File tmp) throws Exception {
+        File tempProperties = ElasticApmAttacher.createTempProperties(Map.of("foo", "bär"), tmp);
         assertThat(tempProperties).isNotNull();
 
-        toClean.add(tempProperties);
+        assertThat(tempProperties.getParentFile())
+            .describedAs("property files should be created at root of tmp folder")
+            .isEqualTo(tmp);
 
         Properties properties = readProperties(tempProperties);
         assertThat(properties)
@@ -58,39 +47,12 @@ class ElasticApmAttacherTest {
     }
 
     @Test
-    void testCreateEmptyConfigDoesNotCreateFile() {
-        File tempProperties = ElasticApmAttacher.createTempProperties(Map.of());
+    void testCreateEmptyConfigDoesNotCreateFile(@TempDir File tmp) {
+        File tempProperties = ElasticApmAttacher.createTempProperties(Map.of(), tmp);
         assertThat(tempProperties).isNull();
-    }
-
-    @Test
-    void testCreateTempPropertiesWithExternalConfig() throws IOException {
-        Properties externalConfig = new Properties();
-        externalConfig.putAll(Map.of(
-            "foo_ext", "bär_ext",
-            "to_be_overriden", "external"
-        ));
-
-        File externalConfigFile = File.createTempFile("external-config", ".tmp");
-        toClean.add(externalConfigFile);
-        try(FileOutputStream fos = new FileOutputStream(externalConfigFile)) {
-            externalConfig.store(fos, null);
-        }
-
-        Map<String, String> config = Map.of(
-            "foo", "bär",
-            "to_be_overriden", "--config param", // Must be overriden by value in external config file
-            "config_file", externalConfigFile.getAbsolutePath());
-
-        File tempProperties = ElasticApmAttacher.createTempProperties(config);
-        toClean.add(tempProperties);
-
-        Properties mergedProperties = readProperties(tempProperties);
-        assertThat(mergedProperties)
-            .containsEntry("foo", "bär")
-            .containsEntry("foo_ext", "bär_ext")
-            .containsEntry("to_be_overriden", "external"); // external properties has higher priority than parameters
-
+        assertThat(tmp)
+            .describedAs("no file should be created in temp folder")
+            .isEmpty();
     }
 
     private Properties readProperties(File propertyFile) throws IOException {

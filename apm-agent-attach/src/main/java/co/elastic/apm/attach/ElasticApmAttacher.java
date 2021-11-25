@@ -21,6 +21,7 @@ package co.elastic.apm.attach;
 import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
 import net.bytebuddy.agent.ByteBuddyAgent;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -104,14 +105,21 @@ public class ElasticApmAttacher {
         attach(ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE.resolve(), configuration);
     }
 
-    static File createTempProperties(Map<String, String> configuration) {
+    /**
+     * Store configuration to a temporary file
+     *
+     * @param configuration agent configuration
+     * @param folder        temporary folder, use {@literal null} to use default
+     * @return created file if any, {@literal null} if none was created
+     */
+    static File createTempProperties(Map<String, String> configuration, @Nullable File folder) {
         File tempFile = null;
         if (!configuration.isEmpty()) {
             Properties properties = new Properties();
             properties.putAll(configuration);
 
             try {
-                tempFile = File.createTempFile("elstcapm", ".tmp");
+                tempFile = File.createTempFile("elstcapm", ".tmp", folder);
                 try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
                     properties.store(outputStream, null);
                 }
@@ -140,7 +148,7 @@ public class ElasticApmAttacher {
      * @param agentJarFile  the agent jar file
      */
     public static void attach(String pid, Map<String, String> configuration, File agentJarFile) {
-        File tempFile = createTempProperties(configuration);
+        File tempFile = createTempProperties(configuration, null);
         String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();
 
         ByteBuddyAgent.attach(agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
