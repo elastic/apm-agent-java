@@ -109,6 +109,7 @@ Click on a key to get more information.
 ** <<config-transaction-sample-rate>>
 ** <<config-transaction-max-spans>>
 ** <<config-sanitize-field-names>>
+** <<config-enable-instrumentations>>
 ** <<config-disable-instrumentations>>
 ** <<config-enable-experimental-instrumentations>>
 ** <<config-unnest-exceptions>>
@@ -705,6 +706,33 @@ you should add an additional entry to this list (make sure to also include the d
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.sanitize_field_names` | `sanitize_field_names` | `ELASTIC_APM_SANITIZE_FIELD_NAMES`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-enable-instrumentations]]
+==== `enable_instrumentations` (added[1.28.0])
+
+A list of instrumentations which should be enabled.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `javalin`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`.
+An instrumentation is enabled if this configuration is empty or contains the instrumentation and the instrumentation is not disabled.
+
+NOTE: Changing this value at runtime can slow down the application temporarily.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | Collection | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enable_instrumentations` | `enable_instrumentations` | `ELASTIC_APM_ENABLE_INSTRUMENTATIONS`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -2911,6 +2939,18 @@ The default unit for this option is `ms`.
 # Default value: password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 #
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
+
+# A list of instrumentations which should be enabled.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `javalin`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`.
+# An instrumentation is enabled if this configuration is empty or contains the instrumentation and the instrumentation is not disabled.
+# 
+# NOTE: Changing this value at runtime can slow down the application temporarily.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
+#
+# enable_instrumentations=
 
 # A list of instrumentations which should be disabled.
 # Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `javalin`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`.

@@ -340,7 +340,21 @@ public class ElasticApmAgent {
         if (disabledInstrumentations.contains("incubating")) {
             disabledInstrumentations.add("experimental");
         }
-        return !isGroupDisabled(disabledInstrumentations, advice.getInstrumentationGroupNames()) && isInstrumentationEnabled(advice, coreConfiguration);
+        return isGroupEnabled(coreConfiguration.getEnabledInstrumentations(), advice.getInstrumentationGroupNames()) &&
+            !isGroupDisabled(disabledInstrumentations, advice.getInstrumentationGroupNames()) &&
+            isInstrumentationEnabled(advice, coreConfiguration);
+    }
+
+    private static boolean isGroupEnabled(Collection<String> enabledInstrumentations, Collection<String> instrumentationGroupNames) {
+        if (enabledInstrumentations.isEmpty()) {
+            return true;
+        }
+        for (String instrumentationGroupName : instrumentationGroupNames) {
+            if (enabledInstrumentations.contains(instrumentationGroupName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isGroupDisabled(Collection<String> disabledInstrumentations, Collection<String> instrumentationGroupNames) {

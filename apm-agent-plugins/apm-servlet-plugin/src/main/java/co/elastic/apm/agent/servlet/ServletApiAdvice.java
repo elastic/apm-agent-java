@@ -122,6 +122,7 @@ public abstract class ServletApiAdvice {
 
             ret = transaction;
         } else if (!helper.isAsyncDispatcherType(servletRequest) &&
+            (coreConfig.getEnabledInstrumentations().isEmpty() || coreConfig.getEnabledInstrumentations().contains(Constants.SERVLET_API_DISPATCH)) &&
             !coreConfig.getDisabledInstrumentations().contains(Constants.SERVLET_API_DISPATCH)) {
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {

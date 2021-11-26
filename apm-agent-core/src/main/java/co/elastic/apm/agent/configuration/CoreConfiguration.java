@@ -232,6 +232,19 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("set-cookie")
         ));
 
+    private final ConfigurationOption<Collection<String>> enabledInstrumentations = ConfigurationOption.stringsOption()
+        .key("enable_instrumentations")
+        .aliasKeys("enabled_instrumentations")
+        .configurationCategory(CORE_CATEGORY)
+        .description("A list of instrumentations which should be enabled.\n" +
+            "Valid options are ${allInstrumentationGroupNames}.\n" +
+            "An instrumentation is enabled if this configuration is empty or contains the instrumentation and the instrumentation is not disabled.\n" +
+            "\n" +
+            "NOTE: Changing this value at runtime can slow down the application temporarily.")
+        .dynamic(true)
+        .tags("added[1.28.0]")
+        .buildWithDefault(Collections.<String>emptyList());
+
     private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.stringsOption()
         .key("disable_instrumentations")
         .aliasKeys("disabled_instrumentations")
@@ -635,7 +648,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     }
 
     public List<ConfigurationOption<?>> getInstrumentationOptions() {
-        return Arrays.asList(instrument, traceMethods, disabledInstrumentations, enableExperimentalInstrumentations);
+        return Arrays.asList(instrument, traceMethods, enabledInstrumentations, disabledInstrumentations, enableExperimentalInstrumentations);
     }
 
     public String getServiceName() {
@@ -684,6 +697,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public List<WildcardMatcher> getSanitizeFieldNames() {
         return sanitizeFieldNames.get();
+    }
+
+    public Collection<String> getEnabledInstrumentations() {
+        return enabledInstrumentations.get();
     }
 
     public Collection<String> getDisabledInstrumentations() {
