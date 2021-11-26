@@ -20,10 +20,13 @@ package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.db.signature.Scanner;
 import co.elastic.apm.agent.db.signature.SignatureParser;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.jdbc.JDBCConfiguration;
 import co.elastic.apm.agent.jdbc.JdbcFilter;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +36,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metaDataMap;
@@ -56,6 +60,8 @@ public class JdbcHelper {
             return new Scanner(new JdbcFilter());
         }
     });
+
+    private final List<WildcardMatcher> excludedSqls = GlobalTracer.requireTracerImpl().getConfig(JDBCConfiguration.class).getSQLsExcludedFromInstrumentation();
 
     /**
      * Maps the provided sql to the provided Statement object
@@ -83,7 +89,7 @@ public class JdbcHelper {
 
     @Nullable
     public Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable AbstractSpan<?> parent, boolean preparedStatement) {
-        if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent) || parent == null) {
+        if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent) || parent == null || WildcardMatcher.isAnyMatch(excludedSqls, sql)) {
             return null;
         }
 

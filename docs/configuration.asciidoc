@@ -136,6 +136,8 @@ Click on a key to get more information.
 * <<config-jax-rs>>
 ** <<config-enable-jaxrs-annotation-inheritance>>
 ** <<config-use-jaxrs-path-as-transaction-name>>
+* <<config-jdbc>>
+** <<config-sqls-excluded-from-jdbc-instrumentation>>
 * <<config-jmx>>
 ** <<config-capture-jmx-metrics>>
 * <<config-logging>>
@@ -1503,6 +1505,36 @@ If you want to use the URI template from the `@Path` annotation, set the value t
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.use_jaxrs_path_as_transaction_name` | `use_jaxrs_path_as_transaction_name` | `ELASTIC_APM_USE_JAXRS_PATH_AS_TRANSACTION_NAME`
+|============
+
+[[config-jdbc]]
+=== JDBC configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-sqls-excluded-from-jdbc-instrumentation]]
+==== `sqls_excluded_from_jdbc_instrumentation` (added[1.28.0])
+
+A list of SQLs that should be ignored and not captured as spans.
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.sqls_excluded_from_jdbc_instrumentation` | `sqls_excluded_from_jdbc_instrumentation` | `ELASTIC_APM_SQLS_EXCLUDED_FROM_JDBC_INSTRUMENTATION`
 |============
 
 [[config-jmx]]
@@ -3332,6 +3364,23 @@ The default unit for this option is `ms`.
 # Default value: false
 #
 # use_jaxrs_path_as_transaction_name=false
+
+############################################
+# JDBC                                     #
+############################################
+
+# A list of SQLs that should be ignored and not captured as spans.
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: comma separated list
+# Default value: 
+#
+# sqls_excluded_from_jdbc_instrumentation=
 
 ############################################
 # JMX                                      #
