@@ -20,7 +20,7 @@ package co.elastic.apm.agent.configuration.source;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.stagemonitor.configuration.source.ConfigurationSource;
+import org.stagemonitor.configuration.source.SimpleSource;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,14 +34,14 @@ class ConfigSourcesTest {
 
     @Test
     void loadFromClasspath() throws IOException {
-        ConfigurationSource source = ConfigSources.fromClasspath("test.elasticapm.properties", ClassLoader.getSystemClassLoader());
+        SimpleSource source = ConfigSources.fromClasspath("test.elasticapm.properties", ClassLoader.getSystemClassLoader());
         assertThat(source).isNotNull();
 
         assertThat(source.getName()).isEqualTo("classpath:test.elasticapm.properties");
         assertThat(source.getValue("application_packages")).isEqualTo("co.elastic.apm");
         assertThat(source.getValue("log_level")).isEqualTo("DEBUG");
 
-        // should be no-op
+        // should not throw any exception
         source.reload();
     }
 
@@ -53,7 +53,7 @@ class ConfigSourcesTest {
             "item2=world"
         )).toAbsolutePath();
 
-        ConfigurationSource source = ConfigSources.fromFileSystem(config.toString());
+        PropertyFileConfigurationSource source = ConfigSources.fromFileSystem(config.toString());
         assertThat(source).isNotNull();
         assertThat(source.getName()).isEqualTo(config.toString());
         assertThat(source.getValue("item1")).isEqualTo("hello");
@@ -79,7 +79,7 @@ class ConfigSourcesTest {
             "item2=world"
         )).toAbsolutePath();
 
-        ConfigurationSource source = ConfigSources.fromRuntimeAttachParameters(config.toString());
+        SimpleSource source = ConfigSources.fromRuntimeAttachParameters(config.toString());
         assertThat(source).isNotNull();
 
         assertThat(source.getName()).isEqualTo("Attachment configuration");
@@ -95,7 +95,7 @@ class ConfigSourcesTest {
             "msg=hello world"
         )).toAbsolutePath();
 
-        ConfigurationSource source = ConfigSources.fromFileSystem(config.toString());
+        PropertyFileConfigurationSource source = ConfigSources.fromFileSystem(config.toString());
         assertThat(source).isNotNull();
         assertThat(source.getName()).isEqualTo(config.toString());
 
@@ -103,6 +103,10 @@ class ConfigSourcesTest {
         assertThat(config).doesNotExist();
 
         source.reload();
+
+        assertThat(source.getName())
+            .describedAs("value should remain unchanged after file has been deleted")
+            .isEqualTo(config.toString());
     }
 
 }

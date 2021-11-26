@@ -37,17 +37,17 @@ public class ConfigSources {
     }
 
     @Nullable
-    public static ConfigurationSource fromRuntimeAttachParameters(String location) {
+    public static SimpleSource fromRuntimeAttachParameters(String location) {
         return buildSimpleSource("Attachment configuration", getPropertiesFromFilesystem(location));
     }
 
     @Nullable
-    public static ConfigurationSource fromClasspath(String location, ClassLoader classLoader) {
+    public static SimpleSource fromClasspath(String location, ClassLoader classLoader) {
         return buildSimpleSource("classpath:" + location, getPropertiesFromClasspath(location, classLoader));
     }
 
     @Nullable
-    public static ConfigurationSource fromFileSystem(@Nullable String location) {
+    public static PropertyFileConfigurationSource fromFileSystem(@Nullable String location) {
         Properties properties = getPropertiesFromFilesystem(location);
         if (properties == null) {
             return null;
