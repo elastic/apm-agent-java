@@ -84,7 +84,7 @@ public class SystemInfo {
         this(architecture, configuredHostname, detectedHostname, platform, null, null);
     }
 
-    SystemInfo(String architecture, @Nullable String configuredHostname, @Nullable String detectedHostname,
+    private SystemInfo(String architecture, @Nullable String configuredHostname, @Nullable String detectedHostname,
                String platform, @Nullable Container container, @Nullable Kubernetes kubernetes) {
         this.architecture = architecture;
         this.configuredHostname = configuredHostname;
@@ -105,14 +105,11 @@ public class SystemInfo {
         final String osName = System.getProperty("os.name");
         final String osArch = System.getProperty("os.arch");
 
-        SystemInfo systemInfo;
-        if (configuredHostname != null && !configuredHostname.isEmpty()) {
-            systemInfo = new SystemInfo(osArch, configuredHostname, null, osName);
-        } else {
-            // this call is invoking external commands
-            String detectedHostname = discoverHostname(isWindows(osName), timeoutMillis);
-            systemInfo = new SystemInfo(osArch, configuredHostname, detectedHostname, osName);
-        }
+        // this call is invoking external commands
+        String detectedHostname = discoverHostname(isWindows(osName), timeoutMillis);
+
+        SystemInfo systemInfo = new SystemInfo(osArch, configuredHostname, detectedHostname, osName);
+
         // this call reads and parses files
         systemInfo.findContainerDetails();
         return systemInfo;

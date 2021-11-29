@@ -952,7 +952,7 @@ class DslJsonSerializerTest {
         assertThat(platform).isEqualTo(system.get("platform").asText());
         if (supportsConfiguredAndDetectedHostname) {
             assertThat(system.get("configured_hostname").asText()).isEqualTo("configured");
-            assertThat(system.get("detected_hostname")).isNull();
+            assertThat(system.get("detected_hostname").asText()).isEqualTo("detected");
             assertThat(system.get("hostname")).isNull();
         } else {
             assertThat(system.get("configured_hostname")).isNull();

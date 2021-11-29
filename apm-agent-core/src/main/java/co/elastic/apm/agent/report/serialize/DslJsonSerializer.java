@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.collections.LongList;
-import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
@@ -37,6 +36,7 @@ import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.Agent;
 import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
 import co.elastic.apm.agent.impl.metadata.Language;
+import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.Node;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
 import co.elastic.apm.agent.impl.metadata.RuntimeInfo;
@@ -520,11 +520,10 @@ public class DslJsonSerializer implements PayloadSerializer {
             String configuredHostname = system.getConfiguredHostname();
             if (configuredHostname != null && !configuredHostname.isEmpty()) {
                 writeField("configured_hostname", configuredHostname, replaceBuilder, jw);
-            } else {
-                String detectedHostname = system.getDetectedHostname();
-                if (detectedHostname != null && !detectedHostname.isEmpty()) {
-                    writeField("detected_hostname", detectedHostname, replaceBuilder, jw);
-                }
+            }
+            String detectedHostname = system.getDetectedHostname();
+            if (detectedHostname != null && !detectedHostname.isEmpty()) {
+                writeField("detected_hostname", detectedHostname, replaceBuilder, jw);
             }
         } else {
             writeField("hostname", system.getHostname(), replaceBuilder, jw);

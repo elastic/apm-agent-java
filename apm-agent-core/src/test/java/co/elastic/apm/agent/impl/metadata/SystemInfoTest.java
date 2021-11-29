@@ -32,10 +32,19 @@ public class SystemInfoTest extends CustomEnvVariables {
 
     private static final SystemInfo systemInfo;
     private static final boolean isWindows;
+    private static final int TIMEOUT_MILLIS = 300;
 
     static {
-        systemInfo = SystemInfo.create("hostname", 0);
+        systemInfo = SystemInfo.create("hostname", TIMEOUT_MILLIS);
         isWindows = SystemInfo.isWindows(systemInfo.getPlatform());
+    }
+
+    @Test
+    void testHostnameDiscovery() {
+        SystemInfo info = SystemInfo.create(null, TIMEOUT_MILLIS);
+        assertThat(info.getDetectedHostname())
+            .describedAs("detected hostname should always be available")
+            .isNotEmpty();
     }
 
     @Test
