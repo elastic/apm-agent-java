@@ -37,6 +37,8 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-cached-lookup-key</artifactId>
             <version>${project.version}</version>
+            <!-- implementation is provided by 'elastic-apm-agent' with dedicated classloader -->
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.blogspot.mydailyjava</groupId>
