@@ -100,6 +100,8 @@
                                     <outputDirectory>${project.basedir}/target/classes/agent</outputDirectory>
                                 </artifactItem>
                             </artifactItems>
+                            <!-- we have to exclude cached-lookup-keys otherwise it's included twice in jar -->
+                            <excludes>co/elastic/apm/agent/weakconcurrent/*,META-INF/maven/co.elastic.apm/apm-agent-cached-lookup-key/*</excludes>
                         </configuration>
                     </execution>
                 </executions>
