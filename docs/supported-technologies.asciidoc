@@ -493,6 +493,8 @@ ECS Reformatting - 2.6+
 |When <<config-enable-log-correlation>> is set to `true`,
 the agent will add a https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entry for `trace.id` and `transaction.id`.
 
+When <<config-log-ecs-service-name, `log_ecs_service_name`>> is enabled, the agent sets the service name for the `EcsLayout` (since 1.28.0).
+
 When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
 ECS-compatible format (since 1.22.0, experimental)
 
@@ -501,6 +503,8 @@ When doing so, the ID corresponding the captured error (`error.id`) is added to 
 |Trace correlation - 1.13.0
 
 Error capturing - 1.10.0
+
+ECS Service Name - 1.28.0
 
 ECS Reformatting - 1.22.0
 

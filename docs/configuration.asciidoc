@@ -142,6 +142,7 @@ Click on a key to get more information.
 ** <<config-log-level>>
 ** <<config-log-file>>
 ** <<config-enable-log-correlation>>
+** <<config-log-ecs-service-name>>
 ** <<config-log-ecs-reformatting>>
 ** <<config-log-ecs-reformatting-additional-fields>>
 ** <<config-log-ecs-formatter-allow-list>>
@@ -1718,6 +1719,31 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-ecs-service-name]]
+==== `log_ecs_service_name` (added[1.28.0])
+
+Specifies if the agent should set the service name for an ECS compatible logging implementation if it is not explicitly set.
+
+NOTE: Only log4j2-ecs-layout is currently supported
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_ecs_service_name` | `log_ecs_service_name` | `ELASTIC_APM_LOG_ECS_SERVICE_NAME`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -3491,6 +3517,16 @@ The default unit for this option is `ms`.
 # Default value: false
 #
 # enable_log_correlation=false
+
+# Specifies if the agent should set the service name for an ECS compatible logging implementation if it is not explicitly set.
+# 
+# NOTE: Only log4j2-ecs-layout is currently supported
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# log_ecs_service_name=false
 
 # Specifying whether and how the agent should automatically reformat application logs 
 # into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 

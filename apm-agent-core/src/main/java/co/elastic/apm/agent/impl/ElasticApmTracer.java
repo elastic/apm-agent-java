@@ -762,7 +762,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @Nullable
-    private String getServiceName(@Nullable ClassLoader initiatingClassLoader) {
+    public String getServiceName(@Nullable ClassLoader initiatingClassLoader) {
         if (initiatingClassLoader == null) {
             return null;
         }
