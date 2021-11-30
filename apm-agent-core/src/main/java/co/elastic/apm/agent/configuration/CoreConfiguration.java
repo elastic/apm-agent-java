@@ -31,17 +31,20 @@ import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.converter.AbstractValueConverter;
 import org.stagemonitor.configuration.converter.MapValueConverter;
+import org.stagemonitor.configuration.converter.SetValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
@@ -244,7 +247,25 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.28.0]")
         .buildWithDefault(Collections.<String>emptyList());
 
-    private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.stringsOption()
+    private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.builder(new AbstractValueConverter<Collection<String>>() {
+            @Override
+            public Collection<String> convert(String s) {
+                Collection values = SetValueConverter.STRINGS_VALUE_CONVERTER.convert(s);
+                if (values.contains("incubating")) {
+                    Set<String> legacyValues = new LinkedHashSet<String>(values);
+                    legacyValues.add("experimental");
+
+                    return Collections.unmodifiableSet(legacyValues);
+                }
+
+                return values;
+            }
+
+            @Override
+            public String toString(Collection<String> value) {
+                return SetValueConverter.STRINGS_VALUE_CONVERTER.toString(value);
+            }
+        }, Collection.class)
         .key("disable_instrumentations")
         .aliasKeys("disabled_instrumentations")
         .configurationCategory(CORE_CATEGORY)
@@ -702,7 +723,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         final Collection<String> enabledInstrumentationGroupNames = enabledInstrumentations.get();
         final Collection<String> disabledInstrumentationGroupNames = disabledInstrumentations.get();
         return (enabledInstrumentationGroupNames.isEmpty() || enabledInstrumentationGroupNames.contains(instrumentationGroupName)) &&
-            (!disabledInstrumentationGroupNames.contains("incubating") || !"experimental".equals(instrumentationGroupName)) &&
             !disabledInstrumentationGroupNames.contains(instrumentationGroupName);
     }
 
@@ -725,11 +745,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     }
 
     private boolean isGroupDisabled(Collection<String> instrumentationGroupNames) {
-        ArrayList<String> disabledInstrumentationGroupNames = new ArrayList<>(disabledInstrumentations.get());
-        // Supporting the deprecated `incubating` tag for backward compatibility
-        if (disabledInstrumentationGroupNames.contains("incubating")) {
-            disabledInstrumentationGroupNames.add("experimental");
-        }
+        Collection<String> disabledInstrumentationGroupNames = disabledInstrumentations.get();
         for (String instrumentationGroupName : instrumentationGroupNames) {
             if (disabledInstrumentationGroupNames.contains(instrumentationGroupName)) {
                 return true;
