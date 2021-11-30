@@ -21,7 +21,7 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
+import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -280,7 +280,7 @@ public class ApmServerClientTest {
     public void testDisableSend() {
         // We have to go through that because the disable_send config is non-dynamic
         ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
-            new PropertyFileConfigurationSource("test.elasticapm.disable-send.properties")
+            Objects.requireNonNull(ConfigSources.fromClasspath("test.elasticapm.disable-send.properties", ClassLoader.getSystemClassLoader()))
         );
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(new MockReporter())
