@@ -402,6 +402,12 @@
                             <shadedArtifactAttached>false</shadedArtifactAttached>
                             <filters>
                                 <filter>
+                                    <artifact>${project.groupId}:apm-agent-cached-lookup-key</artifact>
+                                    <excludes>
+                                        <exclude>**/*</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
                                     <artifact>*:*</artifact>
                                     <excludes>
                                         <exclude>**/module-info.class</exclude>

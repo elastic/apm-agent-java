@@ -28,10 +28,13 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.zip.ZipEntry;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -89,6 +92,42 @@ public class AgentPackagingIT {
         assertThat(agentClass).isNotEmpty();
         assertThat(attributes.getValue("Premain-Class")).isEqualTo(agentClass);
         assertThat(attributes.getValue("SCM-Revision")).isNotEmpty();
+    }
+
+    @Test
+    void duplicatedClassesCheck() throws IOException {
+        // The agent classes are split in three sub-folders.
+        // We need to check that there is a proper partition between those to ensure no class is being copied
+        // in multiple locations.
+
+        Map<String, String> classLocation = new HashMap<>();
+
+        JarFile jarFile = new JarFile(agentJar.toFile());
+
+        jarFile.stream().map(ZipEntry::getName).forEach(name -> {
+            String location = null;
+            String path = null;
+            if (name.endsWith(".class")) {
+                location = "ROOT";
+                path = name;
+            } else if (name.endsWith(".esclazz")) {
+                location = name.substring(0, name.indexOf('/'));
+                path = name.substring(location.length() + 1);
+            }
+
+            if (path != null) {
+                String existingLocation = classLocation.get(path);
+                assertThat(existingLocation)
+                    .describedAs("duplicated class for path '%s', defined both in '%s' and '%s'", path, existingLocation, location)
+                    .isNull();
+
+                classLocation.put(path, location);
+            }
+
+
+        });
+
+
     }
 
 }

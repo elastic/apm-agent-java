@@ -137,12 +137,6 @@ public class AgentMain {
 
     private synchronized static void loadAndInitializeAgent(String agentArguments, Instrumentation instrumentation, boolean premain) {
         try {
-            String agentVersion = AgentMain.class.getPackage().getImplementationVersion();
-            if (agentVersion != null) {
-                agentVersion = "-" + agentVersion;
-            } else {
-                agentVersion = "";
-            }
             File agentJar = getAgentJarFile();
             if (lookupKeyClassLoader == null) {
                 // loads the CachedLookupKey class in a dedicated class loader that will never be un-loaded
