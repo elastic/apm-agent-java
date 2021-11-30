@@ -145,8 +145,6 @@ public class SystemInfo {
         }
         if (hostname == null || hostname.isEmpty()) {
             logger.warn("Unable to discover hostname, set log_level to debug for more details");
-        } else {
-            hostname = removeDomain(hostname);
         }
         return hostname;
     }
@@ -157,6 +155,9 @@ public class SystemInfo {
         if (hostname == null || hostname.isEmpty()) {
             try {
                 hostname = InetAddress.getLocalHost().getHostName();
+                if (hostname != null) {
+                    hostname = removeDomain(hostname);
+                }
             } catch (Exception e) {
                 logger.warn("Last fallback for hostname discovery of localhost failed", e);
             }
@@ -200,7 +201,7 @@ public class SystemInfo {
         String hostname = null;
         ProcessExecutionUtil.CommandOutput commandOutput = ProcessExecutionUtil.executeCommand(cmd, timeoutMillis);
         if (commandOutput.exitedNormally()) {
-            hostname = commandOutput.getOutput().toString();
+            hostname = commandOutput.getOutput().toString().trim();
             if (logger.isDebugEnabled()) {
                 logger.debug("hostname obtained by executing command {}: {}", cmdAsString(cmd), hostname);
             }

@@ -38,9 +38,10 @@ public final class VersionUtils {
     private static final String AGENT_VERSION;
 
     static {
-        String version = getVersion(VersionUtils.class, "co.elastic.apm", "elastic-apm-agent");
+        File agentJar = ElasticApmAgent.getAgentJarFile();
+        String version = getManifestEntry(agentJar, "Implementation-Version");
         if (version != null && version.endsWith("SNAPSHOT")) {
-            String gitRev = getManifestEntry(ElasticApmAgent.getAgentJarFile(), "SCM-Revision");
+            String gitRev = getManifestEntry(agentJar, "SCM-Revision");
             if (gitRev != null) {
                 version = version + "." + gitRev;
             }
