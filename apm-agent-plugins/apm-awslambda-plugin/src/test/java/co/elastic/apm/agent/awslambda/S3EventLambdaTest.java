@@ -57,6 +57,11 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
         return new S3Event((List.of(createS3NotificationRecord())));
     }
 
+    @Override
+    protected boolean supportsContextPropagation() {
+        return false;
+    }
+
     @Nonnull
     private S3EventNotification.S3EventNotificationRecord createS3NotificationRecord() {
         S3EventNotification.ResponseElementsEntity responseElements = new S3EventNotification.ResponseElementsEntity("xAmzId2", S3_REQUEST_ID);

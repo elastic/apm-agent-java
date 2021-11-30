@@ -84,4 +84,9 @@ public abstract class AbstractPlainLambdaTest extends AbstractLambdaTest<Object,
     protected Object createInput() {
         return null;
     }
+
+    @Override
+    protected boolean supportsContextPropagation() {
+        return false;
+    }
 }

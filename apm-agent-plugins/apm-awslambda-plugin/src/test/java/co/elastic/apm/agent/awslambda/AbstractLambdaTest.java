@@ -28,6 +28,8 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceState;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
@@ -47,6 +49,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumentationTest {
+
+    // TraceContext
+    private static final String TRACE_ID_EXAMPLE = "0af7651916cd43dd8448eb211c80316c";
+    private static final String PARENT_ID_EXAMPLE = "b9c7c989f97918e6";
+    protected static final String TRACEPARENT_EXAMPLE = String.format("00-%s-%s-01", TRACE_ID_EXAMPLE, PARENT_ID_EXAMPLE);
+    protected static final String TRACESTATE_EXAMPLE = TraceState.getHeaderValue(0.77d);
 
     // API Gateway data
     protected static final String API_ID = "API_ID";
@@ -72,7 +80,9 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
         HEADER_1_KEY, HEADER_1_VALUE,
         HEADER_2_KEY, HEADER_2_VALUE,
         CONTENT_TYPE_HEADER, TEXT_CONTENT_TYPE,
-        "Host", API_GATEWAY_HOST
+        "Host", API_GATEWAY_HOST,
+        TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, TRACEPARENT_EXAMPLE,
+        TraceContext.TRACESTATE_HEADER_NAME, TRACESTATE_EXAMPLE
     );
     protected static final String PATH = "/some/url/path";
 
@@ -129,7 +139,12 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
 
     protected abstract AbstractFunction<ReqE, ResE> createHandler();
 
+    @Nullable
     protected abstract ReqE createInput();
+
+    protected boolean supportsContextPropagation() {
+        return true;
+    }
 
     static synchronized void initAllButInstrumentation() {
         config = SpyConfiguration.createSpyConfig();
@@ -167,6 +182,20 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
         assertThat(transaction.getResult()).isEqualTo("failure");
+    }
+
+    @Test
+    public void testTraceContext() {
+        ReqE input = createInput();
+        if (!supportsContextPropagation()) {
+            return;
+        }
+        getFunction().handleRequest(input, context);
+        Transaction transaction = reporter.getFirstTransaction();
+        TraceContext traceContext = transaction.getTraceContext();
+        assertThat(traceContext.getTraceId().toString()).isEqualTo(TRACE_ID_EXAMPLE);
+        assertThat(traceContext.getParentId().toString()).isEqualTo(PARENT_ID_EXAMPLE);
+        assertThat(traceContext.getTraceState().getSampleRate()).isEqualTo(0.77d);
     }
 
     protected void printTransactionJson(Transaction transaction) {

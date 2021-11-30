@@ -24,6 +24,7 @@ import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import org.junit.jupiter.api.BeforeAll;
@@ -71,7 +72,16 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
         sentTimestampAttribute.setStringValue(Long.toString(System.currentTimeMillis() - MESSAGE_AGE));
         SQSEvent.MessageAttribute header_1_Attribute = new SQSEvent.MessageAttribute();
         header_1_Attribute.setStringValue(HEADER_1_VALUE);
-        sqsMessage.setMessageAttributes(Map.of("SentTimestamp", sentTimestampAttribute, HEADER_1_KEY, header_1_Attribute));
+        SQSEvent.MessageAttribute traceparent_Attribute = new SQSEvent.MessageAttribute();
+        traceparent_Attribute.setStringValue(TRACEPARENT_EXAMPLE);
+        SQSEvent.MessageAttribute tracestate_Attribute = new SQSEvent.MessageAttribute();
+        tracestate_Attribute.setStringValue(TRACESTATE_EXAMPLE);
+        sqsMessage.setMessageAttributes(Map.of(
+            "SentTimestamp", sentTimestampAttribute,
+            HEADER_1_KEY, header_1_Attribute,
+            TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, traceparent_Attribute,
+            TraceContext.TRACESTATE_HEADER_NAME, tracestate_Attribute
+        ));
         sqsMessage.setBody(MESSAGE_BODY);
         return sqsMessage;
     }

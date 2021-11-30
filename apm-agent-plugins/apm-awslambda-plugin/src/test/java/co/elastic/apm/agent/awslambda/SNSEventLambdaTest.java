@@ -24,6 +24,7 @@ import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 import org.joda.time.DateTime;
@@ -73,7 +74,16 @@ public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
         header_1_Attribute.setValue(HEADER_1_VALUE);
         SNSEvent.MessageAttribute header_2_Attribute = new SNSEvent.MessageAttribute();
         header_2_Attribute.setValue(HEADER_2_VALUE);
-        sns.setMessageAttributes(Map.of(HEADER_1_KEY,header_1_Attribute,HEADER_2_KEY, header_2_Attribute));
+        SNSEvent.MessageAttribute traceparent_Attribute = new SNSEvent.MessageAttribute();
+        traceparent_Attribute.setValue(TRACEPARENT_EXAMPLE);
+        SNSEvent.MessageAttribute tracestate_Attribute = new SNSEvent.MessageAttribute();
+        tracestate_Attribute.setValue(TRACESTATE_EXAMPLE);
+        sns.setMessageAttributes(Map.of(
+            HEADER_1_KEY,header_1_Attribute,
+            HEADER_2_KEY, header_2_Attribute,
+            TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, traceparent_Attribute,
+            TraceContext.TRACESTATE_HEADER_NAME, tracestate_Attribute
+        ));
 
         SNSEvent.SNSRecord record = new SNSEvent.SNSRecord();
         record.setEventSource(SNS_EVENT_SOURCE_ARN);
