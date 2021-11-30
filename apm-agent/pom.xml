@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.27.1-SNAPSHOT</version>
+        <version>1.27.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent</artifactId>
@@ -401,6 +401,12 @@
                             <shadeSourcesContent>true</shadeSourcesContent>
                             <shadedArtifactAttached>false</shadedArtifactAttached>
                             <filters>
+                                <filter>
+                                    <artifact>${project.groupId}:apm-agent-cached-lookup-key</artifact>
+                                    <excludes>
+                                        <exclude>**/*</exclude>
+                                    </excludes>
+                                </filter>
                                 <filter>
                                     <artifact>*:*</artifact>
                                     <excludes>
