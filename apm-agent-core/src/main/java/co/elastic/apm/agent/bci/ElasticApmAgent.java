@@ -134,7 +134,7 @@ public class ElasticApmAgent {
         ElasticApmAgent.agentJarFile = agentJarFile;
 
         // silently early abort when agent is disabled to minimize the number of loaded classes
-        List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources(agentArguments);
+        List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources(agentArguments, premain);
         for (ConfigurationSource configSource : configSources) {
             String enabled = configSource.getValue(CoreConfiguration.ENABLED_KEY);
             if (enabled != null && !Boolean.parseBoolean(enabled)) {
