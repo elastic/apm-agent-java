@@ -20,8 +20,27 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.28.0]]
+==== 1.28.0 - YYYY/MM/DD
+
+[float]
+===== Breaking changes
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.27.1]]
-==== 1.27.1 - YYYY/MM/DD
+==== 1.27.1 - 2021/11/30
+
+[float]
+===== Features
+* Add support to Jakarta EE for JSF - {pull}2254[#2254]
 
 [float]
 ===== Bug fixes
@@ -29,9 +48,6 @@ endif::[]
 * Fixing hostname trimming of FQDN too aggressive - {pull}2286[#2286]
 * Fixing agent `unknown` version - {pull}2289[#2289]
 * Improve runtime attach configuration reliability - {pull}2283[#2283]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.27.0]]
 ==== 1.27.0 - 2021/11/15
