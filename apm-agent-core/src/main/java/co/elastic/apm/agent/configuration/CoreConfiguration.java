@@ -234,7 +234,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Collection<String>> enabledInstrumentations = ConfigurationOption.stringsOption()
         .key("enable_instrumentations")
-        .aliasKeys("enabled_instrumentations")
         .configurationCategory(CORE_CATEGORY)
         .description("A list of instrumentations which should be enabled.\n" +
             "Valid options are ${allInstrumentationGroupNames}.\n" +
@@ -699,18 +698,44 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return sanitizeFieldNames.get();
     }
 
-    public Collection<String> getEnabledInstrumentations() {
-        return enabledInstrumentations.get();
+    public boolean isInstrumentationEnabled(String instrumentationGroupName) {
+        final Collection<String> enabledInstrumentationGroupNames = enabledInstrumentations.get();
+        final Collection<String> disabledInstrumentationGroupNames = disabledInstrumentations.get();
+        return (enabledInstrumentationGroupNames.isEmpty() || enabledInstrumentationGroupNames.contains(instrumentationGroupName)) &&
+            (!disabledInstrumentationGroupNames.contains("incubating") || !"experimental".equals(instrumentationGroupName)) &&
+            !disabledInstrumentationGroupNames.contains(instrumentationGroupName);
     }
 
-    public Collection<String> getDisabledInstrumentations() {
-        List<String> disabled = new ArrayList<>(disabledInstrumentations.get());
-        if (enableExperimentalInstrumentations.get()) {
-            disabled.remove("experimental");
-        } else {
-            disabled.add("experimental");
+    public boolean isInstrumentationEnabled(Collection<String> instrumentationGroupNames) {
+        return isGroupEnabled(instrumentationGroupNames) &&
+            !isGroupDisabled(instrumentationGroupNames);
+    }
+
+    private boolean isGroupEnabled(Collection<String> instrumentationGroupNames) {
+        final Collection<String> enabledInstrumentationGroupNames = enabledInstrumentations.get();
+        if (enabledInstrumentationGroupNames.isEmpty()) {
+            return true;
         }
-        return disabled;
+        for (String instrumentationGroupName : instrumentationGroupNames) {
+            if (enabledInstrumentationGroupNames.contains(instrumentationGroupName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isGroupDisabled(Collection<String> instrumentationGroupNames) {
+        ArrayList<String> disabledInstrumentationGroupNames = new ArrayList<>(disabledInstrumentations.get());
+        // Supporting the deprecated `incubating` tag for backward compatibility
+        if (disabledInstrumentationGroupNames.contains("incubating")) {
+            disabledInstrumentationGroupNames.add("experimental");
+        }
+        for (String instrumentationGroupName : instrumentationGroupNames) {
+            if (disabledInstrumentationGroupNames.contains(instrumentationGroupName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public List<WildcardMatcher> getUnnestExceptions() {
