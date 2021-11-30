@@ -250,7 +250,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.builder(new AbstractValueConverter<Collection<String>>() {
             @Override
             public Collection<String> convert(String s) {
-                Collection values = SetValueConverter.STRINGS_VALUE_CONVERTER.convert(s);
+                Collection<String> values = SetValueConverter.STRINGS_VALUE_CONVERTER.convert(s);
                 if (values.contains("incubating")) {
                     Set<String> legacyValues = new LinkedHashSet<String>(values);
                     legacyValues.add("experimental");
