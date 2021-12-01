@@ -20,7 +20,6 @@ package co.elastic.apm.agent.opentelemetry;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.opentelemetry.sdk.ElasticOpenTelemetry;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import net.bytebuddy.asm.Advice;
@@ -60,7 +59,7 @@ public class GlobalOpenTelemetryInstrumentation extends AbstractOpenTelemetryIns
             return true;
         }
 
-        @AssignTo.Return
+        @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static OpenTelemetry onExit() {
             return ELASTIC_OPEN_TELEMETRY;
