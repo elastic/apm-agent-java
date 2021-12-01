@@ -139,6 +139,27 @@ pipeline {
             }
           }
         }
+
+        // temporary allow to override version
+        stage('Set release version manually') {
+          steps {
+            dir("${BASE_DIR}"){
+              script {
+                def user_release_version = input(message: "Please enter version to release:", parameters: [[
+                    $class: 'StringParameterDefinition',
+                    name: 'Release version',
+                    defaultValue: "",
+                    description: "Input release version without '-SNAPSHOT' suffix"
+                  ]])
+
+                env.RELEASE_TAG = "v" + user_release_version
+                env.RELEASE_VERSION = user_release_version
+                env.BRANCH_DOT_X = user_release_version.substring(0, user_release_version.indexOf('.'))+'.x'
+              }
+            }
+          }
+        }
+
         stage('Wait on internal CI') {
           when {expression { return false }}
           steps {
