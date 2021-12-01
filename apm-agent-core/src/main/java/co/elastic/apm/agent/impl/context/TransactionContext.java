@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,11 +51,27 @@ public class TransactionContext extends AbstractContext {
      */
     private final User user = new User();
 
+    /**
+     * CloudOrigin
+     * <p>
+     * Describes the cloud information about the origin of a request.
+     */
+    private final CloudOrigin cloudOrigin = new CloudOrigin();
+
+    /**
+     * ServiceOrigin
+     * <p>
+     * Describes the service information about the origin of a request.
+     */
+    private final ServiceOrigin serviceOrigin = new ServiceOrigin();
+
     public void copyFrom(TransactionContext other) {
         super.copyFrom(other);
         response.copyFrom(other.response);
         request.copyFrom(other.request);
         user.copyFrom(other.user);
+        cloudOrigin.copyFrom(other.cloudOrigin);
+        serviceOrigin.copyFrom(other.serviceOrigin);
     }
 
     public Object getCustom(String key) {
@@ -104,6 +119,15 @@ public class TransactionContext extends AbstractContext {
     public User getUser() {
         return user;
     }
+
+    public CloudOrigin getCloudOrigin() {
+        return cloudOrigin;
+    }
+
+    public ServiceOrigin getServiceOrigin() {
+        return serviceOrigin;
+    }
+
     @Override
     public void resetState() {
         super.resetState();
@@ -111,6 +135,8 @@ public class TransactionContext extends AbstractContext {
         response.resetState();
         request.resetState();
         user.resetState();
+        cloudOrigin.resetState();
+        serviceOrigin.resetState();
     }
 
     public void onTransactionEnd() {
