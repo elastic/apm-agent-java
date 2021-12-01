@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.impl.metadata;
 
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.util.CustomEnvVariables;
 import org.junit.jupiter.api.Test;
 
@@ -27,22 +28,28 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 public class SystemInfoTest extends CustomEnvVariables {
 
     private static final SystemInfo systemInfo;
     private static final boolean isWindows;
+    private static ServerlessConfiguration serverlessConfiguration;
+
 
     static {
-        systemInfo = SystemInfo.create("hostname", 0);
+        serverlessConfiguration = config.getConfig(ServerlessConfiguration.class);
+        systemInfo = SystemInfo.create("hostname", 0, serverlessConfiguration);
         isWindows = SystemInfo.isWindows(systemInfo.getPlatform());
     }
-
 
     @Test
     void testHostnameDiscoveryThroughCommand() {
         String hostname = SystemInfo.discoverHostnameThroughCommand(isWindows, 300);
-        assertThat(hostname).isNotNull();
+        assertThat(hostname).isNotNull().isNotEmpty();
+        assertThat(hostname)
+            .describedAs("hostname command output should be normalized")
+            .isEqualTo(hostname.trim());
     }
 
     @Test
@@ -61,7 +68,7 @@ public class SystemInfoTest extends CustomEnvVariables {
 
     @Test
     void testHostnameDiscoveryFallbackThroughInetAddress() throws UnknownHostException {
-        String expectedHostname = InetAddress.getLocalHost().getHostName();
+        String expectedHostname = SystemInfo.removeDomain(InetAddress.getLocalHost().getHostName());
 
         Map<String, String> customEnvVariables = new HashMap<>();
         if (isWindows) {
@@ -79,5 +86,16 @@ public class SystemInfoTest extends CustomEnvVariables {
     void testDomainRemoval() {
         assertThat(SystemInfo.removeDomain("hostname")).isEqualTo("hostname");
         assertThat(SystemInfo.removeDomain("hostname.and.domain")).isEqualTo("hostname");
+    }
+
+    @Test
+    void testLambdaShortcut() {
+        when(serverlessConfiguration.runsOnAwsLambda()).thenReturn(true);
+        SystemInfo systemInfo = SystemInfo.create(null, 0, serverlessConfiguration);
+        assertThat(systemInfo.getArchitecture()).isNotNull();
+        assertThat(systemInfo.getPlatform()).isNotNull();
+        assertThat(systemInfo.getDetectedHostname()).isNull();
+        assertThat(systemInfo.getContainerInfo()).isNull();
+        assertThat(systemInfo.getKubernetesInfo()).isNull();
     }
 }

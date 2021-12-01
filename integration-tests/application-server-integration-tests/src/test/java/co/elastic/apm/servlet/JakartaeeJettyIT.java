@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.JakartaeeJsfServletContainerTestApp;
 import co.elastic.apm.servlet.tests.JakartaeeServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
@@ -39,6 +40,6 @@ public class JakartaeeJettyIT extends AbstractJettyIT {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(JakartaeeServletApiTestApp.class);
+        return Arrays.asList(JakartaeeServletApiTestApp.class, JakartaeeJsfServletContainerTestApp.class);
     }
 }

@@ -25,10 +25,10 @@ import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.MapValueConverter;
@@ -789,25 +789,24 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
      * Makes sure to not initialize ConfigurationOption, which would initialize the logger
      */
     @Nullable
-    public static String getConfigFileLocation(List<ConfigurationSource> configurationSources) {
-        String configFileLocation = DEFAULT_CONFIG_FILE;
-        for (ConfigurationSource configurationSource : configurationSources) {
-            String valueFromSource = configurationSource.getValue(CONFIG_FILE);
-            if (valueFromSource != null) {
-                configFileLocation = valueFromSource;
+    public static String getConfigFileLocation(List<ConfigurationSource> configurationSources, boolean premain) {
+        String configFileLocation = premain ? DEFAULT_CONFIG_FILE : null;
+        for (ConfigurationSource source : configurationSources) {
+            String value = source.getValue(CONFIG_FILE);
+            if (value != null) {
+                configFileLocation = value;
                 break;
             }
         }
-        if (configFileLocation.contains(AGENT_HOME_PLACEHOLDER)) {
+
+        if (configFileLocation != null) {
             String agentHome = ElasticApmAgent.getAgentHome();
             if (agentHome != null) {
-                return configFileLocation.replace(AGENT_HOME_PLACEHOLDER, agentHome);
-            } else {
-                return null;
+                configFileLocation = configFileLocation.replace(AGENT_HOME_PLACEHOLDER, agentHome);
             }
-        } else {
-            return configFileLocation;
         }
+
+        return configFileLocation;
     }
 
     @Nullable

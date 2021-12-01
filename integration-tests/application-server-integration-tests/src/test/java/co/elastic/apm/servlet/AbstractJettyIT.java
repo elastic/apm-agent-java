@@ -18,11 +18,6 @@
  */
 package co.elastic.apm.servlet;
 
-import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
-import co.elastic.apm.servlet.tests.JsfServletContainerTestApp;
-import co.elastic.apm.servlet.tests.ServletApiTestApp;
-import co.elastic.apm.servlet.tests.TestApp;
-import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
 
 import java.util.Arrays;
