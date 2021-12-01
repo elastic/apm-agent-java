@@ -106,7 +106,7 @@ the JVM arguments.
 
 
 |JavaServer Faces
-|2.2.x, 2.3.x
+|2.2.x, 2.3.x, 3.0.x
 |If you are using JSF, transactions are named based on the requested Facelets and spans are captured for visibility into execution and
 rendering
 |1.0.0
