@@ -5,7 +5,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.27.1-SNAPSHOT</version>
+        <version>1.27.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>application-server-integration-tests</artifactId>
@@ -38,6 +38,18 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>jsf-app-standalone</artifactId>
+            <version>${project.version}</version>
+            <type>war</type>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jakartaee-jsf-app-dependent</artifactId>
+            <version>${project.version}</version>
+            <type>war</type>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jakartaee-jsf-app-standalone</artifactId>
             <version>${project.version}</version>
             <type>war</type>
         </dependency>

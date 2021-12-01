@@ -59,7 +59,7 @@ class ElasticApmTracerBuilderTest {
         Path file = Files.createFile(tempDir.resolve("elstcapm.tmp"));
         Files.write(file, List.of("instrument=false"));
 
-        List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources("c=" + file.toAbsolutePath());
+        List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources("c=" + file.toAbsolutePath(), false);
 
         ConfigurationRegistry configurationRegistry = new ElasticApmTracerBuilder(configSources).build().getConfigurationRegistry();
         CoreConfiguration config = configurationRegistry.getConfig(CoreConfiguration.class);
