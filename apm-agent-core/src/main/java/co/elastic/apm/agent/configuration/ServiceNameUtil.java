@@ -27,7 +27,12 @@ public class ServiceNameUtil {
     private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(.*)?$";
 
     public static String getDefaultServiceName() {
-        return getDefaultServiceName(System.getProperty("sun.java.command"));
+        String lambdaFunctionName = System.getenv("AWS_LAMBDA_FUNCTION_NAME");
+        if (null != lambdaFunctionName) {
+            return lambdaFunctionName;
+        } else {
+            return getDefaultServiceName(System.getProperty("sun.java.command"));
+        }
     }
 
     static String getDefaultServiceName(@Nullable String sunJavaCommand) {
