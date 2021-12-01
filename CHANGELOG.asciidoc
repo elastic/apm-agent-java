@@ -28,6 +28,7 @@ endif::[]
 
 [float]
 ===== Features
+* Adding experimental support for <<aws-lambda, AWS Lambda>> - {pull}1951[#1951]
 * Added support to selectively enable instrumentations - {pull}2292[#2292]
 
 [float]
