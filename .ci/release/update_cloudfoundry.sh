@@ -29,7 +29,7 @@ echo -e "\n--- update ${CF_FILE} if required"
 
 # make script idempotent if release is already in CF descriptor
 set +e
-grep -e "^${VERSION}" ${CF_FILE}
+grep -e "^${v}:" ${CF_FILE}
 [[ $? == 0 ]] && exit 0
 set -e
 
