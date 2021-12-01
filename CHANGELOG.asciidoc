@@ -28,6 +28,7 @@ endif::[]
 
 [float]
 ===== Features
+* Adding experimental support for <<aws-lambda, AWS Lambda>> - {pull}1951[#1951]
 * Added support to exclude JDBC spans from being captured - {pull}2293[#2293]
 
 [float]
