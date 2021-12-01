@@ -28,6 +28,7 @@ endif::[]
 
 [float]
 ===== Features
+* Adding experimental support for <<aws-lambda, AWS Lambda>> - {pull}1951[#1951]
 * Add the instance name to `context.destination.service.resource` to JDBC spans, if use_jdbc_service_resource_auto_inference is set to true - {pull}1928[#1928]
 
 [float]
