@@ -181,25 +181,12 @@ pipeline {
           steps {
             dir("${BASE_DIR}") {
               script {
+                sh(script: ".ci/release/update_cloudfoundry.sh ${RELEASE_VERSION}")
+                gitPush(args: "-f ${BRANCH_DOT_X}")
+
                 def isMajor = env.RELEASE_VERSION.endsWith(".0.0")
                 if (isMajor) {
-                  // major release, create '.x' branch
-                  sh(label: "remote tag is fetched for local checkout", script: "git fetch origin ${RELEASE_TAG}")
-                  sh(label: "create .x branch from ${RELEASE_TAG}", script: """
-                    git checkout ${RELEASE_TAG} --force
-                    git checkout -b ${BRANCH_DOT_X} --force""")
-                  gitPush()
                   input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
-                } else {
-                  // minor release, force-update existing '.x' branch. any change applied to '.x' branch, for example to
-                  // fix doc or release notes should also have been applied to master/stable branch we are releasing from
-                  sh(label: "remote tag and branch are fetched for local checkout", script: """
-                    git fetch origin ${BRANCH_DOT_X}
-                    git fetch origin ${RELEASE_TAG}""")
-                  sh(label: "force-update .x branch from ${RELEASE_TAG}", script: """
-                    git checkout --track origin/${BRANCH_DOT_X} --force
-                    git reset --hard origin/${RELEASE_TAG}""")
-                  gitPush(args: "-f ${BRANCH_DOT_X}")
                 }
               }
             }
@@ -243,12 +230,7 @@ pipeline {
         stage('Update Cloudfoundry') {
           steps {
             dir("${BASE_DIR}"){
-              // ensure that we don't rely on side effect of another step
-              sh(label: "restore to previous updating version", script: """
-                  git fetch origin master
-                  git checkout master
-                  git reset --hard origin/master""")
-              sh(script: "./scripts/jenkins/update_cloudfoundry.sh ${RELEASE_VERSION}")
+              sh(script: ".ci/release/update_cloudfoundry.sh ${RELEASE_VERSION}")
               gitPush()
             }
           }
