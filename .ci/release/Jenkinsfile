@@ -190,7 +190,7 @@ pipeline {
               script {
                 waitUntil(initialRecurrencePeriod: 60000) {
                   script {
-                    sh(script: ".ci/release/wait_maven_artifact_published.sh ${RELEASE_VERSION}", returnStatus: true)
+                    def ret = sh(script: ".ci/release/wait_maven_artifact_published.sh ${RELEASE_VERSION}", returnStatus: true)
                     echo "Waiting for the artifacts to be published on Sonatype"
                     return ret == 0
                   }
