@@ -28,6 +28,7 @@ endif::[]
 
 [float]
 ===== Features
+* Adding experimental support for <<aws-lambda, AWS Lambda>> - {pull}1951[#1951]
 * Added support for instrumenting Struts 2 static resource requests - {pull}1949[#1949]
 
 [float]
