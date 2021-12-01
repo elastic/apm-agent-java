@@ -1,27 +1,18 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+source "$(dirname "${0}")/util.sh"
 
 REMOTE_NAME=origin
 
 # Final state (when there is no error): local checkout in the major branch '1.x' that matches the release tag
 # Pushing to remote repository is managed by the caller
 
-v=${1:-}
+check_version "${1:-}"
+v="${1:-}"
 
-if [[ "${v}" == "" ]]; then
-  echo "usage $0 <version>"
-  echo "where <version> in format '1.2.3'"
-  exit 1
-fi
-
-if [[ ! "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "invalid version '${v}'"
-  exit 1
-fi
-
-tag="v$v"
-major_branch="${v%%.*}.x"
+tag=$(version_major_branch ${v})
+major_branch="$(version_major_branch "${v}")"
 
 echo ""
 echo "release version: ${v}"

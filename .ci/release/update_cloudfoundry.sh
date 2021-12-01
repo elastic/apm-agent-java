@@ -1,24 +1,15 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+source "$(dirname "${0}")/util.sh"
 
 REMOTE_NAME=origin
 BRANCH_NAME=master
 BASE_URL=https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent
 CF_FILE=cloudfoundry/index.yml
 
-v=${1:-}
-
-if [[ "${v}" == "" ]]; then
-  echo "usage $0 <version>"
-  echo "where <version> in format '1.2.3'"
-  exit 1
-fi
-
-if [[ ! "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "invalid version '${v}'"
-  exit 1
-fi
+check_version "${1:-}"
+v="${1:-}"
 
 echo -e "\n--- fetch & ensure clean state of ${REMOTE_NAME}/${BRANCH_NAME}"
 git fetch ${REMOTE_NAME} ${BRANCH_NAME}
