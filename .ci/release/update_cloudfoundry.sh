@@ -9,14 +9,14 @@ CF_FILE=cloudfoundry/index.yml
 
 v=${1:-}
 
-if [[ "$v" == "" ]]; then
+if [[ "${v}" == "" ]]; then
   echo "usage $0 <version>"
   echo "where <version> in format '1.2.3'"
   exit 1
 fi
 
 if [[ ! "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "invalid version '$v'"
+  echo "invalid version '${v}'"
   exit 1
 fi
 
@@ -33,5 +33,5 @@ grep -e "^${VERSION}" ${CF_FILE}
 [[ $? == 0 ]] && exit 0
 set -e
 
-echo "${VERSION}: ${BASE_URL}/${VERSION}/elastic-apm-agent-${VERSION}.jar" >> ${CF_FILE}
-git commit ${CF_FILE} -m "Update cloudfoundry for ${VERSION} release"
+echo "${v}: ${BASE_URL}/${v}/elastic-apm-agent-${v}.jar" >> ${CF_FILE}
+git commit ${CF_FILE} -m "Update cloudfoundry for ${v} release"

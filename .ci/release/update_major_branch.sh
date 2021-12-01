@@ -9,14 +9,14 @@ REMOTE_NAME=origin
 
 v=${1:-}
 
-if [[ "$v" == "" ]]; then
+if [[ "${v}" == "" ]]; then
   echo "usage $0 <version>"
   echo "where <version> in format '1.2.3'"
   exit 1
 fi
 
 if [[ ! "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "invalid version '$v'"
+  echo "invalid version '${v}'"
   exit 1
 fi
 
@@ -24,9 +24,9 @@ tag="v$v"
 major_branch="${v%%.*}.x"
 
 echo ""
-echo "release version: $v"
-echo "release tag:     $tag"
-echo "major branch:    $major_branch"
+echo "release version: ${v}"
+echo "release tag:     ${tag}"
+echo "major branch:    ${major_branch}"
 
 check_ref_exists () {
   set +e
