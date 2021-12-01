@@ -20,6 +20,7 @@ package co.elastic.apm.agent.log.shader;
 
 import co.elastic.apm.agent.collections.DetachedThreadLocalImpl;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.metadata.Service;
@@ -160,7 +161,11 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
         ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
         loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
         additionalFields = loggingConfiguration.getLogEcsReformattingAdditionalFields();
-        Service service = new ServiceFactory().createService(tracer.getConfig(CoreConfiguration.class), "");
+        Service service = new ServiceFactory().createService(
+            tracer.getConfig(CoreConfiguration.class),
+            "",
+            tracer.getConfig(ServerlessConfiguration.class)
+        );
         configuredServiceName = service.getName();
         if (service.getNode() != null) {
             configuredServiceNodeName = service.getNode().getName();
