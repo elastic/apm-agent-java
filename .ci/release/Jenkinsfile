@@ -64,7 +64,6 @@ pipeline {
       options { skipDefaultCheckout () }
       stages{
         stage('Check oss.sonatype.org') {
-          when {expression { return false }}
           steps {
             // If this fails, an exception should be thrown and execution will halt
             dir("${BASE_DIR}"){
@@ -80,7 +79,6 @@ pipeline {
         stage('Check build status') {
           when {
             allOf {
-              expression { return false }
               expression { params.check_branch_ci_status }
               expression { env.BRANCH_SPECIFIER != 'stable' }
             }
@@ -95,7 +93,6 @@ pipeline {
           }
         }
         stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
-          when {expression { return false }}
           steps {
             input(message: """
             Update CHANGELOG.asciidoc to reflect the new version release:
