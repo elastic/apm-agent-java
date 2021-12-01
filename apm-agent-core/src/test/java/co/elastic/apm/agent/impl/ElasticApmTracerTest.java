@@ -494,7 +494,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testNotOverrideServiceVersionWhenServiceVersionConfigured() {
-        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(new PropertyFileConfigurationSource("test.elasticapm.with-service-version.properties"));
+        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(ConfigSources.fromClasspath("test.elasticapm.with-service-version.properties", ClassLoader.getSystemClassLoader()));
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)
             .configurationRegistry(localConfig)

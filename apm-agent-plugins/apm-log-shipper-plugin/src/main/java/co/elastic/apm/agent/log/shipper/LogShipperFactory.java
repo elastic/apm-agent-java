@@ -48,7 +48,7 @@ public class LogShipperFactory extends AbstractLifecycleListener {
 
     public LogShipperFactory(ElasticApmTracer tracer) {
         ApmServerClient apmServerClient = tracer.getApmServerClient();
-        DslJsonSerializer serializer = new DslJsonSerializer(tracer.getConfig(StacktraceConfiguration.class), apmServerClient, tracer.getMetaData());
+        DslJsonSerializer serializer = new DslJsonSerializer(tracer.getConfig(StacktraceConfiguration.class), apmServerClient, tracer.getMetaDataFuture());
         ApmServerLogShipper logShipper = new ApmServerLogShipper(apmServerClient, tracer.getConfig(ReporterConfiguration.class), serializer);
         ExecutorUtils.SingleNamedThreadFactory threadFactory = new ExecutorUtils.SingleNamedThreadFactory(ThreadUtils.addElasticApmThreadPrefix("log-shipper"));
         fileTailer = new FileTailer(logShipper, BUFFER_SIZE, MAX_LINES_PER_CYCLE, IDLE_TIME_MS, threadFactory);
