@@ -136,27 +136,6 @@ pipeline {
             }
           }
         }
-
-        // temporary allow to override version
-        stage('Set release version manually') {
-          steps {
-            dir("${BASE_DIR}"){
-              script {
-                def user_release_version = input(message: "Please enter version to release:", parameters: [[
-                    $class: 'StringParameterDefinition',
-                    name: 'Release version',
-                    defaultValue: "${RELEASE_VERSION}",
-                    description: "Input release version without '-SNAPSHOT' suffix"
-                  ]])
-
-                env.RELEASE_TAG = "v" + user_release_version
-                env.RELEASE_VERSION = user_release_version
-                env.BRANCH_DOT_X = user_release_version.substring(0, user_release_version.indexOf('.'))+'.x'
-              }
-            }
-          }
-        }
-
         stage('Wait on internal CI') {
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
@@ -175,7 +154,7 @@ pipeline {
           steps {
             dir("${BASE_DIR}") {
               script {
-                sh(script: ".ci/release/update_cloudfoundry.sh ${RELEASE_VERSION}")
+                sh(script: ".ci/release/update_major_branch.sh ${RELEASE_VERSION}")
                 gitPush(args: "-f ${BRANCH_DOT_X}")
 
                 def isMajor = env.RELEASE_VERSION.endsWith(".0.0")
@@ -257,7 +236,7 @@ pipeline {
           }
           post {
             success {
-              notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
+              notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release ${env.RELEASE_VERSION} has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
             }
           }
         }
