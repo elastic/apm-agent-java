@@ -22,7 +22,7 @@ import co.elastic.apm.agent.configuration.AgentArgumentsConfigurationSource;
 import co.elastic.apm.agent.configuration.ApmServerConfigurationSource;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.PrefixingConfigurationSourceWrapper;
-import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
+import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.configuration.source.SystemPropertyConfigurationSource;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
@@ -49,7 +49,6 @@ import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -81,13 +80,13 @@ public class ElasticApmTracerBuilder {
      * Constructs a new builder instance with default configuration sources
      */
     public ElasticApmTracerBuilder() {
-        this(getConfigSources(null));
+        this(getConfigSources(null, false));
     }
 
     /**
      * Constructs a new builder instance
      *
-     * @param configSources configuration sources, obtained from calling {@link #getConfigSources(String)}
+     * @param configSources configuration sources, obtained from calling {@link #getConfigSources(String, boolean)}
      */
     public ElasticApmTracerBuilder(List<ConfigurationSource> configSources) {
         this.configSources = configSources;
@@ -220,10 +219,11 @@ public class ElasticApmTracerBuilder {
      * Provides an ordered list of local configuration sources, sorted in decreasing priority (first wins)
      *
      * @param agentArguments agent arguments (if any)
+     * @param premain        {@literal false} when using runtime attach {@literal true} when using -javaagent
      * @return ordered list of configuration sources
      */
     // Must not initialize any loggers with this as the logger is configured based on configuration.
-    public static List<ConfigurationSource> getConfigSources(@Nullable String agentArguments) {
+    public static List<ConfigurationSource> getConfigSources(@Nullable String agentArguments, boolean premain) {
         List<ConfigurationSource> result = new ArrayList<>();
 
         // highest priority : JVM system properties (before adding remote configuration)
@@ -234,51 +234,40 @@ public class ElasticApmTracerBuilder {
         // environment variables
         result.add(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"));
 
-        // loads properties file next to agent jar or with path provided from config.
-        // while it depends on sources above, it has higher priority and is thus inserted before them
-        String configFileLocation = CoreConfiguration.getConfigFileLocation(result);
-        if (configFileLocation != null && PropertyFileConfigurationSource.getFromFileSystem(configFileLocation) != null) {
-            result.add(0, new PropertyFileConfigurationSource(configFileLocation));
-        }
-
         if (agentArguments != null && !agentArguments.isEmpty()) {
             // runtime attachment: self-attachment API and attacher jar
-            // configuration is stored in a temporary file to pass it to the agent
+            // could also be used with -javagent setup option but not expected to be common
+            //
+            // configuration is stored in a temporary file whose path is provided in agent arguments
             AgentArgumentsConfigurationSource agentArgs = AgentArgumentsConfigurationSource.parse(agentArguments);
-            ConfigurationSource attachmentConfig = getAttachmentConfigSource(agentArgs.getValue(TEMP_PROPERTIES_FILE_KEY));
+
+            ConfigurationSource attachmentConfig = ConfigSources.fromRuntimeAttachParameters(agentArgs.getValue(TEMP_PROPERTIES_FILE_KEY));
             if (attachmentConfig != null) {
                 result.add(attachmentConfig);
             }
         }
 
-        // only used for testing, will not load elasticapm.properties from app classpath as this code is
-        // running in the bootstrap classloader. When testing, it loads elasticapm.properties only because agent classes
-        // are loaded by the system classloader and not the bootstrap classloader
-        if (PropertyFileConfigurationSource.isPresent("elasticapm.properties")) {
-            result.add(new PropertyFileConfigurationSource("elasticapm.properties"));
+        // Optionally loading agent configuration from external file, while it depends on sources above, it has higher
+        // priority and is thus inserted before them.
+
+        String configFileLocation = CoreConfiguration.getConfigFileLocation(result, premain);
+        ConfigurationSource configFileSource = ConfigSources.fromFileSystem(configFileLocation);
+        if (configFileSource != null) {
+            result.add(0, configFileSource);
+        }
+
+        // Mostly used as a convenience for testing when 'elasticapm.properties' is at the root of the system classpath.
+        // Might also be used when application has 'elasticapm.properties' in the system classpath, however this
+        // can't be guaranteed, thus the attacher API (running from any part of the application) will copy configuration
+        // from the classpath to runtime attach parameters.
+        ConfigurationSource classpathSource = ConfigSources.fromClasspath("elasticapm.properties", ClassLoader.getSystemClassLoader());
+        if (classpathSource != null) {
+            result.add(classpathSource);
         }
 
         // lowest priority: implicit default configuration
 
         return result;
-    }
-
-    /**
-     * Loads the configuration from the temporary properties file created by ElasticApmAttacher
-     */
-    @Nullable
-    private static ConfigurationSource getAttachmentConfigSource(@Nullable String configFileLocation) {
-        if (configFileLocation != null) {
-            Properties fromFileSystem = PropertyFileConfigurationSource.getFromFileSystem(configFileLocation);
-            if (fromFileSystem != null) {
-                SimpleSource attachmentConfig = new SimpleSource("Attachment configuration");
-                for (String key : fromFileSystem.stringPropertyNames()) {
-                    attachmentConfig.add(key, fromFileSystem.getProperty(key));
-                }
-                return attachmentConfig;
-            }
-        }
-        return null;
     }
 
 }
