@@ -11,7 +11,7 @@ REMOTE_NAME=origin
 check_version "${1:-}"
 v="${1:-}"
 
-tag=$(version_major_branch ${v})
+tag=$(version_tag ${v})
 major_branch="$(version_major_branch "${v}")"
 
 echo ""
