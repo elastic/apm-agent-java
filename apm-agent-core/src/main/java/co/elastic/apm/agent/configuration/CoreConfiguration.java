@@ -459,7 +459,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             " - `public org.example.services.*Service#*`\n" +
             " - `public @java.inject.ApplicationScoped org.example.*`\n" +
             " - `public @java.inject.* org.example.*`\n" +
-            " - `public @@javax.enterprise.context.NormalScope org.example.*`\n" +
+            " - `public @@javax.enterprise.context.NormalScope org.example.*, public @@jakarta.enterprise.context.NormalScope org.example.*`\n" +
             "\n" +
             "NOTE: Only use wildcards if necessary.\n" +
             "The more methods you match the more overhead will be caused by the agent.\n" +
@@ -474,6 +474,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "Trace all public methods in CDI-Annotated beans:\n\n" +
             "----\n" +
             "public @@javax.enterprise.context.NormalScope your.application.package.*\n" +
+            "public @@jakarta.enterprise.context.NormalScope your.application.package.*\n" +
             "public @@javax.inject.Scope your.application.package.*\n" +
             "----\n" +
             "NOTE: This method is only available in the Elastic APM Java Agent.\n" +
