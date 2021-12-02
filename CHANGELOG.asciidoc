@@ -29,6 +29,7 @@ endif::[]
 [float]
 ===== Features
 * Adding experimental support for <<aws-lambda, AWS Lambda>> - {pull}1951[#1951]
+* Now supporting tomcat 10 - {pull}2229[#2229]
 * Added support for Java/Jakarta WebSocket ServerEndpoint - {pull}2281[#2281]
 
 [float]

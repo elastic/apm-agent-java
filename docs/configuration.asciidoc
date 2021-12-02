@@ -996,7 +996,7 @@ A few examples:
  - `public org.example.services.*Service#*`
  - `public @java.inject.ApplicationScoped org.example.*`
  - `public @java.inject.* org.example.*`
- - `public @@javax.enterprise.context.NormalScope org.example.*`
+ - `public @@javax.enterprise.context.NormalScope org.example.*, public @@jakarta.enterprise.context.NormalScope org.example.*`
 
 NOTE: Only use wildcards if necessary.
 The more methods you match the more overhead will be caused by the agent.
@@ -1014,6 +1014,7 @@ Trace all public methods in CDI-Annotated beans:
 
 ----
 public @@javax.enterprise.context.NormalScope your.application.package.*
+public @@jakarta.enterprise.context.NormalScope your.application.package.*
 public @@javax.inject.Scope your.application.package.*
 ----
 NOTE: This method is only available in the Elastic APM Java Agent.
@@ -3127,7 +3128,7 @@ The default unit for this option is `ms`.
 #  - `public org.example.services.*Service#*`
 #  - `public @java.inject.ApplicationScoped org.example.*`
 #  - `public @java.inject.* org.example.*`
-#  - `public @@javax.enterprise.context.NormalScope org.example.*`
+#  - `public @@javax.enterprise.context.NormalScope org.example.*, public @@jakarta.enterprise.context.NormalScope org.example.*`
 # 
 # NOTE: Only use wildcards if necessary.
 # The more methods you match the more overhead will be caused by the agent.
@@ -3145,6 +3146,7 @@ The default unit for this option is `ms`.
 # 
 # ----
 # public @@javax.enterprise.context.NormalScope your.application.package.*
+# public @@jakarta.enterprise.context.NormalScope your.application.package.*
 # public @@javax.inject.Scope your.application.package.*
 # ----
 # NOTE: This method is only available in the Elastic APM Java Agent.
