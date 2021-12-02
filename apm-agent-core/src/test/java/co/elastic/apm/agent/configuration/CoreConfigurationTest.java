@@ -68,6 +68,29 @@ class CoreConfigurationTest {
     }
 
     @Test
+    void testWithEnabledInstrumentationsButDisabledExperimentalInstrumentations() {
+        CoreConfiguration config = getCoreConfiguration("experimental", "");
+        assertThat(config.isInstrumentationEnabled("experimental")).isFalse();
+        assertThat(config.isInstrumentationEnabled(Collections.singletonList("experimental"))).isFalse();
+    }
+
+    @Test
+    void testWithEnabledInstrumentationsAndEnabledExperimentalInstrumentations() {
+        CoreConfiguration config = ConfigurationRegistry.builder()
+            .addOptionProvider(new CoreConfiguration())
+            .addConfigSource(SimpleSource.forTest("enable_instrumentations", "experimental"))
+            .addConfigSource(SimpleSource.forTest("disable_instrumentations", ""))
+            .addConfigSource(SimpleSource.forTest("enable_experimental_instrumentations", "true"))
+            .build()
+            .getConfig(CoreConfiguration.class);
+
+        assertThat(config.isInstrumentationEnabled("experimental")).isTrue();
+        assertThat(config.isInstrumentationEnabled(Collections.singletonList("experimental"))).isTrue();
+        assertThat(config.isInstrumentationEnabled("foobar")).isFalse();
+        assertThat(config.isInstrumentationEnabled(Collections.singletonList("foobar"))).isFalse();
+    }
+
+    @Test
     void testLegacyDefaultDisabledInstrumentation() {
         CoreConfiguration config = getCoreConfiguration("", "incubating");
         assertThat(config.isInstrumentationEnabled("experimental")).isFalse();
