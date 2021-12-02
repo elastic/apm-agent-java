@@ -238,9 +238,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Collection<String>> enabledInstrumentations = ConfigurationOption.stringsOption()
         .key("enable_instrumentations")
         .configurationCategory(CORE_CATEGORY)
-        .description("A list of instrumentations which should be enabled.\n" +
+        .description("A list of instrumentations which should be selectively enabled.\n" +
             "Valid options are ${allInstrumentationGroupNames}.\n" +
-            "An instrumentation is enabled if this configuration is empty or contains the instrumentation and the instrumentation is not disabled.\n" +
+            "When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.\n" +
+            "When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.\n" +
             "\n" +
             "NOTE: Changing this value at runtime can slow down the application temporarily.")
         .dynamic(true)
