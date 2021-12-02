@@ -553,9 +553,7 @@ A version string for the currently deployed version of the service. If you donâ€
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `Implementation-Version` in the `META-INF/MANIFEST.MF` of the main jar file.
-If the service version is set explicitly, it overrides the above.
-| String | false
+| `<none>` | String | false
 |============
 
 
