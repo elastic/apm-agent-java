@@ -29,6 +29,7 @@ endif::[]
 [float]
 ===== Features
 * Adding experimental support for <<aws-lambda, AWS Lambda>> - {pull}1951[#1951]
+* Now supporting tomcat 10 - {pull}2229[#2229]
 * When the MANIFEST.MF of the main jar contains the Implementation-Title attribute, it is used as the default service name - {pull}1921[#1921]
 
 [float]
