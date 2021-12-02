@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.CdiJakartaeeServletContainerTestApp;
 import co.elastic.apm.servlet.tests.JakartaeeJsfServletContainerTestApp;
 import co.elastic.apm.servlet.tests.JakartaeeServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
@@ -48,6 +49,8 @@ public class JakartaeeTomcatIT extends AbstractTomcatIT {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(JakartaeeServletApiTestApp.class, JakartaeeJsfServletContainerTestApp.class);
+        return Arrays.asList(JakartaeeServletApiTestApp.class,
+            JakartaeeJsfServletContainerTestApp.class,
+            CdiJakartaeeServletContainerTestApp.class);
     }
 }
