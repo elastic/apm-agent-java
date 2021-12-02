@@ -496,7 +496,6 @@ NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
 | For Spring-based application, uses the `spring.application.name` property, if set.
 For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
 Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
-Falls back to `Implementation-Title` in the `META-INF/MANIFEST.MF` of the main jar file.
 Falls back to the name of the main class or jar file.
 If the service name is set explicitly, it overrides all of the above.
  | String | false
