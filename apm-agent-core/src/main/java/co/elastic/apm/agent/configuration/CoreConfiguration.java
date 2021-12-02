@@ -724,7 +724,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         final Collection<String> enabledInstrumentationGroupNames = enabledInstrumentations.get();
         final Collection<String> disabledInstrumentationGroupNames = disabledInstrumentations.get();
         return (enabledInstrumentationGroupNames.isEmpty() || enabledInstrumentationGroupNames.contains(instrumentationGroupName)) &&
-            !disabledInstrumentationGroupNames.contains(instrumentationGroupName);
+            !disabledInstrumentationGroupNames.contains(instrumentationGroupName) &&
+            (enableExperimentalInstrumentations.get() || !instrumentationGroupName.equals("experimental"));
     }
 
     public boolean isInstrumentationEnabled(Collection<String> instrumentationGroupNames) {
@@ -752,7 +753,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
                 return true;
             }
         }
-        return false;
+        return !enableExperimentalInstrumentations.get() && instrumentationGroupNames.contains("experimental");
     }
 
     public List<WildcardMatcher> getUnnestExceptions() {
