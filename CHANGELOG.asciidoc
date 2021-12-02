@@ -29,6 +29,7 @@ endif::[]
 [float]
 ===== Features
 * Adding experimental support for <<aws-lambda, AWS Lambda>> - {pull}1951[#1951]
+* Now supporting tomcat 10 - {pull}2229[#2229]
 * Added support for setting the service name on Log4j2's EcsLayout - {pull}2296[#2296]
 
 [float]
