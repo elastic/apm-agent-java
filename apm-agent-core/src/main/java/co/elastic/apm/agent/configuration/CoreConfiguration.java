@@ -25,10 +25,10 @@ import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.MapValueConverter;
@@ -459,14 +459,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             " - `public org.example.services.*Service#*`\n" +
             " - `public @java.inject.ApplicationScoped org.example.*`\n" +
             " - `public @java.inject.* org.example.*`\n" +
-            " - `public @@javax.enterprise.context.NormalScope org.example.*`\n" +
+            " - `public @@javax.enterprise.context.NormalScope org.example.*, public @@jakarta.enterprise.context.NormalScope org.example.*`\n" +
             "\n" +
             "NOTE: Only use wildcards if necessary.\n" +
             "The more methods you match the more overhead will be caused by the agent.\n" +
             "Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).\n" +
             "\n" +
             "NOTE: The agent will create stack traces for spans which took longer than\n" +
-            "<<config-span-frames-min-duration, `span_frames_min_duration`>>.\n" +
+            "<<config-span-stack-trace-min-duration, `span_stack_trace_min_duration`>>.\n" +
             "When tracing a large number of methods (for example by using wildcards),\n" +
             "this may lead to high overhead.\n" +
             "Consider increasing the threshold or disabling stack trace collection altogether.\n\n" +
@@ -474,6 +474,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "Trace all public methods in CDI-Annotated beans:\n\n" +
             "----\n" +
             "public @@javax.enterprise.context.NormalScope your.application.package.*\n" +
+            "public @@jakarta.enterprise.context.NormalScope your.application.package.*\n" +
             "public @@javax.inject.Scope your.application.package.*\n" +
             "----\n" +
             "NOTE: This method is only available in the Elastic APM Java Agent.\n" +
@@ -602,13 +603,16 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "provider or, if that fails, will use trial and error to collect the metadata.")
         .buildWithDefault(CloudProvider.AUTO);
 
-    private final ConfigurationOption<TimeDuration> cloudMetadataTimeoutMs = TimeDurationValueConverter.durationOption("ms")
-        .key("cloud_metadata_timeout_ms")
+    private final ConfigurationOption<TimeDuration> metadataTimeoutMs = TimeDurationValueConverter.durationOption("ms")
+        .key("metadata_timeout_ms")
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
-        .description("Automatic cloud provider information is fetched by querying APIs in external services, which means \n" +
-            "they impose a delay. In some cases, this discovery process relies on trial-and-error, by querying these \n" +
-            "services. We use this config option to determine the timeout for this purpose. Increase if timed out when shouldn't.")
+        .description("Some metadata auto-discovery tasks require long execution. For example, cloud provider information \n" +
+            "is fetched by querying APIs through HTTP and hostname discovery relies on running external commands. \n" +
+            "In some cases, such discovery tasks rely on trial-and-error. This config option is used to limit the time \n" +
+            "spent on metadata discovery. Wherever possible, these tasks are executed in parallel, but in some cases \n" +
+            "they can't be, which means that this config doesn't indicate the absolute limit for the entire metadata \n" +
+            "discovery. Rather, it defines the timeout for each metadata discovery task.")
         .buildWithDefault(TimeDuration.of("1000ms"));
 
     private final ConfigurationOption<Boolean> enablePublicApiAnnotationInheritance = ConfigurationOption.booleanOption()
@@ -774,25 +778,24 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
      * Makes sure to not initialize ConfigurationOption, which would initialize the logger
      */
     @Nullable
-    public static String getConfigFileLocation(List<ConfigurationSource> configurationSources) {
-        String configFileLocation = DEFAULT_CONFIG_FILE;
-        for (ConfigurationSource configurationSource : configurationSources) {
-            String valueFromSource = configurationSource.getValue(CONFIG_FILE);
-            if (valueFromSource != null) {
-                configFileLocation = valueFromSource;
+    public static String getConfigFileLocation(List<ConfigurationSource> configurationSources, boolean premain) {
+        String configFileLocation = premain ? DEFAULT_CONFIG_FILE : null;
+        for (ConfigurationSource source : configurationSources) {
+            String value = source.getValue(CONFIG_FILE);
+            if (value != null) {
+                configFileLocation = value;
                 break;
             }
         }
-        if (configFileLocation.contains(AGENT_HOME_PLACEHOLDER)) {
+
+        if (configFileLocation != null) {
             String agentHome = ElasticApmAgent.getAgentHome();
             if (agentHome != null) {
-                return configFileLocation.replace(AGENT_HOME_PLACEHOLDER, agentHome);
-            } else {
-                return null;
+                configFileLocation = configFileLocation.replace(AGENT_HOME_PLACEHOLDER, agentHome);
             }
-        } else {
-            return configFileLocation;
         }
+
+        return configFileLocation;
     }
 
     @Nullable
@@ -811,8 +814,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         }
     }
 
-    public long geCloudMetadataDiscoveryTimeoutMs() {
-        return cloudMetadataTimeoutMs.get().getMillis();
+    public long getMetadataDiscoveryTimeoutMs() {
+        return metadataTimeoutMs.get().getMillis();
     }
 
     public CloudProvider getCloudProvider() {

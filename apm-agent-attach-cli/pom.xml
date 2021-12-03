@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.26.1-SNAPSHOT</version>
+        <version>1.27.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -27,6 +27,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-attach</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-common</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

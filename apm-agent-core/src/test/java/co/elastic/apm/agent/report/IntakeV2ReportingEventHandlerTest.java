@@ -21,11 +21,11 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.MetaDataMock;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.payload.ProcessInfo;
-import co.elastic.apm.agent.impl.payload.Service;
-import co.elastic.apm.agent.impl.payload.SystemInfo;
+import co.elastic.apm.agent.impl.metadata.ProcessInfo;
+import co.elastic.apm.agent.impl.metadata.Service;
+import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -55,7 +55,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.zip.InflaterInputStream;
 
 import static co.elastic.apm.agent.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
@@ -96,7 +95,7 @@ class IntakeV2ReportingEventHandlerTest {
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
         final CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
-        SystemInfo system = new SystemInfo("x64", "localhost", "platform");
+        SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final ProcessInfo title = new ProcessInfo("title");
         final Service service = new Service();
         apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
@@ -111,7 +110,7 @@ class IntakeV2ReportingEventHandlerTest {
             new DslJsonSerializer(
                 mock(StacktraceConfiguration.class),
                 apmServerClient,
-                MetaDataMock.create(title, service, system, null, Collections.emptyMap())
+                MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
             ),
             apmServerClient);
         final ProcessInfo title1 = new ProcessInfo("title");
@@ -124,7 +123,7 @@ class IntakeV2ReportingEventHandlerTest {
             new DslJsonSerializer(
                 mock(StacktraceConfiguration.class),
                 this.apmServerClient,
-                MetaDataMock.create(title1, service1, system, null, Collections.emptyMap())
+                MetaDataMock.create(title1, service1, system, null, Collections.emptyMap(), null)
             ),
             apmServerClient);
     }
@@ -262,7 +261,7 @@ class IntakeV2ReportingEventHandlerTest {
         return Stream.of(mockApmServer1, mockApmServer2)
             .flatMap(apmServer -> apmServer.findAll(postRequestedFor(urlEqualTo(INTAKE_V2_URL))).stream())
             .findFirst()
-            .map(request -> new BufferedReader(new InputStreamReader(new InflaterInputStream(new ByteArrayInputStream(request.getBody()))))
+            .map(request -> new BufferedReader(new InputStreamReader(new ByteArrayInputStream(request.getBody())))
                 .lines()
                 .map(IntakeV2ReportingEventHandlerTest::getReadTree)
                 .collect(Collectors.toList()))

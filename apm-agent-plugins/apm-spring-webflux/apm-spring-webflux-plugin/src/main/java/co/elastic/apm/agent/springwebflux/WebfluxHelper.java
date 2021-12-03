@@ -136,10 +136,6 @@ public class WebfluxHelper {
                 return wrappedSubscriber;
             }
         }));
-
-        if (log.isTraceEnabled()) {
-            mono = mono.log(description);
-        }
         return mono;
     }
 
@@ -240,8 +236,10 @@ public class WebfluxHelper {
         request.withMethod(serverRequest.getMethodValue());
 
         InetSocketAddress remoteAddress = serverRequest.getRemoteAddress();
-        request.getSocket()
-            .withRemoteAddress(remoteAddress == null ? null : remoteAddress.getAddress().getHostAddress());
+        if (remoteAddress != null && remoteAddress.getAddress() != null) {
+            request.getSocket()
+                .withRemoteAddress(remoteAddress.getAddress().getHostAddress());
+        }
 
         request.getUrl().fillFrom(serverRequest.getURI());
 

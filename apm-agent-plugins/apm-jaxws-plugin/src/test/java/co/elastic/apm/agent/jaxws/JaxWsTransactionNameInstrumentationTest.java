@@ -18,42 +18,23 @@
  */
 package co.elastic.apm.agent.jaxws;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.Scope;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.jws.soap.SOAPBinding;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-class JaxWsTransactionNameInstrumentationTest extends AbstractInstrumentationTest {
-
-    private HelloWorldService helloWorldService;
+class JaxWsTransactionNameInstrumentationTest extends AbstractJaxWsInstrumentationTest {
 
     @BeforeEach
     void setUp() {
         helloWorldService = new HelloWorldServiceImpl();
     }
 
-    @Test
-    void testTransactionName() {
-        final Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader());
-        try (Scope scope = transaction.activateInScope()) {
-            helloWorldService.sayHello();
-        } finally {
-            transaction.end();
-        }
-        assertThat(transaction.getNameAsString()).isEqualTo("HelloWorldServiceImpl#sayHello");
-        assertThat(transaction.getFrameworkName()).isEqualTo("JAX-WS");
-    }
-
     @SOAPBinding(style = SOAPBinding.Style.RPC)
     @WebService(targetNamespace = "elastic")
-    public interface HelloWorldService {
+    public interface HelloWorldService extends BaseHelloWorldService {
+        @Override
         @WebMethod
         String sayHello();
     }

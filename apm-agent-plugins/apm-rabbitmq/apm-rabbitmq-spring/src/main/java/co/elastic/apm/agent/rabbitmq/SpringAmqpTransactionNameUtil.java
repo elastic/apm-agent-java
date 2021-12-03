@@ -28,7 +28,7 @@ public class SpringAmqpTransactionNameUtil {
     private static final WeakSet<Object> rabbitListeners = WeakConcurrent.buildSet();
 
     public static String getTransactionNamePrefix(Object listener) {
-        return rabbitListeners.contains(listener) ? "RabbitMQ" : "Spring AMQP";
+        return rabbitListeners.contains(listener) ? "RabbitMQ" : AmqpConstants.SPRING_AMQP_TRANSACTION_PREFIX;
     }
 
     public static void register(Object listener) {

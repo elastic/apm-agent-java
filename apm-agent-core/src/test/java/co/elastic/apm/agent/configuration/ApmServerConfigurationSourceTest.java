@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -54,10 +54,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.matching.RequestPatternBuilder.newRequestPattern;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class ApmServerConfigurationSourceTest {
 
@@ -78,8 +78,10 @@ public class ApmServerConfigurationSourceTest {
         apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
         mockLogger = mock(Logger.class);
         configurationSource = new ApmServerConfigurationSource(
-            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient, MetaData.create(config, null)),
-            apmServerClient, mockLogger);
+            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient, MetaDataMock.create()),
+            apmServerClient,
+            mockLogger
+        );
     }
 
     @Test
@@ -99,7 +101,7 @@ public class ApmServerConfigurationSourceTest {
 
     @Test
     public void testRemoteConfigDisabled() {
-        when(config.getConfig(CoreConfiguration.class).isCentralConfigEnabled()).thenReturn(false);
+        doReturn(false).when(config.getConfig(CoreConfiguration.class)).isCentralConfigEnabled();
         configurationSource.fetchConfig(config);
         assertThat(configurationSource.getValue("foo")).isNull();
         mockApmServer.verify(0, postRequestedFor(urlEqualTo("/config/v1/agents")));

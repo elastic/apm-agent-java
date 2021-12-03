@@ -21,7 +21,7 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -105,11 +105,11 @@ class ReporterFactoryTest {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(false);
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, configuration.getConfig(CoreConfiguration.class));
         apmServerClient.start();
-        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaData.create(configuration, null));
+        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaDataMock.create());
         reporter.start();
 
         reporter.report(new Transaction(MockTracer.create()));
-        reporter.flush().get();
+        reporter.flush();
 
         assertThat(requestHandled)
             .describedAs("request should ignore certificate validation and properly execute")
@@ -122,11 +122,11 @@ class ReporterFactoryTest {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(true);
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, configuration.getConfig(CoreConfiguration.class));
         apmServerClient.start();
-        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaData.create(configuration, null));
+        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaDataMock.create());
         reporter.start();
 
         reporter.report(new Transaction(MockTracer.create()));
-        reporter.flush().get();
+        reporter.flush();
 
         assertThat(requestHandled)
             .describedAs("request should have produced a certificate validation error")

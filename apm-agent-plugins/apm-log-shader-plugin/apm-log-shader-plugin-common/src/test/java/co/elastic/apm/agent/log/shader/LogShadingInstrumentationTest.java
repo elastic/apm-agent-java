@@ -81,7 +81,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         logger.open();
 
         // IMPORTANT: keep this last, so that it doesn't interfere with Mockito settings above
-        serviceName = Objects.requireNonNull(tracer.getMetaData().get(2000, TimeUnit.MILLISECONDS).getService().getName());
+        serviceName = Objects.requireNonNull(tracer.getMetaDataFuture().get(2000, TimeUnit.MILLISECONDS).getService().getName());
     }
 
     private void setEcsReformattingConfig(LogEcsReformatting ecsReformattingConfig) {

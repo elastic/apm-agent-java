@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.CdiJakartaeeServletContainerTestApp;
+import co.elastic.apm.servlet.tests.JakartaeeJsfServletContainerTestApp;
 import co.elastic.apm.servlet.tests.JakartaeeServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 @RunWith(Parameterized.class)
 public class JakartaeeTomcatIT extends AbstractTomcatIT {
@@ -49,8 +49,8 @@ public class JakartaeeTomcatIT extends AbstractTomcatIT {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        List<Class<? extends TestApp>> testClasses = new ArrayList<>();
-        testClasses.add(JakartaeeServletApiTestApp.class);
-        return testClasses;
+        return Arrays.asList(JakartaeeServletApiTestApp.class,
+            JakartaeeJsfServletContainerTestApp.class,
+            CdiJakartaeeServletContainerTestApp.class);
     }
 }

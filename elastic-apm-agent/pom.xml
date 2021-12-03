@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.26.1-SNAPSHOT</version>
+        <version>1.27.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
@@ -13,6 +13,9 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+
+        <!-- default value that will be overloaded through commit-id plugin -->
+        <git.commit.id.abbrev>UNKNOWN</git.commit.id.abbrev>
     </properties>
 
     <dependencies>
@@ -102,7 +105,6 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <version>3.0.0</version>
                 <executions>
@@ -114,7 +116,7 @@
                             <target name="move-and-rename" description="Move and Rename">
                                 <move todir="${project.basedir}/target/classes/cached-lookup-key" overwrite="true">
                                     <fileset dir="${project.basedir}/target/classes/cached-lookup-key" includes="**/*.class" />
-                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz"/>
+                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz" />
                                 </move>
                             </target>
 
@@ -131,7 +133,7 @@
                             <target name="move-and-rename" description="Move and Rename">
                                 <move todir="${project.basedir}/target/classes/agent" overwrite="true">
                                     <fileset dir="${project.basedir}/target/classes/agent" includes="**/*.class" />
-                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz"/>
+                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz" />
                                 </move>
                             </target>
 
@@ -168,6 +170,19 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>4.0.2</version>
+                <executions>
+                    <execution>
+                        <id>get-the-git-infos</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
                 <executions>
                     <execution>
@@ -190,12 +205,58 @@
                                     <manifestEntries>
                                         <Premain-Class>co.elastic.apm.agent.premain.AgentMain</Premain-Class>
                                         <Agent-Class>co.elastic.apm.agent.premain.AgentMain</Agent-Class>
+                                        <SCM-Revision>${git.commit.id.abbrev}</SCM-Revision>
                                         <Can-Redefine-Classes>true</Can-Redefine-Classes>
                                         <Can-Retransform-Classes>true</Can-Retransform-Classes>
                                         <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
                                     </manifestEntries>
                                 </transformer>
                             </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/aws-lambda</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/assembly</directory>
+                                    <filtering>true</filtering>
+                                    <includes>
+                                        <include>elastic-apm-handler</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                            <delimiters>
+                                <delimiter>[[*]]</delimiter>
+                            </delimiters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <descriptors>
+                                <descriptor>src/main/assembly/aws-lambda-layer.xml</descriptor>
+                            </descriptors>
+                            <finalName>elastic-apm-java-aws-lambda-layer-${project.version}</finalName>
                         </configuration>
                     </execution>
                 </executions>

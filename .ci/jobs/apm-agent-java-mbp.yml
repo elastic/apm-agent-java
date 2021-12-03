@@ -42,4 +42,4 @@
             reference-repo: /var/lib/jenkins/.git-references/apm-agent-java.git
             use-author: true
             wipe-workspace: true
-    periodic-folder-trigger: 1h
+    periodic-folder-trigger: 4h

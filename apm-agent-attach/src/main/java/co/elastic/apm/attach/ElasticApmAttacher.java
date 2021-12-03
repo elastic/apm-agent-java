@@ -21,8 +21,8 @@ package co.elastic.apm.attach;
 import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
 import net.bytebuddy.agent.ByteBuddyAgent;
 
+import javax.annotation.Nullable;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,7 +55,7 @@ public class ElasticApmAttacher {
      * @throws IllegalStateException if there was a problem while attaching the agent to this VM
      */
     public static void attach() {
-        attach(loadProperties("elasticapm.properties"));
+        attach(loadPropertiesFromClasspath("elasticapm.properties"));
     }
 
     /**
@@ -69,10 +69,10 @@ public class ElasticApmAttacher {
      * @since 1.11.0
      */
     public static void attach(String propertiesLocation) {
-        attach(loadProperties(propertiesLocation));
+        attach(loadPropertiesFromClasspath(propertiesLocation));
     }
 
-    private static Map<String, String> loadProperties(String propertiesLocation) {
+    private static Map<String, String> loadPropertiesFromClasspath(String propertiesLocation) {
         Map<String, String> propertyMap = new HashMap<>();
         final Properties props = new Properties();
         try (InputStream resourceStream = ElasticApmAttacher.class.getClassLoader().getResourceAsStream(propertiesLocation)) {
@@ -105,24 +105,21 @@ public class ElasticApmAttacher {
         attach(ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE.resolve(), configuration);
     }
 
-    static File createTempProperties(Map<String, String> configuration) {
+    /**
+     * Store configuration to a temporary file
+     *
+     * @param configuration agent configuration
+     * @param folder        temporary folder, use {@literal null} to use default
+     * @return created file if any, {@literal null} if none was created
+     */
+    static File createTempProperties(Map<String, String> configuration, @Nullable File folder) {
         File tempFile = null;
         if (!configuration.isEmpty()) {
             Properties properties = new Properties();
             properties.putAll(configuration);
 
-            // when an external configuration file is used, we have to load it last to give it higher priority
-            String externalConfig = configuration.get("config_file");
-            if (null != externalConfig) {
-                try (FileInputStream stream = new FileInputStream(externalConfig)) {
-                    properties.load(stream);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
             try {
-                tempFile = File.createTempFile("elstcapm", ".tmp");
+                tempFile = File.createTempFile("elstcapm", ".tmp", folder);
                 try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
                     properties.store(outputStream, null);
                 }
@@ -148,10 +145,10 @@ public class ElasticApmAttacher {
      *
      * @param pid           the PID of the JVM the agent should be attached on
      * @param configuration the agent configuration
-     * @param agentJarFile
+     * @param agentJarFile  the agent jar file
      */
     public static void attach(String pid, Map<String, String> configuration, File agentJarFile) {
-        File tempFile = createTempProperties(configuration);
+        File tempFile = createTempProperties(configuration, null);
         String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();
 
         ByteBuddyAgent.attach(agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
@@ -188,7 +185,7 @@ public class ElasticApmAttacher {
             if (ElasticApmAttacher.class.getResource("/elastic-apm-agent.jar") == null) {
                 return null;
             }
-            return ResourceExtractionUtil.extractResourceToTempDirectory("elastic-apm-agent.jar", "elastic-apm-agent", ".jar");
+            return ResourceExtractionUtil.extractResourceToTempDirectory("elastic-apm-agent.jar", "elastic-apm-agent", ".jar").toFile();
         }
     }
 

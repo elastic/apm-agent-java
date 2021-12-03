@@ -66,9 +66,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ApmServerClient {
 
     private static final Logger logger = LoggerFactory.getLogger(ApmServerClient.class);
+
     private static final Version VERSION_6_7 = Version.of("6.7.0");
-    private static final Version VERSION_7_9 = Version.of("7.9.0");
     private static final Version VERSION_7_0 = Version.of("7.0.0");
+    private static final Version VERSION_7_4 = Version.of("7.4.0");
+    private static final Version VERSION_7_9 = Version.of("7.9.0");
+
     private final ReporterConfiguration reporterConfiguration;
     @Nullable
     private volatile List<URL> serverUrls;
@@ -319,16 +322,20 @@ public class ApmServerClient {
         return isAtLeast(VERSION_6_7);
     }
 
-    public boolean supportsLogsEndpoint() {
-        return isAtLeast(VERSION_7_9);
-    }
-
     public boolean supportsNumericUrlPort() {
         return isAtLeast(VERSION_7_0);
     }
 
     public boolean supportsMultipleHeaderValues() {
         return isAtLeast(VERSION_7_0);
+    }
+
+    public boolean supportsConfiguredAndDetectedHostname() {
+        return isAtLeast(VERSION_7_4);
+    }
+
+    public boolean supportsLogsEndpoint() {
+        return isAtLeast(VERSION_7_9);
     }
 
     @Nullable
@@ -379,10 +386,20 @@ public class ApmServerClient {
         if (!serviceName.isEmpty()) {
             userAgent.append(" (").append(serviceName);
             if (serviceVersion != null && !serviceVersion.isEmpty()) {
-                userAgent.append(" ").append(serviceVersion);
+                userAgent.append(" ").append(escapeHeaderComment(serviceVersion));
             }
             userAgent.append(")");
         }
         return userAgent.toString();
+    }
+
+    /**
+     * Escapes the provided string from characters that are disallowed within HTTP header comments.
+     * See spec- https://httpwg.org/specs/rfc7230.html#field.components
+     * @param headerFieldComment HTTP header comment value to be escaped
+     * @return the escaped header comment
+     */
+    static String escapeHeaderComment(String headerFieldComment) {
+        return headerFieldComment.replaceAll("[^\\t \\x21-\\x27\\x2a-\\x5b\\x5d-\\x7e\\x80-\\xff]", "_");
     }
 }
