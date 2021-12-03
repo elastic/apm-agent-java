@@ -35,7 +35,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * expected on Java 17+. As log4j1 is now EOL http://logging.apache.org/log4j/1.2/ it's the best way to keep our tests
  * active and relevant on this feature.
  */
-public class OptionsConverterInstrumentation extends ElasticApmInstrumentation {
+public class OptionConverterInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -56,12 +56,15 @@ public class OptionsConverterInstrumentation extends ElasticApmInstrumentation {
 
         @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static String onExit(@Advice.Return @Nullable String returnValue) {
-            if (returnValue == null) {
-                return null;
+        public static String onExit(@Advice.Argument(0) String key,
+                                    @Advice.Return @Nullable String returnValue) {
+
+            if (returnValue == null || !"java.version".equals(key)) {
+                return returnValue;
             }
 
             if (returnValue.indexOf('.') < 0) {
+                // just convert '17' to '17.0' to make Log4j simple version parsing work and not assume Java 1.x
                 return returnValue + ".0";
             } else {
                 return returnValue;
