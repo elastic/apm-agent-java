@@ -51,6 +51,15 @@ pipeline {
         */
         stage('Checkout') {
           steps {
+            sh '''
+            hostname || true
+            ls -ltra || true
+            pwd || true || true
+            whoami || true
+            java -version || true
+            env | sort
+            docker ps -a || true
+            '''
             pipelineManager([ cancelPreviousRunningBuilds: [ when: 'PR' ] ])
             deleteDir()
             gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, shallow: false,
