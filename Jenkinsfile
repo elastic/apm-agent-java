@@ -3,7 +3,7 @@
 @Library('apm@current') _
 
 pipeline {
-  agent { label 'linux && immutable' }
+  agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
   environment {
     REPO = 'apm-agent-java'
     BASE_DIR = "src/github.com/elastic/${env.REPO}"
@@ -43,8 +43,6 @@ pipeline {
       options { skipDefaultCheckout() }
       environment {
         HOME = "${env.WORKSPACE}"
-        JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
-        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
       stages {
@@ -124,8 +122,6 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
             beforeAgent true
@@ -155,12 +151,10 @@ pipeline {
           Run smoke tests for different servers and databases.
         */
         stage('Smoke Tests 01') {
-          agent { label 'linux && immutable' }
+          agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
             beforeAgent true
@@ -187,12 +181,10 @@ pipeline {
           Run smoke tests for different servers and databases.
         */
         stage('Smoke Tests 02') {
-          agent { label 'linux && immutable' }
+          agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
             beforeAgent true
@@ -224,8 +216,6 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
             NO_BUILD = "true"
           }
           when {
@@ -265,12 +255,10 @@ pipeline {
           Build javadoc files.
         */
         stage('Javadoc') {
-          agent { label 'linux && immutable' }
+          agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
             beforeAgent true
