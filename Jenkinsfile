@@ -3,7 +3,7 @@
 @Library('apm@current') _
 
 pipeline {
-  agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
+  agent { kubernetes { yamlFile '.ci/k8s/OpenJdk11Pod.yml' } }
   environment {
     REPO = 'apm-agent-java'
     BASE_DIR = "src/github.com/elastic/${env.REPO}"
@@ -165,7 +165,7 @@ pipeline {
           Run smoke tests for different servers and databases.
         */
         stage('Smoke Tests 01') {
-          agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
+          agent { kubernetes { yamlFile '.ci/k8s/OpenJdk11Pod.yml' } }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
@@ -195,7 +195,7 @@ pipeline {
           Run smoke tests for different servers and databases.
         */
         stage('Smoke Tests 02') {
-          agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
+          agent { kubernetes { yamlFile '.ci/k8s/OpenJdk11Pod.yml' } }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
@@ -269,7 +269,7 @@ pipeline {
           Build javadoc files.
         */
         stage('Javadoc') {
-          agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
+          agent { kubernetes { yamlFile '.ci/k8s/OpenJdk11Pod.yml' } }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
