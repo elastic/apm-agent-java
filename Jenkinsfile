@@ -16,7 +16,7 @@ pipeline {
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
     OPBEANS_REPO = 'opbeans-java'
-    JDK_VERSION = 'jdk11'
+    JDK_VERSION = 'openjdk11'
   }
   options {
     timeout(time: 90, unit: 'MINUTES')
@@ -324,7 +324,6 @@ pipeline {
         }
       }
       matrix {
-        agent { label 'linux && immutable' }
         axes {
           axis {
             // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
@@ -341,11 +340,13 @@ pipeline {
             }
             steps {
               withGithubNotify(context: "Unit Tests ${JAVA_VERSION}", tab: 'tests') {
-                deleteDir()
-                unstash 'build'
-                dir("${BASE_DIR}"){
-                  withOtelEnv() {
-                    sh(label: "./mvnw test for ${JAVA_VERSION}", script: './mvnw test')
+                container("${JAVA_VERSION}") {
+                  deleteDir()
+                  unstash 'build'
+                  dir("${BASE_DIR}"){
+                    withOtelEnv() {
+                      sh(label: "./mvnw test for ${JAVA_VERSION}", script: './mvnw test')
+                    }
                   }
                 }
               }
