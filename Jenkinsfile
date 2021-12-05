@@ -51,7 +51,7 @@ pipeline {
         */
         stage('Checkout') {
           steps {
-            sh '''
+            sh label: 'debug', script: '''
             hostname || true
             ls -ltra || true
             pwd || true || true
@@ -64,6 +64,7 @@ pipeline {
             ls -ltra /usr/local/ || true
             ls -ltra /usr/local/openjdk-11 || true
             uname -a || true
+            cat /etc/*release || true
             '''
             pipelineManager([ cancelPreviousRunningBuilds: [ when: 'PR' ] ])
             deleteDir()
