@@ -3,7 +3,7 @@ kind: Pod
 spec:
   containers:
   - name: shell
-    image: openjdk:11-bullseye
+    image: openjdk:11-jdk-buster
     command:
     - sleep
     args:
