@@ -87,14 +87,12 @@ pipeline {
                 sh label: 'Prepare .m2 cached folder', returnStatus: true, script: 'cp -Rf /var/lib/jenkins/.m2/repository ${HOME}/.m2'
                 sh label: 'Size .m2', returnStatus: true, script: 'du -hs .m2'
               }
-              dir("${BASE_DIR}"){
-                withOtelEnv() {
-                  retryWithSleep(retries: 5, seconds: 10) {
-                    container(env.JDK_VERSION) {
+              container(env.JDK_VERSION) {
+                dir("${BASE_DIR}"){
+                  withOtelEnv() {
+                    retryWithSleep(retries: 5, seconds: 10) {
                       sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
                     }
-                  }
-                  container(env.JDK_VERSION) {
                     sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
                   }
                 }
@@ -158,7 +156,6 @@ pipeline {
           Run smoke tests for different servers and databases.
         */
         stage('Smoke Tests 01') {
-          agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
@@ -169,9 +166,9 @@ pipeline {
           }
           steps {
             withGithubNotify(context: 'Smoke Tests 01', tab: 'tests') {
-              deleteDir()
-              unstash 'build'
               container(env.JDK_VERSION) {
+                deleteDir()
+                unstash 'build'
                 dir("${BASE_DIR}"){
                   withOtelEnv() {
                     sh './scripts/jenkins/smoketests-01.sh'
@@ -190,7 +187,6 @@ pipeline {
           Run smoke tests for different servers and databases.
         */
         stage('Smoke Tests 02') {
-          agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
@@ -201,9 +197,9 @@ pipeline {
           }
           steps {
             withGithubNotify(context: 'Smoke Tests 02', tab: 'tests') {
-              deleteDir()
-              unstash 'build'
               container(env.JDK_VERSION) {
+                deleteDir()
+                unstash 'build'
                 dir("${BASE_DIR}"){
                   withOtelEnv() {
                     sh './scripts/jenkins/smoketests-02.sh'
@@ -266,7 +262,6 @@ pipeline {
           Build javadoc files.
         */
         stage('Javadoc') {
-          agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
@@ -277,9 +272,9 @@ pipeline {
           }
           steps {
             withGithubNotify(context: 'Javadoc') {
-              deleteDir()
-              unstash 'build'
               container(env.JDK_VERSION) {
+                deleteDir()
+                unstash 'build'
                 dir("${BASE_DIR}"){
                   withOtelEnv() {
                     sh """#!/bin/bash
