@@ -52,21 +52,6 @@ pipeline {
         */
         stage('Checkout') {
           steps {
-            sh label: 'debug', script: '''
-            hostname || true
-            ls -ltra || true
-            pwd || true || true
-            whoami || true
-            java -version || true
-            env | sort
-            docker ps -a || true
-            which java
-            whereis java
-            ls -ltra /usr/local/ || true
-            ls -ltra /usr/local/openjdk-11 || true
-            uname -a || true
-            cat /etc/*release || true
-            '''
             pipelineManager([ cancelPreviousRunningBuilds: [ when: 'PR' ] ])
             deleteDir()
             gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, shallow: false,
