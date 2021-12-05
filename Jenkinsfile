@@ -122,6 +122,7 @@ pipeline {
           Run only unit test.
         */
         stage('Unit Tests') {
+          agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
@@ -156,6 +157,7 @@ pipeline {
           Run smoke tests for different servers and databases.
         */
         stage('Smoke Tests 01') {
+          agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
@@ -187,6 +189,7 @@ pipeline {
           Run smoke tests for different servers and databases.
         */
         stage('Smoke Tests 02') {
+          agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
@@ -262,6 +265,7 @@ pipeline {
           Build javadoc files.
         */
         stage('Javadoc') {
+          agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
@@ -324,6 +328,7 @@ pipeline {
         }
       }
       matrix {
+        agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
         axes {
           axis {
             // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
