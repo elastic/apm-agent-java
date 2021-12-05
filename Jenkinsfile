@@ -59,6 +59,11 @@ pipeline {
             java -version || true
             env | sort
             docker ps -a || true
+            which java
+            whereis java
+            ls -ltra /usr/local/ || true
+            ls -ltra /usr/local/openjdk-11 || true
+            uname -a || true
             '''
             pipelineManager([ cancelPreviousRunningBuilds: [ when: 'PR' ] ])
             deleteDir()
