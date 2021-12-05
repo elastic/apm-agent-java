@@ -3,7 +3,7 @@ kind: Pod
 spec:
   containers:
   - name: shell
-    image: maven:3-openjdk-11
+    image: openjdk:11-bullseye
     command:
     - sleep
     args:
