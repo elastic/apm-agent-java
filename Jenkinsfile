@@ -16,6 +16,7 @@ pipeline {
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
     OPBEANS_REPO = 'opbeans-java'
+    JDK_VERSION = 'jdk11'
   }
   options {
     timeout(time: 90, unit: 'MINUTES')
@@ -104,9 +105,13 @@ pipeline {
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   retryWithSleep(retries: 5, seconds: 10) {
-                    sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                    container(env.JDK_VERSION) {
+                      sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                    }
                   }
-                  sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
+                  container(env.JDK_VERSION) {
+                    sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
+                  }
                 }
               }
               stash allowEmpty: true, name: 'build', useDefaultExcludes: false
@@ -146,12 +151,14 @@ pipeline {
             withGithubNotify(context: 'Unit Tests', tab: 'tests') {
               deleteDir()
               unstash 'build'
-              dir("${BASE_DIR}"){
-                withOtelEnv() {
-                  sh """#!/bin/bash
-                  set -euxo pipefail
-                  ./mvnw test
-                  """
+              container(env.JDK_VERSION) {
+                dir("${BASE_DIR}"){
+                  withOtelEnv() {
+                    sh """#!/bin/bash
+                    set -euxo pipefail
+                    ./mvnw test
+                    """
+                  }
                 }
               }
             }
@@ -179,9 +186,11 @@ pipeline {
             withGithubNotify(context: 'Smoke Tests 01', tab: 'tests') {
               deleteDir()
               unstash 'build'
-              dir("${BASE_DIR}"){
-                withOtelEnv() {
-                  sh './scripts/jenkins/smoketests-01.sh'
+              container(env.JDK_VERSION) {
+                dir("${BASE_DIR}"){
+                  withOtelEnv() {
+                    sh './scripts/jenkins/smoketests-01.sh'
+                  }
                 }
               }
             }
@@ -209,9 +218,11 @@ pipeline {
             withGithubNotify(context: 'Smoke Tests 02', tab: 'tests') {
               deleteDir()
               unstash 'build'
-              dir("${BASE_DIR}"){
-                withOtelEnv() {
-                  sh './scripts/jenkins/smoketests-02.sh'
+              container(env.JDK_VERSION) {
+                dir("${BASE_DIR}"){
+                  withOtelEnv() {
+                    sh './scripts/jenkins/smoketests-02.sh'
+                  }
                 }
               }
             }
@@ -283,12 +294,14 @@ pipeline {
             withGithubNotify(context: 'Javadoc') {
               deleteDir()
               unstash 'build'
-              dir("${BASE_DIR}"){
-                withOtelEnv() {
-                  sh """#!/bin/bash
-                  set -euxo pipefail
-                  ./mvnw compile javadoc:javadoc
-                  """
+              container(env.JDK_VERSION) {
+                dir("${BASE_DIR}"){
+                  withOtelEnv() {
+                    sh """#!/bin/bash
+                    set -euxo pipefail
+                    ./mvnw compile javadoc:javadoc
+                    """
+                  }
                 }
               }
             }
