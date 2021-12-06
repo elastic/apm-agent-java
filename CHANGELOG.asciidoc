@@ -33,6 +33,7 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* Fix error with parsing APM Server version for 7.16+ - {pull}2313[#2313]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
