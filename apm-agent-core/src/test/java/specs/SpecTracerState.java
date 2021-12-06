@@ -23,11 +23,14 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 
+import javax.annotation.Nullable;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class SpecTracerState {
 
     private final ElasticApmTracer tracer;
+
     private Transaction transaction;
     private Span span;
 
@@ -41,37 +44,35 @@ public class SpecTracerState {
 
     public void startRootTransactionIfRequired() {
         if (transaction == null) {
-            startTransaction();
+            startRootTransaction();
         }
     }
 
-    public Transaction startTransaction() {
-        assertThat(transaction)
-            .describedAs("transaction already set")
+    public Transaction startRootTransaction() { // TODO : rename to startRootTransaction
+        assertThat(tracer.getActiveContext())
+            .describedAs("context should be empty when starting transaction")
             .isNull();
-        transaction = tracer.startRootTransaction(getClass().getClassLoader());
 
+        transaction = tracer.startRootTransaction(getClass().getClassLoader());
         return transaction;
     }
 
-
     public Span startSpan() {
-        assertThat(span)
-            .describedAs("span already set b")
-            .isNull();
-
+        Transaction transaction = getTransaction();
         assertThat(transaction)
-            .describedAs("transaction required to create span")
+            .describedAs("active transaction required to create span")
             .isNotNull();
 
         span = transaction.createSpan();
         return span;
     }
 
+    @Nullable
     public Transaction getTransaction() {
         return transaction;
     }
 
+    @Nullable
     public Span getSpan() {
         return span;
     }

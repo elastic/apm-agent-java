@@ -18,6 +18,8 @@
  */
 package specs;
 
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import io.cucumber.java.ParameterType;
 import io.cucumber.java.en.Given;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,8 +40,9 @@ public class BaseStepDefinitions {
     @Given("an active transaction")
     public void startTransaction() {
         assertThat(state.getTransaction()).isNull();
-
-        state.startTransaction();
+        Transaction transaction = state.startRootTransaction();
+        assertThat(transaction).isNotNull();
+        assertThat(state.getTransaction()).isSameAs(transaction);
     }
 
     @Given("an active span")
@@ -48,5 +51,22 @@ public class BaseStepDefinitions {
         state.startRootTransactionIfRequired();
 
         state.startSpan();
+    }
+
+    @Given("the span ends")
+    public void endSpan() {
+        assertThat(state.getSpan()).isNotNull();
+        state.getSpan().end();
+    }
+
+    @Given("the transaction ends")
+    public void endTransaction() {
+        assertThat(state.getTransaction()).isNotNull();
+        state.getTransaction().end();
+    }
+
+    @ParameterType("transaction|span")
+    public String contextType(String contextType) {
+        return contextType;
     }
 }

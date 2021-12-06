@@ -23,6 +23,7 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import io.cucumber.java.ParameterType;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 
@@ -38,35 +39,35 @@ public class OutcomeStepsDefinitions {
         this.state = state;
     }
 
-    @Then("{} outcome is {string}")
+    @Then("{contextType} outcome is {string}")
     public void thenOutcomeIs(String context, String outcome) {
-        checkOutcome(context.equals("span") ? state.getSpan() : state.getTransaction(), outcome);
+        checkOutcome(context.equals("span") ? state.getSpan() : state.getTransaction(), fromString(outcome));
     }
 
-    @Then("user sets {} outcome to {string}")
+    @Then("user sets {contextType} outcome to {string}")
     public void userSetOutcome(String context, String outcome) {
-        setUserOutcome(getContext(context), outcome);
+        setUserOutcome(getContext(context), fromString(outcome));
     }
 
-    @Then("{} terminates with outcome {string}")
+    @Then("{contextType} terminates with outcome {string}")
     public void terminatesWithOutcome(String context, String outcome) {
-        endWithOutcome(getContext(context), outcome);
+        endWithOutcome(getContext(context), fromString(outcome));
     }
 
-    @Given("{} terminates with an error")
+    @Given("{contextType} terminates with an error")
     public void terminatesWithError(String context) {
         getContext(context)
             .captureException(new Throwable())
             .end();
     }
 
-    @Given("{} terminates without error")
+    @Given("{contextType} terminates without error")
     public void terminatesWithoutError(String context) {
         getContext(context).end();
     }
 
-    AbstractSpan<?> getContext(String context) {
-        return context.equals("span") ? state.getSpan() : state.getTransaction();
+    private AbstractSpan<?> getContext(String contextType) {
+        return contextType.equals("span") ? state.getSpan() : state.getTransaction();
     }
 
     // HTTP spans & transactions mapping
@@ -84,7 +85,7 @@ public class OutcomeStepsDefinitions {
 
     @Given("an HTTP transaction with {int} response code")
     public void httpTransactionWithStatus(int code) {
-        Transaction transaction = state.startTransaction();
+        Transaction transaction = state.startRootTransaction();
 
         transaction.withName(String.format("HTTP transaction status = %d", code));
         transaction.withOutcome(ResultUtil.getOutcomeByHttpServerStatus(code)).end();
@@ -92,27 +93,26 @@ public class OutcomeStepsDefinitions {
 
     // utilities
 
-    static void endWithOutcome(AbstractSpan<?> context, String outcome) {
+    static void endWithOutcome(AbstractSpan<?> context, Outcome outcome) {
         assertThat(context).isNotNull();
-        context.withOutcome(fromString(outcome))
+        context.withOutcome(outcome)
             .end();
     }
 
-    static void setUserOutcome(AbstractSpan<?> context, String outcome) {
+    static void setUserOutcome(AbstractSpan<?> context, Outcome outcome) {
         assertThat(context).isNotNull();
-        context.withUserOutcome(fromString(outcome));
+        context.withUserOutcome(outcome);
     }
 
-    static void checkOutcome(AbstractSpan<?> context, String outcome) {
+    static void checkOutcome(AbstractSpan<?> context, Outcome outcome) {
         assertThat(context).isNotNull();
         assertThat(context.getOutcome())
             .describedAs("expected outcome = %s for context = %s", outcome, context)
-            .isEqualTo(fromString(outcome));
+            .isEqualTo(outcome);
     }
 
-    static Outcome fromString(String outcome) {
+    private static Outcome fromString(String outcome) {
         return Outcome.valueOf(outcome.toUpperCase(Locale.ROOT));
     }
-
 
 }

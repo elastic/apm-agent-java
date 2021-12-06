@@ -45,7 +45,7 @@ public class OutcomeGrpcStepsDefinitions {
 
     @Given("a gRPC transaction with {string} status")
     public void grpcTransaction(String grpcStatus) {
-        state.startTransaction()
+        state.startRootTransaction()
             .withName(String.format("gRPC transaction %s", grpcStatus))
             .withOutcome(getOutcome(grpcStatus, GrpcHelper::toServerOutcome));
     }
