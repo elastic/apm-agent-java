@@ -52,7 +52,7 @@ public class OTelBridgeStepsDefinitions {
 
     // state will contain the Elastic state when created before OTel
     // this is required for shared steps definitions like 'an active transaction'
-    private final SpecTracerState state;
+    private final ScenarioState state;
 
     private OTelSpan otelSpan;
     private boolean isOtelSpanEnded;
@@ -61,7 +61,7 @@ public class OTelBridgeStepsDefinitions {
 
     private Context localParentContext = null;
 
-    public OTelBridgeStepsDefinitions(SpecTracerState state) {
+    public OTelBridgeStepsDefinitions(ScenarioState state) {
         this.state = state;
         this.otel = new ElasticOpenTelemetry(state.getTracer());
     }

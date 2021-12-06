@@ -27,25 +27,24 @@ import java.util.function.Function;
 
 public class OutcomeGrpcStepsDefinitions {
 
-    private final SpecTracerState state;
+    private final ScenarioState state;
 
-    public OutcomeGrpcStepsDefinitions(SpecTracerState state) {
+    public OutcomeGrpcStepsDefinitions(ScenarioState state) {
         this.state = state;
     }
 
-    @Given("a gRPC span with {string} status")
+    @Given("a gRPC call is made that returns {string}")
     public void grpcSpan(String grpcStatus) {
 
         state.startRootTransactionIfRequired();
-
         state.startSpan()
             .withName(String.format("gRPC span %s", grpcStatus))
             .withOutcome(getOutcome(grpcStatus, GrpcHelper::toClientOutcome));
     }
 
-    @Given("a gRPC transaction with {string} status")
+    @Given("a gRPC call is received that returns {string}")
     public void grpcTransaction(String grpcStatus) {
-        state.startRootTransaction()
+        state.startTransaction()
             .withName(String.format("gRPC transaction %s", grpcStatus))
             .withOutcome(getOutcome(grpcStatus, GrpcHelper::toServerOutcome));
     }

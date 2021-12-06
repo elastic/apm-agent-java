@@ -18,51 +18,45 @@
  */
 package specs;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.cucumber.java.ParameterType;
 import io.cucumber.java.en.Given;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.Collections;
+import java.util.Map;
 
 public class BaseStepDefinitions {
 
-    private final SpecTracerState state;
+    private final ScenarioState scenarioState;
+
+    public BaseStepDefinitions(ScenarioState scenarioState) {
+        this.scenarioState = scenarioState;
+    }
 
     @Given("an agent")
     public void initAgent() {
-        // not used, use before/after hooks instead for init & cleanup
+        scenarioState.initTracer(Collections.emptyMap());
     }
 
-    public BaseStepDefinitions(SpecTracerState state) {
-        this.state = state;
+    @Given("an agent configured with")
+    public void initAndConfigureAgent(Map<String, String> configOptions) {
+        scenarioState.initTracer(configOptions);
     }
 
     @Given("an active transaction")
     public void startTransaction() {
-        assertThat(state.getTransaction()).isNull();
-        Transaction transaction = state.startRootTransaction();
-        assertThat(transaction).isNotNull();
-        assertThat(state.getTransaction()).isSameAs(transaction);
+        scenarioState.startTransaction();
     }
 
     @Given("an active span")
     public void startSpan() {
-        // spans can't exist outside  a transaction, thus we have to create it if not explicitly asked to
-        state.startRootTransactionIfRequired();
-
-        state.startSpan();
+        // spans can't exist outside of a transaction, thus we have to create it if not explicitly asked to
+        scenarioState.startRootTransactionIfRequired();
+        scenarioState.startSpan();
     }
 
-    @Given("the span ends")
-    public void endSpan() {
-        assertThat(state.getSpan()).isNotNull();
-        state.getSpan().end();
-    }
-
-    @Given("the transaction ends")
-    public void endTransaction() {
-        assertThat(state.getTransaction()).isNotNull();
-        state.getTransaction().end();
+    @Given("the {} ends")
+    public void endContext(String context) {
+        scenarioState.getContext(context).end();
     }
 
     @ParameterType("transaction|span")

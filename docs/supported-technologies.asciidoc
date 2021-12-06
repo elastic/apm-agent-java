@@ -184,7 +184,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |Server |Supported versions
 
 |<<setup-tomcat,Tomcat>>
-|7.x, 8.5.x, 9.x
+|7.x, 8.5.x, 9.x, 10.x
 
 |<<setup-jboss-wildfly,WildFly>>
 |8-16
