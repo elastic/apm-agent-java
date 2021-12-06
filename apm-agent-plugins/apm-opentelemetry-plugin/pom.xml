@@ -14,9 +14,9 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <maven.compiler.release>8</maven.compiler.release>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.release>11</maven.compiler.release>
         <maven.compiler.testRelease>11</maven.compiler.testRelease>
         <animal.sniffer.skip>true</animal.sniffer.skip>
 
@@ -46,6 +46,7 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- TODO : find a way to reduce duplication of those dependencies -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>

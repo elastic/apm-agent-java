@@ -93,7 +93,7 @@ public class OutcomeStepsDefinitions {
             .isEqualTo(outcome);
     }
 
-    private static Outcome fromString(String outcome) {
+    static Outcome fromString(String outcome) {
         return Outcome.valueOf(outcome.toUpperCase(Locale.ROOT));
     }
 

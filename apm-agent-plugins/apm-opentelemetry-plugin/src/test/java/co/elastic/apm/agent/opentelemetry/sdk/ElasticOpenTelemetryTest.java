@@ -22,6 +22,7 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
@@ -610,6 +611,37 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
             span.setAttribute(SemanticAttributes.NET_PEER_PORT, 80);
             span.setAttribute(SemanticAttributes.HTTP_TARGET, "/foo?bar");
         });
+    }
+
+    @Test
+    public void reportError() {
+        Exception error = new IllegalStateException();
+
+        Span span;
+        Span transaction = otelTracer.spanBuilder("transaction with error")
+            .startSpan()
+            .recordException(error);
+        try (Scope scope = transaction.makeCurrent()) {
+            otelTracer.spanBuilder("span with error")
+                .startSpan()
+                .recordException(error)
+                .end();
+        } finally {
+            transaction.end();
+        }
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
+
+        assertThat(reporter.getErrors()).hasSize(2);
+
+        assertThat(reporter.getFirstTransaction().getOutcome())
+            .describedAs("recording an exception in transaction should not alter outcome")
+            .isEqualTo(Outcome.SUCCESS);
+        assertThat(reporter.getFirstSpan().getOutcome())
+            .describedAs("recording an exception in span should not alter outcome")
+            .isEqualTo(Outcome.SUCCESS);
+
     }
 
     public void testSpanSemanticConventionMappingHttpHelper(Consumer<Span> spanConsumer) {

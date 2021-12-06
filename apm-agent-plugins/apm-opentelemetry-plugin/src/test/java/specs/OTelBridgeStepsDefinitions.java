@@ -34,10 +34,13 @@ import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -48,14 +51,15 @@ public class OTelBridgeStepsDefinitions {
     private static final String REMOTE_PARENT_TRACE_ID = "cafebabe16cd43dd8448eb211c80319c";
     private static final String REMOTE_PARENT_ID = "deadbeef197918e1";
 
-    private final ElasticOpenTelemetry otel;
+    // due to lazy-init access to this should use getOtel()
+    @Nullable
+    private ElasticOpenTelemetry otel;
 
     // state will contain the Elastic state when created before OTel
     // this is required for shared steps definitions like 'an active transaction'
     private final ScenarioState state;
 
     private OTelSpan otelSpan;
-    private boolean isOtelSpanEnded;
 
     private Map<String, Object> otelSpanAttributes;
 
@@ -63,7 +67,6 @@ public class OTelBridgeStepsDefinitions {
 
     public OTelBridgeStepsDefinitions(ScenarioState state) {
         this.state = state;
-        this.otel = new ElasticOpenTelemetry(state.getTracer());
     }
 
     @Before
@@ -71,14 +74,21 @@ public class OTelBridgeStepsDefinitions {
         this.otelSpan = null;
         this.localParentContext = null;
         this.otelSpanAttributes = new HashMap<>();
-        this.isOtelSpanEnded = false;
+    }
+
+    private ElasticOpenTelemetry getOtel() {
+        // lazily initialize OTel as the tracer state from scenario state
+        if (otel == null) {
+            otel = new ElasticOpenTelemetry(state.getTracer());
+        }
+        return otel;
     }
 
     // creating elastic span or transaction from OTel span
 
     @Given("OTel span is created with remote context as parent")
     public void createOTelSpanWithRemoteContext() {
-        otelSpan = (OTelSpan) otel.getTracer("")
+        otelSpan = (OTelSpan) getOtel().getTracer("")
             .spanBuilder("otel span")
             .setParent(getRemoteContext())
             .startSpan();
@@ -95,7 +105,7 @@ public class OTelBridgeStepsDefinitions {
     }
 
     private Context getRemoteContext(){
-        return otel.getPropagators()
+        return getOtel().getPropagators()
             .getTextMapPropagator()
             .extract(Context.current(),
                 Map.of("traceparent", String.format("00-%s-%s-01", REMOTE_PARENT_TRACE_ID, REMOTE_PARENT_ID),
@@ -105,7 +115,7 @@ public class OTelBridgeStepsDefinitions {
 
     @Given("OTel span is created without parent")
     public void createOTelSpanWithoutParent(){
-        otelSpan = (OTelSpan) otel.getTracer("")
+        otelSpan = (OTelSpan) getOtel().getTracer("")
             .spanBuilder("otel span")
             .setNoParent() // redundant, but makes it explicit
             .startSpan();
@@ -119,9 +129,9 @@ public class OTelBridgeStepsDefinitions {
 
     @Given("OTel span is created with local context as parent")
     public void createOTelSpanWithLocalParent() {
-        localParentContext = Context.root().with(otel.getTracer("").spanBuilder("parent").startSpan());
+        localParentContext = Context.root().with(getOtel().getTracer("").spanBuilder("parent").startSpan());
 
-        otelSpan = (OTelSpan) otel.getTracer("")
+        otelSpan = (OTelSpan) getOtel().getTracer("")
             .spanBuilder("otel span")
             .setParent(localParentContext)
             .startSpan();
@@ -148,7 +158,7 @@ public class OTelBridgeStepsDefinitions {
         Transaction parentTransaction = state.getTransaction();
 
         Function<String,OTelSpan> createSpanWithKind = k -> {
-            SpanBuilder spanBuilder = otel.getTracer("")
+            SpanBuilder spanBuilder = getOtel().getTracer("")
                 .spanBuilder("span")
                 .setSpanKind(SpanKind.valueOf(k));
             return (OTelSpan) spanBuilder.startSpan();
@@ -234,23 +244,29 @@ public class OTelBridgeStepsDefinitions {
             .isEqualTo(OTelSpanKind.valueOf(kind));
     }
 
-    @Then("Elastic bridged object is a span")
-    public void bridgeObjectTypeSpan() {
-        getBridgedSpan();
+    @Then("Elastic bridged object is a {contextType}")
+    public void bridgeSpanType(String type) {
+        switch (type) {
+            case "span":
+                getBridgedSpan();
+                break;
+            case "transaction":
+                getBridgedTransaction();
+                break;
+            default:
+                throw new IllegalArgumentException("unknown type " + type);
+        }
     }
 
-    @Then("Elastic bridged object is a transaction")
-    public void bridgeObjectTypeTransaction() {
-        getBridgedTransaction();
-    }
-
-    @Then("Elastic bridged (transaction|span) type is {string}")
-    public void bridgeObjectType(String expected) {
+    @Then("Elastic bridged {contextType} type is {string}")
+    public void bridgeObjectType(String contextType, String expected) {
         AbstractSpan<?> bridgedObject = getBridgedAbstractSpan();
         String type;
         if (bridgedObject instanceof Transaction) {
+            assertThat(contextType).isEqualTo("transaction");
             type = ((Transaction) bridgedObject).getType();
         } else {
+            assertThat(contextType).isEqualTo("span");
             type = ((Span) bridgedObject).getType();
         }
 
@@ -283,6 +299,23 @@ public class OTelBridgeStepsDefinitions {
             .isEqualTo(expected);
     }
 
+    @Then("Elastic bridged {contextType} outcome is {string}")
+    public void bridgedObjectOutcome(String ignoredContextType, String outcome) {
+        assertThat(otelSpan.getInternalSpan().getOutcome())
+            .isEqualTo(OutcomeStepsDefinitions.fromString(outcome));
+
+    }
+
+    @Then("OTel span status set to {string}")
+    public void setOtelSpanStatus(String status){
+        otelSpan.setStatus(StatusCode.valueOf(status.toUpperCase(Locale.ROOT)));
+    }
+
+    @Given("OTel span ends")
+    public void otelSpanEnds() {
+        otelSpan.end();
+    }
+
     private String getDestinationResource() {
         return getBridgedSpan().getContext().getDestination().getService().getResource().toString();
     }
@@ -300,12 +333,6 @@ public class OTelBridgeStepsDefinitions {
     }
 
     private <T extends AbstractSpan<?>> T getBridgedObject(Class<T> expectedType) {
-        // span should be ended lazily on first access as part of the mapping is performed when ending the span
-        if (!isOtelSpanEnded) {
-            otelSpan.end();
-            isOtelSpanEnded = true;
-        }
-
         AbstractSpan<?> internalSpan = otelSpan.getInternalSpan();
         assertThat(internalSpan).isInstanceOf(expectedType);
         return expectedType.cast(internalSpan);
