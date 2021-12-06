@@ -49,7 +49,7 @@ https://github.com/elastic/apm-agent-java/releases[GitHub Releases page].
 4. Within your Function configuration, configure the following environment variables:
 a. `AWS_LAMBDA_EXEC_WRAPPER` (required): set this variable's value to `/opt/elastic-apm-handler`, so that Lambda starts the runtime with this script.
 b. `ELASTIC_APM_LAMBDA_APM_SERVER` (required): this will tell the Elastic APM Extension where to send data to.
-c. `<<config-secret-token, ELASTIC_APM_SECRET_TOKEN>>` or `<<config-api-key, ELASTIC_APM_API_KEY>>` (required): one of these needs to be set
+c. <<config-secret-token, `ELASTIC_APM_SECRET_TOKEN`>> or <<config-api-key, `ELASTIC_APM_API_KEY`>> (required): one of these needs to be set
 as the authentication method that the extension uses when sending data to the URL configured via `ELASTIC_APM_LAMBDA_APM_SERVER`
 d. <<config-application-packages, `ELASTIC_APM_APPLICATION_PACKAGES`>> (recommended): setting this may improve cold start times.
 5. Fine-tune the Java agent with any of the available <<configuration, configuration options>>.
