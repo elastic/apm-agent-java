@@ -386,10 +386,20 @@ public class ApmServerClient {
         if (!serviceName.isEmpty()) {
             userAgent.append(" (").append(serviceName);
             if (serviceVersion != null && !serviceVersion.isEmpty()) {
-                userAgent.append(" ").append(serviceVersion);
+                userAgent.append(" ").append(escapeHeaderComment(serviceVersion));
             }
             userAgent.append(")");
         }
         return userAgent.toString();
+    }
+
+    /**
+     * Escapes the provided string from characters that are disallowed within HTTP header comments.
+     * See spec- https://httpwg.org/specs/rfc7230.html#field.components
+     * @param headerFieldComment HTTP header comment value to be escaped
+     * @return the escaped header comment
+     */
+    static String escapeHeaderComment(String headerFieldComment) {
+        return headerFieldComment.replaceAll("[^\\t \\x21-\\x27\\x2a-\\x5b\\x5d-\\x7e\\x80-\\xff]", "_");
     }
 }

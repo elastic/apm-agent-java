@@ -21,6 +21,7 @@
         <module>spring-boot-2</module>
         <module>soap-test</module>
         <module>cdi-app</module>
+        <module>cdi-jakartaee-app</module>
         <module>quarkus</module>
         <module>external-plugin-test</module>
         <module>runtime-attach</module>
