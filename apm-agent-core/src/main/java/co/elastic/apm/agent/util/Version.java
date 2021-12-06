@@ -76,10 +76,12 @@ public class Version implements Comparable<Version> {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < numbers.length - 1; i++) {
-            sb.append(numbers[i]).append('.');
+        for (int i = 0; i < numbers.length; i++) {
+            sb.append(numbers[i]);
+            if (i < numbers.length - 1) {
+                sb.append('.');
+            }
         }
-        sb.append(numbers[numbers.length - 1]);
         return sb.toString();
     }
 }
