@@ -72,4 +72,14 @@ public class Version implements Comparable<Version> {
         }
         return 0;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < numbers.length - 1; i++) {
+            sb.append(numbers[i]).append('.');
+        }
+        sb.append(numbers[numbers.length - 1]);
+        return sb.toString();
+    }
 }
