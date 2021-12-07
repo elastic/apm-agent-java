@@ -6,7 +6,7 @@ endif::[]
 [[opentelementry-bridge]]
 === OpenTelemetry bridge
 
-NOTE: Added as experimental in 1.26.0.
+NOTE: Added as experimental in 1.29.0.
 To enable it, set <<config-enable-experimental-instrumentations, `enable_experimental_instrumentations`>> to `true`.
 
 The Elastic APM OpenTelemetry bridge allows creating Elastic APM `Transactions` and `Spans`,
@@ -110,31 +110,6 @@ try (Scope scope = custom.makeCurrent()) {
 
 To learn more about the OpenTelemetry API,
 head over do https://opentelemetry.io/docs/java/manual_instrumentation/[their documentation].
-
-
-////
-TODO implement Elastic APM specific attributes
-[float]
-[[otel-elastic-apm-attributes]]
-==== Elastic APM specific attributes
-Elastic APM defines some attributes which are not included in OpenTelemetry's semantic conventionsAPI but are relevant in the context of Elastic APM.
-
-- `type` - sets the type of the transaction/span,
-  for example `request`, `ext` or `db`
-- `subtype` - sets the subtype of the span,
-  for example `http`, `mysql` or `jsf`
-- `action` - sets the action related to a span,
-  for example `query`, `execute` or `render`
-- `user.id` - sets the user id,
-  appears in the "User" tab in the transaction details in the Elastic APM app
-- `user.email` - sets the user email,
-  appears in the "User" tab in the transaction details in the Elastic APM app
-- `user.username` - sets the user name,
-  appears in the "User" tab in the transaction details in the Elastic APM app
-- `result` - sets the result of the transaction. Overrides the default value of `success`.
-  If the `error` tag is set to `true`, the default value is `error`.
-  Setting `http.status_code` to `200`, for example, implicitly sets the result to `HTTP 2xx` if not explicitly set otherwise.
-////
 
 [float]
 [[otel-caveats]]
