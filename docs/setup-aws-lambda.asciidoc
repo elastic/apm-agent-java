@@ -25,9 +25,9 @@ Setting up your Lambda function is a two-step process.
 Elastic uses a Lambda extension to forward data to APM Server in a way that does not interfere with the
 execution of your Lambda function.
 
-See the https://github.com/elastic/apm-aws-lambda/blob/main/docs/aws-lambda-extension.asciidoc[installation documentation] to get started.
+See the https://www.elastic.co/guide/en/apm/guide/current/aws-lambda-extension.html[installation documentation] to get started.
 
-NOTE: Not all environment variables specified within https://github.com/elastic/apm-aws-lambda/blob/main/docs/aws-lambda-extension.asciidoc#the-necessary-variables[The Necessary Variables]
+NOTE: Not all environment variables specified within https://www.elastic.co/guide/en/apm/guide/current/aws-lambda-extension.html#aws-lambda-variables[The Necessary Variables]
 section of the extension documentation need to be configured. The Java agent utilizes a https://docs.aws.amazon.com/lambda/latest/dg/runtimes-modify.html[wrapper script]
 to set some of these up, so follow the next section to see which are required.
 
@@ -49,7 +49,7 @@ https://github.com/elastic/apm-agent-java/releases[GitHub Releases page].
 4. Within your Function configuration, configure the following environment variables:
 a. `AWS_LAMBDA_EXEC_WRAPPER` (required): set this variable's value to `/opt/elastic-apm-handler`, so that Lambda starts the runtime with this script.
 b. `ELASTIC_APM_LAMBDA_APM_SERVER` (required): this will tell the Elastic APM Extension where to send data to.
-c. `<<config-secret-token, ELASTIC_APM_SECRET_TOKEN>>` or `<<config-api-key, ELASTIC_APM_API_KEY>>` (required): one of these needs to be set
+c. <<config-secret-token, `ELASTIC_APM_SECRET_TOKEN`>> or <<config-api-key, `ELASTIC_APM_API_KEY`>> (required): one of these needs to be set
 as the authentication method that the extension uses when sending data to the URL configured via `ELASTIC_APM_LAMBDA_APM_SERVER`
 d. <<config-application-packages, `ELASTIC_APM_APPLICATION_PACKAGES`>> (recommended): setting this may improve cold start times.
 5. Fine-tune the Java agent with any of the available <<configuration, configuration options>>.
