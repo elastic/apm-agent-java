@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Add experimental OpenTelemetry API bridge - {pull}1631[#1631]
 
 [float]
 ===== Bug fixes
