@@ -145,11 +145,16 @@ public class SpringTransactionNameInstrumentation extends TracerAwareInstrumenta
                     methodName,
                     transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1)
                 );
+            } else {
+                // Class name is empty - probably an anonymous handler class
+                StringBuilder transactionName = transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1);
+                if (transactionName != null) {
+                    transactionName.append(request.getMethod()).append(" unknown route");
+                }
             }
 
             transaction.setFrameworkName(FRAMEWORK_NAME);
             transaction.setFrameworkVersion(VersionUtils.getVersion(HandlerMethod.class, "org.springframework", "spring-web"));
         }
-
     }
 }

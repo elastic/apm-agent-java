@@ -100,9 +100,8 @@ class SpringTransactionNameInstrumentationTest extends AbstractInstrumentationTe
 
         String expectedContent = "without-servlet-invocation";
 
-        // there is no servlet invocation through ServletWrappingController, thus name should fall back to the low priority:
-        // path if use_path_as_transaction_name==true, or the Spring Servlet name otherwise
-        String expectedName = fallbackToUsePath ? "GET /testControllerWithoutServlet" : "TestDispatcherServlet#doGet";
+        // no servlet invocation through ServletWrappingController, thus name should fall back to the low priority (depending on the use_path_as_transaction_name setting)
+        String expectedName = fallbackToUsePath ? "GET /testControllerWithoutServlet" : "GET unknown route";
         String urlPath = "/testControllerWithoutServlet";
 
         testTransactionName(fallbackToUsePath, expectedContent, expectedName, urlPath);
