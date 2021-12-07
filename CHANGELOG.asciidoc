@@ -20,16 +20,11 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.28.0]]
-==== 1.28.0 - YYYY/MM/DD
-
-[float]
-===== Breaking changes
+[[release-notes-1.28.1]]
+==== 1.28.1 - YYYY/MM/DD
 
 [float]
 ===== Features
-* Adding experimental support for <<aws-lambda, AWS Lambda>> - {pull}1951[#1951]
-* Now supporting tomcat 10 - {pull}2229[#2229]
 * Added support for overwritting the service version per classloader - {pull}1726[#1726]
 
 [float]
@@ -37,6 +32,18 @@ endif::[]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
+
+[[release-notes-1.28.0]]
+==== 1.28.0 - 2021/12/07
+
+[float]
+===== Features
+* Adding experimental support for <<aws-lambda, AWS Lambda>> - {pull}1951[#1951]
+* Now supporting tomcat 10 - {pull}2229[#2229]
+
+[float]
+===== Bug fixes
+* Fix error with parsing APM Server version for 7.16+ - {pull}2313[#2313]
 
 [[release-notes-1.27.1]]
 ==== 1.27.1 - 2021/11/30
@@ -83,6 +90,7 @@ by the agent may be different. This was done in order to improve the integration
 * Add support to Jakarta EE for JAX-WS - {pull}2247[#2247]
 * Add support to Jakarta EE for JAX-RS - {pull}2248[#2248]
 * Add support for Jakarta EE EJB annotations `@Schedule`, `@Schedules` - {pull}2250[#2250]
+* Add support to Jakarta EE for Servlets - {pull}1912[#1912]
 * Added support to Quartz 1.x - {pull}2219[#2219]
 
 [float]
