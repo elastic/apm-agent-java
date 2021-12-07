@@ -47,7 +47,9 @@ class AgentAttacherTest {
         assertThat(AgentAttacher.Arguments.parse("--include-all").getDiscoveryRules().getMatcherRules()).hasSize(1);
         assertThat(AgentAttacher.Arguments.parse("--exclude-user", "root").getDiscoveryRules().getExcludeRules()).hasSize(1);
         assertThat(AgentAttacher.Arguments.parse("--include-user", "root").getDiscoveryRules().getIncludeRules()).hasSize(1);
+        assertThat(AgentAttacher.Arguments.parse("--exclude-vmarg", "foo").getDiscoveryRules().getExcludeRules()).hasSize(1);
         assertThat(AgentAttacher.Arguments.parse("--exclude-vmargs", "foo").getDiscoveryRules().getExcludeRules()).hasSize(1);
+        assertThat(AgentAttacher.Arguments.parse("--include-vmarg", "foo").getDiscoveryRules().getIncludeRules()).hasSize(1);
         assertThat(AgentAttacher.Arguments.parse("--include-vmargs", "foo").getDiscoveryRules().getIncludeRules()).hasSize(1);
         assertThat(AgentAttacher.Arguments.parse("--exclude-main", "foo", "bar", "baz").getDiscoveryRules().getExcludeRules()).hasSize(3);
         assertThat(AgentAttacher.Arguments.parse("--config", "foo=bar", "--exclude-main", "foo", "bar", "baz").getDiscoveryRules().getExcludeRules()).hasSize(3);

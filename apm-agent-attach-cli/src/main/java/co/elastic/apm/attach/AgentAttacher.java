@@ -387,7 +387,9 @@ public class AgentAttacher {
                         case "--exclude-main":
                         case "--include-user":
                         case "--exclude-user":
+                        case "--include-vmarg":
                         case "--include-vmargs":
+                        case "--exclude-vmarg":
                         case "--exclude-vmargs":
                         case "-g":
                         case "--log-level":
@@ -406,9 +408,11 @@ public class AgentAttacher {
                         case "--exclude-main":
                             rules.excludeMain(arg);
                             break;
+                        case "--include-vmarg":
                         case "--include-vmargs":
                             rules.includeVmArgs(arg);
                             break;
+                        case "--exclude-vmarg":
                         case "--exclude-vmargs":
                             rules.excludeVmArgs(arg);
                             break;
@@ -506,7 +510,7 @@ public class AgentAttacher {
             out.println("        A regular expression of fully qualified main class names or paths to JARs of applications the java agent should be attached to.");
             out.println("        Performs a partial match so that `foo` matches `/bin/foo.jar`.");
             out.println();
-            out.println("    --include-vmargs/--exclude-vmargs <pattern>...");
+            out.println("    --include-vmarg/--exclude-vmarg <pattern>...");
             out.println("        A regular expression that is matched against the arguments passed to the JVM, such as system properties.");
             out.println("        Performs a partial match so that `attach=true` matches the system property `-Dattach=true`.");
             out.println();
