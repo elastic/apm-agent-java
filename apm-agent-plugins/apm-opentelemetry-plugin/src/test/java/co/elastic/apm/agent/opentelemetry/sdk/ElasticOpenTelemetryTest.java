@@ -199,7 +199,10 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         otelTracer.spanBuilder("transaction")
             .setStartTimestamp(transactionStart)
             .startSpan()
-            .end();
+            // for test reliability we have to provide explicit end time
+            // otherwise since OTel time is in nano-seconds and stored in micro-seconds there are not-so rare cases
+            // where the computed duration appears negative.
+            .end(transactionStart);
 
         long transactionStartMicros = ChronoUnit.MICROS.between(Instant.EPOCH, transactionStart);
 

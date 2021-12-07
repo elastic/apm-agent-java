@@ -115,6 +115,7 @@ public class OTelSpan implements Span {
         } else if (span instanceof co.elastic.apm.agent.impl.transaction.Span) {
             onSpanEnd((co.elastic.apm.agent.impl.transaction.Span) span);
         }
+
         span.end();
     }
 
