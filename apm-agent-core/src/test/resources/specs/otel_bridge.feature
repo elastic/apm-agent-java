@@ -3,14 +3,12 @@ Feature: OpenTelemetry bridge
 
   # --- Creating Elastic span or transaction from OTel span
 
-  @wip
   Scenario: Create transaction from OTel span with remote context
     Given an agent
     And OTel span is created with remote context as parent
     Then Elastic bridged object is a transaction
     Then Elastic bridged transaction has remote context as parent
 
-  @wip
   Scenario: Create root transaction from OTel span without parent
     Given an agent
     And OTel span is created without parent
@@ -18,7 +16,6 @@ Feature: OpenTelemetry bridge
     Then Elastic bridged object is a transaction
     Then Elastic bridged transaction is a root transaction
 
-  @wip
   Scenario: Create span from OTel span
     Given an agent
     And OTel span is created with local context as parent

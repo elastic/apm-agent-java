@@ -110,7 +110,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     @Nullable
     private OTelSpanKind otelKind = null;
 
-    private Map<String, Object> otelAttributes = new HashMap<>();
+    private final Map<String, Object> otelAttributes = new HashMap<>();
 
     public int getReferenceCount() {
         return references.get();
