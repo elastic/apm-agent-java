@@ -54,6 +54,9 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
     void setUp() {
         org.apache.log4j.MDC.put("test", true);
         log4jMdcWorking = (Boolean) org.apache.log4j.MDC.get("test");
+        assertThat(log4jMdcWorking)
+            .describedAs("MDC not working as expected")
+            .isNotNull();
 
         forAllMdc(MdcImpl::clear);
         loggingConfiguration = config.getConfig(LoggingConfiguration.class);
