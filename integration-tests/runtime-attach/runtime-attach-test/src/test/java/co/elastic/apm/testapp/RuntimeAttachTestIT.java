@@ -55,7 +55,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-class RuntimeAttachTest {
+class RuntimeAttachTestIT {
 
     private static final ObjectName JMX_BEAN;
 
@@ -392,7 +392,7 @@ class RuntimeAttachTest {
             throw new IllegalStateException(e);
         }
         return found.findFirst().orElseThrow(() -> {
-            throw new IllegalStateException("Unable to find packaged test application in folder :" + folder.toAbsolutePath());
+            throw new IllegalStateException(String.format("Unable to find packaged test application in folder : %s, make sure to run 'mvn package' in folder '%s' first", folder.toAbsolutePath(), folder.toAbsolutePath().getParent()));
         });
     }
 

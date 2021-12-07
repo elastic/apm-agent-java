@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.27.2-SNAPSHOT</version>
+        <version>1.28.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent</artifactId>
@@ -314,6 +314,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-vertx4-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-awslambda-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 

@@ -69,6 +69,11 @@ public class Service {
      */
     @Nullable
     private String version;
+    /**
+     * ID of the service emitting this event
+     */
+    @Nullable
+    private String id;
 
     /**
      * Name and version of the Elastic APM agent
@@ -85,6 +90,24 @@ public class Service {
      */
     public Service withAgent(Agent agent) {
         this.agent = agent;
+        return this;
+    }
+
+    /**
+     * Name and version of the Framework
+     * (Required)
+     */
+    @Nullable
+    public Framework getFramework() {
+        return framework;
+    }
+
+    /**
+     * Name and version of the Framework
+     * (Required)
+     */
+    public Service withFramework(Framework framework) {
+        this.framework = framework;
         return this;
     }
 
@@ -183,6 +206,22 @@ public class Service {
      */
     public Service withVersion(@Nullable String version) {
         this.version = version;
+        return this;
+    }
+
+    /**
+     * ID of the service emitting this event
+     */
+    @Nullable
+    public String getId() {
+        return id;
+    }
+
+    /**
+     * ID of the service emitting this event
+     */
+    public Service withId(@Nullable String id) {
+        this.id = id;
         return this;
     }
 
