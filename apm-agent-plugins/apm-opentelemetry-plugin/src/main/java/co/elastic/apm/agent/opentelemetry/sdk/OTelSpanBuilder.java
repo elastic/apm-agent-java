@@ -22,6 +22,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.MultiValueMapAccessor;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import io.opentelemetry.api.common.AttributeKey;
@@ -154,6 +155,11 @@ class OTelSpanBuilder implements SpanBuilder {
         if (kind != null) {
             span.withOtelKind(OTelSpanKind.valueOf(kind.name()));
         }
+
+        // With OTel API, the status (bridged to outcome) should only be explicitly set, thus we have to set and use
+        // user outcome to provide higher priority and avoid inferring outcome from any reported exception
+        span.withUserOutcome(Outcome.UNKNOWN);
+
         OTelSpan otelSpan = new OTelSpan(span);
         attributes.forEach((AttributeKey<?> k, Object v) -> otelSpan.setAttribute((AttributeKey<? super Object>) k, (Object) v));
         return otelSpan;

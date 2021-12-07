@@ -84,13 +84,13 @@ public class OTelSpan implements Span {
         }
         switch (statusCode) {
             case ERROR:
-                span.withOutcome(Outcome.FAILURE);
+                span.withUserOutcome(Outcome.FAILURE);
                 break;
             case OK:
-                span.withOutcome(Outcome.SUCCESS);
+                span.withUserOutcome(Outcome.SUCCESS);
                 break;
             case UNSET:
-                span.withOutcome(Outcome.UNKNOWN);
+                span.withUserOutcome(Outcome.UNKNOWN);
                 break;
         }
         return this;

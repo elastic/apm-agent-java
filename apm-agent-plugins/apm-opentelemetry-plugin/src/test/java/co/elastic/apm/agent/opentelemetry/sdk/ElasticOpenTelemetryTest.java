@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.opentelemetry.sdk;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.Outcome;
@@ -27,6 +26,8 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextKey;
@@ -59,6 +60,9 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
 
         // otel spans are not recycled for now
         disableRecyclingValidation();
+
+        // otel spans should have unknown outcome by default unless explicitly set through API
+        reporter.disableCheckUnknownOutcome();
     }
 
     @Before
@@ -91,11 +95,12 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
             .end();
 
         assertThat(reporter.getTransactions()).hasSize(1);
-        TransactionContext context = reporter.getFirstTransaction().getContext();
-        assertThat(context.getLabel("boolean")).isEqualTo(true);
-        assertThat(context.getLabel("long")).isEqualTo(42L);
-        assertThat(context.getLabel("double")).isEqualTo(73D);
-        assertThat(context.getLabel("string")).isEqualTo("hello");
+        Transaction transaction = reporter.getFirstTransaction();
+
+        assertThat(transaction.getOtelAttributes().get("boolean")).isEqualTo(true);
+        assertThat(transaction.getOtelAttributes().get("long")).isEqualTo(42L);
+        assertThat(transaction.getOtelAttributes().get("double")).isEqualTo(73D);
+        assertThat(transaction.getOtelAttributes().get("string")).isEqualTo("hello");
     }
 
     @Test
@@ -490,76 +495,8 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    public void testTransactionSemanticConventionMappingHttpHost() {
-        otelTracer.spanBuilder("transaction")
-            .startSpan()
-            .setAttribute(SemanticAttributes.HTTP_METHOD, "GET")
-            .setAttribute(SemanticAttributes.HTTP_SCHEME, "http")
-            .setAttribute(SemanticAttributes.HTTP_HOST, "www.example.com:8080")
-            .setAttribute(SemanticAttributes.HTTP_TARGET, "/foo?bar")
-            .setAttribute(SemanticAttributes.HTTP_STATUS_CODE, 200L)
-            .end();
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("HTTP 2xx");
-        assertThat(reporter.getFirstTransaction().getContext().getResponse().getStatusCode()).isEqualTo(200);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getMethod()).isEqualTo("GET");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getProtocol()).isEqualTo("http");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getHostname()).isEqualTo("www.example.com");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort()).isEqualTo(8080);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("http://www.example.com:8080/foo?bar");
-    }
-
-    @Test
-    public void testTransactionSemanticConventionMappingHttpNetHostName() {
-        otelTracer.spanBuilder("transaction")
-            .startSpan()
-            .setAttribute(SemanticAttributes.HTTP_METHOD, "GET")
-            .setAttribute(SemanticAttributes.HTTP_SCHEME, "http")
-            .setAttribute(SemanticAttributes.NET_HOST_NAME, "example.com")
-            .setAttribute(SemanticAttributes.NET_HOST_PORT, 8080)
-            .setAttribute(SemanticAttributes.NET_PEER_IP, "192.168.178.1")
-            .setAttribute(SemanticAttributes.NET_PEER_PORT, 123456)
-            .setAttribute(SemanticAttributes.HTTP_TARGET, "/foo?bar")
-            .setAttribute(SemanticAttributes.HTTP_STATUS_CODE, 200L)
-            .end();
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("HTTP 2xx");
-        assertThat(reporter.getFirstTransaction().getContext().getResponse().getStatusCode()).isEqualTo(200);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getMethod()).isEqualTo("GET");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getProtocol()).isEqualTo("http");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getHostname()).isEqualTo("example.com");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort()).isEqualTo(8080);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getSocket().getRemoteAddress()).isEqualTo("192.168.178.1:123456");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("http://example.com:8080/foo?bar");
-    }
-
-    @Test
-    public void testTransactionSemanticConventionMappingHttpNetHostIP() {
-        otelTracer.spanBuilder("transaction")
-            .startSpan()
-            .setAttribute(SemanticAttributes.HTTP_METHOD, "GET")
-            .setAttribute(SemanticAttributes.HTTP_SCHEME, "http")
-            .setAttribute(SemanticAttributes.NET_HOST_NAME, "127.0.0.1")
-            .setAttribute(SemanticAttributes.NET_HOST_PORT, 8080)
-            .setAttribute(SemanticAttributes.NET_PEER_PORT, 123456)
-            .setAttribute(SemanticAttributes.NET_PEER_IP, "192.168.178.1")
-            .setAttribute(SemanticAttributes.HTTP_TARGET, "/foo?bar")
-            .setAttribute(SemanticAttributes.HTTP_STATUS_CODE, 200L)
-            .end();
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("HTTP 2xx");
-        assertThat(reporter.getFirstTransaction().getContext().getResponse().getStatusCode()).isEqualTo(200);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getMethod()).isEqualTo("GET");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getProtocol()).isEqualTo("http");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getHostname()).isEqualTo("127.0.0.1");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort()).isEqualTo(8080);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getSocket().getRemoteAddress()).isEqualTo("192.168.178.1:123456");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("http://127.0.0.1:8080/foo?bar");
-    }
-
-    @Test
-    public void testTransactionSemanticConventionMappingHttpUrl() {
-        otelTracer.spanBuilder("transaction")
+    public void testOTelSpanAttributesCopiedAsIs() {
+        otelTracer.spanBuilder("transaction").setSpanKind(SpanKind.SERVER)
             .startSpan()
             .setAttribute(SemanticAttributes.HTTP_METHOD, "GET")
             .setAttribute(SemanticAttributes.HTTP_URL, "http://example.com:8080/foo?bar")
@@ -568,64 +505,59 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
             .setAttribute(SemanticAttributes.NET_PEER_IP, "192.168.178.1")
             .end();
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("HTTP 2xx");
-        assertThat(reporter.getFirstTransaction().getContext().getResponse().getStatusCode()).isEqualTo(200);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getMethod()).isEqualTo("GET");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getProtocol()).isEqualTo("http");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getHostname()).isEqualTo("example.com");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort()).isEqualTo(8080);
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getSocket().getRemoteAddress()).isEqualTo("192.168.178.1:123456");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("http://example.com:8080/foo?bar");
+
+        checkOTelAttributes(reporter.getFirstTransaction(), Map.of(
+            SemanticAttributes.HTTP_METHOD.getKey(), "GET",
+            SemanticAttributes.HTTP_URL.getKey(), "http://example.com:8080/foo?bar",
+            SemanticAttributes.HTTP_STATUS_CODE.getKey(), 200L,
+            SemanticAttributes.NET_PEER_PORT.getKey(), 123456L,
+            SemanticAttributes.NET_PEER_IP.getKey(), "192.168.178.1"
+        ));
+    }
+
+    private static void checkOTelAttributes(AbstractSpan<?> context, Map<String, Object> expected) {
+        assertThat(context.getOtelAttributes())
+            .containsAllEntriesOf(expected)
+            .hasSameSizeAs(expected);
     }
 
     @Test
-    public void testSpanSemanticConventionMappingHttpUrl() {
-        testSpanSemanticConventionMappingHttpHelper(span -> span.setAttribute(SemanticAttributes.HTTP_URL, "http://example.com/foo?bar"));
-    }
-
-    @Test
-    public void testSpanSemanticConventionMappingHttpHost() {
-        testSpanSemanticConventionMappingHttpHelper(span -> {
-            span.setAttribute(SemanticAttributes.HTTP_SCHEME, "http");
-            span.setAttribute(SemanticAttributes.HTTP_HOST, "example.com");
-            span.setAttribute(SemanticAttributes.HTTP_TARGET, "/foo?bar");
+    public void reportErrorKeepsUnknownOutcome() {
+        checkReportError(Outcome.UNKNOWN, span -> {
+            span.recordException(new IllegalStateException());
         });
     }
 
     @Test
-    public void testSpanSemanticConventionMappingHttpPeerName() {
-        testSpanSemanticConventionMappingHttpHelper(span -> {
-            span.setAttribute(SemanticAttributes.HTTP_SCHEME, "http");
-            span.setAttribute(SemanticAttributes.NET_PEER_IP, "192.0.2.5");
-            span.setAttribute(SemanticAttributes.NET_PEER_NAME, "example.com");
-            span.setAttribute(SemanticAttributes.NET_PEER_PORT, 80);
-            span.setAttribute(SemanticAttributes.HTTP_TARGET, "/foo?bar");
+    public void reportErrorAndSetStatusOk() {
+        checkReportError(Outcome.SUCCESS, span -> {
+            span.setStatus(StatusCode.OK);
+            span.recordException(new IllegalStateException());
         });
     }
 
     @Test
-    public void testSpanSemanticConventionMappingHttpPeerIp() {
-        testSpanSemanticConventionMappingHttpHelper(span -> {
-            span.setAttribute(SemanticAttributes.HTTP_SCHEME, "http");
-            span.setAttribute(SemanticAttributes.NET_PEER_IP, "example.com");
-            span.setAttribute(SemanticAttributes.NET_PEER_PORT, 80);
-            span.setAttribute(SemanticAttributes.HTTP_TARGET, "/foo?bar");
+    public void reportErrorAndSetStatusError() {
+        checkReportError(Outcome.FAILURE, span -> {
+            span.recordException(new IllegalStateException());
+            span.setStatus(StatusCode.ERROR);
         });
     }
 
-    @Test
-    public void reportError() {
-        Exception error = new IllegalStateException();
+    private void checkReportError(Outcome expectedOutcome, Consumer<Span> actions) {
 
-        Span span;
         Span transaction = otelTracer.spanBuilder("transaction with error")
-            .startSpan()
-            .recordException(error);
+            .startSpan();
+
         try (Scope scope = transaction.makeCurrent()) {
-            otelTracer.spanBuilder("span with error")
-                .startSpan()
-                .recordException(error)
-                .end();
+            actions.accept(transaction);
+
+            Span span = otelTracer.spanBuilder("span with error")
+                .startSpan();
+
+            actions.accept(span);
+
+            span.end();
         } finally {
             transaction.end();
         }
@@ -637,33 +569,10 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
 
         assertThat(reporter.getFirstTransaction().getOutcome())
             .describedAs("recording an exception in transaction should not alter outcome")
-            .isEqualTo(Outcome.SUCCESS);
+            .isEqualTo(expectedOutcome);
         assertThat(reporter.getFirstSpan().getOutcome())
             .describedAs("recording an exception in span should not alter outcome")
-            .isEqualTo(Outcome.SUCCESS);
-
-    }
-
-    public void testSpanSemanticConventionMappingHttpHelper(Consumer<Span> spanConsumer) {
-        Span transaction = otelTracer.spanBuilder("transaction")
-            .startSpan();
-        try (Scope scope = transaction.makeCurrent()) {
-            Span span = otelTracer.spanBuilder("span")
-                .startSpan();
-            spanConsumer.accept(span);
-            span.end();
-        } finally {
-            transaction.end();
-        }
-
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getContext().getDestination().getPort()).isEqualTo(80);
-        assertThat(reporter.getFirstSpan().getContext().getHttp().getUrl().toString()).isIn("http://example.com/foo?bar", "http://example.com:80/foo?bar");
-        assertThat(reporter.getFirstSpan().getContext().getDestination().getAddress().toString()).isEqualTo("example.com");
-        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getName().toString()).isEqualTo("http://example.com");
-        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getResource().toString()).isEqualTo("example.com:80");
-        reporter.resetWithoutRecycling();
+            .isEqualTo(expectedOutcome);
     }
 
     public static class MapGetter implements TextMapGetter<Map<String, String>> {
