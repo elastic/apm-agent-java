@@ -122,18 +122,30 @@ public class SpringTransactionNameInstrumentation extends TracerAwareInstrumenta
                 methodName = null;
             }
 
-            if (webConfig.isUsePathAsName() || (methodName == null && !className.equals("ResourceHttpRequestHandler"))) {
-                // when method name is not known, using path is a better default as multiple distinct requests
-                // would be handled by a single class. If delegating to a Servlet, then servlet naming will be applied
-                // thus it allows to provide a better fallback in case method name is null and there is no servlet executed.
-                //
-                // ResourceHttpRequestHandler is handling static resources, thus rather high cardinality most of the time
-                // and grouping on a single transaction is preferable.
-                TransactionNameUtils.setNameFromHttpRequestPath(request.getMethod(), request.getServletPath(), request.getPathInfo(), transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1), webConfig.getUrlGroups());
-            } else {
-                TransactionNameUtils.setNameFromClassAndMethod(className, methodName, transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
+            if (!className.isEmpty() && methodName != null) {
+                TransactionNameUtils.setNameFromClassAndMethod(
+                    className,
+                    methodName,
+                    transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK)
+                );
+            } else if (webConfig.isUsePathAsName()) {
+                // When method name or class name are not known, we treat the calculated name as a fallback only, thus using lower priority.
+                // If delegating to a Servlet, this still allows the better servlet naming default.
+                TransactionNameUtils.setNameFromHttpRequestPath(
+                    request.getMethod(),
+                    request.getServletPath(),
+                    request.getPathInfo(),
+                    transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1),
+                    webConfig.getUrlGroups()
+                );
+            } else if (!className.isEmpty()) {
+                // if we are here, then method name is null, thus using lower priority
+                TransactionNameUtils.setNameFromClassAndMethod(
+                    className,
+                    methodName,
+                    transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1)
+                );
             }
-
 
             transaction.setFrameworkName(FRAMEWORK_NAME);
             transaction.setFrameworkVersion(VersionUtils.getVersion(HandlerMethod.class, "org.springframework", "spring-web"));

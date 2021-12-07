@@ -72,42 +72,44 @@ class SpringTransactionNameInstrumentationTest extends AbstractInstrumentationTe
 
     @ParameterizedTest(name = "use_path_as_transaction_name = {arguments}")
     @ValueSource(booleans = {false, true})
-    void testControllerTransactionName(boolean usePath) throws Exception {
+    void testControllerTransactionName(boolean fallbackToUsePath) throws Exception {
 
-        String expectedName = usePath ? "GET /test" : "TestController#test";
+        // User controller name with high priority whenever available
+        String expectedName = "TestController#test";
         String urlPath = "/test";
 
-        testTransactionName(usePath, expectedName, expectedName, urlPath);
+        testTransactionName(fallbackToUsePath, expectedName, expectedName, urlPath);
     }
 
     @ParameterizedTest(name = "use_path_as_transaction_name = {arguments}")
     @ValueSource(booleans = {false, true})
-    void testServletWrappingControllerTransactionName(boolean usePath) throws Exception {
+    void testServletWrappingControllerTransactionName(boolean fallbackToUsePath) throws Exception {
 
         String expectedContent = "TestServlet";
 
-        // servlet name should have higher priority than the controller name
+        // servlet name and method should have higher priority than the controller name
         String expectedName = "SpringTransactionNameInstrumentationTest$TestServlet#doGet";
         String urlPath = "/testServletController";
 
-        testTransactionName(usePath, expectedContent, expectedName, urlPath);
+        testTransactionName(fallbackToUsePath, expectedContent, expectedName, urlPath);
     }
 
     @ParameterizedTest(name = "use_path_as_transaction_name = {arguments}")
     @ValueSource(booleans = {false, true})
-    void testServletWrappingControllerWithoutServletInvocationTransactionName(boolean usePath) throws Exception {
+    void testServletWrappingControllerWithoutServletInvocationTransactionName(boolean fallbackToUsePath) throws Exception {
 
         String expectedContent = "without-servlet-invocation";
 
-        // there is no servlet invocation, thus name should fall back to using path
-        String expectedName = "GET /testControllerWithoutServlet";
+        // there is no servlet invocation through ServletWrappingController, thus name should fall back to the low priority:
+        // path if use_path_as_transaction_name==true, or the Spring Servlet name otherwise
+        String expectedName = fallbackToUsePath ? "GET /testControllerWithoutServlet" : "TestDispatcherServlet#doGet";
         String urlPath = "/testControllerWithoutServlet";
 
-        testTransactionName(usePath, expectedContent, expectedName, urlPath);
+        testTransactionName(fallbackToUsePath, expectedContent, expectedName, urlPath);
     }
 
-    private void testTransactionName(boolean usePath, String expectedContent, String expectedName, String urlPath) throws Exception {
-        doReturn(usePath)
+    private void testTransactionName(boolean fallbackToUsePath, String expectedContent, String expectedName, String urlPath) throws Exception {
+        doReturn(fallbackToUsePath)
             .when(config.getConfig(WebConfiguration.class))
             .isUsePathAsName();
 
