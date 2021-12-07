@@ -15,6 +15,8 @@ Feature: OpenTelemetry bridge
     And OTel span ends
     Then Elastic bridged object is a transaction
     Then Elastic bridged transaction is a root transaction
+    # outcome should not be inferred from the lack/presence of errors
+    Then Elastic bridged transaction outcome is "unknown"
 
   Scenario: Create span from OTel span
     Given an agent
@@ -22,6 +24,8 @@ Feature: OpenTelemetry bridge
     And OTel span ends
     Then Elastic bridged object is a span
     Then Elastic bridged span has local context as parent
+    # outcome should not be inferred from the lack/presence of errors
+    Then Elastic bridged span outcome is "unknown"
 
   # --- OTel span kind mapping for spans & transactions
 
