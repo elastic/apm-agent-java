@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Replaced `authorization` in the default value of `sanitize_field_names` with `*auth*` - {pull}2326[#2326]
 
 [float]
 ===== Bug fixes
