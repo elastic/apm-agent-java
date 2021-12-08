@@ -36,6 +36,10 @@ endif::[]
 ==== 1.28.0 - 2021/12/07
 
 [float]
+===== Breaking changes
+* If the agent cannot discover a service name, it now uses `unknown-java-service` instead of `my-service` - {pull}2325[#2325]
+
+[float]
 ===== Features
 * Adding experimental support for <<aws-lambda, AWS Lambda>> - {pull}1951[#1951]
 * Now supporting tomcat 10 - {pull}2229[#2229]
