@@ -226,8 +226,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("*session*"),
             WildcardMatcher.valueOf("*credit*"),
             WildcardMatcher.valueOf("*card*"),
-            // HTTP request header for basic auth, contains passwords
-            WildcardMatcher.valueOf("authorization"),
+            WildcardMatcher.valueOf("*auth*"),
             // HTTP response header which can contain session ids
             WildcardMatcher.valueOf("set-cookie")
         ));
