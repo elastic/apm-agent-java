@@ -64,7 +64,7 @@ the agent does not capture transactions.
 |
 |===
 
-==== Oracle & OpenJDK LTS
+**Oracle & OpenJDK LTS**
 
 For Oracle and OpenJDK, we provide *first-class* support for Long Term Support (LTS) releases as defined in https://www.oracle.com/java/technologies/java-se-support-roadmap.html[Oracle Java Support Roadmap]
 
@@ -80,7 +80,7 @@ For Non-LTS releases, we provide a *best-effort* support:
 The usual advice regarding which Java version to use still applies here: using a non-LTS or a version that reached
 End of Life is not recommended, especially in production.
 
-==== Early Java 8 and Java 7
+**Early Java 8 and Java 7**
 
 Early Java 8 versions before update 40 are *not supported* because they have
 several bugs that might result in JVM crashes when a java agent is active,
