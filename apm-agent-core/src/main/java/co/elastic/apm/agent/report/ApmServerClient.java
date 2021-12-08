@@ -71,6 +71,7 @@ public class ApmServerClient {
     private static final Version VERSION_7_0 = Version.of("7.0.0");
     private static final Version VERSION_7_4 = Version.of("7.4.0");
     private static final Version VERSION_7_9 = Version.of("7.9.0");
+    private static final Version VERSION_8_0 = Version.of("8.0.0");
 
     private final ReporterConfiguration reporterConfiguration;
     @Nullable
@@ -336,6 +337,10 @@ public class ApmServerClient {
 
     public boolean supportsLogsEndpoint() {
         return isAtLeast(VERSION_7_9);
+    }
+
+    public boolean supportsKeepingUnsampledTransaction() {
+        return !isAtLeast(VERSION_8_0);
     }
 
     @Nullable
