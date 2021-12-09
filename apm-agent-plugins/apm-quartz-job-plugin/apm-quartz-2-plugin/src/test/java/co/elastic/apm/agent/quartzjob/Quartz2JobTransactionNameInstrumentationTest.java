@@ -56,7 +56,7 @@ class Quartz2JobTransactionNameInstrumentationTest extends AbstractJobTransactio
         return TriggerBuilder.newTrigger()
             .withIdentity("myTrigger")
             .withSchedule(
-                SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
+                SimpleScheduleBuilder.simpleSchedule().withRepeatCount(0).withIntervalInMilliseconds(100))
             .build();
     }
 
