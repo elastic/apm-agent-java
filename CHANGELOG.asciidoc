@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Added support to selectively enable instrumentations - {pull}2292[#2292]
 
 [float]
 ===== Bug fixes
