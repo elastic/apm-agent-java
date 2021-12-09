@@ -42,7 +42,7 @@ public class HttpServerRequestImplEndInstrumentation extends WebInstrumentation 
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("doEnd").and(takesNoArguments());
+        return named("doEnd").or(named("onEnd")).and(takesNoArguments());
     }
 
     @Override
