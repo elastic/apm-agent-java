@@ -25,10 +25,12 @@ endif::[]
 
 [float]
 ===== Features
+* Added support to selectively enable instrumentations - {pull}2292[#2292]
 * When the MANIFEST.MF of the main jar contains the Implementation-Version attribute, it is used as the default service version (except for application servers) - {pull}1922[#1922]
 
 [float]
 ===== Bug fixes
+* Preferring controller names for Spring MVC transactions, `use_path_as_transaction_name` only as a fallback - {pull}2320[#2320]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
