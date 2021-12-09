@@ -25,10 +25,12 @@ endif::[]
 
 [float]
 ===== Features
+* Added support to selectively enable instrumentations - {pull}2292[#2292]
 * Add the instance name to `context.destination.service.resource` to JDBC spans, if use_jdbc_service_resource_auto_inference is set to true - {pull}1928[#1928]
 
 [float]
 ===== Bug fixes
+* Preferring controller names for Spring MVC transactions, `use_path_as_transaction_name` only as a fallback - {pull}2320[#2320]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
