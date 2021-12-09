@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Added support to selectively enable instrumentations - {pull}2292[#2292]
 * Unsampled transactions are dropped and not sent to the APM-Server if the APM-Server version is 8.0+ - {pull}2329[#2329]
 
 [float]
