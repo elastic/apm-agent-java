@@ -72,42 +72,56 @@ class SpringTransactionNameInstrumentationTest extends AbstractInstrumentationTe
 
     @ParameterizedTest(name = "use_path_as_transaction_name = {arguments}")
     @ValueSource(booleans = {false, true})
-    void testControllerTransactionName(boolean usePath) throws Exception {
+    void testControllerTransactionName(boolean fallbackToUsePath) throws Exception {
 
-        String expectedName = usePath ? "GET /test" : "TestController#test";
+        // User controller name with high priority whenever available
+        String expectedName = "TestController#test";
         String urlPath = "/test";
 
-        testTransactionName(usePath, expectedName, expectedName, urlPath);
+        testTransactionName(fallbackToUsePath, expectedName, expectedName, urlPath);
     }
 
     @ParameterizedTest(name = "use_path_as_transaction_name = {arguments}")
     @ValueSource(booleans = {false, true})
-    void testServletWrappingControllerTransactionName(boolean usePath) throws Exception {
+    void testServletWrappingControllerTransactionName(boolean fallbackToUsePath) throws Exception {
 
         String expectedContent = "TestServlet";
 
-        // servlet name should have higher priority than the controller name
+        // servlet name and method should have higher priority than the controller name
         String expectedName = "SpringTransactionNameInstrumentationTest$TestServlet#doGet";
         String urlPath = "/testServletController";
 
-        testTransactionName(usePath, expectedContent, expectedName, urlPath);
+        testTransactionName(fallbackToUsePath, expectedContent, expectedName, urlPath);
     }
 
     @ParameterizedTest(name = "use_path_as_transaction_name = {arguments}")
     @ValueSource(booleans = {false, true})
-    void testServletWrappingControllerWithoutServletInvocationTransactionName(boolean usePath) throws Exception {
+    void testServletWrappingControllerWithoutServletInvocationTransactionName_anonymousController(boolean fallbackToUsePath) throws Exception {
 
         String expectedContent = "without-servlet-invocation";
 
-        // there is no servlet invocation, thus name should fall back to using path
-        String expectedName = "GET /testControllerWithoutServlet";
-        String urlPath = "/testControllerWithoutServlet";
+        // no servlet invocation through ServletWrappingController, thus name should fall back to the low priority (depending on the use_path_as_transaction_name setting)
+        String expectedName = fallbackToUsePath ? "GET /testAnonymousControllerWithoutServlet" : "GET unknown route";
+        String urlPath = "/testAnonymousControllerWithoutServlet";
 
-        testTransactionName(usePath, expectedContent, expectedName, urlPath);
+        testTransactionName(fallbackToUsePath, expectedContent, expectedName, urlPath);
     }
 
-    private void testTransactionName(boolean usePath, String expectedContent, String expectedName, String urlPath) throws Exception {
-        doReturn(usePath)
+    @ParameterizedTest(name = "use_path_as_transaction_name = {arguments}")
+    @ValueSource(booleans = {false, true})
+    void testServletWrappingControllerWithoutServletInvocationTransactionName_customController(boolean fallbackToUsePath) throws Exception {
+
+        String expectedContent = "without-servlet-invocation";
+
+        // no servlet invocation through ServletWrappingController, thus name should fall back to the low priority (depending on the use_path_as_transaction_name setting)
+        String expectedName = fallbackToUsePath ? "GET /testCustomControllerWithoutServlet" : "MyCustomController";
+        String urlPath = "/testCustomControllerWithoutServlet";
+
+        testTransactionName(fallbackToUsePath, expectedContent, expectedName, urlPath);
+    }
+
+    private void testTransactionName(boolean fallbackToUsePath, String expectedContent, String expectedName, String urlPath) throws Exception {
+        doReturn(fallbackToUsePath)
             .when(config.getConfig(WebConfiguration.class))
             .isUsePathAsName();
 
@@ -137,19 +151,30 @@ class SpringTransactionNameInstrumentationTest extends AbstractInstrumentationTe
         }
 
         @Bean
-        public ServletWrappingController testControllerWithoutServlet () throws Exception {
+        public ServletWrappingController testAnonymousControllerWithoutServlet () throws Exception {
             ServletWrappingController controller = new ServletWrappingController() {
                 @Override
                 public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
                     PrintWriter writer = response.getWriter();
                     writer.write("without-servlet-invocation");
-                    return new ModelAndView("without-servlet-invocation");
+                    return new ModelAndView("anonymous-custom-controller");
                 }
             };
             // required, but won't be invoked because the handleRequest method is overriden
             // this can happen with spring static resources controllers which do not delegate execution to servlet
             controller.setServletClass(TestServlet.class);
-            controller.setBeanName("testControllerWithoutServlet");
+            controller.setBeanName("testAnonymousControllerWithoutServlet");
+            controller.afterPropertiesSet();
+            return controller;
+        }
+
+        @Bean
+        public ServletWrappingController testCustomControllerWithoutServlet () throws Exception {
+            ServletWrappingController controller = new MyCustomController();
+            // required, but won't be invoked because the handleRequest method is overriden
+            // this can happen with spring static resources controllers which do not delegate execution to servlet
+            controller.setServletClass(TestServlet.class);
+            controller.setBeanName("testCustomControllerWithoutServlet");
             controller.afterPropertiesSet();
             return controller;
         }
@@ -159,7 +184,8 @@ class SpringTransactionNameInstrumentationTest extends AbstractInstrumentationTe
             SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
             Properties urlProperties = new Properties();
             urlProperties.put("/testServletController", "testServletController");
-            urlProperties.put("/testControllerWithoutServlet", "testControllerWithoutServlet");
+            urlProperties.put("/testAnonymousControllerWithoutServlet", "testAnonymousControllerWithoutServlet");
+            urlProperties.put("/testCustomControllerWithoutServlet", "testCustomControllerWithoutServlet");
             mapping.setMappings(urlProperties);
             mapping.setOrder(Integer.MAX_VALUE - 2);
             return mapping;
@@ -178,4 +204,12 @@ class SpringTransactionNameInstrumentationTest extends AbstractInstrumentationTe
         }
     }
 
+    private static class MyCustomController extends ServletWrappingController {
+        @Override
+        public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
+            PrintWriter writer = response.getWriter();
+            writer.write("without-servlet-invocation");
+            return new ModelAndView("anonymous-custom-controller");
+        }
+    }
 }
