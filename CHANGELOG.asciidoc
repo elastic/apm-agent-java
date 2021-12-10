@@ -63,6 +63,10 @@ endif::[]
 ==== 1.27.1 - 2021/11/30
 
 [float]
+===== Security
+* Resolves Local Privilege Escalation issue https://discuss.elastic.co/t/apm-java-agent-security-update/291355[ESA-2021-30] https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-37942[CVE-2021-37942]
+
+[float]
 ===== Features
 * Add support to Jakarta EE for JSF - {pull}2254[#2254]
 
@@ -75,6 +79,10 @@ endif::[]
 
 [[release-notes-1.27.0]]
 ==== 1.27.0 - 2021/11/15
+
+[float]
+===== Security
+* Resolves Local Privilege Escalation issue https://discuss.elastic.co/t/apm-java-agent-security-update/289627[ESA-2021-29] https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-37941[CVE-2021-37941]
 
 [float]
 ===== Potentially breaking changes
