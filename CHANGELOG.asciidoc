@@ -36,6 +36,10 @@ endif::[]
 ==== 1.28.1 - 2021/12/10
 
 [float]
+===== Security 
+* Fix for "Log4Shell" RCE 0-day exploit in log4j https://nvd.nist.gov/vuln/detail/CVE-2021-44228[CVE-2021-44228] - {pull}2332[#2332]
+
+[float]
 ===== Features
 * Added support to selectively enable instrumentations - {pull}2292[#2292]
 
