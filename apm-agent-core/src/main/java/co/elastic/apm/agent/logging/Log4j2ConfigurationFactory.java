@@ -174,7 +174,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         if (logFormat == LogFormat.PLAIN_TEXT) {
             return builder
                     .newLayout("PatternLayout")
-                    .addAttribute("pattern", "%d [%thread] %-5level %logger{36} - %msg%n");
+                    .addAttribute("pattern", "%d [%thread] %-5level %logger{36} - %msg{nolookups}%n");
         } else {
             String serviceName = getValue(CoreConfiguration.SERVICE_NAME, sources, ServiceNameUtil.getDefaultServiceName());
             return builder.newLayout("EcsLayout")
