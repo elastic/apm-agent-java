@@ -31,7 +31,6 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 
 import javax.annotation.Nullable;
@@ -121,8 +120,7 @@ public abstract class ServletApiAdvice {
                 helper.getRemoteAddr(httpServletRequest), helper.getHeader(httpServletRequest, "Content-Type"));
 
             ret = transaction;
-        } else if (!helper.isAsyncDispatcherType(servletRequest) &&
-            !coreConfig.getDisabledInstrumentations().contains(Constants.SERVLET_API_DISPATCH)) {
+        } else if (!helper.isAsyncDispatcherType(servletRequest) && coreConfig.isInstrumentationEnabled(Constants.SERVLET_API_DISPATCH)) {
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
                 Object servletPath = null;
