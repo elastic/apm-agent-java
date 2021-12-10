@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.28.1-SNAPSHOT</version>
+    <version>1.28.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -518,9 +518,9 @@
         </pluginManagement>
         <extensions>
             <extension>
-                <groupId>co.elastic.opentelemetry.contrib</groupId>
+                <groupId>io.opentelemetry.contrib</groupId>
                 <artifactId>opentelemetry-maven-extension</artifactId>
-                <version>0.1.0-beta-5</version>
+                <version>1.7.0-alpha</version>
             </extension>
         </extensions>
     </build>

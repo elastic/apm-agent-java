@@ -16,6 +16,8 @@ pipeline {
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
     OPBEANS_REPO = 'opbeans-java'
+    JOB_GCS_BUCKET_STASH = 'apm-ci-temp'
+    JOB_GCS_CREDENTIALS = 'apm-ci-gcs-plugin'
   }
   options {
     timeout(time: 90, unit: 'MINUTES')
@@ -96,7 +98,7 @@ pipeline {
                   sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
                 }
               }
-              stash allowEmpty: true, name: 'build', useDefaultExcludes: false
+              stashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
               archiveArtifacts allowEmptyArchive: true,
                 artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
                       ${BASE_DIR}/apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar,${BASE_DIR}/apm-agent-api/target/apm-agent-api-*.jar,\
@@ -134,7 +136,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Unit Tests', tab: 'tests') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   sh """#!/bin/bash
@@ -169,7 +171,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Smoke Tests 01', tab: 'tests') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   sh './scripts/jenkins/smoketests-01.sh'
@@ -201,7 +203,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Smoke Tests 02', tab: 'tests') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   sh './scripts/jenkins/smoketests-02.sh'
@@ -244,7 +246,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Benchmarks', tab: 'artifacts') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   sh './scripts/jenkins/run-benchmarks.sh'
@@ -279,7 +281,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Javadoc') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   sh """#!/bin/bash
@@ -347,7 +349,7 @@ pipeline {
             steps {
               withGithubNotify(context: "Unit Tests ${JAVA_VERSION}", tab: 'tests') {
                 deleteDir()
-                unstash 'build'
+                unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
                 dir("${BASE_DIR}"){
                   withOtelEnv() {
                     sh(label: "./mvnw test for ${JAVA_VERSION}", script: './mvnw test')
