@@ -180,7 +180,7 @@ public class JdbcHelper {
     private String safeGetCatalog(Connection connection) {
         String catalog = null;
         Class<?> type = connection.getClass();
-        Boolean supported = isSupported(JdbcFeature.GET_CATALOG, type);
+        Boolean supported = isSupported(JdbcFeature.CATALOG, type);
         if (supported == Boolean.FALSE) {
             return null;
         }
@@ -188,10 +188,10 @@ public class JdbcHelper {
         try {
             catalog = connection.getCatalog();
             if (supported == null) {
-                markSupported(JdbcFeature.GET_CATALOG, type);
+                markSupported(JdbcFeature.CATALOG, type);
             }
         } catch (SQLException e) {
-            markNotSupported(JdbcFeature.GET_CATALOG, type, e);
+            markNotSupported(JdbcFeature.CATALOG, type, e);
         }
 
         return catalog;
@@ -249,7 +249,7 @@ public class JdbcHelper {
         /**
          * {@link Connection#getCatalog()}
          */
-        GET_CATALOG(JdbcGlobalState.getCatalogSupported),
+        CATALOG(JdbcGlobalState.catalogSupported),
         /**
          * {@link Statement#getConnection()}
          */
