@@ -514,6 +514,10 @@
                     <artifactId>maven-site-plugin</artifactId>
                     <version>3.8.2</version>
                 </plugin>
+                <plugin>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>3.0.0</version>
+                </plugin>
             </plugins>
         </pluginManagement>
         <extensions>
