@@ -22,9 +22,8 @@ import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
-import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.apache.logging.log4j.core.config.Configurator;
-import org.apache.logging.log4j.status.StatusLogger;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
@@ -298,34 +297,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(LogFormat.PLAIN_TEXT);
 
     public static void init(List<ConfigurationSource> sources, String ephemeralId) {
-        // The initialization of log4j may produce errors if the traced application uses log4j settings (for
-        // example - through file in the classpath or System properties) that configures specific properties for
-        // loading classes by name. Since we shade our usage of log4j, such non-shaded classes may not (and should not)
-        // be found on the classpath.
-        // All handled Exceptions should not prevent us from using log4j further, as the system falls back to a default
-        // which we expect anyway. We take a calculated risk of ignoring such errors only through initialization time,
-        // assuming that errors that will make the logging system non-usable won't be handled.
-        String initialListenersLevel = System.setProperty(INITIAL_LISTENERS_LEVEL, "OFF");
-        String initialStatusLoggerLevel = System.setProperty(INITIAL_STATUS_LOGGER_LEVEL, "OFF");
-        String defaultListenerLevel = System.setProperty(DEFAULT_LISTENER_LEVEL, "OFF");
-        try {
-            Configurator.initialize(new Log4j2ConfigurationFactory(sources, ephemeralId).getConfiguration());
-        } catch (Throwable throwable) {
-            System.err.println("[elastic-apm-agent] ERROR Failure during initialization of agent's log4j system: " + throwable.getMessage());
-        } finally {
-            restoreSystemProperty(INITIAL_LISTENERS_LEVEL, initialListenersLevel);
-            restoreSystemProperty(INITIAL_STATUS_LOGGER_LEVEL, initialStatusLoggerLevel);
-            restoreSystemProperty(DEFAULT_LISTENER_LEVEL, defaultListenerLevel);
-            StatusLogger.getLogger().setLevel(Level.ERROR);
-        }
-    }
-
-    private static void restoreSystemProperty(String key, @Nullable String originalValue) {
-        if (originalValue != null) {
-            System.setProperty(key, originalValue);
-        } else {
-            System.clearProperty(key);
-        }
+        ConfigurationFactory.setConfigurationFactory(new Log4j2ConfigurationFactory(sources, ephemeralId));
     }
 
     public String getLogFile() {
