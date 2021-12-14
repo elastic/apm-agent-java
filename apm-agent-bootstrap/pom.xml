@@ -35,10 +35,10 @@
                         </goals>
                         <configuration>
                             <includes>
-                                <include>bootstrap/java7/**/*.java</include>
+                                <include>bootstrap/dispatcher/**/*.java</include>
                             </includes>
                             <excludes>
-                                <exclude>bootstrap/java9</exclude>
+                                <exclude>bootstrap/modulesetter</exclude>
                             </excludes>
                         </configuration>
                     </execution>
@@ -51,10 +51,10 @@
                             <target>9</target>
                             <release>9</release>
                             <includes>
-                                <include>bootstrap/java9/**/*.java</include>
+                                <include>bootstrap/modulesetter/**/*.java</include>
                             </includes>
                             <excludes>
-                                <exclude>bootstrap/java7</exclude>
+                                <exclude>bootstrap/dispatcher</exclude>
                             </excludes>
                         </configuration>
                     </execution>
