@@ -19,12 +19,7 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import net.bytebuddy.dynamic.loading.ClassInjector;
 import org.junit.jupiter.api.Test;
-import org.stagemonitor.util.IOUtils;
-
-import java.io.InputStream;
-import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

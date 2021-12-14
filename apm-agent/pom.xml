@@ -35,8 +35,8 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-indy-bootstrap-module</artifactId>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-agent-bootstrap</artifactId>
             <version>${project.version}</version>
         </dependency>
 
