@@ -294,6 +294,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(LogFormat.PLAIN_TEXT);
 
     public static void init(List<ConfigurationSource> sources, String ephemeralId) {
+        // org.apache.logging.log4j.core.config.ConfigurationFactory is a singleton that allows overriding its instance
+        // through setConfigurationFactory. This API is not considered thread safe, but since we do it so early on when
+        // there is only the main thread it should be OK. Once we override the default factory instance, any logger
+        // created thereafter will be configured through our custom factory.
         ConfigurationFactory.setConfigurationFactory(new Log4j2ConfigurationFactory(sources, ephemeralId));
     }
 
