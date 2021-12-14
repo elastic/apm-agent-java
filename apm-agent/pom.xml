@@ -35,7 +35,7 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-bootstrap</artifactId>
             <version>${project.version}</version>
         </dependency>
