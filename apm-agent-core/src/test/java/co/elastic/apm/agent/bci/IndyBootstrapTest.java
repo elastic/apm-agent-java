@@ -30,12 +30,6 @@ class IndyBootstrapTest extends AbstractInstrumentationTest {
         Module javaBaseModule = Class.class.getModule();
         assertThat(IndyBootstrapTest.class.getModule()).isNotEqualTo(javaBaseModule);
 
-        // In order to test this functionality, IndyBootstrapDispatcherModuleSetter needs to be loaded from the Boot CL.
-        // We don't mind loading it with the test's class loader as well only to get it's class file
-        InputStream classFileAsStream = IndyBootstrapDispatcherModuleSetter.class.getResourceAsStream("IndyBootstrapDispatcherModuleSetter.class");
-        byte[] bootstrapClass = IOUtils.readToBytes(classFileAsStream);
-        ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(IndyBootstrapDispatcherModuleSetter.class.getName(), bootstrapClass));
-
         IndyBootstrap.setJavaBaseModule(IndyBootstrapTest.class);
         assertThat(IndyBootstrapTest.class.getModule()).isEqualTo(javaBaseModule);
     }
