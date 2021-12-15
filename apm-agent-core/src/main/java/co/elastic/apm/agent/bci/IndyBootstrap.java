@@ -242,9 +242,29 @@ public class IndyBootstrap {
         return indyBootstrapDispatcherClass;
     }
 
+    /**
+     * Loads a class from classpath resource in bootstrap classloader.
+     * <p>
+     * Ensuring that classes loaded through this method can ONLY be loaded in the bootstrap CL requires the following:
+     * <ul>
+     *     <li>The class bytecode resource name should not end with the {@code .class} suffix</li>
+     *     <li>The class bytecode resource name should be in a location that reflects its package</li>
+     *     <li>For tests in IDE, the class name used here should be distinct from its original class name to ensure
+     *     that only the relocated resource is being used</li>
+     * </ul>
+     *
+     * @param className    class name
+     * @param resourceName class resource name
+     * @return class loaded in bootstrap classloader
+     * @throws IOException            if unable to open provided resource
+     * @throws ClassNotFoundException if unable to load class in bootstrap CL
+     */
     private static Class<?> loadClassInBootstrap(String className, String resourceName) throws IOException, ClassNotFoundException {
         Class<?> bootstrapClass;
         try {
+            // Will return non-null value only if the class has already been loaded.
+            // Ensuring that a class can ONLY be loaded through this method and not from regular classloading relies
+            // on applying the listed instructions in method documentation
             bootstrapClass = Class.forName(className, false, null);
         } catch (ClassNotFoundException e) {
             byte[] classBytes = IOUtils.readToBytes(ElasticApmAgent.getAgentClassLoader().getResourceAsStream(resourceName));
