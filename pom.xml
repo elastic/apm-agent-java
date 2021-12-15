@@ -112,7 +112,7 @@
         <!-- this is the last version of log4j that is compatible with Java 7. Due to a known vulnerability
         (https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle), the SMTP appender is
          excluded from the build and not packaged into the agent artifacts -->
-        <version.log4j>2.12.1</version.log4j>
+        <version.log4j>2.12.2</version.log4j>
         <version.log4j2-ecs-layout>1.2.0</version.log4j2-ecs-layout>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.spring-boot>2.2.2.RELEASE</version.spring-boot>
