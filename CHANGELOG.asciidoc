@@ -24,6 +24,10 @@ endif::[]
 ==== 1.28.2 - YYYY/MM/DD
 
 [float]
+===== Dependency updates
+* Update Log4j to 2.12.2
+
+[float]
 ===== Features
 
 [float]
