@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.bci;
+package bootstrap.modulesetter;
 
 import sun.misc.Unsafe;
 
@@ -27,16 +27,25 @@ import java.lang.reflect.Field;
  * <p>
  * NOTE: This class is compiled with Java 9 so it must only be loaded though reflection and only when running on Java 9.
  * In addition, since it relies on the {@link Unsafe} API, it must be loaded by the bootstrap or platform class loaders.
+ * </p>
+ * <p>
+ * IMPORTANT: This class is relocated in a different package and stored as a classpath resource to be injected into bootstrap classloader.
+ * A copy of this resource is stored in 'src/main/resources' and should be updated by running 'mvn clean package' whenever
+ * this class is being modified. This has only an effect when running code/tests in the IDE as the resources are loaded
+ * from the project classpath and not the packaged artifact.
+ * </p>
  */
-@SuppressWarnings("unused")
-public class IndyBootstrapDispatcherModuleSetter {
 
-    public static void setJavaBaseModule(Class<?> indyBootstrapDispatcherClass) throws Exception {
+@SuppressWarnings("unused")
+public class ModuleSetter {
+
+    public static void setJavaBaseModule(Class<?> targetClass) throws Exception {
+
         Field moduleField = Class.class.getDeclaredField("module");
         if (moduleField.getType() == Module.class) {
             Module javaBaseModule = Class.class.getModule();
             Unsafe unsafe = Unsafe.getUnsafe();
-            unsafe.putObject(indyBootstrapDispatcherClass, unsafe.objectFieldOffset(moduleField), javaBaseModule);
+            unsafe.putObject(targetClass, unsafe.objectFieldOffset(moduleField), javaBaseModule);
         } else {
             throw new IllegalStateException("Unexpected module field type: " + moduleField.getType().getName());
         }

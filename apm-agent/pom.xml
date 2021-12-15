@@ -36,7 +36,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-indy-bootstrap-module</artifactId>
+            <artifactId>apm-agent-bootstrap</artifactId>
             <version>${project.version}</version>
         </dependency>
 

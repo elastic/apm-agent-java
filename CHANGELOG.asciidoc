@@ -24,10 +24,15 @@ endif::[]
 ==== 1.28.2 - YYYY/MM/DD
 
 [float]
+===== Dependency updates
+* Update Log4j to 2.12.2
+
+[float]
 ===== Features
 
 [float]
 ===== Bug fixes
+* Fix module loading errors on J9 JVM - {pull}2341[#2341]
 * Supported for JDBC driver which don't support `Connection#getCatalog` - {pull}2340[#2340]
 
 [[release-notes-1.x]]
