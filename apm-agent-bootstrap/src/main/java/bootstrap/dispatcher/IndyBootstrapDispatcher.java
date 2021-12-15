@@ -26,6 +26,15 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 
+/**
+ * Indy bootstrap dispatcher
+ * <p>
+ * IMPORTANT: This class is relocated in a different package and stored as a classpath resource to be injected into bootstrap classloader.
+ * A copy of this resource is stored in 'src/main/resources' and should be updated by running 'mvn clean package' whenever
+ * this class is being modified. This has only an effect when running code/tests in the IDE as the resources are loaded
+ * from the project classpath and not the packaged artifact.
+ * </p>
+ */
 @SuppressWarnings("unused")
 public class IndyBootstrapDispatcher {
 

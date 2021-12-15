@@ -115,10 +115,12 @@
                                 <delete dir="${tmpdir}/META-INF"/>
 
                                 <!--
-                                duplicate the resources in 'target/classes' to allow the IDE to resolve them from the
-                                project location as the packaged jar file is not used unlike with maven.
+                                classpath resources are checked-in in 'src/main/resources' to allow IDE to resolve them
+                                without relying on this build script to run. When updating/modifying them we have to run
+                                'mvn clean package' once to ensure that they are updated.
                                 -->
-                                <copy todir="${project.basedir}/target/classes">
+                                <mkdir dir="${project.basedir}/src/main/resources"/>
+                                <copy todir="${project.basedir}/src/main/resources">
                                     <fileset dir="${tmpdir}" includes="**/*"/>
                                 </copy>
 
