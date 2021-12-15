@@ -22,8 +22,10 @@ import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.status.StatusLogger;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
@@ -69,6 +71,9 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     static final String SHIP_AGENT_LOGS = "ship_agent_logs";
     static final String LOG_FORMAT_SOUT_KEY = "log_format_sout";
     public static final String LOG_FORMAT_FILE_KEY = "log_format_file";
+    static final String INITIAL_LISTENERS_LEVEL = "log4j2.StatusLogger.level";
+    static final String INITIAL_STATUS_LOGGER_LEVEL = "org.apache.logging.log4j.simplelog.StatusLogger.level";
+    static final String DEFAULT_LISTENER_LEVEL = "Log4jDefaultStatusLevel";
 
     /**
      * We don't directly access most logging configuration values through the ConfigurationOption instance variables.
@@ -294,11 +299,40 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(LogFormat.PLAIN_TEXT);
 
     public static void init(List<ConfigurationSource> sources, String ephemeralId) {
-        // org.apache.logging.log4j.core.config.ConfigurationFactory is a singleton that allows overriding its instance
-        // through setConfigurationFactory. This API is not considered thread safe, but since we do it so early on when
-        // there is only the main thread it should be OK. Once we override the default factory instance, any logger
-        // created thereafter will be configured through our custom factory.
-        ConfigurationFactory.setConfigurationFactory(new Log4j2ConfigurationFactory(sources, ephemeralId));
+        // The initialization of log4j may produce errors if the traced application uses log4j settings (for
+        // example - through file in the classpath or System properties) that configures specific properties for
+        // loading custom classes by name, which may not be found within the agent ClassLoader's classpath.
+        // All handled Exceptions should not prevent us from using log4j further, as the system falls back to a default
+        // which we expect anyway. We take a calculated risk of ignoring such errors only through initialization time,
+        // assuming that errors that will make the logging system non-usable won't be handled.
+        String initialListenersLevel = System.setProperty(INITIAL_LISTENERS_LEVEL, "OFF");
+        String initialStatusLoggerLevel = System.setProperty(INITIAL_STATUS_LOGGER_LEVEL, "OFF");
+        String defaultListenerLevel = System.setProperty(DEFAULT_LISTENER_LEVEL, "OFF");
+        try {
+            // org.apache.logging.log4j.core.config.ConfigurationFactory is a singleton that allows overriding its instance
+            // through setConfigurationFactory. This API is not considered thread safe, but since we do it so early on when
+            // there is only the main thread it should be OK. Once we override the default factory instance, any logger
+            // created thereafter will be configured through our custom factory, regardless of its context.
+            // Initializing only per context (the caller class loader by default, can be changed to thread or other), for
+            // example through org.apache.logging.log4j.core.config.Configurator, means that loggers in non-initialized
+            // contexts will either get the app-configuration for log4j, if such exists, or none.
+            ConfigurationFactory.setConfigurationFactory(new Log4j2ConfigurationFactory(sources, ephemeralId));
+        } catch (Throwable throwable) {
+            System.err.println("[elastic-apm-agent] ERROR Failure during initialization of agent's log4j system: " + throwable.getMessage());
+        } finally {
+            restoreSystemProperty(INITIAL_LISTENERS_LEVEL, initialListenersLevel);
+            restoreSystemProperty(INITIAL_STATUS_LOGGER_LEVEL, initialStatusLoggerLevel);
+            restoreSystemProperty(DEFAULT_LISTENER_LEVEL, defaultListenerLevel);
+            StatusLogger.getLogger().setLevel(Level.ERROR);
+        }
+    }
+
+    private static void restoreSystemProperty(String key, @Nullable String originalValue) {
+        if (originalValue != null) {
+            System.setProperty(key, originalValue);
+        } else {
+            System.clearProperty(key);
+        }
     }
 
     public String getLogFile() {
