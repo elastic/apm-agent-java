@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>apm-agent-parent</artifactId>
+        <groupId>co.elastic.apm</groupId>
+        <version>1.28.3-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>apm-agent-bootstrap</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
+
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+
+        <!-- not supported/relevant beyond java9, see https://github.com/mojohaus/animal-sniffer/issues/62
+        now enforced through the maven.compiler.release property -->
+        <animal.sniffer.skip>true</animal.sniffer.skip>
+
+        <tmpdir>${project.basedir}/target/tmp</tmpdir>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>compile-java7</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>bootstrap/dispatcher/**/*.java</include>
+                            </includes>
+                            <excludes>
+                                <exclude>bootstrap/modulesetter</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>compile-java9</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <target>9</target>
+                            <release>9</release>
+                            <includes>
+                                <include>bootstrap/modulesetter/**/*.java</include>
+                            </includes>
+                            <excludes>
+                                <exclude>bootstrap/dispatcher</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <!-- '.esclazz' resources have to be excluded as they are re-generated after shading from '.class' -->
+                    <execution>
+                        <id>default-jar</id>
+                        <configuration>
+                            <includes>**/*.class</includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>shade-classes</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <relocations>
+                        <relocation>
+                            <!-- dispatcher needs to be in 'java.lang' to be included in 'java.base' module on java 9+ -->
+                            <pattern>bootstrap.dispatcher</pattern>
+                            <shadedPattern>java.lang</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <!-- module setter is only required for J9 JVM and MUST NOT be in 'java.base' module
+                            on java 9+ as it relies on Unsafe, which is not accessible from 'java.base' but is available
+                            to unnamed modules by default -->
+                            <pattern>bootstrap.modulesetter</pattern>
+                            <shadedPattern>co.elastic.apm.agent.modulesetter</shadedPattern>
+                        </relocation>
+                    </relocations>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>rename-classes</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target name="move-and-rename" description="Move and Rename">
+                                <!-- After relocation, we still have to move those classes to ensure they can't interfere
+                                with regular classloading. Their content will be injected as resources into the bootstrap
+                                classloader -->
+
+                                <delete dir="${tmpdir}" />
+                                <mkdir dir="${tmpdir}" />
+
+                                <unzip dest="${tmpdir}" src="${project.basedir}/target/${project.build.finalName}.jar" />
+
+                                <delete dir="${tmpdir}/bootstrap" />
+                                <mkdir dir="${tmpdir}/bootstrap" />
+
+                                <move todir="${tmpdir}/bootstrap">
+                                    <fileset dir="${tmpdir}" includes="**/*.class" />
+                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz" />
+                                </move>
+
+                                <delete dir="${tmpdir}/java" />
+                                <delete dir="${tmpdir}/co" />
+                                <delete dir="${tmpdir}/META-INF" />
+
+                                <!--
+                                classpath resources are checked-in in 'src/main/resources' to allow IDE to resolve them
+                                without relying on this build script to run. When updating/modifying them we have to run
+                                'mvn clean package' once to ensure that they are updated.
+                                -->
+                                <mkdir dir="${project.basedir}/src/main/resources" />
+                                <copy todir="${project.basedir}/src/main/resources">
+                                    <fileset dir="${tmpdir}" includes="**/*" />
+                                </copy>
+
+                                <zip basedir="${tmpdir}" destfile="${project.basedir}/target/${project.build.finalName}.jar" />
+                                <delete dir="${tmpdir}" />
+                            </target>
+                        </configuration>
+                    </execution>
+
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
