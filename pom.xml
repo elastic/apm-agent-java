@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.28.2-SNAPSHOT</version>
+    <version>1.28.3-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -67,7 +67,7 @@
         <module>integration-tests</module>
         <module>apm-agent-attach</module>
         <module>apm-agent-plugin-sdk</module>
-        <module>apm-indy-bootstrap-module</module>
+        <module>apm-agent-bootstrap</module>
         <module>apm-agent</module>
         <module>apm-agent-attach-cli</module>
         <module>apm-agent-common</module>
@@ -362,7 +362,6 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.7</version>
                 <configuration>
                     <excludes>**/*.esclazz</excludes>
                 </configuration>
@@ -477,7 +476,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.5</version>
+                    <version>0.8.7</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -513,6 +512,10 @@
                 <plugin>
                     <artifactId>maven-site-plugin</artifactId>
                     <version>3.8.2</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>3.0.0</version>
                 </plugin>
             </plugins>
         </pluginManagement>
