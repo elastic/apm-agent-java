@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Improved finding docker container id on cgroup v2 enabled systems - {pull}2352[#2352]
 
 [float]
 ===== Bug fixes
