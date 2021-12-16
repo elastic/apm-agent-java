@@ -252,7 +252,7 @@ public class SystemInfo {
             if (path.toFile().exists()) {
                 List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
                 for (final String line : lines) {
-                    parseContainerId(line);
+                    parseCGroup(line);
                     if (container != null) {
                         containerId = container.getId();
                         break;
@@ -261,6 +261,24 @@ public class SystemInfo {
             }
         } catch (Throwable e) {
             logger.warn("Failed to read/parse container ID from '/proc/self/cgroup'", e);
+        }
+
+        if (containerId == null) {
+            try {
+                Path path = FileSystems.getDefault().getPath("/proc/self/mountinfo");
+                if (path.toFile().exists()) {
+                    List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+                    for (final String line : lines) {
+                        parseMountinfo(line);
+                        if (container != null) {
+                            containerId = container.getId();
+                            break;
+                        }
+                    }
+                }
+            } catch (Throwable e) {
+                logger.warn("Failed to read/parse container ID from '/proc/self/mountinfo'", e);
+            }
         }
 
         try {
@@ -306,7 +324,7 @@ public class SystemInfo {
      * @param line a line from the /proc/self/cgroup file
      * @return this SystemInfo object after parsing
      */
-    SystemInfo parseContainerId(String line) {
+    SystemInfo parseCGroup(String line) {
         final String[] fields = line.split(":", 3);
         if (fields.length == 3) {
             String cGroupPath = fields[2];
@@ -355,6 +373,36 @@ public class SystemInfo {
         }
         if (container == null) {
             logger.debug("Could not parse container ID from '/proc/self/cgroup' line: {}", line);
+        }
+        return this;
+    }
+
+    /**
+     * The virtual file /proc/self/mountinfo lists the mounts that the current process sees.
+     * Each line contains the space separated fields:
+     *  mountID parentID major:minor root mountPoint ...
+     *
+     * @param line a line from the /proc/self/mountinfo file
+     * @return this SystemInfo object after parsing
+     */
+    SystemInfo parseMountinfo(String line) {
+        final String[] fields = line.split(" ", 6);
+        if (fields.length >= 5) {
+            String rootPath = fields[3];
+            int containerIdFromIndex = rootPath.indexOf("/docker/containers/");
+            if (containerIdFromIndex >= 0) {
+                containerIdFromIndex += "/docker/containers/".length();
+                int containerIdEndIndex = rootPath.indexOf('/', containerIdFromIndex);
+                if (containerIdEndIndex >= 0) {
+                    String containerId = rootPath.substring(containerIdFromIndex, containerIdEndIndex);
+                    if (containerId.matches(CONTAINER_UID_REGEX) || containerId.matches(SHORTENED_UUID_PATTERN)) {
+                        container = new Container(containerId);
+                    }
+                }
+            }
+        }
+        if (container == null) {
+            logger.debug("Could not parse container ID from '/proc/self/mountinfo' line: {}", line);
         }
         return this;
     }
