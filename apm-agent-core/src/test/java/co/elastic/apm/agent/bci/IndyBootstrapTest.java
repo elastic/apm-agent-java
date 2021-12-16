@@ -19,12 +19,7 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import net.bytebuddy.dynamic.loading.ClassInjector;
 import org.junit.jupiter.api.Test;
-import org.stagemonitor.util.IOUtils;
-
-import java.io.InputStream;
-import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,12 +29,6 @@ class IndyBootstrapTest extends AbstractInstrumentationTest {
     void testSetJavaBaseModule() throws Throwable {
         Module javaBaseModule = Class.class.getModule();
         assertThat(IndyBootstrapTest.class.getModule()).isNotEqualTo(javaBaseModule);
-
-        // In order to test this functionality, IndyBootstrapDispatcherModuleSetter needs to be loaded from the Boot CL.
-        // We don't mind loading it with the test's class loader as well only to get it's class file
-        InputStream classFileAsStream = IndyBootstrapDispatcherModuleSetter.class.getResourceAsStream("IndyBootstrapDispatcherModuleSetter.class");
-        byte[] bootstrapClass = IOUtils.readToBytes(classFileAsStream);
-        ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(IndyBootstrapDispatcherModuleSetter.class.getName(), bootstrapClass));
 
         IndyBootstrap.setJavaBaseModule(IndyBootstrapTest.class);
         assertThat(IndyBootstrapTest.class.getModule()).isEqualTo(javaBaseModule);
