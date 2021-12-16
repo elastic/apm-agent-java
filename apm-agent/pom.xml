@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.28.2-SNAPSHOT</version>
+        <version>1.28.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent</artifactId>
@@ -36,7 +36,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-indy-bootstrap-module</artifactId>
+            <artifactId>apm-agent-bootstrap</artifactId>
             <version>${project.version}</version>
         </dependency>
 
