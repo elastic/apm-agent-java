@@ -20,8 +20,21 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.28.3]]
+==== 1.28.3 - YYYY/MM/DD
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+* Supported for JDBC driver which don't support `Connection#getCatalog` - {pull}2340[#2340]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.28.2]]
-==== 1.28.2 - YYYY/MM/DD
+==== 1.28.2 - 2021/12/16
 
 [float]
 ===== Dependency updates
@@ -34,10 +47,6 @@ endif::[]
 ===== Bug fixes
 * Fix module loading errors on J9 JVM - {pull}2341[#2341]
 * Fixing log4j configuration error - {pull}2343[#2343]
-* Supported for JDBC driver which don't support `Connection#getCatalog` - {pull}2340[#2340]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.28.1]]
 ==== 1.28.1 - 2021/12/10
