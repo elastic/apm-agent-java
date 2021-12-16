@@ -20,8 +20,8 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.28.2]]
-==== 1.28.2 - YYYY/MM/DD
+[[release-notes-1.28.3]]
+==== 1.28.3 - YYYY/MM/DD
 
 [float]
 ===== Features
@@ -32,6 +32,21 @@ endif::[]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
+
+[[release-notes-1.28.2]]
+==== 1.28.2 - 2021/12/16
+
+[float]
+===== Dependency updates
+* Update Log4j to 2.12.2
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+* Fix module loading errors on J9 JVM - {pull}2341[#2341]
+* Fixing log4j configuration error - {pull}2343[#2343]
 
 [[release-notes-1.28.1]]
 ==== 1.28.1 - 2021/12/10
