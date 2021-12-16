@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.28.2-SNAPSHOT</version>
+        <version>1.28.2</version>
     </parent>
 
     <artifactId>apm-agent-bootstrap</artifactId>
@@ -115,36 +115,35 @@
                                 with regular classloading. Their content will be injected as resources into the bootstrap
                                 classloader -->
 
-                                <delete dir="${tmpdir}"/>
-                                <mkdir dir="${tmpdir}"/>
+                                <delete dir="${tmpdir}" />
+                                <mkdir dir="${tmpdir}" />
 
-                                <unzip dest="${tmpdir}" src="${project.basedir}/target/${project.build.finalName}.jar"/>
+                                <unzip dest="${tmpdir}" src="${project.basedir}/target/${project.build.finalName}.jar" />
 
-                                <delete dir="${tmpdir}/bootstrap"/>
-                                <mkdir dir="${tmpdir}/bootstrap"/>
+                                <delete dir="${tmpdir}/bootstrap" />
+                                <mkdir dir="${tmpdir}/bootstrap" />
 
                                 <move todir="${tmpdir}/bootstrap">
-                                    <fileset dir="${tmpdir}" includes="**/*.class"/>
-                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz"/>
+                                    <fileset dir="${tmpdir}" includes="**/*.class" />
+                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz" />
                                 </move>
 
-                                <delete dir="${tmpdir}/java"/>
-                                <delete dir="${tmpdir}/co"/>
-                                <delete dir="${tmpdir}/META-INF"/>
+                                <delete dir="${tmpdir}/java" />
+                                <delete dir="${tmpdir}/co" />
+                                <delete dir="${tmpdir}/META-INF" />
 
                                 <!--
                                 classpath resources are checked-in in 'src/main/resources' to allow IDE to resolve them
                                 without relying on this build script to run. When updating/modifying them we have to run
                                 'mvn clean package' once to ensure that they are updated.
                                 -->
-                                <mkdir dir="${project.basedir}/src/main/resources"/>
+                                <mkdir dir="${project.basedir}/src/main/resources" />
                                 <copy todir="${project.basedir}/src/main/resources">
-                                    <fileset dir="${tmpdir}" includes="**/*"/>
+                                    <fileset dir="${tmpdir}" includes="**/*" />
                                 </copy>
 
-                                <zip basedir="${tmpdir}"
-                                     destfile="${project.basedir}/target/${project.build.finalName}.jar"/>
-                                <delete dir="${tmpdir}"/>
+                                <zip basedir="${tmpdir}" destfile="${project.basedir}/target/${project.build.finalName}.jar" />
+                                <delete dir="${tmpdir}" />
                             </target>
                         </configuration>
                     </execution>
