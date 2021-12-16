@@ -42,6 +42,7 @@ endif::[]
 [float]
 ===== Dependency updates
 * Update Log4j to 2.12.2
+
 [float]
 ===== Features
 
