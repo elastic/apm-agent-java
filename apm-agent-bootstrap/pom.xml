@@ -61,6 +61,18 @@
                 </executions>
             </plugin>
             <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <!-- '.esclazz' resources have to be excluded as they are re-generated after shading from '.class' -->
+                    <execution>
+                        <id>default-jar</id>
+                        <configuration>
+                            <includes>**/*.class</includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
                 <executions>
                     <execution>
@@ -103,13 +115,19 @@
                                 with regular classloading. Their content will be injected as resources into the bootstrap
                                 classloader -->
 
+                                <delete dir="${tmpdir}"/>
                                 <mkdir dir="${tmpdir}"/>
+
                                 <unzip dest="${tmpdir}" src="${project.basedir}/target/${project.build.finalName}.jar"/>
+
+                                <delete dir="${tmpdir}/bootstrap"/>
                                 <mkdir dir="${tmpdir}/bootstrap"/>
+
                                 <move todir="${tmpdir}/bootstrap">
                                     <fileset dir="${tmpdir}" includes="**/*.class"/>
                                     <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz"/>
                                 </move>
+
                                 <delete dir="${tmpdir}/java"/>
                                 <delete dir="${tmpdir}/co"/>
                                 <delete dir="${tmpdir}/META-INF"/>
