@@ -19,12 +19,17 @@
 package co.elastic.apm.agent.log4j2;
 
 import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.logging.LoggingConfiguration;
+import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * This class only delegates tests to the current-version log4j2 tests through JUnit 4, so that it can be ran using
@@ -34,6 +39,16 @@ import java.io.IOException;
  */
 @Ignore
 public class LegacyLog4j2ShadingTest extends Log4j2ShadingTest {
+
+    @BeforeClass
+    public static void resetConfigFactory() {
+        ConfigurationFactory.resetConfigurationFactory();
+    }
+
+    @AfterClass
+    public static void reInitLogging() {
+        LoggingConfiguration.init(List.of(), "");
+    }
 
     @Before
     @Override

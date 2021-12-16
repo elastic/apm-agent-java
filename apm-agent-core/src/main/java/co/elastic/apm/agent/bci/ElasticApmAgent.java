@@ -134,7 +134,7 @@ public class ElasticApmAgent {
         ElasticApmAgent.agentJarFile = agentJarFile;
 
         // silently early abort when agent is disabled to minimize the number of loaded classes
-        List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources(agentArguments);
+        List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources(agentArguments, premain);
         for (ConfigurationSource configSource : configSources) {
             String enabled = configSource.getValue(CoreConfiguration.ENABLED_KEY);
             if (enabled != null && !Boolean.parseBoolean(enabled)) {
@@ -335,21 +335,7 @@ public class ElasticApmAgent {
     }
 
     private static boolean isIncluded(ElasticApmInstrumentation advice, CoreConfiguration coreConfiguration) {
-        ArrayList<String> disabledInstrumentations = new ArrayList<>(coreConfiguration.getDisabledInstrumentations());
-        // Supporting the deprecated `incubating` tag for backward compatibility
-        if (disabledInstrumentations.contains("incubating")) {
-            disabledInstrumentations.add("experimental");
-        }
-        return !isGroupDisabled(disabledInstrumentations, advice.getInstrumentationGroupNames()) && isInstrumentationEnabled(advice, coreConfiguration);
-    }
-
-    private static boolean isGroupDisabled(Collection<String> disabledInstrumentations, Collection<String> instrumentationGroupNames) {
-        for (String instrumentationGroupName : instrumentationGroupNames) {
-            if (disabledInstrumentations.contains(instrumentationGroupName)) {
-                return true;
-            }
-        }
-        return false;
+        return isInstrumentationEnabled(advice, coreConfiguration) && coreConfiguration.isInstrumentationEnabled(advice.getInstrumentationGroupNames());
     }
 
     private static boolean isInstrumentationEnabled(ElasticApmInstrumentation advice, CoreConfiguration coreConfiguration) {

@@ -16,6 +16,8 @@ pipeline {
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
     OPBEANS_REPO = 'opbeans-java'
+    JOB_GCS_BUCKET_STASH = 'apm-ci-temp'
+    JOB_GCS_CREDENTIALS = 'apm-ci-gcs-plugin'
   }
   options {
     timeout(time: 90, unit: 'MINUTES')
@@ -62,6 +64,11 @@ pipeline {
               dir("${BASE_DIR}"){
                 // Skip all the stages except docs for PR's with asciidoc and md changes only
                 env.ONLY_DOCS = isGitRegionMatch(patterns: [ '.*\\.(asciidoc|md)' ], shouldMatchAll: true)
+                // Prepare the env variables for the benchmark results
+                env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
+                env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
+                env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
+                env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
               }
             }
           }
@@ -91,7 +98,7 @@ pipeline {
                   sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
                 }
               }
-              stash allowEmpty: true, name: 'build', useDefaultExcludes: false
+              stashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
               archiveArtifacts allowEmptyArchive: true,
                 artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
                       ${BASE_DIR}/apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar,${BASE_DIR}/apm-agent-api/target/apm-agent-api-*.jar,\
@@ -129,7 +136,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Unit Tests', tab: 'tests') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   sh """#!/bin/bash
@@ -164,7 +171,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Smoke Tests 01', tab: 'tests') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   sh './scripts/jenkins/smoketests-01.sh'
@@ -196,7 +203,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Smoke Tests 02', tab: 'tests') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   sh './scripts/jenkins/smoketests-02.sh'
@@ -239,14 +246,8 @@ pipeline {
           steps {
             withGithubNotify(context: 'Benchmarks', tab: 'artifacts') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
-                script {
-                  env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
-                  env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
-                  env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
-                  env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
-                }
                 withOtelEnv() {
                   sh './scripts/jenkins/run-benchmarks.sh'
                 }
@@ -280,7 +281,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Javadoc') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   sh """#!/bin/bash
@@ -334,7 +335,8 @@ pipeline {
           axis {
             // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
             name 'JAVA_VERSION'
-            values 'openjdk12', 'openjdk13', 'openjdk14', 'openjdk15', 'openjdk16'
+            values 'openjdk12', 'openjdk13', 'openjdk14', 'openjdk17'
+
           }
         }
         stages {
@@ -347,7 +349,7 @@ pipeline {
             steps {
               withGithubNotify(context: "Unit Tests ${JAVA_VERSION}", tab: 'tests') {
                 deleteDir()
-                unstash 'build'
+                unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
                 dir("${BASE_DIR}"){
                   withOtelEnv() {
                     sh(label: "./mvnw test for ${JAVA_VERSION}", script: './mvnw test')

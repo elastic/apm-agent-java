@@ -20,21 +20,84 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.28.3]]
+==== 1.28.3 - YYYY/MM/DD
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.28.2]]
+==== 1.28.2 - 2021/12/16
+
+[float]
+===== Dependency updates
+* Update Log4j to 2.12.2
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+* Fix module loading errors on J9 JVM - {pull}2341[#2341]
+* Fixing log4j configuration error - {pull}2343[#2343]
+
+[[release-notes-1.28.1]]
+==== 1.28.1 - 2021/12/10
+
+[float]
+===== Security 
+* Fix for "Log4Shell" RCE 0-day exploit in log4j https://nvd.nist.gov/vuln/detail/CVE-2021-44228[CVE-2021-44228] - {pull}2332[#2332]
+
+[float]
+===== Features
+* Added support to selectively enable instrumentations - {pull}2292[#2292]
+
+[float]
+===== Bug fixes
+* Preferring controller names for Spring MVC transactions, `use_path_as_transaction_name` only as a fallback - {pull}2320[#2320]
+
+[[release-notes-1.28.0]]
+==== 1.28.0 - 2021/12/07
+
+[float]
+===== Features
+* Adding experimental support for <<aws-lambda, AWS Lambda>> - {pull}1951[#1951]
+* Now supporting tomcat 10 - {pull}2229[#2229]
+
+[float]
+===== Bug fixes
+* Fix error with parsing APM Server version for 7.16+ - {pull}2313[#2313]
+
 [[release-notes-1.27.1]]
-==== 1.27.1 - YYYY/MM/DD
+==== 1.27.1 - 2021/11/30
+
+[float]
+===== Security
+* Resolves Local Privilege Escalation issue https://discuss.elastic.co/t/apm-java-agent-security-update/291355[ESA-2021-30] https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-37942[CVE-2021-37942]
+
+[float]
+===== Features
+* Add support to Jakarta EE for JSF - {pull}2254[#2254]
 
 [float]
 ===== Bug fixes
 * Fixing missing Micrometer metrics in Spring boot due to premature initialization - {pull}2255[#2255]
 * Fixing hostname trimming of FQDN too aggressive - {pull}2286[#2286]
 * Fixing agent `unknown` version - {pull}2289[#2289]
-
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Improve runtime attach configuration reliability - {pull}2283[#2283]
 
 [[release-notes-1.27.0]]
 ==== 1.27.0 - 2021/11/15
+
+[float]
+===== Security
+* Resolves Local Privilege Escalation issue https://discuss.elastic.co/t/apm-java-agent-security-update/289627[ESA-2021-29] https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-37941[CVE-2021-37941]
 
 [float]
 ===== Potentially breaking changes
@@ -64,6 +127,7 @@ by the agent may be different. This was done in order to improve the integration
 * Add support to Jakarta EE for JAX-WS - {pull}2247[#2247]
 * Add support to Jakarta EE for JAX-RS - {pull}2248[#2248]
 * Add support for Jakarta EE EJB annotations `@Schedule`, `@Schedules` - {pull}2250[#2250]
+* Add support to Jakarta EE for Servlets - {pull}1912[#1912]
 * Added support to Quartz 1.x - {pull}2219[#2219]
 
 [float]

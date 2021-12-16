@@ -136,24 +136,6 @@ pipeline {
             }
           }
         }
-        stage('Set release version manually') {
-          steps {
-            dir("${BASE_DIR}"){
-              script {
-                def user_release_version = input(message: "Please enter version to release:", parameters: [[
-                    $class: 'StringParameterDefinition',
-                    name: 'Release version',
-                    defaultValue: "",
-                    description: "Input release version without '-SNAPSHOT' suffix"
-                  ]])
-
-                env.RELEASE_TAG = "v" + user_release_version
-                env.RELEASE_VERSION = user_release_version
-                env.BRANCH_DOT_X = user_release_version.substring(0, user_release_version.indexOf('.'))+'.x'
-              }
-            }
-          }
-        }
         stage('Wait on internal CI') {
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
@@ -172,25 +154,12 @@ pipeline {
           steps {
             dir("${BASE_DIR}") {
               script {
+                sh(script: ".ci/release/update_major_branch.sh ${RELEASE_VERSION}")
+                gitPush(args: "-f ${BRANCH_DOT_X}")
+
                 def isMajor = env.RELEASE_VERSION.endsWith(".0.0")
                 if (isMajor) {
-                  // major release, create '.x' branch
-                  sh(label: "remote tag is fetched for local checkout", script: "git fetch origin ${RELEASE_TAG}")
-                  sh(label: "create .x branch from ${RELEASE_TAG}", script: """
-                    git checkout ${RELEASE_TAG} --force
-                    git checkout -b ${BRANCH_DOT_X} --force""")
-                  gitPush()
                   input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
-                } else {
-                  // minor release, force-update existing '.x' branch. any change applied to '.x' branch, for example to
-                  // fix doc or release notes should also have been applied to master/stable branch we are releasing from
-                  sh(label: "remote tag and branch are fetched for local checkout", script: """
-                    git fetch origin ${BRANCH_DOT_X}
-                    git fetch origin ${RELEASE_TAG}""")
-                  sh(label: "force-update .x branch from ${RELEASE_TAG}", script: """
-                    git checkout --track origin/${BRANCH_DOT_X} --force
-                    git reset --hard ${RELEASE_TAG}""")
-                  gitPush(args: "-f ${BRANCH_DOT_X}")
                 }
               }
             }
@@ -219,10 +188,9 @@ pipeline {
           steps {
             dir("${BASE_DIR}"){
               script {
-                def fullUrl = "https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/${RELEASE_VERSION}/elastic-apm-agent-${RELEASE_VERSION}.pom"
                 waitUntil(initialRecurrencePeriod: 60000) {
                   script {
-                    def ret = sh(script: "curl -fs '${fullUrl}' >/dev/null 2>&1", returnStatus: true)
+                    def ret = sh(script: ".ci/release/wait_maven_artifact_published.sh ${RELEASE_VERSION}", returnStatus: true)
                     echo "Waiting for the artifacts to be published on Sonatype"
                     return ret == 0
                   }
@@ -234,12 +202,7 @@ pipeline {
         stage('Update Cloudfoundry') {
           steps {
             dir("${BASE_DIR}"){
-              // ensure that we don't rely on side effect of another step
-              sh(label: "restore to previous updating version", script: """
-                  git fetch origin master
-                  git checkout master
-                  git reset --hard origin/master""")
-              sh(script: "./scripts/jenkins/update_cloudfoundry.sh ${RELEASE_VERSION}")
+              sh(script: ".ci/release/update_cloudfoundry.sh ${RELEASE_VERSION}")
               gitPush()
             }
           }
@@ -250,7 +213,7 @@ pipeline {
               waitUntil(initialRecurrencePeriod: 60000) {
                 script {
                   echo "Waiting for the release notes to be available"
-                    def ret = sh(script: "curl -fs https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html | grep ${RELEASE_VERSION}", returnStatus: true)
+                    def ret = sh(script: ".ci/release/wait_release_notes_published.sh ${RELEASE_VERSION}", returnStatus: true)
                     return ret == 0
                 }
               }
@@ -273,7 +236,7 @@ pipeline {
           }
           post {
             success {
-              notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
+              notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release ${env.RELEASE_VERSION} has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
             }
           }
         }

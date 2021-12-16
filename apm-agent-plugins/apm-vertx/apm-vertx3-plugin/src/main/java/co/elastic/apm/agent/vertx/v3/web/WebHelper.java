@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.vertx.v3.web;
 
+import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import io.vertx.core.Handler;
@@ -34,7 +34,7 @@ public class WebHelper extends AbstractVertxWebHelper {
 
     private static final WebHelper INSTANCE = new WebHelper(GlobalTracer.requireTracerImpl());
 
-    static final WeakMap<HttpServerRequest, Transaction> requestTransactionMap = WeakConcurrent.buildMap();
+    static final WeakMap<HttpServerRequest, Transaction> requestTransactionMap = WeakConcurrentProviderImpl.createWeakSpanMap();
 
     public static WebHelper getInstance() {
         return INSTANCE;
