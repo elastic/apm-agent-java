@@ -187,9 +187,7 @@ public class JdbcHelper {
 
         try {
             catalog = connection.getCatalog();
-            if (supported == null) {
-                markSupported(JdbcFeature.CATALOG, type);
-            }
+            markSupported(JdbcFeature.CATALOG, type);
         } catch (SQLException e) {
             markNotSupported(JdbcFeature.CATALOG, type, e);
         }
