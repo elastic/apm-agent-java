@@ -23,7 +23,6 @@ pipeline {
     timestamps()
     ansiColor('xterm')
     durabilityHint('PERFORMANCE_OPTIMIZED')
-
   }
   parameters {
     string(name: 'branch_specifier', defaultValue: 'stable', description: "What branch to release from?")
@@ -64,7 +63,6 @@ pipeline {
       options { skipDefaultCheckout () }
       stages{
         stage('Check oss.sonatype.org') {
-          when { expression { return false }}
           steps {
             // If this fails, an exception should be thrown and execution will halt
             dir("${BASE_DIR}"){
@@ -80,7 +78,6 @@ pipeline {
         stage('Check build status') {
           when {
             allOf {
-              expression { return false }
               expression { params.check_branch_ci_status }
               expression { env.BRANCH_SPECIFIER != 'stable' }
             }
@@ -95,7 +92,6 @@ pipeline {
           }
         }
         stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
-          when { expression { return false }}
           steps {
             input(message: """
             Update CHANGELOG.asciidoc to reflect the new version release:
@@ -111,7 +107,6 @@ pipeline {
           }
         }
         stage('Set release version') {
-          when { expression { return false }}
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -141,7 +136,6 @@ pipeline {
           }
         }
         stage('Wait on internal CI') {
-          when { expression { return false }}
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
                           body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")
@@ -149,7 +143,6 @@ pipeline {
           }
         }
         stage('Nexus release') {
-          when { expression { return false }}
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be published in Nexus",
                          body: "Please go to (<https://oss.sonatype.org/|here>) to proceed with the manual nexus release. Login details in LastPass")
@@ -157,7 +150,6 @@ pipeline {
           }
         }
         stage('Major Branch create/update') {
-          when { expression { return false }}
           steps {
             dir("${BASE_DIR}") {
               script {
@@ -173,7 +165,6 @@ pipeline {
           }
         }
         stage('Create GitHub release draft') {
-          when { expression { return false }}
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -193,7 +184,6 @@ pipeline {
           }
         }
         stage('Wait for artifact to be available in Maven Central') {
-          when { expression { return false }}
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -209,7 +199,6 @@ pipeline {
           }
         }
         stage('Update Cloudfoundry') {
-          when { expression { return false }}
           steps {
             dir("${BASE_DIR}"){
               sh(script: ".ci/release/update_cloudfoundry.sh ${RELEASE_VERSION}")
@@ -218,7 +207,6 @@ pipeline {
           }
         }
         stage('Publish release on GitHub') {
-          when { expression { return false }}
           steps {
             dir("${BASE_DIR}"){
               waitUntil(initialRecurrencePeriod: 60000) {
