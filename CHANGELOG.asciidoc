@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Support for the Java LDAP client - {pull}2355[#2355]
 
 [float]
 ===== Bug fixes
