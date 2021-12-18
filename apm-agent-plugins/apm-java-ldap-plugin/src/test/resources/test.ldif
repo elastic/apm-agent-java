@@ -1,0 +1,24 @@
+dn: dc=example,dc=com
+objectClass: domain
+objectClass: top
+dc: example
+
+dn: ou=Users,dc=example,dc=com
+objectClass: organizationalUnit
+objectClass: top
+ou: Users
+
+dn: ou=Groups,dc=example,dc=com
+objectClass: organizationalUnit
+objectClass: top
+ou: Groups
+
+dn: cn=Tobias Stadler,ou=Users,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Tobias Stadler
+sn: Stadler
+uid: tobiasstadler
+userPassword: 123456

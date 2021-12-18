@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>apm-agent-plugins</artifactId>
+        <groupId>co.elastic.apm</groupId>
+        <version>1.28.3-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>apm-java-ldap-plugin</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+        <animal.sniffer.skip>true</animal.sniffer.skip>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.unboundid</groupId>
+            <artifactId>unboundid-ldapsdk</artifactId>
+            <version>6.0.3</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
