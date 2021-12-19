@@ -506,15 +506,15 @@ public class AgentAttacher {
             out.println("    --include-pid <pid>...");
             out.println("        A list of PIDs to include.");
             out.println();
-            out.println("    --include-main/--exclude-main <pattern>...");
+            out.println("    --include-main/--exclude-main <pattern>");
             out.println("        A regular expression of fully qualified main class names or paths to JARs of applications the java agent should be attached to.");
             out.println("        Performs a partial match so that `foo` matches `/bin/foo.jar`.");
             out.println();
-            out.println("    --include-vmarg/--exclude-vmarg <pattern>...");
+            out.println("    --include-vmarg/--exclude-vmarg <pattern>");
             out.println("        A regular expression that is matched against the arguments passed to the JVM, such as system properties.");
             out.println("        Performs a partial match so that `attach=true` matches the system property `-Dattach=true`.");
             out.println();
-            out.println("    --include-user/--exclude-user <user>...");
+            out.println("    --include-user/--exclude-user <user>");
             out.println("        A username that is matched against the operating system user that run the JVM.");
             out.println("        For included users, make sure that the user this program is running under is either the same user or has permissions to switch to the user that runs the target JVM.");
             out.println();
