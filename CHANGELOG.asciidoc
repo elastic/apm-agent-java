@@ -24,6 +24,10 @@ endif::[]
 ==== 1.28.3 - YYYY/MM/DD
 
 [float]
+===== Breaking changes
+* If the agent cannot discover a service name, it now uses `unknown-java-service` instead of `my-service` - {pull}2325[#2325]
+
+[float]
 ===== Features
 
 [float]
