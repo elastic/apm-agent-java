@@ -33,6 +33,7 @@ endif::[]
 [float]
 ===== Bug fixes
 * Gracefully handle JDBC drivers which don't support `Connection#getCatalog` - {pull}2340[#2340]
+* Fix using JVM keystore options for communication with APM Server - {pull}2362[#2362]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
