@@ -122,12 +122,12 @@ public class SslUtils {
             sslContext = SSLContext.getInstance("TLS");
         }
 
-        KeyManager[] keyManagers;
+        KeyManager[] keyManagers = null;
         try {
             keyManagers = getKeyManagers();
         } catch (IOException | GeneralSecurityException e) {
-            logger.error("unable to setup key managers", e);
-            throw e;
+            logger.warn("unable to setup key managers, keystore options will be ignored");
+            logger.debug("key manager creation error stack trace: ", e);
         }
 
         sslContext.init(keyManagers, trustManagers, new java.security.SecureRandom());
