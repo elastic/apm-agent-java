@@ -42,7 +42,7 @@ public class ServiceNameUtil {
             serviceName = serviceName.trim();
         }
         if (serviceName == null || serviceName.isEmpty()) {
-            serviceName = "my-service";
+            serviceName = "unknown-java-service";
         }
         return serviceName;
     }
