@@ -168,7 +168,7 @@ public class JdbcHelper {
 
         try {
             DatabaseMetaData metaData = connection.getMetaData();
-            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), connection.getCatalog(), metaData.getUserName());
+            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), safeGetCatalog(connection), metaData.getUserName());
             if (supported == null) {
                 markSupported(JdbcFeature.METADATA, type);
             }
@@ -180,6 +180,25 @@ public class JdbcHelper {
             metaDataMap.put(connection, connectionMetaData);
         }
         return connectionMetaData;
+    }
+
+    @Nullable
+    private String safeGetCatalog(Connection connection) {
+        String catalog = null;
+        Class<?> type = connection.getClass();
+        Boolean supported = isSupported(JdbcFeature.CATALOG, type);
+        if (supported == Boolean.FALSE) {
+            return null;
+        }
+
+        try {
+            catalog = connection.getCatalog();
+            markSupported(JdbcFeature.CATALOG, type);
+        } catch (SQLException e) {
+            markNotSupported(JdbcFeature.CATALOG, type, e);
+        }
+
+        return catalog;
     }
 
     @Nullable
@@ -231,6 +250,10 @@ public class JdbcHelper {
          * {@link Connection#getMetaData()}
          */
         METADATA(JdbcGlobalState.metadataSupported),
+        /**
+         * {@link Connection#getCatalog()}
+         */
+        CATALOG(JdbcGlobalState.catalogSupported),
         /**
          * {@link Statement#getConnection()}
          */

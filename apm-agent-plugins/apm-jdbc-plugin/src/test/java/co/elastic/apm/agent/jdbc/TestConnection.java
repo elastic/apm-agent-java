@@ -43,6 +43,7 @@ public class TestConnection implements Connection {
     private Connection delegate;
 
     private boolean isGetMetadataSupported = false;
+    private boolean isGetCatalogSupported = false;
     private int unsupportedThrownCount;
 
     public TestConnection(Connection delegate) {
@@ -51,6 +52,10 @@ public class TestConnection implements Connection {
 
     public void setGetMetadataSupported(boolean getMetadataSupported) {
         isGetMetadataSupported = getMetadataSupported;
+    }
+
+    public void setGetCatalogSupported(boolean getCatalogSupported) {
+        isGetCatalogSupported = getCatalogSupported;
     }
 
     int getUnsupportedThrownCount(){
@@ -135,6 +140,10 @@ public class TestConnection implements Connection {
 
     @Override
     public String getCatalog() throws SQLException {
+        if (!isGetCatalogSupported) {
+            unsupportedThrownCount++;
+            throw new SQLException("not supported");
+        }
         return delegate.getCatalog();
     }
 
