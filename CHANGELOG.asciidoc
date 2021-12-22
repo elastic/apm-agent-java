@@ -20,8 +20,8 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.28.3]]
-==== 1.28.3 - YYYY/MM/DD
+[[release-notes-1.28.4]]
+==== 1.28.4 - YYYY/MM/DD
 
 [float]
 ===== Features
@@ -33,15 +33,29 @@ endif::[]
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
+[[release-notes-1.28.3]]
+==== 1.28.3 - 2021/12/22
+
+[float]
+===== Dependency updates
+* Update Log4j to 2.12.3
+* Update ecs-logging-java to 1.3.0
+
+[float]
+===== Potentially breaking changes
+* If the agent cannot discover a service name, it now uses `unknown-java-service` instead of `my-service` - {pull}2325[#2325]
+
+[float]
+===== Bug fixes
+* Gracefully handle JDBC drivers which don't support `Connection#getCatalog` - {pull}2340[#2340]
+* Fix using JVM keystore options for communication with APM Server - {pull}2362[#2362]
+
 [[release-notes-1.28.2]]
 ==== 1.28.2 - 2021/12/16
 
 [float]
 ===== Dependency updates
 * Update Log4j to 2.12.2
-
-[float]
-===== Features
 
 [float]
 ===== Bug fixes
