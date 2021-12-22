@@ -23,6 +23,7 @@ import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
+import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
@@ -30,6 +31,7 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.util.Arrays;
 
+@Ignore
 @RunWith(Parameterized.class)
 public class PayaraIT extends AbstractServletContainerIntegrationTest {
 
