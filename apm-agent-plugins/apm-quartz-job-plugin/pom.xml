@@ -11,7 +11,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.28.3-SNAPSHOT</version>
+        <version>1.28.3</version>
     </parent>
 
     <artifactId>apm-quartz-job-plugin</artifactId>
