@@ -29,9 +29,9 @@ class ServiceNameUtilTest {
     void serviceNameShouldBeNormalizedOrDefaults() {
         assertSoftly(softly -> {
             softly.assertThat(getDefaultServiceName(" my-awesome-service ")).isEqualTo("my-awesome-service");
-            softly.assertThat(getDefaultServiceName("")).isEqualTo("my-service");
-            softly.assertThat(getDefaultServiceName("  ")).isEqualTo("my-service");
-            softly.assertThat(getDefaultServiceName(null)).isEqualTo("my-service");
+            softly.assertThat(getDefaultServiceName("")).isEqualTo("unknown-java-service");
+            softly.assertThat(getDefaultServiceName("  ")).isEqualTo("unknown-java-service");
+            softly.assertThat(getDefaultServiceName(null)).isEqualTo("unknown-java-service");
         });
     }
 
