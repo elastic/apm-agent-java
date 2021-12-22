@@ -6,7 +6,7 @@
     <parent>
         <artifactId>quarkus</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.28.3-SNAPSHOT</version>
+        <version>1.28.4-SNAPSHOT</version>
     </parent>
 
     <artifactId>quarkus-jaxrs-base</artifactId>
