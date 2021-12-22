@@ -24,11 +24,12 @@ endif::[]
 ==== 1.28.3 - YYYY/MM/DD
 
 [float]
-===== Breaking changes
-* If the agent cannot discover a service name, it now uses `unknown-java-service` instead of `my-service` - {pull}2325[#2325]
+===== Dependency updates
+* Update Log4j to 2.12.3
 
 [float]
-===== Features
+===== Breaking changes
+* If the agent cannot discover a service name, it now uses `unknown-java-service` instead of `my-service` - {pull}2325[#2325]
 
 [float]
 ===== Bug fixes
@@ -44,9 +45,6 @@ endif::[]
 [float]
 ===== Dependency updates
 * Update Log4j to 2.12.2
-
-[float]
-===== Features
 
 [float]
 ===== Bug fixes
