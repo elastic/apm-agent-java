@@ -23,7 +23,6 @@ pipeline {
     timestamps()
     ansiColor('xterm')
     durabilityHint('PERFORMANCE_OPTIMIZED')
-
   }
   parameters {
     string(name: 'branch_specifier', defaultValue: 'stable', description: "What branch to release from?")
