@@ -60,8 +60,8 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             @Nullable
             @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-            public static Object doStartTransaction(@Advice.Origin Class<?> clazz) {
-                Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+            public static Object doStartTransaction(@Advice.Origin Class<?> clazz, @Advice.Argument(value = 0, optional = true) @Nullable ClassLoader classLoader) {
+                Transaction transaction = tracer.startRootTransaction(classLoader != null ? classLoader : clazz.getClassLoader());
                 if (transaction != null) {
                     transaction.setFrameworkName(Utils.FRAMEWORK_NAME);
                 }
@@ -85,16 +85,19 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
                                                     @Advice.Argument(0) MethodHandle getFirstHeader,
                                                     @Advice.Argument(1) @Nullable Object headerExtractor,
                                                     @Advice.Argument(2) MethodHandle getAllHeaders,
-                                                    @Advice.Argument(3) @Nullable Object headersExtractor) {
+                                                    @Advice.Argument(3) @Nullable Object headersExtractor,
+                                                    @Advice.Argument(value = 4, optional = true) @Nullable ClassLoader classLoader) {
+                ClassLoader initiatingClassLoader = classLoader != null ? classLoader : clazz.getClassLoader();
+
                 Transaction transaction = null;
                 if (headersExtractor != null) {
                     HeadersExtractorBridge headersExtractorBridge = HeadersExtractorBridge.get(getFirstHeader, getAllHeaders);
-                    transaction = tracer.startChildTransaction(HeadersExtractorBridge.Extractor.of(headerExtractor, headersExtractor), headersExtractorBridge, clazz.getClassLoader());
+                    transaction = tracer.startChildTransaction(HeadersExtractorBridge.Extractor.of(headerExtractor, headersExtractor), headersExtractorBridge, initiatingClassLoader);
                 } else if (headerExtractor != null) {
                     HeaderExtractorBridge headersExtractorBridge = HeaderExtractorBridge.get(getFirstHeader);
-                    transaction = tracer.startChildTransaction(headerExtractor, headersExtractorBridge, clazz.getClassLoader());
+                    transaction = tracer.startChildTransaction(headerExtractor, headersExtractorBridge, initiatingClassLoader);
                 } else {
-                    transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                    transaction = tracer.startRootTransaction(initiatingClassLoader);
                 }
                 if (transaction != null) {
                     transaction.setFrameworkName(Utils.FRAMEWORK_NAME);

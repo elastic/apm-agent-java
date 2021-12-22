@@ -126,6 +126,13 @@ NOTE: Transactions created via this method can not be retrieved by calling <<api
 or <<api-current-transaction, `ElasticApm.currentTransaction()`>>.
 See <<api-transaction-activate, `transaction.activate()`>> on how to achieve that.
 
+[float]
+[[api-start-transaction-classloader]]
+==== `Transaction startTransaction(ClassLoader)` added[1.29.0]
+
+Similar to <<api-start-transaction>> but with a specific application class loader.
+
+* `classLoader`: the application class loader
 
 [float]
 [[api-start-transaction-with-remote-parent-header]]
@@ -157,6 +164,15 @@ public Response onIncomingRequest(Request request) throws Exception {
 ----
 
 NOTE: If the protocol supports multi-value headers, use <<api-start-transaction-with-remote-parent-headers>>
+
+[float]
+[[api-start-transaction-with-remote-parent-header-classloader]]
+==== `Transaction startTransaction(HeaderExtractor, ClassLoader)` added[1.29.0]
+
+Similar to <<api-start-transaction-with-remote-parent-header>> but with a specific application class loader.
+
+* `headerExtractor`: a functional interface which receives a header name and returns the first header with that name
+* `classLoader`: the application class loader
 
 [float]
 [[api-start-transaction-with-remote-parent-headers]]
@@ -191,6 +207,16 @@ public Response onIncomingRequest(Request request) throws Exception {
 
 
 NOTE: If the protocol does not support multi-value headers, use <<api-start-transaction-with-remote-parent-header>>
+
+[float]
+[[api-start-transaction-with-remote-parent-headers-classloader]]
+==== `Transaction startTransaction(HeaderExtractor, HeadersExtractor, ClassLoader)` added[1.29.0]
+
+Similar to <<api-start-transaction-with-remote-parent-headers>> but with a specific application class loader.
+
+* `headerExtractor`:  a functional interface which receives a header name and returns the first header with that name
+* `headersExtractor`: a functional interface which receives a header name and returns all headers with that name
+* `classLoader`: the application class loader
 
 //----------------------------
 [float]

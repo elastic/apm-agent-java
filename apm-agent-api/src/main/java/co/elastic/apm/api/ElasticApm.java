@@ -74,11 +74,23 @@ public class ElasticApm {
      */
     @Nonnull
     public static Transaction startTransaction() {
-        Object transaction = doStartTransaction();
+        return startTransaction(null);
+    }
+
+    /**
+     * Similar to {@link ElasticApm#startTransaction()} but with a specific application class loader.
+     *
+     * @param classLoader the application class loader
+     * @return the started transaction.
+     * @since 1.29.0
+     */
+    @Nonnull
+    public static Transaction startTransaction(@Nullable ClassLoader classLoader) {
+        Object transaction = doStartTransaction(classLoader);
         return transaction != null ? new TransactionImpl(transaction) : NoopTransaction.INSTANCE;
     }
 
-    private static Object doStartTransaction() {
+    private static Object doStartTransaction(ClassLoader classLoader) {
         // co.elastic.apm.api.ElasticApmInstrumentation.StartTransactionInstrumentation.doStartTransaction
         return null;
     }
@@ -117,7 +129,20 @@ public class ElasticApm {
      */
     @Nonnull
     public static Transaction startTransactionWithRemoteParent(final HeaderExtractor headerExtractor) {
-        return startTransactionWithRemoteParent(headerExtractor, null);
+        return startTransactionWithRemoteParent(headerExtractor, null, null);
+    }
+
+    /**
+     * Similar to {@link ElasticApm#startTransactionWithRemoteParent(HeaderExtractor)} but with a specific application class loader.
+     *
+     * @param headerExtractor a function which receives a header name and returns the fist header with that name
+     * @param classLoader the application class loader
+     * @return the started transaction
+     * @since 1.29.0
+     */
+    @Nonnull
+    public static Transaction startTransactionWithRemoteParent(final HeaderExtractor headerExtractor, @Nullable ClassLoader classLoader) {
+        return startTransactionWithRemoteParent(headerExtractor, null, classLoader);
     }
 
     /**
@@ -156,13 +181,28 @@ public class ElasticApm {
      */
     @Nonnull
     public static Transaction startTransactionWithRemoteParent(HeaderExtractor headerExtractor, HeadersExtractor headersExtractor) {
+        return startTransactionWithRemoteParent(headerExtractor, headersExtractor, null);
+    }
+
+    /**
+     * Similar to {@link ElasticApm#startTransactionWithRemoteParent(HeaderExtractor, HeadersExtractor)} but with a specific application class loader.
+     *
+     * @param headerExtractor a function which receives a header name and returns the fist header with that name
+     * @param headersExtractor  a function which receives a header name and returns all headers with that name
+     * @param classLoader the application class loader
+     * @return the started transaction
+     * @since 1.29.0
+     */
+    @Nonnull
+    public static Transaction startTransactionWithRemoteParent(HeaderExtractor headerExtractor, HeadersExtractor headersExtractor, @Nullable ClassLoader classLoader) {
         Object transaction = doStartTransactionWithRemoteParentFunction(ApiMethodHandles.GET_FIRST_HEADER, headerExtractor,
-            ApiMethodHandles.GET_ALL_HEADERS, headersExtractor);
+            ApiMethodHandles.GET_ALL_HEADERS, headersExtractor, classLoader);
         return transaction != null ? new TransactionImpl(transaction) : NoopTransaction.INSTANCE;
     }
 
     private static Object doStartTransactionWithRemoteParentFunction(MethodHandle getFirstHeader, HeaderExtractor headerExtractor,
-                                                                     MethodHandle getAllHeaders, HeadersExtractor headersExtractor) {
+                                                                     MethodHandle getAllHeaders, HeadersExtractor headersExtractor,
+                                                                     ClassLoader classLoader) {
         // co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation.StartTransactionWithRemoteParentInstrumentation
         return null;
     }

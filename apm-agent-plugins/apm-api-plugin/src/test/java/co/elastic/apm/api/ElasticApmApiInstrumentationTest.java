@@ -23,6 +23,8 @@ import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -33,10 +35,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ElasticApmApiInstrumentationTest extends AbstractApiTest {
 
+    private static ClassLoader cl = new ClassLoader("Test", ElasticApmApiInstrumentation.class.getClassLoader()) {
+    };
+
     @Test
     void testCreateTransaction() {
         Transaction transaction = ElasticApm.startTransaction();
         assertThat(transaction).isNotSameAs(NoopTransaction.INSTANCE);
+        assertThat(ElasticApm.currentTransaction()).isSameAs(NoopTransaction.INSTANCE);
+        transaction.end();
+    }
+
+    @Test
+    void testCreateTransactionWithApplicationClassLoader() {
+        Transaction transaction = ElasticApm.startTransaction(cl);
+        assertThat(transaction).isNotSameAs(NoopTransaction.INSTANCE);
+        assertApplicationClassLoader(transaction, cl);
         assertThat(ElasticApm.currentTransaction()).isSameAs(NoopTransaction.INSTANCE);
         transaction.end();
     }
@@ -271,6 +285,19 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
     }
 
     @Test
+    void testTransactionWithRemoteParentFunctionAndApplicationClassLoader() {
+        AbstractSpan<?> parent = tracer.startRootTransaction(null);
+        assertThat(parent).isNotNull();
+        Map<String, String> headerMap = new HashMap<>();
+        parent.propagateTraceContext(headerMap, TextHeaderMapAccessor.INSTANCE);
+        Transaction transaction = ElasticApm.startTransactionWithRemoteParent(headerMap::get, cl);
+        assertApplicationClassLoader(transaction, cl);
+        transaction.end();
+        assertThat(reporter.getFirstTransaction().isChildOf(parent)).isTrue();
+        parent.end();
+    }
+
+    @Test
     void testTransactionWithRemoteParentFunctions() {
         AbstractSpan<?> parent = tracer.startRootTransaction(null);
         assertThat(parent).isNotNull();
@@ -293,6 +320,19 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
     }
 
     @Test
+    void testTransactionWithRemoteParentHeadersAndApplicationClassLoader() {
+        AbstractSpan<?> parent = tracer.startRootTransaction(null);
+        assertThat(parent).isNotNull();
+        Map<String, String> headerMap = new HashMap<>();
+        parent.propagateTraceContext(headerMap, TextHeaderMapAccessor.INSTANCE);
+        Transaction transaction = ElasticApm.startTransactionWithRemoteParent(null, key -> Collections.singletonList(headerMap.get(key)), cl);
+        assertApplicationClassLoader(transaction, cl);
+        transaction.end();
+        assertThat(reporter.getFirstTransaction().isChildOf(parent)).isTrue();
+        parent.end();
+    }
+
+    @Test
     void testTransactionWithRemoteParentNullFunction() {
         ElasticApm.startTransactionWithRemoteParent(null).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().isRoot()).isTrue();
@@ -300,7 +340,7 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
 
     @Test
     void testTransactionWithRemoteParentNullFunctions() {
-        ElasticApm.startTransactionWithRemoteParent(null, null).end();
+        ElasticApm.startTransactionWithRemoteParent(null, (HeadersExtractor) null).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().isRoot()).isTrue();
     }
 
@@ -343,5 +383,11 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
     void testFrameworkNameWithStartTransactionWithRemoteParent() {
         ElasticApm.startTransactionWithRemoteParent(null).end();
         assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
+    }
+
+    private static void assertApplicationClassLoader(Transaction transaction, ClassLoader applicationClassLoader) {
+        TransactionImpl transactionImpl = (TransactionImpl) transaction;
+        TraceContext traceContext = ((co.elastic.apm.agent.impl.transaction.Transaction) transactionImpl.span).getTraceContext();
+        assertThat(traceContext.getApplicationClassLoader()).isEqualTo(applicationClassLoader);
     }
 }
