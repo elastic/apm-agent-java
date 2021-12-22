@@ -24,6 +24,10 @@ endif::[]
 ==== 1.28.4 - YYYY/MM/DD
 
 [float]
+===== Features
+* Added support for setting the application class loader when starting a transaction via the public api - {pull}2369[#2369]
+
+[float]
 ===== Bug fixes
 
 [[release-notes-1.x]]
