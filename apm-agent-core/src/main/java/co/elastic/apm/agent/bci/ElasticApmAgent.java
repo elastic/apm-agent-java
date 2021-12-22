@@ -21,9 +21,12 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
+import co.elastic.apm.agent.bci.bytebuddy.InstallationListenerImpl;
+import co.elastic.apm.agent.bci.bytebuddy.Instrumented;
 import co.elastic.apm.agent.bci.bytebuddy.LruTypePoolCache;
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
+import co.elastic.apm.agent.bci.bytebuddy.NonInstrumented;
 import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
@@ -247,7 +250,7 @@ public class ElasticApmAgent {
             }
         }
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
-            adviceClassName2instrumentationClassLoader.put(
+            mapInstrumentationCL2adviceClassName(
                 apmInstrumentation.getAdviceClassName(),
                 apmInstrumentation.getClass().getClassLoader());
         }
@@ -663,7 +666,7 @@ public class ElasticApmAgent {
                 logger.warn("Failed to add ClassFileLocator for the agent jar. Some instrumentations may not work", e);
             }
         }
-        return new AgentBuilder.Default(byteBuddy)
+        AgentBuilder agentBuilder = new AgentBuilder.Default(byteBuddy)
             .with(RedefinitionStrategy.RETRANSFORMATION)
             // when runtime attaching, only retransform up to 100 classes at once and sleep 100ms in-between as retransformation causes a stop-the-world pause
             .with(premain ? RedefinitionStrategy.BatchAllocator.ForTotal.INSTANCE : RedefinitionStrategy.BatchAllocator.ForFixedSize.ofSize(100))
@@ -685,7 +688,6 @@ public class ElasticApmAgent {
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
-            .or(nameStartsWith("co.elastic.apm.agent.shaded"))
             .or(nameStartsWith("org.aspectj."))
             .or(nameStartsWith("org.groovy."))
             .or(nameStartsWith("com.p6spy."))
@@ -706,6 +708,14 @@ public class ElasticApmAgent {
             .or(anyMatch(coreConfiguration.getDefaultClassesExcludedFromInstrumentation()))
             .or(anyMatch(coreConfiguration.getClassesExcludedFromInstrumentation()))
             .disableClassFormatChanges();
+
+        if (coreConfiguration.shouldWarmupByteBuddy()) {
+            agentBuilder = agentBuilder.with(new InstallationListenerImpl())
+                .warmUp(NonInstrumented.class)
+                .warmUp(Instrumented.class);
+        }
+
+        return agentBuilder;
     }
 
     /**
@@ -768,7 +778,7 @@ public class ElasticApmAgent {
                     );
                     for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
                         ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
-                        adviceClassName2instrumentationClassLoader.put(
+                        mapInstrumentationCL2adviceClassName(
                             apmInstrumentation.getAdviceClassName(),
                             instrumentationClass.getClassLoader());
                         ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
@@ -780,6 +790,10 @@ public class ElasticApmAgent {
                 }
             }
         }
+    }
+
+    public static void mapInstrumentationCL2adviceClassName(String adviceClassName, ClassLoader instrumentationClassLoader) {
+        adviceClassName2instrumentationClassLoader.put(adviceClassName, instrumentationClassLoader);
     }
 
     private static Set<Collection<Class<? extends ElasticApmInstrumentation>>> getOrCreate(Class<?> classToInstrument) {

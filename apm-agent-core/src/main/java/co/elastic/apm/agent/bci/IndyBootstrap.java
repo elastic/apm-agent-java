@@ -341,7 +341,7 @@ public class IndyBootstrap {
      * @param adviceMethodType A {@link java.lang.invoke.MethodType} representing the arguments and return type of the advice method.
      * @param args             Additional arguments that are provided by Byte Buddy:
      *                         <ul>
-     *                           <li>A {@link String} of the binary target class name.</li>
+     *                           <li>A {@link String} of the binary advice class name.</li>
      *                           <li>A {@link int} with value {@code 0} for an enter advice and {code 1} for an exist advice.</li>
      *                           <li>A {@link Class} representing the class implementing the instrumented method.</li>
      *                           <li>A {@link String} with the name of the instrumented method.</li>
