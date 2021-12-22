@@ -23,12 +23,17 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.security.KeyManagementException;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
 import java.util.Objects;
@@ -108,7 +113,7 @@ public class SslUtils {
     }
 
     @Nullable
-    private static SSLSocketFactory createSocketFactory(TrustManager[] trustAllCerts) throws NoSuchAlgorithmException, KeyManagementException {
+    private static SSLSocketFactory createSocketFactory(@Nullable TrustManager[] trustManagers) throws IOException, GeneralSecurityException {
         SSLContext sslContext;
         try {
             sslContext = SSLContext.getInstance("SSL");
@@ -116,11 +121,20 @@ public class SslUtils {
             logger.info("SSL is not supported, trying to use TLS instead.");
             sslContext = SSLContext.getInstance("TLS");
         }
-        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+
+        KeyManager[] keyManagers = null;
+        try {
+            keyManagers = getKeyManagers();
+        } catch (IOException | GeneralSecurityException e) {
+            logger.warn("unable to setup key managers, keystore options will be ignored");
+            logger.debug("key manager creation error stack trace: ", e);
+        }
+
+        sslContext.init(keyManagers, trustManagers, new java.security.SecureRandom());
         return sslContext.getSocketFactory();
     }
 
-    public static SSLSocketFactory createTrustAllSocketFactory() throws NoSuchAlgorithmException, KeyManagementException {
+    public static SSLSocketFactory createTrustAllSocketFactory() throws GeneralSecurityException, IOException {
         return Objects.requireNonNull(createSocketFactory(new TrustManager[]{X_509_TRUST_ALL}));
     }
 
@@ -130,6 +144,41 @@ public class SslUtils {
 
     public static X509TrustManager getTrustAllManager() {
         return X_509_TRUST_ALL;
+    }
+
+    @Nullable
+    public static KeyManager[] getKeyManagers() throws IOException, GeneralSecurityException {
+        // re-implements parts of sun.security.ssl.SSLContextImpl.DefaultManagersHolder.getKeyManagers
+        // as there is no simple way to reuse existing implementation
+
+        String keyStore = System.getProperty("javax.net.ssl.keyStore");
+        String keyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword");
+        String keyStoreType = System.getProperty("javax.net.ssl.keyStoreType");
+        String keyStoreProvider = System.getProperty("javax.net.ssl.keyStoreProvider");
+
+        if (keyStore == null) {
+            return null;
+        }
+        logger.debug("using keystore {}", keyStore);
+
+        char[] pwd = keyStorePassword != null ? keyStorePassword.toCharArray() : null;
+
+        KeyStore ks = null;
+        try (FileInputStream input = new FileInputStream(keyStore)) {
+            if (keyStoreType != null) {
+                ks = keyStoreProvider == null ?
+                    KeyStore.getInstance(keyStoreType) :
+                    KeyStore.getInstance(keyStoreType, keyStoreProvider);
+                ks.load(input, pwd);
+            }
+        }
+
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(
+            KeyManagerFactory.getDefaultAlgorithm());
+
+        kmf.init(ks, pwd);
+
+        return kmf.getKeyManagers();
     }
 
 }
