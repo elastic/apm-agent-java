@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* Fix `@Traced` annotation to return proper outcome instead of `failed` - {pull}2370[#2370]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
