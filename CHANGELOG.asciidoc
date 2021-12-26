@@ -25,6 +25,10 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* If the application class loader is not able to find/load a logging class for log correlation, the context/system class loader is uses instead - {pull}2374[#2374]
+
+[float]
+===== Bug fixes
 * Fix `@Traced` annotation to return proper outcome instead of `failed` - {pull}2370[#2370]
 
 [[release-notes-1.x]]
