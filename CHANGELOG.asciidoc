@@ -24,7 +24,7 @@ endif::[]
 ==== 1.28.4 - YYYY/MM/DD
 
 [float]
-===== Bug fixes
+===== Features
 * If the application class loader is not able to find/load a logging class for log correlation, the context/system class loader is uses instead - {pull}2374[#2374]
 
 [float]
