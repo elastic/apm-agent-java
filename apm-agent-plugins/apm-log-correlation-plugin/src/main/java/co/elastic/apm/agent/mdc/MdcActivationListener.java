@@ -180,8 +180,13 @@ public class MdcActivationListener implements ActivationListener {
 
     public void before(TraceContext traceContext, boolean isError) throws Throwable {
         if (loggingConfiguration.isLogCorrelationEnabled() && tracer.isRunning()) {
+            ClassLoader applicationClassLoader = traceContext.getApplicationClassLoader();
             for (WeakKeySoftValueLoadingCache<ClassLoader, MethodHandle> mdcPutMethodHandleCache : mdcPutMethodHandleCaches) {
-                MethodHandle put = mdcPutMethodHandleCache.get(getApplicationClassLoader(traceContext));
+                MethodHandle put = applicationClassLoader != null ? mdcPutMethodHandleCache.get(applicationClassLoader) : null;
+                if (put == null || put == NOOP) {
+                    put = mdcPutMethodHandleCache.get(getFallbackClassLoader());
+                }
+
                 if (put != null && put != NOOP) {
                     if (isError) {
                         put.invoke(ERROR_ID, traceContext.getId().toString());
@@ -206,8 +211,13 @@ public class MdcActivationListener implements ActivationListener {
 
     public void after(TraceContext deactivatedContext, boolean isError) throws Throwable {
         if (loggingConfiguration.isLogCorrelationEnabled()) {
+            ClassLoader applicationClassLoader = deactivatedContext.getApplicationClassLoader();
             for (WeakKeySoftValueLoadingCache<ClassLoader, MethodHandle> mdcRemoveMethodHandleCache : mdcRemoveMethodHandleCaches) {
-                MethodHandle remove = mdcRemoveMethodHandleCache.get(getApplicationClassLoader(deactivatedContext));
+                MethodHandle remove = applicationClassLoader != null ? mdcRemoveMethodHandleCache.get(applicationClassLoader) : null;
+                if (remove == null || remove == NOOP) {
+                    remove = mdcRemoveMethodHandleCache.get(getFallbackClassLoader());
+                }
+
                 if (remove != null && remove != NOOP) {
                     if (isError) {
                         remove.invokeExact(ERROR_ID);
@@ -220,19 +230,6 @@ public class MdcActivationListener implements ActivationListener {
         }
     }
 
-    /**
-     * Looks up the class loader which corresponds to the application the current transaction belongs to.
-     * @param context
-     * @return
-     */
-    private ClassLoader getApplicationClassLoader(TraceContext context) {
-        ClassLoader applicationClassLoader = context.getApplicationClassLoader();
-        if (applicationClassLoader != null) {
-            return applicationClassLoader;
-        } else {
-            return getFallbackClassLoader();
-        }
-    }
     private ClassLoader getFallbackClassLoader() {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         if (classLoader == null) {
