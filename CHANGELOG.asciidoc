@@ -25,7 +25,7 @@ endif::[]
 
 [float]
 ===== Features
-* If the application class loader is not able to find/load a logging class for log correlation, the context/system class loader is uses instead - {pull}2374[#2374]
+* Always try to invoke the mdc methods in the application and context/system class loader - {pull}2374[#2374]
 
 [float]
 ===== Bug fixes
