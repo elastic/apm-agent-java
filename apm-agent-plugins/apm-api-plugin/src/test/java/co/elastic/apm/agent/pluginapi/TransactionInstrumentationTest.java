@@ -255,6 +255,8 @@ class TransactionInstrumentationTest extends AbstractApiTest {
         }
         endTransaction();
         assertThat(errorId).isNotNull();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getOutcome()).isEqualTo(convertOutcome(Outcome.FAILURE));
     }
 
     @Test
@@ -271,6 +273,10 @@ class TransactionInstrumentationTest extends AbstractApiTest {
         }
         endTransaction();
         assertThat(errorId).isNotNull();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getOutcome()).isEqualTo(convertOutcome(Outcome.SUCCESS));
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getOutcome()).isEqualTo(convertOutcome(Outcome.FAILURE));
     }
 
     @Test
@@ -307,5 +313,9 @@ class TransactionInstrumentationTest extends AbstractApiTest {
     private void endTransaction() {
         transaction.end();
         assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    private co.elastic.apm.agent.impl.transaction.Outcome convertOutcome(Outcome apiOutcome) {
+        return co.elastic.apm.agent.impl.transaction.Outcome.valueOf(apiOutcome.toString());
     }
 }

@@ -27,6 +27,8 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -34,6 +36,8 @@ import java.util.Collections;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class PluginInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Logger logger = LoggerFactory.getLogger(PluginInstrumentation.class);
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -52,25 +56,26 @@ public class PluginInstrumentation extends ElasticApmInstrumentation {
 
     public static class AdviceClass {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.Origin(value = "#m") String methodName) {
+        public static Object onEnter(@Advice.Origin Class<?> clazz, @Advice.Origin(value = "#m") String methodName) {
             Span ret;
             Transaction transaction = ElasticApm.currentTransaction();
             if (transaction.getId().isEmpty()) {
                 // the NoopTransaction
                 ret = ElasticApm.startTransaction();
-                System.out.println("ret = " + ret);
+                ret.setName(clazz.getSimpleName() + "#" + methodName);
             } else {
                 ret = transaction.startSpan("plugin", "external", "trace");
-                System.out.println("ret = " + ret);
+                ret.setName(methodName);
             }
-            return ret.setName(methodName).activate();
+            logger.info("ret = " + ret);
+            return ret.activate();
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Advice.Thrown Throwable thrown, @Advice.Enter Object scopeObject) {
             try {
                 Span span = ElasticApm.currentSpan();
-                System.out.println("span = " + span);
+                logger.info("span = " + span);
                 span.captureException(thrown);
                 span.end();
             } finally {

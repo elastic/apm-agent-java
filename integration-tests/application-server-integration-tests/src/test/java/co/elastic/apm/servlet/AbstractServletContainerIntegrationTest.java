@@ -156,6 +156,12 @@ public abstract class AbstractServletContainerIntegrationTest {
         List<String> ignoreUrls = new ArrayList<>();
         for (TestApp app : getTestApps()) {
             ignoreUrls.add(String.format("/%s/status*", app.getDeploymentContext()));
+            for (String ignorePath : app.getPathsToIgnore()) {
+                if (ignorePath.startsWith("/")) {
+                    ignorePath = ignorePath.substring(1);
+                }
+                ignoreUrls.add(String.format("/%s/%s", app.getDeploymentContext(), ignorePath));
+            }
         }
         ignoreUrls.add("/favicon.ico");
         String ignoreUrlConfig = String.join(",", ignoreUrls);
@@ -598,7 +604,7 @@ public abstract class AbstractServletContainerIntegrationTest {
                 .withFailMessage("No service name set. Expected '%s'. Event was %s", expectedServiceName, event)
                 .isNotNull();
             assertThat(contextService.get("name").textValue())
-                .describedAs("Event has non-expected service name %s", event)
+                .describedAs("Event has unexpected service name %s", event)
                 .isEqualTo(expectedServiceName);
         }
     }

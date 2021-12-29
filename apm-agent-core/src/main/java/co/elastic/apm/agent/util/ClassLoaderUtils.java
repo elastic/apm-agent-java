@@ -42,4 +42,8 @@ public class ClassLoaderUtils {
             return false;
         }
     }
+
+    public static boolean isAgentClassLoader(@Nullable ClassLoader classLoader) {
+        return classLoader != null && classLoader.getClass().getName().startsWith("co.elastic.apm");
+    }
 }
