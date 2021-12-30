@@ -183,6 +183,13 @@ discovery - {pull}2205[#2205]
 * Replace concurrency plugin maps to `SpanConcurrentHashMap` ones - {pull}2173[#2173]
 * Align User-Agent HTTP header with other APM agents - {pull}2177[#2177]
 
+[[release-notes-1.26.2]]
+==== 1.26.2 - 2021/12/30
+
+[float]
+===== Dependency updates
+* Update Log4j to 2.12.4 and log4j2-ecs-layout to 1.3.2 - {pull}2378[#2378]
+
 [[release-notes-1.26.1]]
 ==== 1.26.1 - 2021/12/22
 
