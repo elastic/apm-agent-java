@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-jms-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.26.2</version>
+        <version>1.26.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-jms-spring-plugin</artifactId>
