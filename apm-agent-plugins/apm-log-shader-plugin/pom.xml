@@ -14,7 +14,7 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
-        <version.ecs.logging>1.3.0</version.ecs.logging>
+        <version.ecs.logging>1.3.2</version.ecs.logging>
     </properties>
 
     <modules>
