@@ -31,7 +31,6 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.util.Arrays;
 
-@Ignore
 @RunWith(Parameterized.class)
 public class PayaraIT extends AbstractServletContainerIntegrationTest {
 
