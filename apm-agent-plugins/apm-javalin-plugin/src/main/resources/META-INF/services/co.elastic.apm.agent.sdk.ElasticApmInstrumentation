@@ -1,2 +1,3 @@
 co.elastic.apm.agent.javalin.JavalinInstrumentation
 co.elastic.apm.agent.javalin.JavalinHandlerLambdaInstrumentation
+co.elastic.apm.agent.javalin.JavalinRenderInstrumentation
