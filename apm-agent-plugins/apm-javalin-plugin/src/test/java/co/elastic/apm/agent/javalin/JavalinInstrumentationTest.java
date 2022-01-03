@@ -67,13 +67,13 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     public void testJavalinParametrizedInput() throws Exception {
-        app.post("/hello/:id", ctx -> ctx.status(200).result("hello " + ctx.pathParam("id")));
+        app.post("/hello/{id}", ctx -> ctx.status(200).result("hello " + ctx.pathParam("id")));
 
         HttpRequest request = HttpRequest.newBuilder().POST(BodyPublishers.noBody()).uri(URI.create("http://localhost:" + app.port() + "/hello/foo")).build();
         final HttpResponse<String> mainUrlResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertThat(mainUrlResponse.statusCode()).isEqualTo(200);
-        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("POST /hello/:id");
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("POST /hello/:id");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("POST /hello/{id}");
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("POST /hello/{id}");
     }
 
     @Test
@@ -146,7 +146,7 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
     @Test
     public void testFuturesGetInstrumented() throws Exception {
         final String endpoint = "/test-future-instrumentation";
-        app.get(endpoint, ctx -> ctx.result(CompletableFuture.runAsync(() -> ctx.status(404))));
+        app.get(endpoint, ctx -> ctx.future(CompletableFuture.runAsync(() -> ctx.status(404))));
 
         HttpRequest request = HttpRequest.newBuilder().uri(URI.create(baseUrl + endpoint)).build();
         final HttpResponse<String> mainUrlResponse = client.send(request, HttpResponse.BodyHandlers.ofString());

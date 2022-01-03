@@ -19,9 +19,9 @@
         <maven.compiler.source>${maven.compiler.target}</maven.compiler.source>
         <animal.sniffer.skip>true</animal.sniffer.skip>
 
-        <javalin.version>3.13.9</javalin.version>
+        <javalin.version>4.2.0</javalin.version>
         <!-- this has to override the global jetty dependency, and needs to match the javalin version -->
-        <jetty.version>9.4.42.v20210604</jetty.version>
+        <jetty.version>9.4.44.v20210927</jetty.version>
     </properties>
 
     <dependencies>
