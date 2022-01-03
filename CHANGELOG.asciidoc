@@ -33,6 +33,10 @@ endif::[]
 ==== 1.28.4 - 2021/12/30
 
 [float]
+===== Features
+* Added an additional span around Javalin template renderers - {pull}2381[#2381]
+
+[float]
 ===== Bug fixes
 * Fix `@Traced` annotation to return proper outcome instead of `failed` - {pull}2370[#2370]
 
