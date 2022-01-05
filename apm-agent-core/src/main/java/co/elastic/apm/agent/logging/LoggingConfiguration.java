@@ -32,6 +32,7 @@ import org.apache.logging.log4j.core.impl.Log4jContextFactory;
 import org.apache.logging.log4j.core.selector.ContextSelector;
 import org.apache.logging.log4j.spi.LoggerContextFactory;
 import org.apache.logging.log4j.status.StatusLogger;
+import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
@@ -361,6 +362,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
                     loggerContext.updateLoggers();
                 }
             }
+        } else {
+            // it should be safe to obtain a logger here
+            LoggerFactory.getLogger(LoggingConfiguration.class).warn("Unexpected type of LoggerContextFactory - {}, " +
+                "cannot update logging level", contextFactory);
         }
 
         // Setting the root level resets all the other loggers that may have been configured, which overrides
