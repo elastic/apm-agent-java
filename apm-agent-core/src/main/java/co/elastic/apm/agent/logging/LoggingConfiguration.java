@@ -23,8 +23,14 @@ import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.LoggerConfig;
+import org.apache.logging.log4j.core.impl.Log4jContextFactory;
+import org.apache.logging.log4j.core.selector.ContextSelector;
+import org.apache.logging.log4j.spi.LoggerContextFactory;
 import org.apache.logging.log4j.status.StatusLogger;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -343,7 +349,19 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         if (level == null) {
             level = LogLevel.INFO;
         }
-        Configurator.setRootLevel(org.apache.logging.log4j.Level.toLevel(level.toString(), org.apache.logging.log4j.Level.INFO));
+        Level log4jLevel = Level.toLevel(level.toString(), Level.INFO);
+        LoggerContextFactory contextFactory = LogManager.getFactory();
+        if (contextFactory instanceof Log4jContextFactory) {
+            final ContextSelector selector = ((Log4jContextFactory) contextFactory).getSelector();
+            for (LoggerContext loggerContext : selector.getLoggerContexts()) {
+                // Taken from org.apache.logging.log4j.core.config.Configurator#setRootLevel()
+                final LoggerConfig loggerConfig = loggerContext.getConfiguration().getRootLogger();
+                if (!loggerConfig.getLevel().equals(log4jLevel)) {
+                    loggerConfig.setLevel(log4jLevel);
+                    loggerContext.updateLoggers();
+                }
+            }
+        }
 
         // Setting the root level resets all the other loggers that may have been configured, which overrides
         // configuration provided by the configuration files in the classpath. While the JSON schema validator is only

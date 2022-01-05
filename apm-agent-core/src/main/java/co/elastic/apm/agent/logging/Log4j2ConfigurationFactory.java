@@ -22,6 +22,8 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
 import co.elastic.apm.agent.configuration.converter.ByteValue;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.ConsoleAppender;
@@ -55,6 +57,8 @@ import static co.elastic.apm.agent.logging.LoggingConfiguration.SHIP_AGENT_LOGS;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.SYSTEM_OUT;
 
 public class Log4j2ConfigurationFactory extends ConfigurationFactory {
+
+    private static final WeakMap<LoggerContext, Configuration> context2config = WeakConcurrent.buildMap();
 
     private final List<org.stagemonitor.configuration.source.ConfigurationSource> sources;
     private final String ephemeralId;
@@ -110,27 +114,46 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
 
     @Override
     public Configuration getConfiguration(LoggerContext loggerContext, String name, URI configLocation) {
-        return getConfiguration();
+        return getConfiguration(loggerContext);
     }
 
     @Override
     public Configuration getConfiguration(LoggerContext loggerContext, ConfigurationSource source) {
-        return getConfiguration();
+        return getConfiguration(loggerContext);
     }
 
-    public Configuration getConfiguration() {
-        ConfigurationBuilder<BuiltConfiguration> builder = newConfigurationBuilder();
-        builder.setStatusLevel(Level.ERROR)
-            .setConfigurationName("ElasticAPM");
-
-        Level level = getLogLevel();
-        RootLoggerComponentBuilder rootLogger = builder.newRootLogger(level);
-        List<AppenderComponentBuilder> appenders = createAppenders(builder);
-        for (AppenderComponentBuilder appender : appenders) {
-            rootLogger.add(builder.newAppenderRef(appender.getName()));
+    /**
+     * Creates a log4j2 configuration
+     * @param loggerContext the context for which to create the configuration for mapping purposes (can be {@code null})
+     * @return a log4j2 configuration reflecting the agent's {@link LoggingConfiguration}
+     */
+    Configuration getConfiguration(@Nullable LoggerContext loggerContext) {
+        Configuration configuration = null;
+        if (loggerContext != null) {
+            configuration = context2config.get(loggerContext);
         }
-        builder.add(rootLogger);
-        return builder.build();
+        if (configuration == null) {
+            ConfigurationBuilder<BuiltConfiguration> builder = newConfigurationBuilder();
+            builder.setStatusLevel(Level.ERROR)
+                .setConfigurationName("ElasticAPM");
+
+            Level level = getLogLevel();
+            RootLoggerComponentBuilder rootLogger = builder.newRootLogger(level);
+            List<AppenderComponentBuilder> appenders = createAppenders(builder);
+            for (AppenderComponentBuilder appender : appenders) {
+                rootLogger.add(builder.newAppenderRef(appender.getName()));
+            }
+            builder.add(rootLogger);
+            configuration = builder.build();
+
+            if (loggerContext != null) {
+                Configuration existingConfiguration = context2config.putIfAbsent(loggerContext, configuration);
+                if (existingConfiguration != null) {
+                    configuration = existingConfiguration;
+                }
+            }
+        }
+        return configuration;
     }
 
     private Level getLogLevel() {
