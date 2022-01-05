@@ -151,10 +151,30 @@ public class ElasticApmAttacher {
         File tempFile = createTempProperties(configuration, null);
         String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();
 
-        ByteBuddyAgent.attach(agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
+        attachWithFallback(agentJarFile, pid, agentArgs);
         if (tempFile != null) {
             if (!tempFile.delete()) {
                 tempFile.deleteOnExit();
+            }
+        }
+    }
+
+    private static void attachWithFallback(File agentJarFile, String pid, String agentArgs) {
+        try {
+            // while the native providers may report to be supported and appear to work properly, in practice there are
+            // cases (Docker without '--init' option on some JDK images like 'openjdk:8-jdk-alpine') where the accessor
+            // returned by the provider will not work as expected at attachment time.
+            ByteBuddyAgent.attach(agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
+        } catch (RuntimeException e1) {
+            try {
+                ByteBuddyAgent.attach(agentJarFile, pid, agentArgs, ElasticAttachmentProvider.getFallback());
+            } catch (RuntimeException e2) {
+                // output the two exceptions for debugging
+                System.err.println("Unable to attach with fallback provider:");
+                e2.printStackTrace();
+
+                System.err.println("Unable to attach with regular provider:");
+                e1.printStackTrace();
             }
         }
     }
@@ -168,7 +188,7 @@ public class ElasticApmAttacher {
      */
     @Deprecated
     public static void attach(String pid, String agentArgs) {
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
+        attachWithFallback(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs);
     }
 
     public static File getBundledAgentJarFile() {
