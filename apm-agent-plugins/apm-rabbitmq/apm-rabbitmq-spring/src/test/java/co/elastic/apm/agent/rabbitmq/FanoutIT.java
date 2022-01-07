@@ -35,7 +35,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ContextConfiguration(classes = {FanoutConfiguration.class}, initializers = {RabbitMqTestBase.Initializer.class})
-public class FanoutTest extends RabbitMqTestBase {
+public class FanoutIT extends RabbitMqTestBase {
 
     @Test
     public void verifyThatTransactionWithSpanCreated() {
