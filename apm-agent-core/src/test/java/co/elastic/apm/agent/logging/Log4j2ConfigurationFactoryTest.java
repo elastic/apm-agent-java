@@ -154,6 +154,6 @@ class Log4j2ConfigurationFactoryTest {
             public String getName() {
                 return config.toString();
             }
-        }), "ephemeralId").getConfiguration(null);
+        }), "ephemeralId").getConfiguration();
     }
 }
