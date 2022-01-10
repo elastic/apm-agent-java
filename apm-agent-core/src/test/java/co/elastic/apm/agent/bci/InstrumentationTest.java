@@ -60,6 +60,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static co.elastic.apm.agent.util.MockitoMatchers.containsValue;
 import static net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
@@ -69,6 +70,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.doReturn;
 
 class InstrumentationTest {
@@ -146,7 +148,7 @@ class InstrumentationTest {
 
     @Test
     void testDisabled() {
-        doReturn(Collections.singletonList("test")).when(coreConfig).getDisabledInstrumentations();
+        doReturn(false).when(coreConfig).isInstrumentationEnabled(containsValue("test"));
         init(List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEmpty();
     }
@@ -176,11 +178,11 @@ class InstrumentationTest {
 
     @Test
     void testReInitEnableOneInstrumentation() {
-        doReturn(Collections.singletonList("test")).when(coreConfig).getDisabledInstrumentations();
+        doReturn(false).when(coreConfig).isInstrumentationEnabled(containsValue("test"));
         init(List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEmpty();
 
-        doReturn(List.of()).when(coreConfig).getDisabledInstrumentations();
+        doReturn(true).when(coreConfig).isInstrumentationEnabled(anyCollection());
         ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEqualTo("intercepted");
     }
@@ -190,7 +192,7 @@ class InstrumentationTest {
         init(List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEqualTo("intercepted");
 
-        doReturn(Collections.singletonList("experimental")).when(coreConfig).getDisabledInstrumentations();
+        doReturn(false).when(coreConfig).isInstrumentationEnabled(containsValue("experimental"));
         ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEmpty();
     }
@@ -227,16 +229,6 @@ class InstrumentationTest {
         doReturn(List.of(WildcardMatcher.valueOf("co.elastic.apm.agent.bci.*")))
             .when(coreConfig).getDefaultClassesExcludedFromInstrumentation();
         init(List.of(new TestInstrumentation()));
-        ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
-        assertThat(interceptMe()).isEmpty();
-    }
-
-    @Test
-    void testLegacyDefaultDisabledInstrumentation() {
-        init(List.of(new TestInstrumentation()));
-        assertThat(interceptMe()).isEqualTo("intercepted");
-
-        doReturn(Collections.singletonList("incubating")).when(coreConfig).getDisabledInstrumentations();
         ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEmpty();
     }

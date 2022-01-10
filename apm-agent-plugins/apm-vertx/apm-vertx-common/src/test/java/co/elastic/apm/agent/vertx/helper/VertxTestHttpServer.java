@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.vertx.helper;
 
-import co.elastic.apm.agent.testutils.TestPort;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpServer;
@@ -44,14 +43,12 @@ public class VertxTestHttpServer {
     @Nullable
     private HttpServer server;
 
-    private final int port;
     private final Router router;
 
 
     VertxTestHttpServer() {
         vertx = Vertx.vertx(new VertxOptions().setEventLoopPoolSize(5));
         router = Router.router(vertx);
-        port = TestPort.getAvailableRandomPort();
     }
 
 
@@ -65,14 +62,14 @@ public class VertxTestHttpServer {
         }
 
         server = vertx.createHttpServer(serverOptions);
-        server.requestHandler(router).listen(port, testContext.succeedingThenComplete());
+        server.requestHandler(router).listen(0, testContext.succeedingThenComplete());
         assertThat(testContext.awaitCompletion(2, TimeUnit.SECONDS)).isTrue();
         if (testContext.failed()) {
-            logger.error("starting vertx server on port {} failed", port);
+            logger.error("starting vertx server on port {} failed", server.actualPort());
             throw testContext.causeOfFailure();
         }
 
-        logger.info("starting vertx server on port {} succeeded", port);
+        logger.info("starting vertx server on port {} succeeded", server.actualPort());
 
     }
 
@@ -82,14 +79,14 @@ public class VertxTestHttpServer {
 
         assertThat(testContext.awaitCompletion(2, TimeUnit.SECONDS)).isTrue();
         if (testContext.failed()) {
-            logger.error("stopping vertx server on port {} failed", port);
+            logger.error("stopping vertx server on port {} failed", server.actualPort());
             throw testContext.causeOfFailure();
         }
-        logger.info("stopping vertx server on port {} succeeded", port);
+        logger.info("stopping vertx server on port {} succeeded", server.actualPort());
     }
 
     public int getPort() {
-        return port;
+        return server.actualPort();
     }
 
     public Router getRouter() {

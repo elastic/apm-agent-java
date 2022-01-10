@@ -3,7 +3,7 @@
     <parent>
         <artifactId>runtime-attach</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.28.1-SNAPSHOT</version>
+        <version>1.28.5-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -31,7 +31,7 @@
             <!-- known old version of byte-buddy added intentionally to the app classpath -->
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy-agent</artifactId>
-            <version>1.12.2</version>
+            <version>1.9.16</version>
         </dependency>
     </dependencies>
 
