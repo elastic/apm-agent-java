@@ -44,11 +44,11 @@ the agent does not capture transactions.
 |Vendor |Supported versions |Notes
 
 |Oracle JDK
-|7u60+, 8u40+, 11, 17
+|7u60+, 8u40+, 9, 10, 11, 17
 |`--module-path` has not been tested yet
 
 |OpenJDK
-|7u60+, 8u40+, 11, 17
+|7u60+, 8u40+, 9, 10, 11, 17
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
@@ -63,22 +63,6 @@ the agent does not capture transactions.
 | 8.1.065+
 |
 |===
-
-**Oracle & OpenJDK LTS**
-
-For Oracle and OpenJDK, we provide *first-class* support for Long Term Support (LTS) releases as defined in https://www.oracle.com/java/technologies/java-se-support-roadmap.html[Oracle Java Support Roadmap]
-
-- LTS releases are supported __at least__ until they reach End-Of-Life status defined by the __End of Premier support__.
-- Non-LTS releases are supported __at least__ until they reach End-Of-Life.
-
-For Non-LTS releases, we provide a *best-effort* support:
-
-- Most Java versions work without any reported issue :  9, 10, 12, 13, 14 and 16
-- Few Java versions might have known issues: only 15 so far
-- They aren't as thoroughly and continuously tested for regressions
-
-The usual advice regarding which Java version to use still applies here: using a non-LTS or a version that reached
-End of Life is not recommended, especially in production.
 
 **Early Java 8 and Java 7**
 
