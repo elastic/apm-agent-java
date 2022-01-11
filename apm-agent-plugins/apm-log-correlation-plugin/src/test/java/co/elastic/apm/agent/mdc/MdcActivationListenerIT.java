@@ -25,7 +25,7 @@ import org.apache.logging.log4j.ThreadContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
-import org.slf4j.Logger;
+import co.elastic.apm.agent.sdk.logging.Logger;
 import org.slf4j.MDC;
 
 import static org.assertj.core.api.Assertions.assertThat;

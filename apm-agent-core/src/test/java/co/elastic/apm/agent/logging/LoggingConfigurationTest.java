@@ -24,6 +24,8 @@ import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.logging.instr.LoggerTestInstrumentation;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -36,8 +38,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nullable;
@@ -120,10 +120,10 @@ class LoggingConfigurationTest {
         ContextSelector contextSelector = new TestContextSelector();
 
         @Nullable
-        LoggerContext getContext(Logger slf4jLogger) {
+        LoggerContext getContext(Logger facadeLogger) {
             for (LoggerContext loggerContext : contextSelector.getLoggerContexts()) {
                 for (org.apache.logging.log4j.core.Logger log4jLogger : loggerContext.getLoggers()) {
-                    if (log4jLogger.getName().equals(slf4jLogger.getName())) {
+                    if (log4jLogger.getName().equals(facadeLogger.getName())) {
                         return loggerContext;
                     }
                 }

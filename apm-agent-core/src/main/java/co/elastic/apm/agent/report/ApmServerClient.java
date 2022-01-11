@@ -23,8 +23,8 @@ import co.elastic.apm.agent.report.ssl.SslUtils;
 import co.elastic.apm.agent.util.UrlConnectionUtils;
 import co.elastic.apm.agent.util.Version;
 import co.elastic.apm.agent.util.VersionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nonnull;

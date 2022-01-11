@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.util;
 
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
+import co.elastic.apm.agent.sdk.logging.Logger;
 import org.slf4j.Marker;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,15 +47,10 @@ class LoggerUtilsTest {
         Logger mock = mock(Logger.class);
         Marker marker = mock(Marker.class);
         doReturn(true).when(mock).isTraceEnabled();
-        doReturn(true).when(mock).isTraceEnabled(marker);
         doReturn(true).when(mock).isDebugEnabled();
-        doReturn(true).when(mock).isDebugEnabled(marker);
         doReturn(true).when(mock).isInfoEnabled();
-        doReturn(true).when(mock).isInfoEnabled(marker);
         doReturn(true).when(mock).isWarnEnabled();
-        doReturn(true).when(mock).isWarnEnabled(marker);
         doReturn(true).when(mock).isErrorEnabled();
-        doReturn(true).when(mock).isErrorEnabled(marker);
 
         Logger logger = LoggerUtils.logOnce(mock);
 
@@ -66,14 +61,9 @@ class LoggerUtilsTest {
 
     private void checkAllLevels(Logger logger, Marker marker, boolean isEnabled) {
         assertThat(logger.isTraceEnabled()).isEqualTo(isEnabled);
-        assertThat(logger.isTraceEnabled(marker)).isEqualTo(isEnabled);
         assertThat(logger.isDebugEnabled()).isEqualTo(isEnabled);
-        assertThat(logger.isDebugEnabled(marker)).isEqualTo(isEnabled);
         assertThat(logger.isInfoEnabled()).isEqualTo(isEnabled);
-        assertThat(logger.isInfoEnabled(marker)).isEqualTo(isEnabled);
         assertThat(logger.isWarnEnabled()).isEqualTo(isEnabled);
-        assertThat(logger.isWarnEnabled(marker)).isEqualTo(isEnabled);
         assertThat(logger.isErrorEnabled()).isEqualTo(isEnabled);
-        assertThat(logger.isErrorEnabled(marker)).isEqualTo(isEnabled);
     }
 }
