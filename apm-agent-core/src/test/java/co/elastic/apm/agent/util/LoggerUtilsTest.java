@@ -20,7 +20,6 @@ package co.elastic.apm.agent.util;
 
 import org.junit.jupiter.api.Test;
 import co.elastic.apm.agent.sdk.logging.Logger;
-import org.slf4j.Marker;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
@@ -45,7 +44,6 @@ class LoggerUtilsTest {
     @Test
     void testDisabledAfterLogOnce() {
         Logger mock = mock(Logger.class);
-        Marker marker = mock(Marker.class);
         doReturn(true).when(mock).isTraceEnabled();
         doReturn(true).when(mock).isDebugEnabled();
         doReturn(true).when(mock).isInfoEnabled();
@@ -54,12 +52,12 @@ class LoggerUtilsTest {
 
         Logger logger = LoggerUtils.logOnce(mock);
 
-        checkAllLevels(logger, marker, true);
+        checkAllLevels(logger, true);
         logger.info("once");
-        checkAllLevels(logger, marker, false);
+        checkAllLevels(logger, false);
     }
 
-    private void checkAllLevels(Logger logger, Marker marker, boolean isEnabled) {
+    private void checkAllLevels(Logger logger, boolean isEnabled) {
         assertThat(logger.isTraceEnabled()).isEqualTo(isEnabled);
         assertThat(logger.isDebugEnabled()).isEqualTo(isEnabled);
         assertThat(logger.isInfoEnabled()).isEqualTo(isEnabled);

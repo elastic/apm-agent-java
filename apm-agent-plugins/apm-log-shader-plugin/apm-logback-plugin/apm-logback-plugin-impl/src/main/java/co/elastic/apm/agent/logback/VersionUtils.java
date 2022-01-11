@@ -93,13 +93,14 @@ class VersionUtils {
      * In older versions, this feature was controlled through the encoders. Since we are using
      * {@link co.elastic.logging.logback.EcsEncoder}, the shaded logs will always be written as if {@code immediateFlush}
      * is set to {@code true} in versions <1.2.0
-     * @param appender the appender to configure
+     * @param originalAppender the original appender
+     * @param ecsAppender the custom ECS appender
      */
-    static void copyImmediateFlushSetting(OutputStreamAppender<?> appender) throws Throwable {
+    static void copyImmediateFlushSetting(OutputStreamAppender<?> originalAppender, OutputStreamAppender<?> ecsAppender) throws Throwable {
 
         if (setImmediateFlushMethod != null && isImmediateFlushMethod != null) {
-            boolean immediateFlushSet = (boolean) isImmediateFlushMethod.invoke(appender);
-            setImmediateFlushMethod.invoke(appender, immediateFlushSet);
+            boolean immediateFlushSet = (boolean) isImmediateFlushMethod.invoke(originalAppender);
+            setImmediateFlushMethod.invoke(ecsAppender, immediateFlushSet);
         }
     }
 }

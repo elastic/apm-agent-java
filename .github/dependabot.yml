@@ -27,7 +27,6 @@ updates:
       - dependency-name: "net.bytebuddy:*"
       - dependency-name: "org.ow2.asm:asm-tree"
       - dependency-name: "com.blogspot.mydailyjava:weak-lock-free"
-      - dependency-name: "org.slf4j:*"
       - dependency-name: "com.squareup.okhttp3:okhttp"
       - dependency-name: "com.datastax.cassandra:cassandra-driver-core"
       - dependency-name: "com.datastax.oss:java-driver-core"
