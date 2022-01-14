@@ -24,6 +24,10 @@ endif::[]
 ==== 1.28.5 - YYYY/MM/DD
 
 [float]
+===== Features
+* Exceptions that are logged using the fatal log level are now captured (log4j2 only) - {pull}2377[#2377]
+
+[float]
 ===== Bug fixes
 * Fix runtime attach with some docker images - {pull}2385[#2385]
 * Restore dynamic capability to `log_level` config for plugin loggers - {pull}2384[#2384]
@@ -33,10 +37,6 @@ endif::[]
 
 [[release-notes-1.28.4]]
 ==== 1.28.4 - 2021/12/30
-
-[float]
-===== Features
-* Exceptions that are logged using the fatal log level are now captured (log4j2 only) - {pull}2377[#2377]
 
 [float]
 ===== Bug fixes
