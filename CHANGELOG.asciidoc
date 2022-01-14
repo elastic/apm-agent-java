@@ -35,6 +35,10 @@ endif::[]
 ==== 1.28.4 - 2021/12/30
 
 [float]
+===== Features
+* Exceptions that are logged using the fatal log level are now captured (log4j2 only) - {pull}2377[#2377]
+
+[float]
 ===== Bug fixes
 * Fix `@Traced` annotation to return proper outcome instead of `failed` - {pull}2370[#2370]
 
