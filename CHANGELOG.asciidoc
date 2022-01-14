@@ -25,10 +25,13 @@ endif::[]
 
 [float]
 ===== Features
+* Exceptions that are logged using the fatal log level are now captured (log4j2 only) - {pull}2377[#2377]
 * Add the instance name to `context.destination.service.resource` to JDBC spans, if use_jdbc_service_resource_auto_inference is set to true - {pull}1928[#1928]
 
 [float]
 ===== Bug fixes
+* Fix runtime attach with some docker images - {pull}2385[#2385]
+* Restore dynamic capability to `log_level` config for plugin loggers - {pull}2384[#2384]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
