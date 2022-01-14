@@ -20,8 +20,6 @@ package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.util.CustomEnvVariables;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnJre;
-import org.junit.jupiter.api.condition.JRE;
 
 import javax.annotation.Nullable;
 
@@ -131,7 +129,6 @@ public class ContainerInfoTest extends CustomEnvVariables {
     }
 
     @Test
-    @DisabledOnJre({JRE.JAVA_15, JRE.JAVA_16}) // https://github.com/elastic/apm-agent-java/issues/1942
     void testKubernetesDownwardApi() throws Exception {
         String line = "1:name=systemd:/kubepods/besteffort/pode9b90526-f47d-11e8-b2a5-080027b9f4fb/15aa6e53-b09a-40c7-8558-c6c31e36c88a";
         String containerId = "15aa6e53-b09a-40c7-8558-c6c31e36c88a";
