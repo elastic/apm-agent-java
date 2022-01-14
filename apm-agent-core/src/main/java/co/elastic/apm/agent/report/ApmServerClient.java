@@ -340,7 +340,7 @@ public class ApmServerClient {
     }
 
     public boolean supportsKeepingUnsampledTransaction() {
-        return !isAtLeast(VERSION_8_0);
+        return isLowerThan(VERSION_8_0);
     }
 
     @Nullable
@@ -349,6 +349,23 @@ public class ApmServerClient {
             return apmServerVersion.get(timeout, timeUnit);
         }
         return null;
+    }
+
+    public boolean isLowerThan(Version apmServerVersion) {
+        if (this.apmServerVersion == null) {
+            throw new IllegalStateException("Called before init event");
+        }
+        try {
+            if (this.apmServerVersion.isDone()) {
+                Version localApmServerVersion = this.apmServerVersion.get();
+                if (localApmServerVersion != null) {
+                    return localApmServerVersion.compareTo(apmServerVersion) < 0;
+                }
+            }
+        } catch (Exception e) {
+            logger.debug(e.getMessage(), e);
+        }
+        return true;
     }
 
     public boolean isAtLeast(Version apmServerVersion) {
