@@ -26,6 +26,7 @@ endif::[]
 [float]
 ===== Features
 * Exceptions that are logged using the fatal log level are now captured (log4j2 only) - {pull}2377[#2377]
+* Replaced `authorization` in the default value of `sanitize_field_names` with `*auth*` - {pull}2326[#2326]
 * Add the instance name to `context.destination.service.resource` to JDBC spans, if use_jdbc_service_resource_auto_inference is set to true - {pull}1928[#1928]
 
 [float]
