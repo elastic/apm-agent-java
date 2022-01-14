@@ -25,10 +25,13 @@ endif::[]
 
 [float]
 ===== Features
+* Exceptions that are logged using the fatal log level are now captured (log4j2 only) - {pull}2377[#2377]
 * Added support for Java/Jakarta WebSocket ServerEndpoint - {pull}2281[#2281]
 
 [float]
 ===== Bug fixes
+* Fix runtime attach with some docker images - {pull}2385[#2385]
+* Restore dynamic capability to `log_level` config for plugin loggers - {pull}2384[#2384]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
