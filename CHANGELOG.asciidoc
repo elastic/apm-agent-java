@@ -24,6 +24,10 @@ endif::[]
 ==== 1.28.5 - YYYY/MM/DD
 
 [float]
+===== Features
+* Always try to invoke the mdc methods in the application and context/system class loader - {pull}2374[#2374]
+
+[float]
 ===== Bug fixes
 
 [[release-notes-1.x]]
@@ -31,10 +35,6 @@ endif::[]
 
 [[release-notes-1.28.4]]
 ==== 1.28.4 - 2021/12/30
-
-[float]
-===== Features
-* Always try to invoke the mdc methods in the application and context/system class loader - {pull}2374[#2374]
 
 [float]
 ===== Bug fixes
