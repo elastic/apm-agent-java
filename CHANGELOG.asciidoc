@@ -26,6 +26,7 @@ endif::[]
 [float]
 ===== Features
 * Exceptions that are logged using the fatal log level are now captured (log4j2 only) - {pull}2377[#2377]
+* Replaced `authorization` in the default value of `sanitize_field_names` with `*auth*` - {pull}2326[#2326]
 * When the MANIFEST.MF of the main jar contains the Implementation-Version attribute, it is used as the default service version (except for application servers) - {pull}1922[#1922]
 
 [float]
