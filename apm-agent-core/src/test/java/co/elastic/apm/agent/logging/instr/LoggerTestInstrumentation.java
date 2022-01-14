@@ -16,38 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.errorlogging;
+package co.elastic.apm.agent.logging.instr;
 
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.List;
 
-import static co.elastic.apm.agent.errorlogging.Slf4jLoggerErrorCapturingInstrumentation.SLF4J_LOGGER;
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class Log4j2LoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
+public class LoggerTestInstrumentation extends TracerAwareInstrumentation {
 
-    static final String LOG4J2_LOGGER = "org.apache.logging.log4j.Logger";
+    public static class AdviceClass {
+
+        private static final Logger pluginLogger = LoggerFactory.getLogger(AdviceClass.class);
+
+        @Advice.AssignReturned.ToReturned(typing = Assigner.Typing.DYNAMIC)
+        @Advice.OnMethodExit(inline = false)
+        public static Object onGetLoggerExit() {
+            return pluginLogger;
+        }
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named(LOG4J2_LOGGER)).and(not(hasSuperType(named(SLF4J_LOGGER))));
+        return named("co.elastic.apm.agent.logging.LoggingConfigurationTest$LoggerTest");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("fatal").and(takesArgument(1, named("java.lang.Throwable"))).or(super.getMethodMatcher());
+        return named("getLogger");
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("log4j2-error");
-        return ret;
+        return List.of("test");
     }
 }
