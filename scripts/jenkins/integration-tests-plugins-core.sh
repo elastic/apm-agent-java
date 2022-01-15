@@ -2,4 +2,4 @@
 
 set -euxo pipefail
 
-./mvnw -q -Dmaven.javadoc.skip=true -P disable-tests -P enable-plugin-integration-tests -P enable-core-integration-tests verify
+./mvnw -q -Dmaven.javadoc.skip=true -P disable-application-integration-tests verify
