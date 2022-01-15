@@ -159,13 +159,13 @@
             </properties>
         </profile>
         <profile>
-          <id>integration-test-only</id>
+          <id>disable-tests</id>
           <activation>
               <activeByDefault>false</activeByDefault>
           </activation>
           <properties>
               <skip.unit.test>true</skip.unit.test>
-              <skip.integration.test>false</skip.integration.test>
+              <skip.integration.test>true</skip.integration.test>
           </properties>
           <build>
             <plugins>

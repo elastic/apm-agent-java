@@ -153,10 +153,7 @@ pipeline {
             }
           }
         }
-        /**
-          Run smoke tests for different servers and databases.
-        */
-        stage('Smoke Tests 01') {
+        stage('Plugin integration tests') {
           agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
@@ -169,12 +166,12 @@ pipeline {
             expression { return params.smoketests_ci }
           }
           steps {
-            withGithubNotify(context: 'Smoke Tests 01', tab: 'tests') {
+            withGithubNotify(context: 'Plugin integration tests', tab: 'tests') {
               deleteDir()
               unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
-                  sh './scripts/jenkins/smoketests-01.sh'
+                  sh './scripts/jenkins/integration-tests-plugins-core.sh'
                 }
               }
             }
@@ -185,10 +182,7 @@ pipeline {
             }
           }
         }
-        /**
-          Run smoke tests for different servers and databases.
-        */
-        stage('Smoke Tests 02') {
+        stage('Application integration tests') {
           agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
@@ -201,12 +195,12 @@ pipeline {
             expression { return params.smoketests_ci }
           }
           steps {
-            withGithubNotify(context: 'Smoke Tests 02', tab: 'tests') {
+            withGithubNotify(context: 'Application integration tests', tab: 'tests') {
               deleteDir()
               unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
-                  sh './scripts/jenkins/smoketests-02.sh'
+                  sh './scripts/jenkins/integration-tests-application.sh'
                 }
               }
             }
@@ -295,7 +289,7 @@ pipeline {
         }
       }
     }
-    stage('Integration Tests') {
+    stage('End-To-End Integration Tests') {
       agent none
       when {
         allOf {

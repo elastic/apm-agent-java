@@ -32,4 +32,15 @@
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
+    <profiles>
+        <profile>
+            <id>enable-application-integration-tests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <skip.integration.test>false</skip.integration.test>
+            </properties>
+        </profile>
+    </profiles>
 </project>

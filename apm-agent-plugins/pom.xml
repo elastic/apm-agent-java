@@ -108,4 +108,16 @@
         </dependency>
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>enable-plugin-integration-tests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <skip.integration.test>false</skip.integration.test>
+            </properties>
+        </profile>
+    </profiles>
+
 </project>
