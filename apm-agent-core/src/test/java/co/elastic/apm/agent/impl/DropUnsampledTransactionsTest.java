@@ -22,12 +22,9 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.metadata.MetaData;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -39,66 +36,61 @@ import static org.mockito.Mockito.when;
 
 class DropUnsampledTransactionsTest {
 
-    private static ElasticApmTracer tracer;
+    private static ApmServerClient apmServerClient = mock(ApmServerClient.class);
 
-    private static MockReporter reporter;
+    private MockReporter reporter = new MockReporter();
 
-    private static ApmServerClient apmServerClient;
+    private ElasticApmTracer tracer;
 
-    @BeforeAll
-    static void startTracer() {
-        reporter = new MockReporter();
-
-        apmServerClient = mock(ApmServerClient.class);
-
+    private void startTracer(double sampleRate) {
         ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
-        when(configurationRegistry.getConfig(CoreConfiguration.class).getSampleRate()).thenReturn(ConfigurationOption.doubleOption().buildWithDefault(0.5));
-
+        when(configurationRegistry.getConfig(CoreConfiguration.class).getSampleRate()).thenReturn(ConfigurationOption.doubleOption().buildWithDefault(sampleRate));
         tracer = new ElasticApmTracer(configurationRegistry, reporter, new TestObjectPoolFactory(), apmServerClient, "ephemeralId", MetaData.create(configurationRegistry, "ephemeralId"));
         tracer.start(false);
     }
 
-    @BeforeEach
-    void resetReporter() {
-        reporter.reset();
-    }
-
-    @AfterAll
-    static void stopTracer() {
+    @AfterEach
+    void stopTracer() {
         tracer.stop();
     }
 
     @Test
-    void testAPMServerSupportsKeepingUnsampledTransactions() {
+    void whenTheAPMServerSupportsKeepingUnsampledTransactionsUnsampledTransactionsShouldBeReported() {
         when(apmServerClient.supportsKeepingUnsampledTransaction()).thenReturn(true);
+        startTracer(0.0);
 
-        int sampledTransactions = 0;
-        for (int i = 0; i < 10; ++i) {
-            Transaction transaction = tracer.startRootTransaction(null);
-            if (transaction.isSampled()) {
-                ++sampledTransactions;
-            }
-            transaction.end();
-        }
+        tracer.startRootTransaction(null).end();
 
-        assertThat(sampledTransactions).isLessThan(10);
-        assertThat(reporter.getTransactions().size()).isEqualTo(10);
+        assertThat(reporter.getTransactions().size()).isEqualTo(1);
     }
 
     @Test
-    void testAPMServerDoesNotSupportsKeepingUnsampledTransactions() {
+    void whenTheAPMServerSupportsKeepingUnsampledTransactionsSampledTransactionsShouldBeReported() {
+        when(apmServerClient.supportsKeepingUnsampledTransaction()).thenReturn(true);
+        startTracer(1.0);
+
+        tracer.startRootTransaction(null).end();
+
+        assertThat(reporter.getTransactions().size()).isEqualTo(1);
+    }
+
+    @Test
+    void whenTheAPMServerDoesNotSupportsKeepingUnsampledTransactionsUnsampledTransactionsShouldNotBeReported() {
         when(apmServerClient.supportsKeepingUnsampledTransaction()).thenReturn(false);
+        startTracer(0.0);
 
-        int sampledTransactions = 0;
-        for (int i = 0; i < 10; ++i) {
-            Transaction transaction = tracer.startRootTransaction(null);
-            if (transaction.isSampled()) {
-                ++sampledTransactions;
-            }
-            transaction.end();
-        }
+        tracer.startRootTransaction(null).end();
 
-        assertThat(sampledTransactions).isLessThan(10);
-        assertThat(reporter.getTransactions().size()).isEqualTo(sampledTransactions);
+        assertThat(reporter.getTransactions().size()).isEqualTo(0);
+    }
+
+    @Test
+    void whenTheAPMServerDoesNotSupportsKeepingUnsampledTransactionsSampledTransactionsShouldBeReported() {
+        when(apmServerClient.supportsKeepingUnsampledTransaction()).thenReturn(false);
+        startTracer(1.0);
+
+        tracer.startRootTransaction(null).end();
+
+        assertThat(reporter.getTransactions().size()).isEqualTo(1);
     }
 }
