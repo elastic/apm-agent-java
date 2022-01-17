@@ -35,8 +35,8 @@ pipeline {
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable Unit tests')
-    booleanParam(name: 'smoketests_ci', defaultValue: true, description: 'Enable Smoke tests')
-    booleanParam(name: 'integrationtests_ci', defaultValue: true, description: 'Enable Integration tests')
+    booleanParam(name: 'agent_integration_tests_ci', defaultValue: true, description: 'Enable Agent Integration tests')
+    booleanParam(name: 'endtoend_tests_ci', defaultValue: true, description: 'Enable APM End-to-End Integration tests')
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
     booleanParam(name: 'compatibility_ci', defaultValue: false, description: 'Enable JDK compatibility tests')
   }
@@ -153,10 +153,7 @@ pipeline {
             }
           }
         }
-        /**
-          Run smoke tests for different servers and databases.
-        */
-        stage('Smoke Tests 01') {
+        stage('Non-Application Server integration tests') {
           agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
@@ -166,15 +163,15 @@ pipeline {
           }
           when {
             beforeAgent true
-            expression { return params.smoketests_ci }
+            expression { return params.agent_integration_tests_ci }
           }
           steps {
-            withGithubNotify(context: 'Smoke Tests 01', tab: 'tests') {
+            withGithubNotify(context: 'Non-Application Server integration tests', tab: 'tests') {
               deleteDir()
               unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
-                  sh './scripts/jenkins/smoketests-01.sh'
+                  sh './mvnw -q -P ci-non-application-server-integration-tests verify'
                 }
               }
             }
@@ -185,10 +182,7 @@ pipeline {
             }
           }
         }
-        /**
-          Run smoke tests for different servers and databases.
-        */
-        stage('Smoke Tests 02') {
+        stage('Application Server integration tests') {
           agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
@@ -198,15 +192,15 @@ pipeline {
           }
           when {
             beforeAgent true
-            expression { return params.smoketests_ci }
+            expression { return params.agent_integration_tests_ci }
           }
           steps {
-            withGithubNotify(context: 'Smoke Tests 02', tab: 'tests') {
+            withGithubNotify(context: 'Application Server integration tests', tab: 'tests') {
               deleteDir()
               unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
-                  sh './scripts/jenkins/smoketests-02.sh'
+                  sh './mvnw -q -P ci-application-server-integration-tests verify'
                 }
               }
             }
@@ -295,14 +289,14 @@ pipeline {
         }
       }
     }
-    stage('Integration Tests') {
+    stage('End-To-End Integration Tests') {
       agent none
       when {
         allOf {
           expression { return env.ONLY_DOCS == "false" }
           anyOf {
             changeRequest()
-            expression { return params.integrationtests_ci }
+            expression { return params.endtoend_tests_ci }
             expression { return env.GITHUB_COMMENT?.contains('integration tests') }
           }
         }
