@@ -28,13 +28,13 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.testutils.TestPort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +43,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumentationTest {
+
+    private final int port = TestPort.getAvailableRandomPort();
+    private final int anotherPort = TestPort.getAvailableRandomPort();
 
     @Nullable
     private DubboTestApi dubboTestApi;
@@ -175,7 +178,13 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
             .isNotEqualTo(Outcome.UNKNOWN);
     }
 
-    abstract int getPort();
+    protected int getPort() {
+        return port;
+    }
+
+    protected int getAnotherApiPort() {
+        return anotherPort;
+    }
 
     @Test
     public void testBothProviderAndConsumer() {
@@ -211,6 +220,4 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         }
         return map;
     }
-
-    abstract int getAnotherApiPort();
 }

@@ -26,6 +26,7 @@ import co.elastic.apm.agent.dubbo.api.impl.DubboTestApiImpl;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.testutils.TestPort;
 import com.alibaba.dubbo.config.ApplicationConfig;
 import com.alibaba.dubbo.config.MethodConfig;
 import com.alibaba.dubbo.config.ProtocolConfig;
@@ -123,16 +124,6 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
         methodConfigList.add(asyncNoReturnConfig);
 
         return testApiReferenceConfig.get();
-    }
-
-    @Override
-    int getPort() {
-        return 20880;
-    }
-
-    @Override
-    int getAnotherApiPort() {
-        return 20883;
     }
 
     @Test

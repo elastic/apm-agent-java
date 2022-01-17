@@ -117,16 +117,6 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         return testApiReferenceConfig.get();
     }
 
-    @Override
-    int getPort() {
-        return 20881;
-    }
-
-    @Override
-    int getAnotherApiPort() {
-        return 20884;
-    }
-
     @Test
     public void testAsync() throws Exception {
         String arg = "hello";
