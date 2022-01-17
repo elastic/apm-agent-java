@@ -13,7 +13,7 @@ pipeline {
     ELASTIC_DOCKER_SECRET = 'secret/apm-team/ci/docker-registry/prod'
     CODECOV_SECRET = 'secret/apm-team/ci/apm-agent-java-codecov'
     GITHUB_CHECK_ITS_NAME = 'Integration Tests'
-    ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
+    ITS_PIPELINE = 'apm-integration-tests-selector-mbp/main'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
     OPBEANS_REPO = 'opbeans-java'
     JOB_GCS_BUCKET_STASH = 'apm-ci-temp'
@@ -335,7 +335,8 @@ pipeline {
           axis {
             // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
             name 'JAVA_VERSION'
-            values 'openjdk12', 'openjdk13', 'openjdk14', 'openjdk17'
+            // 'openjdk18'  disabled for now see https://github.com/elastic/apm-agent-java/issues/2328
+            values 'openjdk17'
 
           }
         }

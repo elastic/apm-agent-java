@@ -124,6 +124,7 @@ class AnnotationApiTest extends AbstractApiTest {
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("app");
         assertThat(reporter.getFirstSpan().getSubtype()).isEqualTo("subtype");
         assertThat(reporter.getFirstSpan().getAction()).isEqualTo("action");
+        assertThat(reporter.getFirstSpan().getOutcome().toString()).isEqualTo("success");
     }
 
     @Test

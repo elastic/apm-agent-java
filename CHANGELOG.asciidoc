@@ -20,22 +20,49 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.28.3]]
-==== 1.28.3 - YYYY/MM/DD
-
-[float]
-===== Breaking changes
-* If the agent cannot discover a service name, it now uses `unknown-java-service` instead of `my-service` - {pull}2325[#2325]
+[[release-notes-1.28.5]]
+==== 1.28.5 - YYYY/MM/DD
 
 [float]
 ===== Features
+* Exceptions that are logged using the fatal log level are now captured (log4j2 only) - {pull}2377[#2377]
+* Replaced `authorization` in the default value of `sanitize_field_names` with `*auth*` - {pull}2326[#2326]
+
+[float]
+===== Bug fixes
+* Fix runtime attach with some docker images - {pull}2385[#2385]
+* Restore dynamic capability to `log_level` config for plugin loggers - {pull}2384[#2384]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.28.4]]
+==== 1.28.4 - 2021/12/30
+
+[float]
+===== Bug fixes
+* Fix `@Traced` annotation to return proper outcome instead of `failed` - {pull}2370[#2370]
+
+[float]
+===== Dependency updates
+* Update Log4j to 2.12.4 and log4j2-ecs-layout to 1.3.2 - {pull}2378[#2378]
+
+[[release-notes-1.28.3]]
+==== 1.28.3 - 2021/12/22
+
+[float]
+===== Dependency updates
+* Update Log4j to 2.12.3
+* Update ecs-logging-java to 1.3.0
+
+[float]
+===== Potentially breaking changes
+* If the agent cannot discover a service name, it now uses `unknown-java-service` instead of `my-service` - {pull}2325[#2325]
 
 [float]
 ===== Bug fixes
 * Gracefully handle JDBC drivers which don't support `Connection#getCatalog` - {pull}2340[#2340]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Fix using JVM keystore options for communication with APM Server - {pull}2362[#2362]
 
 [[release-notes-1.28.2]]
 ==== 1.28.2 - 2021/12/16
@@ -43,9 +70,6 @@ endif::[]
 [float]
 ===== Dependency updates
 * Update Log4j to 2.12.2
-
-[float]
-===== Features
 
 [float]
 ===== Bug fixes
@@ -165,6 +189,21 @@ discovery - {pull}2205[#2205]
 `TracerAwareInstrumentation` - {pull}2170[#2170]
 * Replace concurrency plugin maps to `SpanConcurrentHashMap` ones - {pull}2173[#2173]
 * Align User-Agent HTTP header with other APM agents - {pull}2177[#2177]
+
+[[release-notes-1.26.2]]
+==== 1.26.2 - 2021/12/30
+
+[float]
+===== Dependency updates
+* Update Log4j to 2.12.4 and log4j2-ecs-layout to 1.3.2 - {pull}2378[#2378]
+
+[[release-notes-1.26.1]]
+==== 1.26.1 - 2021/12/22
+
+[float]
+===== Dependency updates
+* Update Log4j to 2.12.3
+* Update ecs-logging-java to 1.3.0
 
 [[release-notes-1.26.0]]
 ==== 1.26.0 - 2021/09/14

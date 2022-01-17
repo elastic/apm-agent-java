@@ -27,9 +27,10 @@ public class ElasticAttachmentProvider {
 
     private static ByteBuddyAgent.AttachmentProvider provider;
 
+    private static ByteBuddyAgent.AttachmentProvider fallback;
+
     /**
      * Initializes attachment provider, this method can only be called once as it loads native code.
-     *
      */
     private synchronized static void init() {
         if (provider != null) {
@@ -44,14 +45,21 @@ public class ElasticAttachmentProvider {
             new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.MACINTOSH),
             new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForUserDefinedToolsJar.INSTANCE),
             // only use emulated attach last, as native attachment providers should be preferred
-            ByteBuddyAgent.AttachmentProvider.ForEmulatedAttachment.INSTANCE);
+            getFallback());
 
 
         provider = new ByteBuddyAgent.AttachmentProvider.Compound(providers);
     }
 
+    private synchronized static void initFallback(){
+        if (fallback != null) {
+            throw new IllegalStateException("ElasticAttachmentProvider.initFallback() should only be called once");
+        }
+        fallback = ByteBuddyAgent.AttachmentProvider.ForEmulatedAttachment.INSTANCE;
+    }
+
     /**
-     * Get (and optionally initialize) attachment provider, will internally call {@link #init()} if not already called
+     * Get (and optionally initialize) attachment provider
      *
      * @return attachment provider
      */
@@ -60,6 +68,18 @@ public class ElasticAttachmentProvider {
             init();
         }
         return provider;
+    }
+
+    /**
+     * Get (and optionally initialize) fallback (emulated) attachment provider
+     *
+     * @return fallback (emulated) attachment provider
+     */
+    public synchronized static ByteBuddyAgent.AttachmentProvider getFallback() {
+        if (fallback == null) {
+            initFallback();
+        }
+        return fallback;
     }
 
 }
