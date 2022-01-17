@@ -34,7 +34,7 @@
 
     <profiles>
         <profile>
-            <id>enable-application-integration-tests</id>
+            <id>ci-application-integration-tests</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>
@@ -43,7 +43,7 @@
             </properties>
         </profile>
         <profile>
-            <id>disable-application-integration-tests</id>
+            <id>ci-agent-integration-tests</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>

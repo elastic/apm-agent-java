@@ -35,8 +35,8 @@ pipeline {
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable Unit tests')
-    booleanParam(name: 'smoketests_ci', defaultValue: true, description: 'Enable Smoke tests')
-    booleanParam(name: 'integrationtests_ci', defaultValue: true, description: 'Enable Integration tests')
+    booleanParam(name: 'agent_integration_tests_ci', defaultValue: true, description: 'Enable Agent Integration tests')
+    booleanParam(name: 'endtoend_tests_ci', defaultValue: true, description: 'Enable APM End-to-End Integration tests')
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
     booleanParam(name: 'compatibility_ci', defaultValue: false, description: 'Enable JDK compatibility tests')
   }
@@ -153,7 +153,7 @@ pipeline {
             }
           }
         }
-        stage('Plugin integration tests') {
+        stage('Agent integration tests') {
           agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
@@ -163,15 +163,52 @@ pipeline {
           }
           when {
             beforeAgent true
-            expression { return params.smoketests_ci }
+            expression { return params.agent_integration_tests_ci }
           }
           steps {
-            withGithubNotify(context: 'Plugin integration tests', tab: 'tests') {
+            withGithubNotify(context: 'Agent integration tests', tab: 'tests') {
               deleteDir()
               unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
-                  sh './scripts/jenkins/integration-tests-plugins-core.sh'
+                  sh """
+                  #!/usr/bin/env bash
+                  set -euxo pipefail
+                  ./mvnw -q -P ci-agent-integration-tests verify
+                  """
+                }
+              }
+            }
+          }
+          post {
+            always {
+              reportTestResults()
+            }
+          }
+        }
+        stage('Application Server integration tests') {
+          agent { label 'linux && immutable' }
+          options { skipDefaultCheckout() }
+          environment {
+            HOME = "${env.WORKSPACE}"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
+            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+          }
+          when {
+            beforeAgent true
+            expression { return params.agent_integration_tests_ci }
+          }
+          steps {
+            withGithubNotify(context: 'Application Server integration tests', tab: 'tests') {
+              deleteDir()
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
+              dir("${BASE_DIR}"){
+                withOtelEnv() {
+                  sh """
+                  #!/usr/bin/env bash
+                  set -euxo pipefail
+                  ./mvnw -q -P ci-application-server-integration-tests verify
+                  """
                 }
               }
             }
@@ -192,15 +229,19 @@ pipeline {
           }
           when {
             beforeAgent true
-            expression { return params.smoketests_ci }
+            expression { return params.agent_integration_tests_ci }
           }
           steps {
             withGithubNotify(context: 'Application integration tests', tab: 'tests') {
               deleteDir()
-              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
               dir("${BASE_DIR}"){
                 withOtelEnv() {
-                  sh './scripts/jenkins/integration-tests-application.sh'
+                  sh """
+                  #!/usr/bin/env bash
+                  set -euxo pipefail
+                  ./mvnw -q -P ci-application-integration-tests verify
+                  """
                 }
               }
             }
@@ -296,7 +337,7 @@ pipeline {
           expression { return env.ONLY_DOCS == "false" }
           anyOf {
             changeRequest()
-            expression { return params.integrationtests_ci }
+            expression { return params.endtoend_tests_ci }
             expression { return env.GITHUB_COMMENT?.contains('integration tests') }
           }
         }
