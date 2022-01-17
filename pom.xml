@@ -164,7 +164,11 @@
               <activeByDefault>false</activeByDefault>
           </activation>
           <properties>
-              <skip.unit.test>true</skip.unit.test>
+              <!--
+              By default, enables all integration tests.
+              In integration-tests/application-server-integration-tests/pom.xml,
+              only that module is excluded by overriding skip.integration.test to true.
+              -->
               <skip.integration.test>false</skip.integration.test>
               <maven.javadoc.skip>true</maven.javadoc.skip>
           </properties>
@@ -179,7 +183,7 @@
               <plugin>
                   <artifactId>maven-surefire-plugin</artifactId>
                   <configuration>
-                      <skipTests>${skip.unit.test}</skipTests>
+                      <skipTests>true</skipTests>
                   </configuration>
               </plugin>
             </plugins>
@@ -191,9 +195,14 @@
               <activeByDefault>false</activeByDefault>
           </activation>
           <properties>
-              <skip.unit.test>true</skip.unit.test>
+              <!--
+              By default, disables all integration tests.
+              In integration-tests/application-server-integration-tests/pom.xml,
+              only that module is included by overriding skip.integration.test to false.
+              -->
               <skip.integration.test>true</skip.integration.test>
               <maven.javadoc.skip>true</maven.javadoc.skip>
+              <animal.sniffer.skip>true</animal.sniffer.skip>
           </properties>
           <build>
             <plugins>
@@ -206,7 +215,7 @@
               <plugin>
                   <artifactId>maven-surefire-plugin</artifactId>
                   <configuration>
-                      <skipTests>${skip.unit.test}</skipTests>
+                      <skipTests>true</skipTests>
                   </configuration>
               </plugin>
             </plugins>
