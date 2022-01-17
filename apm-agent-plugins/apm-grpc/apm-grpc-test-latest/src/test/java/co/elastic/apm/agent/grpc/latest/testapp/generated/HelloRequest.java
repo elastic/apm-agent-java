@@ -24,7 +24,7 @@ package co.elastic.apm.agent.grpc.latest.testapp.generated;
 /**
  * Protobuf type {@code helloworld.HelloRequest}
  */
-public  final class HelloRequest extends
+public final class HelloRequest extends
     com.google.protobuf.GeneratedMessageV3 implements
     // @@protoc_insertion_point(message_implements:helloworld.HelloRequest)
     HelloRequestOrBuilder {
@@ -116,6 +116,7 @@ private static final long serialVersionUID = 0L;
    * <code>string userName = 1;</code>
    * @return The userName.
    */
+  @java.lang.Override
   public java.lang.String getUserName() {
     java.lang.Object ref = userName_;
     if (ref instanceof java.lang.String) {
@@ -132,6 +133,7 @@ private static final long serialVersionUID = 0L;
    * <code>string userName = 1;</code>
    * @return The bytes for userName.
    */
+  @java.lang.Override
   public com.google.protobuf.ByteString
       getUserNameBytes() {
     java.lang.Object ref = userName_;
@@ -152,6 +154,7 @@ private static final long serialVersionUID = 0L;
    * <code>int32 depth = 2;</code>
    * @return The depth.
    */
+  @java.lang.Override
   public int getDepth() {
     return depth_;
   }
@@ -170,7 +173,7 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!getUserNameBytes().isEmpty()) {
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(userName_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 1, userName_);
     }
     if (depth_ != 0) {
@@ -185,7 +188,7 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!getUserNameBytes().isEmpty()) {
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(userName_)) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, userName_);
     }
     if (depth_ != 0) {
@@ -556,6 +559,7 @@ private static final long serialVersionUID = 0L;
      * <code>int32 depth = 2;</code>
      * @return The depth.
      */
+    @java.lang.Override
     public int getDepth() {
       return depth_;
     }
