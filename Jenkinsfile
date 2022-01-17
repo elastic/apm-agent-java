@@ -171,11 +171,7 @@ pipeline {
               unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
-                  sh """
-                  #!/usr/bin/env bash
-                  set -euxo pipefail
-                  ./mvnw -q -P ci-agent-integration-tests verify
-                  """
+                  sh './mvnw -q -P ci-agent-integration-tests verify'
                 }
               }
             }
@@ -204,11 +200,7 @@ pipeline {
               unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
-                  sh """
-                  #!/usr/bin/env bash
-                  set -euxo pipefail
-                  ./mvnw -q -P ci-application-server-integration-tests verify
-                  """
+                  sh './mvnw -q -P ci-application-server-integration-tests verify'
                 }
               }
             }
@@ -237,11 +229,7 @@ pipeline {
               unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
               dir("${BASE_DIR}"){
                 withOtelEnv() {
-                  sh """
-                  #!/usr/bin/env bash
-                  set -euxo pipefail
-                  ./mvnw -q -P ci-application-integration-tests verify
-                  """
+                  sh './mvnw -q -P ci-application-integration-tests verify'
                 }
               }
             }
