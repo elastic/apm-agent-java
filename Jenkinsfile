@@ -13,9 +13,11 @@ pipeline {
     ELASTIC_DOCKER_SECRET = 'secret/apm-team/ci/docker-registry/prod'
     CODECOV_SECRET = 'secret/apm-team/ci/apm-agent-java-codecov'
     GITHUB_CHECK_ITS_NAME = 'Integration Tests'
-    ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
+    ITS_PIPELINE = 'apm-integration-tests-selector-mbp/main'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
     OPBEANS_REPO = 'opbeans-java'
+    JOB_GCS_BUCKET_STASH = 'apm-ci-temp'
+    JOB_GCS_CREDENTIALS = 'apm-ci-gcs-plugin'
   }
   options {
     timeout(time: 90, unit: 'MINUTES')
@@ -28,7 +30,7 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger('(?i)(.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:(compatibility|benchmark|integration)\\W+)?tests(?:\\W+please)?.*|^/test(?:\\W+.*)?$)')
+    issueCommentTrigger("(${obltGitHubComments()}|^run (compatibility|benchmark|integration) tests)")
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
@@ -62,6 +64,11 @@ pipeline {
               dir("${BASE_DIR}"){
                 // Skip all the stages except docs for PR's with asciidoc and md changes only
                 env.ONLY_DOCS = isGitRegionMatch(patterns: [ '.*\\.(asciidoc|md)' ], shouldMatchAll: true)
+                // Prepare the env variables for the benchmark results
+                env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
+                env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
+                env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
+                env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
               }
             }
           }
@@ -91,7 +98,7 @@ pipeline {
                   sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
                 }
               }
-              stash allowEmpty: true, name: 'build', useDefaultExcludes: false
+              stashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
               archiveArtifacts allowEmptyArchive: true,
                 artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
                       ${BASE_DIR}/apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar,${BASE_DIR}/apm-agent-api/target/apm-agent-api-*.jar,\
@@ -129,7 +136,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Unit Tests', tab: 'tests') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   sh """#!/bin/bash
@@ -164,7 +171,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Smoke Tests 01', tab: 'tests') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   sh './scripts/jenkins/smoketests-01.sh'
@@ -196,7 +203,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Smoke Tests 02', tab: 'tests') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   sh './scripts/jenkins/smoketests-02.sh'
@@ -239,14 +246,8 @@ pipeline {
           steps {
             withGithubNotify(context: 'Benchmarks', tab: 'artifacts') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
-                script {
-                  env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
-                  env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
-                  env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
-                  env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
-                }
                 withOtelEnv() {
                   sh './scripts/jenkins/run-benchmarks.sh'
                 }
@@ -280,7 +281,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Javadoc') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   sh """#!/bin/bash
@@ -334,7 +335,9 @@ pipeline {
           axis {
             // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
             name 'JAVA_VERSION'
-            values 'openjdk12', 'openjdk13', 'openjdk14', 'openjdk15', 'openjdk16'
+            // 'openjdk18'  disabled for now see https://github.com/elastic/apm-agent-java/issues/2328
+            values 'openjdk17'
+
           }
         }
         stages {
@@ -347,7 +350,7 @@ pipeline {
             steps {
               withGithubNotify(context: "Unit Tests ${JAVA_VERSION}", tab: 'tests') {
                 deleteDir()
-                unstash 'build'
+                unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
                 dir("${BASE_DIR}"){
                   withOtelEnv() {
                     sh(label: "./mvnw test for ${JAVA_VERSION}", script: './mvnw test')
@@ -396,8 +399,9 @@ pipeline {
           steps {
             deleteDir()
             dir("${OPBEANS_REPO}"){
-              git credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
-                  url: "git@github.com:elastic/${OPBEANS_REPO}.git"
+              git(credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
+                  url: "git@github.com:elastic/${OPBEANS_REPO}.git",
+                  branch: 'main')
               // It's required to transform the tag value to the artifact version
               sh script: ".ci/bump-version.sh ${env.BRANCH_NAME.replaceAll('^v', '')}", label: 'Bump version'
               // The opbeans-java pipeline will trigger a release for the master branch

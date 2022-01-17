@@ -43,6 +43,7 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,7 +53,6 @@ import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -66,8 +66,9 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * This will also create the plugin class loader.
  * </p>
  * <pre>
- *   Bootstrap CL ←──────────────────────────── Agent CL
- *       ↑ └java.lang.IndyBootstrapDispatcher ─ ↑ ─→ └ {@link IndyBootstrap#bootstrap}
+ *                      {@code co.elastic.apm.agent.premain.ShadedClassLoader}
+ *   Bootstrap CL ←─────Cached Lookup Key────── Agent CL {@code co.elastic.apm.agent.premain.ShadedClassLoader}
+ *       ↑ └java.lang.IndyBootstrapDispatcher ─ ↑ ───→ └ {@link IndyBootstrap#bootstrap}
  *     Ext/Platform CL               ↑          │                        ╷
  *       ↑                           ╷          │                        ↓
  *     System CL                     ╷          │        {@link IndyPluginClassLoaderFactory#getOrCreatePluginClassLoader}
@@ -77,8 +78,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * WebApp1  WebApp2                  ╷          │ ├ AdviceHelper      creates
  *          ↑ - InstrumentedClass    ╷          │ ├ GlobalState          ╷
  *          │                ╷       ╷          │ └ LookupExposer        ╷
- *          │                INVOKEDYNAMIC      │                        ↓
- *          └────────────────┼──────────────────{@link IndyPluginClassLoader}
+ *          │                INVOKEDYNAMIC      │                        ╷
+ *          └────────────────┼──────────────────{@link co.elastic.apm.agent.bci.classloading.DiscriminatingMultiParentClassLoader}
+ *                           │                  ↑                        ↓
+ *                           │                  {@link IndyPluginClassLoader}
  *                           └╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶→ ├ AdviceClass
  *                                              ├ AdviceHelper
  *                                              └ LookupExposer
@@ -165,19 +168,28 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 public class IndyBootstrap {
 
     /**
-     * Starts with {@code java.lang} so that OSGi class loaders don't restrict access to it
+     * Starts with {@code java.lang} so that OSGi class loaders don't restrict access to it.
+     * This also allows to load it in {@code java.base} module on Java9+ for Hotspot, Open J9 requires {@code ModuleSetter}
      */
     private static final String INDY_BOOTSTRAP_CLASS_NAME = "java.lang.IndyBootstrapDispatcher";
+
+    /**
+     * The class file of {@code IndyBootstrapDispatcher}, loaded from classpath resource, {@code esclazz} extension avoids
+     * being loaded as a regular class.
+     */
+    private static final String INDY_BOOTSTRAP_RESOURCE = "bootstrap/java/lang/IndyBootstrapDispatcher.esclazz";
+
     /**
      * Needs to be loaded from the bootstrap CL because it uses {@code sun.misc.Unsafe}.
      * In addition, needs to be loaded explicitly by name only when running on Java 9, because compiled with Java 9
      */
-    private static final String INDY_BOOTSTRAP_MODULE_SETTER_CLASS_NAME = "co.elastic.apm.agent.bci.IndyBootstrapDispatcherModuleSetter";
+    private static final String INDY_BOOTSTRAP_MODULE_SETTER_CLASS_NAME = "co.elastic.apm.agent.modulesetter.ModuleSetter";
+
     /**
-     * The class file of {@code java.lang.IndyBootstrapDispatcher}.
-     * Ends with {@code clazz} because if it ended with {@code class}, it would be loaded like a regular class.
+     * The class file of {@code ModuleSetter}, loaded from classpath resource, {@code esclazz} extension avoids being
+     * loaded as a regular class.
      */
-    private static final String INDY_BOOTSTRAP_RESOURCE = "bootstrap/IndyBootstrapDispatcher.clazz";
+    private static final String INDY_BOOTSTRAP_MODULE_SETTER_RESOURCE = "bootstrap/co/elastic/apm/agent/modulesetter/ModuleSetter.esclazz";
 
     /**
      * The name of the class we use as the lookup class during the invokedynamic bootstrap flow. The bytecode of this
@@ -217,17 +229,7 @@ public class IndyBootstrap {
      * Injects the {@code java.lang.IndyBootstrapDispatcher} class into the bootstrap class loader if it wasn't already.
      */
     private static Class<?> initIndyBootstrap(final Logger logger) throws Exception {
-        Class<?> indyBootstrapDispatcherClass;
-        try {
-            indyBootstrapDispatcherClass = Class.forName(INDY_BOOTSTRAP_CLASS_NAME, false, null);
-        } catch (ClassNotFoundException e) {
-            byte[] bootstrapClass = IOUtils.readToBytes(ElasticApmAgent.getAgentClassLoader().getResourceAsStream(INDY_BOOTSTRAP_RESOURCE));
-            if (bootstrapClass == null || bootstrapClass.length == 0) {
-                throw new IllegalStateException("Could not locate " + INDY_BOOTSTRAP_RESOURCE);
-            }
-            ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(INDY_BOOTSTRAP_CLASS_NAME, bootstrapClass));
-            indyBootstrapDispatcherClass = Class.forName(INDY_BOOTSTRAP_CLASS_NAME, false, null);
-        }
+        Class<?> indyBootstrapDispatcherClass = loadClassInBootstrap(INDY_BOOTSTRAP_CLASS_NAME, INDY_BOOTSTRAP_RESOURCE);
 
         if (JvmRuntimeInfo.ofCurrentVM().getMajorVersion() >= 9 && JvmRuntimeInfo.ofCurrentVM().isJ9VM()) {
             try {
@@ -241,6 +243,42 @@ public class IndyBootstrap {
     }
 
     /**
+     * Loads a class from classpath resource in bootstrap classloader.
+     * <p>
+     * Ensuring that classes loaded through this method can ONLY be loaded in the bootstrap CL requires the following:
+     * <ul>
+     *     <li>The class bytecode resource name should not end with the {@code .class} suffix</li>
+     *     <li>The class bytecode resource name should be in a location that reflects its package</li>
+     *     <li>For tests in IDE, the class name used here should be distinct from its original class name to ensure
+     *     that only the relocated resource is being used</li>
+     * </ul>
+     *
+     * @param className    class name
+     * @param resourceName class resource name
+     * @return class loaded in bootstrap classloader
+     * @throws IOException            if unable to open provided resource
+     * @throws ClassNotFoundException if unable to load class in bootstrap CL
+     */
+    private static Class<?> loadClassInBootstrap(String className, String resourceName) throws IOException, ClassNotFoundException {
+        Class<?> bootstrapClass;
+        try {
+            // Will return non-null value only if the class has already been loaded.
+            // Ensuring that a class can ONLY be loaded through this method and not from regular classloading relies
+            // on applying the listed instructions in method documentation
+            bootstrapClass = Class.forName(className, false, null);
+        } catch (ClassNotFoundException e) {
+            byte[] classBytes = IOUtils.readToBytes(ElasticApmAgent.getAgentClassLoader().getResourceAsStream(resourceName));
+            if (classBytes == null || classBytes.length == 0) {
+                throw new IllegalStateException("Could not locate " + resourceName);
+            }
+            ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(className, classBytes));
+            bootstrapClass = Class.forName(className, false, null);
+        }
+        return bootstrapClass;
+    }
+
+
+    /**
      * A package-private method for unit-testing of the module overriding functionality
      *
      * @param targetClass class for which module should be overridden with the {@code java.base} module
@@ -249,7 +287,8 @@ public class IndyBootstrap {
     static void setJavaBaseModule(Class<?> targetClass) throws Throwable {
         // In order to override the original unnamed module assigned to the IndyBootstrapDispatcher, we rely on the
         // Unsafe API, which requires the caller to be loaded by the Bootstrap CL
-        Class<?> moduleSetterClass = Class.forName(INDY_BOOTSTRAP_MODULE_SETTER_CLASS_NAME, false, null);
+
+        Class<?> moduleSetterClass = loadClassInBootstrap(INDY_BOOTSTRAP_MODULE_SETTER_CLASS_NAME, INDY_BOOTSTRAP_MODULE_SETTER_RESOURCE);
         MethodHandles.lookup()
             .findStatic(moduleSetterClass, "setJavaBaseModule", MethodType.methodType(void.class, Class.class))
             .invoke(targetClass);
@@ -348,9 +387,6 @@ public class IndyBootstrap {
                 instrumentationClassLoader,
                 classFileLocator,
                 isAnnotatedWith(named(GlobalState.class.getName()))
-                    // no plugin CL necessary as all types are available form bootstrap CL
-                    // also, this plugin is used as a dependency in other plugins
-                    .or(nameStartsWith("co.elastic.apm.agent.concurrent"))
                     // if config classes would be loaded from the plugin CL,
                     // tracer.getConfig(Config.class) would return null when called from an advice as the classes are not the same
                     .or(nameContains("Config").and(hasSuperType(is(ConfigurationOptionProvider.class)))));
@@ -375,7 +411,12 @@ public class IndyBootstrap {
         String pluginPackage = adviceClassName.substring(0, adviceClassName.indexOf('.', EMBEDDED_PLUGINS_PACKAGE_PREFIX.length()));
         List<String> pluginClasses = classesByPackage.get(pluginPackage);
         if (pluginClasses == null) {
-            classesByPackage.putIfAbsent(pluginPackage, PackageScanner.getClassNames(pluginPackage, adviceClassLoader));
+            pluginClasses = new ArrayList<>();
+            Collection<String> pluginClassLoaderRootPackages = ElasticApmAgent.getPluginClassLoaderRootPackages(pluginPackage);
+            for (String pkg : pluginClassLoaderRootPackages) {
+                pluginClasses.addAll(PackageScanner.getClassNames(pkg, adviceClassLoader));
+            }
+            classesByPackage.putIfAbsent(pluginPackage, pluginClasses);
             pluginClasses = classesByPackage.get(pluginPackage);
         }
         return pluginClasses;

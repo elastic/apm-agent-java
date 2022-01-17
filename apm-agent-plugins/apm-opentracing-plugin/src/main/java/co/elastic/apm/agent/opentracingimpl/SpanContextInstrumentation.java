@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.opentracingimpl;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -63,7 +62,7 @@ public abstract class SpanContextInstrumentation extends OpenTracingBridgeInstru
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Iterable<Map.Entry<String, String>> baggageItems(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
                 if (context instanceof AbstractSpan<?>) {
@@ -90,7 +89,7 @@ public abstract class SpanContextInstrumentation extends OpenTracingBridgeInstru
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static String toTraceId(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
                 if (!(context instanceof AbstractSpan<?>)) {
@@ -110,7 +109,7 @@ public abstract class SpanContextInstrumentation extends OpenTracingBridgeInstru
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static String toTraceId(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
                 if (!(context instanceof AbstractSpan<?>)) {

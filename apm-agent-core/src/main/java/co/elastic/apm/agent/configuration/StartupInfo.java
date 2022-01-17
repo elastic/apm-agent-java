@@ -44,12 +44,7 @@ public class StartupInfo extends AbstractLifecycleListener {
     private final String elasticApmVersion;
 
     public StartupInfo() {
-        final String version = VersionUtils.getAgentVersion();
-        if (version != null) {
-            elasticApmVersion = version;
-        } else {
-            elasticApmVersion = "(unknown version)";
-        }
+        elasticApmVersion = VersionUtils.getAgentVersion();
     }
 
     private static String getJvmAndOsVersionString() {
@@ -68,7 +63,17 @@ public class StartupInfo extends AbstractLifecycleListener {
 
     void logConfiguration(ConfigurationRegistry configurationRegistry, Logger logger) {
         final String serviceName = configurationRegistry.getConfig(CoreConfiguration.class).getServiceName();
-        logger.info("Starting Elastic APM {} as {} on {}", elasticApmVersion, serviceName, getJvmAndOsVersionString());
+        final String serviceVersion = configurationRegistry.getConfig(CoreConfiguration.class).getServiceVersion();
+
+        StringBuilder serviceNameAndVersion = new StringBuilder(serviceName);
+        if (serviceVersion != null) {
+            serviceNameAndVersion.append(" (").append(serviceVersion).append(")");
+        }
+
+        logger.info("Starting Elastic APM {} as {} on {}",
+            elasticApmVersion,
+            serviceNameAndVersion,
+            getJvmAndOsVersionString());
         logger.debug("VM Arguments: {}", ManagementFactory.getRuntimeMXBean().getInputArguments());
         for (List<ConfigurationOption<?>> options : configurationRegistry.getConfigurationOptionsByCategory().values()) {
             for (ConfigurationOption<?> option : options) {

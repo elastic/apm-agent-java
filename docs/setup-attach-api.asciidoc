@@ -10,9 +10,6 @@ NOTE: This installation method is in beta.
 The attachment is supported on Windows,
 Unix and Solaris operating systems on HotSpot-based JVMs (like OpenJDK and Oracle JDK) and OpenJ9.
 
-Some flags, like `--include` and `--exclude` require the `jps` command to be installed,
-which is part of the JDK distribution and does not typically come with the JRE distribution.
-
 [float]
 [[setup-attach-api-caveats]]
 ==== Caveats
@@ -26,6 +23,12 @@ the first `attach()` wins and the second one will be ignored.
 That also means that if you are configuring the agent with `elasticapm.properties`,
 the application which attaches first gets to decide the configuration.
 See the default value description of the <<config-service-name>> configuration option for ways to have different `service.name`s for each deployment.
+
+The `apm-agent-attach` artifact has a transitive dependency on JNA which can be excluded most of the time when running
+the application with a JDK. However, it will be required in the following cases:
+
+* When attaching to a JRE and no other copy of JNA is present on the application classpath
+* When attaching to a JDK fails and using JRE attach strategy as fallback.
 
 [float]
 [[setup-attach-api-usage]]
@@ -41,6 +44,12 @@ Declare a dependency to the link:https://search.maven.org/search?q=g:co.elastic.
     <artifactId>apm-agent-attach</artifactId>
     <version>${elastic-apm.version}</version>
 </dependency>
+----
+
+[source,groovy]
+.build.gradle
+----
+compile "co.elastic.apm:apm-agent-attach:$elasticApmVersion"
 ----
 
 

@@ -19,14 +19,15 @@
 package co.elastic.apm.agent.esrestclient.v6_4;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.MetaDataMock;
-import co.elastic.apm.agent.impl.payload.Agent;
-import co.elastic.apm.agent.impl.payload.ProcessInfo;
-import co.elastic.apm.agent.impl.payload.Service;
-import co.elastic.apm.agent.impl.payload.SystemInfo;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
+import co.elastic.apm.agent.impl.metadata.Agent;
+import co.elastic.apm.agent.impl.metadata.ProcessInfo;
+import co.elastic.apm.agent.impl.metadata.Service;
+import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
@@ -74,7 +75,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -128,11 +128,11 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         when(reporterConfiguration.getMaxQueueSize()).thenReturn(0);
         StacktraceConfiguration stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(30);
-        SystemInfo system = new SystemInfo("x64", "localhost", "platform");
+        SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final Service service = new Service().withName("Eyal-ES-client-test").withAgent(new Agent("java", "Test"));
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
-        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, configurationRegistry.getConfig(CoreConfiguration.class));
         apmServerClient.start();
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
@@ -140,7 +140,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
             new DslJsonSerializer(
                 mock(StacktraceConfiguration.class),
                 apmServerClient,
-                MetaDataMock.create(title, service, system, null, Collections.emptyMap())
+                MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
             ),
             apmServerClient);
         realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler);
@@ -159,11 +159,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         container.stop();
         client.close();
 
-        try {
-            realReporter.flush().get();
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
+        realReporter.flush();
     }
 
     @Before

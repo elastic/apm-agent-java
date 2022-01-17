@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.26.1-SNAPSHOT</version>
+        <version>1.28.5-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-plugins</artifactId>
@@ -64,6 +64,11 @@
         <module>apm-vertx</module>
         <module>apm-sparkjava-plugin</module>
         <module>apm-javalin-plugin</module>
+        <module>apm-awslambda-plugin</module>
+        <module>apm-servlet-jakarta-test</module>
+        <module>apm-jaxws-plugin-jakartaee-test</module>
+        <module>apm-jaxrs-plugin-jakartaee-test</module>
+        <module>apm-scheduled-annotation-plugin-jakartaee-test</module>
     </modules>
 
     <dependencies>
@@ -71,6 +76,17 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <!--
+                Plugins shouldn't be aware of the logging implementation
+                In fact, plugins are disallowed to load log4j classes from the agent CL
+                so that they can instrument the log4j that comes with the application
+                -->
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

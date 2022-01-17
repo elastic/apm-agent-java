@@ -22,7 +22,6 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -121,7 +120,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Object doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
                                               @Advice.Return @Nullable Object returnValue) {
@@ -141,7 +140,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Object doCreateExitSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
                                                   @Advice.Return @Nullable Object returnValue) {
@@ -254,7 +253,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static String captureException(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
                                                   @Advice.Argument(0) Throwable t,
@@ -297,7 +296,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static String getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
                                        @Advice.Return @Nullable String returnValue) {
@@ -317,7 +316,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         public static class AdviceClass {
             @Nullable
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static String getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
                                             @Advice.Return @Nullable String returnValue) {
@@ -402,7 +401,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         public static class AdviceClass {
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static boolean isSampled(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
                                             @Advice.Return boolean returnValue) {

@@ -22,22 +22,26 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.MetaData;
-import co.elastic.apm.agent.impl.MetaDataMock;
+import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
+import co.elastic.apm.agent.impl.metadata.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.payload.Agent;
-import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
-import co.elastic.apm.agent.impl.payload.Language;
-import co.elastic.apm.agent.impl.payload.ProcessInfo;
-import co.elastic.apm.agent.impl.payload.Service;
-import co.elastic.apm.agent.impl.payload.SystemInfo;
+import co.elastic.apm.agent.impl.metadata.Agent;
+import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
+import co.elastic.apm.agent.impl.metadata.Framework;
+import co.elastic.apm.agent.impl.metadata.Language;
+import co.elastic.apm.agent.impl.metadata.NameAndIdField;
+import co.elastic.apm.agent.impl.metadata.ProcessInfo;
+import co.elastic.apm.agent.impl.metadata.Service;
+import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -92,7 +96,7 @@ class DslJsonSerializerTest {
         StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
         when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(15);
         apmServerClient = mock(ApmServerClient.class);
-        metaData = MetaData.create(SpyConfiguration.createSpyConfig(), null);
+        metaData = MetaDataMock.create();
         serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData);
         serializer.blockUntilReady();
         objectMapper = new ObjectMapper();
@@ -157,6 +161,7 @@ class DslJsonSerializerTest {
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
+        error.setTransactionName(new StringBuilder("Test Transaction"));
         error.setException(new Exception("test"));
         error.getContext().addLabel("foo", "bar");
 
@@ -176,8 +181,10 @@ class DslJsonSerializerTest {
         JsonNode stacktrace = exception.get("stacktrace");
         assertThat(stacktrace).hasSize(15);
 
-        assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isTrue();
-        assertThat(errorTree.get("transaction").get("type").textValue()).isEqualTo("test-type");
+        JsonNode transactionTree = errorTree.get("transaction");
+        assertThat(transactionTree.get("sampled").booleanValue()).isTrue();
+        assertThat(transactionTree.get("type").textValue()).isEqualTo("test-type");
+        assertThat(transactionTree.get("name").asText()).isEqualTo("Test Transaction");
     }
 
     @Test
@@ -212,6 +219,11 @@ class DslJsonSerializerTest {
         assertThat(errorTree.get("trace_id")).isNull();
         assertThat(errorTree.get("parent_id")).isNull();
         assertThat(errorTree.get("transaction_id")).isNull();
+
+        JsonNode transactionTree = errorTree.get("transaction");
+        assertThat(transactionTree.get("sampled").booleanValue()).isFalse();
+        assertThat(transactionTree.get("type")).isNull();
+        assertThat(transactionTree.get("name")).isNull();
     }
 
     @Test
@@ -255,17 +267,17 @@ class DslJsonSerializerTest {
 
     }
 
-    private static JsonNode checkExceptionCause(JsonNode exception, Class<?> expectedType, String expectedMessage){
+    private static JsonNode checkExceptionCause(JsonNode exception, Class<?> expectedType, String expectedMessage) {
         JsonNode causeArray = exception.get("cause");
         assertThat(causeArray.getNodeType())
             .describedAs("cause should be an array")
             .isEqualTo(JsonNodeType.ARRAY);
         assertThat(causeArray).hasSize(1);
 
-        return checkException( causeArray.get(0), expectedType, expectedMessage);
+        return checkException(causeArray.get(0), expectedType, expectedMessage);
     }
 
-    private static JsonNode checkException(JsonNode jsonException, Class<?> expectedType, String expectedMessage){
+    private static JsonNode checkException(JsonNode jsonException, Class<?> expectedType, String expectedMessage) {
         assertThat(jsonException.get("type").textValue()).isEqualTo(expectedType.getName());
         assertThat(jsonException.get("message").textValue()).isEqualTo(expectedMessage);
 
@@ -537,6 +549,7 @@ class DslJsonSerializerTest {
     void testSpanMessageContextSerialization() {
         Span span = new Span(MockTracer.create());
         span.getContext().getMessage()
+            .withRoutingKey("routing-key")
             .withQueue("test-queue")
             .withBody("test-body")
             .addHeader("text-header", "text-value")
@@ -561,6 +574,23 @@ class DslJsonSerializerTest {
         JsonNode ms = age.get("ms");
         assertThat(ms).isNotNull();
         assertThat(ms.longValue()).isEqualTo(20);
+        JsonNode routingKey = message.get("routing_key");
+        assertThat(routingKey.textValue()).isEqualTo("routing-key");
+    }
+
+    @Test
+    void testSpanMessageContextSerializationWithoutRoutingKey() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getMessage()
+            .withQueue("test-queue")
+            .withBody("test-body")
+            .addHeader("text-header", "text-value")
+            .addHeader("binary-header", "binary-value".getBytes(StandardCharsets.UTF_8))
+            .withAge(20);
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode routingKey = spanJson.get("context").get("message").get("routing_key");
+        assertThat(routingKey).isNull();
     }
 
     @Test
@@ -631,6 +661,7 @@ class DslJsonSerializerTest {
 
         Service service = new Service()
             .withAgent(new Agent("MyAgent", "1.11.1"))
+            .withFramework(new Framework("Lambda_Java", "1.2.3"))
             .withName("MyService")
             .withVersion("1.0")
             .withLanguage(new Language("c++", "14"));
@@ -643,7 +674,10 @@ class DslJsonSerializerTest {
         serializer = new DslJsonSerializer(
             mock(StacktraceConfiguration.class),
             apmServerClient,
-            MetaDataMock.create(processInfo, service, systemInfo, cloudProviderInfo, Map.of("foo", "bar", "עברית", "בדיקה"))
+            MetaDataMock.create(
+                processInfo, service, systemInfo, cloudProviderInfo,
+                Map.of("foo", "bar", "עברית", "בדיקה"), createFaaSMetaDataExtension()
+            )
         );
         serializer.blockUntilReady();
         serializer.appendMetaDataNdJsonToStream();
@@ -652,12 +686,18 @@ class DslJsonSerializerTest {
         JsonNode serviceJson = metaDataJson.get("service");
         assertThat(service).isNotNull();
         assertThat(serviceJson.get("name").textValue()).isEqualTo("MyService");
+        assertThat(serviceJson.get("id").textValue()).isEqualTo("service-id");
         assertThat(serviceJson.get("version").textValue()).isEqualTo("1.0");
 
         JsonNode languageJson = serviceJson.get("language");
         assertThat(languageJson).isNotNull();
         assertThat(languageJson.get("name").asText()).isEqualTo("c++");
         assertThat(languageJson.get("version").asText()).isEqualTo("14");
+
+        JsonNode frameworkJson = serviceJson.get("framework");
+        assertThat(frameworkJson).isNotNull();
+        assertThat(frameworkJson.get("name").asText()).isEqualTo("Lambda_Java");
+        assertThat(frameworkJson.get("version").asText()).isEqualTo("1.2.3");
 
         JsonNode agentJson = serviceJson.get("agent");
         assertThat(agentJson).isNotNull();
@@ -695,6 +735,8 @@ class DslJsonSerializerTest {
         assertThat(jsonCloud.get("provider").asText()).isEqualTo("aws");
         assertThat(jsonCloud.get("region").asText()).isEqualTo("region");
         JsonNode jsonCloudAccount = jsonCloud.get("account");
+        assertThat(jsonCloudAccount).isNotNull();
+        assertThat(jsonCloudAccount.get("name")).isNull();
         assertThat(jsonCloudAccount.get("id").asText()).isEqualTo("accountId");
         JsonNode jsonCloudInstance = jsonCloud.get("instance");
         assertThat(jsonCloudInstance.get("id").asText()).isEqualTo("instanceId");
@@ -704,6 +746,9 @@ class DslJsonSerializerTest {
         JsonNode jsonCloudProject = jsonCloud.get("project");
         assertThat(jsonCloudProject.get("id").asText()).isEqualTo("projectId");
         assertThat(jsonCloudProject.get("name").asText()).isEqualTo("projectName");
+        JsonNode jsonCloudService = jsonCloud.get("service");
+        assertThat(jsonCloudService).isNotNull();
+        assertThat(jsonCloudService.get("name").asText()).isEqualTo("ec2");
     }
 
     @Test
@@ -737,7 +782,7 @@ class DslJsonSerializerTest {
             .withEmail("user@email.com")
             .withUsername("bob");
 
-        Request request =  transaction.getContext().getRequest();
+        Request request = transaction.getContext().getRequest();
 
         request.withMethod("PUT")
             .withHttpVersion("5.0")
@@ -764,6 +809,16 @@ class DslJsonSerializerTest {
             .withStatusCode(418);
 
         transaction.getContext().getMessage().withQueue("test_queue").withAge(0);
+
+        transaction.getFaas()
+            .withExecution("faas_execution")
+            .withColdStart(true)
+            .getTrigger()
+            .withType("other")
+            .withRequestId("requestId");
+
+        transaction.getContext().getServiceOrigin().withName("origin_service_name").withId("origin_service_id").withVersion("origin_service_version");
+        transaction.getContext().getCloudOrigin().withRegion("origin_cloud_region").withAccountId("origin_cloud_account_id").withProvider("origin_cloud_provider").withServiceName("origin_cloud_service_name");
 
         TraceContext ctx = transaction.getTraceContext();
 
@@ -830,6 +885,31 @@ class DslJsonSerializerTest {
         JsonNode ms = age.get("ms");
         assertThat(ms).isNotNull();
         assertThat(ms.longValue()).isEqualTo(0);
+
+        JsonNode jsonService = jsonContext.get("service");
+        JsonNode jsonServiceOrigin = jsonService.get("origin");
+        assertThat(jsonServiceOrigin.get("name").asText()).isEqualTo("origin_service_name");
+        assertThat(jsonServiceOrigin.get("id").asText()).isEqualTo("origin_service_id");
+        assertThat(jsonServiceOrigin.get("version").asText()).isEqualTo("origin_service_version");
+
+        JsonNode jsonCloud = jsonContext.get("cloud");
+        JsonNode jsonCloudOrigin = jsonCloud.get("origin");
+        assertThat(jsonCloudOrigin.get("region").asText()).isEqualTo("origin_cloud_region");
+        assertThat(jsonCloudOrigin.get("provider").asText()).isEqualTo("origin_cloud_provider");
+        JsonNode jsonCloudOriginAccount = jsonCloudOrigin.get("account");
+        assertThat(jsonCloudOriginAccount.get("id").asText()).isEqualTo("origin_cloud_account_id");
+        JsonNode jsonCloudOriginService = jsonCloudOrigin.get("service");
+        assertThat(jsonCloudOriginService.get("name").asText()).isEqualTo("origin_cloud_service_name");
+
+        JsonNode jsonFaas = json.get("faas");
+        assertThat(jsonFaas).isNotNull();
+        assertThat(jsonFaas.get("execution").asText()).isEqualTo("faas_execution");
+        assertThat(jsonFaas.get("coldstart").asBoolean()).isEqualTo(true);
+
+        JsonNode jsonFaasTrigger = jsonFaas.get("trigger");
+        assertThat(jsonFaasTrigger).isNotNull();
+        assertThat(jsonFaasTrigger.get("type").asText()).isEqualTo("other");
+        assertThat(jsonFaasTrigger.get("request_id").asText()).isEqualTo("requestId");
     }
 
     @Test
@@ -852,6 +932,7 @@ class DslJsonSerializerTest {
 
     /**
      * Tests that body not properly finished (not properly flipped) is ignored from serialization
+     *
      * @throws IOException indicates failure in deserialization
      */
     @Test
@@ -910,21 +991,78 @@ class DslJsonSerializerTest {
         assertThat(transactionNode.get("span_count").get("started").asInt()).isEqualTo(0);
     }
 
-    @Test
-    void testSystemInfo() throws Exception {
-        String arc = System.getProperty("os.arch");
-        String platform = System.getProperty("os.name");
-        String hostname = SystemInfo.getNameOfLocalHost();
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSystemInfo_configuredHostname(boolean supportsConfiguredAndDetectedHostname) throws Exception {
+        String arc = "test-arc";
+        String platform = "test-platform";
 
-        MetaData metaData = createMetaData();
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter());
+        MetaData metaData = createMetaData(new SystemInfo(arc, "configured", "detected", platform));
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname);
         serializer.appendMetadataToStream();
 
         JsonNode system = readJsonString(serializer.toString()).get("system");
 
         assertThat(arc).isEqualTo(system.get("architecture").asText());
-        assertThat(hostname).isEqualTo(system.get("hostname").asText());
         assertThat(platform).isEqualTo(system.get("platform").asText());
+        if (supportsConfiguredAndDetectedHostname) {
+            assertThat(system.get("configured_hostname").asText()).isEqualTo("configured");
+            assertThat(system.get("detected_hostname")).isNull();
+            assertThat(system.get("hostname")).isNull();
+        } else {
+            assertThat(system.get("configured_hostname")).isNull();
+            assertThat(system.get("detected_hostname")).isNull();
+            assertThat(system.get("hostname").asText()).isEqualTo("configured");
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSystemInfo_detectedHostname(boolean supportsConfiguredAndDetectedHostname) throws Exception {
+        String arc = "test-arc";
+        String platform = "test-platform";
+
+        MetaData metaData = createMetaData(new SystemInfo(arc, null, "detected", platform));
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname);
+        serializer.appendMetadataToStream();
+
+        JsonNode system = readJsonString(serializer.toString()).get("system");
+
+        assertThat(arc).isEqualTo(system.get("architecture").asText());
+        assertThat(platform).isEqualTo(system.get("platform").asText());
+        if (supportsConfiguredAndDetectedHostname) {
+            assertThat(system.get("configured_hostname")).isNull();
+            assertThat(system.get("detected_hostname").asText()).isEqualTo("detected");
+            assertThat(system.get("hostname")).isNull();
+        } else {
+            assertThat(system.get("configured_hostname")).isNull();
+            assertThat(system.get("detected_hostname")).isNull();
+            assertThat(system.get("hostname").asText()).isEqualTo("detected");
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSystemInfo_nullHostname(boolean supportsConfiguredAndDetectedHostname) throws Exception {
+        String arc = "test-arc";
+        String platform = "test-platform";
+
+        MetaData metaData = createMetaData(new SystemInfo(arc, null, null, platform));
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname);
+        serializer.appendMetadataToStream();
+
+        JsonNode system = readJsonString(serializer.toString()).get("system");
+        assertThat(arc).isEqualTo(system.get("architecture").asText());
+        assertThat(platform).isEqualTo(system.get("platform").asText());
+        if (supportsConfiguredAndDetectedHostname) {
+            assertThat(system.get("configured_hostname")).isNull();
+            assertThat(system.get("detected_hostname")).isNull();
+            assertThat(system.get("hostname")).isNull();
+        } else {
+            assertThat(system.get("configured_hostname")).isNull();
+            assertThat(system.get("detected_hostname")).isNull();
+            assertThat(system.get("hostname").asText()).isEqualTo("<unknown>");
+        }
     }
 
     @Test
@@ -935,8 +1073,9 @@ class DslJsonSerializerTest {
         cloudProviderInfo.setMachine(null);
         cloudProviderInfo.setProject(null);
         cloudProviderInfo.setInstance(null);
+        cloudProviderInfo.setService(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter());
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true);
         serializer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
@@ -952,6 +1091,8 @@ class DslJsonSerializerTest {
         assertThat(jsonCloudMachine).isNull();
         JsonNode jsonCloudProject = jsonCloud.get("project");
         assertThat(jsonCloudProject).isNull();
+        JsonNode jsonCloudService = jsonCloud.get("service");
+        assertThat(jsonCloudService).isNull();
     }
 
     @Test
@@ -961,7 +1102,7 @@ class DslJsonSerializerTest {
         Objects.requireNonNull(cloudProviderInfo.getProject()).setName(null);
         Objects.requireNonNull(cloudProviderInfo.getInstance()).setName(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter());
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true);
         serializer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
@@ -987,14 +1128,14 @@ class DslJsonSerializerTest {
     void testCloudProviderInfoWithNullNameAndIdFields() throws Exception {
         MetaData metaData = createMetaData();
         CloudProviderInfo cloudProviderInfo = Objects.requireNonNull(metaData.getCloudProviderInfo());
-        CloudProviderInfo.NameAndIdField project = Objects.requireNonNull(cloudProviderInfo.getProject());
+        NameAndIdField project = Objects.requireNonNull(cloudProviderInfo.getProject());
         project.setName(null);
         project.setId(null);
-        CloudProviderInfo.NameAndIdField instance = Objects.requireNonNull(cloudProviderInfo.getInstance());
+        NameAndIdField instance = Objects.requireNonNull(cloudProviderInfo.getInstance());
         instance.setName(null);
         instance.setId(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter());
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true);
         serializer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
@@ -1018,7 +1159,7 @@ class DslJsonSerializerTest {
         Objects.requireNonNull(cloudProviderInfo.getInstance()).setId(null);
         Objects.requireNonNull(cloudProviderInfo.getAccount()).setId(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter());
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true);
         serializer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
@@ -1039,25 +1180,35 @@ class DslJsonSerializerTest {
     }
 
     private MetaData createMetaData() throws Exception {
-        return createMetaData(SystemInfo.create());
+        return createMetaData(SystemInfo.create("hostname", 0, mock(ServerlessConfiguration.class)));
     }
 
     private MetaData createMetaData(SystemInfo system) throws Exception {
         Service service = new Service().withAgent(new Agent("name", "version")).withName("name");
         final ProcessInfo processInfo = new ProcessInfo("title");
         processInfo.getArgv().add("test");
-        return MetaDataMock.create(processInfo, service, system, createCloudProviderInfo(), new HashMap<>(0)).get();
+        return MetaDataMock.create(processInfo, service, system, createCloudProviderInfo(), new HashMap<>(0), createFaaSMetaDataExtension()).get();
     }
 
     private CloudProviderInfo createCloudProviderInfo() {
         CloudProviderInfo cloudProviderInfo = new CloudProviderInfo("aws");
         cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine("machineType"));
-        cloudProviderInfo.setInstance(new CloudProviderInfo.NameAndIdField("instanceName", "instanceId"));
+        cloudProviderInfo.setInstance(new NameAndIdField("instanceName", "instanceId"));
         cloudProviderInfo.setAvailabilityZone("availabilityZone");
         cloudProviderInfo.setAccount(new CloudProviderInfo.ProviderAccount("accountId"));
         cloudProviderInfo.setRegion("region");
-        cloudProviderInfo.setProject(new CloudProviderInfo.NameAndIdField("projectName", "projectId"));
+        cloudProviderInfo.setProject(new NameAndIdField("projectName", "projectId"));
+        cloudProviderInfo.setService(new CloudProviderInfo.Service("ec2"));
         return cloudProviderInfo;
+    }
+
+    private FaaSMetaDataExtension createFaaSMetaDataExtension() {
+        return new FaaSMetaDataExtension(
+            new Framework("Lambda_Java", "1.2.3"),
+            "service-id",
+            new NameAndIdField(null, "accountId"),
+            "region"
+        );
     }
 
     private Transaction createRootTransaction(Sampler sampler) {
@@ -1106,7 +1257,7 @@ class DslJsonSerializerTest {
         testRootTransactionSampleRate(false, 1.0d, 0d);
     }
 
-    private void testRootTransactionSampleRate(boolean sampled, double samplerRate, @Nullable Double expectedRate){
+    private void testRootTransactionSampleRate(boolean sampled, double samplerRate, @Nullable Double expectedRate) {
         Sampler sampler = mock(Sampler.class);
         when(sampler.isSampled(any(Id.class))).thenReturn(sampled);
         when(sampler.getSampleRate()).thenReturn(samplerRate);
@@ -1118,7 +1269,7 @@ class DslJsonSerializerTest {
         JsonNode jsonSampleRate = jsonTransaction.get("sample_rate");
         JsonNode jsonSampled = jsonTransaction.get("sampled");
         assertThat(jsonSampled.asBoolean()).isEqualTo(sampled);
-        if(null == expectedRate){
+        if (null == expectedRate) {
             assertThat(jsonSampleRate).isNull();
         } else {
             assertThat(jsonSampleRate.asDouble()).isEqualTo(expectedRate);
@@ -1215,7 +1366,7 @@ class DslJsonSerializerTest {
             return json;
         } catch (JsonProcessingException e) {
             // any invalid JSON will require debugging the raw string
-            throw new IllegalArgumentException("invalid JSON = "+jsonString);
+            throw new IllegalArgumentException("invalid JSON = " + jsonString);
         }
     }
 
@@ -1230,7 +1381,7 @@ class DslJsonSerializerTest {
 
         when(k.getPod()).thenReturn(pod);
 
-        SystemInfo.Kubernetes.Node node = mock( SystemInfo.Kubernetes.Node.class);
+        SystemInfo.Kubernetes.Node node = mock(SystemInfo.Kubernetes.Node.class);
         when(node.getName()).thenReturn(nodeName);
         when(k.getNode()).thenReturn(node);
 

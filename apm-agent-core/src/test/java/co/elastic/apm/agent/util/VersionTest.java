@@ -36,4 +36,14 @@ class VersionTest {
         assertThat(Version.of("httpclient.4.5.13.redhat")).isEqualByComparingTo(Version.of("4.5.13"));
         assertThat(Version.of("httpclient.4.5.13-redhat")).isEqualByComparingTo(Version.of("4.5.13"));
     }
+
+    @Test
+    void testToString() {
+        System.out.println(Version.of(""));
+        System.out.println(Version.of("1"));
+        System.out.println(Version.of("1.2"));
+        System.out.println(Version.of("1.2.3"));
+        System.out.println(Version.of("1.2.3.4"));
+        System.out.println(Version.of("1.2.3.ignore"));
+    }
 }
