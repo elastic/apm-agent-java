@@ -169,4 +169,25 @@
         -->
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>ci-application-server-integration-tests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <skip.integration.test>false</skip.integration.test>
+            </properties>
+        </profile>
+        <profile>
+            <id>ci-non-application-server-integration-tests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <skip.integration.test>true</skip.integration.test>
+            </properties>
+        </profile>
+    </profiles>
+
 </project>
