@@ -18,46 +18,55 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+
+import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class DropUnsampledTransactionsTest {
+class DropUnsampledTransactionsTest extends AbstractInstrumentationTest {
 
     private static ApmServerClient apmServerClient = mock(ApmServerClient.class);
 
-    private MockReporter reporter = new MockReporter();
+    private static MockReporter reporter = new MockReporter();
 
-    private ElasticApmTracer tracer;
+    private static ElasticApmTracer tracer;
 
-    private void startTracer(double sampleRate) {
+    @BeforeAll
+    static void startTracer() {
         ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
-        when(configurationRegistry.getConfig(CoreConfiguration.class).getSampleRate()).thenReturn(ConfigurationOption.doubleOption().buildWithDefault(sampleRate));
         tracer = new ElasticApmTracer(configurationRegistry, reporter, new TestObjectPoolFactory(), apmServerClient, "ephemeralId", MetaData.create(configurationRegistry, "ephemeralId"));
         tracer.start(false);
     }
 
-    @AfterEach
-    void stopTracer() {
+    @AfterAll
+    static void stopTracer() {
         tracer.stop();
     }
 
+    @AfterEach
+    void resetReporter() {
+        reporter.reset();
+    }
+
     @Test
-    void whenTheAPMServerSupportsKeepingUnsampledTransactionsUnsampledTransactionsShouldBeReported() {
+    void whenTheAPMServerSupportsKeepingUnsampledTransactionsUnsampledTransactionsShouldBeReported() throws IOException {
         when(apmServerClient.supportsKeepingUnsampledTransaction()).thenReturn(true);
-        startTracer(0.0);
+        tracer.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
 
         tracer.startRootTransaction(null).end();
 
@@ -65,9 +74,9 @@ class DropUnsampledTransactionsTest {
     }
 
     @Test
-    void whenTheAPMServerSupportsKeepingUnsampledTransactionsSampledTransactionsShouldBeReported() {
+    void whenTheAPMServerSupportsKeepingUnsampledTransactionsSampledTransactionsShouldBeReported() throws IOException {
         when(apmServerClient.supportsKeepingUnsampledTransaction()).thenReturn(true);
-        startTracer(1.0);
+        tracer.getConfig(CoreConfiguration.class).getSampleRate().update(1.0, SpyConfiguration.CONFIG_SOURCE_NAME);
 
         tracer.startRootTransaction(null).end();
 
@@ -75,9 +84,9 @@ class DropUnsampledTransactionsTest {
     }
 
     @Test
-    void whenTheAPMServerDoesNotSupportsKeepingUnsampledTransactionsUnsampledTransactionsShouldNotBeReported() {
+    void whenTheAPMServerDoesNotSupportsKeepingUnsampledTransactionsUnsampledTransactionsShouldNotBeReported() throws IOException {
         when(apmServerClient.supportsKeepingUnsampledTransaction()).thenReturn(false);
-        startTracer(0.0);
+        tracer.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
 
         tracer.startRootTransaction(null).end();
 
@@ -85,9 +94,9 @@ class DropUnsampledTransactionsTest {
     }
 
     @Test
-    void whenTheAPMServerDoesNotSupportsKeepingUnsampledTransactionsSampledTransactionsShouldBeReported() {
+    void whenTheAPMServerDoesNotSupportsKeepingUnsampledTransactionsSampledTransactionsShouldBeReported() throws IOException {
         when(apmServerClient.supportsKeepingUnsampledTransaction()).thenReturn(false);
-        startTracer(1.0);
+        tracer.getConfig(CoreConfiguration.class).getSampleRate().update(1.0, SpyConfiguration.CONFIG_SOURCE_NAME);
 
         tracer.startRootTransaction(null).end();
 
