@@ -20,7 +20,7 @@ package co.elastic.apm.agent.sdk.logging;
 
 public class LoggerFactory {
 
-    private static ILoggerFactory iLoggerFactory;
+    private static volatile ILoggerFactory iLoggerFactory;
 
     public static void initialize(ILoggerFactory iLoggerFactory) {
         LoggerFactory.iLoggerFactory = iLoggerFactory;
