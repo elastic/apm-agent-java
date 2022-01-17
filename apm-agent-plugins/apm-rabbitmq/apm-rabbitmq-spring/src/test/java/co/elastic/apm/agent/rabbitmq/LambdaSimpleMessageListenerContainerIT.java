@@ -27,6 +27,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ContextConfiguration(classes = {LambdaSimpleMessageListenerContainerConfiguration.class}, initializers = {AbstractRabbitMqTest.Initializer.class})
-public class LambdaSimpleMessageListenerContainerTest extends AbstractRabbitMqTest {
+public class LambdaSimpleMessageListenerContainerIT extends AbstractRabbitMqTest {
 
 }
