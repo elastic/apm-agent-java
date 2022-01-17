@@ -153,7 +153,7 @@ pipeline {
             }
           }
         }
-        stage('Agent integration tests') {
+        stage('Non-Application Server integration tests') {
           agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
@@ -166,12 +166,12 @@ pipeline {
             expression { return params.agent_integration_tests_ci }
           }
           steps {
-            withGithubNotify(context: 'Agent integration tests', tab: 'tests') {
+            withGithubNotify(context: 'Non-Application Server integration tests', tab: 'tests') {
               deleteDir()
               unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
                 withOtelEnv() {
-                  sh './mvnw -q -P ci-agent-integration-tests verify'
+                  sh './mvnw -q -P ci-non-application-server-integration-tests verify'
                 }
               }
             }
@@ -201,35 +201,6 @@ pipeline {
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   sh './mvnw -q -P ci-application-server-integration-tests verify'
-                }
-              }
-            }
-          }
-          post {
-            always {
-              reportTestResults()
-            }
-          }
-        }
-        stage('Application integration tests') {
-          agent { label 'linux && immutable' }
-          options { skipDefaultCheckout() }
-          environment {
-            HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-          }
-          when {
-            beforeAgent true
-            expression { return params.agent_integration_tests_ci }
-          }
-          steps {
-            withGithubNotify(context: 'Application integration tests', tab: 'tests') {
-              deleteDir()
-              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-              dir("${BASE_DIR}"){
-                withOtelEnv() {
-                  sh './mvnw -q -P ci-application-integration-tests verify'
                 }
               }
             }

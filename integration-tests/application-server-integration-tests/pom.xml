@@ -180,7 +180,7 @@
             </properties>
         </profile>
         <profile>
-            <id>ci-application-integration-tests</id>
+            <id>ci-non-application-server-integration-tests</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>

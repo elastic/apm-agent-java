@@ -32,24 +32,4 @@
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
-    <profiles>
-        <profile>
-            <id>ci-application-integration-tests</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <skip.integration.test>false</skip.integration.test>
-            </properties>
-        </profile>
-        <profile>
-            <id>ci-agent-integration-tests</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <skip.integration.test>true</skip.integration.test>
-            </properties>
-        </profile>
-    </profiles>
 </project>
