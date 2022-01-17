@@ -27,6 +27,7 @@ endif::[]
 ===== Features
 * Exceptions that are logged using the fatal log level are now captured (log4j2 only) - {pull}2377[#2377]
 * Replaced `authorization` in the default value of `sanitize_field_names` with `*auth*` - {pull}2326[#2326]
+* Unsampled transactions are dropped and not sent to the APM-Server if the APM-Server version is 8.0+ - {pull}2329[#2329]
 * Added support to exclude JDBC spans from being captured - {pull}2293[#2293]
 
 [float]
