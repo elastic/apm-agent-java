@@ -49,7 +49,7 @@ public class InstallationListenerImpl extends AgentBuilder.InstallationListener.
 
                 String instrumentedClassName = Instrumented.class.getName();
                 if (transformedInstrumentedClass != null) {
-                    logger.debug("Bytecode transformation {} succeeded", instrumentedClassName);
+                    logger.debug("Warmup: bytecode transformation of {} succeeded", instrumentedClassName);
 
                     // warm up the complete invokedynamic linkage route
                     HashMap<String, byte[]> typeDefinitions = new HashMap<>();
@@ -62,9 +62,9 @@ public class InstallationListenerImpl extends AgentBuilder.InstallationListener.
                     boolean isInstrumented = (boolean) isInstrumentedMethod.invoke(instrumentedClassInstance);
                     if (isInstrumented) {
                         Instrumented.setWarmedUp();
-                        logger.debug("Instrumented bytecode of {} was executed as expected", instrumentedClassName);
+                        logger.debug("Warmup: instrumented bytecode of {} was executed as expected", instrumentedClassName);
                     } else {
-                        logger.warn("Instrumented bytecode of {} does not work as expected", instrumentedClassName);
+                        logger.warn("Warmup: instrumented bytecode of {} does not work as expected", instrumentedClassName);
                     }
                 } else {
                     logger.warn("Warmup did not include the {} class as expected", instrumentedClassName);
@@ -74,6 +74,15 @@ public class InstallationListenerImpl extends AgentBuilder.InstallationListener.
             if (logger != null) {
                 logger.error("Unexpected bytecode instrumentation warmup error", throwable);
             }
+        }
+    }
+
+    @Override
+    public void onWarmUpError(Class<?> type, ResettableClassFileTransformer classFileTransformer, Throwable throwable) {
+        try {
+            LoggerFactory.getLogger(InstallationListenerImpl.class).error("Error during warmup instrumentation of " + type.getName(), throwable);
+        } catch (Throwable loggingError) {
+            // error while trying to log
         }
     }
 }

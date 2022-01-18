@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.bbwarmup;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -36,6 +37,16 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 
 public class WarmupInstrumentation extends TracerAwareInstrumentation {
+
+    @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        // Instrumenting the transformed class loaded by the net.bytebuddy.dynamic.loading.ByteArrayClassLoader.ChildFirst
+        // class loader in co.elastic.apm.agent.bci.bytebuddy.InstallationListenerImpl may produce java.lang.instrument.UnmodifiableClassException
+        // (caused by java.lang.ClassFormatError) on OpenJDK 7.
+        // By allowing instrumentation only when the test class is loaded by the same class loader that loads this
+        // instrumentation class, we avoid this problem and still allow it to work both on production and unit tests
+        return CustomElementMatchers.isSameClassLoader(getClass().getClassLoader());
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

@@ -269,6 +269,14 @@ public class ElasticApmAgent {
         }
         // POOL_ONLY because we don't want to cause eager linking on startup as the class path may not be complete yet
         AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, premain);
+
+        // Warmup Byte Buddy and agent's invokedynamic linkage paths on the attaching thread before installing it
+        if (tracer.getConfig(CoreConfiguration.class).shouldWarmupByteBuddy()) {
+            agentBuilder = agentBuilder.with(new InstallationListenerImpl())
+                .warmUp(NonInstrumented.class)
+                .warmUp(Instrumented.class);
+        }
+
         resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
         for (ConfigurationOption<?> instrumentationOption : coreConfig.getInstrumentationOptions()) {
             //noinspection Convert2Lambda
@@ -666,7 +674,7 @@ public class ElasticApmAgent {
                 logger.warn("Failed to add ClassFileLocator for the agent jar. Some instrumentations may not work", e);
             }
         }
-        AgentBuilder agentBuilder = new AgentBuilder.Default(byteBuddy)
+        return new AgentBuilder.Default(byteBuddy)
             .with(RedefinitionStrategy.RETRANSFORMATION)
             // when runtime attaching, only retransform up to 100 classes at once and sleep 100ms in-between as retransformation causes a stop-the-world pause
             .with(premain ? RedefinitionStrategy.BatchAllocator.ForTotal.INSTANCE : RedefinitionStrategy.BatchAllocator.ForFixedSize.ofSize(100))
@@ -708,14 +716,6 @@ public class ElasticApmAgent {
             .or(anyMatch(coreConfiguration.getDefaultClassesExcludedFromInstrumentation()))
             .or(anyMatch(coreConfiguration.getClassesExcludedFromInstrumentation()))
             .disableClassFormatChanges();
-
-        if (coreConfiguration.shouldWarmupByteBuddy()) {
-            agentBuilder = agentBuilder.with(new InstallationListenerImpl())
-                .warmUp(NonInstrumented.class)
-                .warmUp(Instrumented.class);
-        }
-
-        return agentBuilder;
     }
 
     /**
