@@ -32,8 +32,8 @@ import com.lmax.disruptor.IgnoreExceptionHandler;
 import com.lmax.disruptor.InsufficientCapacityException;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.ThreadFactory;

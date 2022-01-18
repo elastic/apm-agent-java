@@ -59,18 +59,16 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
                 agentClassLoader, startsWith("co.elastic.apm.agent").or(startsWith("net.bytebuddy")),
                 targetClassLoader, ElementMatchers.<String>any());
         } else {
-            // in prod, always search in the agent class loader first
-            // this ensures that we're referencing the agent bundled classes in advices rather than the ones form the application
-            // (for example for slf4j, Byte Buddy, or even dependencies that are bundled in external plugins etc.)
+            // In prod, always search in the agent class loader first.
+            // This ensures that we're referencing the agent bundled classes in advices rather than the ones form the application
+            // (for example Byte Buddy, or even dependencies that are bundled in external plugins etc.)
             // However, we need to avoid looking up classes from the agent class loader that we want to instrument.
             // For example, we're instrumenting log4j2 to support ecs_log_reformatting which is also available within the agent class loader.
             // Within the context of an instrumentation plugin, referencing log4j2 should always reference the instrumented types, not the ones shipped with the agent.
             // The list of packages not to load should correspond with matching dependency exclusions from the apm-agent-core in apm-agent-plugins/pom.xml
-            // As we're using slf4j as the logging facade, plugins don't need to refer to the agent-bundled log4j2.
-            // This implies, we can't reference instrumented slf4j classes in plugins, though.
-            // We ensure this by validating that advice method signatures don't contain slf4j classes.
+            // As we're using a custom logging facade, plugins don't need to refer to the agent-bundled log4j2 or slf4j.
             return new DiscriminatingMultiParentClassLoader(
-                agentClassLoader, not(startsWith("org.apache.logging.log4j")),
+                agentClassLoader, not(startsWith("org.apache.logging.log4j").and(not(startsWith("org.slf4j")))),
                 targetClassLoader, ElementMatchers.<String>any());
         }
     }
