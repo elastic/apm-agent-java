@@ -63,6 +63,11 @@ public class WarmupInstrumentation extends TracerAwareInstrumentation {
         return Collections.emptyList();
     }
 
+    @Override
+    public boolean includeWhenInstrumentationIsDisabled() {
+        return true;
+    }
+
     public static class AdviceClass {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
