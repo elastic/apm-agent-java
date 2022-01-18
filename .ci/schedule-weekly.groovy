@@ -23,7 +23,7 @@ pipeline {
         build(job: 'apm-agent-java/apm-agent-java-mbp/master',
           parameters: [
             booleanParam(name: 'jdk_compatibility_ci', value: true),
-            booleanParam(name: 'endtoend_tests_ci', value: true),
+            booleanParam(name: 'end_to_end_tests_ci', value: true),
             booleanParam(name: 'agent_integration_tests_ci', value: true),
           ],
           propagate: false,

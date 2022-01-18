@@ -51,7 +51,7 @@ pipeline {
 
     // disabled by default, but required for merge, GH check name is ${GITHUB_CHECK_ITS_NAME}
     // opt-in with 'ci:end-to-end' tag on PR
-    booleanParam(name: 'endtoend_tests_ci', defaultValue: false, description: 'Enable APM End-to-End tests')
+    booleanParam(name: 'end_to_end_tests_ci', defaultValue: false, description: 'Enable APM End-to-End tests')
 
     // disabled by default, not required for merge
     booleanParam(name: 'bench_ci', defaultValue: false, description: 'Enable benchmarks')
@@ -322,7 +322,7 @@ pipeline {
         allOf {
           expression { return env.ONLY_DOCS == "false" }
           anyOf {
-            expression { return params.endtoend_tests_ci }
+            expression { return params.end_to_end_tests_ci }
             expression { return env.GITHUB_COMMENT?.contains('end-to-end tests') }
             expression { matchesPrLabel(label: 'ci:end-to-end') }
             expression { return env.CHANGE_ID != null && !pullRequest.draft }
