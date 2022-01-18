@@ -24,8 +24,8 @@ import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonReader;
 import com.dslplatform.json.Nullable;
 import com.dslplatform.json.ObjectConverter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import java.net.HttpURLConnection;
 import java.util.Collections;
