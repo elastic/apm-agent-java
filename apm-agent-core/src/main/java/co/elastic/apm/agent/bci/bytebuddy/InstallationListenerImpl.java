@@ -51,7 +51,10 @@ public class InstallationListenerImpl extends AgentBuilder.InstallationListener.
                 if (transformedInstrumentedClass != null) {
                     logger.debug("Warmup: bytecode transformation of {} succeeded", instrumentedClassName);
 
-                    // warm up the complete invokedynamic linkage route
+                    // Warm up the complete invokedynamic linkage route.
+                    // Byte Buddy's warmup doesn't retransform the class, it only applies the bytecode manipulation.
+                    // Therefore, we cannot warm up fully simply by invoking the instrumented method. Instead, we need
+                    // to load the instrumented class, instantiate it and invoke through reflection.
                     HashMap<String, byte[]> typeDefinitions = new HashMap<>();
                     typeDefinitions.put(instrumentedClassName, transformedInstrumentedClass);
                     ByteArrayClassLoader.ChildFirst childFirstCL = new ByteArrayClassLoader.ChildFirst(null, typeDefinitions);
