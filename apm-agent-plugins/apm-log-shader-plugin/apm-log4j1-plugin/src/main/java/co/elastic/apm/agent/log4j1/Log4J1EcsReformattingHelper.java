@@ -21,6 +21,8 @@ package co.elastic.apm.agent.log4j1;
 import co.elastic.apm.agent.log.shader.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
 
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.logging.log4j.EcsLayout;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Layout;
@@ -32,6 +34,8 @@ import java.io.IOException;
 import java.util.Map;
 
 class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAppender, Layout> {
+
+    private static final Logger logger = LoggerFactory.getLogger(Log4J1EcsReformattingHelper.class);
 
     Log4J1EcsReformattingHelper() {}
 
@@ -84,7 +88,7 @@ class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAp
                 shadeAppender.setName(ecsAppenderName);
                 shadeAppender.setLayout(ecsLayout);
             } catch (IOException e) {
-                logError("Failed to create Log shading FileAppender. Auto ECS reformatting will not work.", e);
+                logger.error("Failed to create Log shading FileAppender. Auto ECS reformatting will not work.", e);
             }
         }
         return shadeAppender;
