@@ -24,6 +24,9 @@ import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.logging.instr.LoggerTestInstrumentation;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import com.fasterxml.jackson.databind.JsonNode;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -33,37 +36,57 @@ import org.apache.logging.log4j.core.impl.Log4jContextFactory;
 import org.apache.logging.log4j.core.selector.ContextSelector;
 import org.apache.logging.log4j.spi.LoggerContextFactory;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static co.elastic.apm.agent.logging.LoggingConfiguration.LOG_LEVEL_KEY;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@SuppressWarnings("NotNullFieldNotInitialized")
 class LoggingConfigurationTest {
 
-    private static LoggerContextFactory originalLoggerContextFactory;
-    private static Logger agentLogger;
+    public static final String LOGGING_TEST_FILE = "target/LoggingConfigurationTest.log";
 
-    private static ConfigurationOption<LogLevel> logLevelConfig;
+    private static LoggerContextFactory originalLoggerContextFactory;
     private static TestLog4jContextFactory testLog4jContextFactory;
 
+    private static ConfigurationOption<LogLevel> logLevelConfig;
+
+    private static Logger agentLogger;
+    private static org.slf4j.Logger configOptionLogger;
+    private static Logger pluginLogger;
+
+    @Nullable
+    private static String originalLogFile;
+    @Nullable
+    private static String originalLogFileFormat;
 
     @BeforeAll
-    static void setup() {
+    static void setup() throws NoSuchFieldException, IllegalAccessException, IOException {
         ElasticApmTracer tracer = MockTracer.createRealTracer();
+
+        ConfigurationRegistry configurationRegistry = tracer.getConfigurationRegistry();
         //noinspection unchecked
-        logLevelConfig = (ConfigurationOption<LogLevel>) tracer.getConfigurationRegistry().getConfigurationOptionByKey("log_level");
+        logLevelConfig = (ConfigurationOption<LogLevel>) configurationRegistry.getConfigurationOptionByKey(LOG_LEVEL_KEY);
+        originalLogFile = System.getProperty("elastic.apm.log_file");
+        originalLogFileFormat = System.getProperty("elastic.apm.log_format_file");
+        Files.deleteIfExists(Path.of(LOGGING_TEST_FILE));
+        System.setProperty("elastic.apm.log_file", LOGGING_TEST_FILE);
+        System.setProperty("elastic.apm.log_format_file", "JSON");
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), List.of(new LoggerTestInstrumentation()));
 
         // We need to clean the current contexts for this test to resemble early agent setup
@@ -76,36 +99,72 @@ class LoggingConfigurationTest {
         testLog4jContextFactory = new TestLog4jContextFactory();
         LogManager.setFactory(testLog4jContextFactory);
 
+        // Testing that stagemonitor's slf4j loggers are setup properly and get the agent configuration
+        Field configOptionLoggerField = ConfigurationOption.class.getDeclaredField("logger");
+        configOptionLoggerField.setAccessible(true);
+        configOptionLogger = (org.slf4j.Logger) configOptionLoggerField.get(ConfigurationOption.booleanOption().buildOptional());
+
         // Not really an agent logger, but representing the agent-level logger
         agentLogger = LoggerFactory.getLogger(LoggingConfigurationTest.class);
+
+        // A logger created by a plugin CL - see LoggerTestInstrumentation
+        pluginLogger = Objects.requireNonNull(new LoggerTest().getLogger());
     }
 
     @AfterAll
     static void reset() {
-        ElasticApmAgent.reset();
-    }
+        if (originalLogFile == null) {
+            System.clearProperty("elastic.apm.log_file");
+        } else {
+            System.setProperty("elastic.apm.log_file", originalLogFile);
+        }
+        if (originalLogFileFormat == null) {
+            System.clearProperty("elastic.apm.log_format_file");
+        } else {
+            System.setProperty("elastic.apm.log_format_file", originalLogFileFormat);
+        }
 
-    @AfterEach
-    void tearDown() {
-        // restoring the original logger context factory so that other tests are unaffected
         LogManager.setFactory(originalLoggerContextFactory);
+        ElasticApmAgent.reset();
     }
 
     @Test
     void loggingLevelChangeTest() throws IOException {
         // Assuming default is debug level in tests based on test.elasticapm.properties
         assertThat(agentLogger.isTraceEnabled()).isFalse();
-        // A logger created by a plugin CL - see LoggerTestInstrumentation
-        Logger pluginLogger = new LoggerTest().getLogger();
-        assertThat(pluginLogger).isNotNull();
-        LoggerContext pluginLoggerContext = testLog4jContextFactory.getContext(pluginLogger);
+        LoggerContext agentLoggerContext = testLog4jContextFactory.getContext(agentLogger.getName());
+
+        // stagemonitor relies on slf4j, which should be bridged to the same log4j registries and get the same configuration
+        assertThat(configOptionLogger.isTraceEnabled()).isFalse();
+        assertThat(testLog4jContextFactory.getContext(configOptionLogger.getName())).isEqualTo(agentLoggerContext);
+
+        LoggerContext pluginLoggerContext = testLog4jContextFactory.getContext(pluginLogger.getName());
         assertThat(pluginLoggerContext).isNotNull();
+        assertThat(pluginLoggerContext).isNotEqualTo(agentLoggerContext);
         assertThat(pluginLoggerContext.getName()).startsWith(IndyPluginClassLoader.class.getName());
         assertThat(pluginLogger.isTraceEnabled()).isFalse();
 
         logLevelConfig.update(LogLevel.TRACE, SpyConfiguration.CONFIG_SOURCE_NAME);
         assertThat(agentLogger.isTraceEnabled()).isTrue();
+        assertThat(configOptionLogger.isTraceEnabled()).isTrue();
         assertThat(pluginLogger.isTraceEnabled()).isTrue();
+    }
+
+    @Test
+    void testFileLogging() throws IOException {
+        agentLogger.info("agent");
+        configOptionLogger.info("config");
+        pluginLogger.info("plugin");
+        ArrayList<JsonNode> logJsonLines = TestUtils.readJsonFile(LOGGING_TEST_FILE);
+        assertThat(logJsonLines).hasSize(3);
+        for (JsonNode logJsonLine : logJsonLines) {
+            assertThat(logJsonLine.get("@timestamp")).isNotNull();
+            assertThat(logJsonLine.get("process.thread.name").textValue()).isEqualTo("main");
+            assertThat(logJsonLine.get("log.level").textValue()).isEqualTo("INFO");
+            assertThat(logJsonLine.get("log.logger")).isNotNull();
+            assertThat(logJsonLine.get("message")).isNotNull();
+            assertThat(logJsonLine.get("ecs.version")).isNotNull();
+        }
     }
 
     private static class LoggerTest {
@@ -120,10 +179,10 @@ class LoggingConfigurationTest {
         ContextSelector contextSelector = new TestContextSelector();
 
         @Nullable
-        LoggerContext getContext(Logger slf4jLogger) {
+        LoggerContext getContext(String loggerName) {
             for (LoggerContext loggerContext : contextSelector.getLoggerContexts()) {
                 for (org.apache.logging.log4j.core.Logger log4jLogger : loggerContext.getLoggers()) {
-                    if (log4jLogger.getName().equals(slf4jLogger.getName())) {
+                    if (log4jLogger.getName().equals(loggerName)) {
                         return loggerContext;
                     }
                 }
@@ -168,7 +227,7 @@ class LoggingConfigurationTest {
             }
         }
 
-        private class TestContextSelector implements ContextSelector {
+        private static class TestContextSelector implements ContextSelector {
             private final Map<ClassLoader, LoggerContext> contextMap = new HashMap<>();
 
             @Override
