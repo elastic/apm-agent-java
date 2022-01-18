@@ -26,7 +26,6 @@ import co.elastic.apm.agent.dubbo.api.impl.DubboTestApiImpl;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.testutils.TestPort;
 import com.alibaba.dubbo.config.ApplicationConfig;
 import com.alibaba.dubbo.config.MethodConfig;
 import com.alibaba.dubbo.config.ProtocolConfig;
@@ -45,70 +44,24 @@ import static org.assertj.core.api.Assertions.fail;
 
 public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentationTest {
 
-    private ReferenceConfig<DubboTestApi> testApiReferenceConfig;
-
-    private ServiceConfig<DubboTestApi> testApiServiceConfig;
-
-    private ServiceConfig<AnotherApi> anotherApiServiceConfig;
-
-    private ReferenceConfig<AnotherApi> anotherApiReferenceConfig;
-
     @Override
     protected DubboTestApi buildDubboTestApi() {
-        RegistryConfig registryConfig = new RegistryConfig();
-        registryConfig.setAddress("N/A");
+        RegistryConfig registryConfig = createRegistryConfig();
+        ApplicationConfig appConfig = createApplicationConfig();
 
         //build AnotherApi provider
-        ApplicationConfig anotherApiAppConfig = new ApplicationConfig();
-        anotherApiAppConfig.setName("another-api-provider");
-
-        ProtocolConfig anotherApiProtocolConfig = new ProtocolConfig();
-        anotherApiProtocolConfig.setName("dubbo");
-        anotherApiProtocolConfig.setPort(getAnotherApiPort());
-        anotherApiProtocolConfig.setThreads(10);
-
-        anotherApiServiceConfig = new ServiceConfig<>();
-        anotherApiServiceConfig.setApplication(anotherApiAppConfig);
-        anotherApiServiceConfig.setProtocol(anotherApiProtocolConfig);
-        anotherApiServiceConfig.setInterface(AnotherApi.class);
-        anotherApiServiceConfig.setRef(new AnotherApiImpl());
-        anotherApiServiceConfig.setRegistry(registryConfig);
-        anotherApiServiceConfig.export();
+        ProtocolConfig anotherApiProtocolConfig = createProtocolConfig(getAnotherApiPort());
+        createAndExportServiceConfig(registryConfig, AnotherApi.class, new AnotherApiImpl(), appConfig, anotherApiProtocolConfig);
 
         //build AnotherApi consumer
-        ApplicationConfig providerAppConfig = new ApplicationConfig();
-        providerAppConfig.setName("dubbo-provider");
+        ReferenceConfig<AnotherApi> anotherApiReferenceConfig = createReferenceConfig(AnotherApi.class, appConfig, anotherApiProtocolConfig.getPort());
 
-        //build AnotherApi consumer
-        anotherApiReferenceConfig = new ReferenceConfig<>();
-        anotherApiReferenceConfig.setApplication(providerAppConfig);
-        anotherApiReferenceConfig.setInterface(AnotherApi.class);
-        anotherApiReferenceConfig.setUrl("dubbo://localhost:" + getAnotherApiPort());
-        anotherApiReferenceConfig.setTimeout(3000);
+        // build DubboTestApi provider
+        ProtocolConfig protocolConfig = createProtocolConfig(getPort());
+        createAndExportServiceConfig(registryConfig, DubboTestApi.class, new DubboTestApiImpl(anotherApiReferenceConfig.get()), appConfig, protocolConfig);
 
-        //build test api provider
-        ProtocolConfig protocolConfig = new ProtocolConfig();
-        protocolConfig.setName("dubbo");
-        protocolConfig.setPort(getPort());
-        protocolConfig.setThreads(10);
-
-        testApiServiceConfig = new ServiceConfig<>();
-        testApiServiceConfig.setApplication(providerAppConfig);
-        testApiServiceConfig.setProtocol(protocolConfig);
-        testApiServiceConfig.setInterface(DubboTestApi.class);
-        testApiServiceConfig.setRef(new DubboTestApiImpl(anotherApiReferenceConfig.get()));
-        testApiServiceConfig.setRegistry(registryConfig);
-        testApiServiceConfig.export();
-
-        //build test api consumer
-        ApplicationConfig consumerApp = new ApplicationConfig();
-        consumerApp.setName("dubbo-consumer");
-
-        testApiReferenceConfig = new ReferenceConfig<>();
-        testApiReferenceConfig.setApplication(consumerApp);
-        testApiReferenceConfig.setInterface(DubboTestApi.class);
-        testApiReferenceConfig.setUrl("dubbo://localhost:" + getPort());
-        testApiReferenceConfig.setTimeout(3000);
+        // build DubboTestApi consumer
+        ReferenceConfig<DubboTestApi> testApiReferenceConfig = createReferenceConfig(DubboTestApi.class, appConfig, protocolConfig.getPort());
 
         List<MethodConfig> methodConfigList = new LinkedList<>();
         testApiReferenceConfig.setMethods(methodConfigList);
@@ -124,6 +77,50 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
         methodConfigList.add(asyncNoReturnConfig);
 
         return testApiReferenceConfig.get();
+    }
+
+    private static RegistryConfig createRegistryConfig() {
+        RegistryConfig registryConfig = new RegistryConfig();
+        registryConfig.setAddress("N/A");
+        return registryConfig;
+    }
+
+    private static ApplicationConfig createApplicationConfig() {
+        ApplicationConfig appConfig = new ApplicationConfig();
+        appConfig.setName("all-in-one-app");
+        return appConfig;
+    }
+
+    private static ProtocolConfig createProtocolConfig(int port){
+        ProtocolConfig protocolConfig = new ProtocolConfig();
+        protocolConfig.setName("dubbo");
+        protocolConfig.setPort(port);
+        protocolConfig.setThreads(10);
+        return protocolConfig;
+    }
+
+    private static <T> void createAndExportServiceConfig(RegistryConfig registryConfig,
+                                                         Class<T> interfaceClass,
+                                                         T interfaceImpl,
+                                                         ApplicationConfig applicationConfig,
+                                                         ProtocolConfig protocolConfig) {
+
+        ServiceConfig<T> serviceConfig = new ServiceConfig<T>();
+        serviceConfig.setApplication(applicationConfig);
+        serviceConfig.setProtocol(protocolConfig);
+        serviceConfig.setInterface(interfaceClass);
+        serviceConfig.setRef(interfaceImpl);
+        serviceConfig.setRegistry(registryConfig);
+        serviceConfig.export();
+    }
+
+    private static <T> ReferenceConfig<T> createReferenceConfig(Class<T> interfaceClass, ApplicationConfig applicationConfig, int port) {
+        ReferenceConfig<T> referenceConfig = new ReferenceConfig<>();
+        referenceConfig.setApplication(applicationConfig);
+        referenceConfig.setInterface(interfaceClass);
+        referenceConfig.setUrl(String.format("dubbo://localhost:%d", port));
+        referenceConfig.setTimeout(3000);
+        return referenceConfig;
     }
 
     @Test
