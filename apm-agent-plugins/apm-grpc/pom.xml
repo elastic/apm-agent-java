@@ -40,10 +40,29 @@
 
     <profiles>
         <profile>
-            <id>default</id>
+            <id>non-mac</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <os>
+                    <family>!mac</family>
+                </os>
             </activation>
+            <!-- Keep in sync with mac-non-apple-silicon profile -->
+            <modules>
+                <module>apm-grpc-plugin</module>
+                <module>apm-grpc-test-1.6.1</module>
+                <!-- other intermediate gRPC versions that have been tested : 1.7.1, 1,9.1, 1.13.2, 1.22.0, 1.23.0, 1.27.1 -->
+                <module>apm-grpc-test-latest</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>mac-non-apple-silicon</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                    <arch>!aarch64</arch>
+                </os>
+            </activation>
+            <!-- Keep in sync with non-mac profile -->
             <modules>
                 <module>apm-grpc-plugin</module>
                 <module>apm-grpc-test-1.6.1</module>
@@ -56,7 +75,7 @@
             Old grpc/protobuf compilers don't support mac aarch64 (Apple Silicon, such as M1)
             Therefore, excluding apm-grpc-test-1.6.1
             -->
-            <id>apple-silicon</id>
+            <id>mac-apple-silicon</id>
             <activation>
                 <os>
                     <family>mac</family>

@@ -21,8 +21,8 @@ package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.common.util.ProcessExecutionUtil;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.net.InetAddress;
