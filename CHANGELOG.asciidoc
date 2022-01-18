@@ -37,6 +37,9 @@ endif::[]
 * Fix slf4j-related `LinkageError` - {pull}2390[#2390]
 * Fix possible deadlock occurring when Byte Buddy reads System properties by warming up bytecode instrumentation code
 paths. The BCI warmup is on by default and may be disabled through the internal `warmup_byte_buddy` config option - {pull}2368[#2368]
+* Fixed few dubbo plugin issues - {pull}2149[#2149]
+** Dubbo transaction will should be created at the provider side
+** APM headers conversion issue within dubbo transaction
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
