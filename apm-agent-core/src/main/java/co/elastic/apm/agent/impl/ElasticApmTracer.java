@@ -46,8 +46,8 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -368,7 +368,8 @@ public class ElasticApmTracer implements Tracer {
                     new RuntimeException("this exception is just used to record where the transaction has been ended from"));
             }
         }
-        if (!transaction.isNoop()) {
+        if (!transaction.isNoop() &&
+            (transaction.isSampled() || apmServerClient.supportsKeepingUnsampledTransaction())) {
             // we do report non-sampled transactions (without the context)
             reporter.report(transaction);
         } else {
