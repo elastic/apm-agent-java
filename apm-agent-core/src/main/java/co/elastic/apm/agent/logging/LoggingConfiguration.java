@@ -22,6 +22,7 @@ import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -32,7 +33,6 @@ import org.apache.logging.log4j.core.impl.Log4jContextFactory;
 import org.apache.logging.log4j.core.selector.ContextSelector;
 import org.apache.logging.log4j.spi.LoggerContextFactory;
 import org.apache.logging.log4j.status.StatusLogger;
-import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
@@ -52,7 +52,7 @@ import java.util.Map;
  * <p>
  * This class is a bit special compared to other {@link ConfigurationOptionProvider}s,
  * because we have to make sure that wie initialize the logger before anyone calls
- * {@link org.slf4j.LoggerFactory#getLogger(Class)}.
+ * {@link LoggerFactory#getLogger(Class)}.
  * That's why we don't read the values from the {@link ConfigurationOption} fields but
  * iterate over the {@link ConfigurationSource}s manually to read the values
  * (see {@link Log4j2ConfigurationFactory#getValue}).
@@ -324,6 +324,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             // example through org.apache.logging.log4j.core.config.Configurator, means that loggers in non-initialized
             // contexts will either get the app-configuration for log4j, if such exists, or none.
             ConfigurationFactory.setConfigurationFactory(new Log4j2ConfigurationFactory(sources, ephemeralId));
+            LoggerFactory.initialize(new Log4jLoggerFactoryBridge());
         } catch (Throwable throwable) {
             System.err.println("[elastic-apm-agent] ERROR Failure during initialization of agent's log4j system: " + throwable.getMessage());
         } finally {
