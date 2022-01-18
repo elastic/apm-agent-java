@@ -106,7 +106,8 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
 
     @BeforeAll
     static void before() {
-        container.withStartupTimeout(Duration.ofSeconds(120))
+        container.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(RabbitMQIT.class))
+            .withStartupTimeout(Duration.ofSeconds(120))
             .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048))
             .start();
 

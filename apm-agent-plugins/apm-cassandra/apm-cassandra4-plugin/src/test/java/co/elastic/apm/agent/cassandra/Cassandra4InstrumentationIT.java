@@ -46,6 +46,7 @@ class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
     @Container
     public static GenericContainer<?> cassandra = new GenericContainer<>("cassandra:4.0")
         .withExposedPorts(9042)
+        .withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(Cassandra4InstrumentationIT.class))
         .withStartupTimeout(Duration.ofSeconds(120))
         .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048))
         .withEnv("HEAP_NEWSIZE", "700m")
