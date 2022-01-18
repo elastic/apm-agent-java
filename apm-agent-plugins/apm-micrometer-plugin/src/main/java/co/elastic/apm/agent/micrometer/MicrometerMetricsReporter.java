@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.micrometer;
 
@@ -30,8 +24,8 @@ import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 import com.dslplatform.json.JsonWriter;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -50,7 +44,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(MicrometerMetricsReporter.class);
 
-    private final WeakConcurrentSet<MeterRegistry> meterRegistries = WeakMapSupplier.createSet();
+    private final WeakSet<MeterRegistry> meterRegistries = WeakConcurrent.buildSet();
     private final MicrometerMeterRegistrySerializer serializer;
     private final Reporter reporter;
     private final ElasticApmTracer tracer;
@@ -131,7 +125,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         }
     }
 
-    WeakConcurrentSet<MeterRegistry> getMeterRegistries() {
+    WeakSet<MeterRegistry> getMeterRegistries() {
         return meterRegistries;
     }
 

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.sdk.state;
 
@@ -33,6 +27,14 @@ import java.util.concurrent.ConcurrentMap;
  * there's a need to share global state between those class loaders.
  * <p>
  * An alternative to this is {@link GlobalState} which can be used to make a whole class scoped globally.
+ * </p>
+ * <p>
+ * Be careful not to store classes from the target class loader or the plugin class loader in a global variable.
+ * This would otherwise lead to class loader leaks.
+ * That's because a global variable is referenced from the agent class loader.
+ * If it held a reference to a class that's loaded by the plugin class loader, the target class loader (such as a webapp class loader)
+ * is held alive by the following chain of hard references:
+ * {@code Map of global thread locals (Agent CL) -plugin class instance-> -plugin class-> plugin CL -(parent)-> webapp CL}
  * </p>
  */
 public class GlobalVariables {

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.springwebmvc;
 
@@ -33,7 +27,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -61,13 +54,15 @@ public class ServletWrappingControllerServiceNameInstrumentation extends TracerA
         return Collections.singletonList("spring-mvc");
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void onEnter(@Advice.FieldValue("servletClass") Class<?> servletClass, @Advice.Argument(0) HttpServletRequest request) {
-        final Transaction transaction = tracer.currentTransaction();
-        if (transaction == null) {
-            return;
+    public static class AdviceClass {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onEnter(@Advice.FieldValue("servletClass") Class<?> servletClass, @Advice.Argument(0) HttpServletRequest request) {
+            final Transaction transaction = tracer.currentTransaction();
+            if (transaction == null) {
+                return;
+            }
+            TransactionNameUtils.setTransactionNameByServletClass(request.getMethod(), servletClass, transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
         }
-        TransactionNameUtils.setTransactionNameByServletClass(request.getMethod(), servletClass, transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
     }
 
 }

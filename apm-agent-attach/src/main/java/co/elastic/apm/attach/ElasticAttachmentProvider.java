@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,52 +15,71 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.attach;
 
 import net.bytebuddy.agent.ByteBuddyAgent;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class ElasticAttachmentProvider {
 
     private static ByteBuddyAgent.AttachmentProvider provider;
 
+    private static ByteBuddyAgent.AttachmentProvider fallback;
+
     /**
      * Initializes attachment provider, this method can only be called once as it loads native code.
-     *
-     * @param useEmulatedAttach {@literal true} to enable emulated attach, {@literal false} to disable
      */
-    public synchronized static void init(boolean useEmulatedAttach) {
+    private synchronized static void init() {
         if (provider != null) {
             throw new IllegalStateException("ElasticAttachmentProvider.init() should only be called once");
         }
 
-        ArrayList<ByteBuddyAgent.AttachmentProvider> providers = new ArrayList<>();
-        if (useEmulatedAttach) {
-            providers.add(ByteBuddyAgent.AttachmentProvider.ForEmulatedAttachment.INSTANCE);
-        }
-        providers.addAll(Arrays.asList(ByteBuddyAgent.AttachmentProvider.ForModularizedVm.INSTANCE,
+        List<ByteBuddyAgent.AttachmentProvider> providers = Arrays.asList(
+            ByteBuddyAgent.AttachmentProvider.ForModularizedVm.INSTANCE,
             ByteBuddyAgent.AttachmentProvider.ForJ9Vm.INSTANCE,
             new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.JVM_ROOT),
             new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.JDK_ROOT),
             new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.MACINTOSH),
-            new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForUserDefinedToolsJar.INSTANCE)));
+            new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForUserDefinedToolsJar.INSTANCE),
+            // only use emulated attach last, as native attachment providers should be preferred
+            getFallback());
+
 
         provider = new ByteBuddyAgent.AttachmentProvider.Compound(providers);
     }
 
+    private synchronized static void initFallback(){
+        if (fallback != null) {
+            throw new IllegalStateException("ElasticAttachmentProvider.initFallback() should only be called once");
+        }
+        fallback = ByteBuddyAgent.AttachmentProvider.ForEmulatedAttachment.INSTANCE;
+    }
+
     /**
-     * Get (and optionally initialize) attachment provider, will internally call {@link #init(boolean)} if not already called
+     * Get (and optionally initialize) attachment provider
      *
      * @return attachment provider
      */
     public synchronized static ByteBuddyAgent.AttachmentProvider get() {
         if (provider == null) {
-            init(true);
+            init();
         }
         return provider;
     }
+
+    /**
+     * Get (and optionally initialize) fallback (emulated) attachment provider
+     *
+     * @return fallback (emulated) attachment provider
+     */
+    public synchronized static ByteBuddyAgent.AttachmentProvider getFallback() {
+        if (fallback == null) {
+            initFallback();
+        }
+        return fallback;
+    }
+
 }

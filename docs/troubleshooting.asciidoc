@@ -17,6 +17,7 @@ and we will help you out.
 IMPORTANT: If you do so, *please attach your debug logs* so that we can analyze the problem.
 Upload the *complete* logs to a service like https://gist.github.com.
 The logs should include everything from the application startup up until the first request has been executed.
+In addition to agent and application logs, look for `[elastic-apm-agent]` entries in all of your service's std out and std error logs, where we sometimes print useful information when logging is unavailable.
 
 [float]
 [[trouble-shooting-use-latest-agent]]
@@ -24,8 +25,8 @@ The logs should include everything from the application startup up until the fir
 
 Agent is updated frequently and releases are not strongly tied to other components in the stack.
 
-Therefore, trying to update to the most recently released agent version is often the recommended first troubleshooting
-step. If possible, trying the https://github.com/elastic/apm-agent-java/blob/master/README.md#snapshots[latest-snapshot] is even preferable as it would include fixes that are not yet released.
+Therefore, trying to update to the most recently released agent version is often the recommended first troubleshooting step.
+If possible, trying the https://github.com/elastic/apm-agent-java/blob/master/README.md#snapshots[latest-snapshot] is even preferable as it would include fixes that are not yet released.
 
 See <<upgrading,upgrading documentation>> for more details.
 
@@ -45,11 +46,18 @@ information would be crucial for our ability to assist, so make sure to include 
 === Logging
 There are several <<config-logging, logging related configuration options>>.
 The most important one is <<config-log-level>>.
-Set the log level to `DEBUG` or even `TRACE` to get more information about the behavior of the agent.
-The `TRACE` log level is even more verbose than `DEBUG` and prints a stack trace every time a transaction or span is started or stopped.
-Also, the JSON documents which are sent to the APM server will be logged on `TRACE` level.
 
-Please always post the whole content of your log files when asking for help.
+Set the log level to `DEBUG` or even `TRACE` to get more information about the behavior of the agent.
+
+* `DEBUG` shows:
+** Agent configuration as read by the agent
+** Transaction and spans creation, activation and deactivation events
+* `TRACE` is even more verbose than `DEBUG`:
+** A stack trace is printed every time a transaction or span is activated or deactivated
+** All data sent to apm-server is included in JSON format
+
+Please always post the whole content of your log files when asking for help. Use the <<trouble-shooting-logging-procedure,procedure>>
+to ensure consistent logs when reporting potential issues.
 
 When the agent starts up,
 you should see logs similar to these:
@@ -106,6 +114,26 @@ The log would then contain the actual documents which failed to validate:
 ----
 
 [float]
+[[trouble-shooting-logging-procedure]]
+==== Capturing logs procedure
+
+Ideally this should be done outside of production.
+
+* It requires restarting the application
+* With log level set to `DEBUG` logs can be verbose, with `TRACE` they are even more verbose.
+* Having only a few transactions in the log makes investigations easier, production traffic creates noise.
+* If not possible, we can still use it for a few minutes in production, when using an external configuration file (<<configuration,doc>>) the `log_level` can be changed at runtime.
+
+Most investigations require using `DEBUG` log level, thus use `DEBUG` unless asked for `TRACE`.
+
+Here, we will refer to the agent log file as `/tmp/agent.log`, but any other location could be used.
+
+. configure the agent with `log_level=debug` or `log_level=trace` (<<config-log-level,doc>>) and `log_file=/tmp/agent.log` (<<config-logging,doc>>)
+. truncate the `/tmp/agent.log` file and restart the application
+. execute a few transactions which aren't properly captured by the agent
+. copy the `/tmp/agent.log` file and send it back for investigation
+
+[float]
 [[trouble-shooting-debugging]]
 === Debugging
 Sometimes reading the logs is just not enough to debug a problem.
@@ -121,14 +149,14 @@ For example,
 when you are developing a web application,
 make sure that the agent is not packaged in your war in `WEB-INF/lib`.
 In the debug window of your IDE,
-make sure that `elastic-apm-agent` does not appear in the `-classpath`.
+make sure that `apm-agent` does not appear in the `-classpath`.
 
 [source,xml]
 .pom.xml
 ----
 <dependency>
     <groupId>co.elastic.apm</groupId>
-    <artifactId>elastic-apm-agent</artifactId>
+    <artifactId>apm-agent</artifactId>
     <version>${elastic-apm.version}</version>
     <scope>provided</scope>
 </dependency>
@@ -141,9 +169,10 @@ One workaround is to set the `scope` to `test`.
 [source,groovy]
 .build.gradle
 ----
-compileOnly "co.elastic.apm:elastic-apm-agent:$elasticApmVersion"
+compileOnly "co.elastic.apm:apm-agent:$elasticApmVersion"
 ----
 
+NOTE: In versions prior to 1.26.0, you need to declare a dependency on the `elastic-apm-agent` module instead of `apm-agent`
 
 [float]
 [[trouble-shooting-common-issues]]

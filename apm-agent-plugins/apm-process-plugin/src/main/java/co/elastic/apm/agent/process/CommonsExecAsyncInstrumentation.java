@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,14 +15,13 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.concurrent.JavaConcurrent;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -91,7 +85,7 @@ public class CommonsExecAsyncInstrumentation extends TracerAwareInstrumentation 
     public static final class CommonsExecAdvice {
 
         @Nullable
-        @AssignTo.Argument(0)
+        @Advice.AssignReturned.ToArguments(@ToArgument(0))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Runnable onEnter(Runnable runnable) {
             return JavaConcurrent.withContext(runnable, tracer);

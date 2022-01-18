@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,10 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.attach;
 
+import co.elastic.apm.agent.common.util.ProcessExecutionUtil;
 import co.elastic.logging.log4j2.EcsLayout;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -41,6 +36,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -67,8 +64,6 @@ public class AgentAttacher {
 
     private AgentAttacher(Arguments arguments) throws Exception {
         this.arguments = arguments;
-        // in case emulated attach is disabled, we need to init provider first, otherwise it's enabled by default
-        ElasticAttachmentProvider.init(arguments.useEmulatedAttach());
         // fail fast if no attachment provider is working
         GetAgentProperties.getAgentAndSystemProperties(JvmInfo.CURRENT_PID, userRegistry.getCurrentUser());
         this.jvmDiscoverer = new JvmDiscoverer.Compound(Arrays.asList(
@@ -118,20 +113,59 @@ public class AgentAttacher {
                 Arguments.printHelp(System.out);
                 return;
             }
-            if (arguments.getAgentJar() == null) {
-                throw new IllegalArgumentException("When using the slim jar, the --agent-jar argument is required");
-            }
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
             Arguments.printHelp(System.out);
             return;
         }
         Logger logger = initLogging(arguments);
+
+        String downloadAgentVersion = arguments.getDownloadAgentVersion();
+        if (downloadAgentVersion != null) {
+            try {
+                downloadAndVerifyAgent(arguments, downloadAgentVersion);
+            } catch (Exception e) {
+                logger.error(String.format("Failed to download requested agent version %s, please double-check your " +
+                    "--download-agent-version setting.", downloadAgentVersion), e);
+                System.exit(1);
+            }
+        }
+
+        if (arguments.getAgentJar() == null) {
+            logger.error("Cannot find agent jar. When using the slim jar, either the --agent-jar or the " +
+                "--download-agent-version arguments are required");
+            System.exit(1);
+        }
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("attacher arguments : {}", arguments);
+        }
         try {
             new AgentAttacher(arguments).handleNewJvmsLoop();
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
+    }
+
+    private static void downloadAndVerifyAgent(Arguments arguments, String downloadAgentVersion) throws Exception {
+        PgpSignatureVerifier pgpSignatureVerifier;
+        try {
+            Path targetLibDir = AgentDownloadUtils.of(downloadAgentVersion).getTargetLibDir();
+            PgpSignatureVerifierLoader verifierLoader = PgpSignatureVerifierLoader.getInstance(
+                "/bc-lib",
+                targetLibDir,
+                "co.elastic.apm.attach.bouncycastle.BouncyCastleVerifier"
+            );
+            pgpSignatureVerifier = verifierLoader.loadPgpSignatureVerifier();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to load PGP signature verifier implementation", e);
+        }
+
+        Path downloadedJarPath = new AgentDownloader(pgpSignatureVerifier).downloadAndVerifyAgent(downloadAgentVersion);
+        if (!Files.isReadable(downloadedJarPath)) {
+            throw new IllegalStateException(String.format("Cannot read agent jar at %s", downloadedJarPath));
+        }
+        arguments.setAgentJar(downloadedJarPath.toFile());
     }
 
     private void handleNewJvmsLoop() throws Exception {
@@ -173,13 +207,13 @@ public class AgentAttacher {
         DiscoveryRules.DiscoveryRule firstMatch = discoveryRules.firstMatch(jvmInfo, userRegistry);
         if (firstMatch != null) {
             if (firstMatch.getMatchingType() == DiscoveryRules.MatcherType.INCLUDE) {
-                logger.debug("Include rule {} matches for JVM {}", firstMatch, jvmInfo);
+                logger.info("Include rule {} matches for JVM {}", firstMatch, jvmInfo);
                 onJvmMatch(jvmInfo);
             } else {
-                logger.debug("Exclude rule {} matches for JVM {}", firstMatch, jvmInfo);
+                logger.info("Exclude rule {} matches for JVM {}", firstMatch, jvmInfo);
             }
         } else {
-            logger.debug("No rule matches for JVM, thus excluding {}", jvmInfo);
+            logger.info("No rule matches for JVM, thus excluding {}", jvmInfo);
         }
     }
 
@@ -197,7 +231,7 @@ public class AgentAttacher {
         }
     }
 
-    private boolean attach(JvmInfo jvmInfo, Map<String, String> agentArgs) throws Exception {
+    private boolean attach(JvmInfo jvmInfo, Map<String, String> agentArgs) {
         UserRegistry.User user = jvmInfo.getUser(userRegistry);
         if (user == null) {
             logger.error("Could not load user {}", jvmInfo.getUserName());
@@ -223,7 +257,7 @@ public class AgentAttacher {
         }
     }
 
-    private boolean attachAsUser(UserRegistry.User user, Map<String, String> agentArgs, String pid) throws IOException, InterruptedException {
+    private boolean attachAsUser(UserRegistry.User user, Map<String, String> agentArgs, String pid) {
 
         List<String> args = new ArrayList<>();
         args.add("--include-pid");
@@ -240,9 +274,8 @@ public class AgentAttacher {
             args.add("--log-file");
             args.add(arguments.getLogFile());
         }
-        Process process = user.runAsUserWithCurrentClassPath(AgentAttacher.class, args).inheritIO().start();
-        process.waitFor();
-        return process.exitValue() == 0;
+        ProcessExecutionUtil.CommandOutput output = user.executeAsUserWithCurrentClassPath(AgentAttacher.class, args);
+        return output.exitedNormally();
     }
 
     private Map<String, String> getAgentArgs(JvmInfo jvmInfo) throws IOException, InterruptedException {
@@ -275,13 +308,15 @@ public class AgentAttacher {
         private final boolean help;
         private final boolean list;
         private final boolean continuous;
-        private final boolean useEmulatedAttach;
         private final Level logLevel;
         private final String logFile;
         private final boolean listVmArgs;
-        private final File agentJar;
+        private final String downloadAgentVersion;
+        private File agentJar;
 
-        private Arguments(DiscoveryRules rules, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean listVmArgs, boolean continuous, boolean useEmulatedAttach, Level logLevel, String logFile, String agentJarString) {
+        private Arguments(DiscoveryRules rules, Map<String, String> config, String argsProvider, boolean help,
+                          boolean list, boolean listVmArgs, boolean continuous, Level logLevel, String logFile,
+                          String agentJarString, String downloadAgentVersion) {
             this.rules = rules;
             this.help = help;
             this.list = list;
@@ -289,6 +324,7 @@ public class AgentAttacher {
             this.continuous = continuous;
             this.logLevel = logLevel;
             this.logFile = logFile;
+            this.downloadAgentVersion = downloadAgentVersion;
             if (agentJarString != null) {
                 agentJar = new File(agentJarString);
                 if (!agentJar.exists()) {
@@ -305,7 +341,6 @@ public class AgentAttacher {
             }
             this.config = config;
             this.argsProvider = argsProvider;
-            this.useEmulatedAttach = useEmulatedAttach;
         }
 
         static Arguments parse(String... args) {
@@ -316,11 +351,11 @@ public class AgentAttacher {
             boolean list = false;
             boolean listVmArgs = false;
             boolean continuous = false;
-            boolean useEmulatedAttach = true;
             String currentArg = "";
             Level logLevel = Level.INFO;
             String logFile = null;
             String agentJar = null;
+            String downloadedAgentVersion = null;
             for (String arg : normalize(args)) {
                 if (arg.startsWith("-")) {
                     currentArg = arg;
@@ -341,10 +376,6 @@ public class AgentAttacher {
                         case "--continuous":
                             continuous = true;
                             break;
-                        case "-w":
-                        case "--without-emulated-attach":
-                            useEmulatedAttach = false;
-                            break;
                         case "--include-all":
                             rules.includeAll();
                         case "-C":
@@ -356,12 +387,15 @@ public class AgentAttacher {
                         case "--exclude-main":
                         case "--include-user":
                         case "--exclude-user":
+                        case "--include-vmarg":
                         case "--include-vmargs":
+                        case "--exclude-vmarg":
                         case "--exclude-vmargs":
                         case "-g":
                         case "--log-level":
                         case "--log-file":
                         case "--agent-jar":
+                        case "--download-agent-version":
                             break;
                         default:
                             throw new IllegalArgumentException("Illegal argument: " + arg);
@@ -374,9 +408,11 @@ public class AgentAttacher {
                         case "--exclude-main":
                             rules.excludeMain(arg);
                             break;
+                        case "--include-vmarg":
                         case "--include-vmargs":
                             rules.includeVmArgs(arg);
                             break;
+                        case "--exclude-vmarg":
                         case "--exclude-vmargs":
                             rules.excludeVmArgs(arg);
                             break;
@@ -407,12 +443,15 @@ public class AgentAttacher {
                         case "--agent-jar":
                             agentJar = arg;
                             break;
+                        case "--download-agent-version":
+                            downloadedAgentVersion = arg;
+                            break;
                         default:
                             throw new IllegalArgumentException("Illegal argument: " + arg);
                     }
                 }
             }
-            return new Arguments(rules, config, argsProvider, help, list, listVmArgs, continuous, useEmulatedAttach, logLevel, logFile, agentJar);
+            return new Arguments(rules, config, argsProvider, help, list, listVmArgs, continuous, logLevel, logFile, agentJar, downloadedAgentVersion);
         }
 
         // -ab -> -a -b
@@ -433,7 +472,7 @@ public class AgentAttacher {
         static void printHelp(PrintStream out) {
             out.println("SYNOPSIS");
             out.println("    java -jar apm-agent-attach-cli.jar [--include-* <pattern>...] [--exclude-* <pattern>...]");
-            out.println("                                       [--continuous] [--without-emulated-attach]");
+            out.println("                                       [--continuous]");
             out.println("                                       [--config <key=value>... | --args-provider <args_provider_script>]");
             out.println("                                       [--list] [--list-vmargs]");
             out.println("                                       [--log-level <level>]");
@@ -467,16 +506,16 @@ public class AgentAttacher {
             out.println("    --include-pid <pid>...");
             out.println("        A list of PIDs to include.");
             out.println();
-            out.println("    --include-main/--exclude-main <pattern>...");
-            out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should be attached to.");
+            out.println("    --include-main/--exclude-main <pattern>");
+            out.println("        A regular expression of fully qualified main class names or paths to JARs of applications the java agent should be attached to.");
             out.println("        Performs a partial match so that `foo` matches `/bin/foo.jar`.");
             out.println();
-            out.println("    --include-vmarg/--exclude-vmarg <pattern>...");
-            out.println("        A list of regular expressions matched against the arguments passed to the JVM, such as system properties.");
+            out.println("    --include-vmarg/--exclude-vmarg <pattern>");
+            out.println("        A regular expression that is matched against the arguments passed to the JVM, such as system properties.");
             out.println("        Performs a partial match so that `attach=true` matches the system property `-Dattach=true`.");
             out.println();
-            out.println("    --include-user/--exclude-user <user>...");
-            out.println("        A list of usernames that are matched against the operating system user that run the JVM.");
+            out.println("    --include-user/--exclude-user <user>");
+            out.println("        A username that is matched against the operating system user that run the JVM.");
             out.println("        For included users, make sure that the user this program is running under is either the same user or has permissions to switch to the user that runs the target JVM.");
             out.println();
             out.println("    -C --config <key=value>...");
@@ -491,10 +530,6 @@ public class AgentAttacher {
             out.println("        The syntax of the arguments is 'key1=value1;key2=value1,value2'.");
             out.println("        Note: this option can not be used in conjunction with --include-pid and --args.");
             out.println();
-            out.println("    -w, --without-emulated-attach");
-            out.println("        Disables the emulated attach feature provided by Byte Buddy, this should be used as a workaround on some JDK/JREs");
-            out.println("        when runtime attachment fails.");
-            out.println();
             out.println("    -g, --log-level <off|fatal|error|warn|info|debug|trace|all>");
             out.println("        Configures the verbosity of the logs that are sent to stdout with an ECS JSON format.");
             out.println();
@@ -505,6 +540,9 @@ public class AgentAttacher {
             out.println();
             out.println("    --agent-jar <file>");
             out.println("        Instead of the bundled agent jar, attach the provided agent to the target JVMs.");
+            out.println();
+            out.println("    --download-agent-version <agent-version>");
+            out.println("        Instead of the bundled agent jar, download and attach the specified agent version from maven.");
         }
 
         Map<String, String> getConfig() {
@@ -527,10 +565,6 @@ public class AgentAttacher {
             return continuous;
         }
 
-        boolean useEmulatedAttach() {
-            return useEmulatedAttach;
-        }
-
         public DiscoveryRules getDiscoveryRules() {
             return rules;
         }
@@ -547,12 +581,36 @@ public class AgentAttacher {
             return logFile == null;
         }
 
+        public String getDownloadAgentVersion() {
+            return downloadAgentVersion;
+        }
+
+        public void setAgentJar(File agentJar) {
+            this.agentJar = agentJar;
+        }
+
         public File getAgentJar() {
             return agentJar;
         }
 
         public Level getLogLevel() {
             return logLevel;
+        }
+
+        @Override
+        public String toString() {
+            return "Arguments{" +
+                "rules=" + rules +
+                ", config=" + config +
+                ", argsProvider='" + argsProvider + '\'' +
+                ", help=" + help +
+                ", list=" + list +
+                ", continuous=" + continuous +
+                ", logLevel=" + logLevel +
+                ", logFile='" + logFile + '\'' +
+                ", listVmArgs=" + listVmArgs +
+                ", agentJar=" + agentJar +
+                '}';
         }
     }
 

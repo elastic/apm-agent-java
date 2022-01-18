@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,20 +15,31 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
+import co.elastic.apm.agent.sdk.state.GlobalState;
+import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
 
+@GlobalState
 public class OkHttpClientHelper {
 
     /**
      * Used to avoid allocations when calculating destination host name.
      */
-    public static final GlobalThreadLocal<StringBuilder> destinationHostName = GlobalThreadLocal.get(OkHttpClientHelper.class, "destinationHostName", new StringBuilder());
+    public static final DetachedThreadLocal<StringBuilder> destinationHostName = WeakConcurrent
+        .<StringBuilder>threadLocalBuilder()
+        .withDefaultValueSupplier(new WeakMap.DefaultValueSupplier<Thread, StringBuilder>() {
+            @Override
+            public StringBuilder getDefaultValue(Thread t) {
+                return new StringBuilder();
+            }
+        })
+        .build();
 
     /**
      * NOTE: this method returns a StringBuilder instance that is kept as this class's ThreadLocal. Callers of this

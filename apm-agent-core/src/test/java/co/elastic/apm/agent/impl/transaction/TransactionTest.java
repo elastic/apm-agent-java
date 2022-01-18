@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,14 +15,12 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.TransactionUtils;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
@@ -48,7 +41,7 @@ class TransactionTest {
         jsonSerializer = new DslJsonSerializer(
             mock(StacktraceConfiguration.class),
             mock(ApmServerClient.class),
-            MetaData.create(SpyConfiguration.createSpyConfig(), null)
+            MetaDataMock.create()
         );
     }
 
@@ -74,7 +67,7 @@ class TransactionTest {
         assertThat(transaction.withOutcome(Outcome.FAILURE).getOutcome())
             .isSameAs(Outcome.FAILURE);
 
-        Arrays.asList(Outcome.SUCCESS, Outcome.UNKNOWN).forEach(o ->{
+        Arrays.asList(Outcome.SUCCESS, Outcome.UNKNOWN).forEach(o -> {
             assertThat(transaction.withUserOutcome(o).getOutcome())
                 .describedAs("user outcome should have higher priority over outcome")
                 .isSameAs(o);

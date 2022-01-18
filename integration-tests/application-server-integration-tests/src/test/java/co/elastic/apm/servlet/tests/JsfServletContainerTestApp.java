@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.servlet.tests;
 
@@ -28,7 +22,11 @@ import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
 
 public class JsfServletContainerTestApp extends TestApp {
     public JsfServletContainerTestApp() {
-        super("../jsf-app/jsf-app-standalone", "jsf-http-get.war", "/jsf-http-get/status.html", "jsf-http-get");
+        super("../jsf-app/jsf-app-standalone",
+            "jsf-http-get.war",
+            "jsf-http-get",
+            "status.html",
+            "jsf-http-get");
     }
 
     @Override

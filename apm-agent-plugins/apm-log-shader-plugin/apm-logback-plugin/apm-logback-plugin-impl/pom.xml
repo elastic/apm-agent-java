@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-logback-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.24.1-SNAPSHOT</version>
+        <version>1.28.5-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-logback-plugin-impl</artifactId>
@@ -44,74 +44,12 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.1.2</version>
                 <executions>
-                    <execution>
-                        <!-- A non-relocated jar is required for running the legacy tests -->
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <configuration>
-                            <classifier>non-shaded</classifier>
-                        </configuration>
-                        <id>non-shaded-jar</id>
-                    </execution>
                     <execution>
                         <goals>
                             <goal>test-jar</goal>
                         </goals>
-                        <id>test-jar</id>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <!--
-                Relocating ECS-logging and logging framework packages. This serves two purposes:
-                1.  The co.elastic.logging package is relocated to a shaded package to be used only within this plugin.
-                This prevents collision with other ECS-logging if such is used by the traced application.
-                2.  The logging framework packages referenced by the plugin, as well as the ECS logging dependencies,
-                are relocated to temp packages so they can be relocated back to the original packages.
-                If we wouldn't done that, the framework packages would have been shaded during agent packaging.
-                -->
-                <artifactId>maven-shade-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <shadedArtifactAttached>false</shadedArtifactAttached>
-                            <minimizeJar>true</minimizeJar>
-                            <artifactSet>
-                                <includes>
-                                    <include>co.elastic.apm:apm-logback-plugin-impl</include>
-                                </includes>
-                                <includes>
-                                    <include>co.elastic.logging:*</include>
-                                </includes>
-                            </artifactSet>
-                            <relocations>
-                                <relocation>
-                                    <pattern>co.elastic.logging</pattern>
-                                    <!-- We must shade ECS Logger classes to the plugin root package (or its subpackage)
-                                    so that they will be loaded by the application ClassLoader. Otherwise, if they
-                                    are loaded by the agent or Bootstrap CL, they won't find the actual logging
-                                    framework dependencies -->
-                                    <shadedPattern>co.elastic.apm.agent.logback.shaded.ecs.logging</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.slf4j</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.logshading.shaded.slf4j</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.apache.logging</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.logshading.shaded.apache.logging</shadedPattern>
-                                </relocation>
-                            </relocations>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>

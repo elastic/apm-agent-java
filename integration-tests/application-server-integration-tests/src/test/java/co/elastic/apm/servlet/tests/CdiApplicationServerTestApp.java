@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.servlet.tests;
 
@@ -35,7 +29,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class CdiApplicationServerTestApp extends TestApp {
 
     public CdiApplicationServerTestApp() {
-        super("../cdi-app/cdi-app-dependent", "cdi-app.war", "/cdi-app/status.html", "CDI App");
+        super("../cdi-app/cdi-app-dependent",
+            "cdi-app.war",
+            "cdi-app",
+            "status.html",
+            "CDI App");
     }
 
     @Override

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
@@ -36,7 +30,7 @@ public class ErrorLoggingListener extends AgentBuilder.Listener.Adapter {
     @Override
     public void onError(String typeName, ClassLoader classLoader, JavaModule module, boolean loaded, Throwable throwable) {
         if (throwable instanceof MinimumClassFileVersionValidator.UnsupportedClassFileVersionException) {
-            logger.warn("{} uses an unsupported class file version (pre Java {}}) and can't be instrumented. " +
+            logger.warn("{} uses an unsupported class file version (pre Java {})) and can't be instrumented. " +
                 "Consider updating to a newer version of that library.",
                 typeName,
                 ((MinimumClassFileVersionValidator.UnsupportedClassFileVersionException)throwable).getMinVersion());

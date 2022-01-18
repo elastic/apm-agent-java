@@ -41,14 +41,14 @@ the agent does not capture transactions.
 === Java versions
 
 |===
-|Vendor |Supported versions | Notes
+|Vendor |Supported versions |Notes
 
 |Oracle JDK
-|7u60+, 8u40+, 9, 10, 11
+|7u60+, 8u40+, 9, 10, 11, 17
 |`--module-path` has not been tested yet
 
-|Open JDK
-|7u60+, 8u40+, 9, 10, 11
+|OpenJDK
+|7u60+, 8u40+, 9, 10, 11, 17
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
@@ -64,7 +64,9 @@ the agent does not capture transactions.
 |
 |===
 
-NOTE: Early Java 8 versions before update 40 are *not supported* because they have
+**Early Java 8 and Java 7**
+
+Early Java 8 versions before update 40 are *not supported* because they have
 several bugs that might result in JVM crashes when a java agent is active,
 thus agent *will not start* on those versions.
 Similarly, Java 7 versions before update 60 are not supported as they are buggy in regard to invokedynamic.
@@ -106,7 +108,7 @@ the JVM arguments.
 
 
 |JavaServer Faces
-|2.2.x, 2.3.x
+|2.2.x, 2.3.x, 3.0.x
 |If you are using JSF, transactions are named based on the requested Facelets and spans are captured for visibility into execution and
 rendering
 |1.0.0
@@ -129,7 +131,7 @@ rendering
 
 |JAX-WS
 |
-|The transactions are named based on your `@javax.jws.WebService` annotated classes and `@javax.jws.WebMethod` annotated method names (`WebServiceClass#webMethod`).
+|The transactions are named based on your `@javax.jws.WebService`, `@jakarta.jws.WebService` annotated classes and `@javax.jws.WebMethod`, `@jakarta.jws.WebMethod` annotated method names (`WebServiceClass#webMethod`).
  Note that only the packages configured in <<config-application-packages>> are scanned for JAX-WS resources.
  If you don't set this option,
  all classes are scanned.
@@ -154,6 +156,21 @@ rendering
 |Captures incoming HTTP requests as transactions
 |1.24.0 (experimental)
 
+|Sparkjava (not Apache Spark)
+|2.x
+|The transactions are named based on your route (`GET /foo/:bar`).
+|1.25.0
+
+|com.sun.net.httpserver.HttpServer
+|1.7+
+|Captures incoming HTTP requests as transactions
+|1.25.0 (experimental)
+
+|Javalin
+|3.13.8+
+|
+|1.25.0
+
 |===
 
 
@@ -169,7 +186,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |Server |Supported versions
 
 |<<setup-tomcat,Tomcat>>
-|7.x, 8.5.x, 9.x
+|7.x, 8.5.x, 9.x, 10.x
 
 |<<setup-jboss-wildfly,WildFly>>
 |8-16
@@ -429,15 +446,19 @@ When using a scheduling framework a transaction for every execution will be crea
 `org.springframework.scheduling.annotation.Scheduled`
 `org.springframework.scheduling.annotation.Schedules`
 `javax.ejb.Schedule`
-`javax.ejb.Schedules` in order to create a transaction with the type `scheduled`, representing the scheduled task execution
+`javax.ejb.Schedules`
+`jakarta.ejb.Schedule`
+`jakarta.ejb.Schedules` in order to create a transaction with the type `scheduled`, representing the scheduled task execution
 |1.6.0
 
 |Quartz
-|2.0+
+|1.0+
 |The agent instruments the `execute` method of any class implementing `org.quartz.Job`, as well as the `executeInternal` method of any class extending `org.springframework.scheduling.quartz.QuartzJobBean`, and creates a transaction with the type `scheduled`, representing the job execution
 
 NOTE: only classes from the quartz-jobs dependency will be instrumented automatically. For the instrumentation of other jobs the package must be added to the <<config-application-packages>> parameter.
-|1.8.0
+|1.8.0 - 2.0+
+
+1.26.0 - 1.0+
 
 |TimerTask
 |

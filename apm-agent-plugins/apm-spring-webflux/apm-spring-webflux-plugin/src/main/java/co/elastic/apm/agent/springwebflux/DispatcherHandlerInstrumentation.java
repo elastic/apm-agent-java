@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,12 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -66,19 +59,18 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.Origin Class<?> clazz,
-                                     @Advice.Argument(0) ServerWebExchange exchange) {
+        public static Object onEnter(@Advice.Argument(0) ServerWebExchange exchange) {
 
             List<String> upgradeHeader = exchange.getRequest().getHeaders().get("upgrade");
             if (upgradeHeader != null && upgradeHeader.contains("websocket")) {
                 // just ignore upgrade WS upgrade requests for now
                 return null;
             }
-            return WebfluxHelper.getOrCreateTransaction(tracer, clazz, exchange);
+            return WebfluxHelper.getOrCreateTransaction(tracer, exchange);
         }
 
         @Nullable
-        @AssignTo.Return(typing = Assigner.Typing.DYNAMIC) // required to provide the Mono<?> return value type
+        @Advice.AssignReturned.ToReturned(typing = Assigner.Typing.DYNAMIC) // required to provide the Mono<?> return value type
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static Object onExit(@Advice.Enter @Nullable Object enterTransaction,
                                     @Advice.Argument(0) ServerWebExchange exchange,
@@ -96,7 +88,7 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
                 return returnValue;
             }
 
-            return WebfluxHelper.wrapDispatcher(tracer, returnValue, transaction, exchange);
+            return WebfluxHelper.wrapDispatcher(returnValue, transaction, exchange);
         }
     }
 

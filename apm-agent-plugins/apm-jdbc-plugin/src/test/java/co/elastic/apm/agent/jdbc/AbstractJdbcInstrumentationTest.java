@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.jdbc;
 
@@ -116,6 +110,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         executeTest(() -> testUpdateStatement(true));
         executeTest(this::testStatementNotSupportingConnection);
         executeTest(this::testStatementWithoutConnectionMetadata);
+        executeTest(this::testStatementWithoutConnectionGetCatalog);
 
         executeTest(() -> testUpdate(Statement::executeUpdate));
         executeTest(() -> testUpdate(Statement::executeLargeUpdate));
@@ -212,6 +207,31 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(statement.getConnection()).isSameAs(testConnection);
 
         checkWithoutConnectionMetadata(statement, testConnection::getUnsupportedThrownCount);
+    }
+
+    private void testStatementWithoutConnectionGetCatalog() throws SQLException {
+        TestConnection testConnection = new TestConnection(connection);
+        testConnection.setGetMetadataSupported(true);
+        testConnection.setGetCatalogSupported(false);
+        TestStatement statement = new TestStatement(testConnection.createStatement());
+
+        assertThat(statement.getConnection()).isSameAs(testConnection);
+        assertThat(testConnection.getUnsupportedThrownCount()).isZero();
+
+        final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER1' WHERE FOO=11";
+        boolean isResultSet = statement.execute(sql);
+
+        assertThat(testConnection.getUnsupportedThrownCount()).isEqualTo(1);
+        assertThat(isResultSet).isFalse();
+
+        assertSpanRecorded(sql, false, -1, null);
+
+        // try to execute statement again, should not throw again
+        statement.execute(sql);
+
+        assertThat(testConnection.getUnsupportedThrownCount())
+            .describedAs("unsupported exception should only be thrown once")
+            .isEqualTo(1);
     }
 
     private interface ThrownCountCheck {
@@ -311,6 +331,9 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         reporter.reset();
         // unique key violation
         assertThatThrownBy(() -> statementConsumer.withStatement(statement)).isInstanceOf(SQLException.class);
+        int mappedStatements = JdbcGlobalState.statementSqlMap.approximateSize();
+        statement.close();
+        assertThat(JdbcGlobalState.statementSqlMap.approximateSize()).isLessThan(mappedStatements);
         Span span = assertSpanRecorded(insert, false, -1);
         assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
     }
@@ -362,16 +385,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
             System.arraycopy(batchUpdates, 0, updates, 0, batchUpdates.length);
         }
 
-        long expectedAffected = 2;
-        if (isKnownDatabase("Oracle", "")) {
-            // for an unknown reason Oracle express have unexpected but somehow consistent behavior here
-            assertThat(updates).containsExactly(-2, -2);
-            expectedAffected = -4;
-        } else {
-            assertThat(updates).containsExactly(1, 1);
-        }
-
-        assertSpanRecorded(query, false, expectedAffected);
+        assertThat(updates).containsExactly(1, 1);
+        assertSpanRecorded(query, false, 2);
     }
 
     private void testMultipleRowsModifiedStatement() throws SQLException {
@@ -394,6 +409,10 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     }
 
     private Span assertSpanRecorded(String rawSql, boolean preparedStatement, long expectedAffectedRows) throws SQLException {
+        return assertSpanRecorded(rawSql, preparedStatement, expectedAffectedRows, connection.getCatalog());
+    }
+
+    private Span assertSpanRecorded(String rawSql, boolean preparedStatement, long expectedAffectedRows, String expectedDbInstance) throws SQLException {
         assertThat(reporter.getSpans())
             .describedAs("one span is expected")
             .hasSize(1);
@@ -408,7 +427,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         Db db = span.getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(rawSql);
         DatabaseMetaData metaData = connection.getMetaData();
-        assertThat(db.getInstance()).isEqualToIgnoringCase(connection.getCatalog());
+        assertThat(db.getInstance()).isEqualToIgnoringCase(expectedDbInstance);
         assertThat(db.getUser()).isEqualToIgnoringCase(metaData.getUserName());
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 
@@ -425,9 +444,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         }
 
         Destination.Service service = destination.getService();
-        assertThat(service.getName().toString()).isEqualTo(expectedDbVendor);
         assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor);
-        assertThat(service.getType()).isEqualTo(DB_SPAN_TYPE);
 
         assertThat(span.getOutcome())
             .describedAs("span outcome should be explicitly set to either failure or success")
@@ -463,9 +480,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(destination.getPort()).isLessThanOrEqualTo(0);
 
         Destination.Service service = destination.getService();
-        assertThat(service.getName()).isNullOrEmpty();
         assertThat(service.getResource()).isNullOrEmpty();
-        assertThat(service.getType()).isNullOrEmpty();
     }
 
     private static long[] toLongArray(int[] a) {

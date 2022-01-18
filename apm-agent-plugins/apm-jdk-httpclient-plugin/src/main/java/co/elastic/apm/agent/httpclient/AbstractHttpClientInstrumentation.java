@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,18 +15,11 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.http.client.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
 
-import javax.annotation.Nullable;
-import java.net.URI;
-import java.net.http.HttpRequest;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -42,18 +30,4 @@ public abstract class AbstractHttpClientInstrumentation extends TracerAwareInstr
         return Arrays.asList("http-client", "jdk-httpclient");
     }
 
-    @Nullable
-    protected static Span startSpan(HttpRequest httpRequest) {
-        final AbstractSpan<?> parent = tracer.getActive();
-        if (parent == null) {
-            return null;
-        }
-
-        URI uri = httpRequest.uri();
-        Span span = HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri, uri.getHost());
-        if (span != null) {
-            span.activate();
-        }
-        return span;
-    }
 }

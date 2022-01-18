@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.servlet;
 
@@ -31,21 +25,16 @@ import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.testcontainers.containers.GenericContainer;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 @RunWith(Parameterized.class)
-public class TomcatIT extends AbstractServletContainerIntegrationTest {
+public class TomcatIT extends AbstractTomcatIT {
 
     public TomcatIT(final String tomcatVersion) {
-        super(new GenericContainer<>("tomcat:" + tomcatVersion),
-            "tomcat-application",
-            "/usr/local/tomcat/webapps",
-            "tomcat");
+        super(tomcatVersion);
     }
 
     @Parameterized.Parameters(name = "Tomcat {0}")
@@ -56,20 +45,12 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
             {"8.5-jre8-slim"},
             {"9-jre9-slim"},
             {"9-jre10-slim"},
-            {"9-jre11-slim"}
+            {"9-jre11-slim"},
+            {"9.0.39-jdk14-openjdk-oracle"},
+            {"jdk8-adoptopenjdk-openj9"},
+            {"jdk11-adoptopenjdk-openj9"},
+            {"9.0.50-jdk11-adoptopenjdk-openj9"}
         });
-    }
-
-    @Override
-    protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer
-            .withEnv("JPDA_ADDRESS", "5005")
-            .withEnv("JPDA_TRANSPORT", "dt_socket");
-    }
-
-    @Nullable
-    protected String getServerLogsPath() {
-        return "/usr/local/tomcat/logs/*";
     }
 
     @Override
@@ -83,15 +64,5 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
             testClasses.add(JsfServletContainerTestApp.class);
         }
         return testClasses;
-    }
-
-    @Override
-    protected boolean runtimeAttachSupported() {
-        return true;
-    }
-
-    @Override
-    protected String getJavaagentEnvVariable() {
-        return "CATALINA_OPTS";
     }
 }

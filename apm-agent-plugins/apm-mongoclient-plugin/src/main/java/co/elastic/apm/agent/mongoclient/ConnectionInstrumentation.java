@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,11 +15,9 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.mongoclient;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import com.mongodb.MongoNamespace;
@@ -68,53 +61,55 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
             .and(takesArgument(0, named("com.mongodb.MongoNamespace")));
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onEnter(@Advice.This Connection thiz,
-                               @Advice.Argument(0) MongoNamespace namespace,
-                               @Advice.Origin("#m") String methodName) {
-        Span span = null;
-        final AbstractSpan<?> activeSpan = tracer.getActive();
-        if (activeSpan != null && !activeSpan.isExit()) {
-            span = activeSpan.createExitSpan();
+    public static class AdviceClass {
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.This Connection thiz,
+                                   @Advice.Argument(0) MongoNamespace namespace,
+                                   @Advice.Origin("#m") String methodName) {
+            Span span = null;
+            final AbstractSpan<?> activeSpan = tracer.getActive();
+            if (activeSpan != null && !activeSpan.isExit()) {
+                span = activeSpan.createExitSpan();
+            }
+
+            if (span == null) {
+                return null;
+            }
+
+            span.withType("db").withSubtype("mongodb")
+                .getContext().getDb().withType("mongodb");
+            span.getContext().getDestination().getService()
+                .withName("mongodb").withResource("mongodb").withType("db");
+            ServerAddress serverAddress = thiz.getDescription().getServerAddress();
+            span.getContext().getDestination()
+                .withAddress(serverAddress.getHost())
+                .withPort(serverAddress.getPort());
+
+            String command = methodName;
+            if (methodName.equals("query")) {
+                // if the method name is query, that corresponds to the find command
+                command = "find";
+            }
+            span.withAction(command);
+            StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
+            if (spanName != null) {
+                int indexOfCommand = command.indexOf("Command");
+                spanName.append(namespace.getDatabaseName())
+                    .append(".").append(namespace.getCollectionName())
+                    .append(".").append(command, 0, indexOfCommand > 0 ? indexOfCommand : command.length());
+            }
+            span.activate();
+            return span;
         }
 
-        if (span == null) {
-            return null;
-        }
-
-        span.withType("db").withSubtype("mongodb")
-            .getContext().getDb().withType("mongodb");
-        span.getContext().getDestination().getService()
-            .withName("mongodb").withResource("mongodb").withType("db");
-        ServerAddress serverAddress = thiz.getDescription().getServerAddress();
-        span.getContext().getDestination()
-            .withAddress(serverAddress.getHost())
-            .withPort(serverAddress.getPort());
-
-        String command = methodName;
-        if (methodName.equals("query")) {
-            // if the method name is query, that corresponds to the find command
-            command = "find";
-        }
-        span.withAction(command);
-        StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
-        if (spanName != null) {
-            int indexOfCommand = command.indexOf("Command");
-            spanName.append(namespace.getDatabaseName())
-                .append(".").append(namespace.getCollectionName())
-                .append(".").append(command, 0, indexOfCommand > 0 ? indexOfCommand : command.length());
-        }
-        span.activate();
-        return span;
-    }
-
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExit(@Nullable @Advice.Enter Object spanObj, @Advice.Thrown Throwable thrown) {
-        if (spanObj instanceof Span) {
-            Span span = (Span) spanObj;
-            span.deactivate().captureException(thrown);
-            span.end();
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Nullable @Advice.Enter Object spanObj, @Advice.Thrown Throwable thrown) {
+            if (spanObj instanceof Span) {
+                Span span = (Span) spanObj;
+                span.deactivate().captureException(thrown);
+                span.end();
+            }
         }
     }
 }

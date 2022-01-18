@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,17 +15,14 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.attach;
-
-import net.bytebuddy.agent.ByteBuddyAgent;
 
 import java.util.Locale;
 import java.util.Properties;
 
 class JvmInfo {
-    public static final String CURRENT_PID = ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE.resolve();
+    public static final String CURRENT_PID = JvmAttachUtils.CURRENT_PID;
 
     private final String pid;
     private final String userName;

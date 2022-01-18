@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,11 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -60,10 +54,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.matching.RequestPatternBuilder.newRequestPattern;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class ApmServerConfigurationSourceTest {
 
@@ -80,12 +74,14 @@ public class ApmServerConfigurationSourceTest {
         mockApmServer.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("version", "7.0.0"))));
         mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(okForJson(Map.of("foo", "bar")).withHeader("ETag", "foo")));
         mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).withHeader("If-None-Match", equalTo("foo")).willReturn(status(304)));
-        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class));
+        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), config.getConfig(CoreConfiguration.class));
         apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
         mockLogger = mock(Logger.class);
         configurationSource = new ApmServerConfigurationSource(
-            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient, MetaData.create(config, null)),
-            apmServerClient, mockLogger);
+            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient, MetaDataMock.create()),
+            apmServerClient,
+            mockLogger
+        );
     }
 
     @Test
@@ -105,7 +101,7 @@ public class ApmServerConfigurationSourceTest {
 
     @Test
     public void testRemoteConfigDisabled() {
-        when(config.getConfig(CoreConfiguration.class).isCentralConfigEnabled()).thenReturn(false);
+        doReturn(false).when(config.getConfig(CoreConfiguration.class)).isCentralConfigEnabled();
         configurationSource.fetchConfig(config);
         assertThat(configurationSource.getValue("foo")).isNull();
         mockApmServer.verify(0, postRequestedFor(urlEqualTo("/config/v1/agents")));

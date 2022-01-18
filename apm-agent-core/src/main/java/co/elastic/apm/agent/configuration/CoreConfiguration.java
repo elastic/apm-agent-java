@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,24 +15,25 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
-import co.elastic.apm.agent.bci.methodmatching.configuration.MethodMatcherValueConverter;
 import co.elastic.apm.agent.configuration.converter.ListValueConverter;
 import co.elastic.apm.agent.configuration.converter.RoundedDoubleConverter;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.matcher.MethodMatcher;
+import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.converter.AbstractValueConverter;
 import org.stagemonitor.configuration.converter.MapValueConverter;
+import org.stagemonitor.configuration.converter.SetValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
@@ -45,8 +41,10 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
@@ -231,24 +229,66 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("*session*"),
             WildcardMatcher.valueOf("*credit*"),
             WildcardMatcher.valueOf("*card*"),
-            // HTTP request header for basic auth, contains passwords
-            WildcardMatcher.valueOf("authorization"),
+            WildcardMatcher.valueOf("*auth*"),
             // HTTP response header which can contain session ids
             WildcardMatcher.valueOf("set-cookie")
         ));
 
-    private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.stringsOption()
+    private final ConfigurationOption<Collection<String>> enabledInstrumentations = ConfigurationOption.stringsOption()
+        .key("enable_instrumentations")
+        .configurationCategory(CORE_CATEGORY)
+        .description("A list of instrumentations which should be selectively enabled.\n" +
+            "Valid options are ${allInstrumentationGroupNames}.\n" +
+            "When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.\n" +
+            "When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.\n" +
+            "\n" +
+            "NOTE: Changing this value at runtime can slow down the application temporarily.")
+        .dynamic(true)
+        .tags("added[1.28.0]")
+        .buildWithDefault(Collections.<String>emptyList());
+
+    private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.builder(new AbstractValueConverter<Collection<String>>() {
+            @Override
+            public Collection<String> convert(String s) {
+                Collection<String> values = SetValueConverter.STRINGS_VALUE_CONVERTER.convert(s);
+                if (values.contains("incubating")) {
+                    Set<String> legacyValues = new LinkedHashSet<String>(values);
+                    legacyValues.add("experimental");
+
+                    return Collections.unmodifiableSet(legacyValues);
+                }
+
+                return values;
+            }
+
+            @Override
+            public String toString(Collection<String> value) {
+                return SetValueConverter.STRINGS_VALUE_CONVERTER.toString(value);
+            }
+        }, Collection.class)
         .key("disable_instrumentations")
         .aliasKeys("disabled_instrumentations")
         .configurationCategory(CORE_CATEGORY)
         .description("A list of instrumentations which should be disabled.\n" +
             "Valid options are ${allInstrumentationGroupNames}.\n" +
-            "If you want to try out experimental features, set the value to an empty string.\n" +
+            "For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.\n" +
             "\n" +
             "NOTE: Changing this value at runtime can slow down the application temporarily.")
         .dynamic(true)
         .tags("added[1.0.0,Changing this value at runtime is possible since version 1.15.0]")
-        .buildWithDefault(Collections.<String>singleton("experimental"));
+        .buildWithDefault(Collections.<String>emptyList());
+
+    private final ConfigurationOption<Boolean> enableExperimentalInstrumentations = ConfigurationOption.booleanOption()
+        .key("enable_experimental_instrumentations")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Whether to apply experimental instrumentations.\n" +
+            "\n" +
+            "NOTE: Changing this value at runtime can slow down the application temporarily." +
+            "\n" +
+            "Setting to `true` will enable instrumentations in the `experimental` group.")
+        .dynamic(true)
+        .tags("added[1.25.0]")
+        .buildWithDefault(false);
 
     private final ConfigurationOption<List<WildcardMatcher>> unnestExceptions = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -452,14 +492,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             " - `public org.example.services.*Service#*`\n" +
             " - `public @java.inject.ApplicationScoped org.example.*`\n" +
             " - `public @java.inject.* org.example.*`\n" +
-            " - `public @@javax.enterprise.context.NormalScope org.example.*`\n" +
+            " - `public @@javax.enterprise.context.NormalScope org.example.*, public @@jakarta.enterprise.context.NormalScope org.example.*`\n" +
             "\n" +
             "NOTE: Only use wildcards if necessary.\n" +
             "The more methods you match the more overhead will be caused by the agent.\n" +
             "Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).\n" +
             "\n" +
             "NOTE: The agent will create stack traces for spans which took longer than\n" +
-            "<<config-span-frames-min-duration, `span_frames_min_duration`>>.\n" +
+            "<<config-span-stack-trace-min-duration, `span_stack_trace_min_duration`>>.\n" +
             "When tracing a large number of methods (for example by using wildcards),\n" +
             "this may lead to high overhead.\n" +
             "Consider increasing the threshold or disabling stack trace collection altogether.\n\n" +
@@ -467,6 +507,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "Trace all public methods in CDI-Annotated beans:\n\n" +
             "----\n" +
             "public @@javax.enterprise.context.NormalScope your.application.package.*\n" +
+            "public @@jakarta.enterprise.context.NormalScope your.application.package.*\n" +
             "public @@javax.inject.Scope your.application.package.*\n" +
             "----\n" +
             "NOTE: This method is only available in the Elastic APM Java Agent.\n" +
@@ -595,13 +636,16 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "provider or, if that fails, will use trial and error to collect the metadata.")
         .buildWithDefault(CloudProvider.AUTO);
 
-    private final ConfigurationOption<TimeDuration> cloudMetadataTimeoutMs = TimeDurationValueConverter.durationOption("ms")
-        .key("cloud_metadata_timeout_ms")
+    private final ConfigurationOption<TimeDuration> metadataTimeoutMs = TimeDurationValueConverter.durationOption("ms")
+        .key("metadata_timeout_ms")
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
-        .description("Automatic cloud provider information is fetched by querying APIs in external services, which means \n" +
-            "they impose a delay. In some cases, this discovery process relies on trial-and-error, by querying these \n" +
-            "services. We use this config option to determine the timeout for this purpose. Increase if timed out when shouldn't.")
+        .description("Some metadata auto-discovery tasks require long execution. For example, cloud provider information \n" +
+            "is fetched by querying APIs through HTTP and hostname discovery relies on running external commands. \n" +
+            "In some cases, such discovery tasks rely on trial-and-error. This config option is used to limit the time \n" +
+            "spent on metadata discovery. Wherever possible, these tasks are executed in parallel, but in some cases \n" +
+            "they can't be, which means that this config doesn't indicate the absolute limit for the entire metadata \n" +
+            "discovery. Rather, it defines the timeout for each metadata discovery task.")
         .buildWithDefault(TimeDuration.of("1000ms"));
 
     private final ConfigurationOption<Boolean> enablePublicApiAnnotationInheritance = ConfigurationOption.booleanOption()
@@ -625,7 +669,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     }
 
     public List<ConfigurationOption<?>> getInstrumentationOptions() {
-        return Arrays.asList(instrument, traceMethods, disabledInstrumentations);
+        return Arrays.asList(instrument, traceMethods, enabledInstrumentations, disabledInstrumentations, enableExperimentalInstrumentations);
     }
 
     public String getServiceName() {
@@ -649,14 +693,17 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return delayTracerStart.get().getMillis();
     }
 
+    @Nullable
     public String getServiceVersion() {
         return serviceVersion.get();
     }
 
+    @Nullable
     public String getHostname() {
         return hostname.get();
     }
 
+    @Nullable
     public String getEnvironment() {
         return environment.get();
     }
@@ -673,8 +720,40 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return sanitizeFieldNames.get();
     }
 
-    public Collection<String> getDisabledInstrumentations() {
-        return disabledInstrumentations.get();
+    public boolean isInstrumentationEnabled(String instrumentationGroupName) {
+        final Collection<String> enabledInstrumentationGroupNames = enabledInstrumentations.get();
+        final Collection<String> disabledInstrumentationGroupNames = disabledInstrumentations.get();
+        return (enabledInstrumentationGroupNames.isEmpty() || enabledInstrumentationGroupNames.contains(instrumentationGroupName)) &&
+            !disabledInstrumentationGroupNames.contains(instrumentationGroupName) &&
+            (enableExperimentalInstrumentations.get() || !instrumentationGroupName.equals("experimental"));
+    }
+
+    public boolean isInstrumentationEnabled(Collection<String> instrumentationGroupNames) {
+        return isGroupEnabled(instrumentationGroupNames) &&
+            !isGroupDisabled(instrumentationGroupNames);
+    }
+
+    private boolean isGroupEnabled(Collection<String> instrumentationGroupNames) {
+        final Collection<String> enabledInstrumentationGroupNames = enabledInstrumentations.get();
+        if (enabledInstrumentationGroupNames.isEmpty()) {
+            return true;
+        }
+        for (String instrumentationGroupName : instrumentationGroupNames) {
+            if (enabledInstrumentationGroupNames.contains(instrumentationGroupName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isGroupDisabled(Collection<String> instrumentationGroupNames) {
+        Collection<String> disabledInstrumentationGroupNames = disabledInstrumentations.get();
+        for (String instrumentationGroupName : instrumentationGroupNames) {
+            if (disabledInstrumentationGroupNames.contains(instrumentationGroupName)) {
+                return true;
+            }
+        }
+        return !enableExperimentalInstrumentations.get() && instrumentationGroupNames.contains("experimental");
     }
 
     public List<WildcardMatcher> getUnnestExceptions() {
@@ -758,25 +837,24 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
      * Makes sure to not initialize ConfigurationOption, which would initialize the logger
      */
     @Nullable
-    public static String getConfigFileLocation(List<ConfigurationSource> configurationSources) {
-        String configFileLocation = DEFAULT_CONFIG_FILE;
-        for (ConfigurationSource configurationSource : configurationSources) {
-            String valueFromSource = configurationSource.getValue(CONFIG_FILE);
-            if (valueFromSource != null) {
-                configFileLocation = valueFromSource;
+    public static String getConfigFileLocation(List<ConfigurationSource> configurationSources, boolean premain) {
+        String configFileLocation = premain ? DEFAULT_CONFIG_FILE : null;
+        for (ConfigurationSource source : configurationSources) {
+            String value = source.getValue(CONFIG_FILE);
+            if (value != null) {
+                configFileLocation = value;
                 break;
             }
         }
-        if (configFileLocation.contains(AGENT_HOME_PLACEHOLDER)) {
+
+        if (configFileLocation != null) {
             String agentHome = ElasticApmAgent.getAgentHome();
             if (agentHome != null) {
-                return configFileLocation.replace(AGENT_HOME_PLACEHOLDER, agentHome);
-            } else {
-                return null;
+                configFileLocation = configFileLocation.replace(AGENT_HOME_PLACEHOLDER, agentHome);
             }
-        } else {
-            return configFileLocation;
         }
+
+        return configFileLocation;
     }
 
     @Nullable
@@ -795,8 +873,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         }
     }
 
-    public long geCloudMetadataDiscoveryTimeoutMs() {
-        return cloudMetadataTimeoutMs.get().getMillis();
+    public long getMetadataDiscoveryTimeoutMs() {
+        return metadataTimeoutMs.get().getMillis();
     }
 
     public CloudProvider getCloudProvider() {

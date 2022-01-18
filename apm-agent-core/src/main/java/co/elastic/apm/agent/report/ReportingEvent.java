@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report;
 
@@ -30,13 +24,15 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.locks.LockSupport;
 
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.END_REQUEST;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.ERROR;
-import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.FLUSH;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.JSON_WRITER;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SHUTDOWN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SPAN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.TRANSACTION;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.WAKEUP;
 
 public class ReportingEvent {
     @Nullable
@@ -49,6 +45,8 @@ public class ReportingEvent {
     private Span span;
     @Nullable
     private JsonWriter jsonWriter;
+    @Nullable
+    private Thread unparkAfterProcessed;
 
     public void resetState() {
         this.transaction = null;
@@ -56,6 +54,7 @@ public class ReportingEvent {
         this.error = null;
         this.span = null;
         this.jsonWriter = null;
+        this.unparkAfterProcessed = null;
     }
 
     @Nullable
@@ -68,8 +67,8 @@ public class ReportingEvent {
         this.type = TRANSACTION;
     }
 
-    public void setFlushEvent() {
-        this.type = FLUSH;
+    public void setEndRequestEvent() {
+        this.type = END_REQUEST;
     }
 
     @Nullable
@@ -131,9 +130,20 @@ public class ReportingEvent {
         } else if (error != null) {
             error.recycle();
         }
+        if (unparkAfterProcessed != null) {
+            LockSupport.unpark(unparkAfterProcessed);
+        }
+    }
+
+    public void unparkAfterProcessed(@Nullable Thread thread) {
+        unparkAfterProcessed = thread;
+    }
+
+    public void setWakeupEvent() {
+        type = WAKEUP;
     }
 
     enum ReportingEventType {
-        FLUSH, TRANSACTION, SPAN, ERROR, SHUTDOWN, JSON_WRITER
+        END_REQUEST, TRANSACTION, SPAN, ERROR, SHUTDOWN, JSON_WRITER, WAKEUP
     }
 }

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.kafka.helper;
 
@@ -32,13 +26,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
-@SuppressWarnings("rawtypes")
-class ConsumerRecordsListWrapper implements List<ConsumerRecord> {
+class ConsumerRecordsListWrapper implements List<ConsumerRecord<?, ?>> {
 
-    private final List<ConsumerRecord> delegate;
+    private final List<ConsumerRecord<?, ?>> delegate;
     private final ElasticApmTracer tracer;
 
-    public ConsumerRecordsListWrapper(List<ConsumerRecord> delegate, ElasticApmTracer tracer) {
+    public ConsumerRecordsListWrapper(List<ConsumerRecord<?, ?>> delegate, ElasticApmTracer tracer) {
         this.delegate = delegate;
         this.tracer = tracer;
     }
@@ -59,7 +52,7 @@ class ConsumerRecordsListWrapper implements List<ConsumerRecord> {
     }
 
     @Override
-    public Iterator<ConsumerRecord> iterator() {
+    public Iterator<ConsumerRecord<?, ?>> iterator() {
         return new ConsumerRecordsIteratorWrapper(delegate.iterator(), tracer);
     }
 
@@ -89,12 +82,12 @@ class ConsumerRecordsListWrapper implements List<ConsumerRecord> {
     }
 
     @Override
-    public boolean addAll(Collection<? extends ConsumerRecord> c) {
+    public boolean addAll(Collection<? extends ConsumerRecord<?, ?>> c) {
         return delegate.addAll(c);
     }
 
     @Override
-    public boolean addAll(int index, Collection<? extends ConsumerRecord> c) {
+    public boolean addAll(int index, Collection<? extends ConsumerRecord<?, ?>> c) {
         return delegate.addAll(index, c);
     }
 
@@ -124,22 +117,22 @@ class ConsumerRecordsListWrapper implements List<ConsumerRecord> {
     }
 
     @Override
-    public ConsumerRecord get(int index) {
+    public ConsumerRecord<?, ?> get(int index) {
         return delegate.get(index);
     }
 
     @Override
-    public ConsumerRecord set(int index, ConsumerRecord element) {
+    public ConsumerRecord<?, ?> set(int index, ConsumerRecord<?, ?> element) {
         return delegate.set(index, element);
     }
 
     @Override
-    public void add(int index, ConsumerRecord element) {
+    public void add(int index, ConsumerRecord<?, ?> element) {
         delegate.add(index, element);
     }
 
     @Override
-    public ConsumerRecord remove(int index) {
+    public ConsumerRecord<?, ?> remove(int index) {
         return delegate.remove(index);
     }
 
@@ -154,17 +147,17 @@ class ConsumerRecordsListWrapper implements List<ConsumerRecord> {
     }
 
     @Override
-    public ListIterator<ConsumerRecord> listIterator() {
+    public ListIterator<ConsumerRecord<?, ?>> listIterator() {
         return delegate.listIterator();
     }
 
     @Override
-    public ListIterator<ConsumerRecord> listIterator(int index) {
+    public ListIterator<ConsumerRecord<?, ?>> listIterator(int index) {
         return delegate.listIterator(index);
     }
 
     @Override
-    public List<ConsumerRecord> subList(int fromIndex, int toIndex) {
+    public List<ConsumerRecord<?, ?>> subList(int fromIndex, int toIndex) {
         return new ConsumerRecordsListWrapper(delegate.subList(fromIndex, toIndex), tracer);
     }
 }

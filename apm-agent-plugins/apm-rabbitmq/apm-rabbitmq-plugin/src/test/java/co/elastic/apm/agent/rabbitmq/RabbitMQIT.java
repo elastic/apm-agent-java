@@ -1,3 +1,21 @@
+/*
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package co.elastic.apm.agent.rabbitmq;
 /*-
  * #%L
@@ -306,7 +324,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         reporter.awaitSpanCount(1);
 
         Span pollingSpan = reporter.getFirstSpan();
-        checkPollSpan(pollingSpan, queueName, "<unknown>");
+        checkPollSpan(pollingSpan, queueName, "<unknown>", false);
     }
 
     @Test
@@ -322,7 +340,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         reporter.awaitSpanCount(1);
 
         Span pollingSpan = reporter.getFirstSpan();
-        checkPollSpan(pollingSpan, queueName, exchange);
+        checkPollSpan(pollingSpan, queueName, exchange, true);
     }
 
 
@@ -599,14 +617,19 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
 
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
-        checkMessage(transaction.getContext().getMessage(), exchange);
+        checkMessage(transaction.getContext().getMessage(), exchange, true);
     }
 
-    private static void checkMessage(Message message, String queueName) {
+    private static void checkMessage(Message message, String queueName, boolean withRoutingKeyCheck) {
         assertThat(message.getQueueName()).isEqualTo(queueName);
 
         // RabbitMQ does not provide timestamp by default
         assertThat(message.getAge()).isLessThan(0);
+        if (withRoutingKeyCheck) {
+            assertThat(message.getRoutingKey()).isNotBlank();
+        } else {
+            assertThat(message.getRoutingKey()).isNull();
+        }
     }
 
 
@@ -659,17 +682,19 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         checkSpanCommon(span,
             "send",
             String.format("RabbitMQ SEND to %s", exchangeName),
-            exchangeName
+            exchangeName,
+            true
         );
 
         checkSpanDestination(span, host, port, String.format("rabbitmq/%s", exchangeName));
     }
 
-    private static void checkPollSpan(Span span, String queue, String normalizedExchange) {
+    private static void checkPollSpan(Span span, String queue, String normalizedExchange, boolean withRoutingKeyCheck) {
         checkSpanCommon(span,
             "poll",
             String.format("RabbitMQ POLL from %s", queue),
-            queue);
+            queue,
+            withRoutingKeyCheck);
 
         checkSpanDestination(span,
             connection.getAddress().getHostAddress(),
@@ -678,7 +703,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         );
     }
 
-    private static void checkSpanCommon(Span span, String expectedAction, String expectedName, String expectedQueueName) {
+    private static void checkSpanCommon(Span span, String expectedAction, String expectedName, String expectedQueueName, boolean withRoutingKeyCheck) {
         assertThat(span.getType()).isEqualTo("messaging");
         assertThat(span.getSubtype()).isEqualTo("rabbitmq");
         assertThat(span.getAction()).isEqualTo(expectedAction);
@@ -686,7 +711,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         assertThat(span.getNameAsString())
             .isEqualTo(expectedName);
 
-        checkMessage(span.getContext().getMessage(), expectedQueueName);
+        checkMessage(span.getContext().getMessage(), expectedQueueName, withRoutingKeyCheck);
 
         assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
@@ -698,8 +723,6 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
 
         Destination.Service service = destination.getService();
 
-        assertThat(service.getType()).isEqualTo("messaging");
-        assertThat(service.getName().toString()).isEqualTo("rabbitmq");
         assertThat(service.getResource().toString()).isEqualTo(expectedResource);
     }
 }

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package org.example.stacktrace;
 
@@ -64,8 +58,8 @@ class StacktraceSerializationTest {
         tracer = MockTracer.createRealTracer();
         stacktraceConfiguration = tracer.getConfig(StacktraceConfiguration.class);
         // always enable
-        when(stacktraceConfiguration.getSpanFramesMinDurationMs()).thenReturn(-1L);
-        serializer = new DslJsonSerializer(stacktraceConfiguration, mock(ApmServerClient.class), tracer.getMetaData());
+        when(stacktraceConfiguration.getSpanStackTraceMinDurationMs()).thenReturn(0L);
+        serializer = new DslJsonSerializer(stacktraceConfiguration, mock(ApmServerClient.class), tracer.getMetaDataFuture());
         objectMapper = new ObjectMapper();
         stacktrace = getStackTrace();
     }

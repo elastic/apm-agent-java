@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.configuration;
 
@@ -31,7 +25,12 @@ public class ServiceNameUtil {
     private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(.*)?$";
 
     public static String getDefaultServiceName() {
-        return getDefaultServiceName(System.getProperty("sun.java.command"));
+        String lambdaFunctionName = System.getenv("AWS_LAMBDA_FUNCTION_NAME");
+        if (null != lambdaFunctionName) {
+            return lambdaFunctionName;
+        } else {
+            return getDefaultServiceName(System.getProperty("sun.java.command"));
+        }
     }
 
     static String getDefaultServiceName(@Nullable String sunJavaCommand) {
@@ -41,7 +40,7 @@ public class ServiceNameUtil {
             serviceName = serviceName.trim();
         }
         if (serviceName == null || serviceName.isEmpty()) {
-            serviceName = "my-service";
+            serviceName = "unknown-java-service";
         }
         return serviceName;
     }

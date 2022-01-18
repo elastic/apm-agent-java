@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.sdk;
 
@@ -30,7 +24,17 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.util.Collection;
 import java.util.ServiceLoader;
 
-public interface DynamicTransformer {
+public class DynamicTransformer {
+    private static final DynamicTransformerProvider transformer;
+
+    static {
+        ClassLoader classLoader = DynamicTransformer.class.getClassLoader();
+        if (classLoader == null) {
+            classLoader = ClassLoader.getSystemClassLoader();
+        }
+        // loads the implementation provided by the core module without depending on the class or class name
+        transformer = ServiceLoader.load(DynamicTransformerProvider.class, classLoader).iterator().next();
+    }
 
     /**
      * Instruments a specific class at runtime with one or multiple instrumentation classes.
@@ -44,23 +48,17 @@ public interface DynamicTransformer {
      * @param classToInstrument      the class which should be instrumented.
      * @param instrumentationClasses the instrumentation which should be applied to the class to instrument.
      */
-    void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses);
-
-    class Accessor {
-        private static final DynamicTransformer transformer;
-
-        static {
-            ClassLoader classLoader = Accessor.class.getClassLoader();
-            if (classLoader == null) {
-                classLoader = ClassLoader.getSystemClassLoader();
-            }
-            // loads the implementation provided by the core module without depending on the class or class name
-            transformer = ServiceLoader.load(DynamicTransformer.class, classLoader).iterator().next();
-        }
-
-        public static DynamicTransformer get() {
-            return transformer;
-        }
+    public static void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses) {
+        transformer.ensureInstrumented(classToInstrument, instrumentationClasses);
     }
 
+    /**
+     * This is an internal class.
+     * Provides the implementation for the dynamic transformation.
+     */
+    public interface DynamicTransformerProvider {
+
+        void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses);
+
+    }
 }

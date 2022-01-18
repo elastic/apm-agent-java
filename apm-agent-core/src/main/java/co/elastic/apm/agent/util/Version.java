@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.util;
 
@@ -39,10 +33,30 @@ public class Version implements Comparable<Version> {
     }
 
     private Version(String version) {
-        final String[] parts = version.split("\\-")[0].split("\\.");
-        numbers = new int[parts.length];
-        for (int i = 0; i < parts.length; i++) {
-            numbers[i] = Integer.valueOf(parts[i]);
+        int indexOfDash = version.indexOf('-');
+        int indexOfFirstDot = version.indexOf('.');
+        if (indexOfDash > 0 && indexOfDash < indexOfFirstDot) {
+            version = version.substring(indexOfDash + 1);
+        }
+        indexOfDash = version.indexOf('-');
+        int indexOfLastDot = version.lastIndexOf('.');
+        if (indexOfDash > 0 && indexOfDash > indexOfLastDot) {
+            version = version.substring(0, indexOfDash);
+        }
+        final String[] parts = version.split("\\.");
+        int[] tmp = new int[parts.length];
+        int validPartsIndex = 0;
+        for (String part : parts) {
+            try {
+                tmp[validPartsIndex] = Integer.valueOf(part);
+                validPartsIndex++;
+            } catch (NumberFormatException numberFormatException) {
+                // continue
+            }
+        }
+        numbers = new int[validPartsIndex];
+        if (numbers.length > 0) {
+            System.arraycopy(tmp, 0, numbers, 0, numbers.length);
         }
     }
 
@@ -57,5 +71,17 @@ public class Version implements Comparable<Version> {
             }
         }
         return 0;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < numbers.length; i++) {
+            sb.append(numbers[i]);
+            if (i < numbers.length - 1) {
+                sb.append('.');
+            }
+        }
+        return sb.toString();
     }
 }

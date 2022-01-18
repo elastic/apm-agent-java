@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.jms;
 
@@ -28,8 +22,8 @@ import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -242,7 +236,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
         public static class ListenerWrappingAdvice extends BaseAdvice {
 
             @Nullable
-            @AssignTo.Argument(0)
+            @Advice.AssignReturned.ToArguments(@ToArgument(0))
             @Advice.OnMethodEnter(inline = false)
             public static MessageListener beforeSetListener(@Advice.Argument(0) @Nullable MessageListener original) {
                 return helper.wrapLambda(original);

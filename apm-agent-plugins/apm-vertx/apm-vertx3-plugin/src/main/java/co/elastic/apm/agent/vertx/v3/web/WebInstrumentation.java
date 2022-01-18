@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,18 +15,17 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.vertx.v3.web;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.vertx.v3.Vertx3Instrumentation;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -137,7 +131,7 @@ public abstract class WebInstrumentation extends Vertx3Instrumentation {
         public static class ResponseEndHandlerAdvice {
 
             @Nullable
-            @AssignTo.Field(value = "endHandler")
+            @Advice.AssignReturned.ToFields(@ToField(value = "endHandler"))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Handler<Void> wrapHandler(@Advice.Argument(value = 0) Handler<Void> handler,
                                                     @Advice.FieldValue(value = "endHandler") @Nullable Handler<Void> internalHandler) {

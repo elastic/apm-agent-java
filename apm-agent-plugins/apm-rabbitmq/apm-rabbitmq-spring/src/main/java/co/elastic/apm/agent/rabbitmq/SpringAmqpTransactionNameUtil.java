@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,21 +15,20 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.sdk.state.GlobalState;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 
 @GlobalState
 public class SpringAmqpTransactionNameUtil {
 
-    private static final WeakConcurrentSet<Object> rabbitListeners = WeakMapSupplier.createSet();
+    private static final WeakSet<Object> rabbitListeners = WeakConcurrent.buildSet();
 
     public static String getTransactionNamePrefix(Object listener) {
-        return rabbitListeners.contains(listener) ? "RabbitMQ" : "Spring AMQP";
+        return rabbitListeners.contains(listener) ? "RabbitMQ" : AmqpConstants.SPRING_AMQP_TRANSACTION_PREFIX;
     }
 
     public static void register(Object listener) {

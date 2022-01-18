@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package specs;
 
@@ -38,90 +32,58 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class OutcomeStepsDefinitions {
 
-    private final OutcomeState state;
+    private final ScenarioState state;
 
-    public OutcomeStepsDefinitions(OutcomeState state) {
+    public OutcomeStepsDefinitions(ScenarioState state) {
         this.state = state;
     }
 
-    @Given("an active transaction")
-    public void startTransaction() {
-        assertThat(state.getTransaction()).isNull();
-
-        state.startTransaction();
+    @Given("the agent sets the {} outcome to {string}")
+    public void internalSetOutcome(String context, String outcome) {
+        setInternalOutcome(state.getContext(context), outcome);
     }
 
-    @Given("an active span")
-    public void startSpan() {
-        // spans can't exist outside of a transaction, thus we have to create it if not explicitly asked to
-        state.startRootTransactionIfRequired();
-
-        state.startSpan();
+    @Given("a user sets the {} outcome to {string}")
+    public void userSetOutcome(String context, String outcome) {
+        setUserOutcome(state.getContext(context), outcome);
     }
 
-    @Then("{} outcome is {string}")
+    @Given("an error is reported to the {}")
+    public void reportError(String context) {
+        state.getContext(context).captureException(new Throwable());
+    }
+
+    @Then("the {} outcome is {string}")
     public void thenOutcomeIs(String context, String outcome) {
         checkOutcome(context.equals("span") ? state.getSpan() : state.getTransaction(), outcome);
     }
 
-    @Then("user sets {} outcome to {string}")
-    public void userSetOutcome(String context, String outcome) {
-        setUserOutcome(getContext(context), outcome);
-    }
-
-    @Then("{} terminates with outcome {string}")
-    public void terminatesWithOutcome(String context, String outcome) {
-        endWithOutcome(getContext(context), outcome);
-    }
-
-    @Given("{} terminates with an error")
-    public void terminatesWithError(String context) {
-        getContext(context)
-            .captureException(new Throwable())
-            .end();
-    }
-
-    @Given("{} terminates without error")
-    public void terminatesWithoutError(String context) {
-        getContext(context).end();
-    }
-
-    AbstractSpan<?> getContext(String context) {
-        return context.equals("span") ? state.getSpan() : state.getTransaction();
-    }
-
     // HTTP spans & transactions mapping
 
-    @Given("an HTTP span with {int} response code")
+    @Given("a HTTP call is made that returns {int}")
     public void httpSpanWithStatus(int code) {
-        state.startRootTransactionIfRequired();
-        Span span = state.startSpan();
-
+        Span span = state.getSpan();
         span.withName(String.format("HTTP span status = %d", code));
-        span.withOutcome(ResultUtil.getOutcomeByHttpClientStatus(code))
-            .end();
-
+        span.withOutcome(ResultUtil.getOutcomeByHttpClientStatus(code));
     }
 
-    @Given("an HTTP transaction with {int} response code")
+    @Given("a HTTP call is received that returns {int}")
     public void httpTransactionWithStatus(int code) {
-        Transaction transaction = state.startTransaction();
-
+        Transaction transaction = state.getTransaction();
         transaction.withName(String.format("HTTP transaction status = %d", code));
-        transaction.withOutcome(ResultUtil.getOutcomeByHttpServerStatus(code)).end();
+        transaction.withOutcome(ResultUtil.getOutcomeByHttpServerStatus(code));
     }
 
     // utilities
 
-    static void endWithOutcome(AbstractSpan<?> context, String outcome) {
-        assertThat(context).isNotNull();
-        context.withOutcome(fromString(outcome))
-            .end();
-    }
-
     static void setUserOutcome(AbstractSpan<?> context, String outcome) {
         assertThat(context).isNotNull();
         context.withUserOutcome(fromString(outcome));
+    }
+
+    static void setInternalOutcome(AbstractSpan<?> context, String outcome) {
+        assertThat(context).isNotNull();
+        context.withOutcome(fromString(outcome));
     }
 
     static void checkOutcome(AbstractSpan<?> context, String outcome) {
@@ -134,6 +96,5 @@ public class OutcomeStepsDefinitions {
     static Outcome fromString(String outcome) {
         return Outcome.valueOf(outcome.toUpperCase(Locale.ROOT));
     }
-
 
 }

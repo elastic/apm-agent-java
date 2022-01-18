@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.jaxrs;
 
@@ -53,9 +47,10 @@ import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentation {
+public abstract class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentation {
 
     private final Collection<String> applicationPackages;
     private final JaxRsConfiguration configuration;
@@ -84,19 +79,21 @@ public class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentat
         if (configuration.isEnableJaxrsAnnotationInheritance()) {
             return not(isInterface())
                 .and(not(isProxy()))
-                .and(isAnnotatedWith(named("javax.ws.rs.Path"))
-                    .or(hasSuperType(isAnnotatedWith(named("javax.ws.rs.Path"))))
+                .and(isAnnotatedWith(named(pathClassName()))
+                    .or(hasSuperType(isAnnotatedWith(namedOneOf(pathClassName()))))
                 );
         } else {
-            return isAnnotatedWith(named("javax.ws.rs.Path"));
+            return isAnnotatedWith(namedOneOf(pathClassName()));
         }
     }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("javax.ws.rs.Path"));
+            .and(classLoaderCanLoadClass(pathClassName()));
     }
+
+    abstract String pathClassName();
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -104,13 +101,13 @@ public class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentat
         // "JAX-RS annotations may be used on the methods and method parameters of a super-class or an implemented interface."
         return overridesOrImplementsMethodThat(
             isAnnotatedWith(
-                named("javax.ws.rs.GET")
-                    .or(named("javax.ws.rs.POST"))
-                    .or(named("javax.ws.rs.PUT"))
-                    .or(named("javax.ws.rs.DELETE"))
-                    .or(named("javax.ws.rs.PATCH"))
-                    .or(named("javax.ws.rs.HEAD"))
-                    .or(named("javax.ws.rs.OPTIONS"))))
+                namedOneOf("javax.ws.rs.GET", "jakarta.ws.rs.GET")
+                    .or(namedOneOf("javax.ws.rs.POST", "jakarta.ws.rs.POST"))
+                    .or(namedOneOf("javax.ws.rs.PUT", "jakarta.ws.rs.PUT"))
+                    .or(namedOneOf("javax.ws.rs.DELETE", "jakarta.ws.rs.DELETE"))
+                    .or(namedOneOf("javax.ws.rs.PATCH", "jakarta.ws.rs.PATCH"))
+                    .or(namedOneOf("javax.ws.rs.HEAD", "jakarta.ws.rs.HEAD"))
+                    .or(namedOneOf("javax.ws.rs.OPTIONS", "jakarta.ws.rs.OPTIONS"))))
             .onSuperClassesThat(isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any()));
     }
 
@@ -125,21 +122,12 @@ public class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentat
         return new JaxRsOffsetMappingFactory(tracer);
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return "co.elastic.apm.agent.jaxrs.JaxRsTransactionNameInstrumentation$JaxRsTransactionNameAdvice";
-    }
-
-    public static class JaxRsTransactionNameAdvice {
-
+    static class BaseAdvice {
         private static final boolean useAnnotationValueForTransactionName = GlobalTracer.getTracerImpl()
             .getConfig(JaxRsConfiguration.class)
             .isUseJaxRsPathForTransactionName();
 
-
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void setTransactionName(@SimpleMethodSignature String signature,
-                                              @JaxRsPath @Nullable String pathAnnotationValue) {
+        protected static void setTransactionName(String signature, @Nullable String pathAnnotationValue, @Nullable String frameworkVersion) {
             final Transaction transaction = TracerAwareInstrumentation.tracer.currentTransaction();
             if (transaction != null) {
                 String transactionName = signature;
@@ -150,9 +138,8 @@ public class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentat
                 }
                 transaction.withName(transactionName, PRIO_HIGH_LEVEL_FRAMEWORK, false);
                 transaction.setFrameworkName("JAX-RS");
-                transaction.setFrameworkVersion(VersionUtils.getVersion(javax.ws.rs.GET.class, "javax.ws.rs", "javax.ws.rs-api"));
+                transaction.setFrameworkVersion(frameworkVersion);
             }
         }
     }
-
 }

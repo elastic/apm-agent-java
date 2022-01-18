@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.logging;
 
@@ -29,17 +23,29 @@ import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.LoggerConfig;
+import org.apache.logging.log4j.core.impl.Log4jContextFactory;
+import org.apache.logging.log4j.core.selector.ContextSelector;
+import org.apache.logging.log4j.spi.LoggerContextFactory;
 import org.apache.logging.log4j.status.StatusLogger;
+import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
+import org.stagemonitor.configuration.converter.MapValueConverter;
+import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Defines configuration options related to logging.
@@ -194,6 +200,17 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(LogEcsReformatting.OFF);
 
+    private final ConfigurationOption<Map<String, String>> logEcsReformattingAdditionalFields = ConfigurationOption
+        .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
+        .key("log_ecs_reformatting_additional_fields")
+        .tags("added[1.26.0]")
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("A comma-separated list of key-value pairs that will be added as additional fields to all log events.\n " +
+            "Takes the format `key=value[,key=value[,...]]`, for example: `key1=value1,key2=value2`.\n " +
+            "Only relevant if <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to any option other than `OFF`.\n")
+        .dynamic(false)
+        .buildWithDefault(Collections.<String, String>emptyMap());
+
     private final ConfigurationOption<List<WildcardMatcher>> logEcsFormatterAllowList = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("log_ecs_formatter_allow_list")
@@ -291,8 +308,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     public static void init(List<ConfigurationSource> sources, String ephemeralId) {
         // The initialization of log4j may produce errors if the traced application uses log4j settings (for
         // example - through file in the classpath or System properties) that configures specific properties for
-        // loading classes by name. Since we shade our usage of log4j, such non-shaded classes may not (and should not)
-        // be found on the classpath.
+        // loading custom classes by name, which may not be found within the agent ClassLoader's classpath.
         // All handled Exceptions should not prevent us from using log4j further, as the system falls back to a default
         // which we expect anyway. We take a calculated risk of ignoring such errors only through initialization time,
         // assuming that errors that will make the logging system non-usable won't be handled.
@@ -300,9 +316,16 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         String initialStatusLoggerLevel = System.setProperty(INITIAL_STATUS_LOGGER_LEVEL, "OFF");
         String defaultListenerLevel = System.setProperty(DEFAULT_LISTENER_LEVEL, "OFF");
         try {
-            Configurator.initialize(new Log4j2ConfigurationFactory(sources, ephemeralId).getConfiguration());
+            // org.apache.logging.log4j.core.config.ConfigurationFactory is a singleton that allows overriding its instance
+            // through setConfigurationFactory. This API is not considered thread safe, but since we do it so early on when
+            // there is only the main thread it should be OK. Once we override the default factory instance, any logger
+            // created thereafter will be configured through our custom factory, regardless of its context.
+            // Initializing only per context (the caller class loader by default, can be changed to thread or other), for
+            // example through org.apache.logging.log4j.core.config.Configurator, means that loggers in non-initialized
+            // contexts will either get the app-configuration for log4j, if such exists, or none.
+            ConfigurationFactory.setConfigurationFactory(new Log4j2ConfigurationFactory(sources, ephemeralId));
         } catch (Throwable throwable) {
-            System.err.println("Failure during initialization of agent's log4j system: " + throwable.getMessage());
+            System.err.println("[elastic-apm-agent] ERROR Failure during initialization of agent's log4j system: " + throwable.getMessage());
         } finally {
             restoreSystemProperty(INITIAL_LISTENERS_LEVEL, initialListenersLevel);
             restoreSystemProperty(INITIAL_STATUS_LOGGER_LEVEL, initialStatusLoggerLevel);
@@ -327,7 +350,28 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         if (level == null) {
             level = LogLevel.INFO;
         }
-        Configurator.setRootLevel(org.apache.logging.log4j.Level.toLevel(level.toString(), org.apache.logging.log4j.Level.INFO));
+        Level log4jLevel = Level.toLevel(level.toString(), Level.INFO);
+        LoggerContextFactory contextFactory = LogManager.getFactory();
+        if (contextFactory instanceof Log4jContextFactory) {
+            final ContextSelector selector = ((Log4jContextFactory) contextFactory).getSelector();
+            for (LoggerContext loggerContext : selector.getLoggerContexts()) {
+                // Taken from org.apache.logging.log4j.core.config.Configurator#setRootLevel()
+                final LoggerConfig loggerConfig = loggerContext.getConfiguration().getRootLogger();
+                if (!loggerConfig.getLevel().equals(log4jLevel)) {
+                    loggerConfig.setLevel(log4jLevel);
+                    loggerContext.updateLoggers();
+                }
+            }
+        } else {
+            // it should be safe to obtain a logger here
+            LoggerFactory.getLogger(LoggingConfiguration.class).warn("Unexpected type of LoggerContextFactory - {}, " +
+                "cannot update logging level", contextFactory);
+        }
+
+        // Setting the root level resets all the other loggers that may have been configured, which overrides
+        // configuration provided by the configuration files in the classpath. While the JSON schema validator is only
+        // used for testing and is not shipped, this is the most convenient solution to avoid verbosity here.
+        Configurator.setLevel("com.networknt.schema", org.apache.logging.log4j.Level.WARN);
     }
 
     public boolean isLogCorrelationEnabled() {
@@ -337,6 +381,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     public LogEcsReformatting getLogEcsReformatting() {
         return logEcsReformatting.get();
+    }
+
+    public Map<String, String> getLogEcsReformattingAdditionalFields() {
+        return logEcsReformattingAdditionalFields.get();
     }
 
     public List<WildcardMatcher> getLogEcsFormatterAllowList() {

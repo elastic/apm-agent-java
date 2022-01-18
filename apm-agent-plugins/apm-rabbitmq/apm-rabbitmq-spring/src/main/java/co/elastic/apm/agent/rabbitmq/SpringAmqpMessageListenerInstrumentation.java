@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,12 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.rabbitmq.header.SpringRabbitMQTextHeaderGetter;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -68,7 +61,7 @@ public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrume
         return "co.elastic.apm.agent.rabbitmq.SpringAmqpMessageListenerInstrumentation$SpringAmqpMessageListenerAdvice";
     }
 
-    public static class SpringAmqpMessageListenerAdvice {
+    public static class SpringAmqpMessageListenerAdvice extends BaseAdvice {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -78,35 +71,7 @@ public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrume
                 return null;
             }
             MessageProperties messageProperties = message.getMessageProperties();
-            if (messageProperties == null) {
-                return null;
-            }
-            String exchangeOrQueue = messageProperties.getReceivedExchange();
-            if (null == exchangeOrQueue || isIgnored(exchangeOrQueue)) {
-                return null;
-            }
-
-            Transaction transaction = tracer.currentTransaction();
-            if (transaction != null) {
-                return null;
-            }
-            transaction = tracer.startChildTransaction(messageProperties, SpringRabbitMQTextHeaderGetter.INSTANCE, listener.getClass().getClassLoader());
-            if (transaction == null) {
-                return null;
-            }
-
-            transaction.withType("messaging")
-                .withName(SpringAmqpTransactionNameUtil.getTransactionNamePrefix(listener))
-                .appendToName(" RECEIVE from ")
-                .appendToName(normalizeExchangeName(exchangeOrQueue));
-
-            transaction.setFrameworkName("Spring AMQP");
-
-            long timestamp = getTimestamp(messageProperties.getTimestamp());
-            co.elastic.apm.agent.impl.context.Message internalMessage = captureMessage(exchangeOrQueue, timestamp, transaction);
-            // only capture incoming messages headers for now (consistent with other messaging plugins)
-            captureHeaders(messageProperties.getHeaders(), internalMessage);
-            return transaction.activate();
+            return transactionHelper.createTransaction(message, messageProperties, SpringAmqpTransactionNameUtil.getTransactionNamePrefix(listener));
         }
 
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)

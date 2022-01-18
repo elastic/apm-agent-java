@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.kafka.helper;
 
@@ -39,18 +33,17 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 
-@SuppressWarnings("rawtypes")
-class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
+class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
 
     public static final Logger logger = LoggerFactory.getLogger(ConsumerRecordsIteratorWrapper.class);
     public static final String FRAMEWORK_NAME = "Kafka";
 
-    private final Iterator<ConsumerRecord> delegate;
+    private final Iterator<ConsumerRecord<?, ?>> delegate;
     private final ElasticApmTracer tracer;
     private final CoreConfiguration coreConfiguration;
     private final MessagingConfiguration messagingConfiguration;
 
-    public ConsumerRecordsIteratorWrapper(Iterator<ConsumerRecord> delegate, ElasticApmTracer tracer) {
+    public ConsumerRecordsIteratorWrapper(Iterator<ConsumerRecord<?, ?>> delegate, ElasticApmTracer tracer) {
         this.delegate = delegate;
         this.tracer = tracer;
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
@@ -75,9 +68,9 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
     }
 
     @Override
-    public ConsumerRecord next() {
+    public ConsumerRecord<?, ?> next() {
         endCurrentTransaction();
-        ConsumerRecord record = delegate.next();
+        ConsumerRecord<?, ?> record = delegate.next();
         try {
             String topic = record.topic();
             if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {

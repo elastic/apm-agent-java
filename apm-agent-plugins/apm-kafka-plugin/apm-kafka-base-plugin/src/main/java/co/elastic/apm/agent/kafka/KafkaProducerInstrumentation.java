@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,15 +15,13 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -45,10 +38,6 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
-
-    public KafkaProducerInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
@@ -69,24 +58,19 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.kafka.KafkaProducerInstrumentation$KafkaProducerAdvice";
+        return getClass().getName() + "$KafkaProducerAdvice";
     }
 
-    @SuppressWarnings("rawtypes")
     public static class KafkaProducerAdvice {
+
+        public static final KafkaInstrumentationHelper helper = KafkaInstrumentationHelper.get();
+
         @Nullable
-        @AssignTo.Argument(1)
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static Callback beforeSend(@Advice.Argument(0) final ProducerRecord record,
+        @Advice.AssignReturned.ToArguments(@ToArgument(1))
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Callback beforeSend(@Advice.Argument(0) final ProducerRecord<?, ?> record,
                                           @Advice.Argument(1) @Nullable Callback callback) {
-            Span span = null;
-
-            //noinspection ConstantConditions
-            KafkaInstrumentationHelper<Callback, ProducerRecord, KafkaProducer> helper = kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
-
-            if (helper != null) {
-                span = helper.onSendStart(record);
-            }
+            Span span = helper.onSendStart(record);
             if (span == null) {
                 return callback;
             }
@@ -94,14 +78,12 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
             return helper.wrapCallback(callback, span);
         }
 
-        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-        public static void afterSend(@Advice.Argument(0) final ProducerRecord record,
-                                     @Advice.This final KafkaProducer thiz,
+        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
+        public static void afterSend(@Advice.Argument(0) final ProducerRecord<?, ?> record,
+                                     @Advice.This final KafkaProducer<?, ?> thiz,
                                      @Advice.Thrown final Throwable throwable) {
             final Span span = tracer.getActiveExitSpan();
-            //noinspection ConstantConditions
-            KafkaInstrumentationHelper<Callback, ProducerRecord, KafkaProducer> helper = kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
-            if (helper != null && span != null) {
+            if (span != null) {
                 helper.onSendEnd(span, record, thiz, throwable);
             }
         }

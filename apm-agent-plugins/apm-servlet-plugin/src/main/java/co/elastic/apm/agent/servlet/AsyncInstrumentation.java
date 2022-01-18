@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,24 +15,20 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.concurrent.JavaConcurrent;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
-import co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl;
+
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import javax.servlet.AsyncContext;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -57,14 +48,10 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(ServletInstrumentation.SERVLET_API, SERVLET_API_ASYNC_GROUP_NAME);
+        return Arrays.asList(Constants.SERVLET_API, SERVLET_API_ASYNC_GROUP_NAME);
     }
 
-    public interface AsyncContextAdviceHelper<T> {
-        void onExitStartAsync(T asyncContext);
-    }
-
-    public static class StartAsyncInstrumentation extends AsyncInstrumentation {
+    public abstract static class StartAsyncInstrumentation extends AsyncInstrumentation {
 
         @Override
         public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -74,50 +61,31 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return not(isInterface())
-                .and(hasSuperType(named("javax.servlet.ServletRequest")));
+                .and(hasSuperType(named(servletRequestClassName())));
         }
 
-        /**
-         * Matches
-         * <ul>
-         * <li>{@link ServletRequest#startAsync()}</li>
-         * <li>{@link ServletRequest#startAsync(ServletRequest, ServletResponse)}</li>
-         * </ul>
-         *
-         * @return
-         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return isPublic()
                 .and(named("startAsync"))
-                .and(returns(hasSuperType(named("javax.servlet.AsyncContext"))))
+                .and(returns(hasSuperType(named(asyncContextClassName()))))
                 .and(takesArguments(0)
                     .or(
-                        takesArgument(0, named("javax.servlet.ServletRequest"))
-                            .and(takesArgument(1, named("javax.servlet.ServletResponse")))
+                        takesArgument(0, named(servletRequestClassName()))
+                            .and(takesArgument(1, named(servletResponseClassName())))
                     )
                 );
         }
 
-        @Override
-        public String getAdviceClassName() {
-            return "co.elastic.apm.agent.servlet.AsyncInstrumentation$StartAsyncInstrumentation$StartAsyncAdvice";
-        }
+        abstract String servletRequestClassName();
 
-        public static class StartAsyncAdvice {
-            private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper = new AsyncContextAdviceHelperImpl(GlobalTracer.requireTracerImpl());;
+        abstract String asyncContextClassName();
 
-            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-            public static void onExitStartAsync(@Advice.Return @Nullable AsyncContext asyncContext) {
-                if (asyncContext == null) {
-                    return;
-                }
-                asyncHelper.onExitStartAsync(asyncContext);
-            }
-        }
+        abstract String servletResponseClassName();
+
     }
 
-    public static class AsyncContextInstrumentation extends AsyncInstrumentation {
+    public abstract static class AsyncContextInstrumentation extends AsyncInstrumentation {
 
         @Override
         public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -127,7 +95,7 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return not(isInterface())
-                .and(hasSuperType(named("javax.servlet.AsyncContext")));
+                .and(hasSuperType(named(asyncContextClassName())));
         }
 
         @Override
@@ -137,15 +105,12 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
                 .and(takesArguments(Runnable.class));
         }
 
-        @Override
-        public String getAdviceClassName() {
-            return "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice";
-        }
+        abstract String asyncContextClassName();
 
         public static class AsyncContextStartAdvice {
 
             @Nullable
-            @AssignTo.Argument(0)
+            @Advice.AssignReturned.ToArguments(@ToArgument(0))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Runnable onEnterAsyncContextStart(@Advice.Argument(0) @Nullable Runnable runnable) {
                 return JavaConcurrent.withContext(runnable, tracer);
@@ -153,7 +118,7 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
 
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Exception.class, inline = false)
             public static void onExitAsyncContextStart(@Nullable @Advice.Thrown Throwable thrown,
-                                                        @Advice.Argument(value = 0) @Nullable Runnable runnable) {
+                                                       @Advice.Argument(value = 0) @Nullable Runnable runnable) {
                 JavaConcurrent.doFinally(thrown, runnable);
             }
         }

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,10 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
+import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -33,9 +28,11 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.io.FilenameFilter;
 
+import static co.elastic.apm.agent.profiler.asyncprofiler.AsyncProfiler.SAFEMODE_SYSTEM_PROPERTY_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisabledOnOs(OS.WINDOWS)
+@DisabledOnAppleSilicon
 public class AsyncProfilerTest {
 
     @BeforeEach
@@ -46,7 +43,8 @@ public class AsyncProfilerTest {
     @Test
     void testShouldCopyLibToTempDirectory() {
         String defaultTempDirectory = System.getProperty("java.io.tmpdir");
-        AsyncProfiler.getInstance(defaultTempDirectory);
+        AsyncProfiler.getInstance(defaultTempDirectory, 0);
+        assertThat(Integer.valueOf(System.getProperty(SAFEMODE_SYSTEM_PROPERTY_NAME))).isEqualTo(0);
 
         File libDirectory = new File(defaultTempDirectory);
         File[] libasyncProfilers = libDirectory.listFiles(getLibasyncProfilerFilenameFilter());
@@ -55,7 +53,8 @@ public class AsyncProfilerTest {
 
     @Test
     void testShouldCopyLibToSpecifiedDirectory(@TempDir File nonDefaultTempDirectory) {
-        AsyncProfiler.getInstance(nonDefaultTempDirectory.getAbsolutePath());
+        AsyncProfiler.getInstance(nonDefaultTempDirectory.getAbsolutePath(), 6);
+        assertThat(Integer.valueOf(System.getProperty(SAFEMODE_SYSTEM_PROPERTY_NAME))).isEqualTo(6);
 
         File[] libasyncProfilers = nonDefaultTempDirectory.listFiles(getLibasyncProfilerFilenameFilter());
         assertThat(libasyncProfilers).hasSizeGreaterThanOrEqualTo(1);

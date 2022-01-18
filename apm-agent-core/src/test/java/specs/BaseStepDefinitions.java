@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,16 +15,46 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package specs;
 
 import io.cucumber.java.en.Given;
 
+import java.util.Collections;
+import java.util.Map;
+
 public class BaseStepDefinitions {
+
+    private final ScenarioState scenarioState;
+
+    public BaseStepDefinitions(ScenarioState scenarioState) {
+        this.scenarioState = scenarioState;
+    }
 
     @Given("an agent")
     public void initAgent() {
-        // not used, use before/after hooks instead for init & cleanup
+        scenarioState.initTracer(Collections.emptyMap());
+    }
+
+    @Given("an agent configured with")
+    public void initAndConfigureAgent(Map<String, String> configOptions) {
+        scenarioState.initTracer(configOptions);
+    }
+
+    @Given("an active transaction")
+    public void startTransaction() {
+        scenarioState.startTransaction();
+    }
+
+    @Given("an active span")
+    public void startSpan() {
+        // spans can't exist outside of a transaction, thus we have to create it if not explicitly asked to
+        scenarioState.startRootTransactionIfRequired();
+        scenarioState.startSpan();
+    }
+
+    @Given("the {} ends")
+    public void endContext(String context) {
+        scenarioState.getContext(context).end();
     }
 }

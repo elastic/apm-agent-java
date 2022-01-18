@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,21 +15,16 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.net.ssl.HttpsURLConnection;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.URL;
-import java.net.URLConnection;
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -42,43 +32,39 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SSLContextInstrumentationTest extends AbstractInstrumentationTest {
 
-    private static Field defaultSSLSocketFactoryField;
-    private static ThreadPoolExecutor elasticApmThreadPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("HttpsUrlConnection-Test");
+    // We can't really assert that the agent does not initialize the SSL context, but we can test how it's implemented
+    // thus here we just check that trying to get default SSL context/factories is not possible from agent threads.
 
-    @BeforeAll
-    static void setup() throws Exception {
-        defaultSSLSocketFactoryField = HttpsURLConnection.class.getDeclaredField("defaultSSLSocketFactory");
-        defaultSSLSocketFactoryField.setAccessible(true);
-        defaultSSLSocketFactoryField.set(null, null);
-    }
-
-    @BeforeEach
-    void resetState() throws Exception {
-        defaultSSLSocketFactoryField.set(null, null);
-    }
+    private static final ThreadPoolExecutor elasticApmThreadPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("HttpsUrlConnection-Test");
 
     @Test
-    void testNonSkipped() throws Exception {
-        createConnection();
-        Object defaultSslFactory = defaultSSLSocketFactoryField.get(null);
-        assertThat(defaultSslFactory).isNotNull();
-        assertThat(defaultSslFactory).isEqualTo(HttpsURLConnection.getDefaultSSLSocketFactory());
+    void testNonSkipped() {
+        createConnection(false);
     }
 
     @Test
     void testSkipped() throws Exception {
-        Future<?> connectionCreationFuture = elasticApmThreadPool.submit(this::createConnection);
+        Future<?> connectionCreationFuture = elasticApmThreadPool.submit(()-> createConnection(true));
         connectionCreationFuture.get();
-        assertThat(defaultSSLSocketFactoryField.get(null)).isNull();
-        createConnection();
-        assertThat(defaultSSLSocketFactoryField.get(null)).isNotNull();
     }
 
-    private void createConnection() {
+    private void createConnection(boolean expectNull) {
         try {
-            URLConnection urlConnection = new URL("https://localhost:11111").openConnection();
-            assertThat(urlConnection).isInstanceOf(HttpsURLConnection.class);
-        } catch (IOException e) {
+            SocketFactory defaultSslSocketFactory = SSLSocketFactory.getDefault();
+            SSLContext defaultSslContext = SSLContext.getDefault();
+            SocketFactory defaultSocketFactory = SocketFactory.getDefault();
+
+            if (expectNull) {
+                assertThat(defaultSslSocketFactory).isNull();
+                assertThat(defaultSslContext).isNull();
+                assertThat(defaultSocketFactory).isNull();
+            } else {
+                assertThat(defaultSslSocketFactory).isNotNull();
+                assertThat(defaultSslContext).isNotNull();
+                assertThat(defaultSocketFactory).isNotNull();
+            }
+
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

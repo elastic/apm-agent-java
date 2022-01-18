@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,13 +15,13 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
+import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -77,23 +72,25 @@ public class ApmServerClientTest {
     private ElasticApmTracer tracer;
     private TestObjectPoolFactory objectPoolFactory;
     private ReporterConfiguration reporterConfiguration;
+    private CoreConfiguration coreConfiguration;
     private List<URL> urlList;
 
     @Before
     public void setUp() throws IOException {
         URL url1 = new URL("http", "localhost", apmServer1.port(), "/");
-        URL url2 = new URL("http", "localhost", apmServer2.port(), "/");
+        URL url2 = new URL("http", "localhost", apmServer2.port(), "/proxy");
         // APM server 6.x style
         apmServer1.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("ok", Map.of("version", "6.7.0-SNAPSHOT")))));
         apmServer1.stubFor(get(urlEqualTo("/test")).willReturn(notFound()));
         apmServer1.stubFor(get(urlEqualTo("/not-found")).willReturn(notFound()));
         // APM server 7+ style
-        apmServer2.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("version", "7.3.0-RC1"))));
-        apmServer2.stubFor(get(urlEqualTo("/test")).willReturn(ok("hello from server 2")));
-        apmServer2.stubFor(get(urlEqualTo("/not-found")).willReturn(notFound()));
+        apmServer2.stubFor(get(urlEqualTo("/proxy/")).willReturn(okForJson(Map.of("version", "7.3.0-RC1"))));
+        apmServer2.stubFor(get(urlEqualTo("/proxy/test")).willReturn(ok("hello from server 2")));
+        apmServer2.stubFor(get(urlEqualTo("/proxy/not-found")).willReturn(notFound()));
 
         config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
+        coreConfiguration = config.getConfig(CoreConfiguration.class);
         objectPoolFactory = new TestObjectPoolFactory();
         config.save("server_urls", url1.toString() + "," + url2.toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
         urlList = List.of(UrlValueConverter.INSTANCE.convert(url1.toString()), UrlValueConverter.INSTANCE.convert(url2.toString()));
@@ -179,7 +176,7 @@ public class ApmServerClientTest {
         apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
 
         apmServer1.verify(0, getRequestedFor(urlEqualTo("/test")));
-        apmServer2.verify(1, getRequestedFor(urlEqualTo("/test")));
+        apmServer2.verify(1, getRequestedFor(urlEqualTo("/proxy/test")));
         assertThat(apmServerClient.getErrorCount()).isEqualTo(1);
     }
 
@@ -197,7 +194,7 @@ public class ApmServerClientTest {
         assertThat(apmServerClient.<String>execute("/test", conn -> new String(conn.getInputStream().readAllBytes()))).isEqualTo("hello from server 2");
         assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer2.port());
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/test")));
-        apmServer2.verify(1, getRequestedFor(urlEqualTo("/test")));
+        apmServer2.verify(1, getRequestedFor(urlEqualTo("/proxy/test")));
         assertThat(apmServerClient.getErrorCount()).isEqualTo(1);
     }
 
@@ -207,7 +204,7 @@ public class ApmServerClientTest {
             .isInstanceOf(FileNotFoundException.class)
             .matches(t -> t.getSuppressed().length == 1, "should have a suppressed exception");
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/not-found")));
-        apmServer2.verify(1, getRequestedFor(urlEqualTo("/not-found")));
+        apmServer2.verify(1, getRequestedFor(urlEqualTo("/proxy/not-found")));
         // two failures -> urls wrap
         assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer1.port());
         assertThat(apmServerClient.getErrorCount()).isEqualTo(2);
@@ -220,7 +217,7 @@ public class ApmServerClientTest {
             return null;
         });
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/not-found")));
-        apmServer2.verify(1, getRequestedFor(urlEqualTo("/not-found")));
+        apmServer2.verify(1, getRequestedFor(urlEqualTo("/proxy/not-found")));
         // no failures -> urls in initial state
         assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer1.port());
         assertThat(apmServerClient.getErrorCount()).isZero();
@@ -234,7 +231,7 @@ public class ApmServerClientTest {
             return null;
         });
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/not-found")));
-        apmServer2.verify(1, getRequestedFor(urlEqualTo("/not-found")));
+        apmServer2.verify(1, getRequestedFor(urlEqualTo("/proxy/not-found")));
         assertThat(apmServerClient.getErrorCount()).isEqualTo(0);
     }
 
@@ -283,7 +280,7 @@ public class ApmServerClientTest {
     public void testDisableSend() {
         // We have to go through that because the disable_send config is non-dynamic
         ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
-            new PropertyFileConfigurationSource("test.elasticapm.disable-send.properties")
+            Objects.requireNonNull(ConfigSources.fromClasspath("test.elasticapm.disable-send.properties", ClassLoader.getSystemClassLoader()))
         );
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(new MockReporter())
@@ -307,7 +304,7 @@ public class ApmServerClientTest {
 
     @Test
     public void testWithEmptyServerUrlList() {
-        ApmServerClient client = new ApmServerClient(reporterConfiguration);
+        ApmServerClient client = new ApmServerClient(reporterConfiguration, coreConfiguration);
         client.start(Collections.emptyList());
         Exception exception = null;
         try {
@@ -316,5 +313,12 @@ public class ApmServerClientTest {
             exception = e;
         }
         assertThat(exception).isNull();
+    }
+
+    @Test
+    public void testUserAgentHeaderEscaping() {
+        assertThat(ApmServerClient.escapeHeaderComment("8()9")).isEqualTo("8__9");
+        assertThat(ApmServerClient.escapeHeaderComment("iPad; U; CPU OS 3_2_1 like Mac OS X; en-us")).isEqualTo("iPad; U; CPU OS 3_2_1 like Mac OS X; en-us");
+        assertThat(ApmServerClient.escapeHeaderComment("iPad; U; CPU \\OS 3_2_1 like Mac OS X; en-us")).isEqualTo("iPad; U; CPU _OS 3_2_1 like Mac OS X; en-us");
     }
 }

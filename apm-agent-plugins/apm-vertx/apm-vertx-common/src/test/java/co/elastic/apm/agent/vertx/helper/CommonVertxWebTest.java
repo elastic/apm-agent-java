@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.vertx.helper;
 
@@ -130,7 +124,6 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
     void testCallWithPathGroupAsTransactionName() throws Exception {
         when(webConfiguration.isUsePathAsName()).thenReturn(true);
         when(webConfiguration.getUrlGroups()).thenReturn(List.of(WildcardMatcher.valueOf("/test/*/group")));
-
 
         Response response = http().get("/test/secondSegment/group");
         expectTransaction(response, "/test/secondSegment/group", DEFAULT_RESPONSE_BODY, "GET /test/*/group", 200);

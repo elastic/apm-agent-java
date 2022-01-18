@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.util;
 
@@ -32,7 +26,24 @@ class VersionTest {
 
     @Test
     void testVersion() {
-        assertThat(Version.of("1.2.3")).isGreaterThan(Version.of("1.2.2"));
-        assertThat(Version.of("1.2.3-SNAPSHOT")).isGreaterThan(Version.of("1.2.2"));
+        assertThat(Version.of("1.2.3")).isEqualByComparingTo(Version.of("1.2.3"));
+        assertThat(Version.of("1.2.3-SNAPSHOT")).isEqualByComparingTo(Version.of("1.2.3"));
+        assertThat(Version.of("4.5.13")).isEqualByComparingTo(Version.of("4.5.13"));
+        assertThat(Version.of("4.5.13.redhat-00001")).isEqualByComparingTo(Version.of("4.5.13"));
+        assertThat(Version.of("httpclient-4.5.13")).isEqualByComparingTo(Version.of("4.5.13"));
+        assertThat(Version.of("httpclient-4.5.13.redhat-00001")).isEqualByComparingTo(Version.of("4.5.13"));
+        assertThat(Version.of("httpclient.4.5.13.redhat-00001")).isEqualByComparingTo(Version.of("4.5.13"));
+        assertThat(Version.of("httpclient.4.5.13.redhat")).isEqualByComparingTo(Version.of("4.5.13"));
+        assertThat(Version.of("httpclient.4.5.13-redhat")).isEqualByComparingTo(Version.of("4.5.13"));
+    }
+
+    @Test
+    void testToString() {
+        System.out.println(Version.of(""));
+        System.out.println(Version.of("1"));
+        System.out.println(Version.of("1.2"));
+        System.out.println(Version.of("1.2.3"));
+        System.out.println(Version.of("1.2.3.4"));
+        System.out.println(Version.of("1.2.3.ignore"));
     }
 }

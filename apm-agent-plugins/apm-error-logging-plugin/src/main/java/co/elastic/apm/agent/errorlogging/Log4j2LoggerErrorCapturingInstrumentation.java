@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,10 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.errorlogging;
 
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -33,15 +28,20 @@ import static co.elastic.apm.agent.errorlogging.Slf4jLoggerErrorCapturingInstrum
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class Log4j2LoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
 
-    // prevents the shade plugin from relocating org.apache.logging.log4j.Logger to co.elastic.apm.agent.shaded.logging.log4j.Logger
-    static final String LOG4J2_LOGGER = "org!apache!logging!log4j!Logger".replace('!', '.');
+    static final String LOG4J2_LOGGER = "org.apache.logging.log4j.Logger";
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return hasSuperType(named(LOG4J2_LOGGER)).and(not(hasSuperType(named(SLF4J_LOGGER))));
+    }
+
+    @Override
+    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        return named("fatal").and(takesArgument(1, named("java.lang.Throwable"))).or(super.getMethodMatcher());
     }
 
     @Override

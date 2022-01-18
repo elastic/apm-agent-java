@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.jaxrs;
 
@@ -100,6 +94,7 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
         for (TypeDescription classMethodTypeDescription : annotationSource.getDeclaredAnnotations().asTypeList()) {
             String canonicalName = classMethodTypeDescription.getCanonicalName();
             switch (canonicalName) {
+                case "jakarta.ws.rs.Path":
                 case "javax.ws.rs.Path":
                     String pathValue = getAnnotationValue(annotationSource, classMethodTypeDescription, "value");
                     if (isClassLevelPath) {
@@ -108,21 +103,27 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
                         transactionAnnotationValue.setMethodLevelPath(pathValue);
                     }
                     break;
+                case "jakarta.ws.rs.GET":
                 case "javax.ws.rs.GET":
                     transactionAnnotationValue.setMethodIfNotNull("GET");
                     break;
+                case "jakarta.ws.rs.POST":
                 case "javax.ws.rs.POST":
                     transactionAnnotationValue.setMethodIfNotNull("POST");
                     break;
+                case "jakarta.ws.rs.PUT":
                 case "javax.ws.rs.PUT":
                     transactionAnnotationValue.setMethodIfNotNull("PUT");
                     break;
+                case "jakarta.ws.rs.DELETE":
                 case "javax.ws.rs.DELETE":
                     transactionAnnotationValue.setMethodIfNotNull("DELETE");
                     break;
+                case "jakarta.ws.rs.HEAD":
                 case "javax.ws.rs.HEAD":
                     transactionAnnotationValue.setMethodIfNotNull("HEAD");
                     break;
+                case "jakarta.ws.rs.OPTIONS":
                 case "javax.ws.rs.OPTIONS":
                     transactionAnnotationValue.setMethodIfNotNull("OPTIONS");
                     break;

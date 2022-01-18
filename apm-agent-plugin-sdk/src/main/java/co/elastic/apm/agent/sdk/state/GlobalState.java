@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.sdk.state;
 
@@ -31,8 +25,8 @@ import java.lang.annotation.Target;
 
 /**
  * Annotating a class with {@link GlobalState} excludes it from being loaded by the plugin class loader.
- * It will instead be loaded by the agent class loader, which is currently the bootstrap class loader, although that is subject to change.
- * This will make it's static variables globally available instead of being local to the plugin class loader.
+ * It will instead be loaded by the agent class loader.
+ * This will make its static variables globally available instead of being local to the plugin class loader.
  * <p>
  * Normally, all classes within an instrumentation plugin are loaded from a dedicated class loader
  * that is the child of the class loader that contains the instrumented classes.

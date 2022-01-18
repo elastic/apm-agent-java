@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,11 +15,11 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -39,10 +34,6 @@ import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
-
-    public KafkaConsumerInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -60,10 +51,13 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
     }
 
     public static class KafkaConsumerAdvice {
+
+        private static final MessagingConfiguration messagingConfiguration = GlobalTracer.requireTracerImpl().getConfig(MessagingConfiguration.class);
+
         @SuppressWarnings("unused")
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @Nullable
-        public static Span pollStart() {
+        public static Object pollStart() {
 
             final AbstractSpan<?> activeSpan = tracer.getActive();
             if (activeSpan == null) {
@@ -92,10 +86,11 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
         }
 
         @SuppressWarnings("unused")
-        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-        public static void pollEnd(@Advice.Enter @Nullable final Span span,
+        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
+        public static void pollEnd(@Advice.Enter @Nullable final Object spanObj,
                                    @Advice.Thrown final Throwable throwable) {
 
+            Span span = (Span) spanObj;
             if (span != null) {
                 span.captureException(throwable);
                 span.deactivate().end();

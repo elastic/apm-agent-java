@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report.serialize;
 
@@ -33,6 +27,7 @@ import com.dslplatform.json.NumberConverter;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -53,10 +48,19 @@ public class MetricRegistrySerializer {
      * @return the serialized metric-set or {@code null} if no samples were serialized
      */
     @Nullable
-    public JsonWriter serialize(MetricSet metricSet) {
+    public JsonWriter serialize(MetricSet metricSet, List<String> serviceNames) {
         JsonWriter jw = dslJson.newWriter(maxSerializedSize);
-        final long timestamp = System.currentTimeMillis() * 1000;
-        boolean hasSamples = serialize(metricSet, timestamp, replaceBuilder, jw);
+        boolean hasSamples = false;
+        if (serviceNames.isEmpty() || metricSet.getLabels().getServiceName() != null) {
+            hasSamples = serialize(metricSet, null, jw);
+        } else {
+            hasSamples = serialize(metricSet, serviceNames.get(0), jw);
+            if (hasSamples) {
+                for (int i = 1; i < serviceNames.size(); ++i) {
+                    serialize(metricSet, serviceNames.get(i), jw);
+                }
+            }
+        }
         if (hasSamples) {
             maxSerializedSize = Math.max(Math.min(jw.size(), BUFFER_SIZE_LIMIT), maxSerializedSize);
             return jw;
@@ -64,7 +68,12 @@ public class MetricRegistrySerializer {
         return null;
     }
 
-    private static boolean serialize(MetricSet metricSet, long epochMicros, StringBuilder replaceBuilder, JsonWriter jw) {
+    private boolean serialize(MetricSet metricSet, String serviceName, JsonWriter jw) {
+        final long timestamp = System.currentTimeMillis() * 1000;
+        return serialize(metricSet, timestamp, serviceName, replaceBuilder, jw);
+    }
+
+    private static boolean serialize(MetricSet metricSet, long epochMicros, String serviceName, StringBuilder replaceBuilder, JsonWriter jw) {
         boolean hasSamples;
         jw.writeByte(JsonWriter.OBJECT_START);
         {
@@ -74,7 +83,7 @@ public class MetricRegistrySerializer {
                 DslJsonSerializer.writeFieldName("timestamp", jw);
                 NumberConverter.serialize(epochMicros, jw);
                 jw.writeByte(JsonWriter.COMMA);
-                DslJsonSerializer.serializeLabels(metricSet.getLabels(), replaceBuilder, jw);
+                DslJsonSerializer.serializeLabels(metricSet.getLabels(), serviceName, replaceBuilder, jw);
                 DslJsonSerializer.writeFieldName("samples", jw);
                 jw.writeByte(JsonWriter.OBJECT_START);
                 hasSamples = serializeGauges(metricSet.getGauges(), jw);

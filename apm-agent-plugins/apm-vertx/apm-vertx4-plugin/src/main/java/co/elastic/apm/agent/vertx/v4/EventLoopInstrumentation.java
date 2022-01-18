@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,15 +15,14 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.vertx.v4;
 
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.vertx.GenericHandlerWrapper;
 import co.elastic.apm.agent.vertx.SetTimerWrapper;
 import io.vertx.core.Handler;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -66,7 +60,7 @@ public abstract class EventLoopInstrumentation extends Vertx4Instrumentation {
         public static class SetTimerAdvice {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            @AssignTo.Argument(value = 1)
+            @Advice.AssignReturned.ToArguments(@ToArgument(value = 1))
             public static Handler<Long> setTimerEnter(@Advice.Argument(value = 1) Handler<Long> handler) {
                 return SetTimerWrapper.wrapTimerIfActiveSpan(handler);
             }
@@ -126,7 +120,7 @@ public abstract class EventLoopInstrumentation extends Vertx4Instrumentation {
 
     public static class ExecuteOnContextAdvice {
 
-        @AssignTo.Argument(value = 1)
+        @Advice.AssignReturned.ToArguments(@ToArgument(value = 1))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Handler<?> executeBlockingEnter(@Advice.Argument(value = 1) Handler<?> handler) {
             return GenericHandlerWrapper.wrapIfActiveSpan(handler);

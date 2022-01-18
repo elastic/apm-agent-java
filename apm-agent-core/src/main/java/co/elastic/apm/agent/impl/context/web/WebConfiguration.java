@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.context.web;
 
@@ -104,7 +98,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(HTTP_CATEGORY)
         .tags("experimental", "added[1.0.0,Changing this value at runtime is possible since version 1.22.0]")
         .description("If set to `true`,\n" +
-            "transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method unknown route`.\n" +
+            "transaction names of unsupported or partially-supported frameworks will be in the form of `$method $path` instead of just `$method unknown route`.\n" +
             "\n" +
             "WARNING: If your URLs contain path parameters like `/user/$userId`,\n" +
             "you should be very careful when enabling this flag,\n" +

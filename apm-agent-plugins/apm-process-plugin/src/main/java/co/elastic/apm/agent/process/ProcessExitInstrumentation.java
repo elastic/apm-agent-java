@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.process;
 
@@ -122,4 +116,42 @@ public abstract class ProcessExitInstrumentation extends BaseProcessInstrumentat
         }
     }
 
+    /**
+     * Instruments
+     * <ul>
+     *     <li>{@code ProcessImpl#exitValue}</li>
+     *     <li>{@code ProcessImpl#exitValue}</li>
+     * </ul>
+     */
+    public static class ExitValue extends ProcessExitInstrumentation {
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return isPublic().and(named("exitValue"));
+        }
+
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.process.ProcessExitInstrumentation$ExitValue$ExitValueAdvice";
+        }
+
+        public static class ExitValueAdvice {
+
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onExit(@Advice.This Process process, @Advice.Thrown Throwable thrown, @Advice.Return int exitValue) {
+
+                // we don't want to do anything if this is called by our own instrumentation
+                if (ProcessHelper.isTracingOnCurrentThread() || tracer.getActive() == null) {
+                    return;
+                }
+
+                if (thrown instanceof IllegalThreadStateException) {
+                    // this call to exitValue was invoked before the process had terminated
+                    return;
+                }
+
+                ProcessHelper.endProcessSpan(process, exitValue);
+            }
+        }
+    }
 }

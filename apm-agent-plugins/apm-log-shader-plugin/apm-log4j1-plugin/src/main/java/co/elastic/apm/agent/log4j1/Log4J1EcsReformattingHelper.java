@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.log4j1;
 
@@ -35,11 +29,13 @@ import org.apache.log4j.WriterAppender;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Map;
 
 class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAppender, Layout> {
 
     Log4J1EcsReformattingHelper() {}
 
+    @Nullable
     @Override
     protected Layout getFormatterFrom(WriterAppender appender) {
         return appender.getLayout();
@@ -56,10 +52,17 @@ class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAp
     }
 
     @Override
-    protected Layout createEcsFormatter(String eventDataset, @Nullable String serviceName) {
+    protected Layout createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName,
+                                        @Nullable Map<String, String> additionalFields, Layout originalFormatter) {
         EcsLayout ecsLayout = new EcsLayout();
         ecsLayout.setServiceName(serviceName);
+        ecsLayout.setServiceNodeName(serviceNodeName);
         ecsLayout.setEventDataset(eventDataset);
+        if (additionalFields != null) {
+            for (Map.Entry<String, String> keyValuePair : additionalFields.entrySet()) {
+                ecsLayout.setAdditionalField(keyValuePair.getKey() + "=" + keyValuePair.getValue());
+            }
+        }
         ecsLayout.setIncludeOrigin(false);
         ecsLayout.setStackTraceAsArray(false);
         return ecsLayout;

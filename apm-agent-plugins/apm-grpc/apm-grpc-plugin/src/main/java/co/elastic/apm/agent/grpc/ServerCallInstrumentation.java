@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,24 +15,23 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.grpc;
 
+import co.elastic.apm.agent.sdk.DynamicTransformer;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.Status;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
+import java.util.Collection;
+
+import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -46,16 +40,13 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  */
 public class ServerCallInstrumentation extends BaseInstrumentation {
 
-    @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("io.grpc")
-            .and(nameContains("ServerCall"));
-    }
-
+    /**
+     * Overridden in {@link DynamicTransformer#ensureInstrumented(Class, Collection)},
+     * based on the type of the {@linkplain ServerCall} implementation class.
+     */
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        // pre-filtering is used to make this quite fast and limited to gRPC packages
-        return hasSuperType(named("io.grpc.ServerCall"));
+        return any();
     }
 
     @Override
@@ -63,11 +54,19 @@ public class ServerCallInstrumentation extends BaseInstrumentation {
         return named("close");
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
-                              @Advice.This ServerCall<?, ?> serverCall,
-                              @Advice.Argument(0) Status status) {
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.grpc.ServerCallInstrumentation$ServerCallAdvice";
+    }
 
-        GrpcHelper.getInstance().exitServerCall(status, thrown, serverCall);
+    public static class ServerCallAdvice {
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                  @Advice.This ServerCall<?, ?> serverCall,
+                                  @Advice.Argument(0) Status status) {
+
+            GrpcHelper.getInstance().exitServerCall(status, thrown, serverCall);
+        }
     }
 }

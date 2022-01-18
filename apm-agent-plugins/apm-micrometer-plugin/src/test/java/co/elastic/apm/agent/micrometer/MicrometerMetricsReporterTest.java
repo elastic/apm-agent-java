@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.micrometer;
 
@@ -374,7 +368,6 @@ class MicrometerMetricsReporterTest {
             .isEmpty();
 
         getMetricSets();
-        assertThat(metricsReporter.getFailedMeters().iterator().next().getId().getName()).isEqualTo("gauge1");
     }
 
     @Test
@@ -392,7 +385,6 @@ class MicrometerMetricsReporterTest {
 
         // serialization should handle ignoring the 1st value
         assertThat(metricSet.get("metricset").get("samples").get("gauge2").get("value").doubleValue()).isEqualTo(42D);
-        assertThat(metricsReporter.getFailedMeters().iterator().next().getId().getName()).isEqualTo("gauge1");
     }
 
     @Test
@@ -411,8 +403,6 @@ class MicrometerMetricsReporterTest {
         assertThat(metricSet.get("metricset").get("samples").get("gauge2"))
             .describedAs("value of %s is not expected to be written to json", "gauge1")
             .isNull();
-
-        assertThat(metricsReporter.getFailedMeters().iterator().next().getId().getName()).isEqualTo("gauge2");
     }
 
     @Test
@@ -447,7 +437,7 @@ class MicrometerMetricsReporterTest {
 
     @Test
     void tryToSerializeInvalidTimerValues() {
-        for (Double invalidValue : Arrays.asList(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NaN)) {
+        for (Double invalidValue : Arrays.asList(Double.POSITIVE_INFINITY, Double.NaN)) {
             List<Tag> tags = List.of(Tag.of("foo", "bar"));
             meterRegistry.more().timer("custom-timer-1", tags, 42, v -> 42L, v -> invalidValue, TimeUnit.MICROSECONDS);
             meterRegistry.more().timer("custom-timer-2", tags, 42, v -> 42L, v -> 42D, TimeUnit.MICROSECONDS);

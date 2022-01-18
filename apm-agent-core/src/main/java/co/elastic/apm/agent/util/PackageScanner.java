@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.util;
 
@@ -65,7 +59,10 @@ public class PackageScanner {
                 // avoids FileSystemAlreadyExistsException
                 synchronized (PackageScanner.class) {
                     try (FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap())) {
-                        final Path basePath  = fileSystem.getPath(baseFolderResource).toAbsolutePath();
+                        Path basePath  = fileSystem.getPath(baseFolderResource).toAbsolutePath();
+                        if (!Files.exists(basePath)) {
+                            basePath = fileSystem.getPath("agent/" + baseFolderResource).toAbsolutePath();
+                        }
                         result = listClassNames(basePackage, basePath);
                     }
                 }
@@ -90,9 +87,13 @@ public class PackageScanner {
         Files.walkFileTree(basePath, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                if (file.toString().endsWith(".class")) {
+                if (file.toString().endsWith(".class") || file.toString().endsWith(".esclazz")) {
                     // We need to escape both the filesystem-specific separator and the explicit `/` separator that may be added by the relativize() implementation
-                    String classNameSuffix = basePath.relativize(file).toString().replace(File.separatorChar, '.').replace('/', '.').replace(".class", "");
+                    String classNameSuffix = basePath.relativize(file).toString()
+                        .replace(System.getProperty("file.separator"), ".")
+                        .replace('/', '.')
+                        .replace(".class", "")
+                        .replace(".esclazz", "");
                     classNames.add(basePackage + "." + classNameSuffix);
                 }
                 return FileVisitResult.CONTINUE;

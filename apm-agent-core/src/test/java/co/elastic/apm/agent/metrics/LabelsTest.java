@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.metrics;
 
@@ -41,6 +35,12 @@ class LabelsTest {
         assertEqualsHashCode(
             Labels.Mutable.of("foo", "bar"),
             Labels.Mutable.of("foo", "bar"));
+        assertEqualsHashCode(
+            Labels.Mutable.of().serviceName("foo"),
+            Labels.Mutable.of().serviceName("foo"));
+        assertEqualsHashCode(
+            Labels.Mutable.of().transactionName("foo"),
+            Labels.Mutable.of().transactionName(new StringBuilder("foo")));
         assertEqualsHashCode(
             Labels.Mutable.of().transactionName("foo"),
             Labels.Mutable.of().transactionName("foo"));
@@ -100,6 +100,7 @@ class LabelsTest {
         assertThat(labels.getSpanSubType()).isNull();
         assertThat(labels.getTransactionName()).isNull();
         assertThat(labels.getTransactionType()).isNull();
+        assertThat(labels.getServiceName()).isNull();
 
         assertEqualsHashCode(labels, Labels.EMPTY);
     }

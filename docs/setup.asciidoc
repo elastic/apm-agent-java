@@ -28,6 +28,12 @@ Once you've set up the Agent, see the <<configuration,configuration guide>> on h
 If {apm-server-ref-v}/ssl-setup.html[SSL/TLS communication] is enabled on the APM Server, make sure to check out the <<ssl-configuration, SSL setup guide>>.
 
 [float]
+[[aws-lambda-setup]]
+=== Monitoring AWS Lambda Functions (Experimental)
+
+Learn how to set up AWS Lambda functions tracing in our <<aws-lambda, Lambda setup guide>>.
+
+[float]
 [[supported-technologies]]
 === Supported technologies
 
@@ -38,3 +44,4 @@ include::./setup-javaagent.asciidoc[]
 include::./setup-attach-cli.asciidoc[]
 include::./setup-attach-api.asciidoc[]
 include::./setup-ssl.asciidoc[Set up SSL]
+include::./setup-aws-lambda.asciidoc[AWS Lambda monitoring]

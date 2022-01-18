@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.pluginapi;
 
@@ -67,55 +61,57 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
         stacktraceConfig = tracer.getConfig(StacktraceConfiguration.class);
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onMethodEnter(
-        @Advice.Origin Class<?> clazz,
-        @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
-        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "value") String spanName,
-        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "type") String type,
-        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "subtype") @Nullable String subtype,
-        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "action") @Nullable String action) {
+    public static class AdviceClass {
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onMethodEnter(
+            @Advice.Origin Class<?> clazz,
+            @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "value") String spanName,
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "type") String type,
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "subtype") @Nullable String subtype,
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "action") @Nullable String action) {
 
-        final AbstractSpan<?> parent = tracer.getActive();
-        if (parent != null) {
-            return parent.createSpan()
-                .withType(type.isEmpty() ? "app" : type)
-                .withSubtype(subtype)
-                .withAction(action)
-                .withName(spanName.isEmpty() ? signature : spanName)
+            final AbstractSpan<?> parent = tracer.getActive();
+            if (parent != null) {
+                return parent.createSpan()
+                    .withType(type.isEmpty() ? "app" : type)
+                    .withSubtype(subtype)
+                    .withAction(action)
+                    .withName(spanName.isEmpty() ? signature : spanName)
+                    .activate();
+            }
+
+            Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+            if (transaction == null) {
+                return null;
+            }
+
+            transaction.setFrameworkName(FRAMEWORK_NAME);
+            String name;
+            int namePriority;
+            if (spanName.isEmpty()) {
+                name = signature;
+                namePriority = PRIO_METHOD_SIGNATURE;
+            } else {
+                name = spanName;
+                namePriority = PRIO_USER_SUPPLIED;
+            }
+            return transaction.withName(name, namePriority)
+                .withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
                 .activate();
         }
 
-        Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
-        if (transaction == null) {
-            return null;
-        }
-
-        transaction.setFrameworkName(FRAMEWORK_NAME);
-        String name;
-        int namePriority;
-        if (spanName.isEmpty()) {
-            name = signature;
-            namePriority = PRIO_METHOD_SIGNATURE;
-        } else {
-            name = spanName;
-            namePriority = PRIO_USER_SUPPLIED;
-        }
-        return transaction.withName(name, namePriority)
-            .withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
-            .activate();
-    }
-
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onMethodExit(@Advice.Enter @Nullable Object abstractSpan,
-                                    @Advice.Thrown @Nullable Throwable t) {
-        if (abstractSpan instanceof AbstractSpan<?>) {
-            ((AbstractSpan<?>) abstractSpan)
-                .captureException(t)
-                .withOutcome(t != null ? Outcome.FAILURE : Outcome.FAILURE)
-                .deactivate()
-                .end();
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onMethodExit(@Advice.Enter @Nullable Object abstractSpan,
+                                        @Advice.Thrown @Nullable Throwable t) {
+            if (abstractSpan instanceof AbstractSpan<?>) {
+                ((AbstractSpan<?>) abstractSpan)
+                    .captureException(t)
+                    .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
+                    .deactivate()
+                    .end();
+            }
         }
     }
 

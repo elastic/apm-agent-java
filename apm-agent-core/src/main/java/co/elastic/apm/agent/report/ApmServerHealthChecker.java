@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report;
 
@@ -28,7 +22,6 @@ import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.Version;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonReader;
-import com.dslplatform.json.MapConverter;
 import com.dslplatform.json.Nullable;
 import com.dslplatform.json.ObjectConverter;
 import org.slf4j.Logger;
@@ -36,8 +29,10 @@ import org.slf4j.LoggerFactory;
 
 import java.net.HttpURLConnection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -47,8 +42,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class ApmServerHealthChecker implements Callable<Version> {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerHealthChecker.class);
 
+    private static final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
+
     private final ApmServerClient apmServerClient;
-    private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
 
     public ApmServerHealthChecker(ApmServerClient apmServerClient) {
         this.apmServerClient = apmServerClient;
@@ -87,24 +83,11 @@ public class ApmServerHealthChecker implements Callable<Version> {
                             // prints out the version info of the APM Server
                             String body = HttpUtils.readToString(connection.getInputStream());
                             logger.info("Elastic APM server is available: {}", body);
-                            JsonReader<Object> reader = dslJson.newReader(body.getBytes(UTF_8));
-                            reader.startObject();
-                            String versionString;
-                            try {
-                                // newer APM server versions contain a flat map at the JSON root
-                                versionString = MapConverter.deserialize(reader).get("version");
-                            } catch (Exception e) {
-                                // 6.x APM server versions' JSON has a root object of which value is the same map
-                                reader = dslJson.newReader(body.getBytes(UTF_8));
-                                reader.startObject();
-                                Map<String, Object> root = ObjectConverter.deserializeMap(reader);
-                                //noinspection unchecked
-                                versionString = ((Map<String, String>) root.get("ok")).get("version");
-                            }
+                            Version version = parseVersion(body);
                             if (logger.isDebugEnabled()) {
-                                logger.debug("APM server {} version is: {}", connection.getURL(), versionString);
+                                logger.debug("APM server {} version is: {}", connection.getURL(), version);
                             }
-                            return Version.of(versionString);
+                            return version;
                         } catch (Exception e) {
                             logger.warn("Failed to parse version of APM server {}: {}", connection.getURL(), e.getMessage());
                         }
@@ -120,5 +103,24 @@ public class ApmServerHealthChecker implements Callable<Version> {
             return Collections.min(versions);
         }
         return Version.UNKNOWN_VERSION;
+    }
+
+    static Version parseVersion(String body) throws java.io.IOException {
+        JsonReader<Object> reader = dslJson.newReader(body.getBytes(UTF_8));
+        reader.startObject();
+        String versionString;
+        try {
+            // APM server 7.0+ contain a flat map at the JSON root
+            LinkedHashMap<String, Object> responseJsonMap = ObjectConverter.deserializeMap(reader);
+            versionString = (String) Objects.requireNonNull(responseJsonMap.get("version"));
+        } catch (Exception e) {
+            // 6.x APM server versions' JSON has a root object of which value is the same map
+            reader = dslJson.newReader(body.getBytes(UTF_8));
+            reader.startObject();
+            Map<String, Object> root = ObjectConverter.deserializeMap(reader);
+            //noinspection unchecked
+            versionString = ((Map<String, String>) root.get("ok")).get("version");
+        }
+        return Version.of(versionString);
     }
 }

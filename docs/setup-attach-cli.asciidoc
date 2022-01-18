@@ -43,17 +43,18 @@ NOTE: In versions prior to 1.22.0, you will have to download the `standalone` ja
 ==== Usage
 
 Attaches the Elastic APM Java agent to all running JVMs that match the `--include-*` / `--exclude-*` discovery rules.
-For every running JVM, the discovery rules are evaluated in the order they are provided.
-The first matching rule determines the outcome.
 
-* If the first matching rules is an exclude, the agent will not be attached.
-* If the first matching rules is an include, the agent will be attached.
+For every running JVM, the discovery rules are evaluated in the order they are provided.
+The first rule that matches the currently evaluated Java application determines the outcome.
+
+* If the first match is an exclude rule, the agent will not be attached.
+* If the first match is an include rule, the agent will be attached.
 * If no rule matches, the agent will not be attached.
 
 Example: The following command attaches the agent to all JVMs whose main class contains `MyApplication`
 or which are started from a jar file named `my-application.jar`
-or have set the system property `-Delastic.apm.agent.attach=true`,
-unless the JVM runns under the root user.
+or have set the system property `-Delastic.apm.attach=true`,
+unless the JVM runs under the root user.
 It also makes the attacher run continuously so that it attaches the agent on starting JVMs that match discovery rules.
 Additionally, it applies some <<configuration,configuration options>>.
 
@@ -62,7 +63,7 @@ Additionally, it applies some <<configuration,configuration options>>.
 java -jar apm-agent-attach-cli.jar \
     --exclude-user root \
     --include-main MyApplication my-application.jar \
-    --include-vmargs elastic.apm.agent.attach=true \
+    --include-vmarg elastic.apm.attach=true \
     --continuous \
     --config service_name=my-cool-service \
     --config server_url=http://localhost:8200
@@ -105,27 +106,27 @@ Includes all JVMs for attachment.
 *--include-pid <pid>...*::
 +
 --
-A list of PIDs to include.
+A PID to include.
 --
 
 *--include-main/--exclude-main <pattern>...*::
 +
 --
-A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should be attached to.
+A regular expression of fully qualified main class names or paths to JARs of applications the java agent should be attached to.
 Performs a partial match so that `foo` matches `/bin/foo.jar`.
 --
 
 *--include-vmarg/--exclude-vmarg <pattern>...*::
 +
 --
-A list of regular expressions matched against the arguments passed to the JVM, such as system properties.
-Performs a partial match so that `attach=true` matches the system property `-Dattach=true`.
+A regular expression that is matched against the arguments passed to the JVM, such as system properties.
+Performs a partial match so that `attach=true` matches the system property `-Delastic.apm.attach=true`.
 --
 
 *--include-user/--exclude-user <user>...*::
 +
 --
-A list of usernames that are matched against the operating system user that run the JVM.
+A username that is matched against the operating system user that run the JVM.
 For included users, make sure that the user this program is running under is either the same user or has permissions to switch to the user that runs the target JVM.
 --
 
@@ -164,13 +165,6 @@ See <<configuration>> for all available configuration options.
 NOTE: This option cannot be used in conjunction with `--pid` and `--config`
 --
 
-*-w, --without-emulated-attach*::
-+
---
-Disables the emulated attach feature provided by Byte Buddy, this should be used as a workaround on some JDK/JREs
-when runtime attachment fails.
---
-
 *-g, --log-level <off|fatal|error|warn|info|debug|trace|all>*::
 +
 --
@@ -190,6 +184,13 @@ One history file will be kept with the name `${logFile}.1`.
 +
 --
 Instead of the bundled agent jar, attach the provided agent to the target JVMs.
+--
+
+*--download-agent-version <agent-version>*::
++
+--
+Instead of the bundled agent jar, download and attach the specified agent version from maven central.
+The agent is authenticated and validated based on the published PGP signature. This option requires internet access.
 --
 
 [float]

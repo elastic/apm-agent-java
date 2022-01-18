@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,11 +15,12 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.db.signature;
 
-import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
+import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
@@ -75,16 +71,20 @@ public class SignatureParser {
     }
 
     public SignatureParser(final Callable<Scanner> scannerAllocator) {
-        scanner = new DetachedThreadLocal<Scanner>(DetachedThreadLocal.Cleaner.INLINE) {
-            @Override
-            protected Scanner initialValue(Thread thread) {
-                try {
-                    return scannerAllocator.call();
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+        scanner = WeakConcurrent
+            .<Scanner>threadLocalBuilder()
+            .withDefaultValueSupplier(new WeakMap.DefaultValueSupplier<Thread, Scanner>() {
+                @Nullable
+                @Override
+                public Scanner getDefaultValue(Thread key) {
+                    try {
+                        return scannerAllocator.call();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-            }
-        };
+            })
+            .build();
     }
 
     public void querySignature(String query, StringBuilder signature, boolean preparedStatement) {

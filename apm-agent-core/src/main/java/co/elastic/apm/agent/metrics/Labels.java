@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.metrics;
 
@@ -50,6 +44,9 @@ import java.util.Objects;
 public interface Labels {
 
     Labels EMPTY = Labels.Immutable.empty();
+
+    @Nullable
+    String getServiceName();
 
     @Nullable
     CharSequence getTransactionName();
@@ -95,7 +92,7 @@ public interface Labels {
         }
 
         public boolean isEmpty() {
-            return keys.isEmpty() && getTransactionName() == null && getTransactionType() == null && getSpanType() == null;
+            return keys.isEmpty() && getServiceName() == null && getTransactionName() == null && getTransactionType() == null && getSpanType() == null;
         }
 
         public int size() {
@@ -119,6 +116,7 @@ public interface Labels {
                 Objects.equals(getSpanSubType(), labels.getSpanSubType()) &&
                 Objects.equals(getTransactionType(), labels.getTransactionType()) &&
                 contentEquals(getTransactionName(), labels.getTransactionName()) &&
+                Objects.equals(getServiceName(), labels.getServiceName()) &&
                 keys.equals(labels.keys) &&
                 isEqual(values, labels.values);
         }
@@ -129,6 +127,7 @@ public interface Labels {
             for (int i = 0; i < values.size(); i++) {
                 h = 31 * h + hashEntryAt(i);
             }
+            h = 31 * h + hash(getServiceName());
             h = 31 * h + hash(getTransactionName());
             h = 31 * h + (getTransactionType() != null ? getTransactionType().hashCode() : 0);
             h = 31 * h + (getSpanType() != null ? getSpanType().hashCode() : 0);
@@ -204,6 +203,8 @@ public interface Labels {
     class Mutable extends AbstractBase implements Recyclable {
 
         @Nullable
+        private String serviceName;
+        @Nullable
         private CharSequence transactionName;
         @Nullable
         private String transactionType;
@@ -240,6 +241,11 @@ public interface Labels {
             return this;
         }
 
+        public Labels.Mutable serviceName(@Nullable String serviceName) {
+            this.serviceName = serviceName;
+            return this;
+        }
+
         public Labels.Mutable transactionName(@Nullable CharSequence transactionName) {
             this.transactionName = transactionName;
             return this;
@@ -258,6 +264,11 @@ public interface Labels {
         public Labels.Mutable spanSubType(@Nullable String subtype) {
             this.spanSubType = subtype;
             return this;
+        }
+
+        @Nullable
+        public String getServiceName() {
+            return serviceName;
         }
 
         @Nullable
@@ -289,6 +300,7 @@ public interface Labels {
         public void resetState() {
             keys.clear();
             values.clear();
+            serviceName = null;
             transactionName = null;
             transactionType = null;
             spanType = null;
@@ -309,6 +321,8 @@ public interface Labels {
 
         private final int hash;
         @Nullable
+        private final String serviceName;
+        @Nullable
         private final String transactionName;
         @Nullable
         private final String transactionType;
@@ -319,6 +333,7 @@ public interface Labels {
 
         public Immutable(Labels labels) {
             super(new ArrayList<>(labels.getKeys()), copy(labels.getValues()));
+            this.serviceName = labels.getServiceName();
             final CharSequence transactionName = labels.getTransactionName();
             this.transactionName = transactionName != null ? transactionName.toString() : null;
             this.transactionType = labels.getTransactionType();
@@ -342,6 +357,12 @@ public interface Labels {
         @Override
         public int hashCode() {
             return hash;
+        }
+
+        @Nullable
+        @Override
+        public String getServiceName() {
+            return serviceName;
         }
 
         @Nullable

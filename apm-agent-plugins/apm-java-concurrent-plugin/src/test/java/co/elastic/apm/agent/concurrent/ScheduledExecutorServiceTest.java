@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.concurrent;
 
@@ -62,14 +56,16 @@ public class ScheduledExecutorServiceTest extends AbstractInstrumentationTest {
 
     @AfterEach
     void tearDown() {
-        assertThat(tracer.getActive()).isEqualTo(transaction);
-        transaction.deactivate().end();
+        if (tracer.getActive() != null) {
+            transaction.deactivate().end();
+        }
     }
 
     @Test
     void testScheduleCallable() throws Exception {
         final ScheduledFuture<? extends AbstractSpan<?>> future = scheduler.schedule(() -> tracer.getActive(), 0, TimeUnit.SECONDS);
         assertThat(future.get()).isEqualTo(transaction);
+        assertThat(tracer.getActive()).isEqualTo(transaction);
     }
 
     @Test
@@ -77,5 +73,36 @@ public class ScheduledExecutorServiceTest extends AbstractInstrumentationTest {
         AtomicReference<AbstractSpan<?>> ref = new AtomicReference<>();
         scheduler.schedule(() -> ref.set(tracer.getActive()), 0, TimeUnit.SECONDS).get();
         assertThat(ref.get()).isEqualTo(transaction);
+        assertThat(tracer.getActive()).isEqualTo(transaction);
+    }
+
+    @Test
+    void testScheduleCallable_delayAndEndTransaction() throws Exception {
+        final ScheduledFuture<? extends AbstractSpan<?>> scheduledFuture = scheduler.schedule(() -> tracer.getActive(), 50, TimeUnit.MILLISECONDS);
+        verifyEndedTransactionIsStillReferenced(scheduledFuture);
+        assertThat(scheduledFuture.get()).isEqualTo(transaction);
+    }
+
+    @Test
+    void testScheduleRunnable_delayAndEndTransaction() throws Exception {
+        AtomicReference<AbstractSpan<?>> ref = new AtomicReference<>();
+        ScheduledFuture<?> scheduledTaskFuture = scheduler.schedule(() -> ref.set(tracer.getActive()), 50, TimeUnit.MILLISECONDS);
+        verifyEndedTransactionIsStillReferenced(scheduledTaskFuture);
+        assertThat(ref.get()).isEqualTo(transaction);
+    }
+
+    private void verifyEndedTransactionIsStillReferenced(ScheduledFuture<?> scheduledTaskFuture) throws InterruptedException, java.util.concurrent.ExecutionException {
+        transaction.deactivate().end();
+        // decrementing references to mock what the real reporter would do
+        transaction.decrementReferences();
+        // make sure the transaction is still referenced and not recycled yet
+        assertThat(transaction.isReferenced()).isTrue();
+        assertThat(transaction.getTraceContext().getId().isEmpty()).isFalse();
+
+        scheduledTaskFuture.get();
+
+        // make sure the transaction is recycled after the task has terminated
+        assertThat(transaction.isReferenced()).isFalse();
+        assertThat(transaction.getTraceContext().getId().isEmpty()).isTrue();
     }
 }

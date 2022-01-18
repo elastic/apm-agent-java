@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.servlet;
 
@@ -58,6 +52,7 @@ import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.INCLUDE;
 import static co.elastic.apm.agent.servlet.ServletApiAdvice.SPAN_SUBTYPE;
 import static co.elastic.apm.agent.servlet.ServletApiAdvice.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 class ServletInstrumentationTest extends AbstractServletTest {
@@ -139,24 +134,24 @@ class ServletInstrumentationTest extends AbstractServletTest {
 
     @Test
     void testForward_DispatchSpansDisabled() throws Exception {
-        when(getConfig().getConfig(CoreConfiguration.class).getDisabledInstrumentations())
-            .thenReturn(Collections.singletonList(ServletInstrumentation.SERVLET_API_DISPATCH));
+        when(getConfig().getConfig(CoreConfiguration.class).isInstrumentationEnabled(eq(Constants.SERVLET_API_DISPATCH)))
+            .thenReturn(false);
         callServlet(1, "/forward");
         assertThat(reporter.getSpans()).isEmpty();
     }
 
     @Test
     void testInclude_DispatchSpansDisabled() throws Exception {
-        when(getConfig().getConfig(CoreConfiguration.class).getDisabledInstrumentations())
-            .thenReturn(Collections.singletonList(ServletInstrumentation.SERVLET_API_DISPATCH));
+        when(getConfig().getConfig(CoreConfiguration.class).isInstrumentationEnabled(eq(Constants.SERVLET_API_DISPATCH)))
+            .thenReturn(false);
         callServlet(1, "/include");
         assertThat(reporter.getSpans()).isEmpty();
     }
 
     @Test
     void testClientError_DispatchSpansDisabled() throws Exception {
-        when(getConfig().getConfig(CoreConfiguration.class).getDisabledInstrumentations())
-            .thenReturn(Collections.singletonList(ServletInstrumentation.SERVLET_API_DISPATCH));
+        when(getConfig().getConfig(CoreConfiguration.class).isInstrumentationEnabled(eq(Constants.SERVLET_API_DISPATCH)))
+            .thenReturn(false);
         callServlet(1, "/unknown", "Hello Error!", 404);
         assertThat(reporter.getSpans()).isEmpty();
         assertThat(reporter.getErrors().size()).isEqualTo(1);

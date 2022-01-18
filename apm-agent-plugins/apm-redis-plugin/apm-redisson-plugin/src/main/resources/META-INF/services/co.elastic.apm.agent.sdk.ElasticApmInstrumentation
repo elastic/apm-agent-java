@@ -1,1 +1,1 @@
-co.elastic.apm.agent.redis.redisson.RedisConnectionInstrumentation
+co.elastic.apm.agent.redisson.RedisConnectionInstrumentation

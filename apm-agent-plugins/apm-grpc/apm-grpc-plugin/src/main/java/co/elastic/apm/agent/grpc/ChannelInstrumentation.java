@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,11 +15,12 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.sdk.DynamicTransformer;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientCall;
@@ -36,6 +32,9 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -49,19 +48,21 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
  */
 public class ChannelInstrumentation extends BaseInstrumentation {
 
+    private static final Collection<Class<? extends ElasticApmInstrumentation>> CLIENT_CALL_INSTRUMENTATION =
+        Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
+            ClientCallImplInstrumentation.Start.class,
+            ClientCallImplInstrumentation.Cancel.class
+        );
+
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("io.grpc")
-            .and(nameContains("Channel"))
-            // for recent versions (found with 1.35), this implementation creates extra spans
-            // that are not necessary. As those aren't nested, the "active" and "exit span" do not allow to properly
-            // ignore those internal spans
-            .and(not(nameContains("io.grpc.internal.ManagedChannelImpl$RealChannel")));
+        return nameStartsWith("io.grpc").and(nameContains("Channel"));
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("io.grpc.Channel"));
+        return hasSuperType(named("io.grpc.Channel")
+            .and(not(named("io.grpc.internal.ForwardingManagedChannel"))));
     }
 
     @Override
@@ -69,21 +70,29 @@ public class ChannelInstrumentation extends BaseInstrumentation {
         return named("newCall");
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onEnter(@Advice.This Channel channel,
-                                 @Advice.Argument(0) MethodDescriptor<?, ?> method) {
-
-        return GrpcHelper.getInstance().startSpan(tracer.getActive(), method, channel.authority());
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.grpc.ChannelInstrumentation$ChannelAdvice";
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExit(@Advice.Return @Nullable ClientCall<?, ?> clientCall,
-                              @Advice.Enter @Nullable Object span) {
+    public static class ChannelAdvice {
 
-        if (span instanceof Span) {
-            GrpcHelper.getInstance().registerSpan(clientCall, (Span) span);
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.This Channel channel,
+                                     @Advice.Argument(0) MethodDescriptor<?, ?> method) {
+
+            return GrpcHelper.getInstance().onClientCallCreationEntry(tracer.getActive(), method, channel.authority());
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Return @Nullable ClientCall<?, ?> clientCall,
+                                  @Advice.Enter @Nullable Object span) {
+
+            if (clientCall != null) {
+                DynamicTransformer.ensureInstrumented(clientCall.getClass(), CLIENT_CALL_INSTRUMENTATION);
+            }
+            GrpcHelper.getInstance().onClientCallCreationExit(clientCall, (Span) span);
         }
     }
-
 }

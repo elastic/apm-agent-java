@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.pluginapi;
 
@@ -67,36 +61,38 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
         stacktraceConfig = tracer.getConfig(StacktraceConfiguration.class);
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onMethodEnter(
-        @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
-        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "value") String spanName,
-        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "type") String type,
-        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "subtype") String subtype,
-        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "action") String action) {
-        final AbstractSpan<?> parent = tracer.getActive();
-        if (parent != null) {
-            Span span = parent.createSpan()
-                .withName(spanName.isEmpty() ? signature : spanName)
-                .activate();
-            span.setType(type, subtype, action);
-            return span;
-        } else {
-            logger.debug("Not creating span for {} because there is no currently active span.", signature);
+    public static class AdviceClass {
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onMethodEnter(
+            @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "value") String spanName,
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "type") String type,
+            @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "subtype") String subtype,
+            @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "action") String action) {
+            final AbstractSpan<?> parent = tracer.getActive();
+            if (parent != null) {
+                Span span = parent.createSpan()
+                    .withName(spanName.isEmpty() ? signature : spanName)
+                    .activate();
+                span.setType(type, subtype, action);
+                return span;
+            } else {
+                logger.debug("Not creating span for {} because there is no currently active span.", signature);
+            }
+            return null;
         }
-        return null;
-    }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onMethodExit(@Advice.Enter @Nullable Object span,
-                                    @Advice.Thrown @Nullable Throwable t) {
-        if (span instanceof Span) {
-            ((Span) span)
-                .captureException(t)
-                .withOutcome(t != null ? Outcome.FAILURE: Outcome.SUCCESS)
-                .deactivate()
-                .end();
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onMethodExit(@Advice.Enter @Nullable Object span,
+                                        @Advice.Thrown @Nullable Throwable t) {
+            if (span instanceof Span) {
+                ((Span) span)
+                    .captureException(t)
+                    .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
+                    .deactivate()
+                    .end();
+            }
         }
     }
 

@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,11 +15,9 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.dubbo.helper;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -34,18 +27,13 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
-
-@VisibleForAdvice
 public class DubboTraceHelper {
 
     private static final String EXTERNAL_TYPE = "external";
     private static final String DUBBO_SUBTYPE = "dubbo";
-    @VisibleForAdvice
     public static final String SPAN_KEY = "_elastic_apm_span";
 
     @Nullable
-    @VisibleForAdvice
     public static Span createConsumerSpan(ElasticApmTracer tracer, Class<?> apiClass, String methodName, InetSocketAddress remoteAddress) {
         AbstractSpan<?> traceContext = tracer.getActive();
         if (traceContext == null) {
@@ -58,7 +46,7 @@ public class DubboTraceHelper {
 
         span.withType(EXTERNAL_TYPE)
             .withSubtype(DUBBO_SUBTYPE);
-        fillName(span, apiClass, methodName);
+        span.updateName(apiClass, methodName);
 
         Destination destination = span.getContext().getDestination();
         destination.withInetSocketAddress(remoteAddress);
@@ -70,23 +58,8 @@ public class DubboTraceHelper {
         return span.activate();
     }
 
-    private static void fillName(AbstractSpan<?> span, Class<?> apiClass, String methodName) {
-        StringBuilder spanName = span.getAndOverrideName(PRIO_DEFAULT);
-        if (spanName != null) {
-            appendSimpleClassName(apiClass, spanName);
-            spanName.append("#")
-                .append(methodName);
-        }
-    }
-
-    public static void appendSimpleClassName(Class<?> clazz, StringBuilder sb) {
-        String className = clazz.getName();
-        sb.append(className, className.lastIndexOf('.') + 1, className.length());
-    }
-
-    @VisibleForAdvice
     public static void fillTransaction(Transaction transaction, Class<?> apiClass, String methodName) {
-        fillName(transaction, apiClass, methodName);
+        transaction.updateName(apiClass, methodName);
         transaction.withType(Transaction.TYPE_REQUEST);
     }
 }

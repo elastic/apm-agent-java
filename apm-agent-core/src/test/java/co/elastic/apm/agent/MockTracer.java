@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent;
 
@@ -85,17 +79,17 @@ public class MockTracer {
     }
 
     /**
-     * Creates a real tracer with a {@link MockReporter} and a mock configuration which returns default
+     * Creates a real tracer with a {@link MockReporter} and a provided config registry which returns default
      * values that can be customized by mocking the configuration.
      */
-    public static synchronized MockInstrumentationSetup createMockInstrumentationSetup() {
+    public static synchronized MockInstrumentationSetup createMockInstrumentationSetup(ConfigurationRegistry configRegistry) {
         // use an object pool that does bookkeeping to allow for extra usage checks
         TestObjectPoolFactory objectPoolFactory = new TestObjectPoolFactory();
 
         MockReporter reporter = new MockReporter();
 
         ElasticApmTracer tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
+            .configurationRegistry(configRegistry)
             .reporter(reporter)
             // use testing bookkeeper implementation here so we will check that no forgotten recyclable object
             // is left behind
@@ -112,6 +106,14 @@ public class MockTracer {
             tracer.getConfigurationRegistry(),
             objectPoolFactory
         );
+    }
+
+    /**
+     * Creates a real tracer with a {@link MockReporter} and a mock configuration which returns default
+     * values that can be customized by mocking the configuration.
+     */
+    public static synchronized MockInstrumentationSetup createMockInstrumentationSetup() {
+        return createMockInstrumentationSetup(SpyConfiguration.createSpyConfig());
     }
 
     /**

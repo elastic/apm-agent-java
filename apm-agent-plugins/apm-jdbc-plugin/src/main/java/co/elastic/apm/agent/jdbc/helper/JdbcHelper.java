@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.jdbc.helper;
 
@@ -30,7 +24,7 @@ import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.jdbc.JdbcFilter;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +36,6 @@ import java.sql.Statement;
 import java.util.concurrent.Callable;
 
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metaDataMap;
-import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metadataSupported;
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.statementSqlMap;
 
 public class JdbcHelper {
@@ -169,7 +162,7 @@ public class JdbcHelper {
 
         try {
             DatabaseMetaData metaData = connection.getMetaData();
-            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), connection.getCatalog(), metaData.getUserName());
+            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), safeGetCatalog(connection), metaData.getUserName());
             if (supported == null) {
                 markSupported(JdbcFeature.METADATA, type);
             }
@@ -181,6 +174,25 @@ public class JdbcHelper {
             metaDataMap.put(connection, connectionMetaData);
         }
         return connectionMetaData;
+    }
+
+    @Nullable
+    private String safeGetCatalog(Connection connection) {
+        String catalog = null;
+        Class<?> type = connection.getClass();
+        Boolean supported = isSupported(JdbcFeature.CATALOG, type);
+        if (supported == Boolean.FALSE) {
+            return null;
+        }
+
+        try {
+            catalog = connection.getCatalog();
+            markSupported(JdbcFeature.CATALOG, type);
+        } catch (SQLException e) {
+            markNotSupported(JdbcFeature.CATALOG, type, e);
+        }
+
+        return catalog;
     }
 
     @Nullable
@@ -220,6 +232,10 @@ public class JdbcHelper {
         }
     }
 
+    public void removeSqlForStatement(Statement statement) {
+        statementSqlMap.remove(statement);
+    }
+
     /**
      * Represent JDBC features for which availability has to be checked at runtime
      */
@@ -229,13 +245,17 @@ public class JdbcHelper {
          */
         METADATA(JdbcGlobalState.metadataSupported),
         /**
+         * {@link Connection#getCatalog()}
+         */
+        CATALOG(JdbcGlobalState.catalogSupported),
+        /**
          * {@link Statement#getConnection()}
          */
         CONNECTION(JdbcGlobalState.connectionSupported);
 
-        private final WeakConcurrentMap<Class<?>, Boolean> classSupport;
+        private final WeakMap<Class<?>, Boolean> classSupport;
 
-        JdbcFeature(WeakConcurrentMap<Class<?>, Boolean> map) {
+        JdbcFeature(WeakMap<Class<?>, Boolean> map) {
             this.classSupport = map;
         }
     }

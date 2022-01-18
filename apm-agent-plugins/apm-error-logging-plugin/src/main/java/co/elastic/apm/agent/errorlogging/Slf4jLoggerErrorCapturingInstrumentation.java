@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.errorlogging;
 
@@ -35,8 +29,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class Slf4jLoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
 
-    // prevents the shade plugin from relocating org.slf4j.Logger to co.elastic.apm.agent.shaded.slf4j.Logger
-    static final String SLF4J_LOGGER = "org!slf4j!Logger".replace('!', '.');
+    static final String SLF4J_LOGGER = "org.slf4j.Logger";
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

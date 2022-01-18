@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,12 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.sdk.state.GlobalVariables;
-import net.bytebuddy.asm.Advice;
+import co.elastic.apm.agent.util.LoggerUtils;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -34,12 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import javax.servlet.Servlet;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -50,14 +37,9 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-/**
- * Instruments {@link javax.servlet.Servlet} to log Servlet container details and warns about unsupported version.
- */
 public abstract class ServletVersionInstrumentation extends AbstractServletInstrumentation {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServletVersionInstrumentation.class);
-
-    private static final AtomicBoolean alreadyLogged = GlobalVariables.get(ServletVersionInstrumentation.class, "alreadyLogged", new AtomicBoolean(false));
+    private static final Logger logger = LoggerUtils.logOnce(LoggerFactory.getLogger(ServletVersionInstrumentation.class));
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -67,7 +49,7 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(hasSuperType(named("javax.servlet.Servlet")));
+            .and(hasSuperType(named(servletVersionTypeMatcherClassName())));
     }
 
     @Override
@@ -75,63 +57,54 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
         return any();
     }
 
-    /**
-     * Instruments {@link javax.servlet.Servlet#init(ServletConfig)}
-     */
-    public static class Init extends ServletVersionInstrumentation {
+    public abstract String servletVersionTypeMatcherClassName();
+
+    public static abstract class Init extends ServletVersionInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("init")
-                .and(takesArgument(0, named("javax.servlet.ServletConfig")));
+                .and(takesArgument(0, named(initMethodArgumentClassName())));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
-        public static void onEnter(@Advice.Argument(0) @Nullable ServletConfig servletConfig) {
-            logServletVersion(servletConfig);
-        }
+        abstract String initMethodArgumentClassName();
     }
 
-    /**
-     * Instruments {@link javax.servlet.Servlet#service(ServletRequest, ServletResponse)}
-     */
-    public static class Service extends ServletVersionInstrumentation {
-
+    public static abstract class Service extends ServletVersionInstrumentation {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            String[] classNames = getServiceMethodArgumentClassNames();
             return named("service")
-                .and(takesArgument(0, named("javax.servlet.ServletRequest")))
-                .and(takesArgument(1, named("javax.servlet.ServletResponse")));
+                .and(takesArgument(0, named(classNames[0])))
+                .and(takesArgument(1, named(classNames[1])));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void onEnter(@Advice.This Servlet servlet) {
-            logServletVersion(servlet.getServletConfig());
-        }
+        abstract String[] getServiceMethodArgumentClassNames();
     }
 
-    private static void logServletVersion(@Nullable ServletConfig servletConfig) {
-        if (alreadyLogged.get()) {
+    public static void logServletVersion(@Nullable Object[] infoFromServletContext) {
+        if (!logger.isInfoEnabled() && logger.isWarnEnabled()) {
             return;
         }
-        alreadyLogged.set(true);
 
         int majorVersion = -1;
         int minorVersion = -1;
         String serverInfo = null;
-        if (servletConfig != null) {
-            ServletContext servletContext = servletConfig.getServletContext();
-            if (null != servletContext) {
-                majorVersion = servletContext.getMajorVersion();
-                minorVersion = servletContext.getMinorVersion();
-                serverInfo = servletContext.getServerInfo();
+        if (infoFromServletContext != null && infoFromServletContext.length > 2) {
+            if (infoFromServletContext[0] != null) {
+                majorVersion = (int) infoFromServletContext[0];
+            }
+            if (infoFromServletContext[1] != null) {
+                minorVersion = (int) infoFromServletContext[1];
+            }
+            if (infoFromServletContext[2] instanceof String) {
+                serverInfo = (String) infoFromServletContext[2];
             }
         }
-
-        logger.info("Servlet container info = {}", serverInfo);
         if (majorVersion < 3) {
-            logger.warn("Unsupported servlet version detected: {}.{}, no Servlet transaction will be created", majorVersion, minorVersion);
+            logger.warn("Unsupported servlet version detected: {}.{}, no Servlet transaction will be created. Servlet container info = {}", majorVersion, minorVersion, serverInfo);
+        } else {
+            logger.info("Servlet container info = {}", serverInfo);
         }
     }
 

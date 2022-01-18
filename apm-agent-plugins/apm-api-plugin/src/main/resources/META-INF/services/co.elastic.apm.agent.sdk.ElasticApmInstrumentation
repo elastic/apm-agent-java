@@ -3,6 +3,7 @@ co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$StartTransactionWith
 co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$CurrentTransactionInstrumentation
 co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$CurrentSpanInstrumentation
 co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$CaptureExceptionInstrumentation
+co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetFrameworkNameInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetUserInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$EnsureParentIdInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetResultInstrumentation
@@ -11,6 +12,7 @@ co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetNameInstrumentatio
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetTypeInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetTypesInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$DoCreateSpanInstrumentation
+co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$DoCreateExitSpanInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$InitializeInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetStartTimestampInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetOutcomeInstrumentation
@@ -25,6 +27,8 @@ co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$AddBooleanLabelInstru
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$ActivateInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$IsSampledInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$InjectTraceHeadersInstrumentation
+co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetDestinationAddressInstrumentation
+co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetDestinationServiceInstrumentation
 co.elastic.apm.agent.pluginapi.CaptureExceptionInstrumentation
 co.elastic.apm.agent.pluginapi.ApiScopeInstrumentation
 co.elastic.apm.agent.pluginapi.CaptureTransactionInstrumentation

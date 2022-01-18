@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.servlet;
 
@@ -31,13 +25,12 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.servlet.ServletInstrumentation.SERVLET_API;
 
 public abstract class AbstractServletInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(SERVLET_API);
+        return Collections.singleton(Constants.SERVLET_API);
     }
 
     @Override
@@ -45,6 +38,8 @@ public abstract class AbstractServletInstrumentation extends TracerAwareInstrume
         // this class has been introduced in servlet spec 3.0
         // choice of class name to use for this test does not work as expected across all application servers
         // for example, 'javax.servlet.annotation.WebServlet' annotation is not working as expected on Payara
-        return CustomElementMatchers.classLoaderCanLoadClass("javax.servlet.AsyncContext");
+        return CustomElementMatchers.classLoaderCanLoadClass(rootClassNameThatClassloaderCanLoad());
     }
+
+    public abstract String rootClassNameThatClassloaderCanLoad();
 }

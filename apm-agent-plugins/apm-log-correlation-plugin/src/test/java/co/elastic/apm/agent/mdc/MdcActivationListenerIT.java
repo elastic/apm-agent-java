@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,32 +15,18 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.mdc;
 
-import co.elastic.apm.agent.MockReporter;
-import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.errorlogging.Log4j2LoggerErrorCapturingInstrumentation;
-import co.elastic.apm.agent.errorlogging.Slf4jLoggerErrorCapturingInstrumentation;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
-import net.bytebuddy.agent.ByteBuddyAgent;
 import org.apache.logging.log4j.ThreadContext;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
-import org.stagemonitor.configuration.ConfigurationRegistry;
-
-import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -54,31 +35,12 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class MdcActivationListenerIT {
+class MdcActivationListenerIT extends AbstractInstrumentationTest {
 
-    protected static ElasticApmTracer tracer;
-    protected static MockReporter reporter;
-    protected static ConfigurationRegistry config;
     private LoggingConfiguration loggingConfiguration;
 
-    @BeforeAll
-    static void beforeAll() {
-        reporter = new MockReporter();
-        config = SpyConfiguration.createSpyConfig();
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .buildAndStart();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), Arrays.asList(new Slf4jLoggerErrorCapturingInstrumentation(), new Log4j2LoggerErrorCapturingInstrumentation()));
-    }
-
-    @AfterAll
-    static void afterAll() {
-        ElasticApmAgent.reset();
-    }
-
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         MDC.clear();
         org.apache.log4j.MDC.clear();
         ThreadContext.clearAll();
@@ -120,10 +82,6 @@ class MdcActivationListenerIT {
 
     @Test
     void testVerifyThatWithEnabledCorrelationAndLoggedErrorMdcErrorIdIsNotBlankWithLog4j() {
-        Assumptions.assumeTrue(() -> {
-            org.apache.log4j.MDC.put("test", true);
-            return org.apache.log4j.MDC.get("test") == Boolean.TRUE;
-        }, "Log4j MDC is not working, this happens with some versions of Java 10 where log4j thinks it's Java 1");
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
         org.apache.logging.log4j.Logger logger = mock(org.apache.logging.log4j.Logger.class);
         doAnswer(invocation -> assertMdcErrorIdIsNotEmpty()).when(logger).error(anyString(), any(Exception.class));
@@ -141,10 +99,6 @@ class MdcActivationListenerIT {
 
     @Test
     void testVerifyThatWithEnabledCorrelationAndLoggedErrorMdcErrorIdIsNotBlankWithLog4jNotInTransaction() {
-        Assumptions.assumeTrue(() -> {
-            org.apache.log4j.MDC.put("test", true);
-            return org.apache.log4j.MDC.get("test") == Boolean.TRUE;
-        }, "Log4j MDC is not working, this happens with some versions of Java 10 where log4j thinks it's Java 1");
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
         org.apache.logging.log4j.Logger logger = mock(org.apache.logging.log4j.Logger.class);
         doAnswer(invocation -> assertMdcErrorIdIsNotEmpty()).when(logger).error(anyString(), any(Exception.class));

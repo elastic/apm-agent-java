@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2021 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,12 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.vertx.v4.web;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.vertx.v4.Vertx4Instrumentation;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
@@ -83,7 +76,7 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
 
         public static class ContextImplTracerAdvice {
 
-            @AssignTo.Return
+            @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static VertxTracer<?, ?> receiveRequest(@Advice.Return @Nullable VertxTracer<?, ?> currentTracer) {
                 return currentTracer == null ? NoopVertxTracer.INSTANCE : currentTracer;

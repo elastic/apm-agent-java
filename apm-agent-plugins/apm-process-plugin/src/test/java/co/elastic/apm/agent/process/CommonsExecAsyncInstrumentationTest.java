@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.process;
 
@@ -36,11 +30,16 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentationTest {
+
+    private static final boolean isWindows = System.getProperty("os.name").startsWith("Windows");
 
     @Test
     void asyncProcessWithinTransaction() throws Exception {
@@ -56,6 +55,29 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
         assertThat(asyncProcessHasTransactionContext().get())
             .describedAs("executor runnable should not be in transaction context")
             .isNull();
+    }
+
+    @Test
+    void processWithExitValueCheck() throws Exception {
+        startTransaction();
+        List<String> cmd;
+        if (isWindows) {
+            // other options: bash -c "sleep 0.2" (bash not guaranteed)
+            // powershell -nop -c "& {sleep -m 2}" (too long to start)
+            // timeout /NOBREAK /T 1 (output redirection fails)
+            cmd = List.of("ping", "192.0.2.1", "-n", "1", "-w", "200");
+        } else {
+            cmd = List.of("sleep", "0.5");
+        }
+        ProcessBuilder processBuilder = new ProcessBuilder(cmd);
+        Process process = processBuilder.start();
+        assertThatThrownBy(process::exitValue).isInstanceOf(IllegalThreadStateException.class);
+        assertThat(reporter.getSpans().stream().filter((span) -> span.getNameAsString().startsWith(isWindows ? "ping" : "sleep"))).isEmpty();
+        process.waitFor(1000, TimeUnit.MILLISECONDS);
+        // Windows: either ping or the call times out, so it always returns exitcode 1
+        assertThat(process.exitValue()).isEqualTo(isWindows ? 1 : 0);
+        assertThat(reporter.getSpans().stream().filter((span) -> span.getNameAsString().startsWith(isWindows ? "ping" : "sleep"))).hasSize(1);
+        terminateTransaction();
     }
 
     private static CompletableFuture<AbstractSpan<?>> asyncProcessHasTransactionContext() throws Exception {

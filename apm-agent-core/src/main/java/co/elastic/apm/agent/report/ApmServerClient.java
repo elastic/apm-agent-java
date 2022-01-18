@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,10 +15,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.report.ssl.SslUtils;
 import co.elastic.apm.agent.util.UrlConnectionUtils;
 import co.elastic.apm.agent.util.Version;
@@ -71,10 +66,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ApmServerClient {
 
     private static final Logger logger = LoggerFactory.getLogger(ApmServerClient.class);
-    private static final String USER_AGENT = "elasticapm-java/" + VersionUtils.getAgentVersion();
+
     private static final Version VERSION_6_7 = Version.of("6.7.0");
-    private static final Version VERSION_7_9 = Version.of("7.9.0");
     private static final Version VERSION_7_0 = Version.of("7.0.0");
+    private static final Version VERSION_7_4 = Version.of("7.4.0");
+    private static final Version VERSION_7_9 = Version.of("7.9.0");
+    private static final Version VERSION_8_0 = Version.of("8.0.0");
+
     private final ReporterConfiguration reporterConfiguration;
     @Nullable
     private volatile List<URL> serverUrls;
@@ -83,9 +81,12 @@ public class ApmServerClient {
     private final AtomicInteger errorCount = new AtomicInteger();
     private final ApmServerHealthChecker healthChecker;
 
-    public ApmServerClient(ReporterConfiguration reporterConfiguration) {
+    private final String userAgent;
+
+    public ApmServerClient(ReporterConfiguration reporterConfiguration, CoreConfiguration coreConfiguration) {
         this.reporterConfiguration = reporterConfiguration;
         this.healthChecker = new ApmServerHealthChecker(this);
+        this.userAgent = getUserAgent(coreConfiguration);
     }
 
     public void start() {
@@ -165,7 +166,7 @@ public class ApmServerClient {
             connection.setRequestProperty("Authorization", authHeaderValue);
         }
 
-        connection.setRequestProperty("User-Agent", USER_AGENT);
+        connection.setRequestProperty("User-Agent", userAgent);
         connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
         connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
         return (HttpURLConnection) connection;
@@ -322,12 +323,29 @@ public class ApmServerClient {
         return isAtLeast(VERSION_6_7);
     }
 
+    public boolean supportsNumericUrlPort() {
+        return isAtLeast(VERSION_7_0);
+    }
+
+    public boolean supportsMultipleHeaderValues() {
+        return isAtLeast(VERSION_7_0);
+    }
+
+    public boolean supportsConfiguredAndDetectedHostname() {
+        return isAtLeast(VERSION_7_4);
+    }
+
     public boolean supportsLogsEndpoint() {
         return isAtLeast(VERSION_7_9);
     }
 
-    public boolean supportsNumericUrlPort(){
-        return isAtLeast(VERSION_7_0);
+    public boolean supportsKeepingUnsampledTransaction() {
+        // supportsKeepingUnsampledTransaction is called from application threads
+        // return true instead of blocking the thread
+        if (apmServerVersion != null && !apmServerVersion.isDone()) {
+            return true;
+        }
+        return isLowerThan(VERSION_8_0);
     }
 
     @Nullable
@@ -336,6 +354,10 @@ public class ApmServerClient {
             return apmServerVersion.get(timeout, timeUnit);
         }
         return null;
+    }
+
+    public boolean isLowerThan(Version apmServerVersion) {
+        return !isAtLeast(apmServerVersion);
     }
 
     public boolean isAtLeast(Version apmServerVersion) {
@@ -359,7 +381,7 @@ public class ApmServerClient {
         /**
          * Gets the {@link HttpURLConnection} after the connection has been established and returns a result,
          * for example the status code or the response body.
-         *
+         * <p>
          * NOTE: do not call {@link InputStream#close()} as that is handled by {@link ApmServerClient}
          *
          * @param connection the connection
@@ -370,4 +392,28 @@ public class ApmServerClient {
         T withConnection(HttpURLConnection connection) throws IOException;
     }
 
+    private static String getUserAgent(CoreConfiguration coreConfiguration) {
+        StringBuilder userAgent = new StringBuilder();
+        userAgent.append("apm-agent-java/").append(VersionUtils.getAgentVersion());
+        String serviceName = coreConfiguration.getServiceName();
+        String serviceVersion = coreConfiguration.getServiceVersion();
+        if (!serviceName.isEmpty()) {
+            userAgent.append(" (").append(serviceName);
+            if (serviceVersion != null && !serviceVersion.isEmpty()) {
+                userAgent.append(" ").append(escapeHeaderComment(serviceVersion));
+            }
+            userAgent.append(")");
+        }
+        return userAgent.toString();
+    }
+
+    /**
+     * Escapes the provided string from characters that are disallowed within HTTP header comments.
+     * See spec- https://httpwg.org/specs/rfc7230.html#field.components
+     * @param headerFieldComment HTTP header comment value to be escaped
+     * @return the escaped header comment
+     */
+    static String escapeHeaderComment(String headerFieldComment) {
+        return headerFieldComment.replaceAll("[^\\t \\x21-\\x27\\x2a-\\x5b\\x5d-\\x7e\\x80-\\xff]", "_");
+    }
 }

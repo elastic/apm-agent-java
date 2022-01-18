@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.profiler;
 
@@ -296,7 +290,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     public boolean onActivation(TraceContext activeSpan, @Nullable TraceContext previouslyActive) {
         if (profilingSessionOngoing) {
             if (previouslyActive == null) {
-                AsyncProfiler.getInstance(config.getProfilerLibDirectory()).enableProfilingCurrentThread();
+                AsyncProfiler.getInstance(config.getProfilerLibDirectory(), config.getAsyncProfilerSafeMode()).enableProfilingCurrentThread();
             }
             boolean success = eventBuffer.tryPublishEvent(ACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive);
             if (!success && logger.isDebugEnabled()) {
@@ -321,7 +315,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     public boolean onDeactivation(TraceContext activeSpan, @Nullable TraceContext previouslyActive) {
         if (profilingSessionOngoing) {
             if (previouslyActive == null) {
-                AsyncProfiler.getInstance(config.getProfilerLibDirectory()).disableProfilingCurrentThread();
+                AsyncProfiler.getInstance(config.getProfilerLibDirectory(), config.getAsyncProfilerSafeMode()).disableProfilingCurrentThread();
             }
             boolean success = eventBuffer.tryPublishEvent(DEACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive);
             if (!success && logger.isDebugEnabled()) {
@@ -399,7 +393,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     }
 
     private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) throws Exception {
-        AsyncProfiler asyncProfiler = AsyncProfiler.getInstance(config.getProfilerLibDirectory());
+        AsyncProfiler asyncProfiler = AsyncProfiler.getInstance(config.getProfilerLibDirectory(), config.getAsyncProfilerSafeMode());
         try {
             String startCommand = "start,jfr,event=wall,cstack=n,interval=" + sampleRate.getMillis() + "ms,filter,file=" + jfrFile + ",safemode=" + config.getAsyncProfilerSafeMode();
             String startMessage = asyncProfiler.execute(startCommand);

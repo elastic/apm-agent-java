@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.scheduled;
 
@@ -58,34 +52,36 @@ public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object setTransactionName(@SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
-                                             @Advice.Origin Class<?> clazz) {
-        AbstractSpan<?> active = tracer.getActive();
-        if (active == null) {
-            Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
-            if (transaction != null) {
-                transaction.withName(signature)
-                    .withType("scheduled")
-                    .activate();
-                transaction.setFrameworkName(FRAMEWORK_NAME);
-                return transaction;
+    public static class TimerTaskAdvice {
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object setTransactionName(@SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
+                                                 @Advice.Origin Class<?> clazz) {
+            AbstractSpan<?> active = tracer.getActive();
+            if (active == null) {
+                Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                if (transaction != null) {
+                    transaction.withName(signature)
+                        .withType("scheduled")
+                        .activate();
+                    transaction.setFrameworkName(FRAMEWORK_NAME);
+                    return transaction;
+                }
+            } else {
+                logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
             }
-        } else {
-            logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
+            return null;
         }
-        return null;
-    }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onMethodExit(@Advice.Enter @Nullable Object transactionObj,
-                                    @Advice.Thrown Throwable t) {
-        if (transactionObj instanceof Transaction) {
-            Transaction transaction = (Transaction) transactionObj;
-            transaction.captureException(t)
-                .deactivate()
-                .end();
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onMethodExit(@Advice.Enter @Nullable Object transactionObj,
+                                        @Advice.Thrown Throwable t) {
+            if (transactionObj instanceof Transaction) {
+                Transaction transaction = (Transaction) transactionObj;
+                transaction.captureException(t)
+                    .deactivate()
+                    .end();
+            }
         }
     }
 
@@ -105,4 +101,8 @@ public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
         return Arrays.asList("timer-task");
     }
 
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$TimerTaskAdvice";
+    }
 }

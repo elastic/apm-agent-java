@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.plugin;
 
@@ -56,30 +50,32 @@ public class PluginInstrumentation extends ElasticApmInstrumentation {
         return Collections.singletonList("test-plugin");
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onEnter(@Advice.Origin(value = "#m") String methodName) {
-        Span ret;
-        Transaction transaction = ElasticApm.currentTransaction();
-        if (transaction.getId().isEmpty()) {
-            // the NoopTransaction
-            ret = ElasticApm.startTransaction();
-            System.out.println("ret = " + ret);
-        } else {
-            ret = transaction.startSpan("plugin", "external", "trace");
-            System.out.println("ret = " + ret);
+    public static class AdviceClass {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.Origin(value = "#m") String methodName) {
+            Span ret;
+            Transaction transaction = ElasticApm.currentTransaction();
+            if (transaction.getId().isEmpty()) {
+                // the NoopTransaction
+                ret = ElasticApm.startTransaction();
+                System.out.println("ret = " + ret);
+            } else {
+                ret = transaction.startSpan("plugin", "external", "trace");
+                System.out.println("ret = " + ret);
+            }
+            return ret.setName(methodName).activate();
         }
-        return ret.setName(methodName).activate();
-    }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExit(@Advice.Thrown Throwable thrown, @Advice.Enter Object scopeObject) {
-        try {
-            Span span = ElasticApm.currentSpan();
-            System.out.println("span = " + span);
-            span.captureException(thrown);
-            span.end();
-        } finally {
-            ((Scope) scopeObject).close();
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Thrown Throwable thrown, @Advice.Enter Object scopeObject) {
+            try {
+                Span span = ElasticApm.currentSpan();
+                System.out.println("span = " + span);
+                span.captureException(thrown);
+                span.end();
+            } finally {
+                ((Scope) scopeObject).close();
+            }
         }
     }
 }

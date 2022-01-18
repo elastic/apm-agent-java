@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.errorlogging;
 
@@ -37,7 +31,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
+import static net.bytebuddy.matcher.ElementMatchers.ofType;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public abstract class AbstractLoggerErrorCapturingInstrumentation extends TracerAwareInstrumentation {
@@ -83,8 +80,7 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Tracer
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("error")
-            .and(takesArgument(0, named("java.lang.String"))
-                .and(takesArgument(1, named("java.lang.Throwable"))));
+            .and(takesArgument(1, named("java.lang.Throwable")));
     }
 
     @Override
@@ -92,5 +88,10 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Tracer
         Collection<String> ret = new ArrayList<>();
         ret.add("logging");
         return ret;
+    }
+
+    @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return not(ofType(nameStartsWith("co.elastic.apm.")));
     }
 }

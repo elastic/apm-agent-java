@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.bci;
 
@@ -51,7 +45,7 @@ public class IndyPluginClassLoaderFactory {
 
     /**
      * Creates an isolated CL that has two parents: the target class loader and the agent CL.
-     * The agent class loader is currently the bootstrap CL but in the future it will be an isolated CL that is a child of the bootstrap CL.
+     * The agent class loader is an isolated CL that is a child of the bootstrap CL.
      */
     public synchronized static ClassLoader getOrCreatePluginClassLoader(@Nullable ClassLoader targetClassLoader,
                                                                         List<String> classesToInject,
@@ -89,12 +83,7 @@ public class IndyPluginClassLoaderFactory {
 
         Map<String, byte[]> typeDefinitions = getTypeDefinitions(classesToInjectCopy, classFileLocator);
         // child first semantics are important here as the plugin CL contains classes that are also present in the agent CL
-        ClassLoader pluginClassLoader;
-        if (targetClassLoader != null) {
-            pluginClassLoader = new IndyPluginClassLoader(targetClassLoader, agentClassLoader, typeDefinitions);
-        } else {
-            pluginClassLoader = new IndyPluginClassLoader(agentClassLoader, typeDefinitions);
-        }
+        ClassLoader pluginClassLoader = new IndyPluginClassLoader(targetClassLoader, agentClassLoader, typeDefinitions);
         injectedClasses.put(classesToInject, new WeakReference<>(pluginClassLoader));
 
         return pluginClassLoader;

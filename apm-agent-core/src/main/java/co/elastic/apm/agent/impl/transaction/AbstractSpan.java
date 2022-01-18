@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
 
@@ -268,6 +262,21 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
             return name;
         } else {
             return null;
+        }
+    }
+
+    /**
+     * Updates the name of this span to {@code ClassName#methodName}.
+     *
+     * @param clazz      the class that should be part of this span's name
+     * @param methodName the method that should be part of this span's name
+     */
+    public void updateName(Class<?> clazz, String methodName) {
+        StringBuilder spanName = getAndOverrideName(PRIO_DEFAULT);
+        if (spanName != null) {
+            String className = clazz.getName();
+            spanName.append(className, className.lastIndexOf('.') + 1, className.length());
+            spanName.append("#").append(methodName);
         }
     }
 

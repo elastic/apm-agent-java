@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,12 +15,9 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.sdk;
 
-import co.elastic.apm.agent.sdk.advice.AssignTo;
-import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -46,11 +38,13 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  * The actual instrumentation of the matched methods is performed by static methods within this class,
  * which are annotated by {@link net.bytebuddy.asm.Advice.OnMethodEnter} or {@link net.bytebuddy.asm.Advice.OnMethodExit}.
  * </p>
- * For internal plugins, the whole package (starting at the {@linkplain #getAdviceClassName() advice's} package)
+ * For internal plugins, by default, the whole package (starting at {@code co.elastic.apm.agent.<plugin-root>})
  * will be loaded from a plugin class loader that has both the agent class loader and the class loader of the
  * instrumented class as parents.
  * This class loader is also known as the {@code IndyPluginClassLoader}.
- * For external plugin, the whole jar will be loaded from the indy plugin class loader.
+ * To include more packages (for example, to add 3rd party dependencies),
+ * internal plugins can override {@code co.elastic.apm.agent.bci.TracerAwareInstrumentation#pluginClassLoaderRootPackages()}.
+ * For external plugins, the whole jar will be loaded from the indy plugin class loader.
  * <p>
  * The advice methods will be dispatched via an {@code INVOKEDYNAMIC} instruction.
  * Upon first invocation of an instrumented method,
@@ -64,7 +58,7 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  *         Set {@link Advice.OnMethodEnter#inline()} and {@link Advice.OnMethodExit#inline()} to {@code false} on all advices.
  *         As the {@code readOnly} flag in Byte Buddy annotations such as {@link Advice.Return#readOnly()} cannot be used with non
  *         {@linkplain Advice.OnMethodEnter#inline() inlined advices},
- *         use {@link AssignTo} and friends.
+ *         use the annotations in {@link Advice.AssignReturned}.
  *     </li>
  *     <li>
  *         Both the return type and the arguments of advice methods must not contain types from the agent.
@@ -84,14 +78,12 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  *     </li>
  *     <li>
  *         Don't use {@link ThreadLocal}s as it can lead to class loader leaks.
- *         Use {@link GlobalThreadLocal} instead.
+ *         Use {@link co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal} instead.
  *     </li>
  *     <li>
  *         This applies to internal plugins only:
  *         Due to the automatic plugin classloader creation that is based on package scanning,
  *         plugins need to be in their own uniquely named package.
- *         As the package of the {@link #getAdviceClassName() advice class} is used as the root,
- *         all advices have to be at the top level of the plugin.
  *     </li>
  * </ul>
  *
@@ -146,13 +138,11 @@ public abstract class ElasticApmInstrumentation {
     public abstract ElementMatcher<? super MethodDescription> getMethodMatcher();
 
     /**
-     * Implementing the advice and instrumentation at the same class is <b>bad practice</b>, as they are
-     * loaded in different contexts with different purposes. The instrumentation class is loaded by the agent class
+     * Implementing the advice and instrumentation at the same class is <b>disallowed</b> and will throw a validation error when trying to do so.
+     * They are loaded in different contexts with different purposes. The instrumentation class is loaded by the agent class
      * loader, whereas the advice class needs to be loaded by a class loader that has visibility to the instrumented
      * type and library, as well as the agent classes. Therefore, loading the advice class through the agent class
      * loader may cause linkage-related errors.
-     * The default implementation is the only one that is allowed to assume the advice class is already loaded, as it
-     * is the same as the instrumentation class.
      * <p>
      *     ANY INSTRUMENTATION THAT OVERRIDES THIS METHOD MUST NOT CAUSE THE LOADING OF THE ADVICE CLASS.
      *     For example, implementing it as {@code MyAdvice.class.getName()} is not allowed.
@@ -160,7 +150,7 @@ public abstract class ElasticApmInstrumentation {
      * @return the name of the advice class corresponding this instrumentation
      */
     public String getAdviceClassName() {
-        return getClass().getName();
+        return getClass().getName() + "$AdviceClass";
     }
 
     /**

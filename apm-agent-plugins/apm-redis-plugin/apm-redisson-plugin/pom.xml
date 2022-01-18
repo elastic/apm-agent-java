@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-redis-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.24.1-SNAPSHOT</version>
+        <version>1.28.5-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-redisson-plugin</artifactId>
@@ -32,7 +32,8 @@
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson</artifactId>
-            <version>3.12.3</version>
+            <!-- note: previous versions don't work with Java 15+ -->
+            <version>3.13.0</version>
             <scope>provided</scope>
             <exclusions>
                 <exclusion>

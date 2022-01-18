@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,9 +15,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
-
 package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.objectpool.Recyclable;
@@ -31,27 +24,8 @@ import javax.annotation.Nullable;
 
 public class Socket implements Recyclable {
 
-    /**
-     * Indicates whether request was sent as SSL/HTTPS request.
-     */
-    private boolean encrypted;
     @Nullable
     private String remoteAddress;
-
-    /**
-     * Indicates whether request was sent as SSL/HTTPS request.
-     */
-    public boolean isEncrypted() {
-        return encrypted;
-    }
-
-    /**
-     * Indicates whether request was sent as SSL/HTTPS request.
-     */
-    public Socket withEncrypted(boolean encrypted) {
-        this.encrypted = encrypted;
-        return this;
-    }
 
     @Nullable
     public String getRemoteAddress() {
@@ -65,12 +39,10 @@ public class Socket implements Recyclable {
 
     @Override
     public void resetState() {
-        encrypted = false;
         remoteAddress = null;
     }
 
     public void copyFrom(Socket other) {
-        this.encrypted = other.encrypted;
         this.remoteAddress = other.remoteAddress;
     }
 

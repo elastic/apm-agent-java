@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,17 +15,17 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.MetaDataMock;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.payload.ProcessInfo;
-import co.elastic.apm.agent.impl.payload.Service;
-import co.elastic.apm.agent.impl.payload.SystemInfo;
+import co.elastic.apm.agent.impl.metadata.ProcessInfo;
+import co.elastic.apm.agent.impl.metadata.Service;
+import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -60,7 +55,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.zip.InflaterInputStream;
 
 import static co.elastic.apm.agent.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
@@ -100,10 +94,11 @@ class IntakeV2ReportingEventHandlerTest {
         mockApmServer2.stubFor(post(APM_SERVER_PATH + INTAKE_V2_URL).willReturn(ok()));
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        SystemInfo system = new SystemInfo("x64", "localhost", "platform");
+        final CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final ProcessInfo title = new ProcessInfo("title");
         final Service service = new Service();
-        apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
         apmServerClient.start(List.of(
             new URL(HTTP_LOCALHOST + mockApmServer1.port()),
             // testing ability to configure a server url with additional path (ending with "/" in this case)
@@ -115,12 +110,12 @@ class IntakeV2ReportingEventHandlerTest {
             new DslJsonSerializer(
                 mock(StacktraceConfiguration.class),
                 apmServerClient,
-                MetaDataMock.create(title, service, system, null, Collections.emptyMap())
+                MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
             ),
             apmServerClient);
         final ProcessInfo title1 = new ProcessInfo("title");
         final Service service1 = new Service();
-        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
         apmServerClient.start(List.of(new URL("http://non.existing:8080")));
         nonConnectedReportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
@@ -128,7 +123,7 @@ class IntakeV2ReportingEventHandlerTest {
             new DslJsonSerializer(
                 mock(StacktraceConfiguration.class),
                 this.apmServerClient,
-                MetaDataMock.create(title1, service1, system, null, Collections.emptyMap())
+                MetaDataMock.create(title1, service1, system, null, Collections.emptyMap(), null)
             ),
             apmServerClient);
     }
@@ -266,7 +261,7 @@ class IntakeV2ReportingEventHandlerTest {
         return Stream.of(mockApmServer1, mockApmServer2)
             .flatMap(apmServer -> apmServer.findAll(postRequestedFor(urlEqualTo(INTAKE_V2_URL))).stream())
             .findFirst()
-            .map(request -> new BufferedReader(new InputStreamReader(new InflaterInputStream(new ByteArrayInputStream(request.getBody()))))
+            .map(request -> new BufferedReader(new InputStreamReader(new ByteArrayInputStream(request.getBody())))
                 .lines()
                 .map(IntakeV2ReportingEventHandlerTest::getReadTree)
                 .collect(Collectors.toList()))

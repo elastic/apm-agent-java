@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,20 +15,30 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.rabbitmq;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
 import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public abstract class SpringBaseInstrumentation extends AbstractBaseInstrumentation {
+
+    @Override
+    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return not(isInterface()).and(hasSuperType(named("org.springframework.amqp.core.MessageListener")));
+    }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -44,5 +49,14 @@ public abstract class SpringBaseInstrumentation extends AbstractBaseInstrumentat
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
             .and(classLoaderCanLoadClass("org.springframework.amqp.core.MessageListener"));
+    }
+
+    static class BaseAdvice {
+        protected static final SpringAmqpTransactionHelper transactionHelper;
+
+        static {
+            ElasticApmTracer elasticApmTracer = GlobalTracer.requireTracerImpl();
+            transactionHelper = new SpringAmqpTransactionHelper(elasticApmTracer);
+        }
     }
 }

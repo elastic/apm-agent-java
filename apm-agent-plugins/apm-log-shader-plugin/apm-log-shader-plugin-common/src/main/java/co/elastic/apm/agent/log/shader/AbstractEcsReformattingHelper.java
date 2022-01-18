@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,25 +15,29 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.log.shader;
 
+import co.elastic.apm.agent.collections.DetachedThreadLocalImpl;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.payload.ServiceFactory;
+import co.elastic.apm.agent.impl.metadata.Service;
+import co.elastic.apm.agent.impl.metadata.ServiceFactory;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.List;
+import java.util.Map;
 
 /**
  * The abstract Log shading helper- loaded as part of the agent core (agent CL / bootstrap CL / System CL).
@@ -105,7 +104,7 @@ import javax.annotation.Nullable;
 public abstract class AbstractEcsReformattingHelper<A, F> {
 
     // Escape shading
-    private static final String ECS_LOGGING_PACKAGE_NAME = "co!elastic!logging".replace('!', '.');
+    private static final String ECS_LOGGING_PACKAGE_NAME = "co.elastic.logging";
 
     // We can use regular shaded logging here as this class is loaded from the agent CL
     private static final Logger logger = LoggerFactory.getLogger(AbstractEcsReformattingHelper.class);
@@ -122,27 +121,27 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#SHADE SHADE} or {@link LogEcsReformatting#REPLACE REPLACE}.
      */
-    private static final WeakConcurrentMap<Object, Object> originalAppender2ecsAppender = WeakMapSupplier.createMap();
+    private static final WeakMap<Object, Object> originalAppender2ecsAppender = WeakConcurrent.buildMap();
 
     /**
      * A mapping between original appender and the formatter that it had originally.
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#OVERRIDE OVERRIDE}.
      */
-    private static final WeakConcurrentMap<Object, Object> originalAppender2originalFormatter = WeakMapSupplier.createMap();
+    private static final WeakMap<Object, Object> originalAppender2originalFormatter = WeakConcurrent.buildMap();
 
     /**
      * A mapping between original appender and the corresponding ECS-formatter.
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#OVERRIDE OVERRIDE}, currently only for the log4j2 instrumentation.
      */
-    private static final WeakConcurrentMap<Object, Object> originalAppender2ecsFormatter = WeakMapSupplier.createMap();
+    private static final WeakMap<Object, Object> originalAppender2ecsFormatter = WeakConcurrent.buildMap();
 
     /**
      * This state is set at the beginning of {@link #onAppendEnter(Object)} and cleared at the end of {@link #onAppendExit(Object)}.
      * This ensures consistency during the entire handling of each log events and guarantees that each log event is being
      * logged exactly once.
-     * No need to use {@link co.elastic.apm.agent.sdk.state.GlobalThreadLocal} because we already annotate the class
+     * No need to use {@link DetachedThreadLocalImpl} because we already annotate the class
      * with {@link GlobalState}.
      */
     private static final ThreadLocal<LogEcsReformatting> configForCurrentLogEvent = new ThreadLocal<>();
@@ -152,10 +151,27 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     @Nullable
     private final String configuredServiceName;
 
+    @Nullable
+    private final String configuredServiceNodeName;
+
+    @Nullable
+    private final Map<String, String> additionalFields;
+
     public AbstractEcsReformattingHelper() {
         ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
         loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
-        configuredServiceName = new ServiceFactory().createService(tracer.getConfig(CoreConfiguration.class), "").getName();
+        additionalFields = loggingConfiguration.getLogEcsReformattingAdditionalFields();
+        Service service = new ServiceFactory().createService(
+            tracer.getConfig(CoreConfiguration.class),
+            "",
+            tracer.getConfig(ServerlessConfiguration.class)
+        );
+        configuredServiceName = service.getName();
+        if (service.getNode() != null) {
+            configuredServiceNodeName = service.getNode().getName();
+        } else {
+            configuredServiceNodeName = null;
+        }
     }
 
     /**
@@ -206,13 +222,17 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
                 return;
             }
 
-            Object originalFormatter = NULL_FORMATTER;
+            Object mappedFormatter = NULL_FORMATTER;
             Object ecsFormatter = NULL_FORMATTER;
             try {
                 if (shouldApplyEcsReformatting(originalAppender)) {
-                    originalFormatter = getFormatterFrom(originalAppender);
+                    F originalFormatter = getFormatterFrom(originalAppender);
+                    mappedFormatter = originalFormatter;
                     String serviceName = getServiceName();
-                    F createdEcsFormatter = createEcsFormatter(getEventDataset(originalAppender, serviceName), serviceName);
+                    F createdEcsFormatter = createEcsFormatter(
+                        getEventDataset(originalAppender, serviceName), serviceName, configuredServiceNodeName,
+                        additionalFields, originalFormatter
+                    );
                     setFormatter(originalAppender, createdEcsFormatter);
                     ecsFormatter = createdEcsFormatter;
                 }
@@ -222,7 +242,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
                     originalAppender.getClass().getName(), getAppenderName(originalAppender)), throwable);
             } finally {
                 originalAppender2ecsFormatter.put(originalAppender, ecsFormatter);
-                originalAppender2originalFormatter.put(originalAppender, originalFormatter);
+                originalAppender2originalFormatter.put(originalAppender, mappedFormatter);
             }
         }
     }
@@ -292,7 +312,10 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
             try {
                 if (shouldApplyEcsReformatting(originalAppender)) {
                     String serviceName = getServiceName();
-                    F ecsFormatter = createEcsFormatter(getEventDataset(originalAppender, serviceName), serviceName);
+                    F ecsFormatter = createEcsFormatter(
+                        getEventDataset(originalAppender, serviceName), serviceName, configuredServiceNodeName,
+                        additionalFields, getFormatterFrom(originalAppender)
+                    );
                     ecsAppender = createAndStartEcsAppender(originalAppender, ECS_SHADE_APPENDER_NAME, ecsFormatter);
                     if (ecsAppender == null) {
                         ecsAppender = NULL_APPENDER;
@@ -311,13 +334,19 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
 
     private boolean shouldApplyEcsReformatting(A originalAppender) {
         F formatter = getFormatterFrom(originalAppender);
-        return !isShadingAppender(originalAppender) &&
-            !isEcsFormatter(formatter) &&
-            WildcardMatcher.anyMatch(loggingConfiguration.getLogEcsFormatterAllowList(), formatter.getClass().getName()) != null;
+        return formatter != null &&
+                !isShadingAppender(originalAppender) &&
+                !isEcsFormatter(formatter) &&
+                isAllowedFormatter(formatter, loggingConfiguration.getLogEcsFormatterAllowList());
+    }
+
+    protected boolean isAllowedFormatter(F formatter, List<WildcardMatcher> allowList) {
+        return WildcardMatcher.anyMatch(allowList, formatter.getClass().getName()) != null;
     }
 
     /**
      * Looks up an ECS-formatter to override logging events in the given appender
+     *
      * @param originalAppender the original log appender
      * @return an ECS-formatter if such is mapped to the provide appender and the caller should override, or {@code null}
      */
@@ -375,6 +404,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
      * @param appender used appender
      * @return the given appender's formatting entity
      */
+    @Nullable
     protected abstract F getFormatterFrom(A appender);
 
     /**
@@ -392,7 +422,8 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     @Nullable
     protected abstract A createAndStartEcsAppender(A originalAppender, String ecsAppenderName, F ecsFormatter);
 
-    protected abstract F createEcsFormatter(String eventDataset, @Nullable String serviceName);
+    protected abstract F createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName,
+                                            @Nullable Map<String, String> additionalFields, F originalFormatter);
 
     /**
      * We currently get the same service name that is reported in the metadata document.

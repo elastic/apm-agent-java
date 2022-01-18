@@ -1,9 +1,4 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
- * %%
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -20,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * #L%
  */
 package co.elastic.apm.agent.util;
 
@@ -30,33 +24,16 @@ import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import static java.nio.charset.StandardCharsets.UTF_16;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class IOUtilsTest  {
-
-    private final String tempDirectory = System.getProperty("java.io.tmpdir");
 
     @Test
     void readUtf8Stream() throws IOException {
@@ -158,61 +135,6 @@ class IOUtilsTest  {
         final CharBuffer charBuffer = CharBuffer.allocate(16);
         assertThat(IOUtils.decodeUtf8Bytes("{foo}".getBytes(UTF_16), charBuffer).isError()).isTrue();
         assertThat((CharSequence) charBuffer).isEqualTo(CharBuffer.allocate(16));
-    }
-
-    @Test
-    void exportResourceToDirectory() throws UnsupportedEncodingException, URISyntaxException {
-        File tmp = IOUtils.exportResourceToDirectory("test.elasticapm.properties", tempDirectory, UUID.randomUUID().toString(), "tmp");
-        tmp.deleteOnExit();
-
-        Path referenceFile = Paths.get(IOUtilsTest.class.getResource("/test.elasticapm.properties").toURI());
-
-        assertThat(tmp)
-            .hasSameContentAs(referenceFile.toFile());
-    }
-
-    @Test
-    void exportResourceToDirectoryIdempotence() throws InterruptedException
-    {
-        String destination = UUID.randomUUID().toString();
-        File tmp = IOUtils.exportResourceToDirectory("test.elasticapm.properties", tempDirectory, destination, "tmp");
-        tmp.deleteOnExit();
-        long actual = tmp.lastModified();
-        Thread.sleep(1000);
-        File after = IOUtils.exportResourceToDirectory("test.elasticapm.properties", tempDirectory, destination, "tmp");
-        assertThat(actual).isEqualTo(after.lastModified());
-    }
-
-    @Test
-    void exportResourceToDirectory_throwExceptionIfNotFound() {
-        assertThatThrownBy(() -> IOUtils.exportResourceToDirectory("nonexist", tempDirectory, UUID.randomUUID().toString(), "tmp")).hasMessage("nonexist not found");
-    }
-
-    @Test
-    void exportResourceToDirectoryInMultipleThreads() throws InterruptedException, ExecutionException, IOException
-    {
-        final int nbThreads = 10;
-        final ExecutorService executorService = Executors.newFixedThreadPool(nbThreads);
-        final CountDownLatch countDownLatch = new CountDownLatch(nbThreads);
-        final List<Future<File>> futureList = new ArrayList<>(nbThreads);
-        final String tempFileNamePrefix = UUID.randomUUID().toString();
-
-        for (int i = 0; i < nbThreads; i++) {
-            futureList.add(executorService.submit(() -> {
-                countDownLatch.countDown();
-                countDownLatch.await();
-                File file = IOUtils.exportResourceToDirectory("test.elasticapm.properties", tempDirectory, tempFileNamePrefix, "tmp");
-                file.deleteOnExit();
-                return file;
-            }));
-        }
-        executorService.shutdown();
-        executorService.awaitTermination(1, TimeUnit.SECONDS);
-
-        for (Future<File> future : futureList) {
-            assertThat(future.get()).isNotNull();
-            assertThat(future.get()).exists();
-        }
     }
 
     @Nonnull
