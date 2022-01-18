@@ -52,7 +52,7 @@ import java.util.Objects;
  * </pre>
  * <p>
  * Binary representation (e.g. 0.11.0.0+ Kafka record header), based on
- * https://github.com/elastic/apm/blob/master/docs/agent-development.md#binary-fields:
+ * https://github.com/elastic/apm/blob/main/docs/agent-development.md#binary-fields:
  * <pre>
  *      traceparent     = version version_format
  *      version         = 1BYTE                   ; version is 0 in the current spec

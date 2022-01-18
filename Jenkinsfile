@@ -228,7 +228,7 @@ pipeline {
             beforeAgent true
             allOf {
               anyOf {
-                branch 'master'
+                branch 'main'
                 branch "\\d+\\.\\d+"
                 branch "v\\d?"
                 tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
@@ -364,7 +364,7 @@ pipeline {
     stage('Stable') {
       options { skipDefaultCheckout() }
       when {
-        branch 'master'
+        branch 'main'
       }
       steps {
         deleteDir()
@@ -398,7 +398,7 @@ pipeline {
                   branch: 'main')
               // It's required to transform the tag value to the artifact version
               sh script: ".ci/bump-version.sh ${env.BRANCH_NAME.replaceAll('^v', '')}", label: 'Bump version'
-              // The opbeans-java pipeline will trigger a release for the master branch
+              // The opbeans-java pipeline will trigger a release for the main branch
               gitPush()
               // The opbeans-java pipeline will trigger a release for the release tag
               gitCreateTag(tag: "${env.BRANCH_NAME}")
@@ -410,7 +410,7 @@ pipeline {
   }
   post {
     cleanup {
-      notifyBuildResult(analyzeFlakey: !isTag(), flakyReportIdx: 'reporter-apm-agent-java-apm-agent-java-master', flakyDisableGHIssueCreation: true)
+      notifyBuildResult(analyzeFlakey: !isTag(), flakyReportIdx: 'reporter-apm-agent-java-apm-agent-java-main', flakyDisableGHIssueCreation: true)
     }
   }
 }
