@@ -126,7 +126,7 @@
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
 
-        <version.testcontainers>1.15.2</version.testcontainers>
+        <version.testcontainers>1.16.2</version.testcontainers>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -159,13 +159,18 @@
             </properties>
         </profile>
         <profile>
-          <id>integration-test-only</id>
+          <id>ci-non-application-server-integration-tests</id>
           <activation>
               <activeByDefault>false</activeByDefault>
           </activation>
           <properties>
-              <skip.unit.test>true</skip.unit.test>
+              <!--
+              By default, enables all integration tests.
+              In integration-tests/application-server-integration-tests/pom.xml,
+              only that module is excluded by overriding skip.integration.test to true.
+              -->
               <skip.integration.test>false</skip.integration.test>
+              <maven.javadoc.skip>true</maven.javadoc.skip>
           </properties>
           <build>
             <plugins>
@@ -178,9 +183,39 @@
               <plugin>
                   <artifactId>maven-surefire-plugin</artifactId>
                   <configuration>
-                      <enableAssertions>true</enableAssertions>
-                      <trimStackTrace>false</trimStackTrace>
-                      <skipTests>${skip.unit.test}</skipTests>
+                      <skipTests>true</skipTests>
+                  </configuration>
+              </plugin>
+            </plugins>
+          </build>
+        </profile>
+        <profile>
+          <id>ci-application-server-integration-tests</id>
+          <activation>
+              <activeByDefault>false</activeByDefault>
+          </activation>
+          <properties>
+              <!--
+              By default, disables all integration tests.
+              In integration-tests/application-server-integration-tests/pom.xml,
+              only that module is included by overriding skip.integration.test to false.
+              -->
+              <skip.integration.test>true</skip.integration.test>
+              <maven.javadoc.skip>true</maven.javadoc.skip>
+              <animal.sniffer.skip>true</animal.sniffer.skip>
+          </properties>
+          <build>
+            <plugins>
+              <plugin>
+                  <artifactId>maven-failsafe-plugin</artifactId>
+                  <configuration>
+                    <skipTests>${skip.integration.test}</skipTests>
+                  </configuration>
+              </plugin>
+              <plugin>
+                  <artifactId>maven-surefire-plugin</artifactId>
+                  <configuration>
+                      <skipTests>true</skipTests>
                   </configuration>
               </plugin>
             </plugins>
