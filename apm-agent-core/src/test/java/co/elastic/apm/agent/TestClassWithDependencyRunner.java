@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent;
 
+import co.elastic.test.ChildFirstURLClassLoader;
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
 import org.apache.ivy.core.module.descriptor.DefaultModuleDescriptor;
@@ -44,7 +45,6 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -174,62 +174,5 @@ public class TestClassWithDependencyRunner {
         }
         assertThat(resolvedDependencies).hasSizeGreaterThanOrEqualTo(dependencies.size());
         return resolvedDependencies;
-    }
-
-    private static class ChildFirstURLClassLoader extends URLClassLoader {
-
-        private final List<URL> urls;
-
-        public ChildFirstURLClassLoader(List<URL> urls) {
-            super(urls.toArray(new URL[]{}));
-            this.urls = urls;
-        }
-
-        @Override
-        public String getName() {
-            return "Test class class loader: " + urls;
-        }
-
-        @Override
-        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-            synchronized (getClassLoadingLock(name)) {
-                try {
-                    // First, check if the class has already been loaded
-                    Class<?> c = findLoadedClass(name);
-                    if (c == null) {
-                        c = findClass(name);
-                        if (resolve) {
-                            resolveClass(c);
-                        }
-                    }
-                    return c;
-                } catch (ClassNotFoundException e) {
-                    return super.loadClass(name, resolve);
-                }
-            }
-        }
-
-
-        @Override
-        public URL findResource(String name) {
-            return super.findResource(name);
-        }
-
-        @Override
-        public Enumeration<URL> getResources(String name) throws IOException {
-            Enumeration<URL> resources = super.getResources(name);
-            List<URL> resourcesList = new ArrayList<>();
-            while (resources.hasMoreElements()) {
-                resourcesList.add(resources.nextElement());
-            }
-            Collections.reverse(resourcesList);
-            return Collections.enumeration(resourcesList);
-        }
-
-        @Override
-        public String toString() {
-            return getName();
-        }
-
     }
 }
