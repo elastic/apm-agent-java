@@ -25,7 +25,6 @@ import org.apache.logging.log4j.ThreadContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
-import org.slf4j.Logger;
 import org.slf4j.MDC;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,7 +50,7 @@ class MdcActivationListenerIT extends AbstractInstrumentationTest {
     @Test
     void testVerifyThatWithEnabledCorrelationAndLoggedErrorMdcErrorIdIsNotBlankWithSlf4j() {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        Logger mockedLogger = mock(Logger.class);
+        org.slf4j.Logger mockedLogger = mock(org.slf4j.Logger.class);
         doAnswer(invocation -> assertMdcErrorIdIsNotEmpty()).when(mockedLogger).error(anyString(), any(Exception.class));
 
         assertMdcErrorIdIsEmpty();
@@ -70,7 +69,7 @@ class MdcActivationListenerIT extends AbstractInstrumentationTest {
     @Test
     void testVerifyThatWithEnabledCorrelationAndLoggedErrorMdcErrorIdIsNotBlankWithSlf4jNotInTransaction() {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        Logger mockedLogger = mock(Logger.class);
+        org.slf4j.Logger mockedLogger = mock(org.slf4j.Logger.class);
         doAnswer(invocation -> assertMdcErrorIdIsNotEmpty()).when(mockedLogger).error(anyString(), any(Exception.class));
 
         assertMdcErrorIdIsEmpty();
