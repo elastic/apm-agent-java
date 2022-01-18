@@ -44,7 +44,8 @@ public class ExternalPluginClassLoader extends URLClassLoader {
         super(new URL[]{pluginJar.toURI().toURL()}, agentClassLoader);
         classNames = Collections.unmodifiableList(scanForClasses(pluginJar));
         if (classNames.contains(ElasticApmInstrumentation.class.getName())) {
-            throw new IllegalStateException("The plugin %s contains the plugin SDK. Please make sure the scope for the dependency apm-agent-plugin-sdk is set to provided.");
+            throw new IllegalStateException(String.format("The plugin %s contains the plugin SDK. Please make sure the " +
+                "scope for the dependency apm-agent-plugin-sdk is set to provided.", pluginJar.getName()));
         }
     }
 

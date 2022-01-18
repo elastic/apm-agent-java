@@ -391,7 +391,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     }
 
     @Nullable
-    public String captureException(long epochMicros, @Nullable Throwable t) {
+    public String captureExceptionAndGetErrorId(long epochMicros, @Nullable Throwable t) {
         if (t != null) {
             hasCapturedExceptions = true;
             return tracer.captureAndReportException(epochMicros, t, this);
@@ -401,7 +401,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     public T captureException(@Nullable Throwable t) {
         if (t != null) {
-            captureException(getTraceContext().getClock().getEpochMicros(), t);
+            captureExceptionAndGetErrorId(getTraceContext().getClock().getEpochMicros(), t);
         }
         return (T) this;
     }
@@ -412,7 +412,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     @Nullable
     public String captureExceptionAndGetErrorId(@Nullable Throwable t) {
-        return captureException(getTraceContext().getClock().getEpochMicros(), t);
+        return captureExceptionAndGetErrorId(getTraceContext().getClock().getEpochMicros(), t);
     }
 
     public void addLabel(String key, String value) {
