@@ -48,9 +48,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
 // Using a separate test class for proxy support
-public class ApmServerClientProxySupportTest {
+public class ApmServerClientProxySupportIT {
 
-    private static final Logger logger = LoggerFactory.getLogger(ApmServerClientProxySupportTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(ApmServerClientProxySupportIT.class);
 
     private static final String PROXY_HEADER = "proxy-header";
     private static final String PROXY_HEADER_VALUE = "1234";
