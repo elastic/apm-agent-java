@@ -5,7 +5,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.28.4-SNAPSHOT</version>
+        <version>1.28.5-SNAPSHOT</version>
     </parent>
 
     <artifactId>application-server-integration-tests</artifactId>
@@ -174,5 +174,26 @@
         </dependency>
         -->
     </dependencies>
+
+    <profiles>
+        <profile>
+            <id>ci-application-server-integration-tests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <skip.integration.test>false</skip.integration.test>
+            </properties>
+        </profile>
+        <profile>
+            <id>ci-non-application-server-integration-tests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <skip.integration.test>true</skip.integration.test>
+            </properties>
+        </profile>
+    </profiles>
 
 </project>
