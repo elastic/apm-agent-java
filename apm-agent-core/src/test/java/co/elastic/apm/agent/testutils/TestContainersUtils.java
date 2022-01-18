@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.testutils;
 
 import com.github.dockerjava.api.command.CreateContainerCmd;
-import org.testcontainers.DockerClientFactory;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -31,5 +31,9 @@ public class TestContainersUtils {
 
     public static Consumer<CreateContainerCmd> withMemoryLimit(int limitMb) {
         return cmd -> Objects.requireNonNull(cmd.getHostConfig()).withMemory(limitMb * 1024 * 1024L);
+    }
+
+    public static Slf4jLogConsumer createSlf4jLogConsumer(Class<?> loggerOwner) {
+        return new Slf4jLogConsumer(org.slf4j.LoggerFactory.getLogger(loggerOwner));
     }
 }
