@@ -29,7 +29,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class CdiApplicationServerTestApp extends TestApp {
 
     public CdiApplicationServerTestApp() {
-        super("../cdi-app/cdi-app-dependent", "cdi-app.war", "/cdi-app/status.html", "CDI App");
+        super("../cdi-app/cdi-app-dependent",
+            "cdi-app.war",
+            "cdi-app",
+            "status.html",
+            "CDI App");
     }
 
     @Override

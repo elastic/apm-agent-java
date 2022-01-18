@@ -40,7 +40,7 @@ import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
-import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentation {
@@ -53,12 +53,14 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void setTransactionName(@SimpleMethodSignature String signature) {
-        final Transaction transaction = tracer.currentTransaction();
-        if (transaction != null) {
-            transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK);
-            transaction.setFrameworkName(FRAMEWORK_NAME);
+    public static class AdviceClass {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void setTransactionName(@SimpleMethodSignature String signature) {
+            final Transaction transaction = tracer.currentTransaction();
+            if (transaction != null) {
+                transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK);
+                transaction.setFrameworkName(FRAMEWORK_NAME);
+            }
         }
     }
 
@@ -74,20 +76,21 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
         // the implementations have to be annotated as well
         // quote from javadoc:
         // "Marks a Java class as implementing a Web Service, or a Java interface as defining a Web Service interface."
-        return isAnnotatedWith(named("javax.jws.WebService")).and(not(isInterface()));
+        return isAnnotatedWith(namedOneOf("javax.jws.WebService", "jakarta.jws.WebService")).and(not(isInterface()));
     }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("javax.jws.WebService"));
+            .and(classLoaderCanLoadClass("javax.jws.WebService")
+                .or(classLoaderCanLoadClass("jakarta.jws.WebService")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return overridesOrImplementsMethodThat(
             isAnnotatedWith(
-                named("javax.jws.WebMethod")))
+                namedOneOf("javax.jws.WebMethod", "jakarta.jws.WebMethod")))
             .onSuperClassesThat(isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any()));
     }
 

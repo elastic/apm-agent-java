@@ -19,6 +19,7 @@
 package co.elastic.apm.attach;
 
 import org.apache.logging.log4j.Level;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +47,9 @@ class AgentAttacherTest {
         assertThat(AgentAttacher.Arguments.parse("--include-all").getDiscoveryRules().getMatcherRules()).hasSize(1);
         assertThat(AgentAttacher.Arguments.parse("--exclude-user", "root").getDiscoveryRules().getExcludeRules()).hasSize(1);
         assertThat(AgentAttacher.Arguments.parse("--include-user", "root").getDiscoveryRules().getIncludeRules()).hasSize(1);
+        assertThat(AgentAttacher.Arguments.parse("--exclude-vmarg", "foo").getDiscoveryRules().getExcludeRules()).hasSize(1);
         assertThat(AgentAttacher.Arguments.parse("--exclude-vmargs", "foo").getDiscoveryRules().getExcludeRules()).hasSize(1);
+        assertThat(AgentAttacher.Arguments.parse("--include-vmarg", "foo").getDiscoveryRules().getIncludeRules()).hasSize(1);
         assertThat(AgentAttacher.Arguments.parse("--include-vmargs", "foo").getDiscoveryRules().getIncludeRules()).hasSize(1);
         assertThat(AgentAttacher.Arguments.parse("--exclude-main", "foo", "bar", "baz").getDiscoveryRules().getExcludeRules()).hasSize(3);
         assertThat(AgentAttacher.Arguments.parse("--config", "foo=bar", "--exclude-main", "foo", "bar", "baz").getDiscoveryRules().getExcludeRules()).hasSize(3);
@@ -59,6 +62,9 @@ class AgentAttacherTest {
         assertThatThrownBy(() -> AgentAttacher.Arguments.parse("--agent-jar", "foo.jar"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("foo.jar does not exist");
+
+        Assertions.setMaxStackTraceElementsDisplayed(30);
+        assertThat(AgentAttacher.Arguments.parse("--download-agent-version", "1.25.0").getDownloadAgentVersion()).isEqualTo("1.25.0");
 
         assertThatThrownBy(() -> AgentAttacher.Arguments.parse("--config", "foo=bar", "--args-provider", "foo")).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> AgentAttacher.Arguments.parse("--include-main", "[")).isInstanceOf(IllegalArgumentException.class);

@@ -51,6 +51,9 @@ public class Message implements Recyclable {
     @Nullable
     private StringBuilder body;
 
+    @Nullable
+    private String routingKey;
+
     /**
      * Represents the message age in milliseconds. Since 0 is a valid value (can occur due to clock skews between
      * sender and receiver) - a negative value represents invalid or unavailable age.
@@ -67,9 +70,19 @@ public class Message implements Recyclable {
         return queueName;
     }
 
-    public Message withQueue(String queueName) {
+    public Message withQueue(@Nullable String queueName) {
         this.queueName = queueName;
         return this;
+    }
+
+    public Message withRoutingKey(String routingKey) {
+        this.routingKey = routingKey;
+        return this;
+    }
+
+    @Nullable
+    public String getRoutingKey() {
+        return routingKey;
     }
 
     /**
@@ -149,6 +162,7 @@ public class Message implements Recyclable {
             stringBuilderPool.recycle(body);
             body = null;
         }
+        routingKey = null;
     }
 
     public void copyFrom(Message other) {
@@ -159,5 +173,6 @@ public class Message implements Recyclable {
         }
         this.headers.copyFrom(other.getHeaders());
         this.age = other.getAge();
+        this.routingKey = other.getRoutingKey();
     }
 }

@@ -13,13 +13,15 @@ pipeline {
     ELASTIC_DOCKER_SECRET = 'secret/apm-team/ci/docker-registry/prod'
     CODECOV_SECRET = 'secret/apm-team/ci/apm-agent-java-codecov'
     GITHUB_CHECK_ITS_NAME = 'Integration Tests'
-    ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
+    ITS_PIPELINE = 'apm-integration-tests-selector-mbp/main'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
     OPBEANS_REPO = 'opbeans-java'
     JAVA_VERSION = "${params.JAVA_VERSION}"
+    JOB_GCS_BUCKET_STASH = 'apm-ci-temp'
+    JOB_GCS_CREDENTIALS = 'apm-ci-gcs-plugin'
   }
   options {
-    timeout(time: 1, unit: 'HOURS')
+    timeout(time: 90, unit: 'MINUTES')
     buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '20', daysToKeepStr: '30'))
     timestamps()
     ansiColor('xterm')
@@ -29,17 +31,16 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger('(?i)(.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:(compatibility|benchmark|windows)\\W+)?tests(?:\\W+please)?.*|^/test(?:\\W+.*)?$)')
+    issueCommentTrigger("(${obltGitHubComments()}|^run (compatibility|benchmark|integration|windows) tests)")
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
     string(name: 'JAVA_VERSION', defaultValue: 'java11', description: 'What Java version?')
-    booleanParam(name: 'Run_As_Master_Branch', defaultValue: false, description: 'Allow to run any steps on a PR, some steps normally only run on master branch.')
-    booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
-    booleanParam(name: 'smoketests_ci', defaultValue: true, description: 'Enable Smoke tests')
+    booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable Unit tests')
+    booleanParam(name: 'agent_integration_tests_ci', defaultValue: true, description: 'Enable Agent Integration tests')
+    booleanParam(name: 'endtoend_tests_ci', defaultValue: true, description: 'Enable APM End-to-End Integration tests')
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
-    booleanParam(name: 'push_docker', defaultValue: false, description: 'Push Docker image during release stage')
-    booleanParam(name: 'compatibility_ci', defaultValue: false, description: 'Enable compatibility tests')
+    booleanParam(name: 'compatibility_ci', defaultValue: false, description: 'Enable JDK compatibility tests')
     booleanParam(name: 'windows_ci', defaultValue: false, description: 'Enable windows build and tests')
   }
   stages {
@@ -66,6 +67,11 @@ pipeline {
               dir("${BASE_DIR}"){
                 // Skip all the stages except docs for PR's with asciidoc and md changes only
                 env.ONLY_DOCS = isGitRegionMatch(patterns: [ '.*\\.(asciidoc|md)' ], shouldMatchAll: true)
+                // Prepare the env variables for the benchmark results
+                env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
+                env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
+                env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
+                env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
               }
             }
           }
@@ -88,12 +94,14 @@ pipeline {
                 sh label: 'Size .m2', returnStatus: true, script: 'du -hs .m2'
               }
               dir("${BASE_DIR}"){
-                retryWithSleep(retries: 5, seconds: 10) {
-                  sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                withOtelEnv() {
+                  retryWithSleep(retries: 5, seconds: 10) {
+                    sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                  }
+                  sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
                 }
-                sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
               }
-              stash allowEmpty: true, name: 'build', useDefaultExcludes: false
+              stashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
               archiveArtifacts allowEmptyArchive: true,
                 artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
                       ${BASE_DIR}/apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar,${BASE_DIR}/apm-agent-api/target/apm-agent-api-*.jar,\
@@ -131,12 +139,14 @@ pipeline {
           steps {
             withGithubNotify(context: 'Unit Tests', tab: 'tests') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
-                sh """#!/bin/bash
-                set -euxo pipefail
-                ./mvnw test
-                """
+                withOtelEnv() {
+                  sh """#!/bin/bash
+                  set -euxo pipefail
+                  ./mvnw test
+                  """
+                }
               }
             }
           }
@@ -146,10 +156,7 @@ pipeline {
             }
           }
         }
-        /**
-          Run smoke tests for different servers and databases.
-        */
-        stage('Smoke Tests 01') {
+        stage('Non-Application Server integration tests') {
           agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
@@ -159,14 +166,16 @@ pipeline {
           }
           when {
             beforeAgent true
-            expression { return params.smoketests_ci }
+            expression { return params.agent_integration_tests_ci }
           }
           steps {
-            withGithubNotify(context: 'Smoke Tests 01', tab: 'tests') {
+            withGithubNotify(context: 'Non-Application Server integration tests', tab: 'tests') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
-                sh './scripts/jenkins/smoketests-01.sh'
+                withOtelEnv() {
+                  sh './mvnw -q -P ci-non-application-server-integration-tests verify'
+                }
               }
             }
           }
@@ -176,10 +185,7 @@ pipeline {
             }
           }
         }
-        /**
-          Run smoke tests for different servers and databases.
-        */
-        stage('Smoke Tests 02') {
+        stage('Application Server integration tests') {
           agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
@@ -189,14 +195,16 @@ pipeline {
           }
           when {
             beforeAgent true
-            expression { return params.smoketests_ci }
+            expression { return params.agent_integration_tests_ci }
           }
           steps {
-            withGithubNotify(context: 'Smoke Tests 02', tab: 'tests') {
+            withGithubNotify(context: 'Application Server integration tests', tab: 'tests') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
-                sh './scripts/jenkins/smoketests-02.sh'
+                withOtelEnv() {
+                  sh './mvnw -q -P ci-application-server-integration-tests verify'
+                }
               }
             }
           }
@@ -227,7 +235,6 @@ pipeline {
                 branch "\\d+\\.\\d+"
                 branch "v\\d?"
                 tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
-                expression { return params.Run_As_Master_Branch }
                 expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
               }
               expression { return params.bench_ci }
@@ -236,15 +243,11 @@ pipeline {
           steps {
             withGithubNotify(context: 'Benchmarks', tab: 'artifacts') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
-                script {
-                  env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
-                  env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
-                  env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
-                  env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
+                withOtelEnv() {
+                  sh './scripts/jenkins/run-benchmarks.sh'
                 }
-                sh './scripts/jenkins/run-benchmarks.sh'
               }
             }
           }
@@ -275,12 +278,14 @@ pipeline {
           steps {
             withGithubNotify(context: 'Javadoc') {
               deleteDir()
-              unstash 'build'
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
               dir("${BASE_DIR}"){
-                sh """#!/bin/bash
-                set -euxo pipefail
-                ./mvnw compile javadoc:javadoc
-                """
+                withOtelEnv() {
+                  sh """#!/bin/bash
+                  set -euxo pipefail
+                  ./mvnw compile javadoc:javadoc
+                  """
+                }
               }
             }
           }
@@ -340,14 +345,15 @@ pipeline {
         }
       }
     }
-    stage('Integration Tests') {
+    stage('End-To-End Integration Tests') {
       agent none
       when {
         allOf {
           expression { return env.ONLY_DOCS == "false" }
           anyOf {
             changeRequest()
-            expression { return !params.Run_As_Master_Branch }
+            expression { return params.endtoend_tests_ci }
+            expression { return env.GITHUB_COMMENT?.contains('integration tests') }
           }
         }
       }
@@ -361,14 +367,16 @@ pipeline {
         githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
       }
     }
-    stage('Unit Tests') {
+    stage('JDK Compatibility Tests') {
       options { skipDefaultCheckout() }
       when {
         beforeAgent true
-        anyOf {
-          not { changeRequest() }
-          expression { return params.compatibility_ci }
-          expression { return env.GITHUB_COMMENT?.contains('compatibility tests') }
+        allOf {
+          expression { return env.ONLY_DOCS == "false" }
+          anyOf {
+            expression { return params.compatibility_ci }
+            expression { return env.GITHUB_COMMENT?.contains('compatibility tests') }
+          }
         }
       }
       matrix {
@@ -377,7 +385,9 @@ pipeline {
           axis {
             // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
             name 'JAVA_VERSION'
-            values 'java12', 'openjdk12', 'openjdk13', 'openjdk14', 'openjdk15', 'openjdk16'
+            // 'openjdk18'  disabled for now see https://github.com/elastic/apm-agent-java/issues/2328
+            values 'openjdk17'
+
           }
         }
         stages {
@@ -390,9 +400,11 @@ pipeline {
             steps {
               withGithubNotify(context: "Unit Tests ${JAVA_VERSION}", tab: 'tests') {
                 deleteDir()
-                unstash 'build'
+                unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
                 dir("${BASE_DIR}"){
-                  sh(label: "./mvnw test for ${JAVA_VERSION}", script: './mvnw test')
+                  withOtelEnv() {
+                    sh(label: "./mvnw test for ${JAVA_VERSION}", script: './mvnw test')
+                  }
                 }
               }
             }
@@ -437,8 +449,9 @@ pipeline {
           steps {
             deleteDir()
             dir("${OPBEANS_REPO}"){
-              git credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
-                  url: "git@github.com:elastic/${OPBEANS_REPO}.git"
+              git(credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
+                  url: "git@github.com:elastic/${OPBEANS_REPO}.git",
+                  branch: 'main')
               // It's required to transform the tag value to the artifact version
               sh script: ".ci/bump-version.sh ${env.BRANCH_NAME.replaceAll('^v', '')}", label: 'Bump version'
               // The opbeans-java pipeline will trigger a release for the master branch

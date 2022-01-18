@@ -19,7 +19,7 @@
 package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -42,19 +43,20 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import specs.TestJsonSpec;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -62,11 +64,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+
 public class MockReporter implements Reporter {
-    private static final JsonSchema transactionSchema;
-    private static final JsonSchema errorSchema;
-    private static final JsonSchema spanSchema;
-    private static final DslJsonSerializer dslJsonSerializer;
 
     // A set of exit span subtypes that do not support address and port discovery
     private static final Set<String> SPAN_TYPES_WITHOUT_ADDRESS;
@@ -81,6 +80,11 @@ public class MockReporter implements Reporter {
     // Allows optional opt-out from strick span type/sub-type checking
     private boolean checkStrictSpanType = true;
 
+    /**
+     * If set to {@code true}, the reporter will attempt to execute gc when asserting that all objects were properly
+     * recycled. This is useful for tests that use weak maps and rely on GC to clear reference and recycle objects.
+     */
+    private boolean gcWhenAssertingRecycling;
 
     private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
     private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
@@ -94,17 +98,6 @@ public class MockReporter implements Reporter {
     private static final JsonNode SPAN_TYPES_SPEC = TestJsonSpec.getJson("span_types.json");
 
     static {
-        transactionSchema = getSchema("/schema/transactions/transaction.json");
-        spanSchema = getSchema("/schema/transactions/span.json");
-        errorSchema = getSchema("/schema/errors/error.json");
-        ApmServerClient apmServerClient = mock(ApmServerClient.class);
-        when(apmServerClient.isAtLeast(any())).thenReturn(true);
-        ConfigurationRegistry spyConfig = SpyConfiguration.createSpyConfig();
-        dslJsonSerializer = new DslJsonSerializer(
-            spyConfig.getConfig(StacktraceConfiguration.class),
-            apmServerClient,
-            MetaData.create(spyConfig, null)
-        );
         SPAN_TYPES_WITHOUT_ADDRESS = Set.of("jms");
         SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"));
     }
@@ -118,19 +111,17 @@ public class MockReporter implements Reporter {
         objectMapper = new ObjectMapper();
     }
 
-    private static JsonSchema getSchema(String resource) {
-        return JsonSchemaFactory.getInstance().getSchema(MockReporter.class.getResourceAsStream(resource));
-    }
-
     /**
-     * Sets all optional checks to their default value (enabled), should be used as a shortcut to reset mock reporter state
-     * after/before using it for a single test execution
+     * Resets checks to be executed based on the default behaviour.
+     * All optional checks are enabled and special requested behaviour is disabled.
+     * Should be used as a shortcut to reset mock reporter state after/before using it for a single test execution.
      */
     public void resetChecks() {
         checkDestinationAddress = true;
         checkDestinationService = true;
         checkUnknownOutcomes = true;
         checkStrictSpanType = true;
+        gcWhenAssertingRecycling = false;
     }
 
     /**
@@ -165,6 +156,14 @@ public class MockReporter implements Reporter {
         checkStrictSpanType = false;
     }
 
+    /**
+     * If invoked, the reporter will attempt to execute gc when asserting that all objects were properly
+     * recycled. This is useful for tests that use weak maps and rely on GC to clear reference and recycle objects.
+     */
+    public void enableGcWhenAssertingObjectRecycling() {
+        gcWhenAssertingRecycling = true;
+    }
+
     @Override
     public void start() {
     }
@@ -184,7 +183,7 @@ public class MockReporter implements Reporter {
                 .isNotEqualTo(Outcome.UNKNOWN);
         }
 
-        verifyTransactionSchema(asJson(dslJsonSerializer.toJsonString(transaction)));
+        verifyTransactionSchema(transaction);
         transactions.add(transaction);
     }
 
@@ -195,7 +194,7 @@ public class MockReporter implements Reporter {
         }
 
         try {
-            verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
+            verifySpanSchema(span);
             verifySpanType(span);
             verifyDestinationFields(span);
 
@@ -239,7 +238,7 @@ public class MockReporter implements Reporter {
                 }
             } else {
                 if (!allowUnlistedSubtype && hasSubtypes) {
-                    getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' is not allowed by the sped for type '%s'", subType, type));
+                    getMandatoryJson(subTypesJson, subType, String.format("span subtype '%s' is not allowed by the spec for type '%s'", subType, type));
                 }
             }
 
@@ -266,23 +265,81 @@ public class MockReporter implements Reporter {
         }
     }
 
+    /**
+     * Checks the transaction serialization against all available schemas
+     *
+     * @param transaction transaction to serialize
+     */
+    public void verifyTransactionSchema(Transaction transaction) {
+        verifyJsonSchemas(dsl -> dsl.toJsonString(transaction), si -> si.transactionSchema, si -> si.transactionSchemaPath);
+    }
+
+    /**
+     * Checks the transaction serialization against all available schemas
+     *
+     * @param span span to serialize
+     */
+    public void verifySpanSchema(Span span) {
+        verifyJsonSchemas(dsl -> dsl.toJsonString(span), si -> si.spanSchema, si -> si.spanSchemaPath);
+    }
+
+    /**
+     * Checks the error serialization against all available schemas
+     *
+     * @param error error to serialize
+     */
+    public void verifyErrorSchema(ErrorCapture error) {
+        verifyJsonSchemas(dsl -> dsl.toJsonString(error), si -> si.errorSchema, si -> si.errorSchemaPath);
+    }
+
+    /**
+     * Checks the transaction JSON against the current schema
+     *
+     * @param jsonNode serialized transaction json
+     */
     public void verifyTransactionSchema(JsonNode jsonNode) {
-        verifyJsonSchema(transactionSchema, jsonNode);
+        verifyJsonSchema(jsonNode, SchemaInstance.CURRENT.transactionSchema, SchemaInstance.CURRENT.transactionSchemaPath);
     }
 
+    /**
+     * Checks the span JSON against the current schema
+     *
+     * @param jsonNode serialized span json
+     */
     public void verifySpanSchema(JsonNode jsonNode) {
-        verifyJsonSchema(spanSchema, jsonNode);
+        verifyJsonSchema(jsonNode, SchemaInstance.CURRENT.spanSchema, SchemaInstance.CURRENT.spanSchemaPath);
     }
 
+    /**
+     * Checks the error JSON against the current schema
+     *
+     * @param jsonNode serialized error json
+     */
     public void verifyErrorSchema(JsonNode jsonNode) {
-        verifyJsonSchema(errorSchema, jsonNode);
+        verifyJsonSchema(jsonNode, SchemaInstance.CURRENT.errorSchema, SchemaInstance.CURRENT.errorSchemaPath);
     }
 
-    private void verifyJsonSchema(JsonSchema schema, JsonNode jsonNode) {
-        if (verifyJsonSchema) {
-            Set<ValidationMessage> errors = schema.validate(jsonNode);
-            assertThat(errors).withFailMessage("%s\n%s", errors, jsonNode).isEmpty();
+    private void verifyJsonSchemas(Function<DslJsonSerializer, String> serializerFunction,
+                                   Function<SchemaInstance, JsonSchema> schemaFunction,
+                                   Function<SchemaInstance, String> schemaPathFunction) {
+        if (!verifyJsonSchema) {
+            return;
         }
+
+        for (SchemaInstance schemaInstance : SchemaInstance.values()) {
+            String serializedString = serializerFunction.apply(schemaInstance.serializer);
+            JsonNode jsonNode = asJson(serializedString);
+
+            JsonSchema schema = schemaFunction.apply(schemaInstance);
+            verifyJsonSchema(jsonNode, schema, schemaPathFunction.apply(schemaInstance));
+        }
+    }
+
+    private void verifyJsonSchema(JsonNode jsonNode, JsonSchema schema, String schemaPath) {
+        Set<ValidationMessage> errors = schema.validate(jsonNode);
+        assertThat(errors)
+            .withFailMessage("%s\nJSON schema path = %s\n\n%s", errors, schemaPath, jsonNode.toPrettyString())
+            .isEmpty();
     }
 
     private JsonNode asJson(String jsonContent) {
@@ -363,7 +420,7 @@ public class MockReporter implements Reporter {
         if (closed) {
             return;
         }
-        verifyErrorSchema(asJson(dslJsonSerializer.toJsonString(error)));
+        verifyErrorSchema(error);
         errors.add(error);
     }
 
@@ -373,6 +430,11 @@ public class MockReporter implements Reporter {
             return;
         }
         this.bytes.add(jsonWriter.toByteArray());
+    }
+
+    @Override
+    public boolean flush() {
+        return true;
     }
 
     public synchronized Span getFirstSpan() {
@@ -425,33 +487,8 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public Future<Void> flush() {
-        return new Future<>() {
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                return false;
-            }
-
-            @Override
-            public boolean isCancelled() {
-                return false;
-            }
-
-            @Override
-            public boolean isDone() {
-                return false;
-            }
-
-            @Override
-            public Void get() throws InterruptedException, ExecutionException {
-                return null;
-            }
-
-            @Override
-            public Void get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                return null;
-            }
-        };
+    public boolean flush(long timeout, TimeUnit unit) {
+        return true;
     }
 
     @Override
@@ -500,6 +537,9 @@ public class MockReporter implements Reporter {
         transactionsToFlush.forEach(Transaction::decrementReferences);
         spansToFlush.forEach(Span::decrementReferences);
 
+        if (gcWhenAssertingRecycling) {
+            System.gc();
+        }
         awaitUntilAsserted(() -> {
             spans.forEach(s -> {
                 assertThat(s.isReferenced())
@@ -580,4 +620,54 @@ public class MockReporter implements Reporter {
         }
         return value;
     }
+
+    private enum SchemaInstance {
+
+        CURRENT("/apm-server-schema/current/transaction.json",
+            "/apm-server-schema/current/span.json",
+            "/apm-server-schema/current/error.json",
+            true),
+        V6_5(
+            "/apm-server-schema/v6_5/transactions/transaction.json",
+            "/apm-server-schema/v6_5/transactions/span.json",
+            "/apm-server-schema/v6_5/errors/error.json",
+            false);
+
+        private final DslJsonSerializer serializer;
+        private final JsonSchema transactionSchema;
+        private final String transactionSchemaPath;
+        private final JsonSchema spanSchema;
+        private final String spanSchemaPath;
+        private final JsonSchema errorSchema;
+        private final String errorSchemaPath;
+
+        SchemaInstance(String transactionSchema, String spanSchema, String errorSchema, boolean isLatest) {
+            this.transactionSchema = getSchema(transactionSchema);
+            this.transactionSchemaPath = transactionSchema;
+            this.spanSchema = getSchema(spanSchema);
+            this.spanSchemaPath = spanSchema;
+            this.errorSchema = getSchema(errorSchema);
+            this.errorSchemaPath = errorSchema;
+
+            ConfigurationRegistry spyConfig = SpyConfiguration.createSpyConfig();
+            StacktraceConfiguration stacktraceConfiguration = spyConfig.getConfig(StacktraceConfiguration.class);
+
+            Future<MetaData> metaData = MetaData.create(spyConfig, null);
+            ApmServerClient client = mock(ApmServerClient.class);
+            when(client.isAtLeast(any())).thenReturn(isLatest);
+
+            // The oldest server does not support any of those features, the current server supports all of them
+            when(client.supportsNumericUrlPort()).thenReturn(isLatest);
+            when(client.supportsNonStringLabels()).thenReturn(isLatest);
+            when(client.supportsLogsEndpoint()).thenReturn(isLatest);
+
+            this.serializer = new DslJsonSerializer(stacktraceConfiguration, client, metaData);
+        }
+
+        private static JsonSchema getSchema(String resource) {
+            InputStream input = Objects.requireNonNull(MockReporter.class.getResourceAsStream(resource), "missing resource " + resource);
+            return JsonSchemaFactory.getInstance().getSchema(input);
+        }
+    }
+
 }

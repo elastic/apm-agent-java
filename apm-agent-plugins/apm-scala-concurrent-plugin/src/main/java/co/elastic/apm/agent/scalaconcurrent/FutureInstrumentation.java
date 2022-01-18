@@ -19,8 +19,9 @@
 package co.elastic.apm.agent.scalaconcurrent;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -38,8 +39,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
 
     @SuppressWarnings("WeakerAccess")
-    public static final WeakConcurrentMap<Object, AbstractSpan<?>> promisesToContext =
-        new WeakConcurrentMap.WithInlinedExpunction<>();
+    public static final WeakMap<Object, AbstractSpan<?>> promisesToContext = WeakConcurrentProviderImpl.createWeakSpanMap();
 
     @Nonnull
     @Override
@@ -59,14 +59,13 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
             return isConstructor();
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void onExit(@Advice.This Object thiz) {
-            final AbstractSpan<?> context = tracer.getActive();
-            if (context != null) {
-                promisesToContext.put(thiz, context);
-                // this span might be ended before the Promise$Transformation#run method starts
-                // we have to avoid that this span gets recycled, even in the above mentioned case
-                context.incrementReferences();
+        public static class AdviceClass {
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void onExit(@Advice.This Object thiz) {
+                final AbstractSpan<?> context = tracer.getActive();
+                if (context != null) {
+                    promisesToContext.put(thiz, context);
+                }
             }
         }
 
@@ -84,24 +83,27 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
             return named("run").and(returns(void.class));
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.This Object thiz) {
-            AbstractSpan<?> context = promisesToContext.remove(thiz);
-            if (context != null) {
-                context.activate();
-                // decrements the reference we incremented to avoid that the parent context gets recycled before the promise is run
-                // because we have activated it, we can be sure it doesn't get recycled until we deactivate in the OnMethodExit advice
-                context.decrementReferences();
+        public static class AdviceClass {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object onEnter(@Advice.This Object thiz) {
+                // We cannot remove yet, as this may decrement the ref count of the span to 0 if it has already ended,
+                // thus causing it to be recycled just before we activate it on the current thread. So we first get().
+                AbstractSpan<?> context = promisesToContext.get(thiz);
+                if (context != null) {
+                    context.activate();
+                    // Now it's safe to remove, as ref count is at least 2
+                    promisesToContext.remove(thiz);
+                }
+                return context;
             }
-            return context;
-        }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void onExit(@Advice.Enter @Nullable Object abstractSpanObj) {
-            if (abstractSpanObj instanceof AbstractSpan<?>) {
-                AbstractSpan<?> context = (AbstractSpan<?>) abstractSpanObj;
-                context.deactivate();
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void onExit(@Advice.Enter @Nullable Object abstractSpanObj) {
+                if (abstractSpanObj instanceof AbstractSpan<?>) {
+                    AbstractSpan<?> context = (AbstractSpan<?>) abstractSpanObj;
+                    context.deactivate();
+                }
             }
         }
     }

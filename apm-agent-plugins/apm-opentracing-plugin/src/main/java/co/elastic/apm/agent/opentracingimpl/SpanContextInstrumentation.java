@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.opentracingimpl;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -34,7 +33,7 @@ import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class SpanContextInstrumentation extends OpenTracingBridgeInstrumentation {
+public abstract class SpanContextInstrumentation extends OpenTracingBridgeInstrumentation {
 
     public static final Logger logger = LoggerFactory.getLogger(SpanContextInstrumentation.class);
 
@@ -61,23 +60,24 @@ public class SpanContextInstrumentation extends OpenTracingBridgeInstrumentation
             super(named("baggageItems"));
         }
 
-
-        @Nullable
-        @AssignTo.Return
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static Iterable<Map.Entry<String, String>> baggageItems(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
-            if (context instanceof AbstractSpan<?>) {
-                return doGetBaggage((AbstractSpan<?>) context);
-            } else {
-                logger.info("The traceContext is null");
-                return null;
+        public static class AdviceClass {
+            @Nullable
+            @Advice.AssignReturned.ToReturned
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Iterable<Map.Entry<String, String>> baggageItems(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
+                if (context instanceof AbstractSpan<?>) {
+                    return doGetBaggage((AbstractSpan<?>) context);
+                } else {
+                    logger.info("The traceContext is null");
+                    return null;
+                }
             }
-        }
 
-        public static Iterable<Map.Entry<String, String>> doGetBaggage(AbstractSpan<?> traceContext) {
-            Map<String, String> baggage = new HashMap<String, String>();
-            traceContext.propagateTraceContext(baggage, OpenTracingTextMapBridge.instance());
-            return baggage.entrySet();
+            public static Iterable<Map.Entry<String, String>> doGetBaggage(AbstractSpan<?> traceContext) {
+                Map<String, String> baggage = new HashMap<String, String>();
+                traceContext.propagateTraceContext(baggage, OpenTracingTextMapBridge.instance());
+                return baggage.entrySet();
+            }
         }
     }
 
@@ -87,15 +87,17 @@ public class SpanContextInstrumentation extends OpenTracingBridgeInstrumentation
             super(named("toTraceId"));
         }
 
-        @Nullable
-        @AssignTo.Return
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static String toTraceId(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
-            if (!(context instanceof AbstractSpan<?>)) {
-                return null;
+        public static class AdviceClass {
+            @Nullable
+            @Advice.AssignReturned.ToReturned
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static String toTraceId(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
+                if (!(context instanceof AbstractSpan<?>)) {
+                    return null;
+                }
+                AbstractSpan<?> traceContext = (AbstractSpan<?>) context;
+                return traceContext.getTraceContext().getTraceId().toString();
             }
-            AbstractSpan<?> traceContext = (AbstractSpan<?>) context;
-            return traceContext.getTraceContext().getTraceId().toString();
         }
     }
 
@@ -105,15 +107,17 @@ public class SpanContextInstrumentation extends OpenTracingBridgeInstrumentation
             super(named("toSpanId"));
         }
 
-        @Nullable
-        @AssignTo.Return
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static String toTraceId(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
-            if (!(context instanceof AbstractSpan<?>)) {
-                return null;
+        public static class AdviceClass {
+            @Nullable
+            @Advice.AssignReturned.ToReturned
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static String toTraceId(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
+                if (!(context instanceof AbstractSpan<?>)) {
+                    return null;
+                }
+                AbstractSpan<?> traceContext = (AbstractSpan<?>) context;
+                return traceContext.getTraceContext().getId().toString();
             }
-            AbstractSpan<?> traceContext = (AbstractSpan<?>) context;
-            return traceContext.getTraceContext().getId().toString();
         }
     }
 }

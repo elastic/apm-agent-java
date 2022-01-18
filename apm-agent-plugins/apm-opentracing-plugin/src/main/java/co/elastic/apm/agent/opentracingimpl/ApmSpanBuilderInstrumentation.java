@@ -25,7 +25,6 @@ import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -39,7 +38,7 @@ import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentation {
+public abstract class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentation {
 
     private static final String FRAMEWORK_NAME = "OpenTracing";
 
@@ -67,74 +66,76 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
             super(named("createSpan"));
         }
 
-        @Nullable
-        @AssignTo.Return
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static Object createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object parentContext,
-                                        @Advice.Origin Class<?> spanBuilderClass,
-                                        @Advice.FieldValue(value = "tags") Map<String, Object> tags,
-                                        @Advice.FieldValue(value = "operationName") String operationName,
-                                        @Advice.FieldValue(value = "microseconds") long microseconds,
-                                        @Advice.Argument(1) @Nullable Iterable<Map.Entry<String, String>> baggage) {
-            AbstractSpan<?> parent = null;
-            if (parentContext instanceof AbstractSpan<?>) {
-                parent = (AbstractSpan<?>) parentContext;
+        public static class AdviceClass {
+            @Nullable
+            @Advice.AssignReturned.ToReturned
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Object createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object parentContext,
+                                            @Advice.Origin Class<?> spanBuilderClass,
+                                            @Advice.FieldValue(value = "tags") Map<String, Object> tags,
+                                            @Advice.FieldValue(value = "operationName") String operationName,
+                                            @Advice.FieldValue(value = "microseconds") long microseconds,
+                                            @Advice.Argument(1) @Nullable Iterable<Map.Entry<String, String>> baggage) {
+                AbstractSpan<?> parent = null;
+                if (parentContext instanceof AbstractSpan<?>) {
+                    parent = (AbstractSpan<?>) parentContext;
+                }
+                return doCreateTransactionOrSpan(parent, tags, operationName, microseconds, baggage, spanBuilderClass.getClassLoader());
             }
-            return doCreateTransactionOrSpan(parent, tags, operationName, microseconds, baggage, spanBuilderClass.getClassLoader());
-        }
 
-        @Nullable
-        public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable AbstractSpan<?> parentContext,
-                                                                Map<String, Object> tags,
-                                                                String operationName, long microseconds,
-                                                                @Nullable Iterable<Map.Entry<String, String>> baggage, ClassLoader applicationClassLoader) {
-            AbstractSpan<?> result = null;
-            ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
-            if (tracer != null) {
-                if (parentContext == null) {
-                    result = createTransaction(tags, operationName, microseconds, baggage, tracer, applicationClassLoader);
-                } else {
-                    if (microseconds >= 0) {
-                        result = tracer.startSpan(TraceContext.fromParent(), parentContext, microseconds);
+            @Nullable
+            public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable AbstractSpan<?> parentContext,
+                                                                    Map<String, Object> tags,
+                                                                    String operationName, long microseconds,
+                                                                    @Nullable Iterable<Map.Entry<String, String>> baggage, ClassLoader applicationClassLoader) {
+                AbstractSpan<?> result = null;
+                ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
+                if (tracer != null) {
+                    if (parentContext == null) {
+                        result = createTransaction(tags, operationName, microseconds, baggage, tracer, applicationClassLoader);
                     } else {
-                        result = tracer.startSpan(TraceContext.fromParent(), parentContext);
+                        if (microseconds >= 0) {
+                            result = tracer.startSpan(TraceContext.fromParent(), parentContext, microseconds);
+                        } else {
+                            result = tracer.startSpan(TraceContext.fromParent(), parentContext);
+                        }
                     }
                 }
+                if (result != null) {
+                    // This reference count never gets decremented, which means it will be handled by GC rather than being recycled.
+                    // The OpenTracing API allows interactions with the span, such as span.getTraceContext even after the span has finished
+                    // This makes it hard to recycle the span as the life cycle is unclear.
+                    // See also https://github.com/opentracing/opentracing-java/issues/312
+                    // Previously, we kept a permanent copy of the trace context around and recycled the span on finish.
+                    // But that meant lots of complexity in the internal API,
+                    // as it had to deal with the fact that a TraceContext might be returned by ElasticApmTracer.getActive.
+                    // The complexity doesn't seem worth the OT specific optimization that a bit less memory gets allocated.
+                    result.incrementReferences();
+                }
+                return result;
             }
-            if (result != null) {
-                // This reference count never gets decremented, which means it will be handled by GC rather than being recycled.
-                // The OpenTracing API allows interactions with the span, such as span.getTraceContext even after the span has finished
-                // This makes it hard to recycle the span as the life cycle is unclear.
-                // See also https://github.com/opentracing/opentracing-java/issues/312
-                // Previously, we kept a permanent copy of the trace context around and recycled the span on finish.
-                // But that meant lots of complexity in the internal API,
-                // as it had to deal with the fact that a TraceContext might be returned by ElasticApmTracer.getActive.
-                // The complexity doesn't seem worth the OT specific optimization that a bit less memory gets allocated.
-                result.incrementReferences();
-            }
-            return result;
-        }
 
-        @Nullable
-        private static AbstractSpan<?> createTransaction(Map<String, Object> tags, String operationName, long microseconds,
-                                                         @Nullable Iterable<Map.Entry<String, String>> baggage, ElasticApmTracer tracer, ClassLoader classLoader) {
-            if ("client".equals(tags.get("span.kind"))) {
-                logger.info("Ignoring transaction '{}', as a span.kind client can never be a transaction. " +
-                    "Consider creating a span for the whole request.", operationName);
-                return tracer.noopTransaction();
-            } else {
-                final Sampler sampler;
-                final Object samplingPriority = tags.get("sampling.priority");
-                if (samplingPriority instanceof Number) {
-                    sampler = ConstantSampler.of(((Number) samplingPriority).intValue() > 0);
+            @Nullable
+            private static AbstractSpan<?> createTransaction(Map<String, Object> tags, String operationName, long microseconds,
+                                                             @Nullable Iterable<Map.Entry<String, String>> baggage, ElasticApmTracer tracer, ClassLoader classLoader) {
+                if ("client".equals(tags.get("span.kind"))) {
+                    logger.info("Ignoring transaction '{}', as a span.kind client can never be a transaction. " +
+                        "Consider creating a span for the whole request.", operationName);
+                    return tracer.noopTransaction();
                 } else {
-                    sampler = tracer.getSampler();
+                    final Sampler sampler;
+                    final Object samplingPriority = tags.get("sampling.priority");
+                    if (samplingPriority instanceof Number) {
+                        sampler = ConstantSampler.of(((Number) samplingPriority).intValue() > 0);
+                    } else {
+                        sampler = tracer.getSampler();
+                    }
+                    Transaction transaction = tracer.startChildTransaction(baggage, OpenTracingTextMapBridge.instance(), sampler, microseconds, classLoader);
+                    if (transaction != null) {
+                        transaction.setFrameworkName(FRAMEWORK_NAME);
+                    }
+                    return transaction;
                 }
-                Transaction transaction = tracer.startChildTransaction(baggage, OpenTracingTextMapBridge.instance(), sampler, microseconds, classLoader);
-                if (transaction != null) {
-                    transaction.setFrameworkName(FRAMEWORK_NAME);
-                }
-                return transaction;
             }
         }
     }

@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.25.1-SNAPSHOT</version>
+        <version>1.28.5-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
@@ -30,8 +30,18 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-premain</artifactId>
+            <artifactId>apm-agent-common</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-cached-lookup-key</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.blogspot.mydailyjava</groupId>
+            <artifactId>weak-lock-free</artifactId>
+            <version>0.18</version>
         </dependency>
         <dependency>
             <groupId>com.lmax</groupId>
@@ -42,6 +52,11 @@
             <groupId>org.jctools</groupId>
             <artifactId>jctools-core</artifactId>
             <version>3.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+            <artifactId>concurrentlinkedhashmap-lru</artifactId>
+            <version>1.4.2</version>
         </dependency>
 
         <dependency>
@@ -78,10 +93,11 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-indy-bootstrap-module</artifactId>
+            <artifactId>apm-agent-bootstrap</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
+            <scope>runtime</scope>
         </dependency>
+
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
@@ -123,13 +139,6 @@
             <groupId>commons-math</groupId>
             <artifactId>commons-math</artifactId>
             <version>1.2</version>
-            <scope>test</scope>
-        </dependency>
-        <!--For setting environment variables-->
-        <dependency>
-            <groupId>com.github.stefanbirkner</groupId>
-            <artifactId>system-lambda</artifactId>
-            <version>1.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

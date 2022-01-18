@@ -91,7 +91,7 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
         TracedSubscriber.unregisterHooks();
         TracedSubscriber.registerHooks(tracer);
 
-        flushGcExpiry(TracedSubscriber.getContextMap(), 1);
+        flushGcExpiry(3);
     }
 
     @Test

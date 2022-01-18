@@ -47,11 +47,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -122,15 +126,6 @@ class ApmFilterTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testIgnoreUrlStartWith() throws IOException, ServletException {
-        when(webConfiguration.getIgnoreUrls()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("/resources*")));
-        final MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setServletPath("/resources/test.js");
-        filterChain.doFilter(request, new MockHttpServletResponse());
-        assertThat(reporter.getTransactions()).hasSize(0);
-    }
-
-    @Test
     void testIgnoreUrlStartWithNoMatch() throws IOException, ServletException {
         when(webConfiguration.getIgnoreUrls()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("/resources*")));
         final MockHttpServletRequest request = new MockHttpServletRequest();
@@ -140,32 +135,38 @@ class ApmFilterTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testIgnoreUrlEndWith() throws IOException, ServletException {
+    void testIgnoreUrl() {
+        List<WildcardMatcher> config = Stream.of("/context/resources*", "*.js").map(WildcardMatcher::valueOf).collect(Collectors.toList());
+        testIgnoreUrl(config, "/context/resources/test.xml");
+        testIgnoreUrl(config, "/ignored.js");
+    }
+
+    void testIgnoreUrl(List<WildcardMatcher> ignoreConfig, String requestUri) {
+        reset(webConfiguration);
         filterChain = new MockFilterChain(new HttpServlet() {
         });
-        when(webConfiguration.getIgnoreUrls()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("*.js")));
+        when(webConfiguration.getIgnoreUrls()).thenReturn(ignoreConfig);
         final MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setServletPath("/resources");
-        request.setPathInfo("test.js");
-        filterChain.doFilter(request, new MockHttpServletResponse());
+        request.setRequestURI(requestUri);
+        try {
+            filterChain.doFilter(request, new MockHttpServletResponse());
+        } catch (ServletException|IOException e) {
+            throw new IllegalStateException(e);
+        }
         verify(webConfiguration, times(1)).getIgnoreUrls();
-        assertThat(reporter.getTransactions()).hasSize(0);
+        assertThat(reporter.getTransactions())
+            .describedAs("request with URI %s should be ignored by config = %s", requestUri, ignoreConfig)
+            .hasSize(0);
     }
 
     @Test
-    void testIgnoreUserAgentStartWith() throws IOException, ServletException {
-        when(webConfiguration.getIgnoreUserAgents()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("curl/*")));
-        final MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("user-agent", "curl/7.54.0");
-        filterChain.doFilter(request, new MockHttpServletResponse());
-        assertThat(reporter.getTransactions()).hasSize(0);
-    }
+    void testIgnoreUserAGent() throws IOException, ServletException {
+        String config = "curl/*";
+        String userAgent = "curl/7.54.0";
 
-    @Test
-    void testIgnoreUserAgentInfix() throws IOException, ServletException {
-        when(webConfiguration.getIgnoreUserAgents()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("*pingdom*")));
+        when(webConfiguration.getIgnoreUserAgents()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf(config)));
         final MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("user-agent", "Pingdom.com_bot_version_1.4_(http://www.pingdom.com)");
+        request.addHeader("user-agent", userAgent);
         filterChain.doFilter(request, new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(0);
     }

@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.DynamicTransformer;
 import io.grpc.ServerCall;
 import io.grpc.Status;
 import net.bytebuddy.asm.Advice;
@@ -28,7 +29,9 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import java.util.Collection;
+
+import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -45,10 +48,13 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  */
 public abstract class ServerCallListenerInstrumentation extends BaseInstrumentation {
 
+    /**
+     * Overridden in {@link DynamicTransformer#ensureInstrumented(Class, Collection)},
+     * based on the type of the {@linkplain ServerCall.Listener} implementation class.
+     */
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        // pre-filtering is used to make this quite fast and limited to gRPC packages
-        return hasSuperType(named("io.grpc.ServerCall$Listener"));
+        return any();
     }
 
     /**
@@ -68,29 +74,33 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
                 .or(named("onHalfClose"));
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.This ServerCall.Listener<?> listener) {
-            return GrpcHelper.getInstance().enterServerListenerMethod(listener);
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.grpc.ServerCallListenerInstrumentation$OtherMethod$OtherMethodAdvice";
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
-                                  @Advice.This ServerCall.Listener<?> listener,
-                                  @Advice.Enter @Nullable Object transaction) {
+        public static class OtherMethodAdvice {
 
-            if (transaction instanceof Transaction) {
-                GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction) transaction, null);
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object onEnter(@Advice.This ServerCall.Listener<?> listener) {
+                return GrpcHelper.getInstance().enterServerListenerMethod(listener);
+            }
+
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                      @Advice.This ServerCall.Listener<?> listener,
+                                      @Advice.Enter @Nullable Object transaction) {
+
+                if (transaction instanceof Transaction) {
+                    GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction) transaction, null);
+                }
             }
         }
     }
 
     /**
-     * Instruments implementations of {@link ServerCall.Listener}
-     * <ul>
-     *     <li>{@link ServerCall.Listener#onCancel()}</li>
-     * </ul>
-     * <p>
+     * Instruments {@link ServerCall.Listener#onCancel()}
      */
     public static class OnCancel extends ServerCallListenerInstrumentation {
 
@@ -99,29 +109,33 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
             return named("onCancel");
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.This ServerCall.Listener<?> listener) {
-            return GrpcHelper.getInstance().enterServerListenerMethod(listener);
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.grpc.ServerCallListenerInstrumentation$OnCancel$OnCancelAdvice";
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
-                                  @Advice.This ServerCall.Listener<?> listener,
-                                  @Advice.Enter @Nullable Object transaction) {
+        public static class OnCancelAdvice {
 
-            if (transaction instanceof Transaction) {
-                GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction) transaction, Status.CANCELLED);
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object onEnter(@Advice.This ServerCall.Listener<?> listener) {
+                return GrpcHelper.getInstance().enterServerListenerMethod(listener);
+            }
+
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                      @Advice.This ServerCall.Listener<?> listener,
+                                      @Advice.Enter @Nullable Object transaction) {
+
+                if (transaction instanceof Transaction) {
+                    GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction) transaction, Status.CANCELLED);
+                }
             }
         }
     }
 
     /**
-     * Instruments implementations of {@link ServerCall.Listener}
-     * <ul>
-     *     <li>{@link ServerCall.Listener#onComplete()}</li>
-     * </ul>
-     * <p>
+     * Instruments {@link ServerCall.Listener#onComplete()}
      */
     public static class OnComplete extends ServerCallListenerInstrumentation {
 
@@ -130,21 +144,28 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
             return named("onComplete");
         }
 
-        @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.This ServerCall.Listener<?> listener) {
-            return GrpcHelper.getInstance().enterServerListenerMethod(listener);
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.grpc.ServerCallListenerInstrumentation$OnComplete$OnCompleteAdvice";
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
-                                  @Advice.This ServerCall.Listener<?> listener,
-                                  @Advice.Enter @Nullable Object transaction) {
+        public static class OnCompleteAdvice {
 
-            if (transaction instanceof Transaction) {
-                GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction) transaction, Status.OK);
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object onEnter(@Advice.This ServerCall.Listener<?> listener) {
+                return GrpcHelper.getInstance().enterServerListenerMethod(listener);
+            }
+
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                      @Advice.This ServerCall.Listener<?> listener,
+                                      @Advice.Enter @Nullable Object transaction) {
+
+                if (transaction instanceof Transaction) {
+                    GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction) transaction, Status.OK);
+                }
             }
         }
     }
-
 }

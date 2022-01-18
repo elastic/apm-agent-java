@@ -55,7 +55,7 @@ public class Version implements Comparable<Version> {
             }
         }
         numbers = new int[validPartsIndex];
-        if (numbers.length >= 0) {
+        if (numbers.length > 0) {
             System.arraycopy(tmp, 0, numbers, 0, numbers.length);
         }
     }
@@ -71,5 +71,17 @@ public class Version implements Comparable<Version> {
             }
         }
         return 0;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < numbers.length; i++) {
+            sb.append(numbers[i]);
+            if (i < numbers.length - 1) {
+                sb.append('.');
+            }
+        }
+        return sb.toString();
     }
 }

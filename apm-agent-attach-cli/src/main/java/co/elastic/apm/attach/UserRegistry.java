@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.attach;
 
+import co.elastic.apm.agent.common.util.ProcessExecutionUtil;
 import com.sun.jna.Platform;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -72,7 +72,7 @@ public class UserRegistry {
     /**
      * Prints the temp dir of the current user to the console.
      * <p>
-     * Executed within {@link User#runAsUserWithCurrentClassPath(java.lang.Class)}, to discover the temp dir of a given user in macOS.
+     * Executed within {@link User#executeAsUserWithCurrentClassPath(java.lang.Class,java.util.List)}, to discover the temp dir of a given user in macOS.
      * Forks a new JVM that runs in the context of a given user and runs this main method.
      * This indirection is needed as each user has their own temp directory in macOS.
      * </p>
@@ -85,7 +85,7 @@ public class UserRegistry {
         return get(getCurrentUserName());
     }
 
-    public Collection<String> getAllTempDirs() throws IOException, InterruptedException {
+    public Collection<String> getAllTempDirs() {
         Set<String> tempDirs = new HashSet<>();
         for (User user : users.values()) {
             tempDirs.add(findTempDir(user));
@@ -94,18 +94,14 @@ public class UserRegistry {
         return tempDirs;
     }
 
-    private String findTempDir(User user) throws IOException, InterruptedException {
-        if (Platform.isWindows()) {
-            throw new IllegalStateException("Discovering the temp dir of a given user is not supported in Windows as the runAs method has no implementation for Windows");
-        }
+    private String findTempDir(User user) {
         if (user.canSwitchToUser()) {
             // every user has their own temp folder on MacOS
             // to discover it, we're starting a simple Java program in the context of the user
             // that outputs the value of the java.io.tmpdir system property
-            Process process = user.runAsUserWithCurrentClassPath(UserRegistry.class).start();
-            process.waitFor();
-            if (process.exitValue() == 0) {
-                return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
+            ProcessExecutionUtil.CommandOutput output = user.executeAsUserWithCurrentClassPath(UserRegistry.class, Collections.<String>emptyList());
+            if (output.exitedNormally()) {
+                return output.getOutput().toString().trim();
             }
         }
         return null;
@@ -133,11 +129,7 @@ public class UserRegistry {
 
         private static User of(String username) {
             try {
-                if (Platform.isWindows()) {
-                    return new User(username, false);
-                } else {
-                    return new User(username, canSwitchToUser(username));
-                }
+                return new User(username, canSwitchToUser(username));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -146,6 +138,14 @@ public class UserRegistry {
         private static boolean canSwitchToUser(String user) {
             if (getCurrentUserName().equals(user)) {
                 return true;
+            }
+
+            if (Platform.isWindows()) {
+                // runas let's you run as another user but requires a password.
+                // Otherwise there is no way to arbitrarily run as another user
+                // even if you are Administrator (there is a mechanism if you
+                // are Administrator and the user is logged on but it's hacky)
+                return false;
             }
 
             try {
@@ -160,38 +160,35 @@ public class UserRegistry {
 
         public static String getCurrentJvm() {
             return System.getProperty("java.home") +
-                File.separator +
+                System.getProperty("file.separator")  +
                 "bin" +
-                File.separator +
+                System.getProperty("file.separator") +
                 "java" +
                 (Platform.isWindows() ? ".exe" : "");
         }
 
-
-        public ProcessBuilder runAsUserWithCurrentClassPath(Class<?> mainClass) {
-            return runAsUserWithCurrentClassPath(mainClass, Collections.<String>emptyList());
-        }
-
-        public ProcessBuilder runAsUserWithCurrentClassPath(Class<?> mainClass, List<String> args) {
+        public ProcessExecutionUtil.CommandOutput executeAsUserWithCurrentClassPath(Class<?> mainClass, List<String> args) {
             List<String> cmd = new ArrayList<>();
             cmd.add(getCurrentJvm());
             cmd.add("-cp");
             cmd.add(System.getProperty("java.class.path"));
             cmd.add(mainClass.getName());
             cmd.addAll(args);
-            return runAs(cmd);
-
+            return executeAs(cmd);
         }
 
-        public ProcessBuilder runAs(List<String> cmd) {
+        public ProcessExecutionUtil.CommandOutput executeAs(List<String> cmd) {
             if (!canSwitchToUser) {
                 throw new IllegalStateException(String.format("Cannot run as user %s", username));
             }
             if (!isCurrentUser()) {
+                if (Platform.isWindows()) {
+                    throw new IllegalStateException(String.format("Cannot run as user %s on Windows", username));
+                }
                 // sudo only when required
                 cmd = sudoCmd(username, cmd);
             }
-            return new ProcessBuilder(cmd);
+            return ProcessExecutionUtil.executeCommand(cmd);
         }
 
         /**

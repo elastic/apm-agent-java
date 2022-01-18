@@ -18,13 +18,10 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -37,9 +34,6 @@ import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class AlibabaResponseFutureInstrumentation extends AbstractAlibabaDubboInstrumentation {
-
-    @VisibleForAdvice
-    public static final WeakConcurrentMap<ResponseCallback, AbstractSpan<?>> callbackSpanMap = WeakMapSupplier.createMap();
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -61,19 +55,19 @@ public class AlibabaResponseFutureInstrumentation extends AbstractAlibabaDubboIn
 
     public static class AlibabaResponseFutureAdvice {
 
-        @VisibleForAdvice
-        public static final List<Class<? extends ElasticApmInstrumentation>> RESPONSE_CALLBACK_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
+        private static final List<Class<? extends ElasticApmInstrumentation>> RESPONSE_CALLBACK_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
             AlibabaResponseCallbackInstrumentation.CaughtInstrumentation.class,
             AlibabaResponseCallbackInstrumentation.DoneInstrumentation.class);
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.Argument(value = 0, readOnly = false) ResponseCallback callback) {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onEnter(@Advice.Argument(value = 0) ResponseCallback callback) {
             AbstractSpan<?> active = tracer.getActive();
             if (active == null) {
                 return;
             }
-            callbackSpanMap.put(callback, active);
-            DynamicTransformer.Accessor.get().ensureInstrumented(callback.getClass(), RESPONSE_CALLBACK_INSTRUMENTATIONS);
+            AlibabaCallbackHolder.callbackSpanMap.put(callback, active);
+            DynamicTransformer.ensureInstrumented(callback.getClass(), RESPONSE_CALLBACK_INSTRUMENTATIONS);
         }
     }
+
 }

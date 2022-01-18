@@ -23,8 +23,9 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  */
 @javax.annotation.Generated(
-    value = "by gRPC proto compiler (version 1.39.0)",
+    value = "by gRPC proto compiler (version 1.43.2)",
     comments = "Source: rpc.proto")
+@io.grpc.stub.annotations.GrpcGenerated
 public final class HelloGrpc {
 
   private HelloGrpc() {}

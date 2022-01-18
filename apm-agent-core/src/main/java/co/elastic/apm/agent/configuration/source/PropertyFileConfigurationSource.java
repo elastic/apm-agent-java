@@ -20,7 +20,10 @@ package co.elastic.apm.agent.configuration.source;
 
 
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
+import org.stagemonitor.configuration.source.ConfigurationSource;
+import org.stagemonitor.configuration.source.SimpleSource;
 
+import javax.annotation.Nullable;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -36,60 +39,30 @@ import java.util.Properties;
  */
 public final class PropertyFileConfigurationSource extends AbstractConfigurationSource {
 
+    /**
+     * Path of the configuration location
+     */
     private final String location;
+
+    /**
+     * Properties
+     */
     private Properties properties;
 
-    public PropertyFileConfigurationSource(String location) {
+    PropertyFileConfigurationSource(String location, Properties properties) {
         this.location = location;
-        reload();
-    }
-
-    public static boolean isPresent(String location) {
-        return getProperties(location) != null;
-    }
-
-    private static Properties getProperties(String location) {
-        if (location == null) {
-            return null;
-        }
-        Properties props = getFromClasspath(location, ClassLoader.getSystemClassLoader());
-        if (props == null) {
-            props = getFromFileSystem(location);
-        }
-        return props;
-    }
-
-    public static Properties getFromClasspath(String classpathLocation, ClassLoader classLoader) {
-        final Properties props = new Properties();
-        try (InputStream resourceStream = classLoader.getResourceAsStream(classpathLocation)) {
-            if (resourceStream != null) {
-                props.load(resourceStream);
-                return props;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    public static Properties getFromFileSystem(String location) {
-        Properties props = new Properties();
-        try (InputStream input = new FileInputStream(location)) {
-            props.load(input);
-            return props;
-        } catch (FileNotFoundException ex) {
-            return null;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
+        this.properties = properties;
     }
 
     @Override
     public void reload() {
-        properties = getProperties(location);
-        if (properties == null) {
-            properties = new Properties();
+        if (location == null) {
+            return;
+        }
+
+        Properties newProperties = ConfigSources.getPropertiesFromFilesystem(location);
+        if (newProperties != null) {
+            properties = newProperties;
         }
     }
 
