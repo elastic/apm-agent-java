@@ -368,7 +368,8 @@ public class ElasticApmTracer implements Tracer {
                     new RuntimeException("this exception is just used to record where the transaction has been ended from"));
             }
         }
-        if (!transaction.isNoop()) {
+        if (!transaction.isNoop() &&
+            (transaction.isSampled() || apmServerClient.supportsKeepingUnsampledTransaction())) {
             // we do report non-sampled transactions (without the context)
             reporter.report(transaction);
         } else {
