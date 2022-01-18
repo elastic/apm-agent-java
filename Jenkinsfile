@@ -320,7 +320,6 @@ pipeline {
         allOf {
           expression { return env.ONLY_DOCS == "false" }
           anyOf {
-            changeRequest()
             expression { return params.endtoend_tests_ci }
             expression { return env.GITHUB_COMMENT?.contains('end-to-end tests') }
             expression { matchesPrLabel(label: 'ci:end-to-end') }
