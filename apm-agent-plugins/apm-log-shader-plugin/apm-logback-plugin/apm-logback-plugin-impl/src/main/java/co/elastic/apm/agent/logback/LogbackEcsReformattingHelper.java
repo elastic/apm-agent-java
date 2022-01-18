@@ -30,6 +30,8 @@ import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import co.elastic.apm.agent.log.shader.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.logging.AdditionalField;
 import co.elastic.logging.logback.EcsEncoder;
 
@@ -38,6 +40,8 @@ import java.util.List;
 import java.util.Map;
 
 class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputStreamAppender<ILoggingEvent>, Encoder<ILoggingEvent>> {
+
+    private static final Logger logger = LoggerFactory.getLogger(LogbackEcsReformattingHelper.class);
 
     private static final LoggerContext defaultLoggerContext = new LoggerContext();
 
@@ -117,8 +121,7 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
             try {
                 VersionUtils.setMaxFileSize(triggeringPolicy, getMaxLogFileSize());
             } catch (Throwable throwable) {
-                // We cannot log here because this plugin escapes slf4j package reallocation.
-                logInfo("Failed to set max file size for log shader file-rolling strategy. Using the default " +
+                logger.info("Failed to set max file size for log shader file-rolling strategy. Using the default " +
                     "Logback setting instead - " + SizeBasedTriggeringPolicy.DEFAULT_MAX_FILE_SIZE + ". Error message: " +
                     throwable.getMessage());
             }
@@ -128,10 +131,9 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
 
             ecsAppender.setContext(defaultLoggerContext);
             try {
-                VersionUtils.copyImmediateFlushSetting(originalAppender);
+                VersionUtils.copyImmediateFlushSetting(originalAppender, ecsAppender);
             } catch (Throwable throwable) {
-                // We cannot log here because this plugin escapes slf4j package reallocation.
-                // Writing to System out may be too much for this.
+                logger.info("Failed to set immediate-flush for the custom ECS appender");
             }
             ecsAppender.setAppend(true);
             ecsAppender.setName(ecsAppenderName);

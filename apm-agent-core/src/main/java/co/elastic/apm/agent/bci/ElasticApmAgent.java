@@ -61,8 +61,8 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
@@ -537,12 +537,9 @@ public class ElasticApmAgent {
         String adviceMethod = advice.getInternalName();
         try {
             checkNotAgentType(advice.getReturnType(), "return type", adviceClass, adviceMethod);
-            checkNotSlf4jType(advice.getReturnType(), "return type", adviceClass, adviceMethod);
 
             for (ParameterDescription.InDefinedShape parameter : advice.getParameters()) {
                 checkNotAgentType(parameter.getType(), "parameter", adviceClass, adviceMethod);
-                checkNotSlf4jType(parameter.getType(), "parameter", adviceClass, adviceMethod);
-
                 AnnotationDescription.Loadable<Advice.Return> returnAnnotation = parameter.getDeclaredAnnotations().ofType(Advice.Return.class);
                 if (returnAnnotation != null && !returnAnnotation.load().readOnly()) {
                     throw new IllegalStateException("Advice parameter must not use '@Advice.Return(readOnly=false)', use @Advice.AssignReturned.ToReturned instead");
@@ -560,15 +557,6 @@ public class ElasticApmAgent {
         String name = type.asRawType().getTypeName();
         if (name.startsWith("co.elastic.apm")) {
             throw new IllegalStateException(String.format("Advice %s in %s#%s must not be an agent type: %s", description, adviceClass, adviceMethod, name));
-        }
-    }
-
-    private static void checkNotSlf4jType(TypeDescription.Generic type, String description, String adviceClass, String adviceMethod) {
-        // When trying to instrument slf4j classes from the application, advices would instead resolve the types from the agent class loader
-        // This would lead to errors on indy bootstrap, similar to the ones reported at https://github.com/elastic/apm-agent-java/issues/2163
-        String name = type.asRawType().getTypeName();
-        if (name.startsWith("org.slf4j.")) {
-            throw new IllegalStateException(String.format("Advice %s in %s#%s must not reference slf4j types: %s", description, adviceClass, adviceMethod, name));
         }
     }
 
