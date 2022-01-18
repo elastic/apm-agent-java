@@ -27,15 +27,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Duration;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,12 +40,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 class Cassandra3InstrumentationIT extends AbstractInstrumentationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(Cassandra3InstrumentationIT.class);
-
     @Container
     public static GenericContainer<?> cassandra = new GenericContainer<>("cassandra:3.11")
         .withExposedPorts(9042)
-        .withLogConsumer(new Slf4jLogConsumer(logger))
+        .withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(Cassandra3InstrumentationIT.class))
         .withStartupTimeout(Duration.ofSeconds(120))
         .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048))
         .withEnv("HEAP_NEWSIZE", "700m")

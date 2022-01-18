@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.impl.circuitbreaker;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;

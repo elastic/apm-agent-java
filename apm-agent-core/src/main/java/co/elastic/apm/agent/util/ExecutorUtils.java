@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.common.ThreadUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.CancellationException;
