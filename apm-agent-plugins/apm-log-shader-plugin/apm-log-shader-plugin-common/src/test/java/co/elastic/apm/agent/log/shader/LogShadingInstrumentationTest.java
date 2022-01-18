@@ -22,7 +22,7 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import co.elastic.apm.agent.logging.TestUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -210,7 +210,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         logger.warn(WARN_MESSAGE);
         logger.error(ERROR_MESSAGE);
 
-        ArrayList<JsonNode> overriddenLogEvents = readEcsLogFile(getOriginalLogFilePath().toString());
+        ArrayList<JsonNode> overriddenLogEvents = TestUtils.readJsonFile(getOriginalLogFilePath().toString());
         assertThat(overriddenLogEvents).hasSize(4);
         for (JsonNode ecsLogLineTree : overriddenLogEvents) {
             verifyEcsLogLine(ecsLogLineTree);
@@ -292,22 +292,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
 
     @Nonnull
     private ArrayList<JsonNode> readShadeLogFile() throws IOException {
-        return readEcsLogFile(getShadeLogFilePath());
-    }
-
-    @Nonnull
-    private ArrayList<JsonNode> readEcsLogFile(String shadeLogFilePath) throws IOException {
-        ArrayList<JsonNode> ecsLogLines = new ArrayList<>();
-        try (Stream<String> stream = Files.lines(Paths.get(shadeLogFilePath))) {
-            stream.forEach(line -> {
-                try {
-                    ecsLogLines.add(objectMapper.readTree(line));
-                } catch (JsonProcessingException e) {
-                    e.printStackTrace();
-                }
-            });
-        }
-        return ecsLogLines;
+        return TestUtils.readJsonFile(getShadeLogFilePath());
     }
 
     @Nonnull
@@ -381,7 +366,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         // log4j1 this happens AFTER the event is logged. This means we can only count on the non-active file to
         // contain a single line
         String shadeLogFilePath = getShadeLogFilePath();
-        ArrayList<JsonNode> jsonNodes = readEcsLogFile(shadeLogFilePath + ".1");
+        ArrayList<JsonNode> jsonNodes = TestUtils.readJsonFile(shadeLogFilePath + ".1");
         assertThat(jsonNodes).hasSize(1);
     }
 

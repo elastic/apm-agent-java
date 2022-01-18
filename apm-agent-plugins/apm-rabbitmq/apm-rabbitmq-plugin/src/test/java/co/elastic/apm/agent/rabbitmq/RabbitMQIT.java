@@ -64,10 +64,9 @@ import com.rabbitmq.client.Envelope;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.testcontainers.containers.RabbitMQContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -107,7 +106,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
 
     @BeforeAll
     static void before() {
-        container.withLogConsumer(new Slf4jLogConsumer(logger))
+        container.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(RabbitMQIT.class))
             .withStartupTimeout(Duration.ofSeconds(120))
             .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048))
             .start();

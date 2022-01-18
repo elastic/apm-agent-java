@@ -30,10 +30,10 @@ public class LegacyLog4j2ShadingTestRunner {
         List<String> dependencies = List.of(
             "org.apache.logging.log4j:log4j-core:2.6",
             "org.apache.logging.log4j:log4j-api:2.6",
-            "co.elastic.logging:log4j2-ecs-layout:1.1.0"
+            "co.elastic.logging:log4j2-ecs-layout:1.3.2"
         );
         runner = new TestClassWithDependencyRunner(dependencies, LegacyLog4j2ShadingTest.class, Log4j2ShadingTest.class,
-            Log4J2EcsReformattingHelper.class, Log4j2ShadingTest.Log4j2LoggerFacade.class);
+            Log4j2ShadingTest.Log4j2LoggerFacade.class);
     }
 
     @Test
