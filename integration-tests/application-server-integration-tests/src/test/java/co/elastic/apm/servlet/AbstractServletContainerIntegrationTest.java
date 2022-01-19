@@ -102,7 +102,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
 
     private static MockServerContainer mockServerContainer = new MockServerContainer()
-        .withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class))
+        //.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class))
         .withNetworkAliases("apm-server")
         .withNetwork(Network.SHARED);
     private static OkHttpClient httpClient;

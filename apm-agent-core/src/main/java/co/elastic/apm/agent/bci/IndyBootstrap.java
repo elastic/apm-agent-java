@@ -371,10 +371,7 @@ public class IndyBootstrap {
                 for (String externalPluginClass : externalPluginClasses) {
                     if (// API classes have no dependencies and don't need to be loaded by an IndyPluginCL
                         !(externalPluginClass.startsWith("co.elastic.apm.api")) &&
-                        !(externalPluginClass.startsWith("co.elastic.apm.opentracing")) &&
-                        // slf4j classes, if used by the plugin, should be loaded by the agent Class Loader and not the
-                        // IndyPluginCL, which is child-first, as this would cause LinkageErrors due to clash with the agent's slf4j
-                        !(externalPluginClass.startsWith("org.slf4j"))
+                        !(externalPluginClass.startsWith("co.elastic.apm.opentracing"))
                     ) {
                         pluginClasses.add(externalPluginClass);
                     }

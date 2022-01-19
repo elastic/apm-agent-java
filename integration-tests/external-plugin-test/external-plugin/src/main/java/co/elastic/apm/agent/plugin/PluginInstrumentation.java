@@ -37,6 +37,12 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class PluginInstrumentation extends ElasticApmInstrumentation {
 
+    /**
+     * This slf4j logger relies on the slf4j that comes from the instrumented library (see {@link co.elastic.apm.plugin.test.TestClass}).
+     * If an external plugin contains slf4j classes, it will be rejected by the agent.
+     * Same for all other packages listed in {@code co.elastic.apm.agent.common.util.AgentInfo#dependencyPackages}.
+     * All these packages can be used only if their scope is {@code provided}.
+     */
     private static final Logger logger = LoggerFactory.getLogger(PluginInstrumentation.class);
 
     @Override
