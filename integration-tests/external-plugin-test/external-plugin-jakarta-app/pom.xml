@@ -9,18 +9,30 @@
         <version>1.28.5-SNAPSHOT</version>
     </parent>
 
-    <artifactId>plugin-instrumentation-target</artifactId>
+    <artifactId>external-plugin-jakarta-app</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
+
+    <packaging>war</packaging>
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
     </properties>
 
+    <build>
+        <finalName>external-plugin-jakarta-webapp</finalName>
+    </build>
+
     <dependencies>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.7.25</version>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>5.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>plugin-instrumentation-target</artifactId>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

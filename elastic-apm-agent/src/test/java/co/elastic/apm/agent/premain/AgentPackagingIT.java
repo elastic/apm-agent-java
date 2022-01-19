@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.premain;
 
+import co.elastic.apm.agent.common.util.AgentInfo;
+import org.assertj.core.description.Description;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -31,9 +33,11 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -123,11 +127,37 @@ public class AgentPackagingIT {
 
                 classLocation.put(path, location);
             }
-
-
         });
-
-
     }
 
+    @Test
+    void validateDependencyPackages() throws IOException {
+
+        Set<String> agentDependencyPackages = AgentInfo.getAgentDependencyPackages();
+        Set<String> packagesAsPaths = agentDependencyPackages.stream()
+            .map(packageName -> packageName.replace('.', '/'))
+            .collect(Collectors.toSet());
+        packagesAsPaths.addAll(AgentInfo.getAgentRootPackages().stream()
+            .map(packageName -> packageName.replace('.', '/'))
+            .collect(Collectors.toSet()));
+
+        JarFile jarFile = new JarFile(agentJar.toFile());
+
+        String shadedClassesDir = "agent/";
+        jarFile.stream()
+            .map(ZipEntry::getName)
+            .filter(name -> name.startsWith(shadedClassesDir))
+            .filter(name -> name.endsWith(".esclazz"))
+            .map(name -> name.substring(shadedClassesDir.length()))
+            .filter(name -> name.lastIndexOf('/') > 0)
+            .forEach(name -> assertThat(packagesAsPaths.stream().anyMatch(name::startsWith))
+                .describedAs(new Description() {
+                    @Override
+                    public String value() {
+                        String packageName = name.substring(0, name.lastIndexOf('/')).replace('/', '.');
+                        return String.format("Package %s is used by the agent and not declared by co.elastic.apm.agent.premain.Utils.getAgentDependencyPackages", packageName);
+                    }
+                })
+                .isTrue());
+    }
 }
