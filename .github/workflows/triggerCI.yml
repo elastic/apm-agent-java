@@ -1,7 +1,7 @@
 name: "Trigger Tests"
 on:
   pull_request_target:
-    types: [opened, ready_for_review]
+    types: [ready_for_review]
 env:
   MY_GITHUB_TOKEN: ${{ secrets.APM_TECH_USER_TOKEN }}
 
