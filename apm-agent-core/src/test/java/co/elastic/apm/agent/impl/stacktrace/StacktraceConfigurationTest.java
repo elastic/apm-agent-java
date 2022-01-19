@@ -64,6 +64,6 @@ class StacktraceConfigurationTest {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig();
 
         long actual = configRegistry.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs();
-        assertThat(actual).isEqualTo(5);
+        assertThat(actual).isEqualTo(500);
     }
 }

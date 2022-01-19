@@ -2710,13 +2710,13 @@ To disable stack trace collection for spans completely, set the value to `-1ms`.
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 Supports the duration suffixes `ms`, `s` and `m`.
-Example: `5ms`.
+Example: `500ms`.
 The default unit for this option is `ms`.
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `5ms` | TimeDuration | true
+| `500ms` | TimeDuration | true
 |============
 
 
@@ -4070,10 +4070,10 @@ The default unit for this option is `ms`.
 #
 # This setting can be changed at runtime
 # Type: TimeDuration
-# Supports the duration suffixes ms, s and m. Example: 5ms.
+# Supports the duration suffixes ms, s and m. Example: 500ms.
 # The default unit for this option is ms.
-# Default value: 5ms
+# Default value: 500ms
 #
-# span_stack_trace_min_duration=5ms
+# span_stack_trace_min_duration=500ms
 
 ----

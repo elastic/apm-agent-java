@@ -93,7 +93,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "To disable stack trace collection for spans completely, set the value to `-1ms`.")
         .dynamic(true)
-        .buildWithDefault(TimeDuration.of("5ms"));
+        .buildWithDefault(TimeDuration.of("500ms"));
 
     public Collection<String> getApplicationPackages() {
         return applicationPackages.get();
