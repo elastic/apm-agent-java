@@ -713,14 +713,15 @@ public class TraceContext implements Recyclable {
     }
 
     void setApplicationClassLoader(@Nullable ClassLoader classLoader) {
-        if (classLoader != null && !ClassLoaderUtils.isAgentClassLoader(classLoader)) {
-            WeakReference<ClassLoader> local = classLoaderWeakReferenceCache.get(classLoader);
-            if (local == null) {
-                local = new WeakReference<>(classLoader);
-                classLoaderWeakReferenceCache.putIfAbsent(classLoader, local);
-            }
-            applicationClassLoader = local;
+        if (ClassLoaderUtils.isBootstrapClassLoader(classLoader) || ClassLoaderUtils.isAgentClassLoader(classLoader)) {
+            return;
         }
+        WeakReference<ClassLoader> local = classLoaderWeakReferenceCache.get(classLoader);
+        if (local == null) {
+            local = new WeakReference<>(classLoader);
+            classLoaderWeakReferenceCache.putIfAbsent(classLoader, local);
+        }
+        applicationClassLoader = local;
     }
 
     @Nullable
