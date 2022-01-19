@@ -72,6 +72,21 @@ public class CustomElementMatchers {
     }
 
     /**
+     * Matches the target class loader to a given class loader by instance comparison
+     * @param other the class loader to match to
+     * @return {@code true} if {@code other} is the same class loader instance as the target class loader
+     */
+    public static ElementMatcher.Junction<ClassLoader> isSameClassLoader(final ClassLoader other) {
+        return new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
+            @Override
+            public boolean matches(@Nullable ClassLoader target) {
+                return target == other;
+            }
+        };
+    }
+
+
+    /**
      * Matches only class loaders which can load a certain class.
      * <p>
      * <b>Warning:</b> the class will be tried to load by each class loader.

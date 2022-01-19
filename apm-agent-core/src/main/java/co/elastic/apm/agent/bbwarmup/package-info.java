@@ -16,25 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.dubbo.api;
+@NonnullApi
+package co.elastic.apm.agent.bbwarmup;
 
-import java.util.concurrent.CompletableFuture;
-
-public interface DubboTestApi {
-
-    String normalReturn(String arg1, Integer arg2);
-
-    String throwBizException(String arg1);
-
-    String timeout(String arg);
-
-    String async(String arg1);
-
-    void asyncNoReturn(String arg1);
-
-    CompletableFuture<String> asyncByFuture(String arg1);
-
-    String asyncByAsyncContext(String arg1);
-
-    String willInvokeAnotherApi(String arg);
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

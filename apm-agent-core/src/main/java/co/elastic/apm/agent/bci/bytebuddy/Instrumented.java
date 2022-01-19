@@ -16,25 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.dubbo.api;
+package co.elastic.apm.agent.bci.bytebuddy;
 
-import java.util.concurrent.CompletableFuture;
+public class Instrumented {
 
-public interface DubboTestApi {
+    private static volatile boolean warmedUp = false;
 
-    String normalReturn(String arg1, Integer arg2);
+    public static boolean isWarmedUp() {
+        return warmedUp;
+    }
 
-    String throwBizException(String arg1);
+    public static void setWarmedUp() {
+        warmedUp = true;
+    }
 
-    String timeout(String arg);
-
-    String async(String arg1);
-
-    void asyncNoReturn(String arg1);
-
-    CompletableFuture<String> asyncByFuture(String arg1);
-
-    String asyncByAsyncContext(String arg1);
-
-    String willInvokeAnotherApi(String arg);
+    public boolean isInstrumented() {
+        return false;
+    }
 }
