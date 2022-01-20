@@ -16,17 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.rabbitmq;
+package co.elastic.apm.agent.testutils;
 
-import co.elastic.apm.agent.rabbitmq.config.ReplyRabbitListenerConfiguration;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
-@ContextConfiguration(classes = {ReplyRabbitListenerConfiguration.class}, initializers = {AbstractRabbitMqTest.Initializer.class})
-public class AsyncRabbitListenerTest extends AbstractAsyncRabbitMqTest {
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
+@Target({ElementType.TYPE, ElementType.METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@ExtendWith(DisabledOnAppleSiliconCondition.class)
+public @interface DisabledOnAppleSilicon {
+
+    /**
+     * The reason this annotated test class or test method is disabled.
+     */
+    String value() default "";
 }

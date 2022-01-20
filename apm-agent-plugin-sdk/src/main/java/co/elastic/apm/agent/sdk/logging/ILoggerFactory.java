@@ -16,17 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.rabbitmq;
+package co.elastic.apm.agent.sdk.logging;
 
-import co.elastic.apm.agent.rabbitmq.config.RabbitListenerConfiguration;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
-
-@RunWith(SpringRunner.class)
-@SpringBootTest
-@ContextConfiguration(classes = {RabbitListenerConfiguration.class}, initializers = {AbstractRabbitMqTest.Initializer.class})
-public class RabbitListenerTest extends AbstractRabbitMqTest {
-
+public interface ILoggerFactory {
+    /**
+     * Return an appropriate {@link Logger} instance as specified by the
+     * <code>name</code> parameter.
+     *
+     * <p>If the name parameter is equal to {@link Logger#ROOT_LOGGER_NAME}, that is
+     * the string value "ROOT" (case insensitive), then the root logger of the
+     * underlying logging system is returned.
+     *
+     * <p>Null-valued name arguments are considered invalid.
+     *
+     * <p>Certain extremely simple logging systems, e.g. NOP, may always
+     * return the same logger instance regardless of the requested name.
+     *
+     * @param name the name of the Logger to return
+     * @return a Logger instance
+     */
+    Logger getLogger(String name);
 }
