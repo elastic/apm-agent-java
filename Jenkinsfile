@@ -12,7 +12,7 @@ pipeline {
     DOCKERHUB_SECRET = 'secret/apm-team/ci/elastic-observability-dockerhub'
     ELASTIC_DOCKER_SECRET = 'secret/apm-team/ci/docker-registry/prod'
     CODECOV_SECRET = 'secret/apm-team/ci/apm-agent-java-codecov'
-    GITHUB_CHECK_ITS_NAME = 'Integration Tests'
+    GITHUB_CHECK_ITS_NAME = 'End-To-End Integration Tests'
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/main'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
     OPBEANS_REPO = 'opbeans-java'
@@ -30,15 +30,35 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger("(${obltGitHubComments()}|^run (compatibility|benchmark|integration) tests)")
+    issueCommentTrigger("(${obltGitHubComments()}|^run (jdk compatibility|benchmark|integration|end-to-end) tests)")
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
+
+    // Note about GH checks and optional steps
+    //
+    // All the steps executed by default are included in GH checks
+    // All the mandatory steps not included by default need to be added in GH branch protection rules.
+
+    // enabled by default, required for merge through default GH check
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable Unit tests')
-    booleanParam(name: 'agent_integration_tests_ci', defaultValue: true, description: 'Enable Agent Integration tests')
-    booleanParam(name: 'endtoend_tests_ci', defaultValue: true, description: 'Enable APM End-to-End Integration tests')
-    booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
-    booleanParam(name: 'compatibility_ci', defaultValue: false, description: 'Enable JDK compatibility tests')
+
+    // disabled by default, but required for merge, there are two GH checks:
+    // - Non-Application Server integration tests
+    // - Application Server integration tests
+    // opt-in with 'ci:agent-integration'
+    booleanParam(name: 'agent_integration_tests_ci', defaultValue: false, description: 'Enable Agent Integration tests')
+
+    // disabled by default, but required for merge, GH check name is ${GITHUB_CHECK_ITS_NAME}
+    // opt-in with 'ci:end-to-end' tag on PR
+    booleanParam(name: 'end_to_end_tests_ci', defaultValue: false, description: 'Enable APM End-to-End tests')
+
+    // disabled by default, not required for merge
+    booleanParam(name: 'bench_ci', defaultValue: false, description: 'Enable benchmarks')
+
+    // disabled by default, not required for merge
+    // opt-in with 'ci:jdk-compatibility' tag on PR
+    booleanParam(name: 'jdk_compatibility_ci', defaultValue: false, description: 'Enable JDK compatibility tests')
   }
   stages {
     stage('Initializing'){
@@ -163,7 +183,12 @@ pipeline {
           }
           when {
             beforeAgent true
-            expression { return params.agent_integration_tests_ci }
+            anyOf {
+              expression { return params.agent_integration_tests_ci }
+              expression { return env.GITHUB_COMMENT?.contains('integration tests') }
+              expression { matchesPrLabel(label: 'ci:agent-integration') }
+              expression { return env.CHANGE_ID != null && !pullRequest.draft }
+            }
           }
           steps {
             withGithubNotify(context: 'Non-Application Server integration tests', tab: 'tests') {
@@ -192,7 +217,12 @@ pipeline {
           }
           when {
             beforeAgent true
-            expression { return params.agent_integration_tests_ci }
+            anyOf {
+              expression { return params.agent_integration_tests_ci }
+              expression { return env.GITHUB_COMMENT?.contains('integration tests') }
+              expression { matchesPrLabel(label: 'ci:agent-integration') }
+              expression { return env.CHANGE_ID != null && !pullRequest.draft }
+            }
           }
           steps {
             withGithubNotify(context: 'Application Server integration tests', tab: 'tests') {
@@ -229,9 +259,6 @@ pipeline {
             allOf {
               anyOf {
                 branch 'master'
-                branch "\\d+\\.\\d+"
-                branch "v\\d?"
-                tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
                 expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
               }
               expression { return params.bench_ci }
@@ -295,9 +322,10 @@ pipeline {
         allOf {
           expression { return env.ONLY_DOCS == "false" }
           anyOf {
-            changeRequest()
-            expression { return params.endtoend_tests_ci }
-            expression { return env.GITHUB_COMMENT?.contains('integration tests') }
+            expression { return params.end_to_end_tests_ci }
+            expression { return env.GITHUB_COMMENT?.contains('end-to-end tests') }
+            expression { matchesPrLabel(label: 'ci:end-to-end') }
+            expression { return env.CHANGE_ID != null && !pullRequest.draft }
           }
         }
       }
@@ -318,8 +346,9 @@ pipeline {
         allOf {
           expression { return env.ONLY_DOCS == "false" }
           anyOf {
-            expression { return params.compatibility_ci }
-            expression { return env.GITHUB_COMMENT?.contains('compatibility tests') }
+            expression { return params.jdk_compatibility_ci }
+            expression { return env.GITHUB_COMMENT?.contains('jdk compatibility tests') }
+            expression { matchesPrLabel(label: 'ci:jdk-compatibility') }
           }
         }
       }

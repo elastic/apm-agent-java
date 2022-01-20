@@ -18,9 +18,21 @@
  */
 package co.elastic.apm.plugin.test;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+
 public class TestClass {
 
+    private static final Logger logger = LoggerFactory.getLogger(TestClass.class);
+
     public void traceMe(boolean throwException) throws IllegalStateException {
+
+        // Testing that usage of slf4j in instrumented library doesn't break anything and that log correlation works
+        String infoMessage = String.format("TestClass#traceMe was called, transaction ID: %s, trace ID: %s", MDC.get("transaction.id"), MDC.get("trace.id"));
+        logger.info(infoMessage);
+        System.out.println(infoMessage);
+
         if (throwException) {
             throw new IllegalStateException("Test Exception");
         }
