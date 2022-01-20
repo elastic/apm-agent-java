@@ -28,11 +28,19 @@ endif::[]
 * Exceptions that are logged using the fatal log level are now captured (log4j2 only) - {pull}2377[#2377]
 * Replaced `authorization` in the default value of `sanitize_field_names` with `*auth*` - {pull}2326[#2326]
 * Unsampled transactions are dropped and not sent to the APM-Server if the APM-Server version is 8.0+ - {pull}2329[#2329]
+* Adding agent logging capabilities to our SDK, making it available for external plugins - {pull}2390[#2390]
 
 [float]
 ===== Bug fixes
 * Fix runtime attach with some docker images - {pull}2385[#2385]
 * Restore dynamic capability to `log_level` config for plugin loggers - {pull}2384[#2384]
+* Fix slf4j-related `LinkageError` - {pull}2390[#2390] and {pull}2376[#2376]
+* Fix possible deadlock occurring when Byte Buddy reads System properties by warming up bytecode instrumentation code
+paths. The BCI warmup is on by default and may be disabled through the internal `warmup_byte_buddy` config option - {pull}2368[#2368]
+* Fixed few dubbo plugin issues - {pull}2149[#2149]
+** Dubbo transaction will should be created at the provider side
+** APM headers conversion issue within dubbo transaction
+* Fix External plugins automatic setting of span outcome - {pull}2376[#2376]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

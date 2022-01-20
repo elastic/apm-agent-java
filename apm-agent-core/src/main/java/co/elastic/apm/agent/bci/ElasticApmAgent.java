@@ -21,9 +21,12 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
+import co.elastic.apm.agent.bci.bytebuddy.InstallationListenerImpl;
+import co.elastic.apm.agent.bci.bytebuddy.Instrumented;
 import co.elastic.apm.agent.bci.bytebuddy.LruTypePoolCache;
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
+import co.elastic.apm.agent.bci.bytebuddy.NonInstrumented;
 import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
@@ -58,8 +61,8 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
@@ -195,12 +198,12 @@ public class ElasticApmAgent {
         }
         List<ClassLoader> result = new ArrayList<>(pluginJars.length);
         for (File pluginJar : pluginJars) {
+            logger.info("Loading plugin {}", pluginJar.getName());
             try {
                 result.add(new ExternalPluginClassLoader(pluginJar, ElasticApmAgent.class.getClassLoader()));
-            } catch (IOException e) {
-                logger.error(e.getMessage(), e);
+            } catch (Exception e) {
+                logger.error("Error loading external plugin", e);
             }
-            logger.info("Loading plugin {}", pluginJar.getName());
         }
         return result;
     }
@@ -247,7 +250,7 @@ public class ElasticApmAgent {
             }
         }
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
-            adviceClassName2instrumentationClassLoader.put(
+            mapInstrumentationCL2adviceClassName(
                 apmInstrumentation.getAdviceClassName(),
                 apmInstrumentation.getClass().getClassLoader());
         }
@@ -266,6 +269,14 @@ public class ElasticApmAgent {
         }
         // POOL_ONLY because we don't want to cause eager linking on startup as the class path may not be complete yet
         AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, premain);
+
+        // Warmup Byte Buddy and agent's invokedynamic linkage paths on the attaching thread before installing it
+        if (tracer.getConfig(CoreConfiguration.class).shouldWarmupByteBuddy()) {
+            agentBuilder = agentBuilder.with(new InstallationListenerImpl())
+                .warmUp(NonInstrumented.class)
+                .warmUp(Instrumented.class);
+        }
+
         resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
         for (ConfigurationOption<?> instrumentationOption : coreConfig.getInstrumentationOptions()) {
             //noinspection Convert2Lambda
@@ -526,12 +537,9 @@ public class ElasticApmAgent {
         String adviceMethod = advice.getInternalName();
         try {
             checkNotAgentType(advice.getReturnType(), "return type", adviceClass, adviceMethod);
-            checkNotSlf4jType(advice.getReturnType(), "return type", adviceClass, adviceMethod);
 
             for (ParameterDescription.InDefinedShape parameter : advice.getParameters()) {
                 checkNotAgentType(parameter.getType(), "parameter", adviceClass, adviceMethod);
-                checkNotSlf4jType(parameter.getType(), "parameter", adviceClass, adviceMethod);
-
                 AnnotationDescription.Loadable<Advice.Return> returnAnnotation = parameter.getDeclaredAnnotations().ofType(Advice.Return.class);
                 if (returnAnnotation != null && !returnAnnotation.load().readOnly()) {
                     throw new IllegalStateException("Advice parameter must not use '@Advice.Return(readOnly=false)', use @Advice.AssignReturned.ToReturned instead");
@@ -549,15 +557,6 @@ public class ElasticApmAgent {
         String name = type.asRawType().getTypeName();
         if (name.startsWith("co.elastic.apm")) {
             throw new IllegalStateException(String.format("Advice %s in %s#%s must not be an agent type: %s", description, adviceClass, adviceMethod, name));
-        }
-    }
-
-    private static void checkNotSlf4jType(TypeDescription.Generic type, String description, String adviceClass, String adviceMethod) {
-        // When trying to instrument slf4j classes from the application, advices would instead resolve the types from the agent class loader
-        // This would lead to errors on indy bootstrap, similar to the ones reported at https://github.com/elastic/apm-agent-java/issues/2163
-        String name = type.asRawType().getTypeName();
-        if (name.startsWith("org.slf4j.")) {
-            throw new IllegalStateException(String.format("Advice %s in %s#%s must not reference slf4j types: %s", description, adviceClass, adviceMethod, name));
         }
     }
 
@@ -685,7 +684,6 @@ public class ElasticApmAgent {
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
-            .or(nameStartsWith("co.elastic.apm.agent.shaded"))
             .or(nameStartsWith("org.aspectj."))
             .or(nameStartsWith("org.groovy."))
             .or(nameStartsWith("com.p6spy."))
@@ -768,7 +766,7 @@ public class ElasticApmAgent {
                     );
                     for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
                         ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
-                        adviceClassName2instrumentationClassLoader.put(
+                        mapInstrumentationCL2adviceClassName(
                             apmInstrumentation.getAdviceClassName(),
                             instrumentationClass.getClassLoader());
                         ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
@@ -780,6 +778,10 @@ public class ElasticApmAgent {
                 }
             }
         }
+    }
+
+    public static void mapInstrumentationCL2adviceClassName(String adviceClassName, ClassLoader instrumentationClassLoader) {
+        adviceClassName2instrumentationClassLoader.put(adviceClassName, instrumentationClassLoader);
     }
 
     private static Set<Collection<Class<? extends ElasticApmInstrumentation>>> getOrCreate(Class<?> classToInstrument) {

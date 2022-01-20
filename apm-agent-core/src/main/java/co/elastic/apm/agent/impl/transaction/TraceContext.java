@@ -26,9 +26,10 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.ByteUtils;
+import co.elastic.apm.agent.util.ClassLoaderUtils;
 import co.elastic.apm.agent.util.HexUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
@@ -712,14 +713,15 @@ public class TraceContext implements Recyclable {
     }
 
     void setApplicationClassLoader(@Nullable ClassLoader classLoader) {
-        if (classLoader != null) {
-            WeakReference<ClassLoader> local = classLoaderWeakReferenceCache.get(classLoader);
-            if (local == null) {
-                local = new WeakReference<>(classLoader);
-                classLoaderWeakReferenceCache.putIfAbsent(classLoader, local);
-            }
-            applicationClassLoader = local;
+        if (ClassLoaderUtils.isBootstrapClassLoader(classLoader) || ClassLoaderUtils.isAgentClassLoader(classLoader)) {
+            return;
         }
+        WeakReference<ClassLoader> local = classLoaderWeakReferenceCache.get(classLoader);
+        if (local == null) {
+            local = new WeakReference<>(classLoader);
+            classLoaderWeakReferenceCache.putIfAbsent(classLoader, local);
+        }
+        applicationClassLoader = local;
     }
 
     @Nullable

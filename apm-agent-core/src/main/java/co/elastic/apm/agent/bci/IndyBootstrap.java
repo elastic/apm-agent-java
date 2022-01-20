@@ -27,8 +27,8 @@ import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ClassInjector;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.util.IOUtils;
 
@@ -207,6 +207,7 @@ public class IndyBootstrap {
      * Caches the names of classes that are defined within a package and it's subpackages
      */
     private static final ConcurrentMap<String, List<String>> classesByPackage = new ConcurrentHashMap<>();
+
     @Nullable
     static Method indyBootstrapMethod;
 
@@ -341,7 +342,7 @@ public class IndyBootstrap {
      * @param adviceMethodType A {@link java.lang.invoke.MethodType} representing the arguments and return type of the advice method.
      * @param args             Additional arguments that are provided by Byte Buddy:
      *                         <ul>
-     *                           <li>A {@link String} of the binary target class name.</li>
+     *                           <li>A {@link String} of the binary advice class name.</li>
      *                           <li>A {@link int} with value {@code 0} for an enter advice and {code 1} for an exist advice.</li>
      *                           <li>A {@link Class} representing the class implementing the instrumented method.</li>
      *                           <li>A {@link String} with the name of the instrumented method.</li>
@@ -362,10 +363,19 @@ public class IndyBootstrap {
             MethodHandle instrumentedMethod = args.length >= 5 ? (MethodHandle) args[4] : null;
 
             ClassLoader instrumentationClassLoader = ElasticApmAgent.getInstrumentationClassLoader(adviceClassName);
+            ClassLoader targetClassLoader = lookup.lookupClass().getClassLoader();
             ClassFileLocator classFileLocator;
             List<String> pluginClasses = new ArrayList<>();
             if (instrumentationClassLoader instanceof ExternalPluginClassLoader) {
-                pluginClasses.addAll(((ExternalPluginClassLoader) instrumentationClassLoader).getClassNames());
+                List<String> externalPluginClasses = ((ExternalPluginClassLoader) instrumentationClassLoader).getClassNames();
+                for (String externalPluginClass : externalPluginClasses) {
+                    if (// API classes have no dependencies and don't need to be loaded by an IndyPluginCL
+                        !(externalPluginClass.startsWith("co.elastic.apm.api")) &&
+                        !(externalPluginClass.startsWith("co.elastic.apm.opentracing"))
+                    ) {
+                        pluginClasses.add(externalPluginClass);
+                    }
+                }
                 File agentJarFile = ElasticApmAgent.getAgentJarFile();
                 if (agentJarFile == null) {
                     throw new IllegalStateException("External plugin cannot be applied - can't find agent jar");
@@ -380,7 +390,7 @@ public class IndyBootstrap {
             }
             pluginClasses.add(LOOKUP_EXPOSER_CLASS_NAME);
             ClassLoader pluginClassLoader = IndyPluginClassLoaderFactory.getOrCreatePluginClassLoader(
-                lookup.lookupClass().getClassLoader(),
+                targetClassLoader,
                 pluginClasses,
                 // we provide the instrumentation class loader as the agent class loader, but it could actually be an
                 // ExternalPluginClassLoader, of which parent is the agent class loader, so this works as well.

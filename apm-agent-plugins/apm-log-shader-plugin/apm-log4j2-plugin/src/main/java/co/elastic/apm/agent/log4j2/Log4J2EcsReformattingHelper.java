@@ -20,6 +20,8 @@ package co.elastic.apm.agent.log4j2;
 
 import co.elastic.apm.agent.log.shader.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.logging.log4j2.EcsLayout;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Layout;
@@ -43,6 +45,8 @@ import java.util.Map;
 
 
 class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender, Layout<? extends Serializable>> {
+
+    private static final Logger logger = LoggerFactory.getLogger(Log4J2EcsReformattingHelper.class);
 
     Log4J2EcsReformattingHelper() {}
 
@@ -103,7 +107,7 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
                 Method getFileNameMethod = originalAppender.getClass().getDeclaredMethod("getFileName");
                 logFile = (String) getFileNameMethod.invoke(originalAppender);
             } catch (Exception e) {
-                logError("Failed to obtain log file name from file appender", e);
+                logger.error("Failed to obtain log file name from file appender", e);
             }
         }
 

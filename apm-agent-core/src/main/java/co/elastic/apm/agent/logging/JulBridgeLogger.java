@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.logging;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import java.util.ResourceBundle;
 import java.util.logging.Filter;
@@ -49,7 +49,7 @@ import static java.util.logging.Level.WARNING;
  * <p>
  * The approach we take is to mimic the public interface of {@link java.util.logging.Logger} and use the maven shadow plugin to replace the
  * usage of {@link java.util.logging.Logger} in our dependencies with this class.
- * This class then forwards the logger calls to a slf4j {@link org.slf4j.Logger}.
+ * This class then forwards the logger calls to a {@link co.elastic.apm.agent.sdk.logging.Logger}.
  * </p>
  */
 public class JulBridgeLogger {
