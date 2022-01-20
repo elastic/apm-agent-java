@@ -588,7 +588,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key("use_elastic_traceparent_header")
         .tags("added[1.14.0]")
         .configurationCategory(CORE_CATEGORY)
-        .description("To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent\n" +
+        .description("To enable {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing], the agent\n" +
             "adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).\n" +
             "These headers (`traceparent` and `tracestate`) are defined in the\n" +
             "https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.\n" +
