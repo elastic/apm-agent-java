@@ -25,7 +25,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -39,7 +38,7 @@ public class ExecutorServiceTestServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
         final Transaction transaction = ElasticApm.currentTransaction();
         if (!transaction.isSampled()) {
             throw new IllegalStateException("Transaction is not sampled");
@@ -52,7 +51,7 @@ public class ExecutorServiceTestServlet extends HttpServlet {
                     if (!ElasticApm.currentSpan().getId().equals(transaction.getId())) {
                         throw new IllegalStateException("Context not propagated");
                     }
-                    ElasticApm.currentSpan().createSpan().setName("Async").end();
+                    ElasticApm.currentSpan().startSpan().setName("Async").end();
                 }
             }).get();
         } catch (Exception e) {

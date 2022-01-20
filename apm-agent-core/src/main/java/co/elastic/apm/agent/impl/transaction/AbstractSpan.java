@@ -26,8 +26,8 @@ import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.report.ReporterConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
@@ -390,15 +390,18 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return isExit;
     }
 
-
-    public void captureException(long epochMicros, Throwable t) {
-        tracer.captureAndReportException(epochMicros, t, this);
+    @Nullable
+    public String captureExceptionAndGetErrorId(long epochMicros, @Nullable Throwable t) {
+        if (t != null) {
+            hasCapturedExceptions = true;
+            return tracer.captureAndReportException(epochMicros, t, this);
+        }
+        return null;
     }
 
     public T captureException(@Nullable Throwable t) {
         if (t != null) {
-            hasCapturedExceptions = true;
-            captureException(getTraceContext().getClock().getEpochMicros(), t);
+            captureExceptionAndGetErrorId(getTraceContext().getClock().getEpochMicros(), t);
         }
         return (T) this;
     }
@@ -409,7 +412,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     @Nullable
     public String captureExceptionAndGetErrorId(@Nullable Throwable t) {
-        return tracer.captureAndReportException(getTraceContext().getClock().getEpochMicros(), t, this);
+        return captureExceptionAndGetErrorId(getTraceContext().getClock().getEpochMicros(), t);
     }
 
     public void addLabel(String key, String value) {

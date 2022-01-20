@@ -20,8 +20,8 @@ package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
