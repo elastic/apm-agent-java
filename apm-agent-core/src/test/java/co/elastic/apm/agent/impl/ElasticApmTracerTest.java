@@ -27,6 +27,7 @@ import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -484,6 +485,7 @@ class ElasticApmTracerTest {
         Transaction transaction = startTestRootTransaction();
         String errorId = transaction.captureExceptionAndGetErrorId(new Exception("test"));
         transaction.end();
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
 
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(errorId).isNotNull();
