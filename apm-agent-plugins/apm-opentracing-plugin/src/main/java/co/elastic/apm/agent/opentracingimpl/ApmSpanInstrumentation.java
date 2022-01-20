@@ -125,7 +125,7 @@ public abstract class ApmSpanInstrumentation extends OpenTracingBridgeInstrument
                         final Object errorObject = fields.get("error.object");
                         if (errorObject instanceof Throwable) {
                             if (epochTimestampMicros > 0) {
-                                span.captureException(epochTimestampMicros, (Throwable) errorObject);
+                                span.captureExceptionAndGetErrorId(epochTimestampMicros, (Throwable) errorObject);
                             } else {
                                 span.captureException((Throwable) errorObject);
                             }

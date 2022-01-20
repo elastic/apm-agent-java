@@ -18,11 +18,13 @@ pipeline {
     cron('H H(1-4) * * 1')
   }
   stages {
-    stage('Run JDK compatibility tests') {
+    stage('Agent weekly exhaustive test') {
       steps {
         build(job: 'apm-agent-java/apm-agent-java-mbp/master',
           parameters: [
-            booleanParam(name: 'compatibility_ci', value: true)
+            booleanParam(name: 'jdk_compatibility_ci', value: true),
+            booleanParam(name: 'end_to_end_tests_ci', value: true),
+            booleanParam(name: 'agent_integration_tests_ci', value: true),
           ],
           propagate: false,
           wait: false
