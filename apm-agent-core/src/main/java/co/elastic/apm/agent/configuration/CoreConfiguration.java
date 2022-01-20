@@ -379,6 +379,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("When enabled, configures Byte Buddy to use a type pool cache.")
         .buildWithDefault(true);
 
+    private final ConfigurationOption<Boolean> warmupByteBuddy = ConfigurationOption.booleanOption()
+        .key("warmup_byte_buddy")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("When set to true, configures Byte Buddy to warmup instrumentation processes on the \n" +
+            "attaching thread just before installing the transformer on the JVM Instrumentation.")
+        .buildWithDefault(true);
+
     private final ConfigurationOption<String> bytecodeDumpPath = ConfigurationOption.stringOption()
         .key("bytecode_dump_path")
         .configurationCategory(CORE_CATEGORY)
@@ -774,6 +782,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isTypePoolCacheEnabled() {
         return typePoolCache.get();
+    }
+
+    public boolean shouldWarmupByteBuddy() {
+        return warmupByteBuddy.get();
     }
 
     @Nullable
