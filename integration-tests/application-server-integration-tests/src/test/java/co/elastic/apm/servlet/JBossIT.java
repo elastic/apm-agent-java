@@ -19,8 +19,8 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
-import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JBossServletApiTestApp;
+import co.elastic.apm.servlet.tests.JavaxExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.SoapTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
@@ -68,7 +68,7 @@ public class JBossIT extends AbstractServletContainerIntegrationTest {
             JsfApplicationServerTestApp.class,
             SoapTestApp.class,
             CdiApplicationServerTestApp.class,
-            ExternalPluginTestApp.class
+            JavaxExternalPluginTestApp.class
         );
     }
 }
