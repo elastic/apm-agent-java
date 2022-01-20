@@ -27,8 +27,11 @@ import java.io.IOException;
  * `integration-tests/application-server-integration-tests` (see {@code ExternalPluginTestApp}). When tested this way,
  * the plugin is loaded as a jar from the configured plugin directory, including the instrumentation class itself and
  * the META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation file.
+ *
+ * Since a transaction is created through the Servlet instrumentation, the instrumented method ({@link TestClass#traceMe(boolean)})
+ * invocation targeted by the external plugin should be captured as a span.
  */
-public class ExternalPluginTestServlet extends javax.servlet.http.HttpServlet {
+public class ExternalPluginTestSpanServlet extends javax.servlet.http.HttpServlet {
 
     protected void doGet(javax.servlet.http.HttpServletRequest request, javax.servlet.http.HttpServletResponse response) throws javax.servlet.ServletException, IOException {
         try {
