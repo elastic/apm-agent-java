@@ -198,12 +198,12 @@ public class ElasticApmAgent {
         }
         List<ClassLoader> result = new ArrayList<>(pluginJars.length);
         for (File pluginJar : pluginJars) {
+            logger.info("Loading plugin {}", pluginJar.getName());
             try {
                 result.add(new ExternalPluginClassLoader(pluginJar, ElasticApmAgent.class.getClassLoader()));
-            } catch (IOException e) {
-                logger.error(e.getMessage(), e);
+            } catch (Exception e) {
+                logger.error("Error loading external plugin", e);
             }
-            logger.info("Loading plugin {}", pluginJar.getName());
         }
         return result;
     }
