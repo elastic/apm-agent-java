@@ -78,6 +78,12 @@
             <type>war</type>
         </dependency>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>external-plugin-jakarta-app</artifactId>
+            <version>${project.version}</version>
+            <type>war</type>
+        </dependency>
+        <dependency>
             <!-- this dependency is only important in order to make sure the external plugin jar exists -->
             <groupId>${project.groupId}</groupId>
             <artifactId>external-plugin</artifactId>

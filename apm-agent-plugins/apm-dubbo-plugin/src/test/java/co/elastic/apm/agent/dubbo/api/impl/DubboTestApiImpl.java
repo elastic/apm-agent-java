@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.dubbo.api.impl;
 
+import co.elastic.apm.agent.dubbo.api.AnotherApi;
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
 import co.elastic.apm.agent.impl.GlobalTracer;
@@ -25,7 +26,6 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import okhttp3.OkHttpClient;
 import org.apache.dubbo.rpc.AsyncContext;
 import org.apache.dubbo.rpc.RpcContext;
 
@@ -33,9 +33,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
 public class DubboTestApiImpl implements DubboTestApi {
 
@@ -51,12 +49,12 @@ public class DubboTestApiImpl implements DubboTestApi {
         }
     }
 
-    private OkHttpClient client;
-
     private Executor executorService;
 
-    public DubboTestApiImpl() {
-        client = new OkHttpClient();
+    private AnotherApi anotherApi;
+
+    public DubboTestApiImpl(AnotherApi anotherApi) {
+        this.anotherApi = anotherApi;
         executorService = Executors.newSingleThreadExecutor();
     }
 
@@ -127,6 +125,11 @@ public class DubboTestApiImpl implements DubboTestApi {
             }
         });
         return null;
+    }
+
+    @Override
+    public String willInvokeAnotherApi(String arg) {
+        return anotherApi.echo(arg);
     }
 
     private void doSomething() {
