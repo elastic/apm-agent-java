@@ -229,8 +229,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("*session*"),
             WildcardMatcher.valueOf("*credit*"),
             WildcardMatcher.valueOf("*card*"),
-            // HTTP request header for basic auth, contains passwords
-            WildcardMatcher.valueOf("authorization"),
+            WildcardMatcher.valueOf("*auth*"),
             // HTTP response header which can contain session ids
             WildcardMatcher.valueOf("set-cookie")
         ));
@@ -378,6 +377,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
         .description("When enabled, configures Byte Buddy to use a type pool cache.")
+        .buildWithDefault(true);
+
+    private final ConfigurationOption<Boolean> warmupByteBuddy = ConfigurationOption.booleanOption()
+        .key("warmup_byte_buddy")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("When set to true, configures Byte Buddy to warmup instrumentation processes on the \n" +
+            "attaching thread just before installing the transformer on the JVM Instrumentation.")
         .buildWithDefault(true);
 
     private final ConfigurationOption<String> bytecodeDumpPath = ConfigurationOption.stringOption()
@@ -775,6 +782,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isTypePoolCacheEnabled() {
         return typePoolCache.get();
+    }
+
+    public boolean shouldWarmupByteBuddy() {
+        return warmupByteBuddy.get();
     }
 
     @Nullable

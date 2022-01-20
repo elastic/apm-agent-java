@@ -23,8 +23,8 @@ import co.elastic.apm.agent.report.ssl.SslUtils;
 import co.elastic.apm.agent.util.UrlConnectionUtils;
 import co.elastic.apm.agent.util.Version;
 import co.elastic.apm.agent.util.VersionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nonnull;
@@ -71,6 +71,7 @@ public class ApmServerClient {
     private static final Version VERSION_7_0 = Version.of("7.0.0");
     private static final Version VERSION_7_4 = Version.of("7.4.0");
     private static final Version VERSION_7_9 = Version.of("7.9.0");
+    private static final Version VERSION_8_0 = Version.of("8.0.0");
 
     private final ReporterConfiguration reporterConfiguration;
     @Nullable
@@ -338,12 +339,25 @@ public class ApmServerClient {
         return isAtLeast(VERSION_7_9);
     }
 
+    public boolean supportsKeepingUnsampledTransaction() {
+        // supportsKeepingUnsampledTransaction is called from application threads
+        // return true instead of blocking the thread
+        if (apmServerVersion != null && !apmServerVersion.isDone()) {
+            return true;
+        }
+        return isLowerThan(VERSION_8_0);
+    }
+
     @Nullable
     Version getApmServerVersion(long timeout, TimeUnit timeUnit) throws InterruptedException, ExecutionException, TimeoutException {
         if (apmServerVersion != null) {
             return apmServerVersion.get(timeout, timeUnit);
         }
         return null;
+    }
+
+    public boolean isLowerThan(Version apmServerVersion) {
+        return !isAtLeast(apmServerVersion);
     }
 
     public boolean isAtLeast(Version apmServerVersion) {

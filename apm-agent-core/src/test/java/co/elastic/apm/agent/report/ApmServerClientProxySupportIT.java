@@ -26,8 +26,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.BindMode;
@@ -48,9 +48,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
 // Using a separate test class for proxy support
-public class ApmServerClientProxySupportTest {
+public class ApmServerClientProxySupportIT {
 
-    private static final Logger logger = LoggerFactory.getLogger(ApmServerClientProxySupportTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(ApmServerClientProxySupportIT.class);
 
     private static final String PROXY_HEADER = "proxy-header";
     private static final String PROXY_HEADER_VALUE = "1234";

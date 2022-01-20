@@ -89,6 +89,7 @@ class ApmServerReporterIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        statusCode = HttpStatus.OK_200;
         handler = new BlockingHandler(exchange -> {
             if (statusCode < 300 && exchange.getRequestPath().equals("/intake/v2/events")) {
                 receivedIntakeApiCalls.incrementAndGet();

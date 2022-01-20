@@ -37,7 +37,6 @@ import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
 
 import javax.annotation.Nullable;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -123,7 +122,11 @@ public class AsyncProfiler {
                 throw new IllegalStateException("Async-profiler does not work on Linux " + arch);
             }
         } else if (os.contains("mac")) {
-            return "libasyncProfiler-macos-x64";
+            if (arch.contains("aarch")) {
+                throw new IllegalStateException("Async-profiler 1.x does not work on Apple silicon");
+            } else {
+                return "libasyncProfiler-macos-x64";
+            }
         } else {
             throw new IllegalStateException("Async-profiler does not work on " + os);
         }
