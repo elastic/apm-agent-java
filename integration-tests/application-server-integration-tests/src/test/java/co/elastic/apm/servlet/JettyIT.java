@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.servlet;
 
-import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
+import co.elastic.apm.servlet.tests.JavaxExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JsfServletContainerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
@@ -26,7 +26,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
-import java.util.List;
 
 @RunWith(Parameterized.class)
 public class JettyIT extends AbstractJettyIT {
@@ -42,6 +41,10 @@ public class JettyIT extends AbstractJettyIT {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class, JsfServletContainerTestApp.class, ExternalPluginTestApp.class);
+        return Arrays.asList(
+            ServletApiTestApp.class,
+            JsfServletContainerTestApp.class,
+            JavaxExternalPluginTestApp.class
+        );
     }
 }

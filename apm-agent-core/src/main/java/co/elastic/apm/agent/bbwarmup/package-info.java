@@ -16,17 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.rabbitmq;
+@NonnullApi
+package co.elastic.apm.agent.bbwarmup;
 
-import co.elastic.apm.agent.rabbitmq.config.LambdaSimpleMessageListenerContainerConfiguration;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
-
-@RunWith(SpringRunner.class)
-@SpringBootTest
-@ContextConfiguration(classes = {LambdaSimpleMessageListenerContainerConfiguration.class}, initializers = {AbstractRabbitMqTest.Initializer.class})
-public class LambdaSimpleMessageListenerContainerTest extends AbstractRabbitMqTest {
-
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

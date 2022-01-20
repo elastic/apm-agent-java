@@ -385,16 +385,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
             System.arraycopy(batchUpdates, 0, updates, 0, batchUpdates.length);
         }
 
-        long expectedAffected = 2;
-        if (isKnownDatabase("Oracle", "")) {
-            // for an unknown reason Oracle express have unexpected but somehow consistent behavior here
-            assertThat(updates).containsExactly(-2, -2);
-            expectedAffected = -4;
-        } else {
-            assertThat(updates).containsExactly(1, 1);
-        }
-
-        assertSpanRecorded(query, false, expectedAffected);
+        assertThat(updates).containsExactly(1, 1);
+        assertSpanRecorded(query, false, 2);
     }
 
     private void testMultipleRowsModifiedStatement() throws SQLException {

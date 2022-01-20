@@ -16,17 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.rabbitmq;
+package co.elastic.apm.agent.dubbo.api.impl;
 
-import co.elastic.apm.agent.rabbitmq.config.SimpleMessageListenerContainerConfiguration;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
+import co.elastic.apm.agent.dubbo.api.AnotherApi;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
-@ContextConfiguration(classes = {SimpleMessageListenerContainerConfiguration.class}, initializers = {AbstractRabbitMqTest.Initializer.class})
-public class SimpleMessageListenerContainerTest extends AbstractRabbitMqTest {
+public class AnotherApiImpl implements AnotherApi {
 
+    @Override
+    public String echo(String arg) {
+        return arg;
+    }
 }

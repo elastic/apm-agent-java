@@ -41,7 +41,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ContextConfiguration(classes = {BatchConfiguration.class}, initializers = {RabbitMqTestBase.Initializer.class})
-public class SpringAmqpBatchTest extends RabbitMqTestBase {
+public class SpringAmqpBatchIT extends RabbitMqTestBase {
 
     @Autowired
     private BatchingRabbitTemplate batchingRabbitTemplate;

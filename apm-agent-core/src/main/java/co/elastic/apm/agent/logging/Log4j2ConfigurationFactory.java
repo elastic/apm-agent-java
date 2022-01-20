@@ -118,7 +118,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         return getConfiguration();
     }
 
-    public Configuration getConfiguration() {
+    Configuration getConfiguration() {
         ConfigurationBuilder<BuiltConfiguration> builder = newConfigurationBuilder();
         builder.setStatusLevel(Level.ERROR)
             .setConfigurationName("ElasticAPM");
