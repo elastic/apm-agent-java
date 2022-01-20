@@ -32,7 +32,11 @@ updates:
       - dependency-name: "com.datastax.cassandra:cassandra-driver-core"
       - dependency-name: "com.datastax.oss:java-driver-core"
       - dependency-name: "io.micrometer:*"
+      - dependency-name: "jakarta.*:*"
     ignore:
       - dependency-name: "net.bytebuddy:byte-buddy-agent"
         # We deliberately want to keep this older version of Byte Buddy for our runtime attach test
         versions: ["<=1.9.16"]
+      - dependency-name: "org.slf4j:slf4j-api"
+        # A static arbitrary version used within our external plugin test
+        versions: ["<=1.7.25"]

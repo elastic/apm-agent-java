@@ -33,7 +33,7 @@ public abstract class AbstractTomcatIT extends AbstractServletContainerIntegrati
 
     @Override
     protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("CATALINA_OPTS", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
+        servletContainer.withEnv("CATALINA_OPTS", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005");
     }
 
     @Nullable
