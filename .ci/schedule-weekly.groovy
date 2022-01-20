@@ -35,11 +35,7 @@ pipeline {
       steps {
         build(job: 'apm-agent-java/apm-agent-java-mbp/master',
           parameters: [
-            booleanParam(name: 'windows_ci', value: true),
-            booleanParam(name: 'Run_As_Master_Branch', value: false),
-            booleanParam(name: 'smoketests_ci', value: false),
-            booleanParam(name: 'bench_ci', value: false),
-            booleanParam(name: 'test_ci', value: false)
+            booleanParam(name: 'windows_ci', value: true)
           ],
           propagate: false,
           wait: false
