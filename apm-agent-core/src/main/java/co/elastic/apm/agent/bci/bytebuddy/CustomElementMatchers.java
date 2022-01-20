@@ -22,6 +22,7 @@ import co.elastic.apm.agent.matcher.AnnotationMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.util.ClassLoaderUtils;
 import co.elastic.apm.agent.util.Version;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.annotation.AnnotationSource;
@@ -54,7 +55,7 @@ public class CustomElementMatchers {
     private static final ElementMatcher.Junction.AbstractBase<ClassLoader> AGENT_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
         @Override
         public boolean matches(@Nullable ClassLoader classLoader) {
-            return classLoader != null && classLoader.getClass().getName().startsWith("co.elastic.apm");
+            return ClassLoaderUtils.isAgentClassLoader(classLoader);
         }
     };
 
@@ -69,6 +70,21 @@ public class CustomElementMatchers {
         }
         return matcher;
     }
+
+    /**
+     * Matches the target class loader to a given class loader by instance comparison
+     * @param other the class loader to match to
+     * @return {@code true} if {@code other} is the same class loader instance as the target class loader
+     */
+    public static ElementMatcher.Junction<ClassLoader> isSameClassLoader(final ClassLoader other) {
+        return new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
+            @Override
+            public boolean matches(@Nullable ClassLoader target) {
+                return target == other;
+            }
+        };
+    }
+
 
     /**
      * Matches only class loaders which can load a certain class.

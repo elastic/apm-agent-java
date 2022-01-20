@@ -24,21 +24,28 @@ import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.testutils.TestPort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumentationTest {
+
+    private final int port = TestPort.getAvailableRandomPort();
+    private final int anotherPort = TestPort.getAvailableRandomPort();
 
     @Nullable
     private DubboTestApi dubboTestApi;
@@ -171,5 +178,46 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
             .isNotEqualTo(Outcome.UNKNOWN);
     }
 
-    abstract int getPort();
+    protected int getPort() {
+        return port;
+    }
+
+    protected int getAnotherApiPort() {
+        return anotherPort;
+    }
+
+    @Test
+    public void testBothProviderAndConsumer() {
+        DubboTestApi dubboTestApi = getDubboTestApi();
+        String arg = "hello, testBothProviderAndConsumer";
+        String ret = dubboTestApi.willInvokeAnotherApi(arg);
+        assertThat(ret).isEqualTo(arg);
+
+        assertThat(reporter.getFirstTransaction(5000)).isNotNull();
+        assertThat(reporter.getTransactions()).hasSize(2);
+        assertThat(reporter.getSpans()).hasSize(2);
+
+        Map<String, Transaction> transactionMap = buildMap(reporter.getTransactions());
+        Map<String, Span> spanMap = buildMap(reporter.getSpans());
+
+        String testApiName = "DubboTestApi#willInvokeAnotherApi";
+        String anotherApiName = "AnotherApi#echo";
+
+        assertThat(spanMap.get(testApiName).getTraceContext().getId().toString())
+            .isEqualTo(transactionMap.get(testApiName).getTraceContext().getParentId().toString());
+
+        assertThat(transactionMap.get(testApiName).getTraceContext().getId().toString())
+            .isEqualTo(spanMap.get(anotherApiName).getTraceContext().getParentId().toString());
+
+        assertThat(spanMap.get(anotherApiName).getTraceContext().getId().toString())
+            .isEqualTo(transactionMap.get(anotherApiName).getTraceContext().getParentId().toString());
+    }
+
+    public <T extends AbstractSpan<?>> Map<String, T> buildMap(List<T> list) {
+        Map<String, T> map = new HashMap<>();
+        for (T t : list) {
+            map.put(t.getNameAsString(), t);
+        }
+        return map;
+    }
 }
