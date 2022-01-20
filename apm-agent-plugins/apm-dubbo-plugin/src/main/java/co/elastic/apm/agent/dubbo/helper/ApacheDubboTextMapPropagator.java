@@ -20,27 +20,28 @@ package co.elastic.apm.agent.dubbo.helper;
 
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import org.apache.dubbo.rpc.Invocation;
+import org.apache.dubbo.rpc.RpcContext;
 
 import javax.annotation.Nullable;
 
-public enum ApacheDubboTextMapPropagator implements TextHeaderGetter<Invocation>, TextHeaderSetter<Invocation> {
+public enum ApacheDubboTextMapPropagator implements TextHeaderGetter<RpcContext>, TextHeaderSetter<RpcContext> {
 
     INSTANCE;
 
     @Nullable
     @Override
-    public String getFirstHeader(String headerName, Invocation invocation) {
-        return invocation.getAttachment(headerName);
+    public String getFirstHeader(String headerName, RpcContext rpcContext) {
+        return rpcContext.getAttachment(headerName);
     }
 
     @Override
-    public <S> void forEach(String headerName, Invocation invocation, S state, HeaderConsumer<String, S> consumer) {
-        consumer.accept(invocation.getAttachment(headerName), state);
+    public <S> void forEach(String headerName, RpcContext rpcContext, S state, HeaderConsumer<String, S> consumer) {
+        //consumer.accept(invocation.getAttachment(headerName), state);
+        consumer.accept(rpcContext.getAttachment(headerName), state);
     }
 
     @Override
-    public void setHeader(String headerName, String headerValue, Invocation invocation) {
-        invocation.setAttachment(headerName, headerValue);
+    public void setHeader(String headerName, String headerValue, RpcContext rpcContext) {
+        rpcContext.setAttachment(headerName, headerValue);
     }
 }
