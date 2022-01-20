@@ -22,6 +22,7 @@ import co.elastic.apm.agent.matcher.AnnotationMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.util.ClassLoaderUtils;
 import co.elastic.apm.agent.util.Version;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.annotation.AnnotationSource;
@@ -54,7 +55,7 @@ public class CustomElementMatchers {
     private static final ElementMatcher.Junction.AbstractBase<ClassLoader> AGENT_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
         @Override
         public boolean matches(@Nullable ClassLoader classLoader) {
-            return classLoader != null && classLoader.getClass().getName().startsWith("co.elastic.apm");
+            return ClassLoaderUtils.isAgentClassLoader(classLoader);
         }
     };
 
