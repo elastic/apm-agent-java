@@ -1219,7 +1219,7 @@ See `integration-tests/external-plugin-test` for an example plugin.
 [[config-use-elastic-traceparent-header]]
 ==== `use_elastic_traceparent_header` (added[1.14.0])
 
-To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent
+To enable {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing], the agent
 adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
 These headers (`traceparent` and `tracestate`) are defined in the
 https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.
@@ -3271,7 +3271,7 @@ The default unit for this option is `ms`.
 #
 # plugins_dir=
 
-# To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent
+# To enable {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing], the agent
 # adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
 # These headers (`traceparent` and `tracestate`) are defined in the
 # https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.
