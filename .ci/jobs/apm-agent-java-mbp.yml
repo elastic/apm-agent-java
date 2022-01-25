@@ -13,7 +13,7 @@
             discover-pr-forks-trust: permission
             discover-pr-origin: merge-current
             discover-tags: true
-            head-filter-regex: '(main|PR-.*)'
+            head-filter-regex: '(master|PR-.*|v\d+\.\d+\.\d+.*)'
             notification-context: 'apm-ci'
             repo: apm-agent-java
             repo-owner: elastic
