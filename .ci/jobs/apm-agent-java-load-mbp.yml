@@ -15,7 +15,7 @@
             discover-tags: false
             disable-pr-notifications: true
             notification-context: 'apm-ci'
-            head-filter-regex: '(master|PR-.*)'
+            head-filter-regex: '(main|PR-.*)'
             repo: apm-agent-java
             repo-owner: elastic
             credentials-id: 2a9602aa-ab9f-4e52-baf3-b71ca88469c7-UserAndToken
