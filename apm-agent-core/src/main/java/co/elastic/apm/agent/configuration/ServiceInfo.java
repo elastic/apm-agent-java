@@ -18,51 +18,77 @@
  */
 package co.elastic.apm.agent.configuration;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 
-public class ServiceNameUtil {
+public class ServiceInfo {
+
+    public static final ServiceInfo DEFAULT = createDefault();
     private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(.*)?$";
 
-    public static String getDefaultServiceName() {
-        String lambdaFunctionName = System.getenv("AWS_LAMBDA_FUNCTION_NAME");
-        if (null != lambdaFunctionName) {
-            return lambdaFunctionName;
-        } else {
-            return getDefaultServiceName(System.getProperty("sun.java.command"));
-        }
+    private final String serviceName;
+    private final String serviceVersion;
+
+    private ServiceInfo() {
+        this(null, null);
     }
 
-    static String getDefaultServiceName(@Nullable String sunJavaCommand) {
-        String serviceName = parseSunJavaCommand(sunJavaCommand);
-        if (serviceName != null) {
-            serviceName = replaceDisallowedChars(serviceName);
-            serviceName = serviceName.trim();
-        }
-        if (serviceName == null || serviceName.isEmpty()) {
-            serviceName = "unknown-java-service";
-        }
+    public ServiceInfo(@Nullable String serviceName) {
+        this(serviceName, null);
+    }
+
+    public ServiceInfo(@Nullable String serviceName, @Nullable String serviceVersion) {
+        this.serviceName = serviceName != null && !serviceName.trim().isEmpty() ? replaceDisallowedServiceNameChars(serviceName).trim() : "unknown-java-service";
+        this.serviceVersion = serviceVersion;
+    }
+
+    public String getServiceName() {
         return serviceName;
     }
 
     @Nullable
-    private static String parseSunJavaCommand(@Nullable String command) {
+    public String getServiceVersion() {
+        return serviceVersion;
+    }
+
+    public static String replaceDisallowedServiceNameChars(String serviceName) {
+        return serviceName.replaceAll("[^a-zA-Z0-9 _-]", "-");
+    }
+
+    public static ServiceInfo createDefault() {
+        return createDefault(System.getProperties());
+    }
+
+    static ServiceInfo createDefault(Properties properties) {
+        String lambdaFunctionName = System.getenv("AWS_LAMBDA_FUNCTION_NAME");
+        if (lambdaFunctionName != null) {
+            return new ServiceInfo(lambdaFunctionName, null);
+        } else {
+            ServiceInfo serviceInfo = createFromSunJavaCommand(properties.getProperty("sun.java.command"));
+            if (serviceInfo != null) {
+                return serviceInfo;
+            }
+            return new ServiceInfo();
+        }
+    }
+
+    @Nullable
+    private static ServiceInfo createFromSunJavaCommand(@Nullable String command) {
         if (command == null) {
             return null;
         }
         command = command.trim();
         String serviceName = getContainerServiceName(command);
         if (serviceName != null) {
-            return serviceName;
+            return new ServiceInfo(serviceName);
         }
         if (command.contains(".jar")) {
-            serviceName = parseJarCommand(command);
+            return parseJarCommand(command);
         } else {
-            serviceName = parseMainClass(command);
+            return parseMainClass(command);
         }
-        return serviceName;
     }
 
     @Nullable
@@ -83,31 +109,28 @@ public class ServiceNameUtil {
         return null;
     }
 
-    public static String replaceDisallowedChars(String serviceName) {
-        return serviceName.replaceAll("[^a-zA-Z0-9 _-]", "-");
-    }
-
-    @Nullable
-    private static String parseJarCommand(String command) {
+    private static ServiceInfo parseJarCommand(String command) {
         final String[] commandParts = command.split(" ");
-        String result = null;
+        String serviceName = null;
+        String serviceVersion = null;
         for (String commandPart : commandParts) {
             if (commandPart.endsWith(".jar")) {
                 try (JarFile jarFile = new JarFile(commandPart)) {
-                    result = jarFile.getManifest().getMainAttributes().getValue(Attributes.Name.IMPLEMENTATION_TITLE);
+                    Attributes mainAttributes = jarFile.getManifest().getMainAttributes();
+                    serviceName = mainAttributes.getValue(Attributes.Name.IMPLEMENTATION_TITLE);
+                    serviceVersion = mainAttributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION);
                 } catch (Exception ignored) {
                 }
 
-                if (result == null || result.isEmpty()) {
-                    result = removeVersionFromJar(removePath(removeJarExtension(commandPart)));
+                if (serviceName == null || serviceName.isEmpty()) {
+                    serviceName = removeVersionFromJar(removePath(removeJarExtension(commandPart)));
                 }
                 break;
             }
         }
-        return result;
+        return new ServiceInfo(serviceName, serviceVersion);
     }
 
-    @Nonnull
     private static String removeJarExtension(String commandPart) {
         return commandPart.substring(0, commandPart.indexOf(".jar"));
     }
@@ -120,7 +143,7 @@ public class ServiceNameUtil {
         return jarFileName.replaceFirst(JAR_VERSION_SUFFIX, "");
     }
 
-    private static String parseMainClass(String command) {
+    private static ServiceInfo parseMainClass(String command) {
         final String mainClassName;
         int indexOfSpace = command.indexOf(' ');
         if (indexOfSpace != -1) {
@@ -128,6 +151,6 @@ public class ServiceNameUtil {
         } else {
             mainClassName = command;
         }
-        return mainClassName.substring(mainClassName.lastIndexOf('.') + 1);
+        return new ServiceInfo(mainClassName.substring(mainClassName.lastIndexOf('.') + 1));
     }
 }

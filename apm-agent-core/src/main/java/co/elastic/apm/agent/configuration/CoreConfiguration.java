@@ -110,7 +110,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "NOTE: Service name auto discovery mechanisms require APM Server 7.0+.")
         .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name \"{0}\" must only contain characters " +
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
-        .buildWithDefault(ServiceNameUtil.getDefaultServiceName());
+        .buildWithDefault(ServiceInfo.DEFAULT.getServiceName());
 
     private final ConfigurationOption<String> serviceNodeName = ConfigurationOption.stringOption()
         .key(SERVICE_NODE_NAME)
@@ -145,7 +145,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("A version string for the currently deployed version of the service. If you don’t version your deployments, " +
             "the recommended value for this field is the commit identifier of the deployed revision, " +
             "e.g. the output of git rev-parse HEAD.")
-        .defaultValue(ServiceVersionUtil.getDefaultServiceVersion())
+        .defaultValue(ServiceInfo.DEFAULT.getServiceVersion())
         .build();
 
     private final ConfigurationOption<String> hostname = ConfigurationOption.stringOption()

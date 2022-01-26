@@ -20,7 +20,7 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServiceNameUtil;
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -471,7 +471,7 @@ class ElasticApmTracerTest {
         startTestRootTransaction().end();
 
         CoreConfiguration coreConfig = localConfig.getConfig(CoreConfiguration.class);
-        assertThat(ServiceNameUtil.getDefaultServiceName()).isEqualTo(coreConfig.getServiceName());
+        assertThat(ServiceInfo.createDefault().getServiceName()).isEqualTo(coreConfig.getServiceName());
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isNull();
         if (command != null) {
             System.setProperty("sun.java.command", command);
