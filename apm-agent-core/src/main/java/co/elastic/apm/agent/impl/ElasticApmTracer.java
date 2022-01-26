@@ -20,7 +20,7 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServiceNameUtil;
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -753,7 +753,7 @@ public class ElasticApmTracer implements Tracer {
             return;
         }
 
-        String sanitizedServiceName = ServiceNameUtil.replaceDisallowedChars(serviceName);
+        String sanitizedServiceName = ServiceInfo.replaceDisallowedServiceNameChars(serviceName);
         logger.debug("Using `{}` as the service name for class loader [{}]", sanitizedServiceName, classLoader);
         if (!serviceNameByClassLoader.containsKey(classLoader)) {
             serviceNameByClassLoader.putIfAbsent(classLoader, sanitizedServiceName);
