@@ -31,6 +31,7 @@ endif::[]
 * Adding agent logging capabilities to our SDK, making it available for external plugins - {pull}2390[#2390]
 * When the `MANIFEST.MF` of the main jar contains the `Implementation-Title` attribute, it is used as the default service name - {pull}1921[#1921]
   Note: this may change your service names if you relied on the auto-discovery that uses the name of the jar file. If that jar file also contains an `Implementation-Title` attribute in the `MANIFEST.MF` file, the latter will take precedence.
+* When the MANIFEST.MF of the main jar contains the Implementation-Version attribute, it is used as the default service version (except for application servers) - {pull}1922[#1922]
 * Added support for setting the application class loader when starting a transaction via the public api - {pull}2369[#2369]
 
 [float]
