@@ -20,6 +20,8 @@ package co.elastic.apm.agent.configuration;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
 
 public class ServiceNameUtil {
     private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(.*)?$";
@@ -91,7 +93,14 @@ public class ServiceNameUtil {
         String result = null;
         for (String commandPart : commandParts) {
             if (commandPart.endsWith(".jar")) {
-                result = removeVersionFromJar(removePath(removeJarExtension(commandPart)));
+                try (JarFile jarFile = new JarFile(commandPart)) {
+                    result = jarFile.getManifest().getMainAttributes().getValue(Attributes.Name.IMPLEMENTATION_TITLE);
+                } catch (Exception ignored) {
+                }
+
+                if (result == null || result.isEmpty()) {
+                    result = removeVersionFromJar(removePath(removeJarExtension(commandPart)));
+                }
                 break;
             }
         }
