@@ -24,7 +24,7 @@ The main sources of spikes in higher latencies are garbage collection pauses and
 
 We take great care to minimize the memory allocations we do in the Java agent as much as possible.
 For example, instead of allocating new objects, we take them from an object pool and return them to the pool when they are not used anymore.
-More details on this process can be found https://github.com/elastic/apm-agent-java/blob/master/apm-agent-core/README.md#lifecycle[here].
+More details on this process can be found https://github.com/elastic/apm-agent-java/blob/main/apm-agent-core/README.md#lifecycle[here].
 When it comes to reporting the recorded events,
 we directly serialize them into the output stream of the request to the APM server while only relying on reusable buffers.
 This way we can report events without allocating any objects.
