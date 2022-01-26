@@ -156,7 +156,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
     private boolean setCustomPlatformMBeanServer() {
         return ClassLoader.getSystemClassLoader().getResource("org/jboss/modules/Main.class") != null
-            || System.getProperty("weblogic.Name") != null;
+            || System.getProperty("weblogic.Name") != null || System.getProperty("weblogic.home") != null;
     }
 
     synchronized void init(final MBeanServer platformMBeanServer) {
