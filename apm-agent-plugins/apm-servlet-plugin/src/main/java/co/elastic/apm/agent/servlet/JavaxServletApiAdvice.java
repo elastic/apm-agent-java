@@ -21,6 +21,8 @@ package co.elastic.apm.agent.servlet;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.servlet.helper.JavaxServletTransactionCreationHelper;
 import net.bytebuddy.asm.Advice;
 
@@ -40,6 +42,8 @@ import java.util.Enumeration;
 import java.util.Map;
 
 public class JavaxServletApiAdvice extends ServletApiAdvice implements ServletHelper<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
+
+    private static final Logger log = LoggerFactory.getLogger(JavaxServletApiAdvice.class);
 
     private static JavaxServletTransactionCreationHelper transactionCreationHelper;
     private static JavaxServletApiAdvice helper;
@@ -89,7 +93,7 @@ public class JavaxServletApiAdvice extends ServletApiAdvice implements ServletHe
     private static void debugClass(Class<?> type){
         ClassLoader cl = type.getClassLoader();
         if (cl != null) {
-            System.out.printf("classloader of class '%s' : %s (%s)\n", type.getName(), cl.getName(), cl);
+            log.info("classloader of class '{}', {}", type.getName(), cl);
             tryLoadClass(cl, "javax.servlet.http.HttpServletRequest");
         }
 
@@ -97,7 +101,7 @@ public class JavaxServletApiAdvice extends ServletApiAdvice implements ServletHe
 
     private static void debugContextClassLoader(){
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        System.out.printf("context classloader : %s \n", cl);
+        log.info("context classloader : {}", cl);
         if (cl != null) {
             tryLoadClass(cl,"javax.servlet.http.HttpServletRequest");
         }
@@ -106,10 +110,10 @@ public class JavaxServletApiAdvice extends ServletApiAdvice implements ServletHe
     private static void tryLoadClass(ClassLoader cl, String className) {
         try {
             Class<?> aClass = Class.forName(className, false, cl);
-            System.out.printf("classloader '%s' can access class '%s'", cl, className);
-            System.out.printf("classloader of '%s' : ", aClass.getClassLoader());
+            log.info("classloader '{}' can access class '{}'", cl, className);
+            log.info("classloader of '{}' : ", aClass.getClassLoader());
         } catch (ClassNotFoundException e) {
-            System.out.printf("classloader '%s' can not access class '%s'", cl, className);
+            log.info("classloader '{}' can not access class '{}'", cl, className);
         }
     }
 
