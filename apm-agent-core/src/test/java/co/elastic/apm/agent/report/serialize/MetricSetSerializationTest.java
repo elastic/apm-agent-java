@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
-import co.elastic.apm.agent.util.ServiceNameAndVersion;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -206,7 +206,7 @@ class MetricSetSerializationTest {
     void testServiceNameOverrideWithOneService() throws Exception {
         registry.updateTimer("foo", Labels.Mutable.of(), 1);
 
-        JsonNode jsonNode = reportAsJson(singletonList(new ServiceNameAndVersion("bar", "1.0")));
+        JsonNode jsonNode = reportAsJson(singletonList(new ServiceInfo("bar", "1.0")));
         assertThat(jsonNode).isNotNull();
         JsonNode serviceName = jsonNode.get("metricset").get("service").get("name");
         assertThat(serviceName.asText()).isEqualTo("bar");
@@ -222,7 +222,7 @@ class MetricSetSerializationTest {
         registry.flipPhaseAndReport(
             metricSets -> jwFuture.complete(metricRegistrySerializer.serialize(
                 metricSets.values().iterator().next(),
-                List.of(new ServiceNameAndVersion("bar1", "2.0"), new ServiceNameAndVersion("bar2", null))
+                List.of(new ServiceInfo("bar1", "2.0"), new ServiceInfo("bar2", null))
             ))
         );
 
@@ -252,10 +252,10 @@ class MetricSetSerializationTest {
     }
 
     @Nullable
-    private JsonNode reportAsJson(List<ServiceNameAndVersion> serviceNames) throws Exception {
+    private JsonNode reportAsJson(List<ServiceInfo> serviceInfos) throws Exception {
         final CompletableFuture<JsonWriter> jwFuture = new CompletableFuture<>();
         registry.flipPhaseAndReport(
-            metricSets -> jwFuture.complete(metricRegistrySerializer.serialize(metricSets.values().iterator().next(), serviceNames))
+            metricSets -> jwFuture.complete(metricRegistrySerializer.serialize(metricSets.values().iterator().next(), serviceInfos))
         );
         JsonNode json = null;
         JsonWriter jw = jwFuture.getNow(null);

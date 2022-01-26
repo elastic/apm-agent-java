@@ -118,7 +118,7 @@ public abstract class AbstractInstrumentationTest {
                 TracerInternalApiUtils.resumeTracer(tracer);
             }
         }
-        tracer.resetServiceNamesAndVersionOverrides();
+        tracer.resetServiceInfoOverrides();
 
         // reset reporter to default behaviour on all checks
         reporter.resetChecks();

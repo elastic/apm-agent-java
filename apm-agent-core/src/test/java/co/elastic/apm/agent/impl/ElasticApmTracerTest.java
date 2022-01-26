@@ -20,7 +20,7 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServiceNameUtil;
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -74,7 +74,7 @@ class ElasticApmTracerTest {
     void cleanupAndCheck() {
         reporter.assertRecycledAfterDecrementingReferences();
         objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
-        tracerImpl.resetServiceNamesAndVersionOverrides();
+        tracerImpl.resetServiceInfoOverrides();
     }
 
     @Test
@@ -431,7 +431,7 @@ class ElasticApmTracerTest {
             .configurationRegistry(SpyConfiguration.createSpyConfig())
             .reporter(reporter)
             .buildAndStart();
-        tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden");
 
         startTestRootTransaction().end();
 
@@ -448,7 +448,7 @@ class ElasticApmTracerTest {
             .reporter(reporter)
             .configurationRegistry(localConfig)
             .buildAndStart();
-        tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden");
 
         startTestRootTransaction().end();
 
@@ -467,11 +467,11 @@ class ElasticApmTracerTest {
             .reporter(reporter)
             .configurationRegistry(localConfig)
             .buildAndStart();
-        tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden");
         startTestRootTransaction().end();
 
         CoreConfiguration coreConfig = localConfig.getConfig(CoreConfiguration.class);
-        assertThat(ServiceNameUtil.getDefaultServiceName()).isEqualTo(coreConfig.getServiceName());
+        assertThat(ServiceInfo.autoDetect(System.getProperties()).getServiceName()).isEqualTo(coreConfig.getServiceName());
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isNull();
         if (command != null) {
             System.setProperty("sun.java.command", command);
@@ -485,7 +485,7 @@ class ElasticApmTracerTest {
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)
             .buildAndStart();
-        tracer.overrideServiceNameAndVersionForClassLoader(getClass().getClassLoader(), "overridden_name", "overridden_version");
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden_name", "overridden_version");
 
         startTestRootTransaction().end();
 
@@ -500,7 +500,7 @@ class ElasticApmTracerTest {
             .reporter(reporter)
             .configurationRegistry(localConfig)
             .buildAndStart();
-        tracer.overrideServiceNameAndVersionForClassLoader(getClass().getClassLoader(), "overridden_name", "overridden_version");
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden_name", "overridden_version");
 
         startTestRootTransaction().end();
 

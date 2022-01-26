@@ -204,13 +204,13 @@ public class GlobalTracer implements Tracer {
     }
 
     @Override
-    public void overrideServiceNameForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName) {
-        tracer.overrideServiceNameForClassLoader(classLoader, serviceName);
+    public void overrideServiceInfoForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName) {
+        tracer.overrideServiceInfoForClassLoader(classLoader, serviceName);
     }
 
     @Override
-    public void overrideServiceNameAndVersionForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName, @Nullable String serviceVersion) {
-        tracer.overrideServiceNameAndVersionForClassLoader(classLoader, serviceName, serviceVersion);
+    public void overrideServiceInfoForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName, @Nullable String serviceVersion) {
+        tracer.overrideServiceInfoForClassLoader(classLoader, serviceName, serviceVersion);
     }
 
     @Override

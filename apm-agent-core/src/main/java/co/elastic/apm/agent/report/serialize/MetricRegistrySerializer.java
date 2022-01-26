@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.metrics.Timer;
-import co.elastic.apm.agent.util.ServiceNameAndVersion;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
@@ -49,18 +49,18 @@ public class MetricRegistrySerializer {
      * @return the serialized metric-set or {@code null} if no samples were serialized
      */
     @Nullable
-    public JsonWriter serialize(MetricSet metricSet, List<ServiceNameAndVersion> serviceNamesAndVersions) {
+    public JsonWriter serialize(MetricSet metricSet, List<ServiceInfo> serviceInfos) {
         JsonWriter jw = dslJson.newWriter(maxSerializedSize);
         boolean hasSamples = false;
-        if (serviceNamesAndVersions.isEmpty() || metricSet.getLabels().getServiceName() != null) {
+        if (serviceInfos.isEmpty() || metricSet.getLabels().getServiceName() != null) {
             hasSamples = serialize(metricSet, null, null, jw);
         } else {
-            ServiceNameAndVersion serviceNameAndVersion = serviceNamesAndVersions.get(0);
-            hasSamples = serialize(metricSet, serviceNameAndVersion.getServiceName(), serviceNameAndVersion.getServiceVersion(), jw);
+            ServiceInfo serviceInfo = serviceInfos.get(0);
+            hasSamples = serialize(metricSet, serviceInfo.getServiceName(), serviceInfo.getServiceVersion(), jw);
             if (hasSamples) {
-                for (int i = 1; i < serviceNamesAndVersions.size(); ++i) {
-                    serviceNameAndVersion = serviceNamesAndVersions.get(i);
-                    serialize(metricSet, serviceNameAndVersion.getServiceName(), serviceNameAndVersion.getServiceVersion(), jw);
+                for (int i = 1; i < serviceInfos.size(); ++i) {
+                    serviceInfo = serviceInfos.get(i);
+                    serialize(metricSet, serviceInfo.getServiceName(), serviceInfo.getServiceVersion(), jw);
                 }
             }
         }
