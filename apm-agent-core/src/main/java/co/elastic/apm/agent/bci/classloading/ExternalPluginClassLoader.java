@@ -41,9 +41,13 @@ import java.util.jar.JarFile;
  */
 public class ExternalPluginClassLoader extends URLClassLoader {
     private final List<String> classNames;
+    private final File pluginJar;
+    private final ClassLoader agentClassLoader;
 
     public ExternalPluginClassLoader(File pluginJar, ClassLoader agentClassLoader) throws IOException {
         super(new URL[]{pluginJar.toURI().toURL()}, agentClassLoader);
+        this.pluginJar = pluginJar;
+        this.agentClassLoader = agentClassLoader;
         classNames = Collections.unmodifiableList(scanForClasses(pluginJar));
         if (classNames.contains(ElasticApmInstrumentation.class.getName())) {
             throw new IllegalStateException(String.format("The plugin %s contains the plugin SDK. Please make sure the " +
@@ -89,4 +93,11 @@ public class ExternalPluginClassLoader extends URLClassLoader {
         return classNames;
     }
 
+    @Override
+    public String toString() {
+        return "ExternalPluginClassLoader{" +
+            "pluginJar=" + pluginJar +
+            ", agentClassLoader=" + agentClassLoader +
+            '}';
+    }
 }

@@ -34,7 +34,6 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -51,8 +50,20 @@ public class JavaxServletApiAdvice extends ServletApiAdvice implements ServletHe
 
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest) {
-        return onServletEnter(servletRequest, helper);
+    public static Object onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest,
+                                               @Advice.This @Nullable Object thisRef) {
+        try {
+            return onServletEnter(servletRequest, helper);
+        } catch (NoClassDefFoundError e) {
+
+            debugContextClassLoader();
+            debugClass(JavaxServletApiAdvice.class);
+
+            if (thisRef != null) {
+                debugClass(thisRef.getClass());
+            }
+            throw e;
+        }
     }
 
 
@@ -74,6 +85,34 @@ public class JavaxServletApiAdvice extends ServletApiAdvice implements ServletHe
     public boolean isHttpServletResponse(ServletResponse servletResponse) {
         return servletResponse instanceof HttpServletResponse;
     }
+
+    private static void debugClass(Class<?> type){
+        ClassLoader cl = type.getClassLoader();
+        if (cl != null) {
+            System.out.printf("classloader of class '%s' : %s (%s)\n", type.getName(), cl.getName(), cl);
+            tryLoadClass(cl, "javax.servlet.http.HttpServletRequest");
+        }
+
+    }
+
+    private static void debugContextClassLoader(){
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        System.out.printf("context classloader : %s \n", cl);
+        if (cl != null) {
+            tryLoadClass(cl,"javax.servlet.http.HttpServletRequest");
+        }
+    }
+
+    private static void tryLoadClass(ClassLoader cl, String className) {
+        try {
+            Class<?> aClass = Class.forName(className, false, cl);
+            System.out.printf("classloader '%s' can access class '%s'", cl, className);
+            System.out.printf("classloader of '%s' : ", aClass.getClassLoader());
+        } catch (ClassNotFoundException e) {
+            System.out.printf("classloader '%s' can not access class '%s'", cl, className);
+        }
+    }
+
 
     @Override
     public boolean isRequestDispatcherType(ServletRequest servletRequest) {
