@@ -22,7 +22,7 @@ Just ignore the checkboxes of categories that don't apply.
   - [ ] I have added tests that would fail without this fix
 - [ ] This is a new plugin
   - [ ] I have updated [CHANGELOG.asciidoc](https://github.com/elastic/apm-agent-java/blob/main/CHANGELOG.asciidoc)
-  - [ ] My code follows the [style guidelines of this project](https://github.com/elastic/apm-agent-java/blob/masmainter/CONTRIBUTING.md#java-language-formatting-guidelines)
+  - [ ] My code follows the [style guidelines of this project](https://github.com/elastic/apm-agent-java/blob/main/CONTRIBUTING.md#java-language-formatting-guidelines)
   - [ ] I have made corresponding changes to the documentation
   - [ ] I have added tests that prove my fix is effective or that my feature works
   - [ ] New and existing [**unit** tests](https://github.com/elastic/apm-agent-java/blob/main/CONTRIBUTING.md#testing) pass locally with my changes
