@@ -1,7 +1,7 @@
 [[ssl-configuration]]
 === SSL/TLS communication with APM Server
 
-If {apm-server-ref-v}/ssl-setup.html[SSL/TLS communication] is enabled on the APM Server, use the `https` protocol when configuring <<config-server-url,`server_url`>>.
+If {apm-guide-ref}/agent-tls.html[SSL/TLS communication] is enabled on the APM Server, use the `https` protocol when configuring <<config-server-url,`server_url`>>.
 
 [float]
 [[ssl-server-authentication]]
@@ -21,7 +21,7 @@ For example, you can use `keytool` to import a certificate into the truststore:
 [[ssl-client-authentication]]
 ==== Agent certificate authentication
 
-If {apm-server-ref-v}/ssl-setup.html#ssl-client-authentication[SSL client authentication]
+If {apm-guide-ref}/agent-tls.html#agent-client-cert[SSL client authentication]
 is enabled on the APM server, the agent will be required to send a proper certificate as part of the HTTPS handshake.
 There is currently no configuration on the Java agent that supports that and no one straightforward option to do that that is suitable for all cases.
 Generally speaking, the agent will send a certificate from the JVM keystore.
