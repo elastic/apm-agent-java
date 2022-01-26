@@ -20,7 +20,7 @@ pipeline {
   stages {
     stage('Agent weekly exhaustive test') {
       steps {
-        build(job: 'apm-agent-java/apm-agent-java-mbp/master',
+        build(job: 'apm-agent-java/apm-agent-java-mbp/main',
           parameters: [
             booleanParam(name: 'jdk_compatibility_ci', value: true),
             booleanParam(name: 'end_to_end_tests_ci', value: true),
