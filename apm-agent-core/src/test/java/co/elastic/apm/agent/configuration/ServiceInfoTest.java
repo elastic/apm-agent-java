@@ -20,10 +20,20 @@ package co.elastic.apm.agent.configuration;
 
 import org.junit.jupiter.api.Test;
 
-import static co.elastic.apm.agent.configuration.ServiceNameUtil.getDefaultServiceName;
+import java.util.Properties;
+
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
-class ServiceNameUtilTest {
+class ServiceInfoTest {
+
+    private static String getDefaultServiceName(String sunJavaCommand) {
+        Properties properties = new Properties();
+        if (sunJavaCommand != null) {
+            properties.setProperty("sun.java.command", sunJavaCommand);
+        }
+
+        return ServiceInfo.autoDetect(properties).getServiceName();
+    }
 
     @Test
     void serviceNameShouldBeNormalizedOrDefaults() {
