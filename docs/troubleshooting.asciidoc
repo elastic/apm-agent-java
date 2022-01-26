@@ -26,7 +26,7 @@ In addition to agent and application logs, look for `[elastic-apm-agent]` entrie
 Agent is updated frequently and releases are not strongly tied to other components in the stack.
 
 Therefore, trying to update to the most recently released agent version is often the recommended first troubleshooting step.
-If possible, trying the https://github.com/elastic/apm-agent-java/blob/master/README.md#snapshots[latest-snapshot] is even preferable as it would include fixes that are not yet released.
+If possible, trying the https://github.com/elastic/apm-agent-java/blob/main/README.md#snapshots[latest-snapshot] is even preferable as it would include fixes that are not yet released.
 
 See <<upgrading,upgrading documentation>> for more details.
 
