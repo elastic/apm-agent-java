@@ -63,7 +63,7 @@ public class ServiceInfo {
         return AUTO_DETECTED;
     }
 
-    static ServiceInfo autoDetect(Properties properties) {
+    public static ServiceInfo autoDetect(Properties properties) {
         String lambdaFunctionName = System.getenv("AWS_LAMBDA_FUNCTION_NAME");
         if (lambdaFunctionName != null) {
             return new ServiceInfo(lambdaFunctionName, null);
