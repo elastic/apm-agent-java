@@ -176,7 +176,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
                     .newLayout("PatternLayout")
                     .addAttribute("pattern", "%d [%thread] %-5level %logger{36} - %msg{nolookups}%n");
         } else {
-            String serviceName = getValue(CoreConfiguration.SERVICE_NAME, sources, ServiceInfo.createDefault().getServiceName());
+            String serviceName = getValue(CoreConfiguration.SERVICE_NAME, sources, ServiceInfo.autoDetected().getServiceName());
             return builder.newLayout("EcsLayout")
                 .addAttribute("eventDataset", serviceName + ".apm");
         }

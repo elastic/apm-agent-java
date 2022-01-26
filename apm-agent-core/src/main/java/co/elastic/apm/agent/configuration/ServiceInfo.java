@@ -25,22 +25,24 @@ import java.util.jar.JarFile;
 
 public class ServiceInfo {
 
-    public static final ServiceInfo DEFAULT = createDefault();
     private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(.*)?$";
+    private static final String DEFAULT_SERVICE_NAME = "unknown-java-service";
+    private static final ServiceInfo AUTO_DETECTED = autoDetect(System.getProperties());
 
     private final String serviceName;
+    @Nullable
     private final String serviceVersion;
-
-    private ServiceInfo() {
-        this(null, null);
-    }
 
     public ServiceInfo(@Nullable String serviceName) {
         this(serviceName, null);
     }
 
     public ServiceInfo(@Nullable String serviceName, @Nullable String serviceVersion) {
-        this.serviceName = serviceName != null && !serviceName.trim().isEmpty() ? replaceDisallowedServiceNameChars(serviceName).trim() : "unknown-java-service";
+        if (serviceName == null || serviceName.trim().isEmpty()) {
+            this.serviceName = DEFAULT_SERVICE_NAME;
+        } else {
+            this.serviceName = replaceDisallowedServiceNameChars(serviceName).trim();
+        }
         this.serviceVersion = serviceVersion;
     }
 
@@ -57,11 +59,11 @@ public class ServiceInfo {
         return serviceName.replaceAll("[^a-zA-Z0-9 _-]", "-");
     }
 
-    public static ServiceInfo createDefault() {
-        return createDefault(System.getProperties());
+    public static ServiceInfo autoDetected() {
+        return AUTO_DETECTED;
     }
 
-    static ServiceInfo createDefault(Properties properties) {
+    static ServiceInfo autoDetect(Properties properties) {
         String lambdaFunctionName = System.getenv("AWS_LAMBDA_FUNCTION_NAME");
         if (lambdaFunctionName != null) {
             return new ServiceInfo(lambdaFunctionName, null);
@@ -70,7 +72,7 @@ public class ServiceInfo {
             if (serviceInfo != null) {
                 return serviceInfo;
             }
-            return new ServiceInfo();
+            return new ServiceInfo(null);
         }
     }
 

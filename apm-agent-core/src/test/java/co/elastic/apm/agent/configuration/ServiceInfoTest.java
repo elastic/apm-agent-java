@@ -32,7 +32,7 @@ class ServiceInfoTest {
             properties.setProperty("sun.java.command", sunJavaCommand);
         }
 
-        return ServiceInfo.createDefault(properties).getServiceName();
+        return ServiceInfo.autoDetect(properties).getServiceName();
     }
 
     @Test

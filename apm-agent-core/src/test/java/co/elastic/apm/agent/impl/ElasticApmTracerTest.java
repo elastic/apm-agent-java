@@ -471,7 +471,7 @@ class ElasticApmTracerTest {
         startTestRootTransaction().end();
 
         CoreConfiguration coreConfig = localConfig.getConfig(CoreConfiguration.class);
-        assertThat(ServiceInfo.createDefault().getServiceName()).isEqualTo(coreConfig.getServiceName());
+        assertThat(ServiceInfo.autoDetected().getServiceName()).isEqualTo(coreConfig.getServiceName());
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isNull();
         if (command != null) {
             System.setProperty("sun.java.command", command);
