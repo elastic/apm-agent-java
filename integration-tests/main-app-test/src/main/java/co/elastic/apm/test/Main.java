@@ -21,8 +21,5 @@ package co.elastic.apm.test;
 public class Main {
 
     public static void main(String[] args) throws InterruptedException {
-        if (System.getProperty("java.specification.version").equals("1.7")) {
-            Thread.sleep(5000); // on Java 7 the agent initialization is delayed by at least 3000 ms
-        }
     }
 }

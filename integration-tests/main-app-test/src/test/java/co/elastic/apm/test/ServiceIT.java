@@ -33,8 +33,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ServiceIT {
 
     @ParameterizedTest
-    @ValueSource(strings = {"openjdk:7", "openjdk:8", "openjdk:11", "openjdk:17"})
+    @ValueSource(strings = {"openjdk:8", "openjdk:11", "openjdk:17"})
     void testServiceNameAndVersionFromManifest(String image) {
+        assertThat(new File("target/main-app-test.jar")).exists();
         GenericContainer<?> app = new GenericContainer<>(DockerImageName.parse(image))
             .withFileSystemBind(getAgentJar(), "/tmp/elastic-apm-agent.jar")
             .withFileSystemBind("target/main-app-test.jar", "/tmp/main-app.jar")
@@ -55,6 +56,6 @@ class ServiceIT {
         return Arrays.stream(buildDir.listFiles(fileFilter))
             .findFirst()
             .map(File::getAbsolutePath)
-            .orElse(null);
+            .orElseThrow(() -> new IllegalStateException("Agent jar not found. Execute mvn package to build the agent jar."));
     }
 }
