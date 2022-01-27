@@ -171,8 +171,6 @@ pipeline {
             }
           }
         }
-
-
         stage('Tests') {
           when {
             beforeAgent true
@@ -207,7 +205,6 @@ pipeline {
                 }
               }
             }
-
             /**
              * Run only unit tests on Windows
              */
