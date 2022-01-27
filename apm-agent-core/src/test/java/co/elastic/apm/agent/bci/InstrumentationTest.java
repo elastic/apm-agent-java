@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.bci.bytebuddy.Instrumented;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -268,6 +269,17 @@ class InstrumentationTest {
             ByteBuddyAgent.install(),
             Collections.singletonList(new SuppressExceptionInstrumentation()));
         assertThatThrownBy(this::exceptionPlease).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void testWarmup() {
+        doReturn(true).when(coreConfig).shouldWarmupByteBuddy();
+        assertThat(Instrumented.isWarmedUp()).isFalse();
+        Instrumented instrumented = new Instrumented();
+        assertThat(instrumented.isInstrumented()).isFalse();
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+        assertThat(Instrumented.isWarmedUp()).isTrue();
+        assertThat(instrumented.isInstrumented()).isTrue();
     }
 
     @Test

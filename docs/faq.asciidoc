@@ -74,5 +74,5 @@ You can use the <<public-api,public API>> to create custom spans and transaction
 participate in the
 https://docs.google.com/forms/d/e/1FAIpQLScd0RYiwZGrEuxykYkv9z8Hl3exx_LKCtjsqEo1OWx8BkLrOQ/viewform?usp=sf_link[survey]
 to vote for prioritizing adding support for the technologies you are using, or
-https://github.com/elastic/apm-agent-java/blob/master/CONTRIBUTING.md[get involved in the agent development]
+https://github.com/elastic/apm-agent-java/blob/main/CONTRIBUTING.md[get involved in the agent development]
 and contribute to the auto-instrumentation capabilities of the agent.

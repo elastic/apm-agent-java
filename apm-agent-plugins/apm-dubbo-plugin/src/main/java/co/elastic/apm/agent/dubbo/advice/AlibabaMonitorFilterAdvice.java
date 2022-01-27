@@ -48,12 +48,12 @@ public class AlibabaMonitorFilterAdvice {
             Span span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(),
                 invocation.getMethodName(), context.getRemoteAddress());
             if (span != null) {
-                span.propagateTraceContext(invocation, AlibabaDubboTextMapPropagator.INSTANCE);
+                span.propagateTraceContext(context, AlibabaDubboTextMapPropagator.INSTANCE);
                 return span;
             }
-        } else if (active == null) {
+        } else if (context.isProviderSide() && active == null) {
             // for provider side
-            Transaction transaction = tracer.startChildTransaction(invocation, AlibabaDubboTextMapPropagator.INSTANCE, Invocation.class.getClassLoader());
+            Transaction transaction = tracer.startChildTransaction(context, AlibabaDubboTextMapPropagator.INSTANCE, Invocation.class.getClassLoader());
             if (transaction != null) {
                 transaction.activate();
                 DubboTraceHelper.fillTransaction(transaction, invocation.getInvoker().getInterface(), invocation.getMethodName());
