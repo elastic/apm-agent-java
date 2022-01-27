@@ -94,10 +94,16 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         if (this.server != null || this.logManagerPropertyPoller != null) {
             return;
         }
-        // Avoid creating the platform MBean server, only get it if already initialized
-        // otherwise WildFly fails to start with a IllegalStateException:
+        // Do not eagerly trigger creation of the platform MBean server for known problematic cases
+        //
+        // WildFly fails to start with a IllegalStateException:
         // WFLYLOG0078: The logging subsystem requires the log manager to be org.jboss.logmanager.LogManager
-        if (setsCustomLogManager()) {
+        //
+        // JBoss sets the 'javax.management.builder.initial' system property, but uses the module classloader and
+        // current thread context class loader to initialize it
+        //
+        // Weblogic sets the 'javax.management.builder.initial' system property at runtime
+        if (setCustomPlatformMBeanServer()) {
             List<MBeanServer> servers = MBeanServerFactory.findMBeanServer(null);
             if (!servers.isEmpty()) {
                 // platform MBean server is already initialized
@@ -120,7 +126,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
     }
 
     private void deferInit() {
-        logger.debug("Deferring initialization of JMX metric tracking until log manager is initialized");
+        logger.debug("Deferring initialization of JMX metric tracking until platform mbean server is initialized");
         Thread thread = new Thread(new Runnable() {
 
             private final long timeout = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(5);
@@ -131,9 +137,6 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                     List<MBeanServer> servers = MBeanServerFactory.findMBeanServer(null);
                     if (!servers.isEmpty()) {
                         // avoid actively creating a platform mbean server
-                        // because JBoss sets the javax.management.builder.initial system property
-                        // this makes Java create a JBoss specific mbean server that can only be loaded
-                        // when the module class loader is set as the current thread's context class loader
                         init(servers.get(0));
                         return;
                     }
@@ -151,8 +154,9 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         logManagerPropertyPoller = thread;
     }
 
-    private boolean setsCustomLogManager() {
-        return ClassLoader.getSystemClassLoader().getResource("org/jboss/modules/Main.class") != null;
+    private boolean setCustomPlatformMBeanServer() {
+        return ClassLoader.getSystemClassLoader().getResource("org/jboss/modules/Main.class") != null
+            || System.getProperty("weblogic.Name") != null || System.getProperty("weblogic.home") != null;
     }
 
     synchronized void init(final MBeanServer platformMBeanServer) {

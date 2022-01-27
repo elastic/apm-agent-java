@@ -85,7 +85,7 @@ class CallTreeTest {
     @Test
     void testCallTree() {
         TraceContext traceContext = TraceContext.with64BitId(MockTracer.create());
-        CallTree.Root root = CallTree.createRoot(NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), 0);
+        CallTree.Root root = CallTree.createRoot(NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), traceContext.getServiceVersion(), 0);
         ObjectPool<CallTree> callTreePool = ListBasedObjectPool.ofRecyclable(new ArrayList<>(), Integer.MAX_VALUE, CallTree::new);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0, callTreePool, 0);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10), callTreePool, 0);
