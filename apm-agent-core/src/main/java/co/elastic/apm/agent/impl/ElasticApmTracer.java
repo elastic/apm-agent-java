@@ -72,7 +72,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class ElasticApmTracer implements Tracer {
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
 
-    private static final WeakMap<ClassLoader, String> serviceNameByClassLoader = WeakConcurrent.buildMap();
+    private static final WeakMap<ClassLoader, ServiceInfo> serviceInfoByClassLoader = WeakConcurrent.buildMap();
 
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
@@ -230,9 +230,10 @@ public class ElasticApmTracer implements Tracer {
                     new RuntimeException("this exception is just used to record where the transaction has been started from"));
             }
         }
-        final String serviceName = getServiceName(initiatingClassLoader);
-        if (serviceName != null) {
-            transaction.getTraceContext().setServiceName(serviceName);
+        final ServiceInfo serviceInfo = getServiceInfo(initiatingClassLoader);
+        if (serviceInfo != null) {
+            transaction.getTraceContext().setServiceName(serviceInfo.getServiceName());
+            transaction.getTraceContext().setServiceVersion(serviceInfo.getServiceVersion());
         }
     }
 
@@ -342,7 +343,11 @@ public class ElasticApmTracer implements Tracer {
                 parent.setNonDiscardable();
             } else {
                 error.getTraceContext().getId().setToRandomValue();
-                error.getTraceContext().setServiceName(getServiceName(initiatingClassLoader));
+                ServiceInfo serviceInfo = getServiceInfo(initiatingClassLoader);
+                if (serviceInfo != null) {
+                    error.getTraceContext().setServiceName(serviceInfo.getServiceName());
+                    error.getTraceContext().setServiceVersion(serviceInfo.getServiceVersion());
+                }
             }
             return error;
         }
@@ -734,17 +739,22 @@ public class ElasticApmTracer implements Tracer {
         return metricRegistry;
     }
 
-    public List<String> getServiceNameOverrides() {
-        List<String> serviceNames = new ArrayList<>(serviceNameByClassLoader.approximateSize());
-        for (Map.Entry<ClassLoader, String> entry : serviceNameByClassLoader) {
-            serviceNames.add(entry.getValue());
+    public List<ServiceInfo> getServiceInfoOverrides() {
+        List<ServiceInfo> serviceInfos = new ArrayList<>(serviceInfoByClassLoader.approximateSize());
+        for (Map.Entry<ClassLoader, ServiceInfo> entry : serviceInfoByClassLoader) {
+            serviceInfos.add(entry.getValue());
         }
-        return serviceNames;
+        return serviceInfos;
     }
 
     @Override
-    public void overrideServiceNameForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName) {
-        // overriding the service name for the bootstrap class loader is not an actual use-case
+    public void overrideServiceInfoForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName) {
+        overrideServiceInfoForClassLoader(classLoader, serviceName, null);
+    }
+
+    @Override
+    public void overrideServiceInfoForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName, @Nullable String serviceVersion) {
+        // overriding the service name/version for the bootstrap class loader is not an actual use-case
         // null may also mean we don't know about the initiating class loader
         if (classLoader == null
             || serviceName == null || serviceName.isEmpty()
@@ -753,23 +763,23 @@ public class ElasticApmTracer implements Tracer {
             return;
         }
 
-        String sanitizedServiceName = ServiceInfo.replaceDisallowedServiceNameChars(serviceName);
-        logger.debug("Using `{}` as the service name for class loader [{}]", sanitizedServiceName, classLoader);
-        if (!serviceNameByClassLoader.containsKey(classLoader)) {
-            serviceNameByClassLoader.putIfAbsent(classLoader, sanitizedServiceName);
+        ServiceInfo serviceInfo = new ServiceInfo(serviceName, serviceVersion);
+        logger.debug("Using `{}` as the service name and `{}` as the service version for class loader [{}]", serviceInfo.getServiceName(), serviceInfo.getServiceVersion(), classLoader);
+        if (!serviceInfoByClassLoader.containsKey(classLoader)) {
+            serviceInfoByClassLoader.putIfAbsent(classLoader, new ServiceInfo(serviceName, serviceVersion));
         }
     }
 
     @Nullable
-    public String getServiceName(@Nullable ClassLoader initiatingClassLoader) {
+    public ServiceInfo getServiceInfo(@Nullable ClassLoader initiatingClassLoader) {
         if (initiatingClassLoader == null) {
             return null;
         }
-        return serviceNameByClassLoader.get(initiatingClassLoader);
+        return serviceInfoByClassLoader.get(initiatingClassLoader);
     }
 
-    public void resetServiceNameOverrides() {
-        serviceNameByClassLoader.clear();
+    public void resetServiceInfoOverrides() {
+        serviceInfoByClassLoader.clear();
     }
 
     public ApmServerClient getApmServerClient() {

@@ -420,7 +420,10 @@ public class Transaction extends AbstractSpan<Transaction> {
             }
             final Labels.Mutable labels = labelsThreadLocal.get();
             labels.resetState();
-            labels.serviceName(getTraceContext().getServiceName()).transactionName(name).transactionType(type);
+            labels.serviceName(getTraceContext().getServiceName())
+                .serviceVersion(getTraceContext().getServiceVersion())
+                .transactionName(name)
+                .transactionType(type);
             final MetricRegistry metricRegistry = tracer.getMetricRegistry();
             long criticalValueAtEnter = metricRegistry.writerCriticalSectionEnter();
             try {

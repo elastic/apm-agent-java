@@ -20,6 +20,7 @@ package co.elastic.apm.agent.ecs_logging;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
@@ -62,8 +63,8 @@ public class Log4j2ServiceNameInstrumentation extends TracerAwareInstrumentation
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.This EcsLayout.Builder builder) {
             if (logEcsServiceName && (builder.getServiceName() == null || builder.getServiceName().isEmpty())) {
-                String serviceName = tracer.getServiceName(Thread.currentThread().getContextClassLoader());
-                builder.setServiceName(serviceName != null ? serviceName : defaultServiceName);
+                ServiceInfo serviceInfo = tracer.getServiceInfo(Thread.currentThread().getContextClassLoader());
+                builder.setServiceName(serviceInfo != null ? serviceInfo.getServiceName() : defaultServiceName);
             }
         }
     }
