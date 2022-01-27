@@ -90,7 +90,7 @@ public class ServletTransactionHelper {
             serviceName = contextPath.substring(1);
         }
         if (serviceName != null) {
-            GlobalTracer.get().overrideServiceNameForClassLoader(servletContextClassLoader, serviceName);
+            GlobalTracer.get().overrideServiceInfoForClassLoader(servletContextClassLoader, serviceName);
         }
     }
 
