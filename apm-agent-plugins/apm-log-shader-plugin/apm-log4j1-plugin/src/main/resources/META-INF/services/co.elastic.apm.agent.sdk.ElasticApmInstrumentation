@@ -1,2 +1,6 @@
+# ECS re-formatting
 co.elastic.apm.agent.log4j1.Log4j1LogShadingInstrumentation$ShadingInstrumentation
 co.elastic.apm.agent.log4j1.Log4j1LogShadingInstrumentation$StopAppenderInstrumentation
+
+# Trace context correlation
+co.elastic.apm.agent.log4j1.Log4j1TraceCorrelationInstrumentation

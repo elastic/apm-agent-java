@@ -16,21 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.log.shader;
+package co.elastic.apm.agent.log4j2;
 
+import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import org.junit.jupiter.api.Test;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import java.util.List;
 
-import java.util.ArrayList;
-import java.util.Collection;
+public class Log4j2_17_1ShadingTestRunner {
+    private final TestClassWithDependencyRunner runner;
 
-public abstract class AbstractLogShadingInstrumentation extends TracerAwareInstrumentation {
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = new ArrayList<>();
-        ret.add("logging");
-        return ret;
+    public Log4j2_17_1ShadingTestRunner() throws Exception {
+        List<String> dependencies = List.of(
+            "org.apache.logging.log4j:log4j-core:2.17.1",
+            "org.apache.logging.log4j:log4j-api:2.17.1",
+            "co.elastic.logging:log4j2-ecs-layout:1.3.2"
+        );
+        runner = new TestClassWithDependencyRunner(dependencies, Log4j2ShadingTestVersions.class, Log4j2ShadingTest.class,
+            Log4j2ShadingTest.Log4j2LoggerFacade.class);
     }
 
+    @Test
+    public void testVersions() {
+        runner.run();
+    }
 }

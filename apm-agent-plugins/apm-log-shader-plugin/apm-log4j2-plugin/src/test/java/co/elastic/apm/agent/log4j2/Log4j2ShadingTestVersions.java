@@ -38,7 +38,7 @@ import java.util.List;
  * takes place during packaging).
  */
 @Ignore
-public class LegacyLog4j2ShadingTest extends Log4j2ShadingTest {
+public class Log4j2ShadingTestVersions extends Log4j2ShadingTest {
 
     @BeforeClass
     public static void resetConfigFactory() {

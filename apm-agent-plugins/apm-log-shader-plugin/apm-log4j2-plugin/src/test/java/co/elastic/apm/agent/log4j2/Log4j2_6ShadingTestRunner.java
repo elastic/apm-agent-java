@@ -23,16 +23,16 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-public class LegacyLog4j2ShadingTestRunner {
+public class Log4j2_6ShadingTestRunner {
     private final TestClassWithDependencyRunner runner;
 
-    public LegacyLog4j2ShadingTestRunner() throws Exception {
+    public Log4j2_6ShadingTestRunner() throws Exception {
         List<String> dependencies = List.of(
             "org.apache.logging.log4j:log4j-core:2.6",
             "org.apache.logging.log4j:log4j-api:2.6",
             "co.elastic.logging:log4j2-ecs-layout:1.3.2"
         );
-        runner = new TestClassWithDependencyRunner(dependencies, LegacyLog4j2ShadingTest.class, Log4j2ShadingTest.class,
+        runner = new TestClassWithDependencyRunner(dependencies, Log4j2ShadingTestVersions.class, Log4j2ShadingTest.class,
             Log4j2ShadingTest.Log4j2LoggerFacade.class);
     }
 

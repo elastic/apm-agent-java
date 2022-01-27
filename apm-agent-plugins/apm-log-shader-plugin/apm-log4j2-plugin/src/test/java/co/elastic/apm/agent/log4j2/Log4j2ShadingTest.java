@@ -30,12 +30,18 @@ import org.apache.logging.log4j.core.appender.RandomAccessFileAppender;
 import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Since the agent core uses log4j 2.12.4, and since both agent core and tests are loaded by the system class loader in unit tests,
+ * the proper way to test integration tests with log4j2 is only through dedicated class loaders.
+ */
+@Disabled
 public class Log4j2ShadingTest extends LogShadingInstrumentationTest {
 
     @BeforeAll

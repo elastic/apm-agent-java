@@ -20,6 +20,7 @@ package co.elastic.apm.agent.log.shader;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.logging.TestUtils;
@@ -29,8 +30,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,11 +41,12 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static co.elastic.apm.agent.log.shader.AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY;
+import static co.elastic.apm.agent.log.shader.AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
@@ -65,6 +65,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     private final ObjectMapper objectMapper;
     private LoggingConfiguration loggingConfig;
     private String serviceName;
+    private Transaction transaction;
 
     public LogShadingInstrumentationTest() {
         logger = createLoggerFacade();
@@ -82,6 +83,8 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
 
         // IMPORTANT: keep this last, so that it doesn't interfere with Mockito settings above
         serviceName = Objects.requireNonNull(tracer.getMetaDataFuture().get(2000, TimeUnit.MILLISECONDS).getService().getName());
+
+        transaction = Objects.requireNonNull(tracer.startRootTransaction(null)).activate();
     }
 
     private void setEcsReformattingConfig(LogEcsReformatting ecsReformattingConfig) {
@@ -96,6 +99,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
 
     @AfterEach
     public void closeLogger() {
+        transaction.deactivate().end();
         logger.close();
     }
 
@@ -109,16 +113,10 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     }
 
     private void runSimpleScenario() throws Exception {
-        String traceId = UUID.randomUUID().toString();
-        logger.putTraceIdToMdc(traceId);
-        try {
-            logger.trace(TRACE_MESSAGE);
-            logger.debug(DEBUG_MESSAGE);
-            logger.warn(WARN_MESSAGE);
-            logger.error(ERROR_MESSAGE);
-        } finally {
-            logger.removeTraceIdFromMdc();
-        }
+        logger.trace(TRACE_MESSAGE);
+        logger.debug(DEBUG_MESSAGE);
+        logger.warn(WARN_MESSAGE);
+        logger.error(ERROR_MESSAGE);
 
         ArrayList<String[]> rawLogLines = readRawLogLines();
         assertThat(rawLogLines).hasSize(4);
@@ -127,7 +125,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(ecsLogLines).hasSize(4);
 
         for (int i = 0; i < 4; i++) {
-            verifyEcsFormat(rawLogLines.get(i), ecsLogLines.get(i), traceId);
+            verifyEcsFormat(rawLogLines.get(i), ecsLogLines.get(i));
         }
     }
 
@@ -146,7 +144,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
             assertThat(ecsLogLines).hasSize(1);
             JsonNode ecsLogLine = ecsLogLines.get(0);
 
-            verifyEcsFormat(rawLogLine, ecsLogLine, null);
+            verifyEcsFormat(rawLogLine, ecsLogLine);
 
             JsonNode tagsJson = ecsLogLine.get("tags");
             assertThat(tagsJson.isArray()).isTrue();
@@ -181,8 +179,8 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
 
         ArrayList<JsonNode> ecsLogLines = readShadeLogFile();
         assertThat(ecsLogLines).hasSize(2);
-        verifyEcsFormat(rawLogLines.get(2), ecsLogLines.get(0), null);
-        verifyEcsFormat(rawLogLines.get(3), ecsLogLines.get(1), null);
+        verifyEcsFormat(rawLogLines.get(2), ecsLogLines.get(0));
+        verifyEcsFormat(rawLogLines.get(3), ecsLogLines.get(1));
     }
 
     @Test
@@ -265,9 +263,9 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(debugLogLine.get("log.level").textValue()).isEqualTo("DEBUG");
 
         // WARN messages should match content but not format
-        verifyEcsFormat(originalLogLines.get(2).split("\\s+"), ecsLogLines.get(0), null);
+        verifyEcsFormat(originalLogLines.get(2).split("\\s+"), ecsLogLines.get(0));
         assertThat(ecsLogLines.get(0).get("log.level").textValue()).isEqualTo("WARN");
-        verifyEcsFormat(originalLogLines.get(5).split("\\s+"), ecsLogLines.get(2), null);
+        verifyEcsFormat(originalLogLines.get(5).split("\\s+"), ecsLogLines.get(2));
         assertThat(ecsLogLines.get(2).get("log.level").textValue()).isEqualTo("WARN");
 
         // ERROR messages should be only in shade file in ECS format
@@ -288,14 +286,14 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
         assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo("v42");
         assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
+        assertThat(ecsLogLineTree.get(TRACE_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
+        assertThat(ecsLogLineTree.get(TRANSACTION_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
     }
 
-    @Nonnull
     private ArrayList<JsonNode> readShadeLogFile() throws IOException {
         return TestUtils.readJsonFile(getShadeLogFilePath());
     }
 
-    @Nonnull
     private ArrayList<String[]> readRawLogLines() throws IOException {
         ArrayList<String[]> rawLogLines;
         try (Stream<String> stream = Files.lines(getOriginalLogFilePath())) {
@@ -304,17 +302,15 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         return rawLogLines;
     }
 
-    @Nonnull
     private Path getOriginalLogFilePath() {
         return Paths.get(logger.getLogFilePath());
     }
 
-    @Nonnull
     protected String getShadeLogFilePath() {
         return Utils.computeShadeLogFilePath(logger.getLogFilePath(), loggingConfig.getLogEcsFormattingDestinationDir());
     }
 
-    private void verifyEcsFormat(String[] splitRawLogLine, JsonNode ecsLogLineTree, @Nullable String traceId) throws Exception {
+    private void verifyEcsFormat(String[] splitRawLogLine, JsonNode ecsLogLineTree) throws Exception {
         SimpleDateFormat timestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         Date rawTimestamp = timestampFormat.parse(splitRawLogLine[0]);
         timestampFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -329,13 +325,8 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
         assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo("v42");
         assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
-        JsonNode jsonTraceId = ecsLogLineTree.get("trace.id");
-        if (traceId != null) {
-            assertThat(jsonTraceId).isNotNull();
-            assertThat(jsonTraceId.asText()).isEqualTo(traceId);
-        } else {
-            assertThat(jsonTraceId).isNull();
-        }
+        assertThat(ecsLogLineTree.get(TRACE_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
+        assertThat(ecsLogLineTree.get(TRANSACTION_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
     }
 
     /**

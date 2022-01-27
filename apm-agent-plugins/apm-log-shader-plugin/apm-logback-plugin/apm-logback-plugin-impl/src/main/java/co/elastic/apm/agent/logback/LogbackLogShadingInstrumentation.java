@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.logback;
 
-import co.elastic.apm.agent.log.shader.AbstractLogShadingInstrumentation;
+import co.elastic.apm.agent.log.shader.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -32,7 +32,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 import static net.bytebuddy.matcher.ElementMatchers.takesGenericArgument;
 
-public abstract class LogbackLogShadingInstrumentation extends AbstractLogShadingInstrumentation {
+public abstract class LogbackLogShadingInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

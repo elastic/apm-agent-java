@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.log4j2;
 
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
-import co.elastic.apm.agent.log.shader.AbstractLogShadingInstrumentation;
+import co.elastic.apm.agent.log.shader.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -36,7 +36,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public abstract class Log4j2EcsReformattingInstrumentation extends AbstractLogShadingInstrumentation {
+public abstract class Log4j2EcsReformattingInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
