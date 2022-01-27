@@ -237,7 +237,7 @@ class LoggingConfigurationTest {
                 }
                 LoggerContext loggerContext = contextMap.get(loader);
                 if (loggerContext == null) {
-                    org.apache.logging.log4j.core.LoggerContext loggerContextImpl = new org.apache.logging.log4j.core.LoggerContext(loader.getClass().getName());
+                    org.apache.logging.log4j.core.LoggerContext loggerContextImpl = new org.apache.logging.log4j.core.LoggerContext(loader.getClass().getName() + String.valueOf(System.identityHashCode(loader)));
                     // This mimics the actual mechanism - configuration will be applied here
                     loggerContextImpl.start();
                     loggerContext = loggerContextImpl;
