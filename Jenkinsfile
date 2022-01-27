@@ -140,37 +140,6 @@ pipeline {
             }
           }
         }
-        /** *
-         * Build on Windows environment
-         */
-        stage('Build Windows') {
-          agent { label 'windows-2019-docker-immutable' }
-          options { skipDefaultCheckout() }
-          environment {
-            JAVA_HOME = "C:\\Users\\jenkins\\.java\\${env.JAVA_VERSION}"
-            PATH = "${env.JAVA_HOME}\\bin;${env.PATH}"
-          }
-          when {
-            beforeAgent true
-            anyOf {
-              expression { return params.windows_ci }
-              expression { return env.GITHUB_COMMENT?.contains('windows tests') }
-              expression { matchesPrLabel(label: 'ci:windows') }
-            }
-          }
-          steps {
-            withGithubNotify(context: 'Build Windows') {
-              deleteDir()
-              unstash 'source'
-              dir("${BASE_DIR}") {
-                retryWithSleep(retries: 5, seconds: 10) {
-                  bat label: 'mvn clean instal', script: "mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true"
-                }
-              }
-              stashV2(name: 'build-windows', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-            }
-          }
-        }
         stage('Tests') {
           when {
             beforeAgent true
@@ -178,7 +147,6 @@ pipeline {
           }
           failFast true
           parallel {
-
             /**
              * Run only unit tests
              */
@@ -205,10 +173,10 @@ pipeline {
                 }
               }
             }
-            /**
-             * Run only unit tests on Windows
+            /** *
+             * Build & Test on Windows environment
              */
-            stage('Unit Tests Windows') {
+            stage('Build & Test Windows') {
               agent { label 'windows-2019-docker-immutable' }
               options { skipDefaultCheckout() }
               when {
@@ -221,15 +189,14 @@ pipeline {
                     expression { matchesPrLabel(label: 'ci:windows') }
                   }
                 }
-
               }
               steps {
-                withGithubNotify(context: 'Unit Tests Windows', tab: 'tests') {
+                withGithubNotify(context: 'Build & Test Windows') {
                   deleteDir()
-                  unstashV2(name: 'build-windows', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                  unstash 'source'
                   dir("${BASE_DIR}") {
-                    withOtelEnv() {
-                      bat "mvnw test"
+                    retryWithSleep(retries: 5, seconds: 10) {
+                      bat label: 'mvn clean install', script: "mvnw clean install -Dmaven.gitcommitid.skip=true"
                     }
                   }
                 }
@@ -240,7 +207,6 @@ pipeline {
                 }
               }
             }
-
             stage('Non-Application Server integration tests') {
               agent { label 'linux && immutable' }
               options { skipDefaultCheckout() }
@@ -436,7 +402,7 @@ pipeline {
         }
       }
     }
-    stage('Releases'){
+    stage('Releases') {
       when {
         anyOf {
           branch 'main'
