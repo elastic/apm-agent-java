@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.27.2-SNAPSHOT</version>
+        <version>1.28.5-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-jsf-plugin</artifactId>
@@ -25,7 +25,7 @@
         <dependency>
             <groupId>jakarta.platform</groupId>
             <artifactId>jakarta.jakartaee-api</artifactId>
-            <version>9.0.0</version>
+            <version>9.1.0</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

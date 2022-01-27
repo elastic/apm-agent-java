@@ -109,6 +109,7 @@ Click on a key to get more information.
 ** <<config-transaction-sample-rate>>
 ** <<config-transaction-max-spans>>
 ** <<config-sanitize-field-names>>
+** <<config-enable-instrumentations>>
 ** <<config-disable-instrumentations>>
 ** <<config-enable-experimental-instrumentations>>
 ** <<config-unnest-exceptions>>
@@ -496,6 +497,7 @@ NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
 | For Spring-based application, uses the `spring.application.name` property, if set.
 For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
 Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
+Falls back to the `Implementation-Title` in the `MANIFEST.MF` file.
 Falls back to the name of the main class or jar file.
 If the service name is set explicitly, it overrides all of the above.
  | String | false
@@ -700,7 +702,7 @@ you should add an additional entry to this list (make sure to also include the d
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `password, passwd, pwd, secret, *key, *token*, *session*, *credit*, *card*, authorization, set-cookie` | List | true
+| `password, passwd, pwd, secret, *key, *token*, *session*, *credit*, *card*, *auth*, set-cookie` | List | true
 |============
 
 
@@ -708,6 +710,34 @@ you should add an additional entry to this list (make sure to also include the d
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.sanitize_field_names` | `sanitize_field_names` | `ELASTIC_APM_SANITIZE_FIELD_NAMES`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-enable-instrumentations]]
+==== `enable_instrumentations` (added[1.28.0])
+
+A list of instrumentations which should be selectively enabled.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `javalin`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`.
+When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
+When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
+
+NOTE: Changing this value at runtime can slow down the application temporarily.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | Collection | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enable_instrumentations` | `enable_instrumentations` | `ELASTIC_APM_ENABLE_INSTRUMENTATIONS`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1190,7 +1220,7 @@ See `integration-tests/external-plugin-test` for an example plugin.
 [[config-use-elastic-traceparent-header]]
 ==== `use_elastic_traceparent_header` (added[1.14.0])
 
-To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent
+To enable {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing], the agent
 adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
 These headers (`traceparent` and `tracestate`) are defined in the
 https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.
@@ -2862,6 +2892,7 @@ The default unit for this option is `ms`.
 # Default value: For Spring-based application, uses the `spring.application.name` property, if set.
 # For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
 # Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
+# Falls back to the `Implementation-Title` in the `MANIFEST.MF` file.
 # Falls back to the name of the main class or jar file.
 # If the service name is set explicitly, it overrides all of the above.
 # 
@@ -2963,9 +2994,22 @@ The default unit for this option is `ms`.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
+# Default value: password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,*auth*,set-cookie
 #
-# sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
+# sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,*auth*,set-cookie
+
+# A list of instrumentations which should be selectively enabled.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `javalin`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`.
+# When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
+# When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
+# 
+# NOTE: Changing this value at runtime can slow down the application temporarily.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
+#
+# enable_instrumentations=
 
 # A list of instrumentations which should be disabled.
 # Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `javalin`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`.
@@ -3229,7 +3273,7 @@ The default unit for this option is `ms`.
 #
 # plugins_dir=
 
-# To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent
+# To enable {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing], the agent
 # adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
 # These headers (`traceparent` and `tracestate`) are defined in the
 # https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.

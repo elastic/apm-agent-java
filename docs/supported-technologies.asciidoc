@@ -28,7 +28,7 @@ Another option is to add a dependency to the agent's <<public-api, public API>>
 in order to programmatically create custom transactions and spans.
 
 If you want to extend the auto-instrumentation capabilities of the agent,
-the https://github.com/elastic/apm-agent-java/blob/master/CONTRIBUTING.md[contributing guide] should get you started.
+the https://github.com/elastic/apm-agent-java/blob/main/CONTRIBUTING.md[contributing guide] should get you started.
 
 NOTE: If, for example,
 the HTTP client library of your choice is not listed,
@@ -41,14 +41,14 @@ the agent does not capture transactions.
 === Java versions
 
 |===
-|Vendor |Supported versions | Notes
+|Vendor |Supported versions |Notes
 
 |Oracle JDK
-|7u60+, 8u40+, 9, 10, 11
+|7u60+, 8u40+, 9, 10, 11, 17
 |`--module-path` has not been tested yet
 
-|Open JDK
-|7u60+, 8u40+, 9, 10, 11
+|OpenJDK
+|7u60+, 8u40+, 9, 10, 11, 17
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
@@ -64,7 +64,9 @@ the agent does not capture transactions.
 |
 |===
 
-NOTE: Early Java 8 versions before update 40 are *not supported* because they have
+**Early Java 8 and Java 7**
+
+Early Java 8 versions before update 40 are *not supported* because they have
 several bugs that might result in JVM crashes when a java agent is active,
 thus agent *will not start* on those versions.
 Similarly, Java 7 versions before update 60 are not supported as they are buggy in regard to invokedynamic.

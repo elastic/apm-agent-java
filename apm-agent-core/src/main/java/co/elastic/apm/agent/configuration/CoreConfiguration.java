@@ -31,17 +31,20 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.converter.AbstractValueConverter;
 import org.stagemonitor.configuration.converter.MapValueConverter;
+import org.stagemonitor.configuration.converter.SetValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
@@ -107,7 +110,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "NOTE: Service name auto discovery mechanisms require APM Server 7.0+.")
         .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name \"{0}\" must only contain characters " +
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
-        .buildWithDefault(ServiceNameUtil.getDefaultServiceName());
+        .buildWithDefault(ServiceInfo.autoDetected().getServiceName());
 
     private final ConfigurationOption<String> serviceNodeName = ConfigurationOption.stringOption()
         .key(SERVICE_NODE_NAME)
@@ -142,6 +145,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("A version string for the currently deployed version of the service. If you don’t version your deployments, " +
             "the recommended value for this field is the commit identifier of the deployed revision, " +
             "e.g. the output of git rev-parse HEAD.")
+        .defaultValue(ServiceInfo.autoDetected().getServiceVersion())
         .build();
 
     private final ConfigurationOption<String> hostname = ConfigurationOption.stringOption()
@@ -226,13 +230,43 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("*session*"),
             WildcardMatcher.valueOf("*credit*"),
             WildcardMatcher.valueOf("*card*"),
-            // HTTP request header for basic auth, contains passwords
-            WildcardMatcher.valueOf("authorization"),
+            WildcardMatcher.valueOf("*auth*"),
             // HTTP response header which can contain session ids
             WildcardMatcher.valueOf("set-cookie")
         ));
 
-    private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.stringsOption()
+    private final ConfigurationOption<Collection<String>> enabledInstrumentations = ConfigurationOption.stringsOption()
+        .key("enable_instrumentations")
+        .configurationCategory(CORE_CATEGORY)
+        .description("A list of instrumentations which should be selectively enabled.\n" +
+            "Valid options are ${allInstrumentationGroupNames}.\n" +
+            "When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.\n" +
+            "When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.\n" +
+            "\n" +
+            "NOTE: Changing this value at runtime can slow down the application temporarily.")
+        .dynamic(true)
+        .tags("added[1.28.0]")
+        .buildWithDefault(Collections.<String>emptyList());
+
+    private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.builder(new AbstractValueConverter<Collection<String>>() {
+            @Override
+            public Collection<String> convert(String s) {
+                Collection<String> values = SetValueConverter.STRINGS_VALUE_CONVERTER.convert(s);
+                if (values.contains("incubating")) {
+                    Set<String> legacyValues = new LinkedHashSet<String>(values);
+                    legacyValues.add("experimental");
+
+                    return Collections.unmodifiableSet(legacyValues);
+                }
+
+                return values;
+            }
+
+            @Override
+            public String toString(Collection<String> value) {
+                return SetValueConverter.STRINGS_VALUE_CONVERTER.toString(value);
+            }
+        }, Collection.class)
         .key("disable_instrumentations")
         .aliasKeys("disabled_instrumentations")
         .configurationCategory(CORE_CATEGORY)
@@ -344,6 +378,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
         .description("When enabled, configures Byte Buddy to use a type pool cache.")
+        .buildWithDefault(true);
+
+    private final ConfigurationOption<Boolean> warmupByteBuddy = ConfigurationOption.booleanOption()
+        .key("warmup_byte_buddy")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("When set to true, configures Byte Buddy to warmup instrumentation processes on the \n" +
+            "attaching thread just before installing the transformer on the JVM Instrumentation.")
         .buildWithDefault(true);
 
     private final ConfigurationOption<String> bytecodeDumpPath = ConfigurationOption.stringOption()
@@ -554,7 +596,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key("use_elastic_traceparent_header")
         .tags("added[1.14.0]")
         .configurationCategory(CORE_CATEGORY)
-        .description("To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent\n" +
+        .description("To enable {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing], the agent\n" +
             "adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).\n" +
             "These headers (`traceparent` and `tracestate`) are defined in the\n" +
             "https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.\n" +
@@ -636,7 +678,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     }
 
     public List<ConfigurationOption<?>> getInstrumentationOptions() {
-        return Arrays.asList(instrument, traceMethods, disabledInstrumentations, enableExperimentalInstrumentations);
+        return Arrays.asList(instrument, traceMethods, enabledInstrumentations, disabledInstrumentations, enableExperimentalInstrumentations);
     }
 
     public String getServiceName() {
@@ -687,14 +729,40 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return sanitizeFieldNames.get();
     }
 
-    public Collection<String> getDisabledInstrumentations() {
-        List<String> disabled = new ArrayList<>(disabledInstrumentations.get());
-        if (enableExperimentalInstrumentations.get()) {
-            disabled.remove("experimental");
-        } else {
-            disabled.add("experimental");
+    public boolean isInstrumentationEnabled(String instrumentationGroupName) {
+        final Collection<String> enabledInstrumentationGroupNames = enabledInstrumentations.get();
+        final Collection<String> disabledInstrumentationGroupNames = disabledInstrumentations.get();
+        return (enabledInstrumentationGroupNames.isEmpty() || enabledInstrumentationGroupNames.contains(instrumentationGroupName)) &&
+            !disabledInstrumentationGroupNames.contains(instrumentationGroupName) &&
+            (enableExperimentalInstrumentations.get() || !instrumentationGroupName.equals("experimental"));
+    }
+
+    public boolean isInstrumentationEnabled(Collection<String> instrumentationGroupNames) {
+        return isGroupEnabled(instrumentationGroupNames) &&
+            !isGroupDisabled(instrumentationGroupNames);
+    }
+
+    private boolean isGroupEnabled(Collection<String> instrumentationGroupNames) {
+        final Collection<String> enabledInstrumentationGroupNames = enabledInstrumentations.get();
+        if (enabledInstrumentationGroupNames.isEmpty()) {
+            return true;
         }
-        return disabled;
+        for (String instrumentationGroupName : instrumentationGroupNames) {
+            if (enabledInstrumentationGroupNames.contains(instrumentationGroupName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isGroupDisabled(Collection<String> instrumentationGroupNames) {
+        Collection<String> disabledInstrumentationGroupNames = disabledInstrumentations.get();
+        for (String instrumentationGroupName : instrumentationGroupNames) {
+            if (disabledInstrumentationGroupNames.contains(instrumentationGroupName)) {
+                return true;
+            }
+        }
+        return !enableExperimentalInstrumentations.get() && instrumentationGroupNames.contains("experimental");
     }
 
     public List<WildcardMatcher> getUnnestExceptions() {
@@ -715,6 +783,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isTypePoolCacheEnabled() {
         return typePoolCache.get();
+    }
+
+    public boolean shouldWarmupByteBuddy() {
+        return warmupByteBuddy.get();
     }
 
     @Nullable

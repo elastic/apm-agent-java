@@ -32,6 +32,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.NoopObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.ListBasedObjectPool;
+import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -58,6 +59,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @DisabledOnOs(OS.WINDOWS)
+@DisabledOnAppleSilicon
 class CallTreeTest {
 
     private MockReporter reporter;
@@ -83,7 +85,7 @@ class CallTreeTest {
     @Test
     void testCallTree() {
         TraceContext traceContext = TraceContext.with64BitId(MockTracer.create());
-        CallTree.Root root = CallTree.createRoot(NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), 0);
+        CallTree.Root root = CallTree.createRoot(NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), traceContext.getServiceVersion(), 0);
         ObjectPool<CallTree> callTreePool = ListBasedObjectPool.ofRecyclable(new ArrayList<>(), Integer.MAX_VALUE, CallTree::new);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0, callTreePool, 0);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10), callTreePool, 0);

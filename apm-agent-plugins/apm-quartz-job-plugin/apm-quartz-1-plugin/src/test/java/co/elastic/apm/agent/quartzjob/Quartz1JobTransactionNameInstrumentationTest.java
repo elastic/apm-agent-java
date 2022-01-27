@@ -48,7 +48,7 @@ class Quartz1JobTransactionNameInstrumentationTest extends AbstractJobTransactio
     }
 
     public SimpleTrigger createTrigger() {
-        return new SimpleTrigger("myTrigger", 0, 1 * 1000);
+        return new SimpleTrigger("myTrigger", 0, 100);
     }
 
     @Override
