@@ -81,12 +81,9 @@ class MetaDataTest extends CustomEnvVariables {
 
     @Test
     void testCloudProvider_ForAWSLambda_fromEnvVariables() throws Exception {
-        when(coreConfiguration.getServiceName()).thenReturn("");
         MetaData awsLambdaMetaData = createAwsLambdaMetaData();
 
         Service service = awsLambdaMetaData.getService();
-        assertThat(service.getName()).isEqualTo("function-name");
-        assertThat(service.getVersion()).isEqualTo("function-version");
         assertThat(Objects.requireNonNull(service.getRuntime()).getName()).isEqualTo("lambda-execution");
         assertThat(Objects.requireNonNull(service.getNode()).getName()).isEqualTo("lambda-log-stream");
         Framework framework = service.getFramework();
