@@ -21,6 +21,7 @@ package co.elastic.apm.agent.awslambda.helper;
 import co.elastic.apm.agent.awslambda.MapTextHeaderGetter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
@@ -51,14 +52,14 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
         String host = null;
         if (null != apiGatewayEvent.getHeaders()) {
             host = apiGatewayEvent.getHeaders().get("host");
-            if(null == host){
+            if (null == host) {
                 host = apiGatewayEvent.getHeaders().get("Host");
             }
         }
 
         if (null != transaction) {
             fillHttpRequestData(transaction, apiGatewayEvent.getHttpMethod(), apiGatewayEvent.getHeaders(), host,
-                    apiGatewayEvent.getPath(), getQueryString(apiGatewayEvent), apiGatewayEvent.getBody());
+                apiGatewayEvent.getPath(), getQueryString(apiGatewayEvent), apiGatewayEvent.getBody());
         }
 
         return transaction;
@@ -86,27 +87,58 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
 
     @Override
     public void captureOutputForTransaction(Transaction transaction, APIGatewayProxyResponseEvent responseEvent) {
-        fillHttpResponseData(transaction, responseEvent.getHeaders(), responseEvent.getStatusCode());
+        Integer statusCode = responseEvent.getStatusCode();
+        if (statusCode == null) {
+            statusCode = 0;
+        }
+        fillHttpResponseData(transaction, responseEvent.getHeaders(), statusCode);
     }
 
     @Override
     protected void setTransactionTriggerData(Transaction transaction, APIGatewayProxyRequestEvent apiGatewayRequest) {
-        super.setTransactionTriggerData(transaction,apiGatewayRequest);
+        super.setTransactionTriggerData(transaction, apiGatewayRequest);
         APIGatewayProxyRequestEvent.ProxyRequestContext rContext = apiGatewayRequest.getRequestContext();
 
         if (null != rContext) {
-            setApiGatewayContextData(transaction, rContext.getRequestId(), rContext.getApiId(), rContext.getHttpMethod(),
-                    rContext.getResourcePath(), rContext.getAccountId());
+            setApiGatewayContextData(transaction, rContext.getRequestId(), rContext.getApiId(),
+                null, rContext.getAccountId());
         }
-    }
-
-    @Override
-    protected String getHttpMethod(APIGatewayProxyRequestEvent event) {
-        return event.getHttpMethod();
     }
 
     @Override
     protected String getApiGatewayVersion() {
         return "1.0";
+    }
+
+    @Override
+    protected void setTransactionName(Transaction transaction, APIGatewayProxyRequestEvent event, Context lambdaContext) {
+        if (requiredDataForTransactionNameAvailable(event)) {
+            StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
+            transactionName.append(event.getHttpMethod()).append(" ");
+            if (webConfiguration.isUsePathAsName()) {
+                transactionName.append(event.getRequestContext().getPath());
+            } else {
+                setResourcePathBasedName(event, transactionName);
+            }
+        } else {
+            super.setTransactionName(transaction, event, lambdaContext);
+        }
+    }
+
+    private void setResourcePathBasedName(APIGatewayProxyRequestEvent event, StringBuilder transactionName) {
+        transactionName.append('/').append(event.getRequestContext().getStage());
+        String resourcePath = event.getRequestContext().getResourcePath();
+        if (!resourcePath.startsWith("/")) {
+            transactionName.append('/');
+        }
+        transactionName.append(resourcePath);
+    }
+
+    private boolean requiredDataForTransactionNameAvailable(APIGatewayProxyRequestEvent event) {
+        return null != event.getRequestContext() &&
+            event.getRequestContext().getStage() != null &&
+            event.getRequestContext().getResourcePath() != null &&
+            event.getRequestContext().getPath() != null &&
+            event.getHttpMethod() != null;
     }
 }

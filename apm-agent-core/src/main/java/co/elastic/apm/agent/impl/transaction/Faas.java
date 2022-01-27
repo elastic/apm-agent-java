@@ -27,6 +27,9 @@ public class Faas implements Recyclable {
     @Nullable
     private String execution;
 
+    @Nullable
+    private String id;
+
     private boolean coldStart;
 
     private final FaasTrigger trigger = new FaasTrigger();
@@ -44,6 +47,11 @@ public class Faas implements Recyclable {
         return trigger;
     }
 
+    @Nullable
+    public String getId() {
+        return id;
+    }
+
     public Faas withExecution(@Nullable String execution) {
         this.execution = execution;
         return this;
@@ -54,21 +62,28 @@ public class Faas implements Recyclable {
         return this;
     }
 
+    public Faas withId(@Nullable String id) {
+        this.id = id;
+        return this;
+    }
+
     @Override
     public void resetState() {
         this.execution = null;
+        this.id = null;
         this.coldStart = false;
         this.trigger.resetState();
     }
 
     public void copyFrom(Faas other) {
         this.execution = other.execution;
+        this.id = other.id;
         this.coldStart = other.coldStart;
         this.trigger.copyFrom(other.trigger);
     }
 
     public boolean hasContent() {
-        return execution != null ||
+        return execution != null || id != null ||
                 coldStart ||
                 trigger.hasContent();
     }

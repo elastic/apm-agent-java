@@ -26,6 +26,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Url;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -59,22 +60,27 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPE
 
     @Override
     protected APIGatewayV2HTTPEvent createInput() {
+        return createInput(HTTP_METHOD, PATH, API_GATEWAY_RESOURCE_PATH, API_GATEWAY_STAGE);
+    }
+
+    protected APIGatewayV2HTTPEvent createInput(String httpMethod, String httpPath, String routeKey, String stage) {
         APIGatewayV2HTTPEvent.RequestContext.Http.HttpBuilder httpBuilder = APIGatewayV2HTTPEvent.RequestContext.Http.builder();
-        httpBuilder.withPath(PATH);
-        httpBuilder.withMethod(HTTP_METHOD);
+        httpBuilder.withPath(httpPath);
+        httpBuilder.withMethod(httpMethod);
         httpBuilder.withProtocol("HTTP/1.1");
 
         APIGatewayV2HTTPEvent.RequestContext.RequestContextBuilder requestContextBuilder = APIGatewayV2HTTPEvent.RequestContext.builder();
         requestContextBuilder.withApiId(API_ID);
         requestContextBuilder.withRequestId(API_GATEWAY_REQUEST_ID);
         requestContextBuilder.withAccountId(API_GATEWAY_ACCOUNT_ID);
-        requestContextBuilder.withStage(API_GATEWAY_STAGE);
-        requestContextBuilder.withRouteKey(API_GATEWAY_RESOURCE_PATH);
+        requestContextBuilder.withStage(stage);
+        requestContextBuilder.withRouteKey(routeKey);
         requestContextBuilder.withHttp(httpBuilder.build());
         requestContextBuilder.withDomainName(API_GATEWAY_HOST);
 
         return createRequestEvent(requestContextBuilder.build());
     }
+
 
     private APIGatewayV2HTTPEvent createRequestEvent(@Nullable APIGatewayV2HTTPEvent.RequestContext requestContext) {
         APIGatewayV2HTTPEvent.APIGatewayV2HTTPEventBuilder requestEventBuilder = APIGatewayV2HTTPEvent.builder();
@@ -97,7 +103,7 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPE
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
         Transaction transaction = reporter.getFirstTransaction();
-        assertThat(transaction.getNameAsString()).isEqualTo(HTTP_METHOD + " " + TestContext.FUNCTION_NAME);
+        assertThat(transaction.getNameAsString()).isEqualTo(HTTP_METHOD + " /" + API_GATEWAY_STAGE + API_GATEWAY_RESOURCE_PATH);
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
 
@@ -131,13 +137,13 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPE
         assertThat(transaction.getContext().getCloudOrigin().getAccountId()).isEqualTo(API_GATEWAY_ACCOUNT_ID);
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isTrue();
-        assertThat(transaction.getContext().getServiceOrigin().getName().toString()).isEqualTo(HTTP_METHOD + " " + API_GATEWAY_RESOURCE_PATH);
+        assertThat(transaction.getContext().getServiceOrigin().getName().toString()).isEqualTo(API_GATEWAY_HOST);
         assertThat(transaction.getContext().getServiceOrigin().getId()).isEqualTo(API_ID);
         assertThat(transaction.getContext().getServiceOrigin().getVersion()).isEqualTo("2.0");
 
         Faas faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
-
+        assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(faas.getTrigger().getType()).isEqualTo("http");
         assertThat(faas.getTrigger().getRequestId()).isEqualTo(API_GATEWAY_REQUEST_ID);
     }
@@ -213,6 +219,31 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPE
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getResult()).isEqualTo("HTTP 5xx");
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
+    }
+
+    @Test
+    public void testTransactionNameForRestApiSpecificRoute() {
+        getFunction().handleRequest(createInput("PUT", "/prod/test", "ANY /test", "prod"), context);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/test");
+    }
+
+    @Test
+    public void testTransactionNameForRestApiProxy() {
+        getFunction().handleRequest(createInput("PUT", "/prod/proxy-test/12345", "$default", "prod"), context);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/$default");
+    }
+
+    @Test
+    public void testTransactionNameWithUsePathAsName() {
+        when(config.getConfig(WebConfiguration.class).isUsePathAsName()).thenReturn(true);
+        getFunction().handleRequest(createInput("PUT", "/prod/proxy-test/12345", "$default", "prod"), context);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/proxy-test/12345");
     }
 
     @Override

@@ -87,7 +87,7 @@ public abstract class AbstractStreamHandlerLambdaTest extends AbstractInstrument
 
         Faas faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
-
+        assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(faas.getTrigger().getType()).isEqualTo("other");
         assertThat(faas.getTrigger().getRequestId()).isNull();
     }

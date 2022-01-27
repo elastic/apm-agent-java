@@ -66,7 +66,7 @@ public class ServiceInfo {
     public static ServiceInfo autoDetect(Properties properties) {
         String lambdaFunctionName = System.getenv("AWS_LAMBDA_FUNCTION_NAME");
         if (lambdaFunctionName != null) {
-            return new ServiceInfo(lambdaFunctionName, null);
+            return new ServiceInfo(lambdaFunctionName, System.getenv("AWS_LAMBDA_FUNCTION_VERSION"));
         } else {
             ServiceInfo serviceInfo = createFromSunJavaCommand(properties.getProperty("sun.java.command"));
             if (serviceInfo != null) {

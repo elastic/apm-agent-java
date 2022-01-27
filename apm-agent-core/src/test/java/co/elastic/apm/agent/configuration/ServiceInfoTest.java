@@ -18,13 +18,16 @@
  */
 package co.elastic.apm.agent.configuration;
 
+import co.elastic.apm.agent.util.CustomEnvVariables;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
-class ServiceInfoTest {
+class ServiceInfoTest extends CustomEnvVariables {
 
     private static String getDefaultServiceName(String sunJavaCommand) {
         Properties properties = new Properties();
@@ -70,6 +73,24 @@ class ServiceInfoTest {
     }
 
     @Test
+    void testDefaultsWithLambda() throws Exception {
+        final Map<String, String> awsLambdaEnvVariables = new HashMap<>();
+        awsLambdaEnvVariables.put("AWS_LAMBDA_FUNCTION_NAME", "my-lambda-function");
+        awsLambdaEnvVariables.put("AWS_LAMBDA_FUNCTION_VERSION", "24");
+        final StringBuilder defaultServiceName = new StringBuilder();
+        final StringBuilder defaultServiceVersion = new StringBuilder();
+        callWithCustomEnvVariables(awsLambdaEnvVariables, () -> {
+            defaultServiceName.append(getDefaultServiceName(null));
+            defaultServiceVersion.append(ServiceInfo.autoDetect(null).getServiceVersion());
+            return null;
+        });
+        assertSoftly(softly -> {
+            softly.assertThat(defaultServiceName.toString()).isEqualTo("my-lambda-function");
+            softly.assertThat(defaultServiceVersion.toString()).isEqualTo("24");
+        });
+    }
+
+    @Test
     void parseApplicationServers() {
         assertSoftly(softly -> {
             softly.assertThat(getDefaultServiceName("org.eclipse.jetty.xml.XmlConfiguration"))
@@ -87,5 +108,4 @@ class ServiceInfoTest {
 
         });
     }
-
 }

@@ -25,6 +25,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Url;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -58,22 +59,26 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
 
     @Override
     protected APIGatewayProxyRequestEvent createInput() {
+        return createInput(HTTP_METHOD, PATH, API_GATEWAY_RESOURCE_PATH, API_GATEWAY_STAGE);
+    }
+
+    protected APIGatewayProxyRequestEvent createInput(String httpMethod, String httpPath, String resourcePath, String stage) {
         APIGatewayProxyRequestEvent.ProxyRequestContext requestContext = new APIGatewayProxyRequestEvent.ProxyRequestContext();
-        requestContext.withHttpMethod(HTTP_METHOD);
-        requestContext.withPath(PATH);
+        requestContext.withHttpMethod(httpMethod);
+        requestContext.withPath(httpPath);
         requestContext.withApiId(API_ID);
         requestContext.withRequestId(API_GATEWAY_REQUEST_ID);
         requestContext.withAccountId(API_GATEWAY_ACCOUNT_ID);
         requestContext.withOperationName(API_GATEWAY_OPERATION_NAME);
-        requestContext.withResourcePath(API_GATEWAY_RESOURCE_PATH);
-        requestContext.withStage(API_GATEWAY_STAGE);
+        requestContext.withResourcePath(resourcePath);
+        requestContext.withStage(stage);
 
-        return createRequestEvent(requestContext);
+        return createRequestEvent(httpMethod, requestContext);
     }
 
-    private APIGatewayProxyRequestEvent createRequestEvent(@Nullable APIGatewayProxyRequestEvent.ProxyRequestContext requestContext) {
+    private APIGatewayProxyRequestEvent createRequestEvent(String httpMethod, @Nullable APIGatewayProxyRequestEvent.ProxyRequestContext requestContext) {
         APIGatewayProxyRequestEvent apiGatewayProxyRequestEvent = new APIGatewayProxyRequestEvent();
-        apiGatewayProxyRequestEvent.withHttpMethod(HTTP_METHOD);
+        apiGatewayProxyRequestEvent.withHttpMethod(httpMethod);
         apiGatewayProxyRequestEvent.withBody(BODY);
         apiGatewayProxyRequestEvent.withHeaders(REQUEST_HEADERS);
         apiGatewayProxyRequestEvent.withPath(PATH);
@@ -91,7 +96,7 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
         Transaction transaction = reporter.getFirstTransaction();
-        assertThat(transaction.getNameAsString()).isEqualTo(HTTP_METHOD + " " + TestContext.FUNCTION_NAME);
+        assertThat(transaction.getNameAsString()).isEqualTo(HTTP_METHOD + " /" + API_GATEWAY_STAGE + API_GATEWAY_RESOURCE_PATH);
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
@@ -126,13 +131,13 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
         assertThat(transaction.getContext().getCloudOrigin().getAccountId()).isEqualTo(API_GATEWAY_ACCOUNT_ID);
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isTrue();
-        assertThat(transaction.getContext().getServiceOrigin().getName().toString()).isEqualTo(HTTP_METHOD + " " + API_GATEWAY_RESOURCE_PATH);
+        assertThat(transaction.getContext().getServiceOrigin().getName().toString().isEmpty()).isEqualTo(true);
         assertThat(transaction.getContext().getServiceOrigin().getId()).isEqualTo(API_ID);
         assertThat(transaction.getContext().getServiceOrigin().getVersion()).isEqualTo("1.0");
 
         Faas faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
-
+        assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(faas.getTrigger().getType()).isEqualTo("http");
         assertThat(faas.getTrigger().getRequestId()).isEqualTo(API_GATEWAY_REQUEST_ID);
     }
@@ -169,7 +174,7 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
     @ValueSource(booleans = {true, false})
     public void testCallWithNullRequestContext(boolean isObjectNull) {
         APIGatewayProxyRequestEvent.ProxyRequestContext requestContext = isObjectNull ? null : new APIGatewayProxyRequestEvent.ProxyRequestContext();
-        APIGatewayProxyRequestEvent apiGatewayProxyRequestEvent = createRequestEvent(requestContext);
+        APIGatewayProxyRequestEvent apiGatewayProxyRequestEvent = createRequestEvent(HTTP_METHOD, requestContext);
         getFunction().handleRequest(apiGatewayProxyRequestEvent, context);
 
         reporter.awaitTransactionCount(1);
@@ -177,7 +182,7 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
         Transaction transaction = reporter.getFirstTransaction();
-        assertThat(transaction.getNameAsString()).isEqualTo(HTTP_METHOD + " " + TestContext.FUNCTION_NAME);
+        assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
 
@@ -208,6 +213,39 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getResult()).isEqualTo("HTTP 5xx");
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
+    }
+
+    @Test
+    public void testTransactionNameForRestApiSpecificRoute() {
+        getFunction().handleRequest(createInput("PUT","/prod/test/12345", "/test", "prod"), context);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/test");
+    }
+
+    @Test
+    public void testTransactionNameForRestApiProxy() {
+        getFunction().handleRequest(createInput("PUT","/prod/proxy-test/12345", "/proxy-test/{proxy+}", "prod"), context);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/proxy-test/{proxy+}");
+    }
+
+    @Test
+    public void testTransactionNameForHTTPApiProxy() {
+        getFunction().handleRequest(createInput("PUT","/prod/proxy-test/12345", "$default", "prod"), context);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/$default");
+    }
+
+    @Test
+    public void testTransactionNameWithUsePathAsName() {
+        when(config.getConfig(WebConfiguration.class).isUsePathAsName()).thenReturn(true);
+        getFunction().handleRequest(createInput("PUT","/prod/proxy-test/12345", "/proxy-test/{proxy+}", "prod"), context);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/proxy-test/12345");
     }
 
     @Override

@@ -24,10 +24,8 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.ServiceOrigin;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import com.amazonaws.services.lambda.runtime.Context;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
@@ -50,9 +48,6 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     protected AbstractAPIGatewayTransactionHelper(ElasticApmTracer tracer) {
         super(tracer);
     }
-
-    @Nullable
-    protected abstract String getHttpMethod(I event);
 
     protected abstract String getApiGatewayVersion();
 
@@ -139,14 +134,10 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     }
 
     protected void setApiGatewayContextData(Transaction transaction, @Nullable String requestId, @Nullable String apiId,
-                                            @Nullable String httpMethod, @Nullable String resourcePath, @Nullable String accountId) {
+                                            @Nullable String domainName, @Nullable String accountId) {
         transaction.getFaas().getTrigger().withRequestId(requestId);
         ServiceOrigin serviceOrigin = transaction.getContext().getServiceOrigin();
-        serviceOrigin.withName(httpMethod);
-        if (httpMethod != null) {
-            serviceOrigin.appendToName(" ");
-        }
-        serviceOrigin.appendToName(resourcePath);
+        serviceOrigin.withName(domainName);
         serviceOrigin.withId(apiId);
 
         transaction.getContext().getCloudOrigin().withAccountId(accountId);
@@ -161,16 +152,6 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
         }
     }
 
-    @Override
-    protected void setTransactionName(Transaction transaction, I event, Context lambdaContext) {
-        StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
-        String httpMethod = getHttpMethod(event);
-        if (null != transactionName && null != httpMethod) {
-            transactionName.append(httpMethod).append(" ").append(lambdaContext.getFunctionName());
-        } else {
-            super.setTransactionName(transaction, event, lambdaContext);
-        }
-    }
 
     protected String getHttpVersion(String protocol) {
         // don't allocate new strings in the common cases

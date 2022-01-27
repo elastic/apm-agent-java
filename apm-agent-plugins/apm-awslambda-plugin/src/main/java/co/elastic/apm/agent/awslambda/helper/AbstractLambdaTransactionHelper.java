@@ -27,11 +27,11 @@ import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.VersionUtils;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
@@ -62,6 +62,9 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
     private static boolean coldStart = true;
 
     @Nullable
+    private String functionArn;
+
+    @Nullable
     public Transaction startTransaction(I input, Context lambdaContext) {
         boolean isColdStart = coldStart;
         if (isColdStart) {
@@ -70,7 +73,9 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
         }
         Transaction transaction = doStartTransaction(input, lambdaContext);
         if (null != transaction) {
-            transaction.getFaas().withColdStart(isColdStart).withExecution(lambdaContext.getAwsRequestId());
+            transaction.getFaas().withId(getFaasId(lambdaContext))
+                .withColdStart(isColdStart)
+                .withExecution(lambdaContext.getAwsRequestId());
             transaction.getContext().getCloudOrigin().withProvider("aws");
             setTransactionName(transaction, input, lambdaContext);
             setTransactionTriggerData(transaction, input);
@@ -78,6 +83,18 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
         }
 
         return null;
+    }
+
+    private String getFaasId(Context lambdaContext) {
+        if (functionArn == null) {
+            functionArn = lambdaContext.getInvokedFunctionArn();
+            String[] arnSegments = functionArn.split(":");
+            if (arnSegments.length > 6) {
+                functionArn = functionArn.substring(0, functionArn.lastIndexOf(':'));
+            }
+        }
+
+        return functionArn;
     }
 
     public void finalizeTransaction(Transaction transaction, @Nullable O output, @Nullable Throwable thrown) {
@@ -103,13 +120,9 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
 
     private void completeMetaData(Context lambdaContext) {
         try {
-            String functionArn = lambdaContext.getInvokedFunctionArn();
-            String[] arnSegments = functionArn.split(":");
+            String[] arnSegments = lambdaContext.getInvokedFunctionArn().split(":");
             String region = arnSegments[3];
             String accountId = arnSegments[4];
-            if (arnSegments.length > 6) {
-                functionArn = functionArn.substring(0, functionArn.lastIndexOf(':'));
-            }
 
             // set framework
             String lambdaLibVersion = VersionUtils.getVersion(RequestHandler.class, "com.amazonaws", "aws-lambda-java-core");
@@ -119,7 +132,6 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
 
             tracer.getMetaDataFuture().getFaaSMetaDataExtensionFuture().complete(new FaaSMetaDataExtension(
                 new Framework("AWS Lambda", lambdaLibVersion),
-                functionArn,
                 new NameAndIdField(null, accountId),
                 region
             ));
