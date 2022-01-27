@@ -21,6 +21,7 @@ package co.elastic.apm.servlet.tests;
 import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
@@ -69,6 +70,15 @@ public abstract class TestApp {
      */
     public Map<String, String> getAdditionalFilesToBind() {
         return Collections.emptyMap();
+    }
+
+    /**
+     * Provides a way for test apps to configure ignored URLs
+     *
+     * @return a collection of URL paths that will be appended to the {@link #getDeploymentContext() app context}
+     */
+    public Collection<String> getPathsToIgnore() {
+        return Collections.emptyList();
     }
 
     /**

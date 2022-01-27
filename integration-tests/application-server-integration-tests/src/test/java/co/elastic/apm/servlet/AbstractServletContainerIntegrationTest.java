@@ -35,8 +35,8 @@ import org.junit.Test;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
@@ -102,7 +102,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
 
     private static MockServerContainer mockServerContainer = new MockServerContainer()
-        //.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(MockServerContainer.class)))
+        //.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class))
         .withNetworkAliases("apm-server")
         .withNetwork(Network.SHARED);
     private static OkHttpClient httpClient;
@@ -156,6 +156,12 @@ public abstract class AbstractServletContainerIntegrationTest {
         List<String> ignoreUrls = new ArrayList<>();
         for (TestApp app : getTestApps()) {
             ignoreUrls.add(String.format("/%s/status*", app.getDeploymentContext()));
+            for (String ignorePath : app.getPathsToIgnore()) {
+                if (ignorePath.startsWith("/")) {
+                    ignorePath = ignorePath.substring(1);
+                }
+                ignoreUrls.add(String.format("/%s/%s", app.getDeploymentContext(), ignorePath));
+            }
         }
         ignoreUrls.add("/favicon.ico");
         String ignoreUrlConfig = String.join(",", ignoreUrls);
@@ -598,7 +604,7 @@ public abstract class AbstractServletContainerIntegrationTest {
                 .withFailMessage("No service name set. Expected '%s'. Event was %s", expectedServiceName, event)
                 .isNotNull();
             assertThat(contextService.get("name").textValue())
-                .describedAs("Event has non-expected service name %s", event)
+                .describedAs("Event has unexpected service name %s", event)
                 .isEqualTo(expectedServiceName);
         }
     }

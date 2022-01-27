@@ -20,7 +20,7 @@ package co.elastic.apm.agent.logging;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServiceNameUtil;
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.converter.ByteValue;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -176,7 +176,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
                     .newLayout("PatternLayout")
                     .addAttribute("pattern", "%d [%thread] %-5level %logger{36} - %msg{nolookups}%n");
         } else {
-            String serviceName = getValue(CoreConfiguration.SERVICE_NAME, sources, ServiceNameUtil.getDefaultServiceName());
+            String serviceName = getValue(CoreConfiguration.SERVICE_NAME, sources, ServiceInfo.autoDetected().getServiceName());
             return builder.newLayout("EcsLayout")
                 .addAttribute("eventDataset", serviceName + ".apm");
         }
