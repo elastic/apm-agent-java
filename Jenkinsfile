@@ -177,6 +177,7 @@ pipeline {
                   expression { return env.GITHUB_COMMENT?.contains('integration tests') }
                   expression { matchesPrLabel(label: 'ci:agent-integration') }
                   expression { return env.CHANGE_ID != null && !pullRequest.draft }
+                  not { changeRequest() }
                 }
               }
               steps {
@@ -206,6 +207,7 @@ pipeline {
                   expression { return env.GITHUB_COMMENT?.contains('integration tests') }
                   expression { matchesPrLabel(label: 'ci:agent-integration') }
                   expression { return env.CHANGE_ID != null && !pullRequest.draft }
+                  not { changeRequest() }
                 }
               }
               steps {
@@ -237,11 +239,9 @@ pipeline {
               }
               when {
                 beforeAgent true
-                allOf {
-                  anyOf {
-                    branch 'main'
-                    expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
-                  }
+                anyOf {
+                  branch 'main'
+                  expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
                   expression { return params.bench_ci }
                 }
               }
@@ -271,10 +271,6 @@ pipeline {
             stage('Javadoc') {
               agent { label 'linux && immutable' }
               options { skipDefaultCheckout() }
-              when {
-                beforeAgent true
-                expression { return env.ONLY_DOCS == "false" }
-              }
               steps {
                 withGithubNotify(context: 'Javadoc') {
                   deleteDir()
@@ -302,6 +298,7 @@ pipeline {
                 expression { return env.GITHUB_COMMENT?.contains('end-to-end tests') }
                 expression { matchesPrLabel(label: 'ci:end-to-end') }
                 expression { return env.CHANGE_ID != null && !pullRequest.draft }
+                not { changeRequest() }
               }
             }
           }
