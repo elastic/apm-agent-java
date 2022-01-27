@@ -190,11 +190,16 @@ pipeline {
                   }
                 }
               }
+              environment {
+                JAVA_HOME = "C:\\Users\\jenkins\\.java\\${env.JAVA_VERSION}"
+                PATH = "${env.JAVA_HOME}\\bin;${env.PATH}"
+              }
               steps {
                 withGithubNotify(context: 'Build & Test Windows') {
                   deleteDir()
                   unstash 'source'
                   dir("${BASE_DIR}") {
+                    echo "${env.PATH}"
                     retryWithSleep(retries: 5, seconds: 10) {
                       bat label: 'mvn clean install', script: "mvnw clean install -Dmaven.gitcommitid.skip=true"
                     }
