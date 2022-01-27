@@ -19,11 +19,17 @@
 package co.elastic.apm.agent.report;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.UnknownHostException;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -81,5 +87,39 @@ class HttpUtilsTest {
         when(stream.read(any())).thenReturn(-1);
         return stream;
     }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"http", "https"})
+    void nonDefaultUrlHandler(String protocol) throws IOException {
+        String sysProperty = "java.protocol.handler.pkgs";
+
+        assertThat(System.getProperty(sysProperty)).isNull();
+        try {
+            // implementation classes are provided in this package with known structure hardcoded in the JDK
+            System.setProperty(sysProperty, "co.elastic.apm.agent.report.fake");
+
+            String url = protocol + "://not.found:9999";
+
+            URL originalUrl = new URL(url);
+
+            // overridden default handler does not allow opening a connection
+            assertThatThrownBy(originalUrl::openConnection).hasMessageStartingWith("fake handler");
+
+            URL modifiedUrl = HttpUtils.withDefaultHandler(originalUrl);
+
+            // unknown host exception is expected here
+            assertThatThrownBy(()-> modifiedUrl.openConnection().getInputStream())
+                .isInstanceOf(UnknownHostException.class);
+
+
+        } finally {
+            System.clearProperty(sysProperty);
+
+            assertThat(System.getProperty(sysProperty))
+                .isNull();
+        }
+    }
+
+
 
 }
