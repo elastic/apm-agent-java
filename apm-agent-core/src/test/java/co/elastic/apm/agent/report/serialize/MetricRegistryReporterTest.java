@@ -20,7 +20,6 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -41,7 +40,7 @@ class MetricRegistryReporterTest {
                 .configurationRegistry(SpyConfiguration.createSpyConfig(SimpleSource.forTest("service_name", "foo")))
                 .reporter(reporter)
                 .buildAndStart();
-            tracer.overrideServiceNameForClassLoader(MetricRegistryReporterTest.class.getClassLoader(), "MetricRegistryReporterTest");
+            tracer.overrideServiceInfoForClassLoader(MetricRegistryReporterTest.class.getClassLoader(), "MetricRegistryReporterTest");
 
             new MetricRegistryReporter(tracer).run();
 

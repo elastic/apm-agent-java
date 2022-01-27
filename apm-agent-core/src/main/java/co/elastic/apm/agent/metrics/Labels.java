@@ -49,6 +49,9 @@ public interface Labels {
     String getServiceName();
 
     @Nullable
+    String getServiceVersion();
+
+    @Nullable
     CharSequence getTransactionName();
 
     @Nullable
@@ -92,7 +95,7 @@ public interface Labels {
         }
 
         public boolean isEmpty() {
-            return keys.isEmpty() && getServiceName() == null && getTransactionName() == null && getTransactionType() == null && getSpanType() == null;
+            return keys.isEmpty() && getServiceName() == null && getServiceVersion() == null && getTransactionName() == null && getTransactionType() == null && getSpanType() == null;
         }
 
         public int size() {
@@ -117,6 +120,7 @@ public interface Labels {
                 Objects.equals(getTransactionType(), labels.getTransactionType()) &&
                 contentEquals(getTransactionName(), labels.getTransactionName()) &&
                 Objects.equals(getServiceName(), labels.getServiceName()) &&
+                Objects.equals(getServiceVersion(), labels.getServiceVersion()) &&
                 keys.equals(labels.keys) &&
                 isEqual(values, labels.values);
         }
@@ -128,6 +132,7 @@ public interface Labels {
                 h = 31 * h + hashEntryAt(i);
             }
             h = 31 * h + hash(getServiceName());
+            h = 31 * h + hash(getServiceVersion());
             h = 31 * h + hash(getTransactionName());
             h = 31 * h + (getTransactionType() != null ? getTransactionType().hashCode() : 0);
             h = 31 * h + (getSpanType() != null ? getSpanType().hashCode() : 0);
@@ -205,6 +210,8 @@ public interface Labels {
         @Nullable
         private String serviceName;
         @Nullable
+        private String serviceVersion;
+        @Nullable
         private CharSequence transactionName;
         @Nullable
         private String transactionType;
@@ -246,6 +253,11 @@ public interface Labels {
             return this;
         }
 
+        public Labels.Mutable serviceVersion(@Nullable String serviceVersion) {
+            this.serviceVersion = serviceVersion;
+            return this;
+        }
+
         public Labels.Mutable transactionName(@Nullable CharSequence transactionName) {
             this.transactionName = transactionName;
             return this;
@@ -269,6 +281,11 @@ public interface Labels {
         @Nullable
         public String getServiceName() {
             return serviceName;
+        }
+
+        @Nullable
+        public String getServiceVersion() {
+            return serviceVersion;
         }
 
         @Nullable
@@ -301,6 +318,7 @@ public interface Labels {
             keys.clear();
             values.clear();
             serviceName = null;
+            serviceVersion = null;
             transactionName = null;
             transactionType = null;
             spanType = null;
@@ -323,6 +341,8 @@ public interface Labels {
         @Nullable
         private final String serviceName;
         @Nullable
+        private final String serviceVersion;
+        @Nullable
         private final String transactionName;
         @Nullable
         private final String transactionType;
@@ -334,6 +354,7 @@ public interface Labels {
         public Immutable(Labels labels) {
             super(new ArrayList<>(labels.getKeys()), copy(labels.getValues()));
             this.serviceName = labels.getServiceName();
+            this.serviceVersion = labels.getServiceVersion();
             final CharSequence transactionName = labels.getTransactionName();
             this.transactionName = transactionName != null ? transactionName.toString() : null;
             this.transactionType = labels.getTransactionType();
@@ -363,6 +384,12 @@ public interface Labels {
         @Override
         public String getServiceName() {
             return serviceName;
+        }
+
+        @Nullable
+        @Override
+        public String getServiceVersion() {
+            return serviceVersion;
         }
 
         @Nullable
