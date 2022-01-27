@@ -109,7 +109,7 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
                 }
             }
 
-            tracer.overrideServiceNameForClassLoader(classLoader, appName);
+            tracer.overrideServiceInfoForClassLoader(classLoader, appName);
         }
     }
 }
