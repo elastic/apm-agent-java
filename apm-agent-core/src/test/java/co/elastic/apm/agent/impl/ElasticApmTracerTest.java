@@ -74,7 +74,7 @@ class ElasticApmTracerTest {
     void cleanupAndCheck() {
         reporter.assertRecycledAfterDecrementingReferences();
         objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
-        tracerImpl.resetServiceNameOverrides();
+        tracerImpl.resetServiceInfoOverrides();
     }
 
     @Test
@@ -431,7 +431,7 @@ class ElasticApmTracerTest {
             .configurationRegistry(SpyConfiguration.createSpyConfig())
             .reporter(reporter)
             .buildAndStart();
-        tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden");
 
         startTestRootTransaction().end();
 
@@ -448,7 +448,7 @@ class ElasticApmTracerTest {
             .reporter(reporter)
             .configurationRegistry(localConfig)
             .buildAndStart();
-        tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden");
 
         startTestRootTransaction().end();
 
@@ -467,7 +467,7 @@ class ElasticApmTracerTest {
             .reporter(reporter)
             .configurationRegistry(localConfig)
             .buildAndStart();
-        tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden");
         startTestRootTransaction().end();
 
         CoreConfiguration coreConfig = localConfig.getConfig(CoreConfiguration.class);
@@ -478,6 +478,34 @@ class ElasticApmTracerTest {
         } else {
             System.clearProperty("sun.java.command");
         }
+    }
+
+    @Test
+    void testOverrideServiceVersionWithoutExplicitServiceVersion() {
+        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .reporter(reporter)
+            .buildAndStart();
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden_name", "overridden_version");
+
+        startTestRootTransaction().end();
+
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden_name");
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("overridden_version");
+    }
+
+    @Test
+    void testNotOverrideServiceVersionWhenServiceVersionConfigured() {
+        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(ConfigSources.fromClasspath("test.elasticapm.with-service-version.properties", ClassLoader.getSystemClassLoader()));
+        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .reporter(reporter)
+            .configurationRegistry(localConfig)
+            .buildAndStart();
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden_name", "overridden_version");
+
+        startTestRootTransaction().end();
+
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden_name");
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("overridden_version");
     }
 
     @Test
