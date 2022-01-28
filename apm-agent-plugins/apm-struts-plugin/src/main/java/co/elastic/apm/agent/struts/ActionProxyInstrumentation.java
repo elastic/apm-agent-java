@@ -16,44 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.java_ldap;
+package co.elastic.apm.agent.struts;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Collection;
-import java.util.Collections;
-
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class LdapClientInstrumentation extends TracerAwareInstrumentation {
+public class ActionProxyInstrumentation extends StrutsInstrumentation {
 
     @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("com.sun.jndi.ldap.LdapClient");
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("ActionProxy");
+    }
+
+    @Override
+    public final ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return hasSuperType(named("com.opensymphony.xwork2.ActionProxy"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("authenticate")
-            .or(named("add"))
-            .or(named("compare"))
-            .or(named("delete"))
-            .or(named("extendedOp"))
-            .or(named("moddn"))
-            .or(named("modify"))
-            .or(named("search"));
+        return named("execute");
     }
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.java_ldap.LdapClientAdvice";
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("java-ldap");
+        return "co.elastic.apm.agent.struts.ActionProxyAdvice";
     }
 }

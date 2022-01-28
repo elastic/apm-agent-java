@@ -18,29 +18,14 @@
  */
 package co.elastic.apm.agent.struts;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import com.opensymphony.xwork2.ActionProxy;
-import net.bytebuddy.asm.Advice;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+public class StrutsFrameworkUtils {
 
-public class Struts2TransactionNameAdvice {
-
-    private static final String FRAMEWORK_NAME = "Struts";
-
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void setTransactionName(@Advice.This ActionProxy actionProxy) {
-        Transaction transaction = GlobalTracer.get().currentTransaction();
-        if (transaction == null) {
-            return;
-        }
-
-        transaction.setFrameworkName(FRAMEWORK_NAME);
+    public static void setFrameworkNameAndVersion(Transaction transaction) {
+        transaction.setFrameworkName("Struts");
         transaction.setFrameworkVersion(VersionUtils.getVersion(ActionProxy.class, "org.apache.struts", "struts2-core"));
-
-        TransactionNameUtils.setNameFromClassAndMethod(actionProxy.getAction().getClass().getSimpleName(), actionProxy.getMethod(), transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
     }
 }

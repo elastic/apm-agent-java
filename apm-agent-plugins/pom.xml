@@ -69,7 +69,6 @@
         <module>apm-jaxws-plugin-jakartaee-test</module>
         <module>apm-jaxrs-plugin-jakartaee-test</module>
         <module>apm-scheduled-annotation-plugin-jakartaee-test</module>
-        <module>apm-java-ldap-plugin</module>
     </modules>
 
     <dependencies>
