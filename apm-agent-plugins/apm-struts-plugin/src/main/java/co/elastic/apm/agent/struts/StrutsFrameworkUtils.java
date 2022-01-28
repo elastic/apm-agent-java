@@ -22,12 +22,10 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.VersionUtils;
 import com.opensymphony.xwork2.ActionProxy;
 
-public class FrameworkUtils {
-
-    private static final String FRAMEWORK_NAME = "Struts";
+public class StrutsFrameworkUtils {
 
     public static void setFrameworkNameAndVersion(Transaction transaction) {
-        transaction.setFrameworkName(FRAMEWORK_NAME);
+        transaction.setFrameworkName("Struts");
         transaction.setFrameworkVersion(VersionUtils.getVersion(ActionProxy.class, "org.apache.struts", "struts2-core"));
     }
 }
