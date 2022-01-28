@@ -25,8 +25,8 @@ import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 import javax.websocket.server.ServerEndpoint;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 public class JavaxServerEndpointInstrumentation extends BaseServerEndpointInstrumentation {
 
@@ -36,7 +36,7 @@ public class JavaxServerEndpointInstrumentation extends BaseServerEndpointInstru
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("javax-websocket");
+        return Arrays.asList("websocket", "javax-websocket");
     }
 
     @Override

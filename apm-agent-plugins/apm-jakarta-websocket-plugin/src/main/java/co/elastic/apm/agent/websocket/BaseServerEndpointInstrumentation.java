@@ -95,15 +95,17 @@ public abstract class BaseServerEndpointInstrumentation extends TracerAwareInstr
         }
 
         protected static void endTransaction(Object transactionOrNull, @Advice.Thrown @Nullable Throwable t) {
-            if (transactionOrNull != null) {
-                Transaction transaction = (Transaction) transactionOrNull;
-                try {
-                    if (t != null) {
-                        transaction.captureException(t).withOutcome(Outcome.FAILURE);
-                    }
-                } finally {
-                    transaction.deactivate().end();
+            if (transactionOrNull == null) {
+                return;
+            }
+
+            Transaction transaction = (Transaction) transactionOrNull;
+            try {
+                if (t != null) {
+                    transaction.captureException(t).withOutcome(Outcome.FAILURE);
                 }
+            } finally {
+                transaction.deactivate().end();
             }
         }
 

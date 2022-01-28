@@ -25,8 +25,8 @@ import jakarta.websocket.server.ServerEndpoint;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 public class JakartaServerEndpointInstrumentation extends BaseServerEndpointInstrumentation {
 
@@ -36,7 +36,7 @@ public class JakartaServerEndpointInstrumentation extends BaseServerEndpointInst
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("jakarta-websocket");
+        return Arrays.asList("websocket", "jakarta-websocket");
     }
 
     @Override

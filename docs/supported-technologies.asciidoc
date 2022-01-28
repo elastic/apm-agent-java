@@ -173,8 +173,8 @@ rendering
 
 |Java API for WebSocket
 |1.0
-|Captures incoming messages as transactions
-|1.28.0
+|Captures methods annotated with `@OnOpen`, `@OnMessage`, `@OnError`, or `@OnClose` as transactions for classes that are annotated with `@ServerEndpoint`.
+|1.29.0
 
 |===
 
