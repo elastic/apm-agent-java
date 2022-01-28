@@ -167,7 +167,7 @@ pipeline {
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   dir("${BASE_DIR}") {
                     withOtelEnv() {
-                      sh './mvnw test'
+                      sh label: 'mvn test', script: './mvnw test'
                     }
                   }
                 }
@@ -206,8 +206,9 @@ pipeline {
                   dir("${BASE_DIR}") {
                     echo "${env.PATH}"
                     retryWithSleep(retries: 5, seconds: 10) {
-                      bat label: 'mvn clean install', script: "mvnw clean install -Dmaven.gitcommitid.skip=true"
+                      bat label: 'mvn clean install', script: "mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true"
                     }
+                    bat label: 'mvn test', script: "mvnw test"
                   }
                 }
               }
