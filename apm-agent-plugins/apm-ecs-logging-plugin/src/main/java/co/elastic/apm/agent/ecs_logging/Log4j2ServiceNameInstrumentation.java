@@ -23,7 +23,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.logging.log4j2.EcsLayout;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -56,15 +55,12 @@ public class Log4j2ServiceNameInstrumentation extends TracerAwareInstrumentation
 
         private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
 
-        private static final String defaultServiceName = tracer.getConfig(CoreConfiguration.class).getServiceName();
-
-        private static final boolean logEcsServiceName = tracer.getConfig(LoggingConfiguration.class).getLogEcsServiceName();
-
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.This EcsLayout.Builder builder) {
-            if (logEcsServiceName && (builder.getServiceName() == null || builder.getServiceName().isEmpty())) {
+            if (builder.getServiceName() == null || builder.getServiceName().isEmpty()) {
                 ServiceInfo serviceInfo = tracer.getServiceInfo(Thread.currentThread().getContextClassLoader());
-                builder.setServiceName(serviceInfo != null ? serviceInfo.getServiceName() : defaultServiceName);
+                String configuredServiceName = tracer.getConfig(CoreConfiguration.class).getServiceName();
+                builder.setServiceName(serviceInfo != null ? serviceInfo.getServiceName() : configuredServiceName);
             }
         }
     }

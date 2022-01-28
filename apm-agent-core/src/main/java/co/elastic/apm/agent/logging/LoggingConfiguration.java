@@ -170,15 +170,6 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         })
         .buildWithDefault(false);
 
-    private final ConfigurationOption<Boolean> logEcsServiceName = ConfigurationOption.booleanOption()
-        .key("log_ecs_service_name")
-        .configurationCategory(LOGGING_CATEGORY)
-        .tags("added[1.28.0]")
-        .description("Specifies if the agent should set the service name for an ECS compatible logging implementation if it is not explicitly set.\n\n" +
-            "NOTE: Only log4j2-ecs-layout is currently supported")
-        .dynamic(false)
-        .buildWithDefault(false);
-
     private final ConfigurationOption<LogEcsReformatting> logEcsReformatting = ConfigurationOption.enumOption(LogEcsReformatting.class)
         .key("log_ecs_reformatting")
         .configurationCategory(LOGGING_CATEGORY)
@@ -387,10 +378,6 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     public boolean isLogCorrelationEnabled() {
         // Enabling automatic ECS-reformatting implicitly enables log correlation
         return logCorrelationEnabled.get() || getLogEcsReformatting() != LogEcsReformatting.OFF;
-    }
-
-    public boolean getLogEcsServiceName() {
-        return logEcsServiceName.get();
     }
 
     public LogEcsReformatting getLogEcsReformatting() {

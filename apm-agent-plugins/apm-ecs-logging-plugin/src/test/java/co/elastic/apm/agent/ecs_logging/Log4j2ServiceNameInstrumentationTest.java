@@ -20,7 +20,6 @@ package co.elastic.apm.agent.ecs_logging;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.logging.log4j2.EcsLayout;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,7 +38,6 @@ class Log4j2ServiceNameInstrumentationTest extends AbstractInstrumentationTest {
     @BeforeAll
     static void setUp() {
         when(tracer.getConfig(CoreConfiguration.class).getServiceName()).thenReturn("foo");
-        when(tracer.getConfig(LoggingConfiguration.class).getLogEcsServiceName()).thenReturn(true);
     }
 
     @Test
