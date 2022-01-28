@@ -341,10 +341,6 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |
 | 1.25.0
 
-|LdapClient
-|
-|
-| 1.29.0
 |===
 
 
