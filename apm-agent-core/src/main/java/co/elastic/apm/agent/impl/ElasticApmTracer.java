@@ -771,7 +771,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @Nullable
-    private ServiceInfo getServiceInfo(@Nullable ClassLoader initiatingClassLoader) {
+    public ServiceInfo getServiceInfo(@Nullable ClassLoader initiatingClassLoader) {
         if (initiatingClassLoader == null) {
             return null;
         }

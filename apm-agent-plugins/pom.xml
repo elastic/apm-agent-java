@@ -70,6 +70,7 @@
         <module>apm-jaxrs-plugin-jakartaee-test</module>
         <module>apm-scheduled-annotation-plugin-jakartaee-test</module>
         <module>apm-jakarta-websocket-plugin</module>
+        <module>apm-ecs-logging-plugin</module>
     </modules>
 
     <dependencies>

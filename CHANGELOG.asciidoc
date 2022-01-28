@@ -35,6 +35,7 @@ endif::[]
 * Added support for overwritting the service version per classloader - {pull}1726[#1726]
 * Added support for instrumenting Struts 2 static resource requests - {pull}1949[#1949]
 * Added support for Java/Jakarta WebSocket ServerEndpoint - {pull}2281[#2281]
+* Added support for setting the service name on Log4j2's EcsLayout - {pull}2296[#2296]
 
 [float]
 ===== Bug fixes
