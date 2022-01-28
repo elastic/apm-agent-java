@@ -18,24 +18,40 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.sdk.DynamicTransformer;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.util.CustomEnvVariables;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.matcher.ElementMatcher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
+import java.net.URLStreamHandlerFactory;
 import java.net.UnknownHostException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Hashtable;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static net.bytebuddy.matcher.ElementMatchers.isStatic;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class HttpUtilsTest {
+class HttpUtilsTest extends CustomEnvVariables {
 
     @Test
     void consumeAndCloseIgnoresNullConnection() {
@@ -88,38 +104,115 @@ class HttpUtilsTest {
         return stream;
     }
 
+    private static final String FACTORY_MSG = "fake handler can't open connections";
+    private static final AtomicBoolean factoryActive = new AtomicBoolean(false);
+
+    static {
+        // This method to set the global factory is designed to be called once. It is not possible to
+        // un-register the factory after registration
+        URL.setURLStreamHandlerFactory(new URLStreamHandlerFactory() {
+
+            @Nullable
+            @Override
+            public URLStreamHandler createURLStreamHandler(String p) {
+                if (!factoryActive.get()) {
+                    // The factory will return null when it does not support a given protocol
+                    return null;
+                }
+
+                // any non-null value returned here will be registered globally
+                // In order to reset the default behavior calling URL.setURLStreamHandlerFactory(null) is required.
+                return new URLStreamHandler() {
+                    @Override
+                    protected URLConnection openConnection(URL u) throws IOException {
+                        throw new IllegalStateException(FACTORY_MSG);
+                    }
+                };
+            }
+        });
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"http", "https"})
     void nonDefaultUrlHandler(String protocol) throws IOException {
-        String sysProperty = "java.protocol.handler.pkgs";
 
-        assertThat(System.getProperty(sysProperty)).isNull();
+        // the handler is set in the URL constructor, thus we have to rebuild it
+        // every time we expect a different handler.
+        String url = protocol + "://not.found:9999";
+
+        DynamicTransformer.ensureInstrumented(URL.class, Collections.singleton(TestUrlInstrumentation.class));
+
         try {
-            // implementation classes are provided in this package with known structure hardcoded in the JDK
-            System.setProperty(sysProperty, "co.elastic.apm.agent.report.fake");
+            // test default behavior
+            checkDefaultHandler(new URL(url));
 
-            String url = protocol + "://not.found:9999";
+            factoryActive.set(true);
 
-            URL originalUrl = new URL(url);
+            // required to remove registered handlers
+            URL.setURLStreamHandlerFactory(null);
 
             // overridden default handler does not allow opening a connection
-            assertThatThrownBy(originalUrl::openConnection).hasMessageStartingWith("fake handler");
+            assertThatThrownBy(() -> new URL(url).openConnection())
+                .hasMessage(FACTORY_MSG);
 
-            URL modifiedUrl = HttpUtils.withDefaultHandler(originalUrl);
-
-            // unknown host exception is expected here
-            assertThatThrownBy(()-> modifiedUrl.openConnection().getInputStream())
-                .isInstanceOf(UnknownHostException.class);
-
-
+            checkDefaultHandler(HttpUtils.withDefaultHandler(new URL(url)));
         } finally {
-            System.clearProperty(sysProperty);
+            factoryActive.set(false);
 
-            assertThat(System.getProperty(sysProperty))
-                .isNull();
+            // required to remove registered handlers
+            URL.setURLStreamHandlerFactory(null);
+
+            // should not impact non-fake URLs
+            checkDefaultHandler(new URL(url));
         }
     }
 
 
+    private void checkDefaultHandler(URL url) {
+        // unknown host exception is expected here
+        assertThatThrownBy(() -> url.openConnection().getInputStream())
+            .isInstanceOf(UnknownHostException.class);
+    }
+
+    /**
+     * Instrumentation of {@link URL#setURLStreamHandlerFactory(URLStreamHandlerFactory)} to allow resetting handlers
+     * by calling {@code URL.setURLStreamHandlerFactory(null);}.
+     */
+    public static final class TestUrlInstrumentation extends ElasticApmInstrumentation {
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return named("java.net.URL");
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return isStatic().and(named("setURLStreamHandlerFactory"));
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.singleton("test-url");
+        }
+
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.report.HttpUtilsTest$TestUrlInstrumentation$AdviceClass";
+        }
+
+        public static final class AdviceClass {
+
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false, skipOn = Advice.OnNonDefaultValue.class)
+            public static boolean onEnter(@Advice.Argument(0) @Nullable URLStreamHandlerFactory factory,
+                                          @Advice.FieldValue("handlers") Hashtable<?, ?> handlers) {
+
+                if (factory == null) {
+                    handlers.clear();
+                    return true;
+                }
+                return false;
+            }
+        }
+    }
 
 }
