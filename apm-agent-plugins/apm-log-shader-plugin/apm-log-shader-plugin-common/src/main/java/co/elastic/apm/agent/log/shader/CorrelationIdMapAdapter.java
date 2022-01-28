@@ -1,8 +1,25 @@
+/*
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package co.elastic.apm.agent.log.shader;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import javax.annotation.Nullable;
@@ -16,15 +33,18 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-public class TraceIdentifierMapAdapter extends AbstractMap<String, String> {
+public class CorrelationIdMapAdapter extends AbstractMap<String, String> {
 
-    private static final TraceIdentifierMapAdapter INSTANCE = new TraceIdentifierMapAdapter();
+    public static final String TRACE_ID = "trace.id";
+    public static final String TRANSACTION_ID = "transaction.id";
+    public static final String SPAN_ID = "span.id";
 
+    private static final CorrelationIdMapAdapter INSTANCE = new CorrelationIdMapAdapter();
     private static final Set<Entry<String, String>> ENTRY_SET = new TraceIdentifierEntrySet();
-    private static final List<String> ALL_KEYS = Arrays.asList("trace.id", "transaction.id", "span.id");
+    private static final List<String> ALL_KEYS = Arrays.asList(TRACE_ID, TRANSACTION_ID/*, SPAN_ID*/);
     private static final Tracer tracer = GlobalTracer.get();
-    private static final List<Entry<String, String>> ENTRIES = Arrays.asList(
-        new LazyEntry("trace.id", new Callable<String>() {
+    private static final List<Entry<String, String>> ENTRIES = Arrays.<Entry<String, String>>asList(
+        new LazyEntry(TRACE_ID, new Callable<String>() {
             @Override
             @Nullable
             public String call() {
@@ -35,7 +55,7 @@ public class TraceIdentifierMapAdapter extends AbstractMap<String, String> {
                 return transaction.getTraceContext().getTraceId().toString();
             }
         }),
-        new LazyEntry("transaction.id", new Callable<String>() {
+        new LazyEntry(TRANSACTION_ID, new Callable<String>() {
             @Override
             @Nullable
             public String call() {
@@ -45,8 +65,8 @@ public class TraceIdentifierMapAdapter extends AbstractMap<String, String> {
                 }
                 return transaction.getTraceContext().getId().toString();
             }
-        }),
-        new LazyEntry("span.id", new Callable<String>() {
+        })/*,
+        new LazyEntry(SPAN_ID, new Callable<String>() {
             @Override
             @Nullable
             public String call() {
@@ -56,23 +76,23 @@ public class TraceIdentifierMapAdapter extends AbstractMap<String, String> {
                 }
                 return span.getTraceContext().getId().toString();
             }
-        })
+        })*/
     );
 
     public static Map<String, String> get() {
         return INSTANCE;
     }
 
-    private TraceIdentifierMapAdapter() {
+    public static Iterable<String> allKeys() {
+        return ALL_KEYS;
+    }
+
+    private CorrelationIdMapAdapter() {
     }
 
     @Override
     public Set<Entry<String, String>> entrySet() {
         return ENTRY_SET;
-    }
-
-    public Iterable<String> allKeys() {
-        return ALL_KEYS;
     }
 
     private static class TraceIdentifierEntrySet extends AbstractSet<Entry<String, String>> {

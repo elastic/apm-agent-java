@@ -22,13 +22,11 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 
 import javax.annotation.Nullable;
+import java.util.Map;
 
 public abstract class AbstractLogCorrelationHelper {
 
     private static final CallDepth callDepth = CallDepth.get(AbstractLogCorrelationHelper.class);
-
-    public static final String TRACE_ID_MDC_KEY = "trace.id";
-    public static final String TRANSACTION_ID_MDC_KEY = "transaction.id";
 
     /**
      * Adds the active transaction's ID and trace ID to the MDC in the outmost logging API call
@@ -39,8 +37,9 @@ public abstract class AbstractLogCorrelationHelper {
         if (callDepth.isNestedCallAndIncrement() || activeTransaction == null) {
             return false;
         }
-        addToMdc(TRACE_ID_MDC_KEY, activeTransaction.getTraceContext().getTraceId().toString());
-        addToMdc(TRANSACTION_ID_MDC_KEY, activeTransaction.getTraceContext().getTransactionId().toString());
+        addToMdc(CorrelationIdMapAdapter.TRACE_ID, activeTransaction.getTraceContext().getTraceId().toString());
+        addToMdc(CorrelationIdMapAdapter.TRANSACTION_ID, activeTransaction.getTraceContext().getTransactionId().toString());
+        addToMdc(CorrelationIdMapAdapter.get());
         return true;
     }
 
@@ -50,12 +49,21 @@ public abstract class AbstractLogCorrelationHelper {
      */
     public void afterLoggingApi(boolean added) {
         if (callDepth.isNestedCallAndDecrement() && added) {
-            removeFromMdc(TRACE_ID_MDC_KEY);
-            removeFromMdc(TRANSACTION_ID_MDC_KEY);
+            removeFromMdc(CorrelationIdMapAdapter.TRACE_ID);
+            removeFromMdc(CorrelationIdMapAdapter.TRANSACTION_ID);
+            removeFromMdc(CorrelationIdMapAdapter.allKeys());
         }
     }
 
-    protected abstract void addToMdc(String key, String value);
+    protected void addToMdc(String key, String value) {
+    }
 
-    protected abstract void removeFromMdc(String key);
+    protected void addToMdc(Map<String, String> correlationIds) {
+    }
+
+    protected void removeFromMdc(String key) {
+    }
+
+    protected void removeFromMdc(Iterable<String> correlationIdKeys) {
+    }
 }

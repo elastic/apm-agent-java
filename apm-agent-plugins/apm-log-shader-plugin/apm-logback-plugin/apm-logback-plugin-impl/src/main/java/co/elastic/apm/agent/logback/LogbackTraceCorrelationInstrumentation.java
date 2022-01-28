@@ -18,18 +18,22 @@
  */
 package co.elastic.apm.agent.logback;
 
-import co.elastic.apm.agent.log.shader.AbstractLogCorrelationInstrumentation;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class LogbackTraceCorrelationInstrumentation extends AbstractLogCorrelationInstrumentation {
+/**
+ * Instruments {@link ch.qos.logback.classic.Logger#callAppenders(ILoggingEvent)}
+ */
+public class LogbackTraceCorrelationInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -37,13 +41,13 @@ public class LogbackTraceCorrelationInstrumentation extends AbstractLogCorrelati
     }
 
     @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return super.getClassLoaderMatcher().and(classLoaderCanLoadClass("ch.qos.logback.classic.Logger"));
+    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return named("ch.qos.logback.classic.Logger");
     }
 
     @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("ch.qos.logback.classic.Logger");
+    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        return named("callAppenders");
     }
 
     public static class AdviceClass {

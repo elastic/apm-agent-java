@@ -45,8 +45,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static co.elastic.apm.agent.log.shader.AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY;
-import static co.elastic.apm.agent.log.shader.AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
@@ -286,8 +284,8 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
         assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo("v42");
         assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
-        assertThat(ecsLogLineTree.get(TRACE_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
-        assertThat(ecsLogLineTree.get(TRANSACTION_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
+        assertThat(ecsLogLineTree.get("trace.id").textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
+        assertThat(ecsLogLineTree.get("transaction.id").textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
     }
 
     private ArrayList<JsonNode> readShadeLogFile() throws IOException {
@@ -325,8 +323,8 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
         assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo("v42");
         assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
-        assertThat(ecsLogLineTree.get(TRACE_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
-        assertThat(ecsLogLineTree.get(TRANSACTION_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
+        assertThat(ecsLogLineTree.get("trace.id").textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
+        assertThat(ecsLogLineTree.get("transaction.id").textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
     }
 
     /**
