@@ -292,6 +292,7 @@ pipeline {
               options { skipDefaultCheckout() }
               environment {
                 NO_BUILD = "true"
+                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               when {
                 beforeAgent true
@@ -300,9 +301,6 @@ pipeline {
                   expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
                   expression { return params.bench_ci }
                 }
-              }
-              environment {
-                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               steps {
                 withGithubNotify(context: 'Benchmarks', tab: 'artifacts') {
