@@ -79,6 +79,7 @@ public abstract class BaseServerEndpointInstrumentation extends TracerAwareInstr
 
     protected static class BaseAdvice {
 
+        @Nullable
         protected static Object startTransactionOrSetTransactionName(String signature, String frameworkName, @Nullable String frameworkVersion) {
             Transaction currentTransaction = tracer.currentTransaction();
             if (currentTransaction == null) {
@@ -94,7 +95,7 @@ public abstract class BaseServerEndpointInstrumentation extends TracerAwareInstr
             return null;
         }
 
-        protected static void endTransaction(Object transactionOrNull, @Advice.Thrown @Nullable Throwable t) {
+        protected static void endTransaction(@Nullable Object transactionOrNull, @Advice.Thrown @Nullable Throwable t) {
             if (transactionOrNull == null) {
                 return;
             }

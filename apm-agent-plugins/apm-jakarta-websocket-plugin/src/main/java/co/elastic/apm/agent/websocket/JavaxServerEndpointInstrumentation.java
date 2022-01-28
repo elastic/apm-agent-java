@@ -46,6 +46,7 @@ public class JavaxServerEndpointInstrumentation extends BaseServerEndpointInstru
 
     public static class AdviceClass extends BaseServerEndpointInstrumentation.BaseAdvice {
 
+        @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onMethodEnter(@SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature) {
             String frameworkVersion = VersionUtils.getVersion(ServerEndpoint.class, "javax.websocket", "javax.websocket-api");
@@ -53,7 +54,7 @@ public class JavaxServerEndpointInstrumentation extends BaseServerEndpointInstru
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onMethodExit(@Advice.Enter Object transactionOrNull, @Advice.Thrown @Nullable Throwable t) {
+        public static void onMethodExit(@Advice.Enter @Nullable Object transactionOrNull, @Advice.Thrown @Nullable Throwable t) {
             endTransaction(transactionOrNull, t);
         }
     }
