@@ -39,6 +39,9 @@ class LabelsTest {
             Labels.Mutable.of().serviceName("foo"),
             Labels.Mutable.of().serviceName("foo"));
         assertEqualsHashCode(
+            Labels.Mutable.of().serviceVersion("foo"),
+            Labels.Mutable.of().serviceVersion("foo"));
+        assertEqualsHashCode(
             Labels.Mutable.of().transactionName("foo"),
             Labels.Mutable.of().transactionName(new StringBuilder("foo")));
         assertEqualsHashCode(
