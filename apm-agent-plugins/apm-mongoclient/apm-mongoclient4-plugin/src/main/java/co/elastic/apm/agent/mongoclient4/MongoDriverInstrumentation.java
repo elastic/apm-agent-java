@@ -34,7 +34,7 @@ public abstract class MongoDriverInstrumentation extends TracerAwareInstrumentat
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameStartsWith("com.mongodb.client")
+        return nameStartsWith("com.mongodb.internal")
             .and(hasSuperType(named("com.mongodb.internal.connection.Connection")));
     }
 

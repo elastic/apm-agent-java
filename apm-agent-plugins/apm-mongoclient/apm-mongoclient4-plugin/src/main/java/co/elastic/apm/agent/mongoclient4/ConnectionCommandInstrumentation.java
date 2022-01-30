@@ -36,7 +36,7 @@ public class ConnectionCommandInstrumentation extends MongoDriverInstrumentation
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("command")
             .and(isPublic())
-            .and(takesArgument(0, is(String.class).or(named("com.mongodb.MongoNamespace"))))
+            .and(takesArgument(0, is(String.class)))
             .and(takesArgument(1, named("org.bson.BsonDocument")));
     }
 

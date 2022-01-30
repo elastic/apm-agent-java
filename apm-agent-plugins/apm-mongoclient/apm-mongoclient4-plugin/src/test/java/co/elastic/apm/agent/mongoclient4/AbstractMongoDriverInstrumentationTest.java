@@ -46,7 +46,7 @@ public abstract class AbstractMongoDriverInstrumentationTest extends AbstractIns
 
     @BeforeClass
     public static void startContainer() {
-        container = new GenericContainer<>("mongo:4.2")
+        container = new GenericContainer<>("mongo:4.0")
             .withExposedPorts(PORT)
             .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048));
         container.start();

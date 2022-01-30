@@ -39,7 +39,7 @@ public class ConnectionAdvice {
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnter(@Advice.This Connection thiz,
-                               @Advice.Argument(0) Object databaseOrMongoNamespace,
+                               @Advice.Argument(0) String database,
                                @Advice.Argument(1) BsonDocument command) {
         Span span = null;
         final AbstractSpan<?> activeSpan = GlobalTracer.get().getActive();
@@ -51,15 +51,6 @@ public class ConnectionAdvice {
             return null;
         }
 
-        String database = "";
-        String collection = null;
-        if (databaseOrMongoNamespace instanceof String) {
-            database = (String) databaseOrMongoNamespace;
-        } else if (databaseOrMongoNamespace instanceof MongoNamespace) {
-            MongoNamespace namespace = (MongoNamespace) databaseOrMongoNamespace;
-            database = namespace.getDatabaseName();
-            collection = namespace.getCollectionName();
-        }
 
         span.withType("db").withSubtype("mongodb")
             .appendToName(database).getContext().getDb().withType("mongodb");
@@ -83,15 +74,14 @@ public class ConnectionAdvice {
                 // fall back to getting the first key which is the command name
                 // by allocating a key set and an iterator
                 command.keySet().iterator().next();
-            if (collection == null) {
-                BsonValue collectionName = command.get(cmd);
-                if (collectionName != null && collectionName.isString()) {
-                    collection = collectionName.asString().getValue();
-                    span.appendToName(".").appendToName(collection);
-                }
+            String collection = null;
+            BsonValue collectionName = command.get(cmd);
+            if (collectionName != null && collectionName.isString()) {
+                collection = collectionName.asString().getValue();
+                span.appendToName(".").appendToName(collection);
             }
             if (collection == null) {
-                BsonValue collectionName = command.get("collection");
+                collectionName = command.get("collection");
                 if (collectionName != null && collectionName.isString()) {
                     collection = collectionName.asString().getValue();
                     span.appendToName(".").appendToName(collection);
