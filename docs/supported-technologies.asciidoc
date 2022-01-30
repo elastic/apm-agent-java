@@ -271,6 +271,12 @@ Other Servlet 3+ compliant servers will most likely work as well.
  The actual query will not be recorded.
 |1.12.0
 
+|MongoDB Sync Driver
+|4.x
+|The agent creates spans for interactions with the MongoDB 4.x sync driver.
+This provides support for `org.mongodb:mongodb-driver-sync`
+|1.28.5
+
 |Cassandra
 |2.x+
 |

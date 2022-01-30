@@ -71,6 +71,7 @@ endif::[]
 * Added support for setting the service name on Log4j2's EcsLayout - {pull}2296[#2296]
 * Print the used instrumentation groups when the application stops - {pull}2448[#2448]
 * Add `elastic.apm.start_async` property that makes the agent start on a non-premain/main thread - {pull}2454[#2454]
+* Added support for MongoDB's 4.x Sync Driver - {pull}2241{#2241}
 
 [float]
 ===== Bug fixes
