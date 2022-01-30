@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.mongoclient4;
 
 import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import java.util.List;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,13 +33,22 @@ public class MongoDriverSyncVersionIT {
     private final TestClassWithDependencyRunner runner;
 
     public MongoDriverSyncVersionIT(String version) throws Exception {
-        runner = new TestClassWithDependencyRunner("org.mongodb", "mongodb-driver-sync", version,
-            MongoDriverSyncInstrumentationIT.class, AbstractMongoDriverInstrumentationTest.class);
+        List<String> dependencies = Arrays.asList(
+            "org.mongodb:mongodb-driver-sync:" + version,
+            "org.mongodb:bson:" + version,
+            "org.mongodb:mongodb-driver-core:" + version
+        );
+        runner = new TestClassWithDependencyRunner(dependencies, MongoDriverSyncInstrumentationIT.class,
+            AbstractMongoDriverInstrumentationTest.class);
     }
 
     @Parameterized.Parameters(name= "{0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
+            {"4.4.1"},
+            {"4.3.4"},
+            {"4.2.3"},
+            {"4.1.2"},
             {"4.0.6"}
         });
     }
