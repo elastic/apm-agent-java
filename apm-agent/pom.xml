@@ -316,6 +316,16 @@
             <artifactId>apm-awslambda-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jakarta-websocket-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-ecs-logging-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- For auto-generating configuration docs -->
         <dependency>
