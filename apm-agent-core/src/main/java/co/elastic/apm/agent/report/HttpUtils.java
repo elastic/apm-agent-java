@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.report;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
@@ -32,6 +34,8 @@ import java.net.URL;
 import java.net.URLStreamHandler;
 
 public class HttpUtils {
+
+    private static final Logger log = LoggerFactory.getLogger(HttpUtils.class);
 
     private HttpUtils() {
     }
@@ -87,16 +91,22 @@ public class HttpUtils {
         try {
             return new URL(protocol, url.getHost(), url.getPort(), url.getFile(), handlerForProtocol(protocol));
         } catch (MalformedURLException e) {
-            throw new IllegalArgumentException(e);
+            return url;
         }
     }
 
+    @Nullable
     private static URLStreamHandler handlerForProtocol(String protocol) {
         try {
             Class<?> handlerClass = Class.forName(String.format("sun.net.www.protocol.%s.Handler", protocol));
             return (URLStreamHandler) handlerClass.getDeclaredConstructor().newInstance();
         } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            throw new IllegalArgumentException("unable to retrieve handler for protocol : " + protocol);
+            if (log.isDebugEnabled()) {
+                log.debug("unable to create default HTTP stream handler for protocol '{}", protocol, e);
+            } else {
+                log.warn("unable to create default HTTP stream handler for protocol '{}", protocol);
+            }
+            return null;
         }
     }
 }
