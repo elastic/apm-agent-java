@@ -73,7 +73,7 @@ pipeline {
         pipelineManager([ cancelPreviousRunningBuilds: [ when: 'PR' ] ])
         deleteDir()
         gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, shallow: false,
-          reference: '/var/lib/jenkins/.git-references/apm-agent-java.git')
+                    reference: '/var/lib/jenkins/.git-references/apm-agent-java.git')
         stash allowEmpty: true, name: 'source', useDefaultExcludes: false
         script {
           dir("${BASE_DIR}"){
@@ -365,11 +365,11 @@ pipeline {
           }
           steps {
             build(job: env.ITS_PIPELINE, propagate: false, wait: false,
-              parameters: [string(name: 'INTEGRATION_TEST', value: 'Java'),
-                           string(name: 'BUILD_OPTS', value: "--java-agent-version ${env.GIT_BASE_COMMIT} --opbeans-java-agent-branch ${env.GIT_BASE_COMMIT}"),
-                           string(name: 'GITHUB_CHECK_NAME', value: env.GITHUB_CHECK_ITS_NAME),
-                           string(name: 'GITHUB_CHECK_REPO', value: env.REPO),
-                           string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])
+                  parameters: [string(name: 'INTEGRATION_TEST', value: 'Java'),
+                               string(name: 'BUILD_OPTS', value: "--java-agent-version ${env.GIT_BASE_COMMIT} --opbeans-java-agent-branch ${env.GIT_BASE_COMMIT}"),
+                               string(name: 'GITHUB_CHECK_NAME', value: env.GITHUB_CHECK_ITS_NAME),
+                               string(name: 'GITHUB_CHECK_REPO', value: env.REPO),
+                               string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])
             githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
           }
         }
@@ -464,8 +464,8 @@ pipeline {
                 deleteDir()
                 dir("${OPBEANS_REPO}"){
                   git(credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
-                    url: "git@github.com:elastic/${OPBEANS_REPO}.git",
-                    branch: 'main')
+                      url: "git@github.com:elastic/${OPBEANS_REPO}.git",
+                      branch: 'main')
                   // It's required to transform the tag value to the artifact version
                   sh script: ".ci/bump-version.sh ${env.BRANCH_NAME.replaceAll('^v', '')}", label: 'Bump version'
                   // The opbeans-java pipeline will trigger a release for the main branch
