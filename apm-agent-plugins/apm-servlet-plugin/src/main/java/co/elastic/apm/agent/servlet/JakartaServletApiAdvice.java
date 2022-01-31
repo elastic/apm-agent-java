@@ -24,7 +24,7 @@ import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 
-public class JarkataServletApiAdvice extends ServletApiAdvice {
+public class JakartaServletApiAdvice extends ServletApiAdvice {
 
     private static final JakartaServletApiAdapter helper = JakartaServletApiAdapter.get();
 

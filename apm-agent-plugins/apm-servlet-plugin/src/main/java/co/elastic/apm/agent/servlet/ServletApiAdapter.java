@@ -20,6 +20,7 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 
 import javax.annotation.Nullable;
 import java.io.InputStream;
@@ -28,6 +29,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Map;
 
+@GlobalState
 public interface ServletApiAdapter<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
 
     @Nullable
