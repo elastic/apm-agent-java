@@ -31,7 +31,7 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger("(${obltGitHubComments()}|^run (jdk compatibility|benchmark|integration|end-to-end) tests)")
+    issueCommentTrigger("(${obltGitHubComments()}|^run (jdk compatibility|benchmark|integration|end-to-end|windows) tests)")
   }
   parameters {
     string(name: 'JAVA_VERSION', defaultValue: 'java11', description: 'Java version to build & test')
@@ -103,8 +103,8 @@ pipeline {
       }
       stages {
         /**
-        * Build on a linux environment.
-        */
+         * Build on a linux environment.
+         */
         stage('Build') {
           when {
             beforeAgent true
@@ -306,7 +306,7 @@ pipeline {
               steps {
                 withGithubNotify(context: 'Benchmarks', tab: 'artifacts') {
                   deleteDir()
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
+                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   dir("${BASE_DIR}"){
                     withOtelEnv() {
                       sh './scripts/jenkins/run-benchmarks.sh'
@@ -325,7 +325,7 @@ pipeline {
             }
             /**
              * Build javadoc
-            */
+             */
             stage('Javadoc') {
               agent { label 'linux && immutable' }
               options { skipDefaultCheckout() }
@@ -404,7 +404,7 @@ pipeline {
                 steps {
                   withGithubNotify(context: "Unit Tests ${JDK_VERSION}", tab: 'tests') {
                     deleteDir()
-                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
+                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                     dir("${BASE_DIR}"){
                       withOtelEnv() {
                         sh(label: "./mvnw test for ${JDK_VERSION}", script: './mvnw test')
