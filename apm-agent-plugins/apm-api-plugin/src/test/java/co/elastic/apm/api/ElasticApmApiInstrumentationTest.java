@@ -19,6 +19,7 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractApiTest;
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
@@ -327,21 +328,21 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
 
     @Test
     void testOverrideServiceNameForClassLoader() {
-        tracer.overrideServiceInfoForClassLoader(Transaction.class.getClassLoader(), "overridden");
+        tracer.overrideServiceInfoForClassLoader(co.elastic.apm.agent.impl.transaction.Transaction.class.getClassLoader(), ServiceInfo.of("overridden"));
         ElasticApm.startTransaction().end();
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
     }
 
     @Test
     void testOverrideServiceNameForClassLoaderWithRemoteParent() {
-        tracer.overrideServiceInfoForClassLoader(Transaction.class.getClassLoader(), "overridden");
+        tracer.overrideServiceInfoForClassLoader(co.elastic.apm.agent.impl.transaction.Transaction.class.getClassLoader(), ServiceInfo.of("overridden"));
         ElasticApm.startTransactionWithRemoteParent(key -> null).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
     }
 
     @Test
     void testOverrideServiceVersionForClassLoader() {
-        tracer.overrideServiceInfoForClassLoader(Transaction.class.getClassLoader(), "overridden_name", "overridden_version");
+        tracer.overrideServiceInfoForClassLoader(co.elastic.apm.agent.impl.transaction.Transaction.class.getClassLoader(), ServiceInfo.of("overridden_name", "overridden_version"));
         ElasticApm.startTransaction().end();
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden_name");
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("overridden_version");
@@ -349,7 +350,7 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
 
     @Test
     void testOverrideServiceVersionForClassLoaderWithRemoteParent() {
-        tracer.overrideServiceInfoForClassLoader(Transaction.class.getClassLoader(), "overridden_name", "overridden_version");
+        tracer.overrideServiceInfoForClassLoader(co.elastic.apm.agent.impl.transaction.Transaction.class.getClassLoader(), ServiceInfo.of("overridden_name", "overridden_version"));
         ElasticApm.startTransactionWithRemoteParent(key -> null).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden_name");
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("overridden_version");

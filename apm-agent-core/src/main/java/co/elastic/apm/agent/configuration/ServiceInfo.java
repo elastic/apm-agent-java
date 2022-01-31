@@ -22,13 +22,14 @@ import javax.annotation.Nullable;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 
 public class ServiceInfo {
 
     private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(.*)?$";
     private static final String DEFAULT_SERVICE_NAME = "unknown-java-service";
+    private static final ServiceInfo EMPTY = ServiceInfo.of(null);
     private static final ServiceInfo AUTO_DETECTED = autoDetect(System.getProperties());
-
     private final String serviceName;
     @Nullable
     private final String serviceVersion;
@@ -37,7 +38,7 @@ public class ServiceInfo {
         this(serviceName, null);
     }
 
-    public ServiceInfo(@Nullable String serviceName, @Nullable String serviceVersion) {
+    private ServiceInfo(@Nullable String serviceName, @Nullable String serviceVersion) {
         if (serviceName == null || serviceName.trim().isEmpty()) {
             this.serviceName = DEFAULT_SERVICE_NAME;
         } else {
@@ -46,13 +47,20 @@ public class ServiceInfo {
         this.serviceVersion = serviceVersion;
     }
 
-    public String getServiceName() {
-        return serviceName;
+    public static ServiceInfo empty() {
+        return new ServiceInfo(null, null);
     }
 
-    @Nullable
-    public String getServiceVersion() {
-        return serviceVersion;
+    public static ServiceInfo of(@Nullable String serviceName) {
+        return of(serviceName, null);
+    }
+
+    public static ServiceInfo of(@Nullable String serviceName, @Nullable String serviceVersion) {
+        if ((serviceName == null || serviceName.isEmpty()) &&
+            (serviceVersion == null || serviceVersion.isEmpty())) {
+            return ServiceInfo.empty();
+        }
+        return new ServiceInfo(serviceName, serviceVersion);
     }
 
     public static String replaceDisallowedServiceNameChars(String serviceName) {
@@ -72,7 +80,7 @@ public class ServiceInfo {
             if (serviceInfo != null) {
                 return serviceInfo;
             }
-            return new ServiceInfo(null);
+            return ServiceInfo.empty();
         }
     }
 
@@ -84,12 +92,12 @@ public class ServiceInfo {
         command = command.trim();
         String serviceName = getContainerServiceName(command);
         if (serviceName != null) {
-            return new ServiceInfo(serviceName);
+            return ServiceInfo.of(serviceName);
         }
         if (command.contains(".jar")) {
-            return parseJarCommand(command);
+            return fromJarCommand(command);
         } else {
-            return parseMainClass(command);
+            return fromMainClassCommand(command);
         }
     }
 
@@ -111,26 +119,32 @@ public class ServiceInfo {
         return null;
     }
 
-    private static ServiceInfo parseJarCommand(String command) {
+    private static ServiceInfo fromJarCommand(String command) {
         final String[] commandParts = command.split(" ");
-        String serviceName = null;
-        String serviceVersion = null;
+        ServiceInfo serviceInfoFromManifest = ServiceInfo.empty();
+        ServiceInfo serviceInfoFromJarName = ServiceInfo.empty();
         for (String commandPart : commandParts) {
             if (commandPart.endsWith(".jar")) {
                 try (JarFile jarFile = new JarFile(commandPart)) {
-                    Attributes mainAttributes = jarFile.getManifest().getMainAttributes();
-                    serviceName = mainAttributes.getValue(Attributes.Name.IMPLEMENTATION_TITLE);
-                    serviceVersion = mainAttributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION);
+                    serviceInfoFromManifest = fromManifest(jarFile.getManifest());
                 } catch (Exception ignored) {
                 }
 
-                if (serviceName == null || serviceName.isEmpty()) {
-                    serviceName = removeVersionFromJar(removePath(removeJarExtension(commandPart)));
-                }
+                serviceInfoFromJarName = ServiceInfo.of(removeVersionFromJar(removePath(removeJarExtension(commandPart))));
                 break;
             }
         }
-        return new ServiceInfo(serviceName, serviceVersion);
+        return serviceInfoFromManifest.withFallback(serviceInfoFromJarName);
+    }
+
+    public static ServiceInfo fromManifest(@Nullable Manifest manifest) {
+        if (manifest == null) {
+            return ServiceInfo.empty();
+        }
+        Attributes mainAttributes = manifest.getMainAttributes();
+        return ServiceInfo.of(
+            mainAttributes.getValue(Attributes.Name.IMPLEMENTATION_TITLE),
+            mainAttributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION));
     }
 
     private static String removeJarExtension(String commandPart) {
@@ -145,7 +159,7 @@ public class ServiceInfo {
         return jarFileName.replaceFirst(JAR_VERSION_SUFFIX, "");
     }
 
-    private static ServiceInfo parseMainClass(String command) {
+    private static ServiceInfo fromMainClassCommand(String command) {
         final String mainClassName;
         int indexOfSpace = command.indexOf(' ');
         if (indexOfSpace != -1) {
@@ -154,5 +168,28 @@ public class ServiceInfo {
             mainClassName = command;
         }
         return new ServiceInfo(mainClassName.substring(mainClassName.lastIndexOf('.') + 1));
+    }
+
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    @Nullable
+    public String getServiceVersion() {
+        return serviceVersion;
+    }
+
+    public ServiceInfo withFallback(ServiceInfo fallback) {
+        return ServiceInfo.of(
+            hasServiceName() ? serviceName : fallback.serviceName,
+            serviceVersion != null ? serviceVersion : fallback.serviceVersion);
+    }
+
+    public boolean hasServiceName() {
+        return !serviceName.equals(DEFAULT_SERVICE_NAME);
+    }
+
+    public boolean isEmpty() {
+        return !hasServiceName() && serviceVersion == null;
     }
 }

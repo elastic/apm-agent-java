@@ -19,19 +19,22 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 
 import javax.annotation.Nullable;
+import java.io.InputStream;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Map;
 
-public interface ServletHelper<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
+public interface ServletApiAdapter<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
 
-    boolean isHttpServletRequest(ServletRequest servletRequest);
+    @Nullable
+    HttpServletRequest asHttpServletRequest(ServletRequest servletRequest);
 
-    boolean isHttpServletResponse(ServletResponse servletResponse);
+    @Nullable
+    HttpServletResponse asHttpServletResponse(ServletResponse servletResponse);
 
     boolean isRequestDispatcherType(ServletRequest servletRequest);
 
@@ -44,16 +47,15 @@ public interface ServletHelper<ServletRequest, ServletResponse, HttpServletReque
     boolean isErrorDispatcherType(ServletRequest servletRequest);
 
     @Nullable
-    ServletContext getServletContext(ServletRequest servletRequest);
+    ServletContext getServletContext(HttpServletRequest servletRequest);
 
-    ClassLoader getClassloader(ServletContext servletContext);
+    @Nullable
+    ClassLoader getClassLoader(@Nullable ServletContext servletContext);
 
     String getServletContextName(ServletContext servletContext);
 
-    String getContextPath(ServletContext servletContext);
-
     @Nullable
-    Transaction createAndActivateTransaction(HttpServletRequest httpServletRequest);
+    String getContextPath(ServletContext servletContext);
 
     void handleCookies(Request request, HttpServletRequest httpServletRequest);
 
@@ -111,4 +113,9 @@ public interface ServletHelper<ServletRequest, ServletResponse, HttpServletReque
     boolean isCommitted(HttpServletResponse httpServletResponse);
 
     int getStatus(HttpServletResponse httpServletResponse);
+
+    @Nullable
+    InputStream getResourceAsStream(ServletContext servletContext, String path);
+
+    TextHeaderGetter<HttpServletRequest> getRequestHeaderGetter();
 }

@@ -431,7 +431,7 @@ class ElasticApmTracerTest {
             .configurationRegistry(SpyConfiguration.createSpyConfig())
             .reporter(reporter)
             .buildAndStart();
-        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden");
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), ServiceInfo.of("overridden"));
 
         startTestRootTransaction().end();
 
@@ -448,7 +448,7 @@ class ElasticApmTracerTest {
             .reporter(reporter)
             .configurationRegistry(localConfig)
             .buildAndStart();
-        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden");
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), ServiceInfo.of("overridden"));
 
         startTestRootTransaction().end();
 
@@ -467,7 +467,7 @@ class ElasticApmTracerTest {
             .reporter(reporter)
             .configurationRegistry(localConfig)
             .buildAndStart();
-        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden");
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), ServiceInfo.of("overridden", null));
         startTestRootTransaction().end();
 
         CoreConfiguration coreConfig = localConfig.getConfig(CoreConfiguration.class);
@@ -485,7 +485,7 @@ class ElasticApmTracerTest {
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)
             .buildAndStart();
-        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden_name", "overridden_version");
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), ServiceInfo.of("overridden_name", "overridden_version"));
 
         startTestRootTransaction().end();
 
@@ -500,7 +500,7 @@ class ElasticApmTracerTest {
             .reporter(reporter)
             .configurationRegistry(localConfig)
             .buildAndStart();
-        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), "overridden_name", "overridden_version");
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), ServiceInfo.of("overridden_name", "overridden_version"));
 
         startTestRootTransaction().end();
 

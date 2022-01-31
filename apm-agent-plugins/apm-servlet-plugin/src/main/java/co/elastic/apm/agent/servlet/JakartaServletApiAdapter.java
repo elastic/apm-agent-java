@@ -18,10 +18,9 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.servlet.helper.JakartaServletTransactionCreationHelper;
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.servlet.helper.JakartaServletRequestHeaderGetter;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletContext;
@@ -31,48 +30,41 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
+import java.io.InputStream;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Map;
 
-public class JakartaServletApiAdvice extends ServletApiAdvice implements ServletHelper<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
+public class JakartaServletApiAdapter implements ServletApiAdapter<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
 
-    private static JakartaServletTransactionCreationHelper transactionCreationHelper;
-    private static JakartaServletApiAdvice helper;
+    public static final JakartaServletApiAdapter INSTANCE = new JakartaServletApiAdapter();
 
-    static {
-        transactionCreationHelper = new JakartaServletTransactionCreationHelper(GlobalTracer.requireTracerImpl());
-        helper = new JakartaServletApiAdvice();
+    private JakartaServletApiAdapter() {
+    }
+
+    public static JakartaServletApiAdapter get() {
+        return INSTANCE;
     }
 
     @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest) {
-        return onServletEnter(servletRequest, helper);
-    }
-
-
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExitServletService(@Advice.Argument(0) ServletRequest servletRequest,
-                                            @Advice.Argument(1) ServletResponse servletResponse,
-                                            @Advice.Enter @Nullable Object transactionOrScopeOrSpan,
-                                            @Advice.Thrown @Nullable Throwable t,
-                                            @Advice.This Object thiz) {
-        onExitServlet(servletRequest, servletResponse, transactionOrScopeOrSpan, t, thiz, helper);
-    }
-
     @Override
-    public boolean isHttpServletRequest(ServletRequest servletRequest) {
-        return servletRequest instanceof HttpServletRequest;
+    public HttpServletRequest asHttpServletRequest(ServletRequest servletRequest) {
+        if (servletRequest instanceof HttpServletRequest) {
+            return (HttpServletRequest) servletRequest;
+        }
+        return null;
     }
 
+    @Nullable
     @Override
-    public boolean isHttpServletResponse(ServletResponse servletResponse) {
-        return servletResponse instanceof HttpServletResponse;
+    public HttpServletResponse asHttpServletResponse(ServletResponse servletResponse) {
+        if (servletResponse instanceof HttpServletResponse) {
+            return (HttpServletResponse) servletResponse;
+        }
+        return null;
     }
 
     @Override
@@ -100,9 +92,21 @@ public class JakartaServletApiAdvice extends ServletApiAdvice implements Servlet
         return servletRequest.getDispatcherType() == DispatcherType.ERROR;
     }
 
+    @Nullable
     @Override
-    public ClassLoader getClassloader(ServletContext servletContext) {
-        return transactionCreationHelper.getClassloader(servletContext);
+    public ClassLoader getClassLoader(@Nullable ServletContext servletContext) {
+        if (servletContext == null) {
+            return null;
+        }
+
+        // getClassloader might throw UnsupportedOperationException
+        // see Section 4.4 of the Servlet 3.0 specification
+        try {
+            return servletContext.getClassLoader();
+        } catch (UnsupportedOperationException ignore) {
+            // silently ignored
+            return null;
+        }
     }
 
     @Override
@@ -110,14 +114,10 @@ public class JakartaServletApiAdvice extends ServletApiAdvice implements Servlet
         return servletContext.getServletContextName();
     }
 
+    @Nullable
     @Override
     public String getContextPath(ServletContext servletContext) {
         return servletContext.getContextPath();
-    }
-
-    @Override
-    public Transaction createAndActivateTransaction(HttpServletRequest httpServletRequest) {
-        return transactionCreationHelper.createAndActivateTransaction(httpServletRequest);
     }
 
     @Override
@@ -256,7 +256,18 @@ public class JakartaServletApiAdvice extends ServletApiAdvice implements Servlet
     }
 
     @Override
-    public ServletContext getServletContext(ServletRequest servletRequest) {
+    public ServletContext getServletContext(HttpServletRequest servletRequest) {
         return servletRequest.getServletContext();
+    }
+
+    @Nullable
+    @Override
+    public InputStream getResourceAsStream(ServletContext servletContext, String path) {
+        return servletContext.getResourceAsStream(path);
+    }
+
+    @Override
+    public TextHeaderGetter<HttpServletRequest> getRequestHeaderGetter() {
+        return JakartaServletRequestHeaderGetter.getInstance();
     }
 }
