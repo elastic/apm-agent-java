@@ -19,6 +19,8 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.servlet.tests.TestApp;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,8 +37,6 @@ import org.junit.Test;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
@@ -598,11 +598,17 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     private void validateServiceName(JsonNode event) {
         String expectedServiceName = currentTestApp.getExpectedServiceName();
-        if (expectedServiceName != null && event != null) {
-            JsonNode contextService = event.get("context").get("service");
-            assertThat(contextService)
-                .withFailMessage("No service name set. Expected '%s'. Event was %s", expectedServiceName, event)
-                .isNotNull();
+        if (event == null) {
+            return;
+        }
+        JsonNode contextService = event.get("context").get("service");
+        assertThat(contextService)
+            .withFailMessage("No service context available.")
+            .isNotNull();
+        assertThat(contextService.get("version").textValue())
+            .describedAs("Event has no service version %s", event)
+            .isNotEmpty();
+        if (expectedServiceName != null) {
             assertThat(contextService.get("name").textValue())
                 .describedAs("Event has unexpected service name %s", event)
                 .isEqualTo(expectedServiceName);
