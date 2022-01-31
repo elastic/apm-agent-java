@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
+import co.elastic.apm.agent.servlet.adapter.JavaxServletApiAdapter;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
@@ -41,6 +42,6 @@ public class JavaxServletApiAdvice extends ServletApiAdvice {
                                             @Advice.Enter @Nullable Object transactionOrScopeOrSpan,
                                             @Advice.Thrown @Nullable Throwable t,
                                             @Advice.This Object thiz) {
-        onExitServlet(servletRequest, servletResponse, transactionOrScopeOrSpan, t, thiz, adapter);
+        onExitServlet(adapter, servletRequest, servletResponse, transactionOrScopeOrSpan, t, thiz);
     }
 }

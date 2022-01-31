@@ -29,6 +29,8 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.servlet.adapter.ServletContextAdapter;
+import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 
 import javax.annotation.Nullable;
@@ -64,18 +66,19 @@ public class ServletTransactionHelper {
     }
 
     @Nullable
-    public <ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> Transaction createAndActivateTransaction(
-        ServletApiAdapter<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> adapter,
+    public <HttpServletRequest, ServletContext> Transaction createAndActivateTransaction(
+        ServletRequestAdapter<HttpServletRequest, ServletContext> requestAdapter,
+        ServletContextAdapter<ServletContext> contextAdapter,
         HttpServletRequest request) {
         // only create a transaction if there is not already one
         if (tracer.currentTransaction() != null) {
             return null;
         }
-        if (isExcluded(adapter.getHeader(request, "User-Agent"), adapter.getRequestURI(request))) {
+        if (isExcluded(requestAdapter.getHeader(request, "User-Agent"), requestAdapter.getRequestURI(request))) {
             return null;
         }
-        ClassLoader cl = adapter.getClassLoader(adapter.getServletContext(request));
-        Transaction transaction = tracer.startChildTransaction(request, adapter.getRequestHeaderGetter(), cl);
+        ClassLoader cl = contextAdapter.getClassLoader(requestAdapter.getServletContext(request));
+        Transaction transaction = tracer.startChildTransaction(request, requestAdapter.getRequestHeaderGetter(), cl);
         if (transaction != null) {
             transaction.activate();
         }

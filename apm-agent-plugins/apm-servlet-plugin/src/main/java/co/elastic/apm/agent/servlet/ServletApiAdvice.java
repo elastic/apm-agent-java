@@ -6,9 +6,7 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,6 +29,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.servlet.adapter.ServletApiAdapter;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 
 import javax.annotation.Nullable;
@@ -57,36 +56,40 @@ public abstract class ServletApiAdvice {
     private static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "jakarta.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
 
     @Nullable
-    public static <ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> Object onServletEnter(
-        ServletApiAdapter<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> adapter,
-        ServletRequest servletRequest) {
+    public static <HttpServletRequest, HttpServletResponse, ServletContext, FilterConfig, ServletConfig> Object onServletEnter(
+        ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, FilterConfig, ServletConfig> adapter,
+        Object servletRequest) {
 
         ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
         if (tracer == null) {
             return null;
         }
+
+        final HttpServletRequest httpServletRequest = adapter.asHttpServletRequest(servletRequest);
+        if (httpServletRequest == null) {
+            return null;
+        }
         AbstractSpan<?> ret = null;
         // re-activate transactions for async requests
-        final Transaction transactionAttr = (Transaction) adapter.getAttribute(servletRequest, TRANSACTION_ATTRIBUTE);
+        final Transaction transactionAttr = (Transaction) adapter.getAttribute(httpServletRequest, TRANSACTION_ATTRIBUTE);
         if (tracer.currentTransaction() == null && transactionAttr != null) {
             return transactionAttr.activateInScope();
         }
 
-        final HttpServletRequest httpServletRequest = adapter.asHttpServletRequest(servletRequest);
-        if (!tracer.isRunning() || httpServletRequest == null) {
+        if (!tracer.isRunning()) {
             return null;
         }
 
         CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
 
-        if (adapter.isRequestDispatcherType(servletRequest)) {
+        if (adapter.isRequestDispatcherType(httpServletRequest)) {
             if (Boolean.TRUE == excluded.get()) {
                 return null;
             }
 
-            ServletServiceNameHelper.determineServiceName(adapter, httpServletRequest, tracer);
+            ServletServiceNameHelper.determineServiceName(adapter, adapter.getServletContext(httpServletRequest), tracer);
 
-            Transaction transaction = servletTransactionHelper.createAndActivateTransaction(adapter, httpServletRequest);
+            Transaction transaction = servletTransactionHelper.createAndActivateTransaction(adapter, adapter, httpServletRequest);
 
             if (transaction == null) {
                 // if the httpServletRequest is excluded, avoid matching all exclude patterns again on each filter invocation
@@ -113,21 +116,21 @@ public abstract class ServletApiAdvice {
                 adapter.getRemoteAddr(httpServletRequest), adapter.getHeader(httpServletRequest, "Content-Type"));
 
             ret = transaction;
-        } else if (!adapter.isAsyncDispatcherType(servletRequest) && coreConfig.isInstrumentationEnabled(Constants.SERVLET_API_DISPATCH)) {
+        } else if (!adapter.isAsyncDispatcherType(httpServletRequest) && coreConfig.isInstrumentationEnabled(Constants.SERVLET_API_DISPATCH)) {
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
                 Object servletPath = null;
                 Object pathInfo = null;
                 RequestDispatcherSpanType spanType = null;
-                if (adapter.isForwardDispatcherType(servletRequest)) {
+                if (adapter.isForwardDispatcherType(httpServletRequest)) {
                     spanType = RequestDispatcherSpanType.FORWARD;
                     servletPath = adapter.getServletPath(httpServletRequest);
                     pathInfo = adapter.getPathInfo(httpServletRequest);
-                } else if (adapter.isIncludeDispatcherType(servletRequest)) {
+                } else if (adapter.isIncludeDispatcherType(httpServletRequest)) {
                     spanType = RequestDispatcherSpanType.INCLUDE;
                     servletPath = adapter.getIncludeServletPathAttribute(httpServletRequest);
                     pathInfo = adapter.getIncludePathInfoAttribute(httpServletRequest);
-                } else if (adapter.isErrorDispatcherType(servletRequest)) {
+                } else if (adapter.isErrorDispatcherType(httpServletRequest)) {
                     spanType = RequestDispatcherSpanType.ERROR;
                     servletPath = adapter.getServletPath(httpServletRequest);
                 }
@@ -154,12 +157,14 @@ public abstract class ServletApiAdvice {
         return ret;
     }
 
-    public static <ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> void onExitServlet(ServletRequest servletRequest,
-                                                                                                                                ServletResponse servletResponse,
-                                                                                                                                @Nullable Object transactionOrScopeOrSpan,
-                                                                                                                                @Nullable Throwable t,
-                                                                                                                                Object thiz,
-                                                                                                                                ServletApiAdapter<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> adapter) {
+    public static <HttpServletRequest, HttpServletResponse, ServletContext, FilterConfig, ServletConfig> void onExitServlet(
+        ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, FilterConfig, ServletConfig> adapter,
+        Object servletRequest,
+        Object servletResponse,
+        @Nullable Object transactionOrScopeOrSpan,
+        @Nullable Throwable t,
+        Object thiz) {
+
         ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
         if (tracer == null) {
             return;

@@ -25,6 +25,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.servlet.adapter.ServletContextAdapter;
 
 import javax.annotation.Nullable;
 import java.io.InputStream;
@@ -38,21 +39,19 @@ public class ServletServiceNameHelper {
     private static final Logger logger = LoggerFactory.getLogger(ServletServiceNameHelper.class);
 
     // this makes sure service name discovery also works when attaching at runtime
-    public static <ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> void determineServiceName(
-        ServletApiAdapter<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> helper,
-        HttpServletRequest request,
-        Tracer tracer) {
+    public static <ServletContext> void determineServiceName(ServletContextAdapter<ServletContext> adapter,
+                                                             @Nullable ServletContext servletContext,
+                                                             Tracer tracer) {
 
-        ServletContext servletContext = helper.getServletContext(request);
         if (servletContext == null) {
             return;
         }
-        ClassLoader servletContextClassLoader = helper.getClassLoader(servletContext);
+        ClassLoader servletContextClassLoader = adapter.getClassLoader(servletContext);
         if (servletContextClassLoader == null || nameInitialized.putIfAbsent(servletContextClassLoader, Boolean.TRUE) != null) {
             return;
         }
-        String servletContextName = helper.getServletContextName(servletContext);
-        String contextPath = helper.getContextPath(servletContext);
+        String servletContextName = adapter.getServletContextName(servletContext);
+        String contextPath = adapter.getContextPath(servletContext);
 
         if (logger.isDebugEnabled()) {
             logger.debug("Inferring service name for class loader [{}] based on servlet context path `{}` and request context path `{}`",
@@ -62,7 +61,7 @@ public class ServletServiceNameHelper {
             );
         }
 
-        ServiceInfo fromWarManifest = ServiceInfo.fromManifest(getManifest(helper, servletContext));
+        ServiceInfo fromWarManifest = ServiceInfo.fromManifest(getManifest(adapter, servletContext));
         ServiceInfo fromContextName = ServiceInfo.empty();
         if (!"application".equals(servletContextName) && !"".equals(servletContextName) && !"/".equals(servletContextName)) {
             // payara returns an empty string as opposed to null
@@ -80,11 +79,9 @@ public class ServletServiceNameHelper {
     }
 
     @Nullable
-    public static <ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> Manifest getManifest(
-        ServletApiAdapter<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> helper,
-        ServletContext servletContext) {
+    private static <ServletContext> Manifest getManifest(ServletContextAdapter<ServletContext> adapter, ServletContext servletContext) {
 
-        try (InputStream manifestStream = helper.getResourceAsStream(servletContext, "/" + JarFile.MANIFEST_NAME)) {
+        try (InputStream manifestStream = adapter.getResourceAsStream(servletContext, "/" + JarFile.MANIFEST_NAME)) {
             if (manifestStream == null) {
                 return null;
             }

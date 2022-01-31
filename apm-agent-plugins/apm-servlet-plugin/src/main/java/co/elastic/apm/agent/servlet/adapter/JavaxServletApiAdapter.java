@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.servlet;
+package co.elastic.apm.agent.servlet.adapter;
 
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
@@ -24,10 +24,10 @@ import co.elastic.apm.agent.servlet.helper.JavaxServletRequestHeaderGetter;
 
 import javax.annotation.Nullable;
 import javax.servlet.DispatcherType;
+import javax.servlet.FilterConfig;
 import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -38,7 +38,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Map;
 
-public class JavaxServletApiAdapter implements ServletApiAdapter<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
+public class JavaxServletApiAdapter implements ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, FilterConfig, ServletConfig> {
 
     private static final JavaxServletApiAdapter INSTANCE = new JavaxServletApiAdapter();
 
@@ -50,7 +50,7 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<ServletRequest,
     }
 
     @Override
-    public HttpServletRequest asHttpServletRequest(ServletRequest servletRequest) {
+    public HttpServletRequest asHttpServletRequest(Object servletRequest) {
         if (servletRequest instanceof HttpServletRequest) {
             return (HttpServletRequest) servletRequest;
         }
@@ -59,7 +59,7 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<ServletRequest,
 
     @Nullable
     @Override
-    public HttpServletResponse asHttpServletResponse(ServletResponse servletResponse) {
+    public HttpServletResponse asHttpServletResponse(Object servletResponse) {
         if (servletResponse instanceof HttpServletResponse) {
             return (HttpServletResponse) servletResponse;
         }
@@ -67,27 +67,27 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<ServletRequest,
     }
 
     @Override
-    public boolean isRequestDispatcherType(ServletRequest servletRequest) {
+    public boolean isRequestDispatcherType(HttpServletRequest servletRequest) {
         return servletRequest.getDispatcherType() == DispatcherType.REQUEST;
     }
 
     @Override
-    public boolean isAsyncDispatcherType(ServletRequest servletRequest) {
+    public boolean isAsyncDispatcherType(HttpServletRequest servletRequest) {
         return servletRequest.getDispatcherType() == DispatcherType.ASYNC;
     }
 
     @Override
-    public boolean isForwardDispatcherType(ServletRequest servletRequest) {
+    public boolean isForwardDispatcherType(HttpServletRequest servletRequest) {
         return servletRequest.getDispatcherType() == DispatcherType.FORWARD;
     }
 
     @Override
-    public boolean isIncludeDispatcherType(ServletRequest servletRequest) {
+    public boolean isIncludeDispatcherType(HttpServletRequest servletRequest) {
         return servletRequest.getDispatcherType() == DispatcherType.INCLUDE;
     }
 
     @Override
-    public boolean isErrorDispatcherType(ServletRequest servletRequest) {
+    public boolean isErrorDispatcherType(HttpServletRequest servletRequest) {
         return servletRequest.getDispatcherType() == DispatcherType.ERROR;
     }
 
@@ -214,13 +214,18 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<ServletRequest,
     }
 
     @Override
+    public ServletContext getServletContextFromServletConfig(ServletConfig filterConfig) {
+        return filterConfig.getServletContext();
+    }
+
+    @Override
     public Principal getUserPrincipal(HttpServletRequest httpServletRequest) {
         return httpServletRequest.getUserPrincipal();
     }
 
     @Nullable
     @Override
-    public Object getAttribute(ServletRequest servletRequest, String attributeName) {
+    public Object getAttribute(HttpServletRequest servletRequest, String attributeName) {
         return servletRequest.getAttribute(attributeName);
     }
 
@@ -269,5 +274,10 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<ServletRequest,
     @Override
     public TextHeaderGetter<HttpServletRequest> getRequestHeaderGetter() {
         return JavaxServletRequestHeaderGetter.getInstance();
+    }
+
+    @Override
+    public ServletContext getServletContextFromFilterConfig(FilterConfig filterConfig) {
+        return filterConfig.getServletContext();
     }
 }

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
+import co.elastic.apm.agent.servlet.adapter.JakartaServletApiAdapter;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import net.bytebuddy.asm.Advice;
@@ -26,12 +27,12 @@ import javax.annotation.Nullable;
 
 public class JakartaServletApiAdvice extends ServletApiAdvice {
 
-    private static final JakartaServletApiAdapter helper = JakartaServletApiAdapter.get();
+    private static final JakartaServletApiAdapter adapter = JakartaServletApiAdapter.get();
 
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest) {
-        return onServletEnter(helper, servletRequest);
+        return onServletEnter(adapter, servletRequest);
     }
 
 
@@ -41,6 +42,6 @@ public class JakartaServletApiAdvice extends ServletApiAdvice {
                                             @Advice.Enter @Nullable Object transactionOrScopeOrSpan,
                                             @Advice.Thrown @Nullable Throwable t,
                                             @Advice.This Object thiz) {
-        onExitServlet(servletRequest, servletResponse, transactionOrScopeOrSpan, t, thiz, helper);
+        onExitServlet(adapter, servletRequest, servletResponse, transactionOrScopeOrSpan, t, thiz);
     }
 }

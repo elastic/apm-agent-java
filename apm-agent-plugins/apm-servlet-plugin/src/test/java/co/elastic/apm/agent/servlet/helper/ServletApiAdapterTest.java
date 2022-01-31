@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.agent.servlet.JavaxServletApiAdapter;
+import co.elastic.apm.agent.servlet.adapter.JavaxServletApiAdapter;
 import org.junit.jupiter.api.Test;
 
 import javax.servlet.ServletContext;
