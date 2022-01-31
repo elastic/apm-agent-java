@@ -95,6 +95,13 @@ public class Transaction extends AbstractSpan<Transaction> {
     @Nullable
     private String frameworkVersion;
 
+    /**
+     * Faas
+     * <p>
+     * If a services is executed as a serverless function (function as a service), FaaS-specific information can be collected within this object.
+     */
+    private final Faas faas = new Faas();
+
     @Override
     public Transaction getTransaction() {
         return this;
@@ -265,6 +272,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         maxSpans = 0;
         frameworkName = null;
         frameworkVersion = null;
+        faas.resetState();
         // don't clear timerBySpanTypeAndSubtype map (see field-level javadoc)
     }
 
@@ -347,6 +355,15 @@ public class Transaction extends AbstractSpan<Transaction> {
         return this.frameworkVersion;
     }
 
+    /**
+     * Function as a Service (Faas)
+     * <p>
+     * If a services is executed as a serverless function (function as a service), FaaS-specific information can be collected within this object.
+     */
+    public Faas getFaas() {
+        return faas;
+    }
+
     @Override
     protected Transaction thiz() {
         return this;
@@ -403,7 +420,10 @@ public class Transaction extends AbstractSpan<Transaction> {
             }
             final Labels.Mutable labels = labelsThreadLocal.get();
             labels.resetState();
-            labels.serviceName(getTraceContext().getServiceName()).transactionName(name).transactionType(type);
+            labels.serviceName(getTraceContext().getServiceName())
+                .serviceVersion(getTraceContext().getServiceVersion())
+                .transactionName(name)
+                .transactionType(type);
             final MetricRegistry metricRegistry = tracer.getMetricRegistry();
             long criticalValueAtEnter = metricRegistry.writerCriticalSectionEnter();
             try {

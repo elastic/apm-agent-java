@@ -35,8 +35,8 @@ import org.junit.Test;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
@@ -102,7 +102,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
 
     private static MockServerContainer mockServerContainer = new MockServerContainer()
-        //.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(MockServerContainer.class)))
+        //.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class))
         .withNetworkAliases("apm-server")
         .withNetwork(Network.SHARED);
     private static OkHttpClient httpClient;
@@ -156,6 +156,12 @@ public abstract class AbstractServletContainerIntegrationTest {
         List<String> ignoreUrls = new ArrayList<>();
         for (TestApp app : getTestApps()) {
             ignoreUrls.add(String.format("/%s/status*", app.getDeploymentContext()));
+            for (String ignorePath : app.getPathsToIgnore()) {
+                if (ignorePath.startsWith("/")) {
+                    ignorePath = ignorePath.substring(1);
+                }
+                ignoreUrls.add(String.format("/%s/%s", app.getDeploymentContext(), ignorePath));
+            }
         }
         ignoreUrls.add("/favicon.ico");
         String ignoreUrlConfig = String.join(",", ignoreUrls);
@@ -170,7 +176,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_CAPTURE_JMX_METRICS", "object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=test_heap_metric]")
             .withEnv("ELASTIC_APM_CAPTURE_BODY", "all")
             .withEnv("ELASTIC_APM_CIRCUIT_BREAKER_ENABLED", "true")
-            .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
+            .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*, public @@jakarta.enterprise.context.NormalScope co.elastic.*")
             .withEnv("ELASTIC_APM_DISABLED_INSTRUMENTATIONS", "") // enable all instrumentations for integration tests
             .withEnv("ELASTIC_APM_PROFILING_SPANS_ENABLED", "true")
             .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic") // allows to use API annotations, we have to use a broad package due to multiple apps
@@ -598,7 +604,7 @@ public abstract class AbstractServletContainerIntegrationTest {
                 .withFailMessage("No service name set. Expected '%s'. Event was %s", expectedServiceName, event)
                 .isNotNull();
             assertThat(contextService.get("name").textValue())
-                .describedAs("Event has non-expected service name %s", event)
+                .describedAs("Event has unexpected service name %s", event)
                 .isEqualTo(expectedServiceName);
         }
     }

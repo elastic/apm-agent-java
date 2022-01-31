@@ -20,8 +20,9 @@ package co.elastic.apm.agent.impl.metadata;
 
 
 import co.elastic.apm.agent.common.util.ProcessExecutionUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.net.InetAddress;
@@ -99,11 +100,16 @@ public class SystemInfo {
      * This method may block on reading files and executing external processes.
      * @param configuredHostname hostname configured through the {@link co.elastic.apm.agent.configuration.CoreConfiguration#hostname} config
      * @param timeoutMillis enables to limit the execution of the system discovery task
+     * @param serverlessConfiguration serverless config
      * @return a future from which this system's info can be obtained
      */
-    public static SystemInfo create(final @Nullable String configuredHostname, final long timeoutMillis) {
+    public static SystemInfo create(final @Nullable String configuredHostname, final long timeoutMillis, ServerlessConfiguration serverlessConfiguration) {
         final String osName = System.getProperty("os.name");
         final String osArch = System.getProperty("os.arch");
+
+        if (serverlessConfiguration.runsOnAwsLambda()) {
+            return new SystemInfo(osArch, null, null, osName);
+        }
 
         SystemInfo systemInfo;
         if (configuredHostname != null && !configuredHostname.isEmpty()) {
@@ -139,8 +145,6 @@ public class SystemInfo {
         }
         if (hostname == null || hostname.isEmpty()) {
             logger.warn("Unable to discover hostname, set log_level to debug for more details");
-        } else {
-            hostname = removeDomain(hostname);
         }
         return hostname;
     }
@@ -151,6 +155,9 @@ public class SystemInfo {
         if (hostname == null || hostname.isEmpty()) {
             try {
                 hostname = InetAddress.getLocalHost().getHostName();
+                if (hostname != null) {
+                    hostname = removeDomain(hostname);
+                }
             } catch (Exception e) {
                 logger.warn("Last fallback for hostname discovery of localhost failed", e);
             }
@@ -194,7 +201,7 @@ public class SystemInfo {
         String hostname = null;
         ProcessExecutionUtil.CommandOutput commandOutput = ProcessExecutionUtil.executeCommand(cmd, timeoutMillis);
         if (commandOutput.exitedNormally()) {
-            hostname = commandOutput.getOutput().toString();
+            hostname = commandOutput.getOutput().toString().trim();
             if (logger.isDebugEnabled()) {
                 logger.debug("hostname obtained by executing command {}: {}", cmdAsString(cmd), hostname);
             }

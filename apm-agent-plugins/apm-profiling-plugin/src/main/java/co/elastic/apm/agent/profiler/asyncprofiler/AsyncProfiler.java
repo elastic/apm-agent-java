@@ -37,8 +37,9 @@ import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
 
 import javax.annotation.Nullable;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * Java API for in-process profiling. Serves as a wrapper around
@@ -101,8 +102,8 @@ public class AsyncProfiler {
 
     private static void loadNativeLibrary(String libraryDirectory) {
         String libraryName = getLibraryFileName();
-        File file = ResourceExtractionUtil.extractResourceToDirectory("asyncprofiler/" + libraryName + ".so", libraryName, ".so", libraryDirectory);
-        System.load(file.getAbsolutePath());
+        Path file = ResourceExtractionUtil.extractResourceToDirectory("asyncprofiler/" + libraryName + ".so", libraryName, ".so", Paths.get(libraryDirectory));
+        System.load(file.toString());
     }
 
     static String getLibraryFileName() {
@@ -121,7 +122,11 @@ public class AsyncProfiler {
                 throw new IllegalStateException("Async-profiler does not work on Linux " + arch);
             }
         } else if (os.contains("mac")) {
-            return "libasyncProfiler-macos-x64";
+            if (arch.contains("aarch")) {
+                throw new IllegalStateException("Async-profiler 1.x does not work on Apple silicon");
+            } else {
+                return "libasyncProfiler-macos-x64";
+            }
         } else {
             throw new IllegalStateException("Async-profiler does not work on " + os);
         }

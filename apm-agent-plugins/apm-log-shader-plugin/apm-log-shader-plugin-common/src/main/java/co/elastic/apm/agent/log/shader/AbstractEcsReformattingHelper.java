@@ -20,6 +20,7 @@ package co.elastic.apm.agent.log.shader;
 
 import co.elastic.apm.agent.collections.DetachedThreadLocalImpl;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.metadata.Service;
@@ -31,8 +32,8 @@ import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -105,8 +106,9 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     // Escape shading
     private static final String ECS_LOGGING_PACKAGE_NAME = "co.elastic.logging";
 
-    // We can use regular shaded logging here as this class is loaded from the agent CL
+    // We can use regular agent logging here as this class is loaded from the agent CL
     private static final Logger logger = LoggerFactory.getLogger(AbstractEcsReformattingHelper.class);
+
     public static final String ECS_SHADE_APPENDER_NAME = "EcsShadeAppender";
 
     // Used to cache the fact that ECS-formatter or ECS-appender are not created for a given appender
@@ -160,7 +162,11 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
         ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
         loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
         additionalFields = loggingConfiguration.getLogEcsReformattingAdditionalFields();
-        Service service = new ServiceFactory().createService(tracer.getConfig(CoreConfiguration.class), "");
+        Service service = new ServiceFactory().createService(
+            tracer.getConfig(CoreConfiguration.class),
+            "",
+            tracer.getConfig(ServerlessConfiguration.class)
+        );
         configuredServiceName = service.getName();
         if (service.getNode() != null) {
             configuredServiceNodeName = service.getNode().getName();
@@ -458,16 +464,4 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     }
 
     protected abstract void closeShadeAppender(A shadeAppender);
-
-    /*********************************************************************************************************************
-     * Since we shade slf4j in submodules, the following methods provide a way to properly log a message to the agent log
-     ********************************************************************************************************************/
-
-    protected void logInfo(String message) {
-        logger.info(message);
-    }
-
-    protected void logError(String message, Throwable throwable) {
-        logger.error(message, throwable);
-    }
 }

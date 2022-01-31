@@ -20,8 +20,8 @@ package co.elastic.apm.agent.bci.bytebuddy;
 
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.utility.JavaModule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 public class ErrorLoggingListener extends AgentBuilder.Listener.Adapter {
 
@@ -30,7 +30,7 @@ public class ErrorLoggingListener extends AgentBuilder.Listener.Adapter {
     @Override
     public void onError(String typeName, ClassLoader classLoader, JavaModule module, boolean loaded, Throwable throwable) {
         if (throwable instanceof MinimumClassFileVersionValidator.UnsupportedClassFileVersionException) {
-            logger.warn("{} uses an unsupported class file version (pre Java {}}) and can't be instrumented. " +
+            logger.warn("{} uses an unsupported class file version (pre Java {})) and can't be instrumented. " +
                 "Consider updating to a newer version of that library.",
                 typeName,
                 ((MinimumClassFileVersionValidator.UnsupportedClassFileVersionException)throwable).getMinVersion());

@@ -130,7 +130,7 @@ public class GreetingWebClient {
 
     public List<String> webSocketPingPong(int count) {
 
-        // taken from https://github.com/spring-projects/spring-framework/blob/master/spring-webflux/src/test/java/org/springframework/web/reactive/socket/WebSocketIntegrationTests.java
+        // taken from https://github.com/spring-projects/spring-framework/blob/main/spring-webflux/src/test/java/org/springframework/web/reactive/socket/WebSocketIntegrationTests.java
         Flux<String> input = Flux.range(1, count).map(i -> "ping-" + i);
 
         AtomicReference<List<String>> actualRef = new AtomicReference<>();

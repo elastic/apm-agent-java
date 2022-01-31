@@ -75,7 +75,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -141,7 +140,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
             new DslJsonSerializer(
                 mock(StacktraceConfiguration.class),
                 apmServerClient,
-                MetaDataMock.create(title, service, system, null, Collections.emptyMap())
+                MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
             ),
             apmServerClient);
         realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler);
@@ -160,11 +159,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         container.stop();
         client.close();
 
-        try {
-            realReporter.flush().get();
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
+        realReporter.flush();
     }
 
     @Before

@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.rabbitmq;
 
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.springframework.amqp.rabbit.AsyncRabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -47,7 +47,7 @@ public abstract class AbstractAsyncRabbitMqTest extends RabbitMqTestBase {
         logger.info("Trying to send to async rabbit template");
         ListenableFuture<String> future = asyncRabbitTemplate.convertSendAndReceive(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, MESSAGE);
         try {
-            String response = future.get(500, TimeUnit.MILLISECONDS);
+            String response = future.get(5, TimeUnit.SECONDS);
             logger.info("Got response = {}", response);
         } catch (ExecutionException | InterruptedException e) {
             logger.error("Got exception", e);

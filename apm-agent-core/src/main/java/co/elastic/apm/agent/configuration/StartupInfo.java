@@ -23,8 +23,8 @@ import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.util.VersionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -64,7 +64,16 @@ public class StartupInfo extends AbstractLifecycleListener {
     void logConfiguration(ConfigurationRegistry configurationRegistry, Logger logger) {
         final String serviceName = configurationRegistry.getConfig(CoreConfiguration.class).getServiceName();
         final String serviceVersion = configurationRegistry.getConfig(CoreConfiguration.class).getServiceVersion();
-        logger.info("Starting Elastic APM {} as {} ({}) on {}", elasticApmVersion, serviceName, serviceVersion, getJvmAndOsVersionString());
+
+        StringBuilder serviceNameAndVersion = new StringBuilder(serviceName);
+        if (serviceVersion != null) {
+            serviceNameAndVersion.append(" (").append(serviceVersion).append(")");
+        }
+
+        logger.info("Starting Elastic APM {} as {} on {}",
+            elasticApmVersion,
+            serviceNameAndVersion,
+            getJvmAndOsVersionString());
         logger.debug("VM Arguments: {}", ManagementFactory.getRuntimeMXBean().getInputArguments());
         for (List<ConfigurationOption<?>> options : configurationRegistry.getConfigurationOptionsByCategory().values()) {
             for (ConfigurationOption<?> option : options) {

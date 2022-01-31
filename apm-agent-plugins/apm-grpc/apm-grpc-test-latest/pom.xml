@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-grpc</artifactId>
-        <version>1.26.1-SNAPSHOT</version>
+        <version>1.28.5-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-grpc-test-latest</artifactId>
@@ -18,7 +18,7 @@
         <maven.compiler.target>${maven.compiler.testTarget}</maven.compiler.target>
 
         <grpc.version>[1.29.0,)</grpc.version>
-        <protobuf.version>3.11.0</protobuf.version>
+        <protobuf.version>3.19.1</protobuf.version>
     </properties>
 
     <build>

@@ -20,18 +20,33 @@ package co.elastic.apm.agent.log4j2;
 
 import co.elastic.apm.agent.log.shader.LogShadingInstrumentationTest;
 import co.elastic.apm.agent.log.shader.LoggerFacade;
+import co.elastic.apm.agent.logging.LoggingConfiguration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 import org.apache.logging.log4j.ThreadContext;
 import org.apache.logging.log4j.core.appender.RandomAccessFileAppender;
+import org.apache.logging.log4j.core.config.ConfigurationFactory;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.Objects;
 
 public class Log4j2ShadingTest extends LogShadingInstrumentationTest {
+
+    @BeforeAll
+    static void resetConfigFactory() {
+        ConfigurationFactory.resetConfigurationFactory();
+    }
+
+    @AfterAll
+    static void reInitLogging() {
+        LoggingConfiguration.init(List.of(), "");
+    }
 
     private static final Marker TEST_MARKER = MarkerManager.getMarker("TEST");
 

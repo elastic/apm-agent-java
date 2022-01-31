@@ -19,7 +19,9 @@
 package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.util.CompletableFuture;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -57,13 +59,30 @@ public class MetaData {
     private final ArrayList<String> globalLabelValues;
 
     MetaData(ProcessInfo process, Service service, SystemInfo system, @Nullable CloudProviderInfo cloudProviderInfo,
-             Map<String, String> globalLabels) {
+             Map<String, String> globalLabels, @Nullable FaaSMetaDataExtension faasMetaDataExtension) {
         this.process = process;
         this.service = service;
         this.system = system;
         this.cloudProviderInfo = cloudProviderInfo;
         globalLabelKeys = new ArrayList<>(globalLabels.keySet());
         globalLabelValues = new ArrayList<>(globalLabels.values());
+
+        if (faasMetaDataExtension != null) {
+            if (service.getId() == null) {
+                service.withId(faasMetaDataExtension.getServiceId());
+            }
+            if (service.getFramework() == null && faasMetaDataExtension.getFramework() != null) {
+                service.withFramework(faasMetaDataExtension.getFramework());
+            }
+            if (cloudProviderInfo != null) {
+                if (cloudProviderInfo.getAccount() == null) {
+                    cloudProviderInfo.setAccount(faasMetaDataExtension.getAccount());
+                }
+                if (cloudProviderInfo.getRegion() == null) {
+                    cloudProviderInfo.setRegion(faasMetaDataExtension.getRegion());
+                }
+            }
+        }
     }
 
     /**
@@ -78,26 +97,30 @@ public class MetaData {
      * @param ephemeralId           unique ID generated once per agent bootstrap
      * @return metadata about the current environment
      */
-    public static Future<MetaData> create(ConfigurationRegistry configurationRegistry, @Nullable String ephemeralId) {
+    public static MetaDataFuture create(ConfigurationRegistry configurationRegistry, @Nullable String ephemeralId) {
         if (ephemeralId == null) {
             ephemeralId = UUID.randomUUID().toString();
         }
+
         final CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
-        final Service service = new ServiceFactory().createService(coreConfiguration, ephemeralId);
+
+        final ServerlessConfiguration serverlessConfiguration = configurationRegistry.getConfig(ServerlessConfiguration.class);
+        final ServiceFactory serviceFactory = new ServiceFactory();
+        final Service service = serviceFactory.createService(coreConfiguration, ephemeralId, serverlessConfiguration);
         final ProcessInfo processInformation = ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation();
         if (!configurationRegistry.getConfig(ReporterConfiguration.class).isIncludeProcessArguments()) {
             processInformation.getArgv().clear();
         }
 
         final ThreadPoolExecutor executor = ExecutorUtils.createThreadDaemonPool("metadata", 2, 3);
-        final int metadataDiscoveryTimeoutMs = (int) coreConfiguration.geMetadataDiscoveryTimeoutMs();
+        final int metadataDiscoveryTimeoutMs = (int) coreConfiguration.getMetadataDiscoveryTimeoutMs();
 
         try {
             // System info creation executes external processes for hostname discovery and reads files for container/k8s metadata discovery
             final Future<SystemInfo> systemInfoFuture = executor.submit(new Callable<SystemInfo>() {
                 @Override
                 public SystemInfo call() {
-                    return SystemInfo.create(coreConfiguration.getHostname(), metadataDiscoveryTimeoutMs);
+                    return SystemInfo.create(coreConfiguration.getHostname(), metadataDiscoveryTimeoutMs, serverlessConfiguration);
                 }
             });
 
@@ -106,12 +129,17 @@ public class MetaData {
                 @Override
                 @Nullable
                 public CloudProviderInfo call() {
-                    return CloudMetadataProvider.getCloudInfoProvider(coreConfiguration.getCloudProvider(), metadataDiscoveryTimeoutMs);
+                    return CloudMetadataProvider.getCloudInfoProvider(coreConfiguration.getCloudProvider(), metadataDiscoveryTimeoutMs, serverlessConfiguration);
                 }
             });
 
+            final CompletableFuture<FaaSMetaDataExtension> faaSMetaDataExtensionFuture = new CompletableFuture<>();
+            if (!serverlessConfiguration.runsOnAwsLambda()) {
+                faaSMetaDataExtensionFuture.complete(null);
+            }
+
             // may get to queue and not direct execution, but this task must wait for the former two to complete anyway
-            return executor.submit(new Callable<MetaData>() {
+            Future<MetaData> metaDataFuture = executor.submit(new Callable<MetaData>() {
                 @Override
                 public MetaData call() throws Exception {
                     return new MetaData(
@@ -119,10 +147,14 @@ public class MetaData {
                         service,
                         systemInfoFuture.get(),
                         cloudProviderInfoFuture.get(),
-                        coreConfiguration.getGlobalLabels()
+                        coreConfiguration.getGlobalLabels(),
+                        faaSMetaDataExtensionFuture.get()
                     );
                 }
             });
+
+            return new MetaDataFuture(metaDataFuture, faaSMetaDataExtensionFuture);
+
         } finally {
             executor.shutdown();
         }
@@ -168,5 +200,4 @@ public class MetaData {
     public CloudProviderInfo getCloudProviderInfo() {
         return cloudProviderInfo;
     }
-
 }

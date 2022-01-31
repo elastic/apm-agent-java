@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-log-shader-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.26.1-SNAPSHOT</version>
+        <version>1.28.5-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-log4j2-plugin</artifactId>
@@ -24,7 +24,7 @@
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
-            <version>2.10.0</version>
+            <version>2.17.1</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
