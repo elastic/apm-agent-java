@@ -49,6 +49,7 @@ paths. The BCI warmup is on by default and may be disabled through the internal 
 ** APM headers conversion issue within dubbo transaction
 * Fix External plugins automatic setting of span outcome - {pull}2376[#2376]
 * Avoid early initialization of JMX on Weblogic - {pull}2420[#2420]
+* Ensure agent always uses JDK HTTP client - {pull}2429[#2429]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
