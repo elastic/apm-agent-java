@@ -29,6 +29,7 @@ public class ServiceInfo {
 
     private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(.*)?$";
     private static final String DEFAULT_SERVICE_NAME = "unknown-java-service";
+    private static final ServiceInfo EMPTY = new ServiceInfo(null, null);
     private static final ServiceInfo AUTO_DETECTED = autoDetect(System.getProperties());
 
     private final String serviceName;
@@ -49,7 +50,7 @@ public class ServiceInfo {
     }
 
     public static ServiceInfo empty() {
-        return new ServiceInfo(null, null);
+        return EMPTY;
     }
 
     public static ServiceInfo of(@Nullable String serviceName) {
