@@ -52,6 +52,9 @@ import static org.mockito.Mockito.doReturn;
 
 public abstract class AbstractServerInstrumentationTest extends AbstractInstrumentationTest {
 
+    // 'elastic:changeme' in base64
+    private static final String BASIC_AUTH_HEADER_VALUE = "Basic ZWxhc3RpYzpjaGFuZ2VtZQ==";
+
     protected static WebFluxApplication.App app;
     protected GreetingWebClient client;
 
@@ -195,7 +198,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     @ParameterizedTest
     @CsvSource({"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"})
     void methodMapping(String method) {
-        client.setHeader("Authorization", "Basic ZWxhc3RpYzpjaGFuZ2VtZQ==");
+        client.setHeader("Authorization", BASIC_AUTH_HEADER_VALUE);
 
         var verifier = StepVerifier.create(client.methodMapping(method));
         if ("HEAD".equals(method)) {
@@ -295,7 +298,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void testPreauthorized_shouldSuccessWithAuthorizationHeader() {
-        client.setHeader("Authorization", "Basic ZWxhc3RpYzpjaGFuZ2VtZQ==");
+        client.setHeader("Authorization", BASIC_AUTH_HEADER_VALUE);
 
         StepVerifier.create(client.getPreAuthorized(200))
             .expectNext("Hello, elastic!")
@@ -333,7 +336,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void testSecurityContext_shouldSuccessWithAuthorizationHeader() {
-        client.setHeader("Authorization", "Basic ZWxhc3RpYzpjaGFuZ2VtZQ==");
+        client.setHeader("Authorization", BASIC_AUTH_HEADER_VALUE);
 
         StepVerifier.create(client.getSecurityContextUsername(200))
             .expectNext("elastic")
@@ -347,7 +350,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void testSecurityContextByPath_shouldSuccessWithAuthorizationHeader() {
-        client.setHeader("Authorization", "Basic ZWxhc3RpYzpjaGFuZ2VtZQ==");
+        client.setHeader("Authorization", BASIC_AUTH_HEADER_VALUE);
 
         StepVerifier.create(client.getSecurityContextUsernameByPathSecured(200))
             .expectNext("elastic")
