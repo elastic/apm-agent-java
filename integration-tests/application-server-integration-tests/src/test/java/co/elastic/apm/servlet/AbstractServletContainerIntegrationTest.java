@@ -598,20 +598,23 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     private void validateServiceName(JsonNode event) {
         String expectedServiceName = currentTestApp.getExpectedServiceName();
-        if (event == null) {
+        String expectedServiceVersion = currentTestApp.getExpectedServiceVersion();
+        if (event == null || (expectedServiceName == null &&  expectedServiceVersion == null)) {
             return;
         }
         JsonNode contextService = event.get("context").get("service");
         assertThat(contextService)
             .withFailMessage("No service context available.")
             .isNotNull();
-        assertThat(contextService.get("version").textValue())
-            .describedAs("Event has no service version %s", event)
-            .isNotEmpty();
         if (expectedServiceName != null) {
             assertThat(contextService.get("name").textValue())
                 .describedAs("Event has unexpected service name %s", event)
                 .isEqualTo(expectedServiceName);
+        }
+        if (expectedServiceVersion != null) {
+            assertThat(contextService.get("version").textValue())
+                .describedAs("Event has no service version %s", event)
+                .isEqualTo(expectedServiceVersion);
         }
     }
 

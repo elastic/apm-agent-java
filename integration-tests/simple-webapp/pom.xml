@@ -27,7 +27,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Implementation-Version>${project.version}</Implementation-Version>
+                            <Implementation-Version>4.2.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

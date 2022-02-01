@@ -46,8 +46,8 @@ public abstract class ExternalPluginTestApp extends TestApp {
             appWarFileName + ".war",
             appWarFileName,
             "status.html",
-            appWarFileName
-        );
+            appWarFileName,
+            null);
         this.appWarFileName = appWarFileName;
     }
 

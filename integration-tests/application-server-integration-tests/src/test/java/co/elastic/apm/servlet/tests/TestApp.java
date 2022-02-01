@@ -33,10 +33,12 @@ public abstract class TestApp {
     @Nullable
     private final String expectedServiceName;
     private final String deploymentContext;
+    private final String expectedServiceVersion;
 
-    TestApp(String modulePath, String appFileName, String deploymentContext, String statusEndpoint, @Nullable String expectedServiceName) {
+    TestApp(String modulePath, String appFileName, String deploymentContext, String statusEndpoint, @Nullable String expectedServiceName, String expectedVersion) {
         this.modulePath = modulePath;
         this.appFileName = appFileName;
+        this.expectedServiceVersion = expectedVersion;
         this.statusEndpoint = String.format("/%s/%s", deploymentContext, statusEndpoint);
         this.deploymentContext = deploymentContext;
         this.expectedServiceName = expectedServiceName;
@@ -92,4 +94,7 @@ public abstract class TestApp {
 
     public abstract void test(AbstractServletContainerIntegrationTest test) throws Exception;
 
+    public String getExpectedServiceVersion() {
+        return expectedServiceVersion;
+    }
 }
