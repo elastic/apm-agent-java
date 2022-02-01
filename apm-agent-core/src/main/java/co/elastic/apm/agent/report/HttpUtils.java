@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.report;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
@@ -25,9 +27,15 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLStreamHandler;
 
 public class HttpUtils {
+
+    private static final Logger log = LoggerFactory.getLogger(HttpUtils.class);
 
     private HttpUtils() {
     }
@@ -63,6 +71,42 @@ public class HttpUtils {
             } catch (IOException ignored) {
                 // silently ignored
             }
+        }
+    }
+
+    /**
+     * Rebuilds the provided URL with the default handler, as it may have been overriden by an application server at
+     * runtime and might prevent the agent from properly communicate through HTTP/HTTPS.
+     *
+     * @param url URL to rewrite
+     * @return equivalent URL with the default JDK handler
+     * @throws IllegalArgumentException if protocol is not supported or unable to access default handler
+     */
+    public static URL withDefaultHandler(URL url) {
+        // the default handler for URLs might be overridden by another implementation than the one shipped with the JDK
+        // for example, this happens on Weblogic application server and triggers classloading issues as the agent
+        // is unable to properly use the Weblogic classes as they aren't visible to the agent classloaders.
+
+        String protocol = url.getProtocol();
+        try {
+            return new URL(protocol, url.getHost(), url.getPort(), url.getFile(), handlerForProtocol(protocol));
+        } catch (MalformedURLException e) {
+            return url;
+        }
+    }
+
+    @Nullable
+    private static URLStreamHandler handlerForProtocol(String protocol) {
+        try {
+            Class<?> handlerClass = Class.forName(String.format("sun.net.www.protocol.%s.Handler", protocol));
+            return (URLStreamHandler) handlerClass.getDeclaredConstructor().newInstance();
+        } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("unable to create default HTTP stream handler for protocol '{}", protocol, e);
+            } else {
+                log.warn("unable to create default HTTP stream handler for protocol '{}", protocol);
+            }
+            return null;
         }
     }
 }
