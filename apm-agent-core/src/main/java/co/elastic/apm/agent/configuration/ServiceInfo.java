@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.configuration;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
@@ -28,8 +29,8 @@ public class ServiceInfo {
 
     private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(.*)?$";
     private static final String DEFAULT_SERVICE_NAME = "unknown-java-service";
-    private static final ServiceInfo EMPTY = ServiceInfo.of(null);
     private static final ServiceInfo AUTO_DETECTED = autoDetect(System.getProperties());
+
     private final String serviceName;
     @Nullable
     private final String serviceVersion;
@@ -58,12 +59,12 @@ public class ServiceInfo {
     public static ServiceInfo of(@Nullable String serviceName, @Nullable String serviceVersion) {
         if ((serviceName == null || serviceName.isEmpty()) &&
             (serviceVersion == null || serviceVersion.isEmpty())) {
-            return ServiceInfo.empty();
+            return empty();
         }
         return new ServiceInfo(serviceName, serviceVersion);
     }
 
-    public static String replaceDisallowedServiceNameChars(String serviceName) {
+    private static String replaceDisallowedServiceNameChars(String serviceName) {
         return serviceName.replaceAll("[^a-zA-Z0-9 _-]", "-");
     }
 
@@ -191,5 +192,26 @@ public class ServiceInfo {
 
     public boolean isEmpty() {
         return !hasServiceName() && serviceVersion == null;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ServiceInfo that = (ServiceInfo) o;
+        return serviceName.equals(that.serviceName) && Objects.equals(serviceVersion, that.serviceVersion);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(serviceName, serviceVersion);
+    }
+
+    @Override
+    public String toString() {
+        return "ServiceInfo{" +
+            "name='" + serviceName + '\'' +
+            ", version='" + serviceVersion + '\'' +
+            '}';
     }
 }

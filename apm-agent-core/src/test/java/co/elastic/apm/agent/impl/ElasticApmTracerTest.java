@@ -431,12 +431,15 @@ class ElasticApmTracerTest {
             .configurationRegistry(SpyConfiguration.createSpyConfig())
             .reporter(reporter)
             .buildAndStart();
-        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), ServiceInfo.of("overridden"));
+
+        ClassLoader cl = getClass().getClassLoader();
+        ServiceInfo overridden = ServiceInfo.of("overridden");
+        tracer.overrideServiceInfoForClassLoader(cl, overridden);
+        assertThat(tracer.getServiceInfo(cl)).isEqualTo(overridden);
 
         startTestRootTransaction().end();
 
-
-        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
+        checkServiceInfo(reporter.getFirstTransaction(), overridden);
     }
 
     @Test
@@ -448,7 +451,9 @@ class ElasticApmTracerTest {
             .reporter(reporter)
             .configurationRegistry(localConfig)
             .buildAndStart();
-        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), ServiceInfo.of("overridden"));
+        ClassLoader cl = getClass().getClassLoader();
+        tracer.overrideServiceInfoForClassLoader(cl, ServiceInfo.of("overridden"));
+        assertThat(tracer.getServiceInfo(cl)).isNull();
 
         startTestRootTransaction().end();
 
@@ -467,11 +472,18 @@ class ElasticApmTracerTest {
             .reporter(reporter)
             .configurationRegistry(localConfig)
             .buildAndStart();
-        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), ServiceInfo.of("overridden", null));
+
+        ClassLoader cl = getClass().getClassLoader();
+        tracer.overrideServiceInfoForClassLoader(cl, ServiceInfo.of("overridden"));
+        assertThat(tracer.getServiceInfo(cl)).isNull();
+
         startTestRootTransaction().end();
 
         CoreConfiguration coreConfig = localConfig.getConfig(CoreConfiguration.class);
-        assertThat(ServiceInfo.autoDetect(System.getProperties()).getServiceName()).isEqualTo(coreConfig.getServiceName());
+
+        assertThat(ServiceInfo.autoDetect(System.getProperties()))
+            .isEqualTo(ServiceInfo.of(coreConfig.getServiceName()));
+
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isNull();
         if (command != null) {
             System.setProperty("sun.java.command", command);
@@ -480,17 +492,24 @@ class ElasticApmTracerTest {
         }
     }
 
+    private static void checkServiceInfo(Transaction transaction, ServiceInfo expected) {
+        TraceContext traceContext = transaction.getTraceContext();
+        assertThat(traceContext.getServiceName()).isEqualTo(expected.getServiceName());
+        assertThat(traceContext.getServiceVersion()).isEqualTo(expected.getServiceVersion());
+    }
+
     @Test
     void testOverrideServiceVersionWithoutExplicitServiceVersion() {
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)
             .buildAndStart();
-        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), ServiceInfo.of("overridden_name", "overridden_version"));
+
+        ServiceInfo overridden = ServiceInfo.of("overridden_name", "overridden_version");
+        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), overridden);
 
         startTestRootTransaction().end();
 
-        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden_name");
-        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("overridden_version");
+        checkServiceInfo(reporter.getFirstTransaction(), overridden);
     }
 
     @Test
@@ -500,12 +519,15 @@ class ElasticApmTracerTest {
             .reporter(reporter)
             .configurationRegistry(localConfig)
             .buildAndStart();
-        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), ServiceInfo.of("overridden_name", "overridden_version"));
+
+        ServiceInfo overridden = ServiceInfo.of("overridden_name", "overridden_version");
+        ClassLoader cl = getClass().getClassLoader();
+        tracer.overrideServiceInfoForClassLoader(cl, overridden);
+        assertThat(tracer.getServiceInfo(cl)).isEqualTo(overridden);
 
         startTestRootTransaction().end();
 
-        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden_name");
-        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("overridden_version");
+        checkServiceInfo(reporter.getFirstTransaction(), overridden);
     }
 
     @Test
