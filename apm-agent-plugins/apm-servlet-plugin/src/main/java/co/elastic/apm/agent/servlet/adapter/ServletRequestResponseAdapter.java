@@ -16,19 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.servlet;
+package co.elastic.apm.agent.servlet.adapter;
 
 import co.elastic.apm.agent.sdk.state.GlobalState;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 @GlobalState
-public class ServletGlobalState {
-
-    public static final WeakMap<ClassLoader, Boolean> nameInitialized = WeakConcurrent.buildMap();
-
-    // visible for testing as clearing cache is required between tests execution
-    static void clearServiceNameCache() {
-        nameInitialized.clear();
-    }
+public interface ServletRequestResponseAdapter<HttpServletRequest, HttpServletResponse, ServletContext> extends
+    ServletRequestAdapter<HttpServletRequest, ServletContext>,
+    ServletResponseAdapter<HttpServletResponse> {
 }

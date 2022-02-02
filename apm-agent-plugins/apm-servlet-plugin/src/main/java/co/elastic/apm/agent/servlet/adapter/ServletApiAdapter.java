@@ -16,22 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.servlet.tests;
+package co.elastic.apm.agent.servlet.adapter;
 
-import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 
-public class JakartaeeJsfServletContainerTestApp extends TestApp {
-    public JakartaeeJsfServletContainerTestApp() {
-        super("../jakartaee-jsf-app/jakartaee-jsf-app-standalone",
-            "jakartaee-jsf-http-get.war",
-            "jakartaee-jsf-http-get",
-            "status.html",
-            "jakartaee-jsf-http-get",
-            null);
-    }
+@GlobalState
+public interface ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, FilterConfig, ServletConfig> extends
+    ServletRequestResponseAdapter<HttpServletRequest, HttpServletResponse, ServletContext>,
+    ServletContextAdapter<ServletContext>,
+    ServletAdapter<ServletConfig, ServletContext>,
+    FilterAdapter<FilterConfig, ServletContext> {
 
-    @Override
-    public void test(AbstractServletContainerIntegrationTest test) throws Exception {
-        new JakartaeeJsfApplicationServerTestApp().test(test);
-    }
 }

@@ -16,28 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.servlet.helper;
+package co.elastic.apm.agent.servlet.adapter;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.Enumeration;
+import javax.annotation.Nullable;
+import java.io.InputStream;
 
-public class JavaxServletRequestHeaderGetter extends AbstractServletRequestHeaderGetter<HttpServletRequest> {
+@GlobalState
+public interface ServletContextAdapter<ServletContext> {
+    @Nullable
+    ClassLoader getClassLoader(@Nullable ServletContext servletContext);
 
-    private static final JavaxServletRequestHeaderGetter INSTANCE = new JavaxServletRequestHeaderGetter();
+    String getServletContextName(ServletContext servletContext);
 
-    public static TextHeaderGetter<HttpServletRequest> getInstance() {
-        return INSTANCE;
-    }
+    @Nullable
+    String getContextPath(ServletContext servletContext);
 
-    @Override
-    public String getFirstHeader(String headerName, HttpServletRequest carrier) {
-        return carrier.getHeader(headerName);
-    }
-
-    @Override
-    Enumeration<String> getHeaders(String headerName, HttpServletRequest carrier) {
-        return carrier.getHeaders(headerName);
-    }
+    @Nullable
+    InputStream getResourceAsStream(ServletContext servletContext, String path);
 }

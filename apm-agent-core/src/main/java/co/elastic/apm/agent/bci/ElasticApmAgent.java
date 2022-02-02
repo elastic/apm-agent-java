@@ -427,7 +427,11 @@ public class ElasticApmAgent {
     }
 
     private static AgentBuilder.Transformer.ForAdvice getTransformer(final ElasticApmInstrumentation instrumentation, final Logger logger, final ElementMatcher<? super MethodDescription> methodMatcher) {
-        validateAdvice(instrumentation);
+        boolean validate = false;
+        assert validate = true;
+        if (validate) {
+            validateAdvice(instrumentation);
+        }
         Advice.WithCustomMapping withCustomMapping = Advice
             .withCustomMapping()
             .with(new Advice.AssignReturned.Factory().withSuppressed(ClassCastException.class))
