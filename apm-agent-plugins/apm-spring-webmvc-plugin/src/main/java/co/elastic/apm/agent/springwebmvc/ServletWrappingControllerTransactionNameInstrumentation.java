@@ -38,7 +38,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * to the name of the servlet,
  * overriding the transaction name set by {@link SpringTransactionNameInstrumentation} that would be {@code ServletWrappingController}.
  */
-public class ServletWrappingControllerServiceNameInstrumentation extends TracerAwareInstrumentation {
+public class ServletWrappingControllerTransactionNameInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("org.springframework.web.servlet.mvc.ServletWrappingController");

@@ -16,44 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.servlet;
+package co.elastic.apm.agent.servlet.adapter;
 
 import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 
 import javax.annotation.Nullable;
 import java.security.Principal;
-import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Map;
 
-public interface ServletHelper<ServletRequest, ServletResponse, HttpServletRequest, HttpServletResponse, ServletContext> {
+@GlobalState
+public interface ServletRequestAdapter<HttpServletRequest, ServletContext> {
+    @Nullable
+    HttpServletRequest asHttpServletRequest(Object servletRequest);
 
-    boolean isHttpServletRequest(ServletRequest servletRequest);
+    boolean isRequestDispatcherType(HttpServletRequest servletRequest);
 
-    boolean isHttpServletResponse(ServletResponse servletResponse);
+    boolean isAsyncDispatcherType(HttpServletRequest servletRequest);
 
-    boolean isRequestDispatcherType(ServletRequest servletRequest);
+    boolean isForwardDispatcherType(HttpServletRequest servletRequest);
 
-    boolean isAsyncDispatcherType(ServletRequest servletRequest);
+    boolean isIncludeDispatcherType(HttpServletRequest servletRequest);
 
-    boolean isForwardDispatcherType(ServletRequest servletRequest);
-
-    boolean isIncludeDispatcherType(ServletRequest servletRequest);
-
-    boolean isErrorDispatcherType(ServletRequest servletRequest);
+    boolean isErrorDispatcherType(HttpServletRequest servletRequest);
 
     @Nullable
-    ServletContext getServletContext(ServletRequest servletRequest);
-
-    ClassLoader getClassloader(ServletContext servletContext);
-
-    String getServletContextName(ServletContext servletContext);
-
-    String getContextPath(ServletContext servletContext);
-
-    @Nullable
-    Transaction createAndActivateTransaction(HttpServletRequest httpServletRequest);
+    ServletContext getServletContext(HttpServletRequest servletRequest);
 
     void handleCookies(Request request, HttpServletRequest httpServletRequest);
 
@@ -91,24 +81,16 @@ public interface ServletHelper<ServletRequest, ServletResponse, HttpServletReque
 
     Object getIncludePathInfoAttribute(HttpServletRequest servletRequest);
 
-    boolean isInstanceOfHttpServlet(Object object);
-
     @Nullable
     Principal getUserPrincipal(HttpServletRequest httpServletRequest);
 
     @Nullable
-    Object getAttribute(ServletRequest request, String attributeName);
+    Object getAttribute(HttpServletRequest request, String attributeName);
 
     @Nullable
     Object getHttpAttribute(HttpServletRequest request, String attributeName);
 
-    Collection<String> getHeaderNames(HttpServletResponse httpServletResponse);
-
-    Collection<String> getHeaders(HttpServletResponse httpServletResponse, String headerName);
-
     Map<String, String[]> getParameterMap(HttpServletRequest httpServletRequest);
 
-    boolean isCommitted(HttpServletResponse httpServletResponse);
-
-    int getStatus(HttpServletResponse httpServletResponse);
+    TextHeaderGetter<HttpServletRequest> getRequestHeaderGetter();
 }

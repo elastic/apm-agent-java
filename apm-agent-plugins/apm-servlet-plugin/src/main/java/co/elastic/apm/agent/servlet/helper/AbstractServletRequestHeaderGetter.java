@@ -20,24 +20,18 @@ package co.elastic.apm.agent.servlet.helper;
 
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.Enumeration;
 
-public class JavaxServletRequestHeaderGetter extends AbstractServletRequestHeaderGetter<HttpServletRequest> {
-
-    private static final JavaxServletRequestHeaderGetter INSTANCE = new JavaxServletRequestHeaderGetter();
-
-    public static TextHeaderGetter<HttpServletRequest> getInstance() {
-        return INSTANCE;
-    }
+public abstract class AbstractServletRequestHeaderGetter<T> implements TextHeaderGetter<T> {
 
     @Override
-    public String getFirstHeader(String headerName, HttpServletRequest carrier) {
-        return carrier.getHeader(headerName);
+    public <S> void forEach(String headerName, T carrier, S state, HeaderConsumer<String, S> consumer) {
+        Enumeration<String> headers = getHeaders(headerName, carrier);
+        while (headers.hasMoreElements()) {
+            consumer.accept(headers.nextElement(), state);
+        }
     }
 
-    @Override
-    Enumeration<String> getHeaders(String headerName, HttpServletRequest carrier) {
-        return carrier.getHeaders(headerName);
-    }
+    abstract Enumeration<String> getHeaders(String headerName, T carrier);
+
 }
