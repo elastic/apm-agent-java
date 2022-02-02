@@ -134,6 +134,7 @@ pipeline {
               archiveArtifacts allowEmptyArchive: true,
                 artifacts: "\
                   ${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,\
+                  ${BASE_DIR}/elastic-apm-agent/target/elastic-apm-java-aws-lambda-layer-*.zip,\
                   ${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
                   ${BASE_DIR}/apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar,\
                   ${BASE_DIR}/apm-agent-api/target/apm-agent-api-*.jar,\
