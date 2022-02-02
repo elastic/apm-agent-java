@@ -20,9 +20,12 @@ package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.testinstr.SystemSingleEnvVariablesInstrumentation;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 import java.util.concurrent.Callable;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class CustomEnvVariables extends AbstractInstrumentationTest {
 

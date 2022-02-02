@@ -20,11 +20,11 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.report.ssl.SslUtils;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.UrlConnectionUtils;
 import co.elastic.apm.agent.util.Version;
 import co.elastic.apm.agent.util.VersionUtils;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nonnull;
@@ -112,11 +112,7 @@ public class ApmServerClient {
     }
 
     private void setServerUrls(List<URL> serverUrls) {
-        List<URL> newServersUrls = new ArrayList<>();
-        for (URL url : serverUrls) {
-            newServersUrls.add(HttpUtils.withDefaultHandler(url));
-        }
-        this.serverUrls = newServersUrls;
+        this.serverUrls = serverUrls;
         this.apmServerVersion = healthChecker.checkHealthAndGetMinVersion();
         this.errorCount.set(0);
     }
@@ -414,7 +410,6 @@ public class ApmServerClient {
     /**
      * Escapes the provided string from characters that are disallowed within HTTP header comments.
      * See spec- https://httpwg.org/specs/rfc7230.html#field.components
-     *
      * @param headerFieldComment HTTP header comment value to be escaped
      * @return the escaped header comment
      */
