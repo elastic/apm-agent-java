@@ -20,7 +20,6 @@ package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
-import co.elastic.apm.agent.report.HttpUtils;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.UrlConnectionUtils;
 import com.dslplatform.json.DslJson;
@@ -416,7 +415,7 @@ public class CloudMetadataProvider {
     }
 
     private static String executeRequest(String url, String method, @Nullable Map<String, String> headers, int queryTimeoutMs) throws IOException {
-        HttpURLConnection urlConnection = (HttpURLConnection) UrlConnectionUtils.openUrlConnectionThreadSafely(HttpUtils.withDefaultHandler(new URL(url)));
+        HttpURLConnection urlConnection = (HttpURLConnection) UrlConnectionUtils.openUrlConnectionThreadSafely(new URL(url));
         if (headers != null) {
             for (String header : headers.keySet()) {
                 urlConnection.setRequestProperty(header, headers.get(header));
