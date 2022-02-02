@@ -191,7 +191,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("A version string for the currently deployed version of the service. If you don’t version your deployments, " +
             "the recommended value for this field is the commit identifier of the deployed revision, " +
-            "e.g. the output of git rev-parse HEAD.")
+            "e.g. the output of git rev-parse HEAD.\n" +
+            "\n" +
+            "Similar to the auto-detection of <<config-service-name>>, " +
+            "the agent can auto-detect the service version based on the `Implementation-Title` attribute in `META-INF/MANIFEST.MF`.\n" +
+            "See <<config-service-name>> on how to set this attribute.\n" +
+            "\n")
         .defaultValue(ServiceInfo.autoDetected().getServiceVersion())
         .build();
 

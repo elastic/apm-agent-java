@@ -592,6 +592,11 @@ NOTE: Metrics views can utilize this configuration since APM Server 7.5
 
 A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
 
+Similar to the auto-detection of <<config-service-name>>, the agent can auto-detect the service version based on the `Implementation-Title` attribute in `META-INF/MANIFEST.MF`.
+See <<config-service-name>> on how to set this attribute.
+
+
+
 
 
 
@@ -3004,6 +3009,11 @@ The default unit for this option is `ms`.
 # service_node_name=
 
 # A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
+# 
+# Similar to the auto-detection of <<config-service-name>>, the agent can auto-detect the service version based on the `Implementation-Title` attribute in `META-INF/MANIFEST.MF`.
+# See <<config-service-name>> on how to set this attribute.
+# 
+# 
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
