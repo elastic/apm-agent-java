@@ -34,7 +34,7 @@ public class SystemInfoTest extends CustomEnvVariables {
 
     private static final SystemInfo systemInfo;
     private static final boolean isWindows;
-    private static ServerlessConfiguration serverlessConfiguration;
+    private static final ServerlessConfiguration serverlessConfiguration;
 
 
     static {
@@ -56,6 +56,8 @@ public class SystemInfoTest extends CustomEnvVariables {
     void testHostnameDiscoveryThroughEnv() {
         Map<String, String> customEnvVariables = new HashMap<>();
         if (isWindows) {
+            // when running on Windows the actual computer name will be the netbios name, thus won't match exactly
+            // the entry in the map. It's fine here for testing as it just proves we get the expected value set in map
             customEnvVariables.put("COMPUTERNAME", "Windows_hostname");
             runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(true)).isEqualTo("Windows_hostname"));
         } else {
@@ -71,13 +73,15 @@ public class SystemInfoTest extends CustomEnvVariables {
         String expectedHostname = SystemInfo.removeDomain(InetAddress.getLocalHost().getHostName());
 
         Map<String, String> customEnvVariables = new HashMap<>();
+        // none of those env variables should be available to trigger the fallback on all platforms
+        customEnvVariables.put("HOST", null);
+        customEnvVariables.put("HOSTNAME", null);
+        customEnvVariables.put("COMPUTERNAME", null);
+
         if (isWindows) {
-            customEnvVariables.put("COMPUTERNAME", null);
             runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.fallbackHostnameDiscovery(true)).isEqualTo(expectedHostname));
         } else {
-            customEnvVariables.put("HOST", null);
             runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.fallbackHostnameDiscovery(false)).isEqualTo(expectedHostname));
-            customEnvVariables.put("HOSTNAME", null);
             runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.fallbackHostnameDiscovery(false)).isEqualTo(expectedHostname));
         }
     }

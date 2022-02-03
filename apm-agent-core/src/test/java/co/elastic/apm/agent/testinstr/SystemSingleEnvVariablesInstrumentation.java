@@ -22,6 +22,7 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.isStatic;
@@ -38,15 +39,8 @@ public class SystemSingleEnvVariablesInstrumentation extends SystemEnvVariableIn
     public static class AdviceClass {
         @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(onThrowable = Throwable.class, inline = false)
-        public static String appendToEnvVariables(@Advice.Argument(0) String varName, @Advice.Return String ret) {
-            Map<String, String> customEnvVariables = customEnvVariablesTL.get();
-            if (customEnvVariables != null) {
-                String customValue = customEnvVariables.get(varName);
-                if (customValue != null) {
-                    ret = customValue;
-                }
-            }
-            return ret;
+        public static String alterEnvVariables(@Advice.Argument(0) String varName, @Advice.Return @Nullable String ret) {
+            return getCustomEnvironmentEntry(varName, ret);
         }
     }
 }

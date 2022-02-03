@@ -22,7 +22,6 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.isStatic;
@@ -39,13 +38,8 @@ public class SystemAllEnvVariablesInstrumentation extends SystemEnvVariableInstr
     public static class AdviceClass {
         @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(onThrowable = Throwable.class, inline = false)
-        public static Map<String, String> appendToEnvVariables(@Advice.Return Map<String, String> ret) {
-            Map<String, String> customEnvVariables = customEnvVariablesTL.get();
-            if (customEnvVariables != null && !customEnvVariables.isEmpty()) {
-                ret = new HashMap<>(ret);
-                ret.putAll(customEnvVariables);
-            }
-            return ret;
+        public static Map<String, String> alterEnvVariables(@Advice.Return Map<String, String> ret) {
+            return getCustomEnvironmentMap(ret);
         }
     }
 }
