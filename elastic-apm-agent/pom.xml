@@ -134,6 +134,10 @@
                                     <fileset dir="${project.basedir}/target/classes/agent" includes="**/*.class" />
                                     <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz" />
                                 </move>
+                                <move todir="${project.basedir}/target/classes/META-INF/versions" overwrite="true">
+                                    <fileset dir="${project.basedir}/target/classes/agent/META-INF/versions" includes="**" />
+                                    <mapper type="regexp" from="^(\d+)/(.*)$$" to="\1/agent/\2" />
+                                </move>
                             </target>
 
                         </configuration>
@@ -208,6 +212,7 @@
                                         <Can-Redefine-Classes>true</Can-Redefine-Classes>
                                         <Can-Retransform-Classes>true</Can-Retransform-Classes>
                                         <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
+                                        <Multi-Release>true</Multi-Release>
                                     </manifestEntries>
                                 </transformer>
                             </transformers>

@@ -418,13 +418,6 @@
                                     </excludes>
                                 </filter>
                                 <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>**/module-info.class</exclude>
-                                        <exclude>META-INF/versions/**</exclude>
-                                    </excludes>
-                                </filter>
-                                <filter>
                                     <artifact>org.apache.logging.log4j:log4j-core</artifact>
                                     <!--Keep in sync with apm-agent-attach-cli/pom.xml-->
                                     <excludes>
