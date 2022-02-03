@@ -19,10 +19,12 @@
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.AbstractApiTest;
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.api.AbstractSpanImplAccessor;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Outcome;
+import co.elastic.apm.api.Scope;
 import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -32,6 +34,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import javax.annotation.Nullable;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.security.SecureRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -294,6 +298,24 @@ class TransactionInstrumentationTest extends AbstractApiTest {
     @Test
     void setOutcome_success() {
         testSetOutcome(Outcome.SUCCESS);
+    }
+
+    @Test
+    void setClassLoader() {
+        ClassLoader classLoader = new URLClassLoader(new URL[0]);
+
+        tracer.overrideServiceInfoForClassLoader(classLoader, ServiceInfo.of("My Service", "My Version"));
+
+        transaction.setApplicationClassLoader(classLoader);
+        try (Scope scope = transaction.activate()) {
+            assertThat(tracer.getActive().getTraceContext().getApplicationClassLoader()).isSameAs(classLoader);
+        } finally {
+            endTransaction();
+        }
+
+        co.elastic.apm.agent.impl.transaction.Transaction reportedTransaction = reporter.getFirstTransaction();
+        assertThat(reportedTransaction.getTraceContext().getServiceName()).isEqualTo("My Service");
+        assertThat(reportedTransaction.getTraceContext().getServiceVersion()).isEqualTo("My Version");
     }
 
     private void testSetOutcome(Outcome outcome) {

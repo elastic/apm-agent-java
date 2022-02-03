@@ -186,4 +186,10 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     public Transaction setDestinationService(@Nullable String resource) {
         throw new UnsupportedOperationException();
     }
+
+    @Nonnull
+    public Transaction setApplicationClassLoader(ClassLoader classLoader) {
+        // co.elastic.apm.agent.pluginapi.TransactionInstrumentation.SetClassLoaderInstrumentation
+        return this;
+    }
 }

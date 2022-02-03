@@ -732,7 +732,7 @@ public class TraceContext implements Recyclable {
         return Objects.hash(traceId, id, parentId, flags);
     }
 
-    void setApplicationClassLoader(@Nullable ClassLoader classLoader) {
+    public void setApplicationClassLoader(@Nullable ClassLoader classLoader) {
         if (ClassLoaderUtils.isBootstrapClassLoader(classLoader) || ClassLoaderUtils.isAgentClassLoader(classLoader)) {
             return;
         }

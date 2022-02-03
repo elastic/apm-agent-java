@@ -551,6 +551,15 @@ use `UNKNOWN` when the outcome can't be properly known.
 Outcome is used to compute error rates between services, using `UNKNOWN` will not alter those rates.
 The value set through API will have higher priority over the value that might be set by auto-instrumentation.
 
+[float]
+[[api-transaction-set-class-loader]]
+==== `Transaction setApplicationClassLoader(ClassLoader classLoader)`
+Sets the class loader of the application that started the transaction.
+
+* `classLoader`` the class loader of the application that started the transaction
+
+NOTE: The class loader is used to determine the service name and version of the transaction. If this method is called after
+child spans are already created, they may be associated with the wrong service name and version.
 
 [float]
 [[api-transaction-set-start-timestamp]]

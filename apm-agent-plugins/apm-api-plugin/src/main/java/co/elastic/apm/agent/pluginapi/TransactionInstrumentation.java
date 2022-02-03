@@ -18,6 +18,9 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
+import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -142,6 +145,32 @@ public class TransactionInstrumentation extends ApiInstrumentation {
                         transaction.addCustomContext(key, (Number) value);
                     } else if (value instanceof Boolean) {
                         transaction.addCustomContext(key, (Boolean) value);
+                    }
+                }
+            }
+        }
+    }
+
+    public static class SetClassLoaderInstrumentation extends TransactionInstrumentation {
+        public SetClassLoaderInstrumentation() {
+            super(named("setApplicationClassLoader"));
+        }
+
+        public static class AdviceClass {
+
+            private static final ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
+
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void setClassLoader(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+                                              @Advice.Argument(0) ClassLoader classLoader) {
+                if (transaction instanceof Transaction) {
+                    TraceContext traceContext = ((Transaction) transaction).getTraceContext();
+                    traceContext.setApplicationClassLoader(classLoader);
+
+                    ServiceInfo serviceInfo = tracer.getServiceInfo(classLoader);
+                    if (serviceInfo != null) {
+                        traceContext.setServiceName(serviceInfo.getServiceName());
+                        traceContext.setServiceVersion(serviceInfo.getServiceVersion());
                     }
                 }
             }

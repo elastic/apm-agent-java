@@ -226,4 +226,10 @@ enum NoopTransaction implements Transaction {
     public Span setDestinationService(@Nullable String resource) {
         return this;
     }
+
+    @Nonnull
+    @Override
+    public Transaction setApplicationClassLoader(@Nullable ClassLoader classLoader) {
+        return this;
+    }
 }
