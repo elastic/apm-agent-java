@@ -333,7 +333,7 @@ public interface Transaction extends Span {
 
     /**
      * Sets the class loader of the application that started the transaction.
-     * <p></p>
+     * <p>
      * The class loader is used to determine the service name and version of the transaction. If this method is called
      * after child spans are already created, they may be associated with the wrong service name and version.
      * </p>
