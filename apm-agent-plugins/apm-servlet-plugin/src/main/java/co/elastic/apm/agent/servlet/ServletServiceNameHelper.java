@@ -50,6 +50,11 @@ public class ServletServiceNameHelper {
         if (servletContextClassLoader == null || nameInitialized.putIfAbsent(servletContextClassLoader, Boolean.TRUE) != null) {
             return;
         }
+        ServiceInfo serviceInfo = detectServiceInfo(adapter, servletContext, servletContextClassLoader);
+        tracer.overrideServiceInfoForClassLoader(servletContextClassLoader, serviceInfo);
+    }
+
+    public static <ServletContext> ServiceInfo detectServiceInfo(ServletContextAdapter<ServletContext> adapter, ServletContext servletContext, ClassLoader servletContextClassLoader) {
         String servletContextName = adapter.getServletContextName(servletContext);
         String contextPath = adapter.getContextPath(servletContext);
 
@@ -75,7 +80,7 @@ public class ServletServiceNameHelper {
             // remove leading slash
             fromContextPath = ServiceInfo.of(contextPath.substring(1));
         }
-        tracer.overrideServiceInfoForClassLoader(servletContextClassLoader, fromWarManifest.withFallback(fromContextName).withFallback(fromContextPath));
+        return fromWarManifest.withFallback(fromContextName).withFallback(fromContextPath);
     }
 
     @Nullable
