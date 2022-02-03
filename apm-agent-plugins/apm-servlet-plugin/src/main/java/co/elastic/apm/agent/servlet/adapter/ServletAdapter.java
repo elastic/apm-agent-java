@@ -21,9 +21,11 @@ package co.elastic.apm.agent.servlet.adapter;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 
 @GlobalState
-public interface ServletAdapter<ServletConfig, ServletContext> {
+public interface ServletAdapter<ServletContextEvent, ServletConfig, ServletContext> {
 
     boolean isInstanceOfHttpServlet(Object object);
+
+    ServletContext getServletContextFromServletContextEvent(ServletContextEvent servletContextEvent);
 
     ServletContext getServletContextFromServletConfig(ServletConfig filterConfig);
 

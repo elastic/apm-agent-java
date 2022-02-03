@@ -23,11 +23,14 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockFilterConfig;
 import org.springframework.mock.web.MockServletConfig;
+import org.springframework.mock.web.MockServletContext;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.Servlet;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -37,6 +40,19 @@ import java.io.IOException;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class InitServiceNameInstrumentationTest extends AbstractInstrumentationTest {
+
+    @Test
+    void testContextInitialized() {
+        ServletContextListener servletContextListener = new NoopServletContextListener();
+
+        CustomManifestLoader cl = new CustomManifestLoader(() -> getClass().getResourceAsStream("/TEST-MANIFEST.MF"));
+        CustomManifestLoader.withThreadContextClassLoader(cl, () -> {
+            servletContextListener.contextInitialized(new ServletContextEvent(new MockServletContext()));
+            tracer.startRootTransaction(cl).end();
+        });
+
+        assertServiceInfo();
+    }
 
     @Test
     void testServletInit() {
@@ -69,6 +85,16 @@ class InitServiceNameInstrumentationTest extends AbstractInstrumentationTest {
         TraceContext traceContext = reporter.getFirstTransaction().getTraceContext();
         assertThat(traceContext.getServiceName()).isEqualTo("service-name-from-manifest");
         assertThat(traceContext.getServiceVersion()).isEqualTo("1.42.0");
+    }
+
+    private static class NoopServletContextListener implements ServletContextListener {
+        @Override
+        public void contextInitialized(ServletContextEvent servletContextEvent) {
+        }
+
+        @Override
+        public void contextDestroyed(ServletContextEvent servletContextEvent) {
+        }
     }
 
     private static class NoopFilter implements Filter {
