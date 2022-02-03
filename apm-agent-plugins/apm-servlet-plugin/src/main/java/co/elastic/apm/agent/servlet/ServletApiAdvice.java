@@ -58,8 +58,8 @@ public abstract class ServletApiAdvice {
     private static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "jakarta.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
 
     @Nullable
-    public static <HttpServletRequest, HttpServletResponse, ServletContext, FilterConfig, ServletConfig> Object onServletEnter(
-        ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, FilterConfig, ServletConfig> adapter,
+    public static <HttpServletRequest, HttpServletResponse, ServletContext, ServletContextEvent, FilterConfig, ServletConfig> Object onServletEnter(
+        ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, ServletContextEvent, FilterConfig, ServletConfig> adapter,
         Object servletRequest) {
 
         ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
@@ -159,8 +159,8 @@ public abstract class ServletApiAdvice {
         return ret;
     }
 
-    public static <HttpServletRequest, HttpServletResponse, ServletContext, FilterConfig, ServletConfig> void onExitServlet(
-        ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, FilterConfig, ServletConfig> adapter,
+    public static <HttpServletRequest, HttpServletResponse, ServletContext, ServletContextEvent, FilterConfig, ServletConfig> void onExitServlet(
+        ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, ServletContextEvent, FilterConfig, ServletConfig> adapter,
         Object servletRequest,
         Object servletResponse,
         @Nullable Object transactionOrScopeOrSpan,

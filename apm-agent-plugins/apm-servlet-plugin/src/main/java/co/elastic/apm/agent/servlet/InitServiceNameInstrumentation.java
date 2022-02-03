@@ -54,19 +54,18 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Filter").or(nameContains("Servlet"));
+        return nameContains("Filter").or(nameContains("Servlet")).or(nameContains("Listener"));
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface()).and(hasSuperType(namedOneOf("javax.servlet.Filter", "javax.servlet.Servlet", "jakarta.servlet.Filter", "jakarta.servlet.Servlet")));
+        return not(isInterface()).and(hasSuperType(namedOneOf("javax.servlet.ServletContextListener", "javax.servlet.Filter", "jakarta.servlet.ServletContextListener", "javax.servlet.Servlet", "jakarta.servlet.Filter", "jakarta.servlet.Servlet")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("init")
-            .and(takesArguments(1))
-            .and(takesArgument(0, nameEndsWith("Config")));
+        return named("init").and(takesArguments(1).and(takesArgument(0, nameEndsWith("Config"))))
+            .or(named("contextInitialized").and(takesArguments(1).and(takesArgument(0, nameEndsWith("ServletContextEvent")))));
     }
 
     public static class JavaxInitServiceNameInstrumentation extends InitServiceNameInstrumentation {
@@ -80,15 +79,17 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
 
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void onEnter(@Advice.Argument(0) @Nullable Object config) {
-                if (config == null) {
+            public static void onEnter(@Advice.Argument(0) @Nullable Object arg) {
+                if (arg == null) {
                     return;
                 }
                 javax.servlet.ServletContext servletContext;
-                if (config instanceof javax.servlet.FilterConfig) {
-                    servletContext = adapter.getServletContextFromFilterConfig((javax.servlet.FilterConfig) config);
-                } else if (config instanceof javax.servlet.ServletConfig) {
-                    servletContext = adapter.getServletContextFromServletConfig((javax.servlet.ServletConfig) config);
+                if (arg instanceof javax.servlet.FilterConfig) {
+                    servletContext = adapter.getServletContextFromFilterConfig((javax.servlet.FilterConfig) arg);
+                } else if (arg instanceof javax.servlet.ServletConfig) {
+                    servletContext = adapter.getServletContextFromServletConfig((javax.servlet.ServletConfig) arg);
+                } else if (arg instanceof javax.servlet.ServletContextEvent) {
+                    servletContext = adapter.getServletContextFromServletContextEvent((javax.servlet.ServletContextEvent) arg);
                 } else {
                     return;
                 }
@@ -109,15 +110,17 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
         public static class AdviceClass {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void onEnter(@Advice.Argument(0) @Nullable Object config) {
-                if (config == null) {
+            public static void onEnter(@Advice.Argument(0) @Nullable Object arg) {
+                if (arg == null) {
                     return;
                 }
                 jakarta.servlet.ServletContext servletContext;
-                if (config instanceof jakarta.servlet.FilterConfig) {
-                    servletContext = adapter.getServletContextFromFilterConfig((jakarta.servlet.FilterConfig) config);
-                } else if (config instanceof jakarta.servlet.ServletConfig) {
-                    servletContext = adapter.getServletContextFromServletConfig((jakarta.servlet.ServletConfig) config);
+                if (arg instanceof jakarta.servlet.FilterConfig) {
+                    servletContext = adapter.getServletContextFromFilterConfig((jakarta.servlet.FilterConfig) arg);
+                } else if (arg instanceof jakarta.servlet.ServletConfig) {
+                    servletContext = adapter.getServletContextFromServletConfig((jakarta.servlet.ServletConfig) arg);
+                } else if (arg instanceof jakarta.servlet.ServletContextEvent) {
+                    servletContext = adapter.getServletContextFromServletContextEvent((jakarta.servlet.ServletContextEvent) arg);
                 } else {
                     return;
                 }
