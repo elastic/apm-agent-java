@@ -173,7 +173,7 @@ public class ElasticApmTracer implements Tracer {
         Transaction transaction = null;
         if (isRunning()) {
             transaction = createTransaction().start(TraceContext.asRoot(), null, epochMicros, sampler, initiatingClassLoader);
-            afterTransactionStart(initiatingClassLoader, transaction);
+            afterTransactionStart(transaction);
         }
         return transaction;
     }
@@ -198,7 +198,7 @@ public class ElasticApmTracer implements Tracer {
         if (isRunning()) {
             transaction = createTransaction().start(TraceContext.<C>getFromTraceContextTextHeaders(), headerCarrier,
                 textHeadersGetter, epochMicros, sampler, initiatingClassLoader);
-            afterTransactionStart(initiatingClassLoader, transaction);
+            afterTransactionStart(transaction);
         }
         return transaction;
     }
@@ -217,23 +217,18 @@ public class ElasticApmTracer implements Tracer {
         if (isRunning()) {
             transaction = createTransaction().start(TraceContext.<C>getFromTraceContextBinaryHeaders(), headerCarrier,
                 binaryHeadersGetter, epochMicros, sampler, initiatingClassLoader);
-            afterTransactionStart(initiatingClassLoader, transaction);
+            afterTransactionStart(transaction);
         }
         return transaction;
     }
 
-    private void afterTransactionStart(@Nullable ClassLoader initiatingClassLoader, Transaction transaction) {
+    private void afterTransactionStart(Transaction transaction) {
         if (logger.isDebugEnabled()) {
             logger.debug("startTransaction {}", transaction);
             if (logger.isTraceEnabled()) {
                 logger.trace("starting transaction at",
                     new RuntimeException("this exception is just used to record where the transaction has been started from"));
             }
-        }
-        final ServiceInfo serviceInfo = getServiceInfo(initiatingClassLoader);
-        if (serviceInfo != null) {
-            transaction.getTraceContext().setServiceName(serviceInfo.getServiceName());
-            transaction.getTraceContext().setServiceVersion(serviceInfo.getServiceVersion());
         }
     }
 
@@ -343,11 +338,7 @@ public class ElasticApmTracer implements Tracer {
                 parent.setNonDiscardable();
             } else {
                 error.getTraceContext().getId().setToRandomValue();
-                ServiceInfo serviceInfo = getServiceInfo(initiatingClassLoader);
-                if (serviceInfo != null) {
-                    error.getTraceContext().setServiceName(serviceInfo.getServiceName());
-                    error.getTraceContext().setServiceVersion(serviceInfo.getServiceVersion());
-                }
+                error.getTraceContext().setApplicationClassLoader(initiatingClassLoader);
             }
             return error;
         }

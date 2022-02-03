@@ -19,17 +19,18 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.ByteUtils;
 import co.elastic.apm.agent.util.ClassLoaderUtils;
 import co.elastic.apm.agent.util.HexUtils;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
@@ -742,6 +743,11 @@ public class TraceContext implements Recyclable {
             classLoaderWeakReferenceCache.putIfAbsent(classLoader, local);
         }
         applicationClassLoader = local;
+        final ServiceInfo serviceInfo = tracer.getServiceInfo(classLoader);
+        if (serviceInfo != null) {
+            setServiceName(serviceInfo.getServiceName());
+            setServiceVersion(serviceInfo.getServiceVersion());
+        }
     }
 
     @Nullable

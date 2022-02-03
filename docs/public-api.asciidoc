@@ -556,7 +556,7 @@ The value set through API will have higher priority over the value that might be
 ==== `Transaction setApplicationClassLoader(ClassLoader classLoader)`
 Sets the class loader of the application that started the transaction.
 
-* `classLoader`` the class loader of the application that started the transaction
+* `classLoader` the class loader of the application that started the transaction
 
 NOTE: The class loader is used to determine the service name and version of the transaction. If this method is called after
 child spans are already created, they may be associated with the wrong service name and version.
