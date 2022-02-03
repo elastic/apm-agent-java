@@ -13,10 +13,41 @@ older versions provides most value, but some relevant metadata fields will not b
 [[aws-lambda-installation]]
 ==== Installation
 
-Setting up your Lambda function is a two-step process.
+Setting up your Lambda function is a three-step process.
 
-1. <<aws-lambda-extension>>
-2. <<aws-lambda-instrumenting>>
+1. Check <<aws-lambda-runtimes>>
+2. <<aws-lambda-extension>>
+3. <<aws-lambda-instrumenting>>
+
+[float]
+[[aws-lambda-runtimes]]
+==== Supported runtimes
+
+AWS Lambda provides multiple https://docs.aws.amazon.com/lambda/latest/dg/java-image.html[JVM base images], only the ones that support the `AWS_LAMBDA_EXEC_WRAPPER` environment variables
+are supported out of the box.
+
+Running with unsupported images is still possible but requires providing agent configuration through environment variables
+explicitly.
+
+|===
+|Tags |Java Runtime |Operating System|Supported
+
+|11
+|Java 11 (Corretto)
+|Amazon Linux 2
+|yes
+
+|8.al2
+|Java 8 (Corretto)
+|Amazon Linux 2
+|yes
+
+|8
+|Java 8 (OpenJDK)
+|Amazon Linux 2018.03
+|no
+
+|===
 
 [float]
 [[aws-lambda-extension]]
