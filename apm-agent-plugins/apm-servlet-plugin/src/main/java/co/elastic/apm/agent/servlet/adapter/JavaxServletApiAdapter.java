@@ -28,6 +28,7 @@ import javax.servlet.FilterConfig;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
+import javax.servlet.ServletContextEvent;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -38,7 +39,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Map;
 
-public class JavaxServletApiAdapter implements ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, FilterConfig, ServletConfig> {
+public class JavaxServletApiAdapter implements ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, ServletContextEvent, FilterConfig, ServletConfig> {
 
     private static final JavaxServletApiAdapter INSTANCE = new JavaxServletApiAdapter();
 
@@ -211,6 +212,11 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<HttpServletRequ
     @Override
     public boolean isInstanceOfHttpServlet(Object object) {
         return object instanceof HttpServlet;
+    }
+
+    @Override
+    public ServletContext getServletContextFromServletContextEvent(ServletContextEvent servletContextEvent) {
+        return servletContextEvent.getServletContext();
     }
 
     @Override

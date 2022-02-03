@@ -45,6 +45,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  *     <li>{@link jakarta.servlet.Filter#init(jakarta.servlet.FilterConfig)}</li>
  *     <li>{@link javax.servlet.Servlet#init(javax.servlet.ServletConfig)}</li>
  *     <li>{@link jakarta.servlet.Servlet#init(jakarta.servlet.ServletConfig)}</li>
+ *     <li>{@link javax.servlet.ServletContextListener#contextInitialized(javax.servlet.ServletContextEvent)}</li>
+ *     <li>{@link jakarta.servlet.ServletContextListener#contextInitialized(jakarta.servlet.ServletContextEvent)}</li>
  * </ul>
  *
  * Determines the service name based on the webapp's {@code META-INF/MANIFEST.MF} file early in the startup process.
@@ -54,19 +56,24 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Filter").or(nameContains("Servlet"));
+        return nameContains("Filter").or(nameContains("Servlet")).or(nameContains("Listener"));
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface()).and(hasSuperType(namedOneOf("javax.servlet.Filter", "javax.servlet.Servlet", "jakarta.servlet.Filter", "jakarta.servlet.Servlet")));
+        return not(isInterface()).and(hasSuperType(namedOneOf(
+            "javax.servlet.ServletContextListener", "javax.servlet.Filter", "javax.servlet.Servlet",
+            "jakarta.servlet.ServletContextListener", "jakarta.servlet.Filter", "jakarta.servlet.Servlet")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("init")
             .and(takesArguments(1))
-            .and(takesArgument(0, nameEndsWith("Config")));
+            .and(takesArgument(0, nameEndsWith("Config")))
+            .or(named("contextInitialized")
+                .and(takesArguments(1))
+                .and(takesArgument(0, nameEndsWith("ServletContextEvent"))));
     }
 
     public static class JavaxInitServiceNameInstrumentation extends InitServiceNameInstrumentation {
@@ -80,15 +87,14 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
 
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void onEnter(@Advice.Argument(0) @Nullable Object config) {
-                if (config == null) {
-                    return;
-                }
+            public static void onEnter(@Advice.Argument(0) @Nullable Object arg) {
                 javax.servlet.ServletContext servletContext;
-                if (config instanceof javax.servlet.FilterConfig) {
-                    servletContext = adapter.getServletContextFromFilterConfig((javax.servlet.FilterConfig) config);
-                } else if (config instanceof javax.servlet.ServletConfig) {
-                    servletContext = adapter.getServletContextFromServletConfig((javax.servlet.ServletConfig) config);
+                if (arg instanceof javax.servlet.FilterConfig) {
+                    servletContext = adapter.getServletContextFromFilterConfig((javax.servlet.FilterConfig) arg);
+                } else if (arg instanceof javax.servlet.ServletConfig) {
+                    servletContext = adapter.getServletContextFromServletConfig((javax.servlet.ServletConfig) arg);
+                } else if (arg instanceof javax.servlet.ServletContextEvent) {
+                    servletContext = adapter.getServletContextFromServletContextEvent((javax.servlet.ServletContextEvent) arg);
                 } else {
                     return;
                 }
@@ -109,15 +115,14 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
         public static class AdviceClass {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void onEnter(@Advice.Argument(0) @Nullable Object config) {
-                if (config == null) {
-                    return;
-                }
+            public static void onEnter(@Advice.Argument(0) @Nullable Object arg) {
                 jakarta.servlet.ServletContext servletContext;
-                if (config instanceof jakarta.servlet.FilterConfig) {
-                    servletContext = adapter.getServletContextFromFilterConfig((jakarta.servlet.FilterConfig) config);
-                } else if (config instanceof jakarta.servlet.ServletConfig) {
-                    servletContext = adapter.getServletContextFromServletConfig((jakarta.servlet.ServletConfig) config);
+                if (arg instanceof jakarta.servlet.FilterConfig) {
+                    servletContext = adapter.getServletContextFromFilterConfig((jakarta.servlet.FilterConfig) arg);
+                } else if (arg instanceof jakarta.servlet.ServletConfig) {
+                    servletContext = adapter.getServletContextFromServletConfig((jakarta.servlet.ServletConfig) arg);
+                } else if (arg instanceof jakarta.servlet.ServletContextEvent) {
+                    servletContext = adapter.getServletContextFromServletContextEvent((jakarta.servlet.ServletContextEvent) arg);
                 } else {
                     return;
                 }

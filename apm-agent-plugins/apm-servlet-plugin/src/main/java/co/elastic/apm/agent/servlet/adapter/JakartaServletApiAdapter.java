@@ -26,6 +26,7 @@ import jakarta.servlet.FilterConfig;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,7 +39,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Map;
 
-public class JakartaServletApiAdapter implements ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, FilterConfig, ServletConfig> {
+public class JakartaServletApiAdapter implements ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, ServletContextEvent, FilterConfig, ServletConfig> {
 
     public static final JakartaServletApiAdapter INSTANCE = new JakartaServletApiAdapter();
 
@@ -212,6 +213,11 @@ public class JakartaServletApiAdapter implements ServletApiAdapter<HttpServletRe
     @Override
     public boolean isInstanceOfHttpServlet(Object object) {
         return object instanceof HttpServlet;
+    }
+
+    @Override
+    public ServletContext getServletContextFromServletContextEvent(ServletContextEvent servletContextEvent) {
+        return servletContextEvent.getServletContext();
     }
 
     @Override

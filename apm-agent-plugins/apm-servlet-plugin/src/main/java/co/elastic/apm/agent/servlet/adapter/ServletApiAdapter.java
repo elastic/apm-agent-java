@@ -21,10 +21,10 @@ package co.elastic.apm.agent.servlet.adapter;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 
 @GlobalState
-public interface ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, FilterConfig, ServletConfig> extends
+public interface ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, ServletContextEvent, FilterConfig, ServletConfig> extends
     ServletRequestResponseAdapter<HttpServletRequest, HttpServletResponse, ServletContext>,
     ServletContextAdapter<ServletContext>,
-    ServletAdapter<ServletConfig, ServletContext>,
+    ServletAdapter<ServletContextEvent, ServletConfig, ServletContext>,
     FilterAdapter<FilterConfig, ServletContext> {
 
 }
