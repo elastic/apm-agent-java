@@ -45,6 +45,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  *     <li>{@link jakarta.servlet.Filter#init(jakarta.servlet.FilterConfig)}</li>
  *     <li>{@link javax.servlet.Servlet#init(javax.servlet.ServletConfig)}</li>
  *     <li>{@link jakarta.servlet.Servlet#init(jakarta.servlet.ServletConfig)}</li>
+ *     <li>{@link javax.servlet.ServletContextListener#contextInitialized(javax.servlet.ServletContextEvent)}</li>
+ *     <li>{@link jakarta.servlet.ServletContextListener#contextInitialized(jakarta.servlet.ServletContextEvent)}</li>
  * </ul>
  *
  * Determines the service name based on the webapp's {@code META-INF/MANIFEST.MF} file early in the startup process.
