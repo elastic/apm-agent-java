@@ -27,6 +27,7 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.ClassLoaderUtils;
 
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
@@ -227,10 +228,10 @@ public class MdcActivationListener implements ActivationListener {
      */
     private ClassLoader getApplicationClassLoader(TraceContext context) {
         ClassLoader applicationClassLoader = context.getApplicationClassLoader();
-        if (applicationClassLoader != null) {
-            return applicationClassLoader;
-        } else {
+        if (applicationClassLoader == null || ClassLoaderUtils.isAgentClassLoader(applicationClassLoader)) {
             return getFallbackClassLoader();
+        } else {
+            return applicationClassLoader;
         }
     }
     private ClassLoader getFallbackClassLoader() {
