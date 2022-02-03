@@ -29,6 +29,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -65,6 +66,24 @@ public class GreetingAnnotated {
     @RequestMapping("/hello")
     public Mono<String> getHello(@RequestParam(value = "name", required = false) @Nullable String name) {
         return greetingHandler.helloMessage(name);
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_USER')")
+    @RequestMapping("/preauthorized")
+    public Mono<String> getPreauthorized() {
+        return greetingHandler.helloMessage("elastic");
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_USER')")
+    @RequestMapping("/username")
+    public Mono<String> getSecurityContextUsername() {
+        return greetingHandler.getUsernameFromContext();
+    }
+
+    // protected by SecurityWebFilterChain#pathMatchers
+    @RequestMapping("/path-username")
+    public Mono<String> getSecurityContextUsernameByPathSecured() {
+        return greetingHandler.getUsernameFromContext();
     }
 
     @RequestMapping("/error-handler")

@@ -39,6 +39,7 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -159,5 +160,12 @@ public class AgentPackagingIT {
                     }
                 })
                 .isTrue());
+    }
+
+    @Test
+    void testMultiReleaseJar() throws Exception {
+        JarFile jarFile = new JarFile(agentJar.toFile(), false, ZipFile.OPEN_READ, Runtime.Version.parse("9"));
+        assertThat(jarFile.isMultiRelease()).isTrue();
+        assertThat(jarFile.getJarEntry("agent/org/apache/logging/log4j/util/StackLocator.esclazz").getRealName()).startsWith("META-INF/versions/9");
     }
 }

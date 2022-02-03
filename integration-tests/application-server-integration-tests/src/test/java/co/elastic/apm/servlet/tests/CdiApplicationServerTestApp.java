@@ -33,7 +33,8 @@ public class CdiApplicationServerTestApp extends TestApp {
             "cdi-app.war",
             "cdi-app",
             "status.html",
-            "CDI App");
+            "CDI App",
+            null);
     }
 
     @Override

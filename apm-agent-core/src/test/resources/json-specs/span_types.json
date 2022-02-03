@@ -226,12 +226,12 @@
           "java"
         ]
       },
-      "ldap": {
-        "__description": "LDAP client",
-        "__used_by": [
-          "java"
-        ]
-      }
+       "ldap": {
+         "__description": "LDAP client",
+         "__used_by": [
+           "java"
+         ]
+       }
     }
   },
   "json": {
