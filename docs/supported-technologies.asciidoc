@@ -171,6 +171,11 @@ rendering
 |
 |1.25.0
 
+|Java API for WebSocket
+|1.0
+|Captures methods annotated with `@OnOpen`, `@OnMessage`, `@OnError`, or `@OnClose` as transactions for classes that are annotated with `@ServerEndpoint`.
+|1.29.0
+
 |===
 
 
@@ -336,10 +341,6 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |
 | 1.25.0
 
-|LdapClient
-|
-|
-| 1.29.0
 |===
 
 
@@ -499,6 +500,8 @@ ECS Reformatting - 2.6+
 |When <<config-enable-log-correlation>> is set to `true`,
 the agent will add a https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entry for `trace.id` and `transaction.id`.
 
+The agent sets the service name for the `EcsLayout` if not provided explicitly (since 1.29.0).
+
 When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
 ECS-compatible format (since 1.22.0, experimental)
 
@@ -507,6 +510,8 @@ When doing so, the ID corresponding the captured error (`error.id`) is added to 
 |Trace correlation - 1.13.0
 
 Error capturing - 1.10.0
+
+ECS Service Name - 1.29.0
 
 ECS Reformatting - 1.22.0
 

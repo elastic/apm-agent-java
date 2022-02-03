@@ -318,7 +318,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-java-ldap-plugin</artifactId>
+            <artifactId>apm-jakarta-websocket-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-ecs-logging-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -410,13 +415,6 @@
                                     <artifact>${project.groupId}:apm-agent-cached-lookup-key</artifact>
                                     <excludes>
                                         <exclude>**/*</exclude>
-                                    </excludes>
-                                </filter>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>**/module-info.class</exclude>
-                                        <exclude>META-INF/versions/**</exclude>
                                     </excludes>
                                 </filter>
                                 <filter>

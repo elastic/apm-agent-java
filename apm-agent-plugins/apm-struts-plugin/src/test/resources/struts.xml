@@ -2,12 +2,12 @@
 <!DOCTYPE struts PUBLIC "-//Apache Software Foundation//DTD Struts Configuration 2.5//EN" "http://struts.apache.org/dtds/struts-2.5.dtd">
 <struts>
     <package name="default" extends="struts-default">
-        <action name="test1" class="co.elastic.apm.agent.struts.Struts2TransactionNameInstrumentationTest$TestAction">
+        <action name="test1" class="co.elastic.apm.agent.struts.ActionProxyAdviceTest$TestAction">
             <result name="success" type="httpheader">
                 <param name="status">200</param>
             </result>
         </action>
-        <action name="test2" class="co.elastic.apm.agent.struts.Struts2TransactionNameInstrumentationTest$TestAction" method="customMethod">
+        <action name="test2" class="co.elastic.apm.agent.struts.ActionProxyAdviceTest$TestAction" method="customMethod">
             <result name="success" type="httpheader">
                 <param name="status">200</param>
             </result>
