@@ -59,13 +59,19 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface()).and(hasSuperType(namedOneOf("javax.servlet.ServletContextListener", "javax.servlet.Filter", "jakarta.servlet.ServletContextListener", "javax.servlet.Servlet", "jakarta.servlet.Filter", "jakarta.servlet.Servlet")));
+        return not(isInterface()).and(hasSuperType(namedOneOf(
+            "javax.servlet.ServletContextListener", "javax.servlet.Filter", "javax.servlet.Servlet",
+            "jakarta.servlet.ServletContextListener", "jakarta.servlet.Filter", "jakarta.servlet.Servlet")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("init").and(takesArguments(1).and(takesArgument(0, nameEndsWith("Config"))))
-            .or(named("contextInitialized").and(takesArguments(1).and(takesArgument(0, nameEndsWith("ServletContextEvent")))));
+        return named("init")
+            .and(takesArguments(1))
+            .and(takesArgument(0, nameEndsWith("Config")))
+            .or(named("contextInitialized")
+                .and(takesArguments(1))
+                .and(takesArgument(0, nameEndsWith("ServletContextEvent"))));
     }
 
     public static class JavaxInitServiceNameInstrumentation extends InitServiceNameInstrumentation {
@@ -80,9 +86,6 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onEnter(@Advice.Argument(0) @Nullable Object arg) {
-                if (arg == null) {
-                    return;
-                }
                 javax.servlet.ServletContext servletContext;
                 if (arg instanceof javax.servlet.FilterConfig) {
                     servletContext = adapter.getServletContextFromFilterConfig((javax.servlet.FilterConfig) arg);
@@ -111,9 +114,6 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onEnter(@Advice.Argument(0) @Nullable Object arg) {
-                if (arg == null) {
-                    return;
-                }
                 jakarta.servlet.ServletContext servletContext;
                 if (arg instanceof jakarta.servlet.FilterConfig) {
                     servletContext = adapter.getServletContextFromFilterConfig((jakarta.servlet.FilterConfig) arg);
