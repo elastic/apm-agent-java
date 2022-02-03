@@ -118,15 +118,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "    <build>\n" +
             "        <plugins>\n" +
             "            <plugin>\n" +
-            "                <groupId>org.apache.maven.plugins</groupId>\n" +
-            "                <!-- uncomment if you're building a jar\n" +
+            "                <!-- replace with 'maven-war-plugin' if you're building a war -->\n" +
             "                <artifactId>maven-jar-plugin</artifactId>\n" +
-            "                <version>3.2.2</version>\n" +
-            "                -->\n" +
-            "                <!-- uncomment if you're building a war\n" +
-            "                <artifactId>maven-war-plugin</artifactId>\n" +
-            "                <version>3.3.2</version>\n" +
-            "                -->\n" +
             "                <configuration>\n" +
             "                    <archive>\n" +
             "                        <!-- Adds\n" +

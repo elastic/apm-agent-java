@@ -499,15 +499,8 @@ For other applications that are built with Maven, this is how you add the manife
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <!-- uncomment if you're building a jar
+                <!-- replace with 'maven-war-plugin' if you're building a war -->
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.2.2</version>
-                -->
-                <!-- uncomment if you're building a war
-                <artifactId>maven-war-plugin</artifactId>
-                <version>3.3.2</version>
-                -->
                 <configuration>
                     <archive>
                         <!-- Adds
@@ -2944,15 +2937,8 @@ The default unit for this option is `ms`.
 #     <build>
 #         <plugins>
 #             <plugin>
-#                 <groupId>org.apache.maven.plugins</groupId>
-#                 <!-- uncomment if you're building a jar
+#                 <!-- replace with 'maven-war-plugin' if you're building a war -->
 #                 <artifactId>maven-jar-plugin</artifactId>
-#                 <version>3.2.2</version>
-#                 -->
-#                 <!-- uncomment if you're building a war
-#                 <artifactId>maven-war-plugin</artifactId>
-#                 <version>3.3.2</version>
-#                 -->
 #                 <configuration>
 #                     <archive>
 #                         <!-- Adds
