@@ -36,8 +36,8 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public abstract class SystemEnvVariableInstrumentation extends TracerAwareInstrumentation {
 
-    private static final DetachedThreadLocal<Map<String, String>> customEnvVariablesTL =
-        GlobalVariables.get(SystemEnvVariableInstrumentation.class, "customEnvVariables", WeakConcurrent.<Map<String, String>>buildThreadLocal());
+    private static final DetachedThreadLocal<Map<String, String>> customEnvVariablesTL = GlobalVariables
+        .get(SystemEnvVariableInstrumentation.class, "customEnvVariables", WeakConcurrent.<Map<String, String>>buildThreadLocal());
 
     private static final String NULL_ENTRY = "null";
 
@@ -52,7 +52,7 @@ public abstract class SystemEnvVariableInstrumentation extends TracerAwareInstru
      *                           returned by {@link System#getenv()} on the current thread
      */
     public static void setCustomEnvVariables(Map<String, String> customEnvVariables) {
-        Map<String,String> map = new HashMap<>();
+        Map<String, String> map = new HashMap<>();
         for (Map.Entry<String, String> entry : customEnvVariables.entrySet()) {
             String value = entry.getValue();
             if (value == null) {
@@ -63,17 +63,17 @@ public abstract class SystemEnvVariableInstrumentation extends TracerAwareInstru
         customEnvVariablesTL.set(map);
     }
 
-    protected static Map<String,String> getCustomEnvironmentMap(Map<String,String> originalValues){
-        Map<String,String> customMap = customEnvVariablesTL.get();
-        if(customMap == null){
+    protected static Map<String, String> getCustomEnvironmentMap(Map<String, String> originalValues) {
+        Map<String, String> customMap = customEnvVariablesTL.get();
+        if (customMap == null) {
             return originalValues;
         }
-        Map<String,String> map = new HashMap<>(originalValues);
-        for (Map.Entry<String, String> entry: customMap.entrySet()) {
+        Map<String, String> map = new HashMap<>(originalValues);
+        for (Map.Entry<String, String> entry : customMap.entrySet()) {
             String value = entry.getValue();
 
             //noinspection StringEquality
-            if(value == null || value == NULL_ENTRY){
+            if (value == null || value == NULL_ENTRY) {
                 map.remove(entry.getKey());
             } else {
                 map.put(entry.getKey(), entry.getValue());
@@ -84,16 +84,16 @@ public abstract class SystemEnvVariableInstrumentation extends TracerAwareInstru
     }
 
     protected static String getCustomEnvironmentEntry(String key, @Nullable String originalValue) {
-        Map<String,String> customMap = customEnvVariablesTL.get();
+        Map<String, String> customMap = customEnvVariablesTL.get();
         if (customMap == null) {
             return originalValue;
         }
         String customValue = customMap.get(key);
 
         //noinspection StringEquality
-        if(customValue == NULL_ENTRY){
+        if (customValue == NULL_ENTRY) {
             return null;
-        } else if (customValue != null){
+        } else if (customValue != null) {
             return customValue;
         }
         return originalValue;

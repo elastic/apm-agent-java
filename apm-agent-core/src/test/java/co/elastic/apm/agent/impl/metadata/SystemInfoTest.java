@@ -78,11 +78,21 @@ public class SystemInfoTest extends CustomEnvVariables {
         customEnvVariables.put("HOSTNAME", null);
         customEnvVariables.put("COMPUTERNAME", null);
 
-        if (isWindows) {
-            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.fallbackHostnameDiscovery(true)).isEqualTo(expectedHostname));
-        } else {
-            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.fallbackHostnameDiscovery(false)).isEqualTo(expectedHostname));
-            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.fallbackHostnameDiscovery(false)).isEqualTo(expectedHostname));
+        runWithCustomEnvVariables(customEnvVariables, () -> {
+
+            // sanity check for test instrumentation to ensure those are not set
+            checkSystemPropertiesNotSet("HOST","HOSTNAME","COMPUTERNAME");
+
+            assertThat(SystemInfo.fallbackHostnameDiscovery(isWindows))
+                .isEqualTo(expectedHostname);
+        });
+    }
+
+    private static void checkSystemPropertiesNotSet(String... keys){
+        Map<String, String> map = System.getenv();
+        for (String key : keys) {
+            assertThat(System.getenv(key)).isNull();
+            assertThat(map.get(key)).isNull();
         }
     }
 
