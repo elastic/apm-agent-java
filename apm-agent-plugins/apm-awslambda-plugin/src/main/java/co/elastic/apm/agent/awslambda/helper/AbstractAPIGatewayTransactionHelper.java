@@ -79,13 +79,14 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     }
 
     private void fillUrlRelatedFields(Request request, @Nullable String serverName, @Nullable String path, @Nullable String queryString) {
+        String qString = queryString == null || queryString.trim().isEmpty() ? null: queryString;
         request.getUrl().resetState();
         request.getUrl()
             .withProtocol("https")
             .withHostname(serverName)
             .withPort(443)
             .withPathname(path)
-            .withSearch(queryString);
+            .withSearch(qString);
     }
 
     @Nullable

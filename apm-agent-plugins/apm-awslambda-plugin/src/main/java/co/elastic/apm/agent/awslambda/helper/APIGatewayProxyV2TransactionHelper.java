@@ -93,11 +93,13 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
     }
 
     protected void setResourcePathBasedName(APIGatewayV2HTTPEvent event, StringBuilder transactionName) {
-        if (event.getRequestContext().getStage() != null &&
-            event.getRequestContext().getRouteKey() != null) {
+        String stage = event.getRequestContext().getStage();
+        if(stage != null && !stage.equals("$default")){
             transactionName.append('/');
-            transactionName.append(event.getRequestContext().getStage());
+            transactionName.append(stage);
+        }
 
+        if (event.getRequestContext().getRouteKey() != null) {
             String routeKey = event.getRequestContext().getRouteKey();
             int idxSpace = routeKey.indexOf(' ');
 
