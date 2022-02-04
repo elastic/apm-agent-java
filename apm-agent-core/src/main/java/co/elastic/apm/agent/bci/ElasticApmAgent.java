@@ -36,8 +36,11 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
@@ -61,8 +64,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
@@ -82,6 +83,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
@@ -217,7 +219,7 @@ public class ElasticApmAgent {
     }
 
     private static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
-                                                         Iterable<ElasticApmInstrumentation> instrumentations, boolean premain) {
+                                                         final Iterable<ElasticApmInstrumentation> instrumentations, boolean premain) {
         CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
         if (!coreConfig.isEnabled()) {
             return;
@@ -257,8 +259,19 @@ public class ElasticApmAgent {
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
             @Override
             public void run() {
+                if (tracer.getConfig(CoreConfiguration.class).logUsedInstrumentationGroupsOnExit()) {
+                    Set<String> usedInstrumentationGroups = new TreeSet<>();
+                    for (ElasticApmInstrumentation instrumentation : instrumentations) {
+                        if (!instrumentation.isUsed()) {
+                            continue;
+                        }
+                        usedInstrumentationGroups.addAll(instrumentation.getInstrumentationGroupNames());
+                    }
+                    logger.info("Used instrumentation groups: {}", usedInstrumentationGroups);
+                }
                 tracer.stop();
                 matcherTimers.clear();
+                LoggingConfiguration.shutdown();
             }
         });
         matcherTimers.clear();
@@ -458,6 +471,7 @@ public class ElasticApmAgent {
                         if (matches) {
                             logger.debug("Method match for instrumentation {}: {} matches {}",
                                 instrumentation.getClass().getSimpleName(), methodMatcher, target);
+                            instrumentation.setUsed();
                         }
                         return matches;
                     } finally {

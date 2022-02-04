@@ -21,8 +21,10 @@ package co.elastic.apm.agent.logging;
 import co.elastic.apm.agent.sdk.logging.ILoggerFactory;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.impl.Log4jContextFactory;
 import org.apache.logging.log4j.spi.AbstractLoggerAdapter;
 import org.apache.logging.log4j.spi.LoggerContext;
+import org.apache.logging.log4j.spi.LoggerContextFactory;
 import org.apache.logging.log4j.util.StackLocatorUtil;
 
 /**
@@ -32,6 +34,13 @@ public class Log4jLoggerFactoryBridge extends AbstractLoggerAdapter<Logger> impl
 
     private static final String FQCN = Log4jLoggerFactoryBridge.class.getName();
     private static final String PACKAGE = "co.elastic.apm.agent.sdk.logging";
+
+    public static void shutdown() {
+        LoggerContextFactory factory = LogManager.getFactory();
+        for (LoggerContext context : ((Log4jContextFactory) factory).getSelector().getLoggerContexts()) {
+            LogManager.shutdown(context);
+        }
+    }
 
     @Override
     protected Logger newLogger(final String name, final LoggerContext context) {

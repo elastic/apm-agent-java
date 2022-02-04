@@ -89,6 +89,17 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  *
  */
 public abstract class ElasticApmInstrumentation {
+
+    private boolean used;
+
+    public final boolean isUsed() {
+        return used;
+    }
+
+    public final void setUsed() {
+        used = true;
+    }
+
     /**
      * Pre-select candidates solely based on the class name for the slower {@link #getTypeMatcher()},
      * at the expense of potential false negative matches.
