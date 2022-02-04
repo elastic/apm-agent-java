@@ -49,13 +49,11 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
         Transaction transaction = tracer.startChildTransaction(apiGatewayEvent.getHeaders(), MapTextHeaderGetter.INSTANCE, apiGatewayEvent.getClass().getClassLoader());
 
         APIGatewayV2HTTPEvent.RequestContext requestContext = apiGatewayEvent.getRequestContext();
-        if (transaction != null && null != requestContext) {
+        if (transaction != null) {
             APIGatewayV2HTTPEvent.RequestContext.Http http = requestContext.getHttp();
-            if (null != http) {
-                fillHttpRequestData(transaction, http.getMethod(), apiGatewayEvent.getHeaders(), requestContext.getDomainName(),
-                    http.getPath(), apiGatewayEvent.getRawQueryString(), apiGatewayEvent.getBody());
-                transaction.getContext().getRequest().withHttpVersion(getHttpVersion(http.getProtocol()));
-            }
+            fillHttpRequestData(transaction, http.getMethod(), apiGatewayEvent.getHeaders(), requestContext.getDomainName(),
+                http.getPath(), apiGatewayEvent.getRawQueryString(), apiGatewayEvent.getBody());
+            transaction.getContext().getRequest().withHttpVersion(getHttpVersion(http.getProtocol()));
         }
 
         return transaction;
@@ -70,11 +68,8 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
     protected void setTransactionTriggerData(Transaction transaction, APIGatewayV2HTTPEvent apiGatewayRequest) {
         super.setTransactionTriggerData(transaction, apiGatewayRequest);
         APIGatewayV2HTTPEvent.RequestContext rContext = apiGatewayRequest.getRequestContext();
-
-        if (null != rContext) {
-            setApiGatewayContextData(transaction, rContext.getRequestId(), rContext.getApiId(),
-                rContext.getDomainName(), rContext.getAccountId());
-        }
+        setApiGatewayContextData(transaction, rContext.getRequestId(), rContext.getApiId(),
+            rContext.getDomainName(), rContext.getAccountId());
     }
 
     @Override
@@ -84,8 +79,8 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
 
     @Override
     protected void setTransactionName(Transaction transaction, APIGatewayV2HTTPEvent event, Context lambdaContext) {
-        if (requiredDataForTransactionNameAvailable(event)) {
-            StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
+        StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
+        if (transactionName != null && requiredDataForTransactionNameAvailable(event)) {
             transactionName.append(event.getRequestContext().getHttp().getMethod()).append(" ");
             if (webConfiguration.isUsePathAsName()) {
                 transactionName.append(event.getRequestContext().getHttp().getPath());
@@ -98,8 +93,7 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
     }
 
     protected void setResourcePathBasedName(APIGatewayV2HTTPEvent event, StringBuilder transactionName) {
-        if (null != event.getRequestContext() &&
-            event.getRequestContext().getStage() != null &&
+        if (event.getRequestContext().getStage() != null &&
             event.getRequestContext().getRouteKey() != null) {
             transactionName.append('/');
             transactionName.append(event.getRequestContext().getStage());
@@ -120,10 +114,8 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
     }
 
     private boolean requiredDataForTransactionNameAvailable(APIGatewayV2HTTPEvent event) {
-        return null != event.getRequestContext() &&
-            event.getRequestContext().getStage() != null &&
+        return event.getRequestContext().getStage() != null &&
             event.getRequestContext().getRouteKey() != null &&
-            event.getRequestContext().getHttp() != null &&
             event.getRequestContext().getHttp().getPath() != null &&
             event.getRequestContext().getHttp().getMethod() != null;
     }

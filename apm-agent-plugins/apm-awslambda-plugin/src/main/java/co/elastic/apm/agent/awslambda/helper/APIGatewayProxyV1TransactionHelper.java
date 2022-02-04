@@ -27,6 +27,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
 
@@ -49,6 +50,25 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
     @Override
     protected Transaction doStartTransaction(APIGatewayProxyRequestEvent apiGatewayEvent, Context lambdaContext) {
         Transaction transaction = tracer.startChildTransaction(apiGatewayEvent.getHeaders(), MapTextHeaderGetter.INSTANCE, apiGatewayEvent.getClass().getClassLoader());
+        String host = getHost(apiGatewayEvent);
+
+        if (null != transaction) {
+            fillHttpRequestData(transaction, getHttpMethod(apiGatewayEvent), apiGatewayEvent.getHeaders(), host,
+                apiGatewayEvent.getRequestContext().getPath(), getQueryString(apiGatewayEvent), apiGatewayEvent.getBody());
+        }
+
+        return transaction;
+    }
+
+    @Nonnull
+    private String getHttpMethod(APIGatewayProxyRequestEvent apiGatewayEvent) {
+        String httpMethod = apiGatewayEvent.getRequestContext().getHttpMethod();
+        httpMethod = httpMethod == null ? "GET" : httpMethod;
+        return httpMethod;
+    }
+
+    @Nullable
+    private String getHost(APIGatewayProxyRequestEvent apiGatewayEvent) {
         String host = null;
         if (null != apiGatewayEvent.getHeaders()) {
             host = apiGatewayEvent.getHeaders().get("host");
@@ -56,13 +76,7 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
                 host = apiGatewayEvent.getHeaders().get("Host");
             }
         }
-
-        if (null != transaction) {
-            fillHttpRequestData(transaction, apiGatewayEvent.getHttpMethod(), apiGatewayEvent.getHeaders(), host,
-                apiGatewayEvent.getPath(), getQueryString(apiGatewayEvent), apiGatewayEvent.getBody());
-        }
-
-        return transaction;
+        return host;
     }
 
     @Nullable
@@ -101,7 +115,7 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
 
         if (null != rContext) {
             setApiGatewayContextData(transaction, rContext.getRequestId(), rContext.getApiId(),
-                null, rContext.getAccountId());
+                getHost(apiGatewayRequest), rContext.getAccountId());
         }
     }
 
@@ -112,9 +126,9 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
 
     @Override
     protected void setTransactionName(Transaction transaction, APIGatewayProxyRequestEvent event, Context lambdaContext) {
-        if (requiredDataForTransactionNameAvailable(event)) {
-            StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
-            transactionName.append(event.getHttpMethod()).append(" ");
+        StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
+        if (null != transactionName && requiredDataForTransactionNameAvailable(event)) {
+            transactionName.append(getHttpMethod(event)).append(" ");
             if (webConfiguration.isUsePathAsName()) {
                 transactionName.append(event.getRequestContext().getPath());
             } else {
@@ -135,10 +149,9 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
     }
 
     private boolean requiredDataForTransactionNameAvailable(APIGatewayProxyRequestEvent event) {
-        return null != event.getRequestContext() &&
-            event.getRequestContext().getStage() != null &&
+        return event.getRequestContext().getStage() != null &&
             event.getRequestContext().getResourcePath() != null &&
             event.getRequestContext().getPath() != null &&
-            event.getHttpMethod() != null;
+            event.getRequestContext().getHttpMethod() != null;
     }
 }

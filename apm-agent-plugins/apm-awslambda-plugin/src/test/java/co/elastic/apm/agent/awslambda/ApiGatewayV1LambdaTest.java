@@ -131,7 +131,7 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
         assertThat(transaction.getContext().getCloudOrigin().getAccountId()).isEqualTo(API_GATEWAY_ACCOUNT_ID);
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isTrue();
-        assertThat(transaction.getContext().getServiceOrigin().getName().toString().isEmpty()).isEqualTo(true);
+        assertThat(transaction.getContext().getServiceOrigin().getName().toString()).isEqualTo(API_GATEWAY_HOST);
         assertThat(transaction.getContext().getServiceOrigin().getId()).isEqualTo(API_ID);
         assertThat(transaction.getContext().getServiceOrigin().getVersion()).isEqualTo("1.0");
 
@@ -188,17 +188,23 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
 
         assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
         assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");
-        assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isEqualTo("api gateway");
+        if(isObjectNull){
+            assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isNull();
+        } else {
+            assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isEqualTo("api gateway");
+        }
         assertThat(transaction.getContext().getCloudOrigin().getRegion()).isNull();
         assertThat(transaction.getContext().getCloudOrigin().getAccountId()).isNull();
-
-        assertThat(transaction.getContext().getServiceOrigin().hasContent()).isTrue();
-        assertThat(transaction.getContext().getServiceOrigin().getVersion()).isEqualTo("1.0");
+        assertThat(transaction.getContext().getServiceOrigin().hasContent()).isEqualTo(!isObjectNull);
 
         Faas faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
 
-        assertThat(faas.getTrigger().getType()).isEqualTo("http");
+        if(isObjectNull){
+            assertThat(faas.getTrigger().getType()).isEqualTo("other");
+        } else {
+            assertThat(faas.getTrigger().getType()).isEqualTo("http");
+        }
         assertThat(faas.getTrigger().getRequestId()).isNull();
     }
 

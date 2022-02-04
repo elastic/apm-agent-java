@@ -194,17 +194,18 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPE
 
         assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
         assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");
-        assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isEqualTo("api gateway");
+
+        assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isNull();
+
         assertThat(transaction.getContext().getCloudOrigin().getRegion()).isNull();
         assertThat(transaction.getContext().getCloudOrigin().getAccountId()).isNull();
 
-        assertThat(transaction.getContext().getServiceOrigin().hasContent()).isTrue();
-        assertThat(transaction.getContext().getServiceOrigin().getVersion()).isEqualTo("2.0");
+        assertThat(transaction.getContext().getServiceOrigin().hasContent()).isFalse();
 
         Faas faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
 
-        assertThat(faas.getTrigger().getType()).isEqualTo("http");
+        assertThat(faas.getTrigger().getType()).isEqualTo("other");
         assertThat(faas.getTrigger().getRequestId()).isNull();
     }
 
