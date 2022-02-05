@@ -16,3 +16,5 @@ co.elastic.apm.agent.servlet.JavaxRequestStreamRecordingInstrumentation
 co.elastic.apm.agent.servlet.JakartaRequestStreamRecordingInstrumentation
 co.elastic.apm.agent.servlet.InitServiceNameInstrumentation$JavaxInitServiceNameInstrumentation
 co.elastic.apm.agent.servlet.InitServiceNameInstrumentation$JakartaInitServiceNameInstrumentation
+co.elastic.apm.agent.servlet.InitServiceNameInstrumentation2$JavaxInitServiceNameInstrumentation
+co.elastic.apm.agent.servlet.InitServiceNameInstrumentation2$JakartaInitServiceNameInstrumentation
