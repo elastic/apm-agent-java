@@ -259,9 +259,7 @@ public class ElasticApmAgent {
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
             @Override
             public void run() {
-                if (tracer.getConfig(CoreConfiguration.class).logUsedInstrumentationGroupsOnExit()) {
-                    logger.info("Used instrumentation groups: {}", InstrumentationUsageUtil.getUsedInstrumentationGroups());
-                }
+                logger.info("Used instrumentation groups: {}", InstrumentationUsageUtil.getUsedInstrumentationGroups());
                 tracer.stop();
                 matcherTimers.clear();
                 LoggingConfiguration.shutdown();

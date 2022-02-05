@@ -85,13 +85,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.0.0,Changing this value at runtime is possible since version 1.15.0]")
         .buildWithDefault(true);
 
-    private final ConfigurationOption<Boolean> logUsedInstrumentationGroupsOnExit = ConfigurationOption.booleanOption()
-        .key("log_used_instrumentation_groups_on_exit")
-        .configurationCategory(CORE_CATEGORY)
-        .description("Logs all instrumentation groups, which where used to transform a method, when the application exits normally.")
-        .tags("internal")
-        .buildWithDefault(false);
-
     private final ConfigurationOption<String> serviceName = ConfigurationOption.stringOption()
         .key(SERVICE_NAME)
         .configurationCategory(CORE_CATEGORY)
@@ -731,10 +724,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public List<ConfigurationOption<?>> getInstrumentationOptions() {
         return Arrays.asList(instrument, traceMethods, enabledInstrumentations, disabledInstrumentations, enableExperimentalInstrumentations);
-    }
-
-    public boolean logUsedInstrumentationGroupsOnExit() {
-        return logUsedInstrumentationGroupsOnExit.get();
     }
 
     public String getServiceName() {
