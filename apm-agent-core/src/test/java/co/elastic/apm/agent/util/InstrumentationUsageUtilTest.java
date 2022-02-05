@@ -57,19 +57,19 @@ class InstrumentationUsageUtilTest {
     }
 
     @AfterEach
-    void clearFoo() {
+    void resetInstrumentationUsageUtil() {
         InstrumentationUsageUtil.reset();
     }
 
     @Test
-    void test1() {
+    void testOnlyUnusedInstrumentations() {
         InstrumentationUsageUtil.addInstrumentation(new NoopInstrumentation(Set.of("a", "b")));
 
         assertThat(InstrumentationUsageUtil.getUsedInstrumentationGroups()).isEmpty();
     }
 
     @Test
-    void test2() {
+    void testOnlyUsedInstrumentations() {
         NoopInstrumentation instrumentation = new NoopInstrumentation(Set.of("a", "b"));
 
         InstrumentationUsageUtil.addInstrumentation(instrumentation);
@@ -79,7 +79,7 @@ class InstrumentationUsageUtilTest {
     }
 
     @Test
-    void test3() {
+    void testUsedAndUnusedInstrumentationsWithCommonGroups() {
         NoopInstrumentation instrumentation1 = new NoopInstrumentation(Set.of("a", "b"));
         NoopInstrumentation instrumentation2 = new NoopInstrumentation(Set.of("a", "c"));
 
@@ -91,7 +91,7 @@ class InstrumentationUsageUtilTest {
     }
 
     @Test
-    void test4() {
+    void testUsedAndUnusedInstrumentationsWithSameGroups() {
         NoopInstrumentation instrumentation1 = new NoopInstrumentation(Set.of("a", "b"));
         NoopInstrumentation instrumentation2 = new NoopInstrumentation(Set.of("c", "d"));
         NoopInstrumentation instrumentation3 = new NoopInstrumentation(Set.of("a", "b"));
