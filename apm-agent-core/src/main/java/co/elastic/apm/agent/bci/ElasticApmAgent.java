@@ -128,6 +128,8 @@ public class ElasticApmAgent {
     private static final ConcurrentMap<String, ClassLoader> adviceClassName2instrumentationClassLoader = new ConcurrentHashMap<>();
     private static final ConcurrentMap<String, Collection<String>> pluginPackages2pluginClassLoaderRootPackages = new ConcurrentHashMap<>();
 
+    private static final ConcurrentMap<ElasticApmInstrumentation, Boolean> usedInstrumentations = new ConcurrentHashMap<>();
+
     /**
      * Called reflectively by {@code co.elastic.apm.agent.premain.AgentMain} to initialize the agent
      *
@@ -262,10 +264,20 @@ public class ElasticApmAgent {
                 if (tracer.getConfig(CoreConfiguration.class).logUsedInstrumentationGroupsOnExit()) {
                     Set<String> usedInstrumentationGroups = new TreeSet<>();
                     for (ElasticApmInstrumentation instrumentation : instrumentations) {
-                        if (!instrumentation.isUsed()) {
+                        if (!usedInstrumentations.containsKey(instrumentation)) {
                             continue;
                         }
                         usedInstrumentationGroups.addAll(instrumentation.getInstrumentationGroupNames());
+                    }
+                    for (ElasticApmInstrumentation instrumentation : instrumentations) {
+                        if (usedInstrumentations.containsKey(instrumentation)) {
+                            continue;
+                        }
+                        Collection<String> instrumentationGroups = instrumentation.getInstrumentationGroupNames();
+                        if (usedInstrumentationGroups.containsAll(instrumentationGroups)) {
+                            continue;
+                        }
+                        usedInstrumentationGroups.removeAll(instrumentationGroups);
                     }
                     logger.info("Used instrumentation groups: {}", usedInstrumentationGroups);
                 }
@@ -471,7 +483,7 @@ public class ElasticApmAgent {
                         if (matches) {
                             logger.debug("Method match for instrumentation {}: {} matches {}",
                                 instrumentation.getClass().getSimpleName(), methodMatcher, target);
-                            instrumentation.setUsed();
+                            usedInstrumentations.put(instrumentation, Boolean.TRUE);
                         }
                         return matches;
                     } finally {
