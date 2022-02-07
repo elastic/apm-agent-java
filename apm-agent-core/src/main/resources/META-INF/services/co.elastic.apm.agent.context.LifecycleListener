@@ -8,4 +8,3 @@ co.elastic.apm.agent.metrics.builtin.ThreadMetrics
 co.elastic.apm.agent.impl.circuitbreaker.CircuitBreaker
 co.elastic.apm.agent.collections.WeakMapCleaner
 co.elastic.apm.agent.report.serialize.MetricRegistryReporter
-co.elastic.apm.agent.logging.Log4jLoggerFactoryBridge

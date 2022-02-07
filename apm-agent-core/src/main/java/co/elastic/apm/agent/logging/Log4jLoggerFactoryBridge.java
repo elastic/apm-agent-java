@@ -18,8 +18,6 @@
  */
 package co.elastic.apm.agent.logging;
 
-import co.elastic.apm.agent.context.LifecycleListener;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.sdk.logging.ILoggerFactory;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -32,10 +30,17 @@ import org.apache.logging.log4j.util.StackLocatorUtil;
 /**
  * Based on {@code org.apache.logging.slf4j.Log4jLoggerFactory}
  */
-public class Log4jLoggerFactoryBridge extends AbstractLoggerAdapter<Logger> implements ILoggerFactory, LifecycleListener {
+public class Log4jLoggerFactoryBridge extends AbstractLoggerAdapter<Logger> implements ILoggerFactory {
 
     private static final String FQCN = Log4jLoggerFactoryBridge.class.getName();
     private static final String PACKAGE = "co.elastic.apm.agent.sdk.logging";
+
+    public static void shutdown() {
+        LoggerContextFactory factory = LogManager.getFactory();
+        for (LoggerContext context : ((Log4jContextFactory) factory).getSelector().getLoggerContexts()) {
+            LogManager.shutdown(context);
+        }
+    }
 
     @Override
     protected Logger newLogger(final String name, final LoggerContext context) {
@@ -47,29 +52,5 @@ public class Log4jLoggerFactoryBridge extends AbstractLoggerAdapter<Logger> impl
     protected LoggerContext getContext() {
         final Class<?> anchor = StackLocatorUtil.getCallerClass(FQCN, PACKAGE);
         return anchor == null ? LogManager.getContext() : getContext(StackLocatorUtil.getCallerClass(anchor));
-    }
-
-    @Override
-    public void init(ElasticApmTracer tracer) {
-    }
-
-    @Override
-    public void start(ElasticApmTracer tracer) {
-    }
-
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
-
-    }
-
-    public void stop() {
-        LoggerContextFactory factory = LogManager.getFactory();
-        for (LoggerContext context : ((Log4jContextFactory) factory).getSelector().getLoggerContexts()) {
-            LogManager.shutdown(context);
-        }
     }
 }
