@@ -2,6 +2,7 @@
 == Overhead and Performance tuning
 
 * <<agent-overhead>>
+* <<tuning-agent-startup>>
 * <<tuning-agent>>
 * <<circuit-breaker>>
 
@@ -67,6 +68,41 @@ It has a fairly small and static memory overhead for the object pools, and some 
 The Agent requires some network bandwidth, as it needs to send recorded events to the APM server.
 This is where it's important to know how many requests your application handles and how many of those you want to record and store.
 This can be adjusted with the <<tune-sample-rate>>.
+
+[float]
+[[tuning-agent-startup]]
+=== Tuning the Agent Startup
+
+When the Java agent starts, it needs to initialize various components of the agent, connect
+to the APM server, and instrument any already loaded classes that it has been configured to
+trace. This takes some time and resources, and if done synchronously from JVM start (which is
+the default when using `-javaagent`) will delay the start of the application until complete.
+
+We provide several options to tune the startup, targeted at three startup use cases:
+
+. Immediate synchronous agent start +
+The application needs to have instrumentation immediately applied, regardless of startup
+time cost - typically because you don't want to miss any traces/transactions right from the
+beginning of the application, or some types of actions only happen at initialization and need
+to be instrumented before the first instance is created (such as setting up Prepared Statements).
+In this use case, use the `-javaagent` command-line flag as per <<setup-javaagent>>
+. Fastest start (asynchronously) +
+The application can accept instrumentation missing before the application starts
+and also accept missing some initial traces and transactions.
+In this use case you can attach to the application after startup with <<setup-attach-cli>>
+or if you are using the `-javaagent` command-line flag you can start the agent asynchronously
+by setting the `elastic.apm.start_async` property (since 1.29.0), eg `java -Delastic.apm.start_async ...`
+(you can use `elastic.apm.delay_agent_premain_ms=0` in earlier versions)
+. Minimized synchronous start +
+The application needs to have instrumentation immediately applied, but needs to minimize the
+time before the application starts. This requires some tradeoff: in order to reduce the
+synchronous startup time, the number of instrumentations applied needs to be minimized
+through the `enable_instrumentations` option.
+In this use case you should identify the smallest set of instrumentation groups you can
+accept for your application monitoring, and use the `enable_instrumentations` configuration
+option detailed in the <<configuration,configuration guide>>. To assist in identifying that
+smallest set of instrumentation groups, you can run with logging level set to DEBUG, and
+view the statistics produced by the agent on normal termination of the application
 
 [float]
 [[tuning-agent]]
