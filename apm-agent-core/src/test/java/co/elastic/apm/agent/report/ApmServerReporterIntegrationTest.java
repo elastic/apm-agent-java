@@ -20,11 +20,10 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
 import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
@@ -44,15 +43,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.annotation.Nullable;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.Collections;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -60,24 +64,27 @@ class ApmServerReporterIntegrationTest {
 
     private static Undertow server;
     private static int port;
-    private static AtomicInteger receivedIntakeApiCalls = new AtomicInteger();
+    private static final AtomicInteger receivedIntakeApiCalls = new AtomicInteger();
+    private static final AtomicInteger receivedEvents = new AtomicInteger();
+
+    @Nullable
     private static HttpHandler handler;
     private final ElasticApmTracer tracer = MockTracer.create();
     private volatile int statusCode = HttpStatus.OK_200;
     private ReporterConfiguration reporterConfiguration;
     private ApmServerReporter reporter;
-    private final AtomicInteger receivedEvents = new AtomicInteger();
+
     private IntakeV2ReportingEventHandler v2handler;
+
+    private final AtomicReference<String> token = new AtomicReference<>();
+    private final AtomicReference<TimeDuration> timeout = new AtomicReference<>();
 
     @BeforeAll
     static void startServer() {
         server = Undertow.builder()
             .addHttpListener(0, "127.0.0.1")
-            .setHandler(exchange -> {
-                if (handler != null) {
-                    handler.handleRequest(exchange);
-                }
-            }).build();
+            .setHandler(exchange -> Objects.requireNonNull(handler, "handler should be set").handleRequest(exchange))
+            .build();
         server.start();
         port = ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort();
     }
@@ -89,6 +96,7 @@ class ApmServerReporterIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        statusCode = HttpStatus.OK_200;
         handler = new BlockingHandler(exchange -> {
             if (statusCode < 300 && exchange.getRequestPath().equals("/intake/v2/events")) {
                 receivedIntakeApiCalls.incrementAndGet();
@@ -103,10 +111,16 @@ class ApmServerReporterIntegrationTest {
             }
             exchange.setStatusCode(statusCode).endExchange();
         });
-        receivedIntakeApiCalls.set(0);
-        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+
+        ConfigurationRegistry config = tracer.getConfigurationRegistry();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
-        doReturn(TimeDuration.of("60m")).when(reporterConfiguration).getApiRequestTime();
+
+        // mockito mocking does not seem to reliably work here
+        // thus we rely on mutable test state instead of having different mocking strategies.
+        doAnswer(invocationOnMock -> token.get()).when(reporterConfiguration).getSecretToken();
+        doAnswer(invocationOnMock -> Optional.ofNullable(timeout.get()).orElseGet(() -> TimeDuration.of("60m")))
+            .when(reporterConfiguration).getApiRequestTime();
+
         doReturn(Collections.singletonList(new URL("http://localhost:" + port))).when(reporterConfiguration).getServerUrls();
         SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final Service service = new Service();
@@ -115,14 +129,14 @@ class ApmServerReporterIntegrationTest {
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, config.getConfig(CoreConfiguration.class));
         apmServerClient.start();
         v2handler = new IntakeV2ReportingEventHandler(
-                reporterConfiguration,
-                processorEventHandler,
-                new DslJsonSerializer(
-                        mock(StacktraceConfiguration.class),
-                        apmServerClient,
-                        MetaDataMock.create(title, service, system, null, Collections.emptyMap() ,null)
-                ),
-                apmServerClient);
+            reporterConfiguration,
+            processorEventHandler,
+            new DslJsonSerializer(
+                mock(StacktraceConfiguration.class),
+                apmServerClient,
+                MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
+            ),
+            apmServerClient);
         reporter = new ApmServerReporter(false, reporterConfiguration, v2handler);
         reporter.start();
     }
@@ -130,6 +144,11 @@ class ApmServerReporterIntegrationTest {
     @AfterEach
     void tearDown() {
         reporter.close();
+
+        token.set(null);
+        timeout.set(null);
+        receivedIntakeApiCalls.set(0);
+        receivedEvents.set(0);
     }
 
     @Test
@@ -151,7 +170,8 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testSecretToken() {
-        doReturn("token").when(reporterConfiguration).getSecretToken();
+        token.set("token");
+
         handler = exchange -> {
             if (exchange.getRequestPath().equals("/intake/v2/events")) {
                 assertThat(exchange.getRequestHeaders().get("Authorization").getFirst()).isEqualTo("Bearer token");
@@ -175,7 +195,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testTimeout() {
-        doReturn(TimeDuration.of("1ms")).when(reporterConfiguration).getApiRequestTime();
+        timeout.set(TimeDuration.of("1ms"));
         reporter.report(new Transaction(tracer));
         await().untilAsserted(() -> assertThat(reporter.getReported()).isEqualTo(1));
         assertThat(reporter.getDropped()).isEqualTo(0);

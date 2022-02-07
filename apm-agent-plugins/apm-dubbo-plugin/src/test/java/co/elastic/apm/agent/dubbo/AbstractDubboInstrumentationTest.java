@@ -24,26 +24,34 @@ import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.testutils.TestPort;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumentationTest {
 
-    @Nullable
-    private DubboTestApi dubboTestApi;
+    private static CoreConfiguration coreConfig;
 
-    static CoreConfiguration coreConfig;
+    @Nullable
+    private static DubboTestApi dubboTestApi;
+
+    private static int port = -1;
 
     @BeforeAll
     static void initInstrumentation() {
@@ -51,34 +59,62 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
     }
 
     @BeforeEach
-    void startRootTransaction() {
+    void beforeEach() {
+
+        if (null == dubboTestApi) {
+            // only start test dubbo once, but with delegation to subclass for creating it
+            // thus we can't do that in @BeforeAll
+
+            port = TestPort.getAvailableRandomPort();
+            int backendPort = TestPort.getAvailableRandomPort();
+
+            assertThat(port).isNotEqualTo(backendPort);
+            dubboTestApi = buildDubboTestApi(port, backendPort);
+        }
+
         when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.OFF);
 
-        // using context classloader is required here
-        ClassLoader cl = Thread.currentThread().getContextClassLoader();
-
-        Transaction transaction = tracer.startRootTransaction(cl);
-        assertThat(transaction).isNotNull();
-        transaction
-            .withName("dubbo test")
-            .withType("test")
-            .withResult("success")
-            .withOutcome(Outcome.SUCCESS)
-            .activate();
-
+        startTestRootTransaction("dubbo test");
     }
 
     @AfterEach
-    void clearReporter() {
-        tracer.currentTransaction().deactivate().end();
+    void afterEach() {
+        Transaction transaction = tracer.currentTransaction();
+        if (transaction != null) {
+            transaction.deactivate().end();
+        }
     }
 
-    protected abstract DubboTestApi buildDubboTestApi();
+    @AfterAll
+    static void doAfterAll(){
+        dubboTestApi = null;
+    }
 
-    public DubboTestApi getDubboTestApi() {
-        if (dubboTestApi == null) {
-            dubboTestApi = buildDubboTestApi();
+    protected static <T> T withRetry(Callable<T> task){
+        int count = 10;
+        while (count > 0) {
+            try {
+                return  task.call();
+            } catch (Exception e) {
+                count--;
+                if (count == 0) {
+                    throw new IllegalStateException("unable to start dubbo service", e);
+                } else {
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException ex) {
+                        // silently ignored
+                    }
+                }
+            }
         }
+        throw new IllegalStateException("should not happen");
+    }
+
+    protected abstract DubboTestApi buildDubboTestApi(int port1, int port2);
+
+    protected DubboTestApi getDubboTestApi() {
+        assertThat(dubboTestApi).isNotNull();
         return dubboTestApi;
     }
 
@@ -87,13 +123,14 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         DubboTestApi dubboTestApi = getDubboTestApi();
         String normalReturn = dubboTestApi.normalReturn("arg1", 2);
         assertThat(normalReturn).isEqualTo("arg12");
-        List<Transaction> transactions = reporter.getTransactions();
-        assertThat(transactions.size()).isEqualTo(1);
-        validateDubboTransaction(transactions.get(0), DubboTestApi.class, "normalReturn");
 
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans.size()).isEqualTo(1);
-        validateDubboSpan(spans.get(0), DubboTestApi.class, "normalReturn");
+        // transaction on the receiving side
+        reporter.awaitTransactionCount(1);
+        validateDubboTransaction(reporter.getFirstTransaction(), DubboTestApi.class, "normalReturn");
+
+        // span on the emitting side (outgoing from this method)
+        reporter.awaitSpanCount(1);
+        validateDubboSpan(reporter.getFirstSpan(), DubboTestApi.class, "normalReturn", port);
 
         List<ErrorCapture> errors = reporter.getErrors();
         assertThat(errors.size()).isEqualTo(0);
@@ -151,17 +188,17 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         assertThat(transaction.getType()).isEqualTo("request");
     }
 
-    protected String getDubboName(Class<?> apiClass, String methodName) {
+    protected static String getDubboName(Class<?> apiClass, String methodName) {
         return apiClass.getSimpleName() + "#" + methodName;
     }
 
-    public void validateDubboSpan(Span span, Class<?> apiClass, String methodName) {
+    public static void validateDubboSpan(Span span, Class<?> apiClass, String methodName, int port) {
         assertThat(span.getNameAsString()).isEqualTo(getDubboName(apiClass, methodName));
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("dubbo");
         Destination destination = span.getContext().getDestination();
         assertThat(destination.getAddress().toString()).isEqualTo("localhost");
-        assertThat(destination.getPort()).isEqualTo(getPort());
+        assertThat(destination.getPort()).isEqualTo(port);
 
         Destination.Service service = destination.getService();
         assertThat(service.getResource().toString()).matches("localhost:\\d+");
@@ -171,5 +208,38 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
             .isNotEqualTo(Outcome.UNKNOWN);
     }
 
-    abstract int getPort();
+    @Test
+    public void testBothProviderAndConsumer() {
+        DubboTestApi dubboTestApi = getDubboTestApi();
+        String arg = "hello, testBothProviderAndConsumer";
+        String ret = dubboTestApi.willInvokeAnotherApi(arg);
+        assertThat(ret).isEqualTo(arg);
+
+        assertThat(reporter.getFirstTransaction(5000)).isNotNull();
+        assertThat(reporter.getTransactions()).hasSize(2);
+        assertThat(reporter.getSpans()).hasSize(2);
+
+        Map<String, Transaction> transactionMap = buildMap(reporter.getTransactions());
+        Map<String, Span> spanMap = buildMap(reporter.getSpans());
+
+        String testApiName = "DubboTestApi#willInvokeAnotherApi";
+        String anotherApiName = "AnotherApi#echo";
+
+        assertThat(spanMap.get(testApiName).getTraceContext().getId().toString())
+            .isEqualTo(transactionMap.get(testApiName).getTraceContext().getParentId().toString());
+
+        assertThat(transactionMap.get(testApiName).getTraceContext().getId().toString())
+            .isEqualTo(spanMap.get(anotherApiName).getTraceContext().getParentId().toString());
+
+        assertThat(spanMap.get(anotherApiName).getTraceContext().getId().toString())
+            .isEqualTo(transactionMap.get(anotherApiName).getTraceContext().getParentId().toString());
+    }
+
+    public <T extends AbstractSpan<?>> Map<String, T> buildMap(List<T> list) {
+        Map<String, T> map = new HashMap<>();
+        for (T t : list) {
+            map.put(t.getNameAsString(), t);
+        }
+        return map;
+    }
 }

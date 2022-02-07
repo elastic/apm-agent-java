@@ -19,7 +19,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.servlet.tests.CdiServletContainerTestApp;
-import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
+import co.elastic.apm.servlet.tests.JavaxExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JsfServletContainerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
@@ -48,9 +48,8 @@ public class TomcatIT extends AbstractTomcatIT {
             {"9-jre11-slim"},
             {"9.0.39-jdk14-openjdk-oracle"},
             {"jdk8-adoptopenjdk-openj9"},
-            // TODO openj9 on JDK11 has an access problem from java.base
-            //{"jdk11-adoptopenjdk-openj9"},
-            //{"9.0.50-jdk11-adoptopenjdk-openj9"}
+            {"jdk11-adoptopenjdk-openj9"},
+            {"9.0.50-jdk11-adoptopenjdk-openj9"}
         });
     }
 
@@ -59,7 +58,7 @@ public class TomcatIT extends AbstractTomcatIT {
         List<Class<? extends TestApp>> testClasses = new ArrayList<>();
         testClasses.add(ServletApiTestApp.class);
         testClasses.add(CdiServletContainerTestApp.class);
-        testClasses.add(ExternalPluginTestApp.class);
+        testClasses.add(JavaxExternalPluginTestApp.class);
         if (!getImageName().contains("jre7")) {
             // The JSF test app depends on myfaces 2.3.2 which requires Java 8 or higher
             testClasses.add(JsfServletContainerTestApp.class);

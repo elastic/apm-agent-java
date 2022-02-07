@@ -57,7 +57,10 @@ Only the external file can be used for dynamic configuration.
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>>,
 <<config-server-url>> and <<config-application-packages>>.
-So a minimal version of a configuration might look like this:
+Note that even these settings are optional.
+Click on their name to see how the default values are determined.
+
+An example configuration looks like this:
 
 [source,bash]
 .System properties
@@ -109,6 +112,7 @@ Click on a key to get more information.
 ** <<config-transaction-sample-rate>>
 ** <<config-transaction-max-spans>>
 ** <<config-sanitize-field-names>>
+** <<config-enable-instrumentations>>
 ** <<config-disable-instrumentations>>
 ** <<config-enable-experimental-instrumentations>>
 ** <<config-unnest-exceptions>>
@@ -470,20 +474,58 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 This is used to keep all the errors and transactions of your service together
 and is the primary filter in the Elastic APM user interface.
 
+Instead of configuring the service name manually,
+you can also choose to rely on the service name auto-detection mechanisms of the agent.
+If `service_name` is set explicitly, all auto-detection mechanisms are disabled.
+
+This is how the service name auto-detection works:
+
+* For standalone applications
+** The agent uses `Implementation-Title` in the `META-INF/MANIFEST.MF` file if the application is started via `java -jar`.
+** Falls back to the name of the main class or jar file.
+* For applications that are deployed to a servlet container/application server, the agent auto-detects the name for each application.
+** For Spring-based applications, the agent uses the `spring.application.name` property, if set.
+** For servlet-based applications, falls back to the `Implementation-Title` in the `META-INF/MANIFEST.MF` file.
+** Falls back to the `display-name` of the `web.xml`, if available.
+** Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
+
+Generally, it is recommended to rely on the service name detection based on `META-INF/MANIFEST.MF`.
+Spring Boot automatically adds the relevant manifest entries.
+For other applications that are built with Maven, this is how you add the manifest entries:
+
+[source,xml]
+.pom.xml
+----
+    <build>
+        <plugins>
+            <plugin>
+                <!-- replace with 'maven-war-plugin' if you're building a war -->
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <!-- Adds
+                        Implementation-Title based on ${project.name} and
+                        Implementation-Version based on ${project.version}
+                        -->
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                        <!-- To customize the Implementation-* entries, remove addDefaultImplementationEntries and add them manually
+                        <manifestEntries>
+                            <Implementation-Title>foo</Implementation-Title>
+                            <Implementation-Version>4.2.0</Implementation-Version>
+                        </manifestEntries>
+                        -->
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+----
+
 The service name must conform to this regular expression: `^[a-zA-Z0-9 _-]+$`.
 In less regexy terms:
 Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.
-
-NOTE: When relying on auto-discovery of the service name in Servlet environments (including Spring Boot),
-there is currently a caveat related to metrics.
-The consequence is that the 'Metrics' tab of a service does not show process-global metrics like CPU utilization.
-The reason is that metrics are reported with the detected default service name for the JVM,
-for example `tomcat-application`.
-That is because there may be multiple web applications deployed to a single JVM/servlet container.
-However, you can view those metrics by selecting the `tomcat-application` service name, for example.
-Future versions of the Elastic APM stack will have better support for that scenario.
-A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name
-or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.
 
 NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
 
@@ -493,11 +535,7 @@ NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| For Spring-based application, uses the `spring.application.name` property, if set.
-For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
-Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
-Falls back to the name of the main class or jar file.
-If the service name is set explicitly, it overrides all of the above.
+| Auto-detected based on the rules described above
  | String | false
 |============
 
@@ -546,6 +584,11 @@ NOTE: Metrics views can utilize this configuration since APM Server 7.5
 ==== `service_version`
 
 A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
+
+Similar to the auto-detection of <<config-service-name>>, the agent can auto-detect the service version based on the `Implementation-Title` attribute in `META-INF/MANIFEST.MF`.
+See <<config-service-name>> on how to set this attribute.
+
+
 
 
 
@@ -700,7 +743,7 @@ you should add an additional entry to this list (make sure to also include the d
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `password, passwd, pwd, secret, *key, *token*, *session*, *credit*, *card*, authorization, set-cookie` | List | true
+| `password, passwd, pwd, secret, *key, *token*, *session*, *credit*, *card*, *auth*, set-cookie` | List | true
 |============
 
 
@@ -712,11 +755,43 @@ you should add an additional entry to this list (make sure to also include the d
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[[config-enable-instrumentations]]
+==== `enable_instrumentations` (added[1.28.0])
+
+A list of instrumentations which should be selectively enabled.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
+When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
+
+NOTE: Changing this value at runtime can slow down the application temporarily.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | Collection | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enable_instrumentations` | `enable_instrumentations` | `ELASTIC_APM_ENABLE_INSTRUMENTATIONS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
 [[config-disable-instrumentations]]
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
+<<<<<<< HEAD
 Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `javalin`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`.
+=======
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+>>>>>>> e3ec8c0dce03bb52743efe60b9e0a9c56a88b286
 For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -1190,7 +1265,7 @@ See `integration-tests/external-plugin-test` for an example plugin.
 [[config-use-elastic-traceparent-header]]
 ==== `use_elastic_traceparent_header` (added[1.14.0])
 
-To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent
+To enable {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing], the agent
 adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
 These headers (`traceparent` and `tracestate`) are defined in the
 https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.
@@ -2840,30 +2915,66 @@ The default unit for this option is `ms`.
 # This is used to keep all the errors and transactions of your service together
 # and is the primary filter in the Elastic APM user interface.
 # 
+# Instead of configuring the service name manually,
+# you can also choose to rely on the service name auto-detection mechanisms of the agent.
+# If `service_name` is set explicitly, all auto-detection mechanisms are disabled.
+# 
+# This is how the service name auto-detection works:
+# 
+# * For standalone applications
+# ** The agent uses `Implementation-Title` in the `META-INF/MANIFEST.MF` file if the application is started via `java -jar`.
+# ** Falls back to the name of the main class or jar file.
+# * For applications that are deployed to a servlet container/application server, the agent auto-detects the name for each application.
+# ** For Spring-based applications, the agent uses the `spring.application.name` property, if set.
+# ** For servlet-based applications, falls back to the `Implementation-Title` in the `META-INF/MANIFEST.MF` file.
+# ** Falls back to the `display-name` of the `web.xml`, if available.
+# ** Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
+# 
+# Generally, it is recommended to rely on the service name detection based on `META-INF/MANIFEST.MF`.
+# Spring Boot automatically adds the relevant manifest entries.
+# For other applications that are built with Maven, this is how you add the manifest entries:
+# 
+# 
+# [source,xml]
+# .pom.xml
+# ----
+#     <build>
+#         <plugins>
+#             <plugin>
+#                 <!-- replace with 'maven-war-plugin' if you're building a war -->
+#                 <artifactId>maven-jar-plugin</artifactId>
+#                 <configuration>
+#                     <archive>
+#                         <!-- Adds
+#                         Implementation-Title based on ${project.name} and
+#                         Implementation-Version based on ${project.version}
+#                         -->
+#                         <manifest>
+#                             <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+#                         </manifest>
+#                         <!-- To customize the Implementation-* entries, remove addDefaultImplementationEntries and add them manually
+#                         <manifestEntries>
+#                             <Implementation-Title>foo</Implementation-Title>
+#                             <Implementation-Version>4.2.0</Implementation-Version>
+#                         </manifestEntries>
+#                         -->
+#                     </archive>
+#                 </configuration>
+#             </plugin>
+#         </plugins>
+#     </build>
+# ----
+# 
+# 
 # The service name must conform to this regular expression: `^[a-zA-Z0-9 _-]+$`.
 # In less regexy terms:
 # Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.
-# 
-# NOTE: When relying on auto-discovery of the service name in Servlet environments (including Spring Boot),
-# there is currently a caveat related to metrics.
-# The consequence is that the 'Metrics' tab of a service does not show process-global metrics like CPU utilization.
-# The reason is that metrics are reported with the detected default service name for the JVM,
-# for example `tomcat-application`.
-# That is because there may be multiple web applications deployed to a single JVM/servlet container.
-# However, you can view those metrics by selecting the `tomcat-application` service name, for example.
-# Future versions of the Elastic APM stack will have better support for that scenario.
-# A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name
-# or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.
 # 
 # NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value: For Spring-based application, uses the `spring.application.name` property, if set.
-# For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
-# Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
-# Falls back to the name of the main class or jar file.
-# If the service name is set explicitly, it overrides all of the above.
+# Default value: Auto-detected based on the rules described above
 # 
 #
 # service_name=
@@ -2888,6 +2999,11 @@ The default unit for this option is `ms`.
 # service_node_name=
 
 # A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
+# 
+# Similar to the auto-detection of <<config-service-name>>, the agent can auto-detect the service version based on the `Implementation-Title` attribute in `META-INF/MANIFEST.MF`.
+# See <<config-service-name>> on how to set this attribute.
+# 
+# 
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
@@ -2963,12 +3079,29 @@ The default unit for this option is `ms`.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
+# Default value: password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,*auth*,set-cookie
 #
-# sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
+# sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,*auth*,set-cookie
+
+# A list of instrumentations which should be selectively enabled.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+# When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
+# When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
+# 
+# NOTE: Changing this value at runtime can slow down the application temporarily.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
+#
+# enable_instrumentations=
 
 # A list of instrumentations which should be disabled.
+<<<<<<< HEAD
 # Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `javalin`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`.
+=======
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+>>>>>>> e3ec8c0dce03bb52743efe60b9e0a9c56a88b286
 # For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -3229,7 +3362,7 @@ The default unit for this option is `ms`.
 #
 # plugins_dir=
 
-# To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent
+# To enable {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing], the agent
 # adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
 # These headers (`traceparent` and `tracestate`) are defined in the
 # https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.

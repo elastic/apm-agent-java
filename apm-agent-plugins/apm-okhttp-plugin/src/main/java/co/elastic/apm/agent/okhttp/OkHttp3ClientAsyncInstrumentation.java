@@ -34,8 +34,8 @@ import okhttp3.Callback;
 import okhttp3.HttpUrl;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

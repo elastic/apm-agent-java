@@ -26,9 +26,10 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.ByteUtils;
+import co.elastic.apm.agent.util.ClassLoaderUtils;
 import co.elastic.apm.agent.util.HexUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
@@ -52,7 +53,7 @@ import java.util.Objects;
  * </pre>
  * <p>
  * Binary representation (e.g. 0.11.0.0+ Kafka record header), based on
- * https://github.com/elastic/apm/blob/master/docs/agent-development.md#binary-fields:
+ * https://github.com/elastic/apm/blob/main/docs/agent-development.md#binary-fields:
  * <pre>
  *      traceparent     = version version_format
  *      version         = 1BYTE                   ; version is 0 in the current spec
@@ -239,6 +240,9 @@ public class TraceContext implements Recyclable {
 
     @Nullable
     private String serviceName;
+
+    @Nullable
+    private String serviceVersion;
 
     private TraceContext(ElasticApmTracer tracer, Id id) {
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
@@ -435,6 +439,7 @@ public class TraceContext implements Recyclable {
         id.setToRandomValue();
         clock.init(parent.clock);
         serviceName = parent.serviceName;
+        serviceVersion = parent.serviceVersion;
         applicationClassLoader = parent.applicationClassLoader;
         traceState.copyFrom(parent.traceState);
         onMutation();
@@ -451,6 +456,7 @@ public class TraceContext implements Recyclable {
         discardable = true;
         clock.resetState();
         serviceName = null;
+        serviceVersion = null;
         applicationClassLoader = null;
         traceState.resetState();
         traceState.setSizeLimit(coreConfiguration.getTracestateSizeLimit());
@@ -651,6 +657,7 @@ public class TraceContext implements Recyclable {
         discardable = other.discardable;
         clock.init(other.clock);
         serviceName = other.serviceName;
+        serviceVersion = other.serviceVersion;
         applicationClassLoader = other.applicationClassLoader;
         traceState.copyFrom(other.traceState);
         onMutation();
@@ -683,6 +690,20 @@ public class TraceContext implements Recyclable {
         this.serviceName = serviceName;
     }
 
+    @Nullable
+    public String getServiceVersion() {
+        return serviceVersion;
+    }
+
+    /**
+     * Overrides the {@code co.elastic.apm.agent.impl.payload.Service#version} property sent via the meta data Intake V2 event.
+     *
+     * @param serviceVersion the service version for this event
+     */
+    public void setServiceVersion(@Nullable String serviceVersion) {
+        this.serviceVersion = serviceVersion;
+    }
+
     public Span createSpan() {
         return tracer.startSpan(fromParentContext(), this);
     }
@@ -712,14 +733,15 @@ public class TraceContext implements Recyclable {
     }
 
     void setApplicationClassLoader(@Nullable ClassLoader classLoader) {
-        if (classLoader != null) {
-            WeakReference<ClassLoader> local = classLoaderWeakReferenceCache.get(classLoader);
-            if (local == null) {
-                local = new WeakReference<>(classLoader);
-                classLoaderWeakReferenceCache.putIfAbsent(classLoader, local);
-            }
-            applicationClassLoader = local;
+        if (ClassLoaderUtils.isBootstrapClassLoader(classLoader) || ClassLoaderUtils.isAgentClassLoader(classLoader)) {
+            return;
         }
+        WeakReference<ClassLoader> local = classLoaderWeakReferenceCache.get(classLoader);
+        if (local == null) {
+            local = new WeakReference<>(classLoader);
+            classLoaderWeakReferenceCache.putIfAbsent(classLoader, local);
+        }
+        applicationClassLoader = local;
     }
 
     @Nullable
@@ -751,7 +773,7 @@ public class TraceContext implements Recyclable {
         ByteUtils.putLong(buffer, offset, clock.getOffset());
     }
 
-    private void asChildOf(byte[] buffer, @Nullable String serviceName) {
+    private void asChildOf(byte[] buffer, @Nullable String serviceName, @Nullable String serviceVersion) {
         int offset = 0;
         offset += traceId.fromBytes(buffer, offset);
         offset += parentId.fromBytes(buffer, offset);
@@ -761,10 +783,11 @@ public class TraceContext implements Recyclable {
         discardable = buffer[offset++] == (byte) 1;
         clock.init(ByteUtils.getLong(buffer, offset));
         this.serviceName = serviceName;
+        this.serviceVersion = serviceVersion;
         onMutation();
     }
 
-    public void deserialize(byte[] buffer, @Nullable String serviceName) {
+    public void deserialize(byte[] buffer, @Nullable String serviceName, @Nullable String serviceVersion) {
         int offset = 0;
         offset += traceId.fromBytes(buffer, offset);
         offset += id.fromBytes(buffer, offset);
@@ -773,6 +796,7 @@ public class TraceContext implements Recyclable {
         discardable = buffer[offset++] == (byte) 1;
         clock.init(ByteUtils.getLong(buffer, offset));
         this.serviceName = serviceName;
+        this.serviceVersion = serviceVersion;
         onMutation();
     }
 

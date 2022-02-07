@@ -2,7 +2,7 @@
 <Configuration status="WARN">
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d [%thread] %-5level %logger{36} - %msg%n"/>
+            <PatternLayout pattern="%d [%thread] %-5level %logger{36} - %msg{nolookups}%n"/>
         </Console>
     </Appenders>
     <Loggers>
@@ -12,6 +12,8 @@
 
         <!-- make json validation less verbose -->
         <Logger name="com.networknt.schema" level="warn"/>
+        <Logger name="com.github.dockerjava" level="info"/>
+        <Logger name="org.testcontainers" level="info"/>
 
         <!-- agent always in debug for easier -->
         <Logger name="co.elastic.apm" level="debug"/>

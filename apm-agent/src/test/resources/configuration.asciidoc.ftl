@@ -54,7 +54,10 @@ Only the external file can be used for dynamic configuration.
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>>,
 <<config-server-url>> and <<config-application-packages>>.
-So a minimal version of a configuration might look like this:
+Note that even these settings are optional.
+Click on their name to see how the default values are determined.
+
+An example configuration looks like this:
 
 [source,bash]
 .System properties
@@ -80,11 +83,7 @@ ELASTIC_APM_APPLICATION_PACKAGES=org.example,org.another.example
 ELASTIC_APM_SERVER_URL=http://localhost:8200
 ----
 <#assign defaultServiceName>
-For Spring-based application, uses the `spring.application.name` property, if set.
-For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
-Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
-Falls back to the name of the main class or jar file.
-If the service name is set explicitly, it overrides all of the above.
+Auto-detected based on the rules described above
 </#assign>
 
 [float]

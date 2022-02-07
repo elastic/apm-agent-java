@@ -142,7 +142,7 @@ profiling_inferred_spans_excluded_classes=org.example.myapp.ignoreme.*
 Inferred spans are estimations, not exact measurements.
 They may start after the method actually started, and end before the method actually ended.
 This can lead to inconsistencies, all of which are documented in the
-https://github.com/elastic/apm-agent-java/tree/master/apm-agent-plugins/apm-profiling-plugin[apm-profiling-plugin readme].
+https://github.com/elastic/apm-agent-java/tree/main/apm-agent-plugins/apm-profiling-plugin[apm-profiling-plugin readme].
 
 // Inferred spans are created after the profiling session ends and therefor may appear later in the APM app's span timeline than regular spans.
 // Because of this, a regular span cannot be the child of an inferred span.

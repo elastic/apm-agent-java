@@ -27,8 +27,8 @@ import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.objectpool.Recyclable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -253,7 +253,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         }
 
         // auto-infer context.destination.service.resource as per spec:
-        // https://github.com/elastic/apm/blob/master/specs/agents/tracing-spans-destination.md#contextdestinationserviceresource
+        // https://github.com/elastic/apm/blob/main/specs/agents/tracing-spans-destination.md#contextdestinationserviceresource
         Destination.Service service = getContext().getDestination().getService();
         StringBuilder serviceResource = service.getResource();
         if (isExit() && serviceResource.length() == 0 && !service.isResourceSetByUser()) {

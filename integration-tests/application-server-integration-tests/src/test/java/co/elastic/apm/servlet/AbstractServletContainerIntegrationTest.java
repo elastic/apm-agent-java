@@ -19,6 +19,8 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.servlet.tests.TestApp;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,8 +37,6 @@ import org.junit.Test;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
@@ -102,7 +102,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
 
     private static MockServerContainer mockServerContainer = new MockServerContainer()
-        //.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(MockServerContainer.class)))
+        //.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class))
         .withNetworkAliases("apm-server")
         .withNetwork(Network.SHARED);
     private static OkHttpClient httpClient;
@@ -156,6 +156,12 @@ public abstract class AbstractServletContainerIntegrationTest {
         List<String> ignoreUrls = new ArrayList<>();
         for (TestApp app : getTestApps()) {
             ignoreUrls.add(String.format("/%s/status*", app.getDeploymentContext()));
+            for (String ignorePath : app.getPathsToIgnore()) {
+                if (ignorePath.startsWith("/")) {
+                    ignorePath = ignorePath.substring(1);
+                }
+                ignoreUrls.add(String.format("/%s/%s", app.getDeploymentContext(), ignorePath));
+            }
         }
         ignoreUrls.add("/favicon.ico");
         String ignoreUrlConfig = String.join(",", ignoreUrls);
@@ -592,14 +598,23 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     private void validateServiceName(JsonNode event) {
         String expectedServiceName = currentTestApp.getExpectedServiceName();
-        if (expectedServiceName != null && event != null) {
-            JsonNode contextService = event.get("context").get("service");
-            assertThat(contextService)
-                .withFailMessage("No service name set. Expected '%s'. Event was %s", expectedServiceName, event)
-                .isNotNull();
+        String expectedServiceVersion = currentTestApp.getExpectedServiceVersion();
+        if (event == null || (expectedServiceName == null &&  expectedServiceVersion == null)) {
+            return;
+        }
+        JsonNode contextService = event.get("context").get("service");
+        assertThat(contextService)
+            .withFailMessage("No service context available.")
+            .isNotNull();
+        if (expectedServiceName != null) {
             assertThat(contextService.get("name").textValue())
-                .describedAs("Event has non-expected service name %s", event)
+                .describedAs("Event has unexpected service name %s", event)
                 .isEqualTo(expectedServiceName);
+        }
+        if (expectedServiceVersion != null) {
+            assertThat(contextService.get("version").textValue())
+                .describedAs("Event has no service version %s", event)
+                .isEqualTo(expectedServiceVersion);
         }
     }
 
