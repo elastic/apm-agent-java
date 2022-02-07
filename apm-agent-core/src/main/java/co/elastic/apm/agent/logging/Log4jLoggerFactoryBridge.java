@@ -37,8 +37,11 @@ public class Log4jLoggerFactoryBridge extends AbstractLoggerAdapter<Logger> impl
 
     public static void shutdown() {
         LoggerContextFactory factory = LogManager.getFactory();
-        for (LoggerContext context : ((Log4jContextFactory) factory).getSelector().getLoggerContexts()) {
-            LogManager.shutdown(context);
+        // the Spring tests use log4j-to-slf4j which uses SLF4JLoggerContextFactory which does not need cleanup
+        if (factory instanceof Log4jContextFactory) {
+            for (LoggerContext context : ((Log4jContextFactory) factory).getSelector().getLoggerContexts()) {
+                LogManager.shutdown(context);
+            }
         }
     }
 
