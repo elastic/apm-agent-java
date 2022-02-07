@@ -262,7 +262,6 @@ public class ElasticApmAgent {
                 logger.info("Used instrumentation groups: {}", InstrumentationUsageUtil.getUsedInstrumentationGroups());
                 tracer.stop();
                 matcherTimers.clear();
-                LoggingConfiguration.shutdown();
             }
         });
         matcherTimers.clear();

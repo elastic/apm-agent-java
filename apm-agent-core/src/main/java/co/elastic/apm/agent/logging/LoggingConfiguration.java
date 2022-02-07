@@ -335,10 +335,6 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         }
     }
 
-    public static void shutdown() {
-        Log4jLoggerFactoryBridge.shutdown();
-    }
-
     private static void restoreSystemProperty(String key, @Nullable String originalValue) {
         if (originalValue != null) {
             System.setProperty(key, originalValue);
