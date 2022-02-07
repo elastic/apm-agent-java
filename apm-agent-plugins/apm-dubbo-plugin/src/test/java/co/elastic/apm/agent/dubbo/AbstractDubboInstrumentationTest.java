@@ -167,7 +167,7 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("dubbo");
         Destination destination = span.getContext().getDestination();
-        assertThat(destination.getAddress().toString()).isEqualTo("localhost");
+        assertThat(destination.getAddress().toString()).isIn("localhost", "127.0.0.1");
         assertThat(destination.getPort()).isEqualTo(getPort());
 
         Destination.Service service = destination.getService();
