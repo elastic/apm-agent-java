@@ -54,7 +54,7 @@ upload-lambda-asset: validate-branch-name validate-layer-name
 	@gh release list
 	@gh \
 		release \
-        upload $(BRANCH_NAME) \
+		upload $(BRANCH_NAME) \
 		./$(AWS_LAMBDA_ZIP_LOCATION)/$(ELASTIC_LAYER_NAME).zip
 
 # Get the ARN Version for the AWS_REGIONS
