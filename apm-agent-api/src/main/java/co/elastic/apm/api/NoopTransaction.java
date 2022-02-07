@@ -49,6 +49,13 @@ enum NoopTransaction implements Transaction {
     }
 
     @Nonnull
+    @Override
+    public Transaction setServiceInfo(ServiceInfo serviceInfo) {
+        // noop
+        return this;
+    }
+
+    @Nonnull
     @Deprecated
     @Override
     public Transaction addTag(String key, String value) {

@@ -57,6 +57,13 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     }
 
     @Nonnull
+    @Override
+    public Transaction setServiceInfo(ServiceInfo serviceInfo) {
+        // co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetServiceInfoInstrumentation
+        return this;
+    }
+
+    @Nonnull
     @Deprecated
     @Override
     public Transaction addTag(String key, String value) {

@@ -153,8 +153,11 @@ public interface Tracer {
 
     TracerState getState();
 
+    @Nullable
+    ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader classLoader);
+
     /**
-     * Overrides the service name and version for all {@link Transaction}s,
+     * Sets the service name and version for all {@link Transaction}s,
      * {@link Span}s and {@link ErrorCapture}s which are created by the service which corresponds to the provided {@link ClassLoader}.
      * <p>
      * The main use case is being able to differentiate between multiple services deployed to the same application server.
@@ -163,7 +166,7 @@ public interface Tracer {
      * @param classLoader the class loader which corresponds to a particular service
      * @param serviceInfo the service name and version for this class loader
      */
-    void overrideServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo);
+    void setServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo);
 
     /**
      * Called when the container shuts down.

@@ -68,6 +68,18 @@ public interface Transaction extends Span {
     Transaction setFrameworkName(String frameworkName);
 
     /**
+     * Sets the service name and version for this transaction and its child spans.
+     * <p>
+     * NOTE: If this method is called after child spans are already created,
+     * they may have the wrong service name and version.
+     * </p>
+     *
+     * @param serviceInfo the service name and version
+     */
+    @Nonnull
+    Transaction setServiceInfo(ServiceInfo serviceInfo);
+
+    /**
      * {@inheritDoc}
      *
      * @deprecated use {@link #addLabel(String, String)} instead

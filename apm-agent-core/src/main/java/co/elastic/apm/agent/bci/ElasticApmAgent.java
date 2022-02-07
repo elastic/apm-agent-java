@@ -38,6 +38,8 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
@@ -61,8 +63,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
@@ -503,7 +503,8 @@ public class ElasticApmAgent {
         for (MethodDescription.InDefinedShape exitAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodExit.class)))) {
             validateAdviceReturnAndParameterTypes(exitAdvice, adviceClassName);
             validateLegacyAssignToIsNotUsed(exitAdvice);
-            if (exitAdvice.getReturnType().asRawType().getTypeName().startsWith("co.elastic.apm")) {
+            String returnType = exitAdvice.getReturnType().asRawType().getTypeName();
+            if (returnType.startsWith("co.elastic.apm") && !returnType.startsWith("co.elastic.apm.api")) {
                 throw new IllegalStateException("Advice return type must be visible from the bootstrap class loader and must not be an agent type.");
             }
             for (AnnotationDescription exit : exitAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodExit.class))) {
@@ -559,7 +560,7 @@ public class ElasticApmAgent {
         // We have to use 'raw' type as framework classes are not accessible to the boostrap classloader, and
         // trying to resolve them will create exceptions.
         String name = type.asRawType().getTypeName();
-        if (name.startsWith("co.elastic.apm")) {
+        if (name.startsWith("co.elastic.apm") && !name.startsWith("co.elastic.apm.api")) {
             throw new IllegalStateException(String.format("Advice %s in %s#%s must not be an agent type: %s", description, adviceClass, adviceMethod, name));
         }
     }

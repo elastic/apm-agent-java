@@ -330,7 +330,7 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
     @Test
     void testOverrideServiceNameForClassLoader() {
         ServiceInfo overridden = ServiceInfo.of("overridden");
-        tracer.overrideServiceInfoForClassLoader(Transaction.class.getClassLoader(), overridden);
+        tracer.setServiceInfoForClassLoader(Transaction.class.getClassLoader(), overridden);
         ElasticApm.startTransaction().end();
         checkTransactionServiceInfo(overridden);
     }
@@ -338,7 +338,7 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
     @Test
     void testOverrideServiceNameForClassLoaderWithRemoteParent() {
         ServiceInfo overridden = ServiceInfo.of("overridden");
-        tracer.overrideServiceInfoForClassLoader(Transaction.class.getClassLoader(), overridden);
+        tracer.setServiceInfoForClassLoader(Transaction.class.getClassLoader(), overridden);
         ElasticApm.startTransactionWithRemoteParent(key -> null).end();
         checkTransactionServiceInfo(overridden);
     }
@@ -346,7 +346,7 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
     @Test
     void testOverrideServiceVersionForClassLoader() {
         ServiceInfo overridden = ServiceInfo.of("overridden_name", "overridden_version");
-        tracer.overrideServiceInfoForClassLoader(Transaction.class.getClassLoader(), overridden);
+        tracer.setServiceInfoForClassLoader(Transaction.class.getClassLoader(), overridden);
         ElasticApm.startTransaction().end();
         checkTransactionServiceInfo(overridden);
     }
@@ -354,7 +354,7 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
     @Test
     void testOverrideServiceVersionForClassLoaderWithRemoteParent() {
         ServiceInfo overridden = ServiceInfo.of("overridden_name", "overridden_version");
-        tracer.overrideServiceInfoForClassLoader(Transaction.class.getClassLoader(), overridden);
+        tracer.setServiceInfoForClassLoader(Transaction.class.getClassLoader(), overridden);
         ElasticApm.startTransactionWithRemoteParent(key -> null).end();
         checkTransactionServiceInfo(overridden);
     }

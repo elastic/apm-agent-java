@@ -232,4 +232,32 @@ public class ElasticApm {
         // co.elastic.apm.api.ElasticApmInstrumentation.CaptureExceptionInstrumentation.captureException
     }
 
+    /**
+     * Gets the service name and version that is associated with a class loader
+     *
+     * @param classLoader the class loader for which the service name and version should be looked up
+     * @return the service name and version for the given class loader null
+     */
+    @Nullable
+    public static ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader classLoader) {
+        // co.elastic.apm.api.ElasticApmInstrumentation.GetServiceInfoForClassLoader.getServiceInfoForClassLoader
+        return null;
+    }
+
+    /**
+     * Associates a class loader with a service name and version.
+     * <p>
+     * The association used to overwrite the autodetected service name and version when a transaction is started.
+     * </p>
+     * <p>
+     * NOTE: If the class loader already is associated with a service name and version,
+     * the existing information will not be overwritten.
+     * </p>
+     *
+     * @param classLoader the class loader which should be associated with the given service name and version
+     * @param serviceInfo the service name and version
+     */
+    public static void setServiceInfoForClassLoader(@Nullable ClassLoader classLoader, @Nullable ServiceInfo serviceInfo) {
+        // co.elastic.apm.api.ElasticApmInstrumentation.SetServiceInfoForClassLoader.setServiceInfoForClassLoader
+    }
 }

@@ -230,7 +230,7 @@ public class ElasticApmTracer implements Tracer {
                     new RuntimeException("this exception is just used to record where the transaction has been started from"));
             }
         }
-        final ServiceInfo serviceInfo = getServiceInfo(initiatingClassLoader);
+        final ServiceInfo serviceInfo = getServiceInfoForClassLoader(initiatingClassLoader);
         if (serviceInfo != null) {
             transaction.getTraceContext().setServiceName(serviceInfo.getServiceName());
             transaction.getTraceContext().setServiceVersion(serviceInfo.getServiceVersion());
@@ -343,7 +343,7 @@ public class ElasticApmTracer implements Tracer {
                 parent.setNonDiscardable();
             } else {
                 error.getTraceContext().getId().setToRandomValue();
-                ServiceInfo serviceInfo = getServiceInfo(initiatingClassLoader);
+                ServiceInfo serviceInfo = getServiceInfoForClassLoader(initiatingClassLoader);
                 if (serviceInfo != null) {
                     error.getTraceContext().setServiceName(serviceInfo.getServiceName());
                     error.getTraceContext().setServiceVersion(serviceInfo.getServiceVersion());
@@ -748,7 +748,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @Override
-    public void overrideServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo) {
+    public void setServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo) {
         // overriding the service name/version for the bootstrap class loader is not an actual use-case
         // null may also mean we don't know about the initiating class loader
         if (classLoader == null
@@ -765,7 +765,8 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @Nullable
-    public ServiceInfo getServiceInfo(@Nullable ClassLoader initiatingClassLoader) {
+    @Override
+    public ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader initiatingClassLoader) {
         if (initiatingClassLoader == null) {
             return null;
         }

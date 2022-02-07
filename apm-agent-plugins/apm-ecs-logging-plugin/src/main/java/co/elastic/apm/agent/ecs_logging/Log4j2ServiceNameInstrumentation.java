@@ -58,7 +58,7 @@ public class Log4j2ServiceNameInstrumentation extends TracerAwareInstrumentation
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.This EcsLayout.Builder builder) {
             if (builder.getServiceName() == null || builder.getServiceName().isEmpty()) {
-                ServiceInfo serviceInfo = tracer.getServiceInfo(Thread.currentThread().getContextClassLoader());
+                ServiceInfo serviceInfo = tracer.getServiceInfoForClassLoader(Thread.currentThread().getContextClassLoader());
                 String configuredServiceName = tracer.getConfig(CoreConfiguration.class).getServiceName();
                 builder.setServiceName(serviceInfo != null ? serviceInfo.getServiceName() : configuredServiceName);
             }

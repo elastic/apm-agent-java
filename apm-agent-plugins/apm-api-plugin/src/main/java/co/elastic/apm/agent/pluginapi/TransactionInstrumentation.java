@@ -21,6 +21,7 @@ package co.elastic.apm.agent.pluginapi;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.api.ServiceInfo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -143,6 +144,23 @@ public class TransactionInstrumentation extends ApiInstrumentation {
                     } else if (value instanceof Boolean) {
                         transaction.addCustomContext(key, (Boolean) value);
                     }
+                }
+            }
+        }
+    }
+
+    public static class SetServiceInfoInstrumentation extends TransactionInstrumentation {
+        public SetServiceInfoInstrumentation() {
+            super(named("setServiceInfo"));
+        }
+
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void setServiceInfo(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+                                              @Advice.Argument(0) ServiceInfo serviceInfo) {
+                if (transaction instanceof Transaction) {
+                    ((Transaction) transaction).getTraceContext().setServiceName(serviceInfo.getName());
+                    ((Transaction) transaction).getTraceContext().setServiceVersion(serviceInfo.getVersion());
                 }
             }
         }
