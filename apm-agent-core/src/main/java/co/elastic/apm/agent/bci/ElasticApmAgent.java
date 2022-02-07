@@ -36,7 +36,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -259,10 +258,8 @@ public class ElasticApmAgent {
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
             @Override
             public void run() {
-                logger.info("Used instrumentation groups: {}", InstrumentationUsageUtil.getUsedInstrumentationGroups());
                 tracer.stop();
                 matcherTimers.clear();
-                LoggingConfiguration.shutdown();
             }
         });
         matcherTimers.clear();
