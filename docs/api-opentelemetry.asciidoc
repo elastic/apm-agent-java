@@ -18,12 +18,12 @@ NOTE: While manual instrumentations using the OpenTelemetry API can be adapted t
 https://github.com/open-telemetry/opentelemetry-java-instrumentation[opentelemetry-java-instrumentation] in the context of the Elastic APM Java agent. +
 However, you can use https://github.com/open-telemetry/opentelemetry-java-instrumentation[opentelemetry-java-instrumentation] (aka the OpenTelementry Java agent)
 and send the data to APM Server.
-See the {apm-overview-ref-v}/open-telemetry-elastic.html[OpenTelemetry integration docs] for more details.
+See the {apm-overview-ref-v}/open-telemetry.html[OpenTelemetry integration docs] for more details.
 
 The first span of a service will be converted to an Elastic APM
-{apm-overview-ref-v}/transactions.html[`Transaction`],
+{apm-overview-ref-v}/data-model-transactions.html[`Transaction`],
 subsequent spans are mapped to Elastic APM
-{apm-overview-ref-v}/transaction-spans.html[`Span`].
+{apm-overview-ref-v}/data-model-spans.html[`Span`].
 
 [float]
 [[otel-getting-started]]
