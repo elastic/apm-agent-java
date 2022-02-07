@@ -131,6 +131,7 @@ pipeline {
                 env.RELEASE_TAG = "v" + user_release_version
                 env.RELEASE_VERSION = user_release_version
                 env.BRANCH_DOT_X = user_release_version.substring(0, user_release_version.indexOf('.'))+'.x'
+                env.RELEASE_AWS_LAMBDA_VERSION = '-ver-' + user_release_version.replaceAll('\\.', '-')
               }
             }
           }
@@ -164,6 +165,21 @@ pipeline {
             }
           }
         }
+        stage('Publish AWS Lambda') {
+          environment {
+            SUFFIX_ARN_FILE = 'arn-file.md'
+          }
+          steps {
+            setEnvVar('ELASTIC_LAYER_NAME', "elastic-apm-java${env.RELEASE_AWS_LAMBDA_VERSION}")
+            withAWSEnv(secret: 'secret/observability-team/ci/service-account/apm-aws-lambda', forceInstallation: true, version: '2.4.10') {
+              dir("${BASE_DIR}"){
+                sh(label: 'make publish-in-all-aws-regions', script: 'make -C .ci publish-in-all-aws-regions')
+                sh(label: 'make create-arn-file', script: 'make -C .ci create-arn-file')
+                setEnvVar('ARN_CONTENT', readFile(".ci/${SUFFIX_ARN_FILE}"))
+              }
+            }
+          }
+        }
         stage('Create GitHub release draft') {
           steps {
             dir("${BASE_DIR}"){
@@ -176,10 +192,11 @@ pipeline {
                         draft: true,
                         tagName: "${RELEASE_TAG}",
                         releaseName: "Release ${RELEASE_VERSION}",
-                        body: "[Release Notes for ${RELEASE_VERSION}](${finalUrl})")
+                        body: "[Release Notes for ${RELEASE_VERSION}](${finalUrl}) \n ${ARN_CONTENT}")
                 env.RELEASE_ID = ret['id']
                 env.RELEASE_NOTES_URL = finalUrl
               }
+              sh(label: 'make upload-lambda-asset', script: 'make -C .ci upload-lambda-asset')
             }
           }
         }

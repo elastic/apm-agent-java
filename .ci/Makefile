@@ -5,9 +5,6 @@ AWS_LAMBDA_ZIP_LOCATION = elastic-apm-agent/target
 
 export AWS_FOLDER
 
-dist: validate-branch-name
-	@cp $(AWS_LAMBDA_ZIP_LOCATION)/elastic-apm-java-aws-lambda-layer-*.zip $(AWS_LAMBDA_ZIP_LOCATION)/$(ELASTIC_LAYER_NAME).zip
-
 # List all the AWS regions
 get-all-aws-regions:
 	@aws \
@@ -19,7 +16,7 @@ get-all-aws-regions:
 		| jq -r '.Regions[].RegionName' > .regions
 
 # Publish the given LAYER in all the AWS regions
-publish-in-all-aws-regions: validate-layer-name get-all-aws-regions dist
+publish-in-all-aws-regions: validate-layer-name get-all-aws-regions
 	@mkdir -p $(AWS_FOLDER)
 	@while read AWS_DEFAULT_REGION; do \
 		echo "publish '$(ELASTIC_LAYER_NAME)' in $${AWS_DEFAULT_REGION}"; \
@@ -53,14 +50,11 @@ grant-public-layer-access: validate-layer-name validate-aws-default-region
 create-arn-file: validate-suffix-arn-file
 	@./create-arn-table.sh
 
-release-notes: validate-branch-name validate-suffix-arn-file
+upload-lambda-asset: validate-branch-name validate-layer-name
 	@gh release list
 	@gh \
 		release \
-		create $(BRANCH_NAME) \
-        --draft \
-		--title '$(BRANCH_NAME)' \
-		--notes-file $(SUFFIX_ARN_FILE) \
+        upload $(BRANCH_NAME) \
 		./$(AWS_LAMBDA_ZIP_LOCATION)/$(ELASTIC_LAYER_NAME).zip
 
 # Get the ARN Version for the AWS_REGIONS
