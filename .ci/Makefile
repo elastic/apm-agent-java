@@ -5,6 +5,10 @@ AWS_LAMBDA_ZIP_LOCATION = elastic-apm-agent/target
 
 export AWS_FOLDER
 
+dist: validate-branch-name
+	@cp $(AWS_LAMBDA_ZIP_LOCATION)/elastic-apm-java-aws-lambda-layer-*.zip $(AWS_LAMBDA_ZIP_LOCATION)/$(ELASTIC_LAYER_NAME).zip
+
+
 # List all the AWS regions
 get-all-aws-regions:
 	@aws \
@@ -16,7 +20,7 @@ get-all-aws-regions:
 		| jq -r '.Regions[].RegionName' > .regions
 
 # Publish the given LAYER in all the AWS regions
-publish-in-all-aws-regions: validate-layer-name get-all-aws-regions
+publish-in-all-aws-regions: validate-layer-name get-all-aws-regions dist
 	@mkdir -p $(AWS_FOLDER)
 	@while read AWS_DEFAULT_REGION; do \
 		echo "publish '$(ELASTIC_LAYER_NAME)' in $${AWS_DEFAULT_REGION}"; \

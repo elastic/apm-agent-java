@@ -16,6 +16,7 @@ pipeline {
     SLACK_CHANNEL = '#apm-agent-java'
     NOTIFY_TO = 'build-apm+apm-agent-java@elastic.co'
     BRANCH_SPECIFIER = "${params.branch_specifier}"
+    SUFFIX_ARN_FILE = 'arn-file.md'
   }
   options {
     timeout(time: 3, unit: 'HOURS')
@@ -27,6 +28,7 @@ pipeline {
   parameters {
     string(name: 'branch_specifier', defaultValue: 'stable', description: "What branch to release from?")
     booleanParam(name: 'check_branch_ci_status', defaultValue: true, description: "Check for failing tests in the given branch (if no stable branch)?")
+    booleanParam(name: 'publish_aws_lambda', defaultValue: true, description: "Whether to upload the AWS lambda")
   }
   stages {
     stage('Initializing'){
@@ -166,16 +168,27 @@ pipeline {
           }
         }
         stage('Publish AWS Lambda') {
+          when {
+            expression { params.publish_aws_lambda }
+          }
           environment {
-            SUFFIX_ARN_FILE = 'arn-file.md'
+            SOURCE_AWS_FILE = "elastic-apm-java-aws-lambda-layer-${RELEASE_VERSION}.zip"
           }
           steps {
             setEnvVar('ELASTIC_LAYER_NAME', "elastic-apm-java${env.RELEASE_AWS_LAMBDA_VERSION}")
             withAWSEnv(secret: 'secret/observability-team/ci/service-account/apm-aws-lambda', forceInstallation: true, version: '2.4.10') {
               dir("${BASE_DIR}"){
+                // NOTE: copy the file from the last successful build. Therefore, this is a hard requirement
+                copyArtifacts(
+                  filter: "src/github.com/elastic/apm-agent-java/elastic-apm-agent/target/${SOURCE_AWS_FILE}",
+                  target: 'elastic-apm-agent/target',
+                  fingerprintArtifacts: true,
+                  flatten: true,
+                  projectName: 'elastic+apm-agent-java+release',
+                  selector: lastSuccessful()
+                )
                 sh(label: 'make publish-in-all-aws-regions', script: 'make -C .ci publish-in-all-aws-regions')
                 sh(label: 'make create-arn-file', script: 'make -C .ci create-arn-file')
-                setEnvVar('ARN_CONTENT', readFile(".ci/${SUFFIX_ARN_FILE}"))
               }
             }
           }
@@ -184,6 +197,8 @@ pipeline {
           steps {
             dir("${BASE_DIR}"){
               script {
+                def arnFile = ".ci/${SUFFIX_ARN_FILE}"
+                setEnvVar('ARN_CONTENT', fileExists(arnFile) ? readFile(arnFile) : '')
                 // Construct the URL with anchor for the release notes
                 // Ex: https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-1.x.html#release-notes-1.13.0
                 def finalUrl = "https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html#release-notes-${RELEASE_VERSION}"
