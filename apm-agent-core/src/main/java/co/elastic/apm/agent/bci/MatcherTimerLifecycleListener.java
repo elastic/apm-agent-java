@@ -22,7 +22,7 @@ import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.util.InstrumentationUsageUtil;
+import co.elastic.apm.agent.util.InstrumentationUsageReporter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,7 +32,7 @@ public class MatcherTimerLifecycleListener extends AbstractLifecycleListener {
 
     @Override
     public void stop() {
-        logger.info("Used instrumentation groups: {}", InstrumentationUsageUtil.getUsedInstrumentationGroups());
+        logger.info("Used instrumentation groups: {}", InstrumentationUsageReporter.getUsedInstrumentationGroups());
         if (logger.isDebugEnabled()) {
             final ArrayList<MatcherTimer> matcherTimers = new ArrayList<>(ElasticApmAgent.getMatcherTimers());
             Collections.sort(matcherTimers);

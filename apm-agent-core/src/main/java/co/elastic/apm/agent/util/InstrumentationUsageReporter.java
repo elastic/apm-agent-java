@@ -27,7 +27,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public final class InstrumentationUsageUtil {
+public final class InstrumentationUsageReporter {
 
     private static final Set<ElasticApmInstrumentation> allInstrumentations = new HashSet<>();
 
@@ -48,10 +48,7 @@ public final class InstrumentationUsageUtil {
 
     public static Collection<String> getUsedInstrumentationGroups() {
         Set<String> usedInstrumentationGroups = new TreeSet<>();
-        for (ElasticApmInstrumentation instrumentation : allInstrumentations) {
-            if (!usedInstrumentations.containsKey(instrumentation)) {
-                continue;
-            }
+        for (ElasticApmInstrumentation instrumentation : usedInstrumentations.keySet()) {
             usedInstrumentationGroups.addAll(instrumentation.getInstrumentationGroupNames());
         }
         for (ElasticApmInstrumentation instrumentation : allInstrumentations) {

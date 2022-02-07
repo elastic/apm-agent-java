@@ -31,7 +31,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class InstrumentationUsageUtilTest {
+class InstrumentationUsageReporterTest {
 
     private static class NoopInstrumentation extends ElasticApmInstrumentation {
         private final Collection instrumentationGroups;
@@ -58,24 +58,24 @@ class InstrumentationUsageUtilTest {
 
     @AfterEach
     void resetInstrumentationUsageUtil() {
-        InstrumentationUsageUtil.reset();
+        InstrumentationUsageReporter.reset();
     }
 
     @Test
     void testOnlyUnusedInstrumentations() {
-        InstrumentationUsageUtil.addInstrumentation(new NoopInstrumentation(Set.of("a", "b")));
+        InstrumentationUsageReporter.addInstrumentation(new NoopInstrumentation(Set.of("a", "b")));
 
-        assertThat(InstrumentationUsageUtil.getUsedInstrumentationGroups()).isEmpty();
+        assertThat(InstrumentationUsageReporter.getUsedInstrumentationGroups()).isEmpty();
     }
 
     @Test
     void testOnlyUsedInstrumentations() {
         NoopInstrumentation instrumentation = new NoopInstrumentation(Set.of("a", "b"));
 
-        InstrumentationUsageUtil.addInstrumentation(instrumentation);
-        InstrumentationUsageUtil.addUsedInstrumentation(instrumentation);
+        InstrumentationUsageReporter.addInstrumentation(instrumentation);
+        InstrumentationUsageReporter.addUsedInstrumentation(instrumentation);
 
-        assertThat(InstrumentationUsageUtil.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("a", "b"));
+        assertThat(InstrumentationUsageReporter.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("a", "b"));
     }
 
     @Test
@@ -83,11 +83,11 @@ class InstrumentationUsageUtilTest {
         NoopInstrumentation instrumentation1 = new NoopInstrumentation(Set.of("a", "b"));
         NoopInstrumentation instrumentation2 = new NoopInstrumentation(Set.of("a", "c"));
 
-        InstrumentationUsageUtil.addInstrumentation(instrumentation1);
-        InstrumentationUsageUtil.addInstrumentation(instrumentation2);
-        InstrumentationUsageUtil.addUsedInstrumentation(instrumentation1);
+        InstrumentationUsageReporter.addInstrumentation(instrumentation1);
+        InstrumentationUsageReporter.addInstrumentation(instrumentation2);
+        InstrumentationUsageReporter.addUsedInstrumentation(instrumentation1);
 
-        assertThat(InstrumentationUsageUtil.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("b"));
+        assertThat(InstrumentationUsageReporter.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("b"));
     }
 
     @Test
@@ -96,11 +96,11 @@ class InstrumentationUsageUtilTest {
         NoopInstrumentation instrumentation2 = new NoopInstrumentation(Set.of("c", "d"));
         NoopInstrumentation instrumentation3 = new NoopInstrumentation(Set.of("a", "b"));
 
-        InstrumentationUsageUtil.addInstrumentation(instrumentation1);
-        InstrumentationUsageUtil.addInstrumentation(instrumentation2);
-        InstrumentationUsageUtil.addInstrumentation(instrumentation3);
-        InstrumentationUsageUtil.addUsedInstrumentation(instrumentation1);
+        InstrumentationUsageReporter.addInstrumentation(instrumentation1);
+        InstrumentationUsageReporter.addInstrumentation(instrumentation2);
+        InstrumentationUsageReporter.addInstrumentation(instrumentation3);
+        InstrumentationUsageReporter.addUsedInstrumentation(instrumentation1);
 
-        assertThat(InstrumentationUsageUtil.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("a", "b"));
+        assertThat(InstrumentationUsageReporter.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("a", "b"));
     }
 }

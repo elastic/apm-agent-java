@@ -45,7 +45,7 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.util.InstrumentationUsageUtil;
+import co.elastic.apm.agent.util.InstrumentationUsageReporter;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;
@@ -330,7 +330,7 @@ public class ElasticApmAgent {
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
             if (isIncluded(advice, coreConfiguration)) {
-                InstrumentationUsageUtil.addInstrumentation(advice);
+                InstrumentationUsageReporter.addInstrumentation(advice);
                 try {
                     agentBuilder = applyAdvice(tracer, agentBuilder, advice, advice.getTypeMatcher());
                     numberOfAdvices++;
@@ -460,7 +460,7 @@ public class ElasticApmAgent {
                         if (matches) {
                             logger.debug("Method match for instrumentation {}: {} matches {}",
                                 instrumentation.getClass().getSimpleName(), methodMatcher, target);
-                            InstrumentationUsageUtil.addUsedInstrumentation(instrumentation);
+                            InstrumentationUsageReporter.addUsedInstrumentation(instrumentation);
                         }
                         return matches;
                     } finally {
