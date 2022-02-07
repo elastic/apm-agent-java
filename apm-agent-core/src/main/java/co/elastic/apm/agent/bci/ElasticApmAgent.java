@@ -45,7 +45,6 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.util.InstrumentationUsageReporter;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;
@@ -108,6 +107,8 @@ public class ElasticApmAgent {
     // Don't eagerly create logger. Logging needs to be initialized first based on configuration. See also issue #593
     @Nullable
     private static Logger logger;
+
+    private static final InstrumentationUsageReporter instrumentationUsageReporter = new InstrumentationUsageReporter();
 
     private static final ConcurrentMap<String, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
     @Nullable
@@ -259,9 +260,11 @@ public class ElasticApmAgent {
             @Override
             public void run() {
                 tracer.stop();
+                instrumentationUsageReporter.reset();
                 matcherTimers.clear();
             }
         });
+        instrumentationUsageReporter.reset();
         matcherTimers.clear();
         Logger logger = getLogger();
         if (ElasticApmAgent.instrumentation != null) {
@@ -330,7 +333,7 @@ public class ElasticApmAgent {
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
             if (isIncluded(advice, coreConfiguration)) {
-                InstrumentationUsageReporter.addInstrumentation(advice);
+                instrumentationUsageReporter.addInstrumentation(advice);
                 try {
                     agentBuilder = applyAdvice(tracer, agentBuilder, advice, advice.getTypeMatcher());
                     numberOfAdvices++;
@@ -460,7 +463,7 @@ public class ElasticApmAgent {
                         if (matches) {
                             logger.debug("Method match for instrumentation {}: {} matches {}",
                                 instrumentation.getClass().getSimpleName(), methodMatcher, target);
-                            InstrumentationUsageReporter.addUsedInstrumentation(instrumentation);
+                            instrumentationUsageReporter.addUsedInstrumentation(instrumentation);
                         }
                         return matches;
                     } finally {
@@ -588,6 +591,10 @@ public class ElasticApmAgent {
 
     static Collection<MatcherTimer> getMatcherTimers() {
         return matcherTimers.values();
+    }
+
+    static Collection<String> getUsedInstrumentationGroups() {
+        return instrumentationUsageReporter.getUsedInstrumentationGroups();
     }
 
     // may help to debug classloading problems

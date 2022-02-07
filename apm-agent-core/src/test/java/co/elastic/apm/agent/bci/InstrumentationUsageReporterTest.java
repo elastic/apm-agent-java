@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.util;
+package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
@@ -56,26 +55,23 @@ class InstrumentationUsageReporterTest {
         }
     }
 
-    @AfterEach
-    void resetInstrumentationUsageUtil() {
-        InstrumentationUsageReporter.reset();
-    }
+    private final InstrumentationUsageReporter instrumentationUsageReporter = new InstrumentationUsageReporter();
 
     @Test
     void testOnlyUnusedInstrumentations() {
-        InstrumentationUsageReporter.addInstrumentation(new NoopInstrumentation(Set.of("a", "b")));
+        instrumentationUsageReporter.addInstrumentation(new NoopInstrumentation(Set.of("a", "b")));
 
-        assertThat(InstrumentationUsageReporter.getUsedInstrumentationGroups()).isEmpty();
+        assertThat(instrumentationUsageReporter.getUsedInstrumentationGroups()).isEmpty();
     }
 
     @Test
     void testOnlyUsedInstrumentations() {
         NoopInstrumentation instrumentation = new NoopInstrumentation(Set.of("a", "b"));
 
-        InstrumentationUsageReporter.addInstrumentation(instrumentation);
-        InstrumentationUsageReporter.addUsedInstrumentation(instrumentation);
+        instrumentationUsageReporter.addInstrumentation(instrumentation);
+        instrumentationUsageReporter.addUsedInstrumentation(instrumentation);
 
-        assertThat(InstrumentationUsageReporter.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("a", "b"));
+        assertThat(instrumentationUsageReporter.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("a", "b"));
     }
 
     @Test
@@ -83,11 +79,11 @@ class InstrumentationUsageReporterTest {
         NoopInstrumentation instrumentation1 = new NoopInstrumentation(Set.of("a", "b"));
         NoopInstrumentation instrumentation2 = new NoopInstrumentation(Set.of("a", "c"));
 
-        InstrumentationUsageReporter.addInstrumentation(instrumentation1);
-        InstrumentationUsageReporter.addInstrumentation(instrumentation2);
-        InstrumentationUsageReporter.addUsedInstrumentation(instrumentation1);
+        instrumentationUsageReporter.addInstrumentation(instrumentation1);
+        instrumentationUsageReporter.addInstrumentation(instrumentation2);
+        instrumentationUsageReporter.addUsedInstrumentation(instrumentation1);
 
-        assertThat(InstrumentationUsageReporter.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("b"));
+        assertThat(instrumentationUsageReporter.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("b"));
     }
 
     @Test
@@ -96,11 +92,11 @@ class InstrumentationUsageReporterTest {
         NoopInstrumentation instrumentation2 = new NoopInstrumentation(Set.of("c", "d"));
         NoopInstrumentation instrumentation3 = new NoopInstrumentation(Set.of("a", "b"));
 
-        InstrumentationUsageReporter.addInstrumentation(instrumentation1);
-        InstrumentationUsageReporter.addInstrumentation(instrumentation2);
-        InstrumentationUsageReporter.addInstrumentation(instrumentation3);
-        InstrumentationUsageReporter.addUsedInstrumentation(instrumentation1);
+        instrumentationUsageReporter.addInstrumentation(instrumentation1);
+        instrumentationUsageReporter.addInstrumentation(instrumentation2);
+        instrumentationUsageReporter.addInstrumentation(instrumentation3);
+        instrumentationUsageReporter.addUsedInstrumentation(instrumentation1);
 
-        assertThat(InstrumentationUsageReporter.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("a", "b"));
+        assertThat(instrumentationUsageReporter.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("a", "b"));
     }
 }

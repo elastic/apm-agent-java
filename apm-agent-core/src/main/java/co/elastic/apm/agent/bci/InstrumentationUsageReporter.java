@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.util;
+package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 
@@ -29,24 +29,24 @@ import java.util.concurrent.ConcurrentMap;
 
 public final class InstrumentationUsageReporter {
 
-    private static final Set<ElasticApmInstrumentation> allInstrumentations = new HashSet<>();
+    private final Set<ElasticApmInstrumentation> allInstrumentations = new HashSet<>();
 
-    private static final ConcurrentMap<ElasticApmInstrumentation, Boolean> usedInstrumentations = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ElasticApmInstrumentation, Boolean> usedInstrumentations = new ConcurrentHashMap<>();
 
-    static void reset() {
+    void reset() {
         allInstrumentations.clear();
         usedInstrumentations.clear();
     }
 
-    public static void addInstrumentation(ElasticApmInstrumentation instrumentation) {
+    void addInstrumentation(ElasticApmInstrumentation instrumentation) {
         allInstrumentations.add(instrumentation);
     }
 
-    public static void addUsedInstrumentation(ElasticApmInstrumentation instrumentation) {
+    void addUsedInstrumentation(ElasticApmInstrumentation instrumentation) {
         usedInstrumentations.put(instrumentation, Boolean.TRUE);
     }
 
-    public static Collection<String> getUsedInstrumentationGroups() {
+    Collection<String> getUsedInstrumentationGroups() {
         Set<String> usedInstrumentationGroups = new TreeSet<>();
         for (ElasticApmInstrumentation instrumentation : usedInstrumentations.keySet()) {
             usedInstrumentationGroups.addAll(instrumentation.getInstrumentationGroupNames());
