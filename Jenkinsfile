@@ -456,7 +456,34 @@ pipeline {
           when {
             tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
           }
+          environment {
+            SUFFIX_ARN_FILE = 'arn-file.md'
+          }
           stages {
+            stage('Publish AWS Lambda') {
+              steps {
+                // Layer Name that includes the release version in the standarsed format
+                setEnvVar('ELASTIC_LAYER_NAME', "elastic-apm-java${getLambdaVersion()}")
+                setEnvVar('RELEASE_VERSION', "${getReleaseVersion()}")
+                deleteDir()
+                unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                withAWSEnv(secret: 'secret/observability-team/ci/service-account/apm-aws-lambda', forceInstallation: true, version: '2.4.10') {
+                  dir("${BASE_DIR}"){
+                    cmd(label: 'make publish-in-all-aws-regions', script: 'make -C .ci publish-in-all-aws-regions')
+                    cmd(label: 'make create-arn-file', script: 'make -C .ci create-arn-file')
+                  }
+                }
+              }
+            }
+            stage('Release Notes') {
+              steps {
+                withGhEnv(forceInstallation: true, version: '2.4.0') {
+                  dir("${BASE_DIR}"){
+                    cmd(label: 'make release-notes', script: 'make -C .ci release-notes')
+                  }
+                }
+              }
+            }
             stage('Opbeans') {
               environment {
                 REPO_NAME = "${OPBEANS_REPO}"
@@ -495,4 +522,27 @@ def reportTestResults(){
 
   // disable codecov for now as it's not supported for windows
   //  codecov(repo: env.REPO, basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
+}
+
+/**
+* Transform TAG releases from v{major}.{minor}.{patch} to
+* ver-{major}-{minor}-{patch}. f.i: given v1.2.3 then
+* -ver-1-2-3.
+*/
+def getLambdaVersion() {
+  if (env.BRANCH_NAME?.trim() && env.BRANCH_NAME.startsWith('v')) {
+    return env.BRANCH_NAME.replaceAll('v', '-ver-').replaceAll('\\.', '-')
+  }
+  return ''
+}
+
+/**
+* Transform TAG releases from v{major}.{minor}.{patch} to
+* {major}.{minor}.{patch}. f.i: given v1.2.3 then 1.2.3
+*/
+def getReleaseVersion() {
+  if (env.BRANCH_NAME?.trim() && env.BRANCH_NAME.startsWith('v')) {
+    return env.BRANCH_NAME.replaceAll('v', '')
+  }
+  return ''
 }
