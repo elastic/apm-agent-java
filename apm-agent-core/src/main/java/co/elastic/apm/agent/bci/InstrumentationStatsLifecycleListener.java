@@ -26,17 +26,18 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 
-public class MatcherTimerLifecycleListener extends AbstractLifecycleListener {
-    private static final Logger logger = LoggerFactory.getLogger(MatcherTimerLifecycleListener.class);
+public class InstrumentationStatsLifecycleListener extends AbstractLifecycleListener {
+    private static final Logger logger = LoggerFactory.getLogger(InstrumentationStatsLifecycleListener.class);
 
     @Override
     public void stop() {
-        logger.info("Used instrumentation groups: {}", ElasticApmAgent.getUsedInstrumentationGroups());
+        InstrumentationStats instrumentationStats = ElasticApmAgent.getInstrumentationStats();
+        logger.info("Used instrumentation groups: {}", instrumentationStats.getUsedInstrumentationGroups());
         if (logger.isDebugEnabled()) {
-            final ArrayList<MatcherTimer> matcherTimers = new ArrayList<>(ElasticApmAgent.getMatcherTimers());
+            final ArrayList<MatcherTimer> matcherTimers = new ArrayList<>(instrumentationStats.getMatcherTimers());
             Collections.sort(matcherTimers);
             StringBuilder sb = new StringBuilder()
-                .append("Total time spent matching: ").append(String.format("%,d", ElasticApmAgent.getTotalMatcherTime())).append("ns")
+                .append("Total time spent matching: ").append(String.format("%,d", instrumentationStats.getTotalMatcherTime())).append("ns")
                 .append('\n')
                 .append(MatcherTimer.getTableHeader())
                 .append('\n');

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.bci;
 
+import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 
 import java.util.Collection;
@@ -27,15 +28,18 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public final class InstrumentationUsageReporter {
+public final class InstrumentationStats {
 
     private final Set<ElasticApmInstrumentation> allInstrumentations = new HashSet<>();
 
     private final ConcurrentMap<ElasticApmInstrumentation, Boolean> usedInstrumentations = new ConcurrentHashMap<>();
 
+    private final ConcurrentMap<String, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
+
     void reset() {
         allInstrumentations.clear();
         usedInstrumentations.clear();
+        matcherTimers.clear();
     }
 
     void addInstrumentation(ElasticApmInstrumentation instrumentation) {
@@ -64,4 +68,28 @@ public final class InstrumentationUsageReporter {
 
         return usedInstrumentationGroups;
     }
+
+    MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {
+        final String name = adviceClass.getName();
+        MatcherTimer timer = matcherTimers.get(name);
+        if (timer == null) {
+            matcherTimers.putIfAbsent(name, new MatcherTimer(name));
+            return matcherTimers.get(name);
+        } else {
+            return timer;
+        }
+    }
+
+    long getTotalMatcherTime() {
+        long totalTime = 0;
+        for (MatcherTimer value : matcherTimers.values()) {
+            totalTime += value.getTotalTime();
+        }
+        return totalTime;
+    }
+
+    Collection<MatcherTimer> getMatcherTimers() {
+        return matcherTimers.values();
+    }
+
 }

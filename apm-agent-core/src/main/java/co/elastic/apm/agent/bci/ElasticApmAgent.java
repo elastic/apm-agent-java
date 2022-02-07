@@ -24,7 +24,6 @@ import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.InstallationListenerImpl;
 import co.elastic.apm.agent.bci.bytebuddy.Instrumented;
 import co.elastic.apm.agent.bci.bytebuddy.LruTypePoolCache;
-import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.NonInstrumented;
 import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
@@ -108,9 +107,8 @@ public class ElasticApmAgent {
     @Nullable
     private static Logger logger;
 
-    private static final InstrumentationUsageReporter instrumentationUsageReporter = new InstrumentationUsageReporter();
+    private static final InstrumentationStats instrumentationStats = new InstrumentationStats();
 
-    private static final ConcurrentMap<String, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
     @Nullable
     private static Instrumentation instrumentation;
     @Nullable
@@ -260,12 +258,10 @@ public class ElasticApmAgent {
             @Override
             public void run() {
                 tracer.stop();
-                instrumentationUsageReporter.reset();
-                matcherTimers.clear();
+                instrumentationStats.reset();
             }
         });
-        instrumentationUsageReporter.reset();
-        matcherTimers.clear();
+        instrumentationStats.reset();
         Logger logger = getLogger();
         if (ElasticApmAgent.instrumentation != null) {
             logger.warn("Instrumentation has already been initialized");
@@ -333,7 +329,7 @@ public class ElasticApmAgent {
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
             if (isIncluded(advice, coreConfiguration)) {
-                instrumentationUsageReporter.addInstrumentation(advice);
+                instrumentationStats.addInstrumentation(advice);
                 try {
                     agentBuilder = applyAdvice(tracer, agentBuilder, advice, advice.getTypeMatcher());
                     numberOfAdvices++;
@@ -401,7 +397,7 @@ public class ElasticApmAgent {
                         }
                         return typeMatches;
                     } finally {
-                        getOrCreateTimer(instrumentation.getClass()).addTypeMatchingDuration(System.nanoTime() - start);
+                        instrumentationStats.getOrCreateTimer(instrumentation.getClass()).addTypeMatchingDuration(System.nanoTime() - start);
                     }
                 }
             })
@@ -463,11 +459,11 @@ public class ElasticApmAgent {
                         if (matches) {
                             logger.debug("Method match for instrumentation {}: {} matches {}",
                                 instrumentation.getClass().getSimpleName(), methodMatcher, target);
-                            instrumentationUsageReporter.addUsedInstrumentation(instrumentation);
+                            instrumentationStats.addUsedInstrumentation(instrumentation);
                         }
                         return matches;
                     } finally {
-                        getOrCreateTimer(instrumentation.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
+                        instrumentationStats.getOrCreateTimer(instrumentation.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
                     }
                 }
             }, instrumentation.getAdviceClassName())
@@ -570,31 +566,8 @@ public class ElasticApmAgent {
         }
     }
 
-    private static MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {
-        final String name = adviceClass.getName();
-        MatcherTimer timer = matcherTimers.get(name);
-        if (timer == null) {
-            matcherTimers.putIfAbsent(name, new MatcherTimer(name));
-            return matcherTimers.get(name);
-        } else {
-            return timer;
-        }
-    }
-
-    static long getTotalMatcherTime() {
-        long totalTime = 0;
-        for (MatcherTimer value : matcherTimers.values()) {
-            totalTime += value.getTotalTime();
-        }
-        return totalTime;
-    }
-
-    static Collection<MatcherTimer> getMatcherTimers() {
-        return matcherTimers.values();
-    }
-
-    static Collection<String> getUsedInstrumentationGroups() {
-        return instrumentationUsageReporter.getUsedInstrumentationGroups();
+    static InstrumentationStats getInstrumentationStats() {
+        return instrumentationStats;
     }
 
     // may help to debug classloading problems
