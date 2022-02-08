@@ -20,8 +20,17 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.28.5]]
-==== 1.28.5 - YYYY/MM/DD
+[[release-notes-1.29.1]]
+==== 1.29.1 - YYYY/MM/DD
+
+[float]
+===== Features
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.29.0]]
+==== 1.29.0 - 2022/02/09
 
 [float]
 ===== Breaking changes
@@ -59,9 +68,6 @@ paths. The BCI warmup is on by default and may be disabled through the internal 
 * Avoid early initialization of JMX on Weblogic - {pull}2420[#2420]
 * Automatically disable class sharing on AWS lambda layer - {pull}2438[#2438]
 * Avoid standalone spring applications to have two different service names, one based on the jar name, the other based on `spring.application.name`.
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.28.4]]
 ==== 1.28.4 - 2021/12/30
