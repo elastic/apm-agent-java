@@ -75,7 +75,7 @@ This can be adjusted with the <<tune-sample-rate>>.
 
 When the Java agent starts, it needs to initialize various components of the agent, connect
 to the APM server, and instrument any already loaded classes that it has been configured to
-trace. This takes some time and resources, and if done synchronously from JVM start (which is
+trace. This takes some time and resources, and if done synchronously on the main thread (which is
 the default when using `-javaagent`) will delay the start of the application until complete.
 
 We provide several options to tune the startup, targeted at three startup use cases:
