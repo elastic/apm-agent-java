@@ -43,6 +43,7 @@ endif::[]
 * Added support for instrumenting Struts 2 static resource requests - {pull}1949[#1949]
 * Added support for Java/Jakarta WebSocket ServerEndpoint - {pull}2281[#2281]
 * Added support for setting the service name on Log4j2's EcsLayout - {pull}2296[#2296]
+* Print the used instrumentation groups when the application stops - {pull}2448[#2448]
 * Added support to exclude JDBC spans from being captured - {pull}2293[#2293]
 
 [float]
@@ -58,6 +59,7 @@ paths. The BCI warmup is on by default and may be disabled through the internal 
 * Fix External plugins automatic setting of span outcome - {pull}2376[#2376]
 * Avoid early initialization of JMX on Weblogic - {pull}2420[#2420]
 * Automatically disable class sharing on AWS lambda layer - {pull}2438[#2438]
+* Avoid standalone spring applications to have two different service names, one based on the jar name, the other based on `spring.application.name`.
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
