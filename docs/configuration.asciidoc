@@ -57,7 +57,10 @@ Only the external file can be used for dynamic configuration.
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>>,
 <<config-server-url>> and <<config-application-packages>>.
-So a minimal version of a configuration might look like this:
+Note that even these settings are optional.
+Click on their name to see how the default values are determined.
+
+An example configuration looks like this:
 
 [source,bash]
 .System properties
@@ -471,20 +474,58 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 This is used to keep all the errors and transactions of your service together
 and is the primary filter in the Elastic APM user interface.
 
+Instead of configuring the service name manually,
+you can also choose to rely on the service name auto-detection mechanisms of the agent.
+If `service_name` is set explicitly, all auto-detection mechanisms are disabled.
+
+This is how the service name auto-detection works:
+
+* For standalone applications
+** The agent uses `Implementation-Title` in the `META-INF/MANIFEST.MF` file if the application is started via `java -jar`.
+** Falls back to the name of the main class or jar file.
+* For applications that are deployed to a servlet container/application server, the agent auto-detects the name for each application.
+** For Spring-based applications, the agent uses the `spring.application.name` property, if set.
+** For servlet-based applications, falls back to the `Implementation-Title` in the `META-INF/MANIFEST.MF` file.
+** Falls back to the `display-name` of the `web.xml`, if available.
+** Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
+
+Generally, it is recommended to rely on the service name detection based on `META-INF/MANIFEST.MF`.
+Spring Boot automatically adds the relevant manifest entries.
+For other applications that are built with Maven, this is how you add the manifest entries:
+
+[source,xml]
+.pom.xml
+----
+    <build>
+        <plugins>
+            <plugin>
+                <!-- replace with 'maven-war-plugin' if you're building a war -->
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <!-- Adds
+                        Implementation-Title based on ${project.name} and
+                        Implementation-Version based on ${project.version}
+                        -->
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                        <!-- To customize the Implementation-* entries, remove addDefaultImplementationEntries and add them manually
+                        <manifestEntries>
+                            <Implementation-Title>foo</Implementation-Title>
+                            <Implementation-Version>4.2.0</Implementation-Version>
+                        </manifestEntries>
+                        -->
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+----
+
 The service name must conform to this regular expression: `^[a-zA-Z0-9 _-]+$`.
 In less regexy terms:
 Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.
-
-NOTE: When relying on auto-discovery of the service name in Servlet environments (including Spring Boot),
-there is currently a caveat related to metrics.
-The consequence is that the 'Metrics' tab of a service does not show process-global metrics like CPU utilization.
-The reason is that metrics are reported with the detected default service name for the JVM,
-for example `tomcat-application`.
-That is because there may be multiple web applications deployed to a single JVM/servlet container.
-However, you can view those metrics by selecting the `tomcat-application` service name, for example.
-Future versions of the Elastic APM stack will have better support for that scenario.
-A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name
-or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.
 
 NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
 
@@ -494,12 +535,7 @@ NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| For Spring-based application, uses the `spring.application.name` property, if set.
-For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
-Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
-Falls back to the `Implementation-Title` in the `MANIFEST.MF` file.
-Falls back to the name of the main class or jar file.
-If the service name is set explicitly, it overrides all of the above.
+| Auto-detected based on the rules described above
  | String | false
 |============
 
@@ -548,6 +584,11 @@ NOTE: Metrics views can utilize this configuration since APM Server 7.5
 ==== `service_version`
 
 A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
+
+Similar to the auto-detection of <<config-service-name>>, the agent can auto-detect the service version based on the `Implementation-Title` attribute in `META-INF/MANIFEST.MF`.
+See <<config-service-name>> on how to set this attribute.
+
+
 
 
 
@@ -2870,31 +2911,66 @@ The default unit for this option is `ms`.
 # This is used to keep all the errors and transactions of your service together
 # and is the primary filter in the Elastic APM user interface.
 # 
+# Instead of configuring the service name manually,
+# you can also choose to rely on the service name auto-detection mechanisms of the agent.
+# If `service_name` is set explicitly, all auto-detection mechanisms are disabled.
+# 
+# This is how the service name auto-detection works:
+# 
+# * For standalone applications
+# ** The agent uses `Implementation-Title` in the `META-INF/MANIFEST.MF` file if the application is started via `java -jar`.
+# ** Falls back to the name of the main class or jar file.
+# * For applications that are deployed to a servlet container/application server, the agent auto-detects the name for each application.
+# ** For Spring-based applications, the agent uses the `spring.application.name` property, if set.
+# ** For servlet-based applications, falls back to the `Implementation-Title` in the `META-INF/MANIFEST.MF` file.
+# ** Falls back to the `display-name` of the `web.xml`, if available.
+# ** Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
+# 
+# Generally, it is recommended to rely on the service name detection based on `META-INF/MANIFEST.MF`.
+# Spring Boot automatically adds the relevant manifest entries.
+# For other applications that are built with Maven, this is how you add the manifest entries:
+# 
+# 
+# [source,xml]
+# .pom.xml
+# ----
+#     <build>
+#         <plugins>
+#             <plugin>
+#                 <!-- replace with 'maven-war-plugin' if you're building a war -->
+#                 <artifactId>maven-jar-plugin</artifactId>
+#                 <configuration>
+#                     <archive>
+#                         <!-- Adds
+#                         Implementation-Title based on ${project.name} and
+#                         Implementation-Version based on ${project.version}
+#                         -->
+#                         <manifest>
+#                             <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+#                         </manifest>
+#                         <!-- To customize the Implementation-* entries, remove addDefaultImplementationEntries and add them manually
+#                         <manifestEntries>
+#                             <Implementation-Title>foo</Implementation-Title>
+#                             <Implementation-Version>4.2.0</Implementation-Version>
+#                         </manifestEntries>
+#                         -->
+#                     </archive>
+#                 </configuration>
+#             </plugin>
+#         </plugins>
+#     </build>
+# ----
+# 
+# 
 # The service name must conform to this regular expression: `^[a-zA-Z0-9 _-]+$`.
 # In less regexy terms:
 # Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.
-# 
-# NOTE: When relying on auto-discovery of the service name in Servlet environments (including Spring Boot),
-# there is currently a caveat related to metrics.
-# The consequence is that the 'Metrics' tab of a service does not show process-global metrics like CPU utilization.
-# The reason is that metrics are reported with the detected default service name for the JVM,
-# for example `tomcat-application`.
-# That is because there may be multiple web applications deployed to a single JVM/servlet container.
-# However, you can view those metrics by selecting the `tomcat-application` service name, for example.
-# Future versions of the Elastic APM stack will have better support for that scenario.
-# A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name
-# or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.
 # 
 # NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value: For Spring-based application, uses the `spring.application.name` property, if set.
-# For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
-# Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
-# Falls back to the `Implementation-Title` in the `MANIFEST.MF` file.
-# Falls back to the name of the main class or jar file.
-# If the service name is set explicitly, it overrides all of the above.
+# Default value: Auto-detected based on the rules described above
 # 
 #
 # service_name=
@@ -2919,6 +2995,11 @@ The default unit for this option is `ms`.
 # service_node_name=
 
 # A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
+# 
+# Similar to the auto-detection of <<config-service-name>>, the agent can auto-detect the service version based on the `Implementation-Title` attribute in `META-INF/MANIFEST.MF`.
+# See <<config-service-name>> on how to set this attribute.
+# 
+# 
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String

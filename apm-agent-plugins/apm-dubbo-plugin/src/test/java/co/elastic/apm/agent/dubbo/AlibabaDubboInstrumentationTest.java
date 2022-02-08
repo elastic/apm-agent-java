@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,26 +46,28 @@ import static org.assertj.core.api.Assertions.fail;
 public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentationTest {
 
     @Override
-    protected DubboTestApi buildDubboTestApi() {
+    protected DubboTestApi buildDubboTestApi(int port1, int port2) {
         RegistryConfig registryConfig = createRegistryConfig();
         ApplicationConfig appConfig = createApplicationConfig();
 
         //build AnotherApi provider
-        ProtocolConfig anotherApiProtocolConfig = createProtocolConfig(getAnotherApiPort());
+        ProtocolConfig anotherApiProtocolConfig = createProtocolConfig(port2);
         createAndExportServiceConfig(registryConfig, AnotherApi.class, new AnotherApiImpl(), appConfig, anotherApiProtocolConfig);
 
         //build AnotherApi consumer
-        ReferenceConfig<AnotherApi> anotherApiReferenceConfig = createReferenceConfig(AnotherApi.class, appConfig, anotherApiProtocolConfig.getPort());
+        ReferenceConfig<AnotherApi> anotherApiReferenceConfig = createReferenceConfig(AnotherApi.class, appConfig, port2);
+
+        AnotherApi anotherApi = withRetry(anotherApiReferenceConfig::get);
 
         // build DubboTestApi provider
-        ProtocolConfig protocolConfig = createProtocolConfig(getPort());
-        createAndExportServiceConfig(registryConfig, DubboTestApi.class, new DubboTestApiImpl(anotherApiReferenceConfig.get()), appConfig, protocolConfig);
+        ProtocolConfig protocolConfig = createProtocolConfig(port1);
+        createAndExportServiceConfig(registryConfig, DubboTestApi.class, new DubboTestApiImpl(anotherApi), appConfig, protocolConfig);
 
         // build DubboTestApi consumer
-        ReferenceConfig<DubboTestApi> testApiReferenceConfig = createReferenceConfig(DubboTestApi.class, appConfig, protocolConfig.getPort());
+        ReferenceConfig<DubboTestApi> dubboTestApi = createReferenceConfig(DubboTestApi.class, appConfig, port1);
 
         List<MethodConfig> methodConfigList = new LinkedList<>();
-        testApiReferenceConfig.setMethods(methodConfigList);
+        dubboTestApi.setMethods(methodConfigList);
         MethodConfig asyncConfig = new MethodConfig();
         asyncConfig.setName("async");
         asyncConfig.setAsync(true);
@@ -76,7 +79,7 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
         asyncNoReturnConfig.setReturn(false);
         methodConfigList.add(asyncNoReturnConfig);
 
-        return testApiReferenceConfig.get();
+        return dubboTestApi.get();
     }
 
     private static RegistryConfig createRegistryConfig() {
@@ -111,7 +114,13 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
         serviceConfig.setInterface(interfaceClass);
         serviceConfig.setRef(interfaceImpl);
         serviceConfig.setRegistry(registryConfig);
-        serviceConfig.export();
+
+        withRetry((Callable<Void>) () -> {
+            serviceConfig.export();
+            return null;
+        });
+
+
     }
 
     private static <T> ReferenceConfig<T> createReferenceConfig(Class<T> interfaceClass, ApplicationConfig applicationConfig, int port) {

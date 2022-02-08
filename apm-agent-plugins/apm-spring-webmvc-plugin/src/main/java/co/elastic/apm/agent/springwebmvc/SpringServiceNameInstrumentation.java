@@ -20,8 +20,8 @@ package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.configuration.ServiceInfo;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.servlet.ServletServiceNameHelper;
+import co.elastic.apm.agent.servlet.adapter.JavaxServletApiAdapter;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -67,50 +67,47 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
 
     public static class SpringServiceNameAdvice {
 
-        private static final Logger logger = LoggerFactory.getLogger(SpringServiceNameAdvice.class);
-
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void afterInitPropertySources(@Advice.This WebApplicationContext applicationContext) {
+            // avoid having two service names for a standalone jar
+            // one based on Implementation-Title and one based on spring.application.name
+            if (!ServiceInfo.autoDetected().isMultiServiceContainer()) {
+                return;
+            }
             // This method will be called whenever the spring application context is refreshed which may be more than once
             //
             // For example, using Tomcat Servlet container, it's called twice with the first not having a ServletContext,
             // while the second does, and later requests are initiated with the Servlet classloader and not the application
             // classloader.
             ClassLoader classLoader = applicationContext.getClassLoader();
-
+            ServiceInfo fromServletContext = ServiceInfo.empty();
             ServletContext servletContext = applicationContext.getServletContext();
             if (servletContext != null) {
                 try {
                     ClassLoader servletClassloader = servletContext.getClassLoader();
                     if (servletClassloader != null) {
                         classLoader = servletClassloader;
+                        fromServletContext = ServletServiceNameHelper.detectServiceInfo(JavaxServletApiAdapter.get(), servletContext, servletClassloader);
                     }
                 } catch (UnsupportedOperationException e) {
                     // silently ignored
                 }
             }
 
-            String appName = applicationContext.getEnvironment().getProperty("spring.application.name", "");
+            ServiceInfo fromSpringApplicationNameProperty = ServiceInfo.of(applicationContext.getEnvironment().getProperty("spring.application.name", ""));
+            ServiceInfo fromApplicationContextApplicationName = ServiceInfo.of(removeLeadingSlash(applicationContext.getApplicationName()));
 
-            if (!appName.isEmpty()) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Setting service name `{}` to be used for class loader [{}], based on the value of " +
-                        "the `spring.application.name` environment variable", appName, classLoader);
-                }
-            } else {
-                // fallback when application name isn't set through an environment property
-                appName = applicationContext.getApplicationName();
-                // remove '/' (if any) from application name
-                if (appName.startsWith("/")) {
-                    appName = appName.substring(1);
-                }
-                if (logger.isDebugEnabled()) {
-                    logger.debug("``spring.application.name` environment variable is not set, falling back to using `{}` " +
-                        "as service name for class loader [{}]", appName, classLoader);
-                }
+            tracer.overrideServiceInfoForClassLoader(classLoader, fromSpringApplicationNameProperty
+                .withFallback(fromServletContext)
+                .withFallback(fromApplicationContextApplicationName));
+        }
+
+        private static String removeLeadingSlash(String appName) {
+            // remove '/' (if any) from application name
+            if (appName.startsWith("/")) {
+                appName = appName.substring(1);
             }
-
-            tracer.overrideServiceInfoForClassLoader(classLoader, ServiceInfo.of(appName));
+            return appName;
         }
     }
 }
