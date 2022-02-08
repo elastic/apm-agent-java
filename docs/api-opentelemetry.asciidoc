@@ -6,7 +6,7 @@ endif::[]
 [[opentelementry-bridge]]
 === OpenTelemetry bridge
 
-NOTE: Added as experimental in 1.29.0.
+NOTE: Added as experimental in 1.30.0.
 To enable it, set <<config-enable-experimental-instrumentations, `enable_experimental_instrumentations`>> to `true`.
 
 The Elastic APM OpenTelemetry bridge allows creating Elastic APM `Transactions` and `Spans`,
