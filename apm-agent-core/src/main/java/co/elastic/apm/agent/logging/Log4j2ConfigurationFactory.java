@@ -121,7 +121,8 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
     Configuration getConfiguration() {
         ConfigurationBuilder<BuiltConfiguration> builder = newConfigurationBuilder();
         builder.setStatusLevel(Level.ERROR)
-            .setConfigurationName("ElasticAPM");
+            .setConfigurationName("ElasticAPM")
+            .setShutdownHook("disable");
 
         Level level = getLogLevel();
         RootLoggerComponentBuilder rootLogger = builder.newRootLogger(level);
