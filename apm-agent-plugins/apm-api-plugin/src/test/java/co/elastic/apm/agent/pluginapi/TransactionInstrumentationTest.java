@@ -23,6 +23,7 @@ import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.api.AbstractSpanImplAccessor;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Outcome;
+import co.elastic.apm.api.ServiceInfo;
 import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -294,6 +295,14 @@ class TransactionInstrumentationTest extends AbstractApiTest {
     @Test
     void setOutcome_success() {
         testSetOutcome(Outcome.SUCCESS);
+    }
+
+    @Test
+    void setSetServiceInfo() {
+        transaction.setServiceInfo(new ServiceInfo("My Service", "My Version"));
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("My Service");
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("My Version");
     }
 
     private void testSetOutcome(Outcome outcome) {

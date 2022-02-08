@@ -370,4 +370,13 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
         ElasticApm.startTransactionWithRemoteParent(null).end();
         assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
     }
+
+    @Test
+    void testetAndGetServiceInfo() {
+        co.elastic.apm.api.ServiceInfo setServiceInfo = new co.elastic.apm.api.ServiceInfo("My Service", "My Version");
+        ElasticApm.setServiceInfoForClassLoader(ElasticApmApiInstrumentationTest.class.getClassLoader(), setServiceInfo);
+        co.elastic.apm.api.ServiceInfo getServiceInfo = ElasticApm.getServiceInfoForClassLoader(ElasticApmApiInstrumentationTest.class.getClassLoader());
+        assertThat(getServiceInfo.getName()).isEqualTo("My Service");
+        assertThat(getServiceInfo.getVersion()).isEqualTo("My Version");
+    }
 }
