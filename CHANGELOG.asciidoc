@@ -53,6 +53,7 @@ endif::[]
 * Added support for Java/Jakarta WebSocket ServerEndpoint - {pull}2281[#2281]
 * Added support for setting the service name on Log4j2's EcsLayout - {pull}2296[#2296]
 * Print the used instrumentation groups when the application stops - {pull}2448[#2448]
+* Add `elastic.apm.start_async` property that makes the agent start on a non-premain/main thread - {pull}2454[#2454]
 
 [float]
 ===== Bug fixes

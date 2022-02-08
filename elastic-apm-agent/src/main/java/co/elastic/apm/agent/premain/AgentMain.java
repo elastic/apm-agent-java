@@ -90,7 +90,12 @@ public class AgentMain {
         if (delayAgentInitMs > 0) {
             delayAndInitAgentAsync(agentArguments, instrumentation, premain, delayAgentInitMs);
         } else {
-            loadAndInitializeAgent(agentArguments, instrumentation, premain);
+            String startAgentAsyncProperty = System.getProperty("elastic.apm.start_async");
+            if (startAgentAsyncProperty != null) {
+                delayAndInitAgentAsync(agentArguments, instrumentation, premain, 0);
+            } else {
+                loadAndInitializeAgent(agentArguments, instrumentation, premain);
+            }
         }
     }
 
@@ -119,7 +124,9 @@ public class AgentMain {
             public void run() {
                 try {
                     synchronized (AgentMain.class) {
-                        Thread.sleep(delayAgentInitMs);
+                        if (delayAgentInitMs > 0) {
+                            Thread.sleep(delayAgentInitMs);
+                        }
                         loadAndInitializeAgent(agentArguments, instrumentation, premain);
                     }
                 } catch (InterruptedException e) {
