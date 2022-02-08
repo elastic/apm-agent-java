@@ -35,12 +35,18 @@ public class ServiceInfo {
     private final String serviceName;
     @Nullable
     private final String serviceVersion;
+    private final boolean multiServiceContainer;
 
     public ServiceInfo(@Nullable String serviceName) {
         this(serviceName, null);
     }
 
     private ServiceInfo(@Nullable String serviceName, @Nullable String serviceVersion) {
+        this(serviceName, serviceVersion, false);
+    }
+
+    private ServiceInfo(@Nullable String serviceName, @Nullable String serviceVersion, boolean multiServiceContainer) {
+        this.multiServiceContainer = multiServiceContainer;
         if (serviceName == null || serviceName.trim().isEmpty()) {
             this.serviceName = DEFAULT_SERVICE_NAME;
         } else {
@@ -55,6 +61,10 @@ public class ServiceInfo {
 
     public static ServiceInfo of(@Nullable String serviceName) {
         return of(serviceName, null);
+    }
+
+    public static ServiceInfo ofMultiServiceContainer(String serviceName) {
+        return new ServiceInfo(serviceName, null, true);
     }
 
     public static ServiceInfo of(@Nullable String serviceName, @Nullable String serviceVersion) {
@@ -94,7 +104,7 @@ public class ServiceInfo {
         command = command.trim();
         String serviceName = getContainerServiceName(command);
         if (serviceName != null) {
-            return ServiceInfo.of(serviceName);
+            return ServiceInfo.ofMultiServiceContainer(serviceName);
         }
         if (command.contains(".jar")) {
             return fromJarCommand(command);
@@ -181,6 +191,15 @@ public class ServiceInfo {
         return serviceVersion;
     }
 
+    /**
+     * Returns true if the service is a container service that can host multiple other applications.
+     * For example, an application server or servlet container.
+     * A standalone application that's built on embedded Tomcat, for example, would return {@code false}.
+     */
+    public boolean isMultiServiceContainer() {
+        return multiServiceContainer;
+    }
+
     public ServiceInfo withFallback(ServiceInfo fallback) {
         return ServiceInfo.of(
             hasServiceName() ? serviceName : fallback.serviceName,
@@ -200,19 +219,20 @@ public class ServiceInfo {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ServiceInfo that = (ServiceInfo) o;
-        return serviceName.equals(that.serviceName) && Objects.equals(serviceVersion, that.serviceVersion);
+        return multiServiceContainer == that.multiServiceContainer && serviceName.equals(that.serviceName) && Objects.equals(serviceVersion, that.serviceVersion);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(serviceName, serviceVersion);
+        return Objects.hash(serviceName, serviceVersion, multiServiceContainer);
     }
 
     @Override
     public String toString() {
         return "ServiceInfo{" +
-            "name='" + serviceName + '\'' +
-            ", version='" + serviceVersion + '\'' +
+            "serviceName='" + serviceName + '\'' +
+            ", serviceVersion='" + serviceVersion + '\'' +
+            ", multiServiceContainer=" + multiServiceContainer +
             '}';
     }
 }
