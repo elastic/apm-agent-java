@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Added support for setting service name and version for a transaction via the public api - {pull}2451[#2451]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
@@ -54,7 +55,6 @@ endif::[]
 * Added support for setting the service name on Log4j2's EcsLayout - {pull}2296[#2296]
 * Print the used instrumentation groups when the application stops - {pull}2448[#2448]
 * Add `elastic.apm.start_async` property that makes the agent start on a non-premain/main thread - {pull}2454[#2454]
-* Added support for setting service name and version for a transaction via the public api - {pull}2451[#2451]
 
 [float]
 ===== Bug fixes
