@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.servlet;
+package co.elastic.apm.agent.servlet.service_name;
 
+import co.elastic.apm.agent.servlet.AbstractServletInstrumentation;
+import co.elastic.apm.agent.servlet.ServletServiceNameHelper;
 import co.elastic.apm.agent.servlet.adapter.JakartaServletApiAdapter;
 import co.elastic.apm.agent.servlet.adapter.JavaxServletApiAdapter;
 import net.bytebuddy.asm.Advice;
@@ -52,7 +54,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * Determines the service name based on the webapp's {@code META-INF/MANIFEST.MF} file early in the startup process.
  * As this doesn't work with runtime attachment, the service name is also determined when the first request comes in.
  */
-public abstract class InitServiceNameInstrumentation extends AbstractServletInstrumentation {
+public abstract class Servlet2PlusInstrumentation extends AbstractServletInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -76,7 +78,7 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
                 .and(takesArgument(0, nameEndsWith("ServletContextEvent"))));
     }
 
-    public static class JavaxInitServiceNameInstrumentation extends InitServiceNameInstrumentation {
+    public static class JavaxInitServiceNameInstrumentation extends Servlet2PlusInstrumentation {
 
         private static final JavaxServletApiAdapter adapter = JavaxServletApiAdapter.get();
 
@@ -103,7 +105,7 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
         }
     }
 
-    public static class JakartaInitServiceNameInstrumentation extends InitServiceNameInstrumentation {
+    public static class JakartaInitServiceNameInstrumentation extends Servlet2PlusInstrumentation {
 
         private static final JakartaServletApiAdapter adapter = JakartaServletApiAdapter.get();
 

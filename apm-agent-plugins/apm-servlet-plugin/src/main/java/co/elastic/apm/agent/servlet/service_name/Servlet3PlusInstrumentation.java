@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.servlet;
+package co.elastic.apm.agent.servlet.service_name;
 
+import co.elastic.apm.agent.servlet.AbstractServletInstrumentation;
+import co.elastic.apm.agent.servlet.ServletServiceNameHelper;
 import co.elastic.apm.agent.servlet.adapter.JakartaServletApiAdapter;
 import co.elastic.apm.agent.servlet.adapter.JavaxServletApiAdapter;
 import net.bytebuddy.asm.Advice;
@@ -49,7 +51,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * Determines the service name based on the webapp's {@code META-INF/MANIFEST.MF} file early in the startup process.
  * As this doesn't work with runtime attachment, the service name is also determined when the first request comes in.
  */
-public abstract class InitServiceNameInstrumentation2 extends AbstractServletInstrumentation {
+public abstract class Servlet3PlusInstrumentation extends AbstractServletInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -70,7 +72,7 @@ public abstract class InitServiceNameInstrumentation2 extends AbstractServletIns
             .and(takesArgument(1, nameEndsWith("ServletContext")));
     }
 
-    public static class JavaxInitServiceNameInstrumentation extends InitServiceNameInstrumentation2 {
+    public static class JavaxInitServiceNameInstrumentation extends Servlet3PlusInstrumentation {
 
         private static final JavaxServletApiAdapter adapter = JavaxServletApiAdapter.get();
 
@@ -90,7 +92,7 @@ public abstract class InitServiceNameInstrumentation2 extends AbstractServletIns
         }
     }
 
-    public static class JakartaInitServiceNameInstrumentation extends InitServiceNameInstrumentation2 {
+    public static class JakartaInitServiceNameInstrumentation extends Servlet3PlusInstrumentation {
 
         private static final JakartaServletApiAdapter adapter = JakartaServletApiAdapter.get();
 
@@ -103,7 +105,7 @@ public abstract class InitServiceNameInstrumentation2 extends AbstractServletIns
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onEnter(@Advice.Argument(1) @Nullable Object servletContext) {
-                if (servletContext instanceof javax.servlet.ServletContext) {
+                if (servletContext instanceof jakarta.servlet.ServletContext) {
                     ServletServiceNameHelper.determineServiceName(adapter, (jakarta.servlet.ServletContext) servletContext, tracer);
                 }
             }
