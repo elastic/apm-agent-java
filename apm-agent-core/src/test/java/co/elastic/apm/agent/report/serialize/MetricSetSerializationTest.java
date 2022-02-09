@@ -208,7 +208,7 @@ class MetricSetSerializationTest {
     void testServiceNameOverrideWithOneService() throws Exception {
         registry.updateTimer("foo", Labels.Mutable.of(), 1);
 
-        JsonNode jsonNode = reportAsJson(singletonList(new ServiceInfo("bar", "1.0")));
+        JsonNode jsonNode = reportAsJson(singletonList(ServiceInfo.of("bar", "1.0")));
         assertThat(jsonNode).isNotNull();
         JsonNode serviceName = jsonNode.get("metricset").get("service").get("name");
         assertThat(serviceName.asText()).isEqualTo("bar");
@@ -224,7 +224,7 @@ class MetricSetSerializationTest {
         registry.flipPhaseAndReport(
             metricSets -> jwFuture.complete(metricRegistrySerializer.serialize(
                 metricSets.values().iterator().next(),
-                List.of(new ServiceInfo("bar1", "2.0"), new ServiceInfo("bar2", null))
+                List.of(ServiceInfo.of("bar1", "2.0"), ServiceInfo.of("bar2"))
             ))
         );
 

@@ -16,30 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.servlet.helper;
+package co.elastic.apm.agent.servlet.adapter;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 
 import javax.annotation.Nullable;
-import java.util.Enumeration;
+import java.util.Collection;
 
-public abstract class CommonServletRequestHeaderGetter<T> implements TextHeaderGetter<T> {
+@GlobalState
+public interface ServletResponseAdapter<HttpServletResponse> {
+
     @Nullable
-    @Override
-    public String getFirstHeader(String headerName, T carrier) {
-        return getHeader(headerName, carrier);
-    }
+    HttpServletResponse asHttpServletResponse(Object servletResponse);
 
-    abstract String getHeader(String headerName, T carrier);
+    Collection<String> getHeaderNames(HttpServletResponse httpServletResponse);
 
-    @Override
-    public <S> void forEach(String headerName, T carrier, S state, HeaderConsumer<String, S> consumer) {
-        Enumeration<String> headers = getHeaders(headerName, carrier);
-        while (headers.hasMoreElements()) {
-            consumer.accept(headers.nextElement(), state);
-        }
-    }
+    Collection<String> getHeaders(HttpServletResponse httpServletResponse, String headerName);
 
-    abstract Enumeration<String> getHeaders(String headerName, T carrier);
+    boolean isCommitted(HttpServletResponse httpServletResponse);
+
+    int getStatus(HttpServletResponse httpServletResponse);
 
 }

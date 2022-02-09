@@ -34,6 +34,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.ObjectPool;
@@ -41,12 +42,12 @@ import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -462,6 +463,7 @@ public class ElasticApmTracer implements Tracer {
         } catch (Exception e) {
             logger.warn("Suppressed exception while calling stop()", e);
         }
+        LoggingConfiguration.shutdown();
     }
 
     public Reporter getReporter() {
@@ -748,30 +750,24 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @Override
-    public void overrideServiceInfoForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName) {
-        overrideServiceInfoForClassLoader(classLoader, serviceName, null);
-    }
-
-    @Override
-    public void overrideServiceInfoForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName, @Nullable String serviceVersion) {
+    public void overrideServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo) {
         // overriding the service name/version for the bootstrap class loader is not an actual use-case
         // null may also mean we don't know about the initiating class loader
         if (classLoader == null
-            || serviceName == null || serviceName.isEmpty()
+            || !serviceInfo.hasServiceName()
             // if the service name is set explicitly, don't override it
             || coreConfiguration.getServiceNameConfig().getUsedKey() != null) {
             return;
         }
 
-        ServiceInfo serviceInfo = new ServiceInfo(serviceName, serviceVersion);
         logger.debug("Using `{}` as the service name and `{}` as the service version for class loader [{}]", serviceInfo.getServiceName(), serviceInfo.getServiceVersion(), classLoader);
         if (!serviceInfoByClassLoader.containsKey(classLoader)) {
-            serviceInfoByClassLoader.putIfAbsent(classLoader, new ServiceInfo(serviceName, serviceVersion));
+            serviceInfoByClassLoader.putIfAbsent(classLoader, serviceInfo);
         }
     }
 
     @Nullable
-    private ServiceInfo getServiceInfo(@Nullable ClassLoader initiatingClassLoader) {
+    public ServiceInfo getServiceInfo(@Nullable ClassLoader initiatingClassLoader) {
         if (initiatingClassLoader == null) {
             return null;
         }

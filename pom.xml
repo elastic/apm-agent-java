@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.28.5-SNAPSHOT</version>
+    <version>1.29.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -108,7 +108,7 @@
         <version.junit-vintage-engine>5.8.2</version.junit-vintage-engine>
         <version.logback>1.2.3</version.logback>
         <version.okhttp>4.9.1</version.okhttp>
-        <version.slf4j>1.7.32</version.slf4j>
+        <version.slf4j>1.7.35</version.slf4j>
         <!-- this is the last version of log4j that is compatible with Java 7. Due to a known vulnerability
         (https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle), the SMTP appender is
          excluded from the build and not packaged into the agent artifacts -->
@@ -398,7 +398,10 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <configuration>
-                    <excludes>**/*.esclazz</excludes>
+                    <excludes>
+                        <exclude>**/*.esclazz</exclude>
+                        <exclude>**/*.jar</exclude>
+                    </excludes>
                 </configuration>
                 <executions>
                     <execution>

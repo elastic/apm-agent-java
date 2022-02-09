@@ -28,7 +28,7 @@ import java.io.UnsupportedEncodingException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class Struts2TransactionNameInstrumentationTest extends StrutsTestCase {
+public class ActionProxyAdviceTest extends StrutsTestCase {
 
     public static class TestAction extends ActionSupport {
 
