@@ -24,7 +24,6 @@ import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.InstallationListenerImpl;
 import co.elastic.apm.agent.bci.bytebuddy.Instrumented;
 import co.elastic.apm.agent.bci.bytebuddy.LruTypePoolCache;
-import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.NonInstrumented;
 import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
@@ -38,6 +37,8 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
@@ -61,8 +62,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
@@ -108,7 +107,8 @@ public class ElasticApmAgent {
     @Nullable
     private static Logger logger;
 
-    private static final ConcurrentMap<String, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
+    private static final InstrumentationStats instrumentationStats = new InstrumentationStats();
+
     @Nullable
     private static Instrumentation instrumentation;
     @Nullable
@@ -258,10 +258,10 @@ public class ElasticApmAgent {
             @Override
             public void run() {
                 tracer.stop();
-                matcherTimers.clear();
+                instrumentationStats.reset();
             }
         });
-        matcherTimers.clear();
+        instrumentationStats.reset();
         Logger logger = getLogger();
         if (ElasticApmAgent.instrumentation != null) {
             logger.warn("Instrumentation has already been initialized");
@@ -329,6 +329,7 @@ public class ElasticApmAgent {
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
             if (isIncluded(advice, coreConfiguration)) {
+                instrumentationStats.addInstrumentation(advice);
                 try {
                     agentBuilder = applyAdvice(tracer, agentBuilder, advice, advice.getTypeMatcher());
                     numberOfAdvices++;
@@ -396,7 +397,7 @@ public class ElasticApmAgent {
                         }
                         return typeMatches;
                     } finally {
-                        getOrCreateTimer(instrumentation.getClass()).addTypeMatchingDuration(System.nanoTime() - start);
+                        instrumentationStats.getOrCreateTimer(instrumentation.getClass()).addTypeMatchingDuration(System.nanoTime() - start);
                     }
                 }
             })
@@ -427,7 +428,11 @@ public class ElasticApmAgent {
     }
 
     private static AgentBuilder.Transformer.ForAdvice getTransformer(final ElasticApmInstrumentation instrumentation, final Logger logger, final ElementMatcher<? super MethodDescription> methodMatcher) {
-        validateAdvice(instrumentation);
+        boolean validate = false;
+        assert validate = true;
+        if (validate) {
+            validateAdvice(instrumentation);
+        }
         Advice.WithCustomMapping withCustomMapping = Advice
             .withCustomMapping()
             .with(new Advice.AssignReturned.Factory().withSuppressed(ClassCastException.class))
@@ -454,10 +459,11 @@ public class ElasticApmAgent {
                         if (matches) {
                             logger.debug("Method match for instrumentation {}: {} matches {}",
                                 instrumentation.getClass().getSimpleName(), methodMatcher, target);
+                            instrumentationStats.addUsedInstrumentation(instrumentation);
                         }
                         return matches;
                     } finally {
-                        getOrCreateTimer(instrumentation.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
+                        instrumentationStats.getOrCreateTimer(instrumentation.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
                     }
                 }
             }, instrumentation.getAdviceClassName())
@@ -560,27 +566,8 @@ public class ElasticApmAgent {
         }
     }
 
-    private static MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {
-        final String name = adviceClass.getName();
-        MatcherTimer timer = matcherTimers.get(name);
-        if (timer == null) {
-            matcherTimers.putIfAbsent(name, new MatcherTimer(name));
-            return matcherTimers.get(name);
-        } else {
-            return timer;
-        }
-    }
-
-    static long getTotalMatcherTime() {
-        long totalTime = 0;
-        for (MatcherTimer value : matcherTimers.values()) {
-            totalTime += value.getTotalTime();
-        }
-        return totalTime;
-    }
-
-    static Collection<MatcherTimer> getMatcherTimers() {
-        return matcherTimers.values();
+    static InstrumentationStats getInstrumentationStats() {
+        return instrumentationStats;
     }
 
     // may help to debug classloading problems

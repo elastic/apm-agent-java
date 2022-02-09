@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.servlet.tests;
 
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
@@ -45,8 +46,8 @@ public abstract class ExternalPluginTestApp extends TestApp {
             appWarFileName + ".war",
             appWarFileName,
             "status.html",
-            appWarFileName
-        );
+            appWarFileName,
+            null);
         this.appWarFileName = appWarFileName;
     }
 
@@ -91,7 +92,7 @@ public abstract class ExternalPluginTestApp extends TestApp {
 
     /**
      * Since we test custom transaction creation through the external plugin, the service name for this transaction cannot be
-     * captured through the {@link Tracer#overrideServiceNameForClassLoader(java.lang.ClassLoader, java.lang.String)} mechanism.
+     * captured through the {@link Tracer#overrideServiceInfoForClassLoader(ClassLoader, ServiceInfo)} mechanism.
      */
     @Nullable
     @Override
