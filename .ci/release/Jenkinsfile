@@ -29,6 +29,7 @@ pipeline {
     string(name: 'branch_specifier', defaultValue: 'stable', description: "What branch to release from?")
     booleanParam(name: 'check_branch_ci_status', defaultValue: true, description: "Check for failing tests in the given branch (if no stable branch)?")
     booleanParam(name: 'publish_aws_lambda', defaultValue: true, description: "Whether to upload the AWS lambda")
+    string(name: 'release_build', defaultValue: '', description: "Build number for the release job (required for publishing the AWS lambda)")
   }
   stages {
     stage('Initializing'){
@@ -186,7 +187,7 @@ pipeline {
                   fingerprintArtifacts: true,
                   flatten: true,
                   projectName: 'elastic+apm-agent-java+release',
-                  selector: lastSuccessful()
+                  selector: specific(params.release_build)
                 )
                 sh(label: 'make publish-in-all-aws-regions', script: 'make -C .ci publish-in-all-aws-regions')
                 sh(label: 'make create-arn-file', script: 'make -C .ci create-arn-file')
