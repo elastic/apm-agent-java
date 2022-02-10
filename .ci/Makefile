@@ -5,9 +5,8 @@ AWS_LAMBDA_ZIP_LOCATION = elastic-apm-agent/target
 
 export AWS_FOLDER
 
-dist: validate-branch-name
+dist:
 	@cp $(AWS_LAMBDA_ZIP_LOCATION)/elastic-apm-java-aws-lambda-layer-*.zip $(AWS_LAMBDA_ZIP_LOCATION)/$(ELASTIC_LAYER_NAME).zip
-
 
 # List all the AWS regions
 get-all-aws-regions:
@@ -54,11 +53,11 @@ grant-public-layer-access: validate-layer-name validate-aws-default-region
 create-arn-file: validate-suffix-arn-file
 	@./create-arn-table.sh
 
-upload-lambda-asset: validate-branch-name validate-layer-name
+upload-lambda-asset: validate-release-version validate-layer-name
 	@gh release list
 	@gh \
 		release \
-		upload $(BRANCH_NAME) \
+		upload $(RELEASE_VERSION) \
 		./$(AWS_LAMBDA_ZIP_LOCATION)/$(ELASTIC_LAYER_NAME).zip
 
 # Get the ARN Version for the AWS_REGIONS
@@ -67,9 +66,9 @@ upload-lambda-asset: validate-branch-name validate-layer-name
 get-version: validate-aws-default-region
 	@grep '"Version"' "$(AWS_FOLDER)/$(AWS_DEFAULT_REGION)" | cut -d":" -f2 | sed 's/ //g' | cut -d"," -f1
 
-validate-branch-name:
-ifndef BRANCH_NAME
-	$(error BRANCH_NAME is undefined)
+validate-release-version:
+ifndef RELEASE_VERSION
+	$(error RELEASE_VERSION is undefined)
 endif
 
 validate-suffix-arn-file:
