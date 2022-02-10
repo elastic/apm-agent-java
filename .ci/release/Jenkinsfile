@@ -213,7 +213,6 @@ pipeline {
                 env.RELEASE_ID = ret['id']
                 env.RELEASE_NOTES_URL = finalUrl
               }
-              sh(label: 'make upload-lambda-asset', script: 'make -C .ci upload-lambda-asset')
             }
           }
         }
