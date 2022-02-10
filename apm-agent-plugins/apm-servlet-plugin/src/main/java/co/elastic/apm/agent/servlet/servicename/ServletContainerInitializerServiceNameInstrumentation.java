@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.servlet.service_name;
+package co.elastic.apm.agent.servlet.servicename;
 
 import co.elastic.apm.agent.servlet.AbstractServletInstrumentation;
 import co.elastic.apm.agent.servlet.ServletServiceNameHelper;
@@ -29,6 +29,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import java.util.Set;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -43,42 +44,35 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 /**
  * Instruments
  * <ul>
- *     <li>{@link javax.servlet.Filter#init(javax.servlet.FilterConfig)}</li>
- *     <li>{@link jakarta.servlet.Filter#init(jakarta.servlet.FilterConfig)}</li>
- *     <li>{@link javax.servlet.Servlet#init(javax.servlet.ServletConfig)}</li>
- *     <li>{@link jakarta.servlet.Servlet#init(jakarta.servlet.ServletConfig)}</li>
- *     <li>{@link javax.servlet.ServletContextListener#contextInitialized(javax.servlet.ServletContextEvent)}</li>
- *     <li>{@link jakarta.servlet.ServletContextListener#contextInitialized(jakarta.servlet.ServletContextEvent)}</li>
+ *     <li>{@link javax.servlet.ServletContainerInitializer#onStartup(java.util.Set, javax.servlet.ServletContext)} </li>
+ *     <li>{@link jakarta.servlet.ServletContainerInitializer#onStartup(java.util.Set, jakarta.servlet.ServletContext)}</li>
  * </ul>
- *
+ * <p>
  * Determines the service name based on the webapp's {@code META-INF/MANIFEST.MF} file early in the startup process.
  * As this doesn't work with runtime attachment, the service name is also determined when the first request comes in.
  */
-public abstract class Servlet2PlusInstrumentation extends AbstractServletInstrumentation {
+public abstract class ServletContainerInitializerServiceNameInstrumentation extends AbstractServletInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Filter").or(nameContains("Servlet")).or(nameContains("Listener"));
+        return nameContains("Initializer");
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface()).and(hasSuperType(namedOneOf(
-            "javax.servlet.ServletContextListener", "javax.servlet.Filter", "javax.servlet.Servlet",
-            "jakarta.servlet.ServletContextListener", "jakarta.servlet.Filter", "jakarta.servlet.Servlet")));
+            "javax.servlet.ServletContainerInitializer", "jakarta.servlet.ServletContainerInitializer")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("init")
-            .and(takesArguments(1))
-            .and(takesArgument(0, nameEndsWith("Config")))
-            .or(named("contextInitialized")
-                .and(takesArguments(1))
-                .and(takesArgument(0, nameEndsWith("ServletContextEvent"))));
+        return named("onStartup")
+            .and(takesArguments(2))
+            .and(takesArgument(0, Set.class))
+            .and(takesArgument(1, nameEndsWith("ServletContext")));
     }
 
-    public static class JavaxInitServiceNameInstrumentation extends Servlet2PlusInstrumentation {
+    public static class JavaxInitServiceNameInstrumentation extends ServletContainerInitializerServiceNameInstrumentation {
 
         private static final JavaxServletApiAdapter adapter = JavaxServletApiAdapter.get();
 
@@ -88,24 +82,17 @@ public abstract class Servlet2PlusInstrumentation extends AbstractServletInstrum
         }
 
         public static class AdviceClass {
+
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void onEnter(@Advice.Argument(0) @Nullable Object arg) {
-                javax.servlet.ServletContext servletContext;
-                if (arg instanceof javax.servlet.FilterConfig) {
-                    servletContext = adapter.getServletContextFromFilterConfig((javax.servlet.FilterConfig) arg);
-                } else if (arg instanceof javax.servlet.ServletConfig) {
-                    servletContext = adapter.getServletContextFromServletConfig((javax.servlet.ServletConfig) arg);
-                } else if (arg instanceof javax.servlet.ServletContextEvent) {
-                    servletContext = adapter.getServletContextFromServletContextEvent((javax.servlet.ServletContextEvent) arg);
-                } else {
-                    return;
+            public static void onEnter(@Advice.Argument(1) @Nullable Object servletContext) {
+                if (servletContext instanceof javax.servlet.ServletContext) {
+                    ServletServiceNameHelper.determineServiceName(adapter, (javax.servlet.ServletContext) servletContext, tracer);
                 }
-                ServletServiceNameHelper.determineServiceName(adapter, servletContext, tracer);
             }
         }
     }
 
-    public static class JakartaInitServiceNameInstrumentation extends Servlet2PlusInstrumentation {
+    public static class JakartaInitServiceNameInstrumentation extends ServletContainerInitializerServiceNameInstrumentation {
 
         private static final JakartaServletApiAdapter adapter = JakartaServletApiAdapter.get();
 
@@ -117,18 +104,10 @@ public abstract class Servlet2PlusInstrumentation extends AbstractServletInstrum
         public static class AdviceClass {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void onEnter(@Advice.Argument(0) @Nullable Object arg) {
-                jakarta.servlet.ServletContext servletContext;
-                if (arg instanceof jakarta.servlet.FilterConfig) {
-                    servletContext = adapter.getServletContextFromFilterConfig((jakarta.servlet.FilterConfig) arg);
-                } else if (arg instanceof jakarta.servlet.ServletConfig) {
-                    servletContext = adapter.getServletContextFromServletConfig((jakarta.servlet.ServletConfig) arg);
-                } else if (arg instanceof jakarta.servlet.ServletContextEvent) {
-                    servletContext = adapter.getServletContextFromServletContextEvent((jakarta.servlet.ServletContextEvent) arg);
-                } else {
-                    return;
+            public static void onEnter(@Advice.Argument(1) @Nullable Object servletContext) {
+                if (servletContext instanceof jakarta.servlet.ServletContext) {
+                    ServletServiceNameHelper.determineServiceName(adapter, (jakarta.servlet.ServletContext) servletContext, tracer);
                 }
-                ServletServiceNameHelper.determineServiceName(adapter, servletContext, tracer);
             }
         }
     }
