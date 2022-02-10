@@ -194,6 +194,11 @@ pipeline {
               }
             }
           }
+          post {
+            always {
+              archiveArtifacts(allowEmptyArchive: true, artifacts: "${BASE_DIR}/.ci/${SUFFIX_ARN_FILE}")
+            }
+          }
         }
         stage('Create GitHub release draft') {
           steps {
