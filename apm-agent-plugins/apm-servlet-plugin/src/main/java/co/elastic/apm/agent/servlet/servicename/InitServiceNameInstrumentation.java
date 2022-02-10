@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.servlet;
+package co.elastic.apm.agent.servlet.servicename;
 
+import co.elastic.apm.agent.servlet.AbstractServletInstrumentation;
+import co.elastic.apm.agent.servlet.ServletServiceNameHelper;
 import co.elastic.apm.agent.servlet.adapter.JakartaServletApiAdapter;
 import co.elastic.apm.agent.servlet.adapter.JavaxServletApiAdapter;
 import net.bytebuddy.asm.Advice;
