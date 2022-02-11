@@ -36,7 +36,7 @@ publish: validate-layer-name validate-aws-default-region
 		--description "AWS Lambda Extension Layer for the Elastic APM Java Agent" \
 		--compatible-runtimes java8.al2 java11 \
 		--license "Apache-2.0" \
-		--zip-file "fileb://./$(AWS_LAMBDA_ZIP_LOCATION)/$(ELASTIC_LAYER_NAME).zip"
+		--zip-file "fileb://../$(AWS_LAMBDA_ZIP_LOCATION)/$(ELASTIC_LAYER_NAME).zip"
 
 # Grant public access to the given LAYER in the given AWS region
 grant-public-layer-access: validate-layer-name validate-aws-default-region
