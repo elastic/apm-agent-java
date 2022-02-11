@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: openjdk11
+    image: openjdk:11-jdk-buster
+    command:
+    - sleep
+    args:
+    - infinity
+  - name: openjdk12
+    image: openjdk:12
+    command:
+    - sleep
+    args:
+    - infinity
+  - name: openjdk13
+    image: openjdk:13
+    command:
+    - sleep
+    args:
+    - infinity
+  - name: openjdk14
+    image: openjdk:14
+    command:
+    - sleep
+    args:
+    - infinity
+  - name: openjdk15
+    image: openjdk:15
+    command:
+    - sleep
+    args:
+    - infinity
+  - name: openjdk16
+    image: openjdk:16
+    command:
+    - sleep
+    args:
+    - infinity
+## TODO: Faster builds with some cached artifacts.
+##       mount a volume with the cached m2 folder in /var/lib/jenkins/.m2/repository
+##       for instance https://github.com/jenkinsci/kubernetes-plugin/blob/master/examples/maven-with-cache.groovy
+##       Maybe the infra folks already provide this caching!?
