@@ -6,7 +6,7 @@ AWS_LAMBDA_ZIP_LOCATION = elastic-apm-agent/target
 export AWS_FOLDER
 
 dist:
-	@cp $(AWS_LAMBDA_ZIP_LOCATION)/elastic-apm-java-aws-lambda-layer-*.zip $(AWS_LAMBDA_ZIP_LOCATION)/$(ELASTIC_LAYER_NAME).zip
+	@cp ../$(AWS_LAMBDA_ZIP_LOCATION)/elastic-apm-java-aws-lambda-layer-*.zip ../$(AWS_LAMBDA_ZIP_LOCATION)/$(ELASTIC_LAYER_NAME).zip
 
 # List all the AWS regions
 get-all-aws-regions:
