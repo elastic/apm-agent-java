@@ -23,7 +23,7 @@ pipeline {
   }
   options {
     timeout(time: 90, unit: 'MINUTES')
-    buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '20', daysToKeepStr: '30'))
+    buildDiscarder(logRotator(numToKeepStr: '50', artifactNumToKeepStr: '20', daysToKeepStr: '30'))
     timestamps()
     ansiColor('xterm')
     disableResume()
@@ -33,6 +33,7 @@ pipeline {
   }
   triggers {
     issueCommentTrigger("(${obltGitHubComments()}|^run (jdk compatibility|benchmark|integration|end-to-end|windows) tests)")
+    cron('H */2 * * *')
   }
   parameters {
     string(name: 'JAVA_VERSION', defaultValue: 'java11', description: 'Java version to build & test')
@@ -50,7 +51,7 @@ pipeline {
     // - Non-Application Server integration tests
     // - Application Server integration tests
     // opt-in with 'ci:agent-integration'
-    booleanParam(name: 'agent_integration_tests_ci', defaultValue: false, description: 'Enable Agent Integration tests')
+    booleanParam(name: 'agent_integration_tests_ci', defaultValue: true, description: 'Enable Agent Integration tests')
 
     // disabled by default, but required for merge, GH check name is ${GITHUB_CHECK_ITS_NAME}
     // opt-in with 'ci:end-to-end' tag on PR
@@ -61,7 +62,7 @@ pipeline {
 
     // disabled by default, not required for merge
     // opt-in with 'ci:jdk-compatibility' tag on PR
-    booleanParam(name: 'jdk_compatibility_ci', defaultValue: false, description: 'Enable JDK compatibility tests')
+    booleanParam(name: 'jdk_compatibility_ci', defaultValue: true, description: 'Enable JDK compatibility tests')
 
     // disabled by default, not required for merge
     // opt-in with 'ci:windows' tag on PR
