@@ -33,7 +33,8 @@ publish: validate-layer-name validate-aws-default-region
 		--output json \
 		publish-layer-version \
 		--layer-name "$(ELASTIC_LAYER_NAME)" \
-		--description "AWS Lambda Extension Layer for Elastic APM Java" \
+		--description "AWS Lambda Extension Layer for the Elastic APM Java Agent" \
+		--compatible-runtimes java8.al2 java11 \
 		--license "Apache-2.0" \
 		--zip-file "fileb://./$(AWS_LAMBDA_ZIP_LOCATION)/$(ELASTIC_LAYER_NAME).zip"
 
