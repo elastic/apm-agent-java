@@ -13,8 +13,8 @@ pipeline {
     HOME = "${env.WORKSPACE}"
     JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
     PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-    SLACK_CHANNEL = '#apm-agent-java'
-    NOTIFY_TO = 'build-apm+apm-agent-java@elastic.co'
+    SLACK_CHANNEL = '#observablt-bots'
+    NOTIFY_TO = 'victor.martinez@elastic.co'
     BRANCH_SPECIFIER = "${params.branch_specifier}"
     SUFFIX_ARN_FILE = 'arn-file.md'
     RELEASE_AWS_LAMBDA_VERSION = '-ver-1-29-0'
