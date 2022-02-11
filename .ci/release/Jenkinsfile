@@ -202,7 +202,7 @@ pipeline {
               dir("${BASE_DIR}"){
                 dir ('elastic-apm-agent/target') {
                   // TODO: copy file from a google bucket
-                  sh(label: 'fetch AWS lambda file', script: "wget https://github.com/elastic/apm-agent-java/releases/download/v${RELEASE_VERSION}/${SOURCE_AWS_FILE} -O ${SOURCE_AWS_FILE}")
+                  sh(label: 'fetch AWS lambda file', script: "wget -q https://github.com/elastic/apm-agent-java/releases/download/v${RELEASE_VERSION}/${SOURCE_AWS_FILE} -O ${SOURCE_AWS_FILE}")
                 }
                 sh(label: 'make publish-in-all-aws-regions', script: 'make -C .ci publish-in-all-aws-regions')
                 sh(label: 'make create-arn-file', script: 'make -C .ci create-arn-file')
