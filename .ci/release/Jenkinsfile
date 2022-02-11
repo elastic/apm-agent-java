@@ -31,7 +31,6 @@ pipeline {
     string(name: 'branch_specifier', defaultValue: 'stable', description: "What branch to release from?")
     booleanParam(name: 'check_branch_ci_status', defaultValue: true, description: "Check for failing tests in the given branch (if no stable branch)?")
     booleanParam(name: 'publish_aws_lambda', defaultValue: true, description: "Whether to upload the AWS lambda")
-    string(name: 'release_build', defaultValue: '', description: "Build number for the release job (required for publishing the AWS lambda)")
   }
   stages {
     stage('Initializing'){
@@ -201,15 +200,10 @@ pipeline {
             withAWSEnv(secret: 'secret/observability-team/ci/service-account/apm-aws-lambda', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id',
                        forceInstallation: true, version: '2.4.10') {
               dir("${BASE_DIR}"){
-                // NOTE: copy the file from the last successful build. Therefore, this is a hard requirement
-                copyArtifacts(
-                  filter: "src/github.com/elastic/apm-agent-java/elastic-apm-agent/target/${SOURCE_AWS_FILE}",
-                  target: 'elastic-apm-agent/target',
-                  fingerprintArtifacts: true,
-                  flatten: true,
-                  projectName: 'elastic+apm-agent-java+release',
-                  selector: specific(params.release_build)
-                )
+                dir ('elastic-apm-agent/target') {
+                  // TODO: copy file from a google bucket
+                  sh(label: 'fetch AWS lambda file', script: "wget https://github.com/elastic/apm-agent-java/releases/download/v${RELEASE_VERSION}/${SOURCE_AWS_FILE} -O ${SOURCE_AWS_FILE}")
+                }
                 sh(label: 'make publish-in-all-aws-regions', script: 'make -C .ci publish-in-all-aws-regions')
                 sh(label: 'make create-arn-file', script: 'make -C .ci create-arn-file')
               }
