@@ -21,6 +21,7 @@ package co.elastic.apm.agent.opentelemetry.sdk;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.opentelemetry.api.GlobalOpenTelemetry;
@@ -81,7 +82,12 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
             .startSpan()
             .end();
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("transaction");
+        Transaction transaction = reporter.getFirstTransaction();
+        assertThat(transaction.getNameAsString()).isEqualTo("transaction");
+
+        assertThat(transaction.getOtelKind())
+            .describedAs("default span kind should be internal when not set explicitly")
+            .isEqualTo(OTelSpanKind.INTERNAL);
     }
 
     @Test

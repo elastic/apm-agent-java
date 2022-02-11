@@ -25,9 +25,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
-import co.elastic.apm.agent.impl.metadata.MetaData;
-import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Headers;
@@ -36,8 +33,11 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.Agent;
 import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
+import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
 import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.Language;
+import co.elastic.apm.agent.impl.metadata.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
 import co.elastic.apm.agent.impl.metadata.Service;
@@ -46,6 +46,7 @@ import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -1343,6 +1344,44 @@ class DslJsonSerializerTest {
         }
 
         assertThat(headersJson).isNotNull();
+    }
+
+    @Test
+    void testOTelSpanSerialization() {
+        Span span = new Span(MockTracer.create()).withName("span name");
+        assertThat(span.getOtelKind())
+            .describedAs("otel span kind should not be set by default")
+            .isNull();
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        assertThat(spanJson.get("name").asText()).isEqualTo("span name");
+        assertThat(spanJson.get("otel")).isNull();
+
+        for (OTelSpanKind kind : OTelSpanKind.values()) {
+            span.withOtelKind(kind);
+            spanJson = readJsonString(serializer.toJsonString(span));
+
+            JsonNode otelJson = spanJson.get("otel");
+            assertThat(otelJson).isNotNull();
+            assertThat(otelJson.get("span_kind").asText()).isEqualTo(kind.name());
+        }
+
+        // with custom otel attributes
+        span.getOtelAttributes().put("attribute.string", "hello");
+        span.getOtelAttributes().put("attribute.long", 123L);
+        span.getOtelAttributes().put("attribute.boolean", false);
+        span.getOtelAttributes().put("attribute.float", 0.42f);
+        spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode otelJson = spanJson.get("otel");
+        assertThat(otelJson).isNotNull();
+        JsonNode otelAttributes = otelJson.get("attributes");
+        assertThat(otelAttributes).isNotNull();
+        assertThat(otelAttributes.size()).isEqualTo(4);
+        assertThat(otelAttributes.get("attribute.string").asText()).isEqualTo("hello");
+        assertThat(otelAttributes.get("attribute.long").asLong()).isEqualTo(123L);
+        assertThat(otelAttributes.get("attribute.boolean").asBoolean()).isFalse();
+        assertThat(otelAttributes.get("attribute.float").asDouble()).isEqualTo(0.42d);
+
     }
 
     private static void checkSingleValueHeader(JsonNode json, String fieldName, String value){
