@@ -100,7 +100,6 @@ pipeline {
       }
       environment {
         HOME = "${env.WORKSPACE}"
-        JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
       stages {
@@ -111,9 +110,6 @@ pipeline {
           when {
             beforeAgent true
             expression { return env.ONLY_DOCS == "false" }
-          }
-          environment {
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           steps {
             withGithubNotify(context: 'Build', tab: 'artifacts') {
@@ -162,9 +158,6 @@ pipeline {
               when {
                 beforeAgent true
                 expression { return params.test_ci }
-              }
-              environment {
-                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               steps {
                 withGithubNotify(context: 'Unit Tests', tab: 'tests') {
@@ -238,9 +231,6 @@ pipeline {
                   not { changeRequest() }
                 }
               }
-              environment {
-                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-              }
               steps {
                 withGithubNotify(context: 'Non-Application Server integration tests', tab: 'tests') {
                   deleteDir()
@@ -272,9 +262,6 @@ pipeline {
                   expression { return env.CHANGE_ID != null && !pullRequest.draft }
                   not { changeRequest() }
                 }
-              }
-              environment {
-                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               steps {
                 withGithubNotify(context: 'Application Server integration tests', tab: 'tests') {
@@ -340,9 +327,6 @@ pipeline {
             stage('Javadoc') {
               agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
               options { skipDefaultCheckout() }
-              environment {
-                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-              }
               steps {
                 withGithubNotify(context: 'Javadoc') {
                   deleteDir()
@@ -398,9 +382,6 @@ pipeline {
                 expression { matchesPrLabel(label: 'ci:jdk-compatibility') }
               }
             }
-          }
-          environment {
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           matrix {
             agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
