@@ -51,7 +51,7 @@ pipeline {
     // - Non-Application Server integration tests
     // - Application Server integration tests
     // opt-in with 'ci:agent-integration'
-    booleanParam(name: 'agent_integration_tests_ci', defaultValue: true, description: 'Enable Agent Integration tests')
+    booleanParam(name: 'agent_integration_tests_ci', defaultValue: false, description: 'Enable Agent Integration tests')
 
     // disabled by default, but required for merge, GH check name is ${GITHUB_CHECK_ITS_NAME}
     // opt-in with 'ci:end-to-end' tag on PR
