@@ -129,8 +129,8 @@ public class ContainerInfoTest extends CustomEnvVariables {
         assertKubernetesInfo(systemInfo, "ff49d0be-16b7-4a49-bb9e-8ec1f1f4e27f", "my-host", null, null);
     }
 
-    @Ignore("Issues when running in a k8s pod template. the containerId does not match")
     @Test
+    @Ignore("Issues when running in a k8s pod template. the containerId does not match")
     void testKubernetesDownwardApi() throws Exception {
         String line = "1:name=systemd:/kubepods/besteffort/pode9b90526-f47d-11e8-b2a5-080027b9f4fb/15aa6e53-b09a-40c7-8558-c6c31e36c88a";
         String containerId = "15aa6e53-b09a-40c7-8558-c6c31e36c88a";
