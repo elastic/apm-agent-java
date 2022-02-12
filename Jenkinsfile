@@ -161,7 +161,6 @@ pipeline {
               }
               steps {
                 withGithubNotify(context: 'Unit Tests', tab: 'tests') {
-                  deleteDir()
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   container(env.JDK_VERSION_K8S_POD) {
                     dir("${BASE_DIR}") {
@@ -233,7 +232,6 @@ pipeline {
               }
               steps {
                 withGithubNotify(context: 'Non-Application Server integration tests', tab: 'tests') {
-                  deleteDir()
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   container(env.JDK_VERSION_K8S_POD) {
                     dir("${BASE_DIR}") {
@@ -265,7 +263,6 @@ pipeline {
               }
               steps {
                 withGithubNotify(context: 'Application Server integration tests', tab: 'tests') {
-                  deleteDir()
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   container(env.JDK_VERSION_K8S_POD) {
                     dir("${BASE_DIR}") {
@@ -329,7 +326,6 @@ pipeline {
               options { skipDefaultCheckout() }
               steps {
                 withGithubNotify(context: 'Javadoc') {
-                  deleteDir()
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   container(env.JDK_VERSION_K8S_POD) {
                     dir("${BASE_DIR}"){
@@ -397,7 +393,6 @@ pipeline {
               stage('JDK Unit Tests') {
                 steps {
                   withGithubNotify(context: "Unit Tests ${JDK_VERSION_K8S_POD}", tab: 'tests') {
-                    deleteDir()
                     unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                     container(env.JDK_VERSION_K8S_POD) {
                       dir("${BASE_DIR}"){
