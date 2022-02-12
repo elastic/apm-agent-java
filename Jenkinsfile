@@ -161,8 +161,8 @@ pipeline {
               }
               steps {
                 withGithubNotify(context: 'Unit Tests', tab: 'tests') {
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   container(env.JDK_VERSION_K8S_POD) {
+                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                     dir("${BASE_DIR}") {
                       withOtelEnv() {
                         sh label: 'mvn test', script: './mvnw test'
@@ -232,8 +232,8 @@ pipeline {
               }
               steps {
                 withGithubNotify(context: 'Non-Application Server integration tests', tab: 'tests') {
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   container(env.JDK_VERSION_K8S_POD) {
+                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                     dir("${BASE_DIR}") {
                       withOtelEnv() {
                         sh './mvnw -q -P ci-non-application-server-integration-tests verify'
@@ -263,8 +263,8 @@ pipeline {
               }
               steps {
                 withGithubNotify(context: 'Application Server integration tests', tab: 'tests') {
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   container(env.JDK_VERSION_K8S_POD) {
+                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                     dir("${BASE_DIR}") {
                       withOtelEnv() {
                         sh './mvnw -q -P ci-application-server-integration-tests verify'
@@ -326,8 +326,8 @@ pipeline {
               options { skipDefaultCheckout() }
               steps {
                 withGithubNotify(context: 'Javadoc') {
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   container(env.JDK_VERSION_K8S_POD) {
+                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                     dir("${BASE_DIR}"){
                       withOtelEnv() {
                         sh """#!/bin/bash
@@ -393,8 +393,8 @@ pipeline {
               stage('JDK Unit Tests') {
                 steps {
                   withGithubNotify(context: "Unit Tests ${JDK_VERSION_K8S_POD}", tab: 'tests') {
-                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                     container(env.JDK_VERSION_K8S_POD) {
+                      unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                       dir("${BASE_DIR}"){
                         withOtelEnv() {
                           sh(label: "./mvnw test for ${JDK_VERSION_K8S_POD}", script: './mvnw test')
