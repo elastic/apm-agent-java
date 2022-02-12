@@ -38,6 +38,12 @@ spec:
     - sleep
     args:
     - infinity
+  - name: openjdk17
+    image: openjdk:17
+    command:
+    - sleep
+    args:
+    - infinity
 ## TODO: Faster builds with some cached artifacts.
 ##       mount a volume with the cached m2 folder in /var/lib/jenkins/.m2/repository
 ##       for instance https://github.com/jenkinsci/kubernetes-plugin/blob/master/examples/maven-with-cache.groovy
