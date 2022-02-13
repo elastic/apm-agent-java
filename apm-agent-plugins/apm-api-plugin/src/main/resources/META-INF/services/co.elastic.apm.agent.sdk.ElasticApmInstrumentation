@@ -3,7 +3,6 @@ co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$StartTransactionWith
 co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$CurrentTransactionInstrumentation
 co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$CurrentSpanInstrumentation
 co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$CaptureExceptionInstrumentation
-co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$GetServiceInfoForClassLoaderInstrumentation
 co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$SetServiceInfoForClassLoaderInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetFrameworkNameInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetUserInstrumentation
@@ -11,6 +10,7 @@ co.elastic.apm.agent.pluginapi.TransactionInstrumentation$EnsureParentIdInstrume
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetResultInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$AddCustomContextInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetServiceInfoInstrumentation
+co.elastic.apm.agent.pluginapi.TransactionInstrumentation$UseServiceInfoForClassLoaderInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetNameInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetTypeInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetTypesInstrumentation

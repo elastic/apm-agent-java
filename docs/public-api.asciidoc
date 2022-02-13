@@ -193,23 +193,17 @@ public Response onIncomingRequest(Request request) throws Exception {
 NOTE: If the protocol does not support multi-value headers, use <<api-start-transaction-with-remote-parent-header>>
 
 [float]
-[[api-get-service-info-for-class-loader]]
-==== `ServiceInfo getServiceInfoForClassLoader(ClassLoader)` added[1.29.0]
-Gets the service name and version that is associated with a class loader
-
-* `classLoader`: the class loader for which the service name and version should be looked up
-
-[float]
 [[api-set-service-info-for-class-loader]]
-==== `void setServiceInfoForClassLoader(ClassLoader, ServiceInfo)` added[1.29.0]
+==== `void setServiceInfoForClassLoader(ClassLoader, String, String)` added[1.29.0]
 Associates a class loader with a service name and version.
 
-The association used to overwrite the autodetected service name and version when a transaction is started.
+The association is used to overwrite the autodetected service name and version when a transaction is started.
 
 NOTE: If the class loader already is associated with a service name and version, the existing information will not be overwritten.
 
 * `classLoader`: the class loader which should be associated with the given service name and version
-* `serviceInfo`: the service name and version
+* `serviceName`: the service name
+* `serviceVersion`: the service version
 
 //----------------------------
 [float]
@@ -350,12 +344,24 @@ transaction.setFrameworkName("My Framework");
 
 [float]
 [[api-transaction-set-service-info]]
-==== `Transaction setServiceInfo(ServiceInfo serviceInfo)` added[1.29.0]
+==== `Transaction setServiceInfo(String serviceName, String serviceVersion)` added[1.29.0]
 Sets the service name and version for this transaction and its child spans.
 
 NOTE: If this method is called after child spans are already created, they may have the wrong service name and version.
 
-* `serviceInfo`: the service name and version
+* `serviceName`: the service name
+* `serviceVersion`: the service version
+
+[float]
+[[api-transaction-use-service-info-for-class-loader]]
+==== `Transaction useServiceInfoForClassLoader(ClassLoader classLoader)` added[1.29.0]
+Sets the service name and version, that are associated with the given class loader
+(see: <<api-set-service-info-for-class-loader, `ElasticApm#setServiceInfoForClassLoader(ClassLoader, String, String)`>>),
+for this transaction and its child spans.
+
+NOTE: If this method is called after child spans are already created, they may have the wrong service name and version.
+
+* `classLoader`: the class loader that should be used to set the service name and version
 
 [float]
 [[api-transaction-add-tag]]

@@ -20,7 +20,7 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-api</artifactId>
             <version>${project.version}</version>
-            <scope>provided</scope>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

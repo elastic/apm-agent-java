@@ -148,22 +148,6 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class GetServiceInfoForClassLoaderInstrumentation extends ElasticApmApiInstrumentation {
-        public GetServiceInfoForClassLoaderInstrumentation() {
-            super(named("getServiceInfoForClassLoader"));
-        }
-
-        public static class AdviceClass {
-            @Nullable
-            @Advice.AssignReturned.ToReturned
-            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-            public static co.elastic.apm.api.ServiceInfo getServiceInfoForClassLoader(@Advice.Argument(0) @Nullable ClassLoader classLoader) {
-                ServiceInfo serviceInfo = tracer.getServiceInfoForClassLoader(classLoader);
-                return serviceInfo != null ? new co.elastic.apm.api.ServiceInfo(serviceInfo.getServiceName(), serviceInfo.getServiceVersion()) : null;
-            }
-        }
-    }
-
     public static class SetServiceInfoForClassLoaderInstrumentation extends ElasticApmApiInstrumentation {
         public SetServiceInfoForClassLoaderInstrumentation() {
             super(named("setServiceInfoForClassLoader"));
@@ -171,10 +155,8 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
         public static class AdviceClass {
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-            public static void setServiceInfoForClassLoader(@Advice.Argument(0) @Nullable ClassLoader classLoader, @Advice.Argument(1) @Nullable co.elastic.apm.api.ServiceInfo serviceInfo) {
-                if (serviceInfo != null) {
-                    tracer.setServiceInfoForClassLoader(classLoader, ServiceInfo.of(serviceInfo.getName(), serviceInfo.getVersion()));
-                }
+            public static void setServiceInfoForClassLoader(@Advice.Argument(0) @Nullable ClassLoader classLoader, @Advice.Argument(1) String serviceName, @Advice.Argument(2) @Nullable String serviceVersion) {
+                tracer.setServiceInfoForClassLoader(classLoader, ServiceInfo.of(serviceName, serviceVersion));
             }
         }
     }
