@@ -27,10 +27,12 @@ import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
+@Ignore("Protocol family unavailable with k8s pods")
 public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     private static CloseableHttpAsyncClient client;

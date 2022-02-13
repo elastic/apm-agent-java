@@ -23,7 +23,9 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
+@Ignore("Protocol family unavailable with k8s pods")
 public class LegacyApacheHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     @SuppressWarnings("deprecation")

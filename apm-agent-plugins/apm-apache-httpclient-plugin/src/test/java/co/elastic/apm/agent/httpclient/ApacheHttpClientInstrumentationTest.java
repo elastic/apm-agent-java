@@ -24,9 +24,11 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
 import java.io.IOException;
 
+@Ignore("Protocol family unavailable with k8s pods")
 public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     private static CloseableHttpClient client;
