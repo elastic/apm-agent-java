@@ -54,7 +54,7 @@ public class SystemInfoTest extends CustomEnvVariables {
     }
 
     @Test
-    @Disbled("Issues when running in a k8s pod template. The isWindows is false and it expects a Mac")
+    @Disabled("Issues when running in a k8s pod template. The isWindows is false and it expects a Mac")
     void testHostnameDiscoveryThroughEnv() {
         Map<String, String> customEnvVariables = new HashMap<>();
         if (isWindows) {
