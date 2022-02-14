@@ -1,0 +1,2 @@
+co.elastic.apm.agent.azurestorage.AzureStorageInstrumentationStorageEntrypoint
+co.elastic.apm.agent.azurestorage.AzureStorageInstrumentationRestProxy

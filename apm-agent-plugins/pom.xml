@@ -71,6 +71,7 @@
         <module>apm-scheduled-annotation-plugin-jakartaee-test</module>
         <module>apm-jakarta-websocket-plugin</module>
         <module>apm-ecs-logging-plugin</module>
+        <module>apm-azure-storage-plugin</module>
     </modules>
 
     <dependencies>
