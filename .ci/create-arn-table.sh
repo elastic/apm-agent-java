@@ -11,7 +11,7 @@ set -o pipefail
 ARN_FILE=${SUFFIX_ARN_FILE}
 
 {
-	echo "### ARN"
+	echo "### ARNs of the APM Java Agent's AWS Lambda Layer"
 	echo ''
 	echo '|Region|ARN|'
 	echo '|------|---|'
