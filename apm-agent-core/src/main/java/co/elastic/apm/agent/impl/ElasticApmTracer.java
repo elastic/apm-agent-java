@@ -233,8 +233,7 @@ public class ElasticApmTracer implements Tracer {
         }
         final ServiceInfo serviceInfo = getServiceInfoForClassLoader(initiatingClassLoader);
         if (serviceInfo != null) {
-            transaction.getTraceContext().setServiceName(serviceInfo.getServiceName());
-            transaction.getTraceContext().setServiceVersion(serviceInfo.getServiceVersion());
+            transaction.getTraceContext().setServiceInfo(serviceInfo.getServiceName(), serviceInfo.getServiceVersion());
         }
     }
 
@@ -346,8 +345,7 @@ public class ElasticApmTracer implements Tracer {
                 error.getTraceContext().getId().setToRandomValue();
                 ServiceInfo serviceInfo = getServiceInfoForClassLoader(initiatingClassLoader);
                 if (serviceInfo != null) {
-                    error.getTraceContext().setServiceName(serviceInfo.getServiceName());
-                    error.getTraceContext().setServiceVersion(serviceInfo.getServiceVersion());
+                    error.getTraceContext().setServiceInfo(serviceInfo.getServiceName(), serviceInfo.getServiceVersion());
                 }
             }
             return error;

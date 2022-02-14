@@ -159,8 +159,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             public static void setServiceInfo(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
                                               @Advice.Argument(0) String serviceName, @Advice.Argument(1) String serviceVersion) {
                 if (transaction instanceof Transaction) {
-                    ((Transaction) transaction).getTraceContext().setServiceName(serviceName);
-                    ((Transaction) transaction).getTraceContext().setServiceVersion(serviceVersion);
+                    ((Transaction) transaction).getTraceContext().setServiceInfo(serviceName, serviceVersion);
                 }
             }
         }
@@ -178,8 +177,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
                 if (transaction instanceof Transaction) {
                     ServiceInfo serviceInfo = tracer.getServiceInfoForClassLoader(classLoader);
                     if (serviceInfo != null) {
-                        ((Transaction) transaction).getTraceContext().setServiceName(serviceInfo.getServiceName());
-                        ((Transaction) transaction).getTraceContext().setServiceVersion(serviceInfo.getServiceVersion());
+                        ((Transaction) transaction).getTraceContext().setServiceInfo(serviceInfo.getServiceName(), serviceInfo.getServiceVersion());
                     }
                 }
             }
