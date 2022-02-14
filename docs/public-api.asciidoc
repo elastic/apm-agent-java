@@ -194,7 +194,7 @@ NOTE: If the protocol does not support multi-value headers, use <<api-start-tran
 
 [float]
 [[api-set-service-info-for-class-loader]]
-==== `void setServiceInfoForClassLoader(ClassLoader, String, String)` added[1.29.0]
+==== `void setServiceInfoForClassLoader(ClassLoader, String, String)` added[1.30.0]
 Associates a class loader with a service name and version.
 
 The association is used to overwrite the autodetected service name and version when a transaction is started.
@@ -344,7 +344,7 @@ transaction.setFrameworkName("My Framework");
 
 [float]
 [[api-transaction-set-service-info]]
-==== `Transaction setServiceInfo(String serviceName, String serviceVersion)` added[1.29.0]
+==== `Transaction setServiceInfo(String serviceName, String serviceVersion)` added[1.30.0]
 Sets the service name and version for this transaction and its child spans.
 
 NOTE: If this method is called after child spans are already created, they may have the wrong service name and version.
@@ -354,7 +354,7 @@ NOTE: If this method is called after child spans are already created, they may h
 
 [float]
 [[api-transaction-use-service-info-for-class-loader]]
-==== `Transaction useServiceInfoForClassLoader(ClassLoader classLoader)` added[1.29.0]
+==== `Transaction useServiceInfoForClassLoader(ClassLoader classLoader)` added[1.30.0]
 Sets the service name and version, that are associated with the given class loader
 (see: <<api-set-service-info-for-class-loader, `ElasticApm#setServiceInfoForClassLoader(ClassLoader, String, String)`>>),
 for this transaction and its child spans.
