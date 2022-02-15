@@ -37,7 +37,7 @@ public class JDBCConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(JDBC_CATEGORY)
         .description("A list of SQLs that should be ignored and not captured as spans.\n\n" + WildcardMatcher.DOCUMENTATION)
         .dynamic(false)
-        .tags("added[1.28.0]")
+        .tags("added[1.30.0]")
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
     public List<WildcardMatcher> getSQLsExcludedFromInstrumentation() {

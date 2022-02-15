@@ -1587,7 +1587,7 @@ If you want to use the URI template from the `@Path` annotation, set the value t
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-sqls-excluded-from-jdbc-instrumentation]]
-==== `sqls_excluded_from_jdbc_instrumentation` (added[1.28.0])
+==== `sqls_excluded_from_jdbc_instrumentation` (added[1.30.0])
 
 A list of SQLs that should be ignored and not captured as spans.
 
