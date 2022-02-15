@@ -126,6 +126,6 @@ public class CaptureTransactionInstrumentation extends TracerAwareInstrumentatio
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(PUBLIC_API_INSTRUMENTATION_GROUP, "annotations");
+        return Arrays.asList(PUBLIC_API_INSTRUMENTATION_GROUP, "annotations", "annotations-capture-transaction");
     }
 }
