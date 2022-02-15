@@ -26,6 +26,10 @@ endif::[]
 [float]
 ===== Features
 
+[float]
+===== Performance improvements
+* Only time type/method matching if the debug logging is enabled as the results are only used when debug logging is enabled - {pull}2471[#2471]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
