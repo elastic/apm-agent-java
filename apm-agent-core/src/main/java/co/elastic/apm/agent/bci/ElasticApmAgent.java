@@ -364,43 +364,50 @@ public class ElasticApmAgent {
         final ElementMatcher<? super NamedElement> typeMatcherPreFilter = instrumentation.getTypeMatcherPreFilter();
         final ElementMatcher.Junction<ProtectionDomain> versionPostFilter = instrumentation.getProtectionDomainPostFilter();
         final ElementMatcher<? super MethodDescription> methodMatcher = new ElementMatcher.Junction.Conjunction<>(instrumentation.getMethodMatcher(), not(isAbstract()));
+        final AgentBuilder.RawMatcher matcher = new AgentBuilder.RawMatcher() {
+            @Override
+            public boolean matches(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, Class<?> classBeingRedefined, ProtectionDomain protectionDomain) {
+                if (classLoadingMatchingPreFilter && !classLoaderMatcher.matches(classLoader)) {
+                    return false;
+                }
+                if (typeMatchingWithNamePreFilter && !typeMatcherPreFilter.matches(typeDescription)) {
+                    return false;
+                }
+                boolean typeMatches;
+                try {
+                    typeMatches = typeMatcher.matches(typeDescription) && versionPostFilter.matches(protectionDomain);
+                } catch (Exception ignored) {
+                    // could be because of a missing type
+                    typeMatches = false;
+                }
+                if (typeMatches) {
+                    logger.debug("Type match for instrumentation {}: {} matches {}",
+                        instrumentation.getClass().getSimpleName(), typeMatcher, typeDescription);
+                    try {
+                        instrumentation.onTypeMatch(typeDescription, classLoader, protectionDomain, classBeingRedefined);
+                    } catch (Exception e) {
+                        logger.error(e.getMessage(), e);
+                    }
+                    if (logger.isTraceEnabled()) {
+                        logClassLoaderHierarchy(classLoader, logger, instrumentation);
+                    }
+                }
+                return typeMatches;
+
+            }
+        };
         return agentBuilder
-            .type(new AgentBuilder.RawMatcher() {
+            .type(logger.isDebugEnabled() ? new AgentBuilder.RawMatcher() {
                 @Override
                 public boolean matches(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, Class<?> classBeingRedefined, ProtectionDomain protectionDomain) {
                     long start = System.nanoTime();
                     try {
-                        if (classLoadingMatchingPreFilter && !classLoaderMatcher.matches(classLoader)) {
-                            return false;
-                        }
-                        if (typeMatchingWithNamePreFilter && !typeMatcherPreFilter.matches(typeDescription)) {
-                            return false;
-                        }
-                        boolean typeMatches;
-                        try {
-                            typeMatches = typeMatcher.matches(typeDescription) && versionPostFilter.matches(protectionDomain);
-                        } catch (Exception ignored) {
-                            // could be because of a missing type
-                            typeMatches = false;
-                        }
-                        if (typeMatches) {
-                            logger.debug("Type match for instrumentation {}: {} matches {}",
-                                instrumentation.getClass().getSimpleName(), typeMatcher, typeDescription);
-                            try {
-                                instrumentation.onTypeMatch(typeDescription, classLoader, protectionDomain, classBeingRedefined);
-                            } catch (Exception e) {
-                                logger.error(e.getMessage(), e);
-                            }
-                            if (logger.isTraceEnabled()) {
-                                logClassLoaderHierarchy(classLoader, logger, instrumentation);
-                            }
-                        }
-                        return typeMatches;
+                        return matcher.matches(typeDescription, classLoader, module, classBeingRedefined, protectionDomain);
                     } finally {
                         instrumentationStats.getOrCreateTimer(instrumentation.getClass()).addTypeMatchingDuration(System.nanoTime() - start);
                     }
                 }
-            })
+            } : matcher)
             .transform(new PatchBytecodeVersionTo51Transformer())
             .transform(getTransformer(instrumentation, logger, methodMatcher))
             .transform(new AgentBuilder.Transformer() {
@@ -443,30 +450,36 @@ public class ElasticApmAgent {
             withCustomMapping = withCustomMapping.bind(offsetMapping);
         }
         withCustomMapping = withCustomMapping.bootstrap(IndyBootstrap.getIndyBootstrapMethod(logger));
+        final ElementMatcher<MethodDescription> matcher = new ElementMatcher<MethodDescription>() {
+            @Override
+            public boolean matches(MethodDescription target) {
+                boolean matches;
+                try {
+                    matches = methodMatcher.matches(target);
+                } catch (Exception ignored) {
+                    // could be because of a missing type
+                    matches = false;
+                }
+                if (matches) {
+                    logger.debug("Method match for instrumentation {}: {} matches {}",
+                        instrumentation.getClass().getSimpleName(), methodMatcher, target);
+                    instrumentationStats.addUsedInstrumentation(instrumentation);
+                }
+                return matches;
+            }
+        };
         return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
-            .advice(new ElementMatcher<MethodDescription>() {
+            .advice(logger.isDebugEnabled() ? new ElementMatcher<MethodDescription>() {
                 @Override
                 public boolean matches(MethodDescription target) {
                     long start = System.nanoTime();
                     try {
-                        boolean matches;
-                        try {
-                            matches = methodMatcher.matches(target);
-                        } catch (Exception ignored) {
-                            // could be because of a missing type
-                            matches = false;
-                        }
-                        if (matches) {
-                            logger.debug("Method match for instrumentation {}: {} matches {}",
-                                instrumentation.getClass().getSimpleName(), methodMatcher, target);
-                            instrumentationStats.addUsedInstrumentation(instrumentation);
-                        }
-                        return matches;
+                        return matcher.matches(target);
                     } finally {
                         instrumentationStats.getOrCreateTimer(instrumentation.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
                     }
                 }
-            }, instrumentation.getAdviceClassName())
+            } : matcher, instrumentation.getAdviceClassName())
             .include(ClassLoader.getSystemClassLoader(), instrumentation.getClass().getClassLoader())
             .withExceptionHandler(PRINTING);
     }
