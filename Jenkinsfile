@@ -3,7 +3,7 @@
 @Library('apm@current') _
 
 pipeline {
-  agent { label 'linux && immutable' }
+  agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
   environment {
     REPO = 'apm-agent-java'
     BASE_DIR = "src/github.com/elastic/${env.REPO}"
@@ -19,6 +19,7 @@ pipeline {
     JAVA_VERSION = "${params.JAVA_VERSION}"
     JOB_GCS_BUCKET_STASH = 'apm-ci-temp'
     JOB_GCS_CREDENTIALS = 'apm-ci-gcs-plugin'
+    JDK_VERSION_K8S_POD = 'openjdk11'
   }
   options {
     timeout(time: 90, unit: 'MINUTES')
@@ -99,7 +100,6 @@ pipeline {
       }
       environment {
         HOME = "${env.WORKSPACE}"
-        JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
       stages {
@@ -111,9 +111,6 @@ pipeline {
             beforeAgent true
             expression { return env.ONLY_DOCS == "false" }
           }
-          environment {
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-          }
           steps {
             withGithubNotify(context: 'Build', tab: 'artifacts') {
               deleteDir()
@@ -123,12 +120,14 @@ pipeline {
                 sh label: 'Prepare .m2 cached folder', returnStatus: true, script: 'cp -Rf /var/lib/jenkins/.m2/repository ${HOME}/.m2'
                 sh label: 'Size .m2', returnStatus: true, script: 'du -hs .m2'
               }
-              dir("${BASE_DIR}"){
-                withOtelEnv() {
-                  retryWithSleep(retries: 5, seconds: 10) {
-                    sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+              container(env.JDK_VERSION_K8S_POD) {
+                dir("${BASE_DIR}"){
+                  withOtelEnv() {
+                    retryWithSleep(retries: 5, seconds: 10) {
+                      sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                    }
+                    sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
                   }
-                  sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
                 }
               }
               stashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
@@ -160,16 +159,14 @@ pipeline {
                 beforeAgent true
                 expression { return params.test_ci }
               }
-              environment {
-                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-              }
               steps {
                 withGithubNotify(context: 'Unit Tests', tab: 'tests') {
-                  deleteDir()
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-                  dir("${BASE_DIR}") {
-                    withOtelEnv() {
-                      sh label: 'mvn test', script: './mvnw test'
+                  container(env.JDK_VERSION_K8S_POD) {
+                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                    dir("${BASE_DIR}") {
+                      withOtelEnv() {
+                        sh label: 'mvn test', script: './mvnw test'
+                      }
                     }
                   }
                 }
@@ -221,7 +218,7 @@ pipeline {
               }
             }
             stage('Non-Application Server integration tests') {
-              agent { label 'linux && immutable' }
+              agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
               options { skipDefaultCheckout() }
               when {
                 beforeAgent true
@@ -233,16 +230,14 @@ pipeline {
                   not { changeRequest() }
                 }
               }
-              environment {
-                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-              }
               steps {
                 withGithubNotify(context: 'Non-Application Server integration tests', tab: 'tests') {
-                  deleteDir()
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-                  dir("${BASE_DIR}") {
-                    withOtelEnv() {
-                      sh './mvnw -q -P ci-non-application-server-integration-tests verify'
+                  container(env.JDK_VERSION_K8S_POD) {
+                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                    dir("${BASE_DIR}") {
+                      withOtelEnv() {
+                        sh './mvnw -q -P ci-non-application-server-integration-tests verify'
+                      }
                     }
                   }
                 }
@@ -254,7 +249,7 @@ pipeline {
               }
             }
             stage('Application Server integration tests') {
-              agent { label 'linux && immutable' }
+              agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
               options { skipDefaultCheckout() }
               when {
                 beforeAgent true
@@ -266,16 +261,14 @@ pipeline {
                   not { changeRequest() }
                 }
               }
-              environment {
-                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-              }
               steps {
                 withGithubNotify(context: 'Application Server integration tests', tab: 'tests') {
-                  deleteDir()
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-                  dir("${BASE_DIR}") {
-                    withOtelEnv() {
-                      sh './mvnw -q -P ci-application-server-integration-tests verify'
+                  container(env.JDK_VERSION_K8S_POD) {
+                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                    dir("${BASE_DIR}") {
+                      withOtelEnv() {
+                        sh './mvnw -q -P ci-application-server-integration-tests verify'
+                      }
                     }
                   }
                 }
@@ -329,21 +322,19 @@ pipeline {
              * Build javadoc
              */
             stage('Javadoc') {
-              agent { label 'linux && immutable' }
+              agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
               options { skipDefaultCheckout() }
-              environment {
-                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-              }
               steps {
                 withGithubNotify(context: 'Javadoc') {
-                  deleteDir()
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-                  dir("${BASE_DIR}"){
-                    withOtelEnv() {
-                      sh """#!/bin/bash
-                      set -euxo pipefail
-                      ./mvnw compile javadoc:javadoc
-                      """
+                  container(env.JDK_VERSION_K8S_POD) {
+                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                    dir("${BASE_DIR}"){
+                      withOtelEnv() {
+                        sh """#!/bin/bash
+                        set -euxo pipefail
+                        ./mvnw compile javadoc:javadoc
+                        """
+                      }
                     }
                   }
                 }
@@ -388,15 +379,12 @@ pipeline {
               }
             }
           }
-          environment {
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-          }
           matrix {
-            agent { label 'linux && immutable' }
+            agent { kubernetes { yamlFile '.ci/k8s/OpenJdkPod.yml' } }
             axes {
               axis {
                 // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
-                name 'JDK_VERSION'
+                name 'JDK_VERSION_K8S_POD'
                 // 'openjdk18'  disabled for now see https://github.com/elastic/apm-agent-java/issues/2328
                 values 'openjdk17'
               }
@@ -404,12 +392,13 @@ pipeline {
             stages {
               stage('JDK Unit Tests') {
                 steps {
-                  withGithubNotify(context: "Unit Tests ${JDK_VERSION}", tab: 'tests') {
-                    deleteDir()
-                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-                    dir("${BASE_DIR}"){
-                      withOtelEnv() {
-                        sh(label: "./mvnw test for ${JDK_VERSION}", script: './mvnw test')
+                  withGithubNotify(context: "Unit Tests ${JDK_VERSION_K8S_POD}", tab: 'tests') {
+                    container(env.JDK_VERSION_K8S_POD) {
+                      unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                      dir("${BASE_DIR}"){
+                        withOtelEnv() {
+                          sh(label: "./mvnw test for ${JDK_VERSION_K8S_POD}", script: './mvnw test')
+                        }
                       }
                     }
                   }
