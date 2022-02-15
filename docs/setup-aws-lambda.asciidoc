@@ -10,16 +10,6 @@ NOTE: In order to get the full AWS Lambda tracing capabilities, use with APM Ser
 older versions provides most value, but some relevant metadata fields will not be indexed.
 
 [float]
-[[aws-lambda-installation]]
-==== Installation
-
-Setting up your Lambda function is a three-step process.
-
-1. Check <<aws-lambda-runtimes>>
-2. <<aws-lambda-extension>>
-3. <<aws-lambda-instrumenting>>
-
-[float]
 [[aws-lambda-runtimes]]
 ==== Supported runtimes
 
@@ -50,40 +40,41 @@ explicitly.
 |===
 
 [float]
+[[aws-lambda-installation]]
+==== Installation
+
+Setting up APM for your Java Lambda function is a two-step process. Make sure to follow _both_ of the following steps:
+
+1. <<aws-lambda-extension>>
+2. <<aws-lambda-instrumenting>>
+
+[float]
 [[aws-lambda-extension]]
 ==== Install the Elastic APM Lambda extension
 
-Elastic uses a Lambda extension to forward data to APM Server in a way that does not interfere with the
-execution of your Lambda function.
+Elastic uses a Lambda extension to forward data to an APM Server in a way that does not interfere with the execution of your Lambda function.
 
-See the https://www.elastic.co/guide/en/apm/guide/current/aws-lambda-extension.html[installation documentation] to get started.
-
-NOTE: Not all environment variables specified within https://www.elastic.co/guide/en/apm/guide/current/aws-lambda-extension.html#aws-lambda-variables[The Necessary Variables]
-section of the extension documentation need to be configured. The Java agent utilizes a https://docs.aws.amazon.com/lambda/latest/dg/runtimes-modify.html[wrapper script]
-to set some of these up, so follow the next section to see which are required.
+Follow the https://www.elastic.co/guide/en/apm/guide/current/aws-lambda-extension.html[installation documentation for the extension] to setup the Elastic APM Lambda extension for your Lambda function.
 
 [float]
 [[aws-lambda-instrumenting]]
-==== Installing the Elastic APM Java Agent layer
+==== Install the Elastic APM Java Agent Layer
 
-The Java Agent is installed as an AWS Layer as well. It is distributed as a ZIP archive containing two files:
+The Java Agent is installed as an AWS Layer. 
 
-- The Java Agent jar file
-- A wrapper script that sets up the runtime to enable automatic attachment of the agent
+1. Pick the right ARN from the https://github.com/elastic/apm-agent-java/releases[ARN table for the APM Java Agent Lambda Layer]. Note: The APM Java Agent Layer needs to be in the _same region_ as your Lambda function.
+2. Navigate to your function in the AWS Console
+3. Scroll to the Layers section and click the _Add a layer_ button
+4. Choose the _Specify an ARN_ radio button
+5. Enter the Version ARN of the APM Java Agent Layer in the _Specify an ARN_ text input
+6. Click the _Add_ button
 
-Follow these steps to ensure proper Java Agent attachment to your Lambda function:
+Once the APM Java Agent Layer is in place, you'll need to configure some environment variables _in addition_ to the environment variables you already configured for the APM Lambda extension. 
+Configure the following environment variables for the APM Java Agent Layer:
 
-1. Download the `elastic-apm-java-aws-lambda-layer-<VERSION>.zip` archive from our
-https://github.com/elastic/apm-agent-java/releases[GitHub Releases page].
-2. Publish the downloaded ZIP archive as an https://docs.aws.amazon.com/lambda/latest/dg/invocation-layers.html?icmpid=docs_lambda_help[AWS Lambda Layer].
-3. Configure your function to use the Java Agent layer.
-4. Within your Function configuration, configure the following environment variables:
-a. `AWS_LAMBDA_EXEC_WRAPPER` (required): set this variable's value to `/opt/elastic-apm-handler`, so that Lambda starts the runtime with this script.
-b. `ELASTIC_APM_LAMBDA_APM_SERVER` (required): this will tell the Elastic APM Extension where to send data to.
-c. <<config-secret-token, `ELASTIC_APM_SECRET_TOKEN`>> or <<config-api-key, `ELASTIC_APM_API_KEY`>> (required): one of these needs to be set
-as the authentication method that the extension uses when sending data to the URL configured via `ELASTIC_APM_LAMBDA_APM_SERVER`
-d. <<config-application-packages, `ELASTIC_APM_APPLICATION_PACKAGES`>> (recommended): setting this may improve cold start times.
-5. Fine-tune the Java agent with any of the available <<configuration, configuration options>>.
+1. (required) `AWS_LAMBDA_EXEC_WRAPPER`: set this variable's value to `/opt/elastic-apm-handler`, so that Lambda starts the runtime with an attached APM Java agent.
+2. (recommended) <<config-application-packages, `ELASTIC_APM_APPLICATION_PACKAGES`>>: setting this may improve cold start times.
+3. (optional) Fine-tune the Java agent with any of the available <<configuration, configuration options>>.
 
 That's it, if you've done all of the above you are set to go!
 Your Lambda function invocations should be traced from now on.
