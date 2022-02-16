@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Added support for setting service name and version for a transaction via the public api - {pull}2451[#2451]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
