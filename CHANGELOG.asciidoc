@@ -27,6 +27,10 @@ endif::[]
 ===== Features
 * Added support for setting service name and version for a transaction via the public api - {pull}2451[#2451]
 
+[float]
+===== Performance improvements
+* Proxy classes are excluded from instrumentation in more cases - {pull}2474[#2474]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
