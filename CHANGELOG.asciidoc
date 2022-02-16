@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Added support for setting service name and version for a transaction via the public api - {pull}2451[#2451]
 * Improved finding docker container id on cgroup v2 enabled systems - {pull}2352[#2352]
 
 [[release-notes-1.x]]

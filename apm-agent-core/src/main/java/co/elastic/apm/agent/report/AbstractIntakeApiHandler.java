@@ -122,8 +122,8 @@ public class AbstractIntakeApiHandler {
                 payloadSerializer.flushToOutputStream();
                 requestStartedNanos = System.nanoTime();
             } catch (IOException e) {
-                logger.error("Error trying to connect to APM Server at {}. Some details about SSL configurations corresponding " +
-                    "the current connection are logged at INFO level.", connection.getURL());
+                logger.error("Error trying to connect to APM Server at {}. Although not necessarily related to SSL, some related SSL " +
+                    "configurations corresponding the current connection are logged at INFO level.", connection.getURL());
                 if (logger.isInfoEnabled() && connection instanceof HttpsURLConnection) {
                     HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
                     try {

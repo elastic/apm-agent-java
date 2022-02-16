@@ -29,6 +29,8 @@ import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.Servlet;
+import javax.servlet.ServletContainerInitializer;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.ServletException;
@@ -36,10 +38,24 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServlet;
 import java.io.IOException;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class InitServiceNameInstrumentationTest extends AbstractInstrumentationTest {
+
+    @Test
+    void testOnStartup() {
+        ServletContainerInitializer servletContainerInitializer = new NoopServletContainerInitializer();
+
+        CustomManifestLoader cl = new CustomManifestLoader(() -> getClass().getResourceAsStream("/TEST-MANIFEST.MF"));
+        CustomManifestLoader.withThreadContextClassLoader(cl, () -> {
+            servletContainerInitializer.onStartup(null, new MockServletContext());
+            tracer.startRootTransaction(cl).end();
+        });
+
+        assertServiceInfo();
+    }
 
     @Test
     void testContextInitialized() {
@@ -85,6 +101,12 @@ class InitServiceNameInstrumentationTest extends AbstractInstrumentationTest {
         TraceContext traceContext = reporter.getFirstTransaction().getTraceContext();
         assertThat(traceContext.getServiceName()).isEqualTo("service-name-from-manifest");
         assertThat(traceContext.getServiceVersion()).isEqualTo("1.42.0");
+    }
+
+    private static class NoopServletContainerInitializer implements ServletContainerInitializer {
+        @Override
+        public void onStartup(Set<Class<?>> classes, ServletContext servletContext) {
+        }
     }
 
     private static class NoopServletContextListener implements ServletContextListener {
