@@ -68,6 +68,33 @@ public interface Transaction extends Span {
     Transaction setFrameworkName(String frameworkName);
 
     /**
+     * Sets the service name and version for this transaction and its child spans.
+     * <p>
+     * NOTE: If this method is called after child spans are already created,
+     * they may have the wrong service name and version.
+     * </p>
+     *
+     * @param serviceName the service name
+     * @param serviceVersion the service version
+     */
+    @Nonnull
+    Transaction setServiceInfo(String serviceName, String serviceVersion);
+
+    /**
+     * Sets the service name and version, that are associated with the given class loader
+     * (see: {@link ElasticApm#setServiceInfoForClassLoader(ClassLoader, String, String)}),
+     * for this transaction and its child spans.
+     * <p>
+     * NOTE: If this method is called after child spans are already created,
+     * they may have the wrong service name and version.
+     * </p>
+     *
+     * @param classLoader the class loader that should be used to set the service name and version
+     */
+    @Nonnull
+    Transaction useServiceInfoForClassLoader(ClassLoader classLoader);
+
+    /**
      * {@inheritDoc}
      *
      * @deprecated use {@link #addLabel(String, String)} instead

@@ -682,26 +682,22 @@ public class TraceContext implements Recyclable {
     }
 
     /**
-     * Overrides the {@code co.elastic.apm.agent.impl.payload.Service#name} property sent via the meta data Intake V2 event.
+     * Overrides the {@code co.elastic.apm.agent.impl.payload.Service#name} and {@code co.elastic.apm.agent.impl.payload.Service#version} properties sent via the meta data Intake V2 event.
      *
-     * @param serviceName the service name for this event
+     * @param serviceName    the service name for this event
+     * @param serviceVersion the service version for this event
      */
-    public void setServiceName(@Nullable String serviceName) {
+    public void setServiceInfo(@Nullable String serviceName, @Nullable String serviceVersion) {
+        if (serviceName == null || serviceName.isEmpty()) {
+            return;
+        }
         this.serviceName = serviceName;
+        this.serviceVersion = serviceVersion;
     }
 
     @Nullable
     public String getServiceVersion() {
         return serviceVersion;
-    }
-
-    /**
-     * Overrides the {@code co.elastic.apm.agent.impl.payload.Service#version} property sent via the meta data Intake V2 event.
-     *
-     * @param serviceVersion the service version for this event
-     */
-    public void setServiceVersion(@Nullable String serviceVersion) {
-        this.serviceVersion = serviceVersion;
     }
 
     public Span createSpan() {

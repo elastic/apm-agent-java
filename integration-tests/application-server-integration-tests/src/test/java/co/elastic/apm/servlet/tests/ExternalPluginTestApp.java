@@ -92,7 +92,7 @@ public abstract class ExternalPluginTestApp extends TestApp {
 
     /**
      * Since we test custom transaction creation through the external plugin, the service name for this transaction cannot be
-     * captured through the {@link Tracer#overrideServiceInfoForClassLoader(ClassLoader, ServiceInfo)} mechanism.
+     * captured through the {@link Tracer#setServiceInfoForClassLoader(ClassLoader, ServiceInfo)} mechanism.
      */
     @Nullable
     @Override
