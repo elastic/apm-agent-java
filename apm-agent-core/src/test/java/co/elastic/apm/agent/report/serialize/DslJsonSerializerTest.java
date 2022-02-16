@@ -441,7 +441,7 @@ class DslJsonSerializerTest {
     @Test
     void testTransactionNullFrameworkNameSerialization() {
         Transaction transaction = new Transaction(MockTracer.create());
-        transaction.getTraceContext().setServiceName("service-name");
+        transaction.getTraceContext().setServiceInfo("service-name", null);
         transaction.setUserFrameworkName(null);
         JsonNode transactionJson = readJsonString(serializer.toJsonString(transaction));
         assertThat(transactionJson.get("context").get("service").get("framework")).isNull();
@@ -450,7 +450,7 @@ class DslJsonSerializerTest {
     @Test
     void testTransactionEmptyFrameworkNameSerialization() {
         Transaction transaction = new Transaction(MockTracer.create());
-        transaction.getTraceContext().setServiceName("service-name");
+        transaction.getTraceContext().setServiceInfo("service-name", null);
         transaction.setUserFrameworkName("");
         JsonNode transactionJson = readJsonString(serializer.toJsonString(transaction));
         assertThat(transactionJson.get("context").get("service").get("framework")).isNull();
@@ -827,8 +827,7 @@ class DslJsonSerializerTest {
         String frameworkName = RandomStringUtils.randomAlphanumeric(10);
         String frameworkVersion = RandomStringUtils.randomNumeric(3);
 
-        ctx.setServiceName(serviceName);
-        ctx.setServiceVersion(serviceVersion);
+        ctx.setServiceInfo(serviceName, serviceVersion);
 
         transaction.setFrameworkName(frameworkName);
         transaction.setFrameworkVersion(frameworkVersion);

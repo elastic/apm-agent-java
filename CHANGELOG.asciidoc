@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Added support for setting service name and version for a transaction via the public api - {pull}2451[#2451]
 * Added support to exclude JDBC spans from being captured - {pull}2293[#2293]
 
 [[release-notes-1.x]]
