@@ -16,6 +16,7 @@ pipeline {
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/main'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
     OPBEANS_REPO = 'opbeans-java'
+    JAVA_VERSION = "${params.JAVA_VERSION}"
     JOB_GCS_BUCKET_STASH = 'apm-ci-temp'
     JOB_GCS_CREDENTIALS = 'apm-ci-gcs-plugin'
   }
@@ -30,9 +31,10 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger("(${obltGitHubComments()}|^run (jdk compatibility|benchmark|integration|end-to-end) tests)")
+    issueCommentTrigger("(${obltGitHubComments()}|^run (jdk compatibility|benchmark|integration|end-to-end|windows) tests)")
   }
   parameters {
+    string(name: 'JAVA_VERSION', defaultValue: 'java11', description: 'Java version to build & test')
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
 
     // Note about GH checks and optional steps
@@ -59,6 +61,10 @@ pipeline {
     // disabled by default, not required for merge
     // opt-in with 'ci:jdk-compatibility' tag on PR
     booleanParam(name: 'jdk_compatibility_ci', defaultValue: false, description: 'Enable JDK compatibility tests')
+
+    // disabled by default, not required for merge
+    // opt-in with 'ci:windows' tag on PR
+    booleanParam(name: 'windows_ci', defaultValue: false, description: 'Enable Windows build & tests')
   }
   stages {
     stage('Checkout') {
@@ -82,7 +88,7 @@ pipeline {
         }
       }
     }
-    stage('Builds'){
+    stage('Builds') {
       options { skipDefaultCheckout() }
       when {
         // Tags are not required to be built/tested.
@@ -92,18 +98,20 @@ pipeline {
       }
       environment {
         HOME = "${env.WORKSPACE}"
-        JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
-        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+        JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
       stages {
         /**
-        Build on a linux environment.
-        */
+         * Build on a linux environment.
+         */
         stage('Build') {
           when {
             beforeAgent true
             expression { return env.ONLY_DOCS == "false" }
+          }
+          environment {
+            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           steps {
             withGithubNotify(context: 'Build', tab: 'artifacts') {
@@ -124,9 +132,13 @@ pipeline {
               }
               stashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
               archiveArtifacts allowEmptyArchive: true,
-                artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
-                      ${BASE_DIR}/apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar,${BASE_DIR}/apm-agent-api/target/apm-agent-api-*.jar,\
-                      ${BASE_DIR}/target/site/aggregate-third-party-report.html",
+                artifacts: "\
+                  ${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,\
+                  ${BASE_DIR}/elastic-apm-agent/target/elastic-apm-java-aws-lambda-layer-*.zip,\
+                  ${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
+                  ${BASE_DIR}/apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar,\
+                  ${BASE_DIR}/apm-agent-api/target/apm-agent-api-*.jar,\
+                  ${BASE_DIR}/target/site/aggregate-third-party-report.html",
                 onlyIfSuccessful: true
             }
           }
@@ -139,25 +151,65 @@ pipeline {
           failFast true
           parallel {
             /**
-              Run only unit test.
-            */
+             * Run only unit tests
+             */
             stage('Unit Tests') {
               options { skipDefaultCheckout() }
               when {
                 beforeAgent true
                 expression { return params.test_ci }
               }
+              environment {
+                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+              }
               steps {
                 withGithubNotify(context: 'Unit Tests', tab: 'tests') {
                   deleteDir()
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
-                  dir("${BASE_DIR}"){
+                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                  dir("${BASE_DIR}") {
                     withOtelEnv() {
-                      sh """#!/bin/bash
-                      set -euxo pipefail
-                      ./mvnw test
-                      """
+                      sh label: 'mvn test', script: './mvnw test'
                     }
+                  }
+                }
+              }
+              post {
+                always {
+                  reportTestResults()
+                }
+              }
+            }
+            /** *
+             * Build & Test on Windows environment
+             */
+            stage('Build & Test Windows') {
+              agent { label 'windows-2019-docker-immutable' }
+              options { skipDefaultCheckout() }
+              when {
+                beforeAgent true
+                allOf {
+                  expression { return params.test_ci }
+                  anyOf {
+                    expression { return params.windows_ci }
+                    expression { return env.GITHUB_COMMENT?.contains('windows tests') }
+                    expression { matchesPrLabel(label: 'ci:windows') }
+                  }
+                }
+              }
+              environment {
+                JAVA_HOME = "C:\\Users\\jenkins\\.java\\${env.JAVA_VERSION}"
+                PATH = "${env.JAVA_HOME}\\bin;${env.PATH}"
+              }
+              steps {
+                withGithubNotify(context: 'Build & Test Windows') {
+                  deleteDir()
+                  unstash 'source'
+                  dir("${BASE_DIR}") {
+                    echo "${env.PATH}"
+                    retryWithSleep(retries: 5, seconds: 10) {
+                      bat label: 'mvn clean install', script: "mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true"
+                    }
+                    bat label: 'mvn test', script: "mvnw test"
                   }
                 }
               }
@@ -177,13 +229,17 @@ pipeline {
                   expression { return env.GITHUB_COMMENT?.contains('integration tests') }
                   expression { matchesPrLabel(label: 'ci:agent-integration') }
                   expression { return env.CHANGE_ID != null && !pullRequest.draft }
+                  not { changeRequest() }
                 }
+              }
+              environment {
+                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               steps {
                 withGithubNotify(context: 'Non-Application Server integration tests', tab: 'tests') {
                   deleteDir()
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
-                  dir("${BASE_DIR}"){
+                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                  dir("${BASE_DIR}") {
                     withOtelEnv() {
                       sh './mvnw -q -P ci-non-application-server-integration-tests verify'
                     }
@@ -206,13 +262,17 @@ pipeline {
                   expression { return env.GITHUB_COMMENT?.contains('integration tests') }
                   expression { matchesPrLabel(label: 'ci:agent-integration') }
                   expression { return env.CHANGE_ID != null && !pullRequest.draft }
+                  not { changeRequest() }
                 }
+              }
+              environment {
+                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               steps {
                 withGithubNotify(context: 'Application Server integration tests', tab: 'tests') {
                   deleteDir()
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
-                  dir("${BASE_DIR}"){
+                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                  dir("${BASE_DIR}") {
                     withOtelEnv() {
                       sh './mvnw -q -P ci-application-server-integration-tests verify'
                     }
@@ -226,29 +286,28 @@ pipeline {
               }
             }
             /**
-              Run the benchmarks and store the results on ES.
-              The result JSON files are also archive into Jenkins.
-            */
+             * Run the benchmarks and store the results on ES.
+             * The result JSON files are also archive into Jenkins.
+             */
             stage('Benchmarks') {
               agent { label 'metal' }
               options { skipDefaultCheckout() }
               environment {
                 NO_BUILD = "true"
+                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               when {
                 beforeAgent true
-                allOf {
-                  anyOf {
-                    branch 'main'
-                    expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
-                  }
+                anyOf {
+                  branch 'main'
+                  expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
                   expression { return params.bench_ci }
                 }
               }
               steps {
                 withGithubNotify(context: 'Benchmarks', tab: 'artifacts') {
                   deleteDir()
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
+                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   dir("${BASE_DIR}"){
                     withOtelEnv() {
                       sh './scripts/jenkins/run-benchmarks.sh'
@@ -266,14 +325,13 @@ pipeline {
               }
             }
             /**
-              Build javadoc files.
-            */
+             * Build javadoc
+             */
             stage('Javadoc') {
               agent { label 'linux && immutable' }
               options { skipDefaultCheckout() }
-              when {
-                beforeAgent true
-                expression { return env.ONLY_DOCS == "false" }
+              environment {
+                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               steps {
                 withGithubNotify(context: 'Javadoc') {
@@ -302,6 +360,7 @@ pipeline {
                 expression { return env.GITHUB_COMMENT?.contains('end-to-end tests') }
                 expression { matchesPrLabel(label: 'ci:end-to-end') }
                 expression { return env.CHANGE_ID != null && !pullRequest.draft }
+                not { changeRequest() }
               }
             }
           }
@@ -328,25 +387,28 @@ pipeline {
               }
             }
           }
+          environment {
+            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+          }
           matrix {
             agent { label 'linux && immutable' }
             axes {
               axis {
                 // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
-                name 'JAVA_VERSION'
+                name 'JDK_VERSION'
                 // 'openjdk18'  disabled for now see https://github.com/elastic/apm-agent-java/issues/2328
                 values 'openjdk17'
               }
             }
             stages {
-              stage('Test') {
+              stage('JDK Unit Tests') {
                 steps {
-                  withGithubNotify(context: "Unit Tests ${JAVA_VERSION}", tab: 'tests') {
+                  withGithubNotify(context: "Unit Tests ${JDK_VERSION}", tab: 'tests') {
                     deleteDir()
-                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}") 
+                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                     dir("${BASE_DIR}"){
                       withOtelEnv() {
-                        sh(label: "./mvnw test for ${JAVA_VERSION}", script: './mvnw test')
+                        sh(label: "./mvnw test for ${JDK_VERSION}", script: './mvnw test')
                       }
                     }
                   }
@@ -362,7 +424,7 @@ pipeline {
         }
       }
     }
-    stage('Releases'){
+    stage('Releases') {
       when {
         anyOf {
           branch 'main'
@@ -430,5 +492,7 @@ def reportTestResults(){
   junit(allowEmptyResults: true,
     keepLongStdio: true,
     testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
-  codecov(repo: env.REPO, basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
+
+  // disable codecov for now as it's not supported for windows
+  //  codecov(repo: env.REPO, basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
 }

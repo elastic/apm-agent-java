@@ -21,33 +21,29 @@ package co.elastic.apm.agent.servlet.helper;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.servlet.ServletTransactionHelper;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.springframework.mock.web.MockHttpServletRequest;
 
 import javax.annotation.Nullable;
-import javax.servlet.ServletContext;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ServletTransactionCreationHelperTest extends AbstractInstrumentationTest {
 
     private WebConfiguration webConfig;
-    private ServletTransactionCreationHelper helper;
+    private ServletTransactionHelper helper;
 
     @BeforeEach
     void setUp() {
         webConfig = config.getConfig(WebConfiguration.class);
-        helper = new JavaxServletTransactionCreationHelper(tracer);
+        helper = new ServletTransactionHelper(tracer);
     }
 
     @ParameterizedTest
@@ -74,10 +70,7 @@ class ServletTransactionCreationHelperTest extends AbstractInstrumentationTest {
         when(webConfig.getIgnoreUrls())
             .thenReturn(parseWildcard(config));
 
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setRequestURI(path);
-
-        boolean isIgnored = helper.isExcluded(request);
+        boolean isIgnored = helper.isExcluded(null, path);
         assertThat(isIgnored)
             .describedAs("request with path '%s' %s be ignored", expectIgnored ? "should" : "should not", path)
             .isEqualTo(expectIgnored);
@@ -95,11 +88,7 @@ class ServletTransactionCreationHelperTest extends AbstractInstrumentationTest {
         when(webConfig.getIgnoreUserAgents())
             .thenReturn(parseWildcard(ignoreExpr));
 
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setRequestURI("/request/path");
-        request.addHeader("user-agent", userAgent);
-
-        assertThat(helper.isExcluded(request))
+        assertThat(helper.isExcluded(userAgent, "/request/path"))
             .describedAs("request with user-agent '%s' should be ignored", userAgent)
             .isTrue();
     }
@@ -113,17 +102,4 @@ class ServletTransactionCreationHelperTest extends AbstractInstrumentationTest {
             .collect(Collectors.toList());
     }
 
-    @Test
-    void safeGetClassLoader() {
-        assertThat(helper.getClassloader(null)).isNull();
-
-        ServletContext servletContext = mock(ServletContext.class);
-        doThrow(UnsupportedOperationException.class).when(servletContext).getClassLoader();
-        assertThat(helper.getClassloader(servletContext)).isNull();
-
-        servletContext = mock(ServletContext.class);
-        ClassLoader cl = mock(ClassLoader.class);
-        when(servletContext.getClassLoader()).thenReturn(cl);
-        assertThat(helper.getClassloader(servletContext)).isSameAs(cl);
-    }
 }

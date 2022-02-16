@@ -38,7 +38,7 @@ public abstract class AbstractJsfApplicationServerTestApp extends TestApp {
                                                String deploymentContext,
                                                String statusEndpoint,
                                                @Nullable String expectedServiceName) {
-        super(modulePath, appFileName, deploymentContext, statusEndpoint, expectedServiceName);
+        super(modulePath, appFileName, deploymentContext, statusEndpoint, expectedServiceName, null);
         this.servicePath = servicePath;
     }
 

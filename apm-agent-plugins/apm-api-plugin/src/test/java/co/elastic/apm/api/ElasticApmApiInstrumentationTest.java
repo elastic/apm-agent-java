@@ -19,10 +19,12 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractApiTest;
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -327,16 +329,40 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
 
     @Test
     void testOverrideServiceNameForClassLoader() {
-        tracer.overrideServiceNameForClassLoader(Transaction.class.getClassLoader(), "overridden");
+        ServiceInfo overridden = ServiceInfo.of("overridden");
+        tracer.overrideServiceInfoForClassLoader(Transaction.class.getClassLoader(), overridden);
         ElasticApm.startTransaction().end();
-        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
+        checkTransactionServiceInfo(overridden);
     }
 
     @Test
     void testOverrideServiceNameForClassLoaderWithRemoteParent() {
-        tracer.overrideServiceNameForClassLoader(Transaction.class.getClassLoader(), "overridden");
+        ServiceInfo overridden = ServiceInfo.of("overridden");
+        tracer.overrideServiceInfoForClassLoader(Transaction.class.getClassLoader(), overridden);
         ElasticApm.startTransactionWithRemoteParent(key -> null).end();
-        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
+        checkTransactionServiceInfo(overridden);
+    }
+
+    @Test
+    void testOverrideServiceVersionForClassLoader() {
+        ServiceInfo overridden = ServiceInfo.of("overridden_name", "overridden_version");
+        tracer.overrideServiceInfoForClassLoader(Transaction.class.getClassLoader(), overridden);
+        ElasticApm.startTransaction().end();
+        checkTransactionServiceInfo(overridden);
+    }
+
+    @Test
+    void testOverrideServiceVersionForClassLoaderWithRemoteParent() {
+        ServiceInfo overridden = ServiceInfo.of("overridden_name", "overridden_version");
+        tracer.overrideServiceInfoForClassLoader(Transaction.class.getClassLoader(), overridden);
+        ElasticApm.startTransactionWithRemoteParent(key -> null).end();
+        checkTransactionServiceInfo(overridden);
+    }
+
+    private void checkTransactionServiceInfo(ServiceInfo expected){
+        TraceContext traceContext = reporter.getFirstTransaction().getTraceContext();
+        assertThat(traceContext.getServiceName()).isEqualTo(expected.getServiceName());
+        assertThat(traceContext.getServiceVersion()).isEqualTo(expected.getServiceVersion());
     }
 
     @Test
