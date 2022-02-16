@@ -93,10 +93,10 @@ pipeline {
       steps {
         dir("${BASE_DIR}"){
           setupAPMGitEmail(global: false)
-          sh(label: "checkout main branch", script: "git checkout -f 'main")
+          sh(label: "checkout main branch", script: "git checkout -f main")
           sh(label: 'rebase stable', script: """
             git checkout -f -b stable
-            git rebase 'main'
+            git rebase main
             git --no-pager log -n1 --pretty=oneline
             git rev-parse --abbrev-ref HEAD
           """)
