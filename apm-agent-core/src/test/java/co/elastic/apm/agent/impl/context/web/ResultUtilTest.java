@@ -26,7 +26,6 @@ import static co.elastic.apm.agent.impl.context.web.ResultUtil.getOutcomeByHttpC
 import static co.elastic.apm.agent.impl.context.web.ResultUtil.getOutcomeByHttpServerStatus;
 import static co.elastic.apm.agent.impl.context.web.ResultUtil.getResultByHttpStatus;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 class ResultUtilTest {
 

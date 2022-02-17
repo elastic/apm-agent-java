@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.servlet.helper.JakartaRecordingServletInputStreamWrapper;
 import jakarta.servlet.ServletInputStream;

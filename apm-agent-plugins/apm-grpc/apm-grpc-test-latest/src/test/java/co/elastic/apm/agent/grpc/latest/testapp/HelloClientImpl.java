@@ -23,13 +23,9 @@ import co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply;
 import co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest;
 import co.elastic.apm.agent.grpc.testapp.HelloClient;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.grpc.CallOptions;
-import io.grpc.Channel;
-import io.grpc.ClientCall;
 import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import io.grpc.MethodDescriptor;
 import io.grpc.stub.StreamObserver;
 
 class HelloClientImpl extends HelloClient<HelloRequest, HelloReply> {
