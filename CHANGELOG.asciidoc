@@ -27,6 +27,7 @@ endif::[]
 ===== Features
 * Added support for setting service name and version for a transaction via the public api - {pull}2451[#2451]
 * Added support for en-/disabling each public annotation on each own - {pull}2472[#2472]
+* Added support for compressing spans - {pull}2477[#2477]
 
 [float]
 ===== Performance improvements
