@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recyclable {
     public static final int PRIO_USER_SUPPLIED = 1000;
@@ -104,6 +105,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     private Outcome userOutcome = null;
 
     private boolean hasCapturedExceptions;
+
+    protected final AtomicReference<Span> bufferedSpan = new AtomicReference<>();
 
     public int getReferenceCount() {
         return references.get();
@@ -458,6 +461,12 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
             childDurations.onSpanEnd(epochMicros);
             beforeEnd(epochMicros);
             this.finished = true;
+            Span buffered = bufferedSpan.get();
+            if (buffered != null) {
+                if (bufferedSpan.compareAndSet(buffered, null)) {
+                    this.tracer.endSpan(buffered);
+                }
+            }
             afterEnd();
         } else {
             logger.warn("End has already been called: {}", this);

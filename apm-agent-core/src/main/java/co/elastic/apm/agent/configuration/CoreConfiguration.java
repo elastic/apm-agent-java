@@ -714,6 +714,36 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(false);
 
+    private final ConfigurationOption<Boolean> spanCompressionEnabled = ConfigurationOption.booleanOption()
+        .key("span_compression_enabled")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("added[1.30.0]", "internal")
+        .description("Setting this option to true will enable span compression feature.\n" +
+            "Span compression reduces the collection, processing, and storage overhead, and removes clutter from the UI. " +
+            "The tradeoff is that some information such as DB statements of all the compressed spans will not be collected.")
+        .dynamic(true)
+        .buildWithDefault(false);
+
+    private final ConfigurationOption<TimeDuration> spanCompressionExactMatchMaxDuration = TimeDurationValueConverter.durationOption("ms")
+        .key("span_compression_exact_match_max_duration")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("added[1.30.0]", "internal")
+        .description("Consecutive spans that are exact match and that are under this threshold will be compressed into a single composite span. " +
+            "This option does not apply to composite spans. This reduces the collection, processing, and storage overhead, and removes clutter from the UI. " +
+            "The tradeoff is that the DB statements of all the compressed spans will not be collected.")
+        .dynamic(true)
+        .buildWithDefault(TimeDuration.of("50ms"));
+
+    private final ConfigurationOption<TimeDuration> spanCompressionSameKindMaxDuration = TimeDurationValueConverter.durationOption("ms")
+        .key("span_compression_same_kind_max_duration")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("added[1.30.0]", "internal")
+        .description("Consecutive spans to the same destination that are under this threshold will be compressed into a single composite span. " +
+            "This option does not apply to composite spans. This reduces the collection, processing, and storage overhead, and removes clutter from the UI. " +
+            "The tradeoff is that the DB statements of all the compressed spans will not be collected.")
+        .dynamic(true)
+        .buildWithDefault(TimeDuration.of("5ms"));
+
     public boolean isEnabled() {
         return enabled.get();
     }
@@ -941,6 +971,18 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isEnablePublicApiAnnotationInheritance() {
         return enablePublicApiAnnotationInheritance.get();
+    }
+
+    public boolean isSpanCompressionEnabled() {
+        return spanCompressionEnabled.get();
+    }
+
+    public TimeDuration getSpanCompressionExactMatchMaxDuration() {
+        return spanCompressionExactMatchMaxDuration.get();
+    }
+
+    public TimeDuration getSpanCompressionSameKindMaxDuration() {
+        return spanCompressionSameKindMaxDuration.get();
     }
 
     public enum EventType {

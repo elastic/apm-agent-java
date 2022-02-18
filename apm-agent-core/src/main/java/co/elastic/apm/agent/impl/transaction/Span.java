@@ -29,9 +29,11 @@ import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.StringBuilderUtils;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public class Span extends AbstractSpan<Span> implements Recyclable {
@@ -65,6 +67,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Any other arbitrary data captured by the agent, optionally provided by the user
      */
     private final SpanContext context = new SpanContext();
+    private final Composite composite = new Composite();
     @Nullable
     private Throwable stacktrace;
     @Nullable
@@ -149,6 +152,14 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Override
     public SpanContext getContext() {
         return context;
+    }
+
+    public boolean isComposite() {
+        return composite.getCount() > 0;
+    }
+
+    public Composite getComposite() {
+        return composite;
     }
 
     /**
@@ -292,13 +303,119 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     protected void afterEnd() {
-        this.tracer.endSpan(this);
+        if (tracer.getConfig(CoreConfiguration.class).isSpanCompressionEnabled()) {
+            Span buffered = parent.bufferedSpan.get();
+            if (!isCompressionEligible()) {
+                if (buffered != null) {
+                    if (parent.bufferedSpan.compareAndSet(buffered, null)) {
+                        this.tracer.endSpan(buffered);
+                    }
+                }
+                this.tracer.endSpan(this);
+                return;
+            }
+            if (buffered == null) {
+                if (!parent.bufferedSpan.compareAndSet(null, this)) {
+                    this.tracer.endSpan(this);
+                }
+                return;
+            }
+            if (!buffered.tryToCompress(this)) {
+                if (!parent.bufferedSpan.compareAndSet(buffered, this)) {
+                    this.tracer.endSpan(buffered);
+                    this.tracer.endSpan(this);
+                } else {
+                    this.tracer.endSpan(buffered);
+                }
+            } else {
+                decrementReferences();
+            }
+        } else {
+            this.tracer.endSpan(this);
+        }
+    }
+
+    private boolean isCompressionEligible() {
+        return isExit() && isDiscardable() && (getOutcome() == null || getOutcome() == Outcome.SUCCESS);
+    }
+
+    private boolean tryToCompress(Span sibling) {
+        boolean canBeCompressed = isComposite() ? tryToCompressComposite(sibling) : tryToCompressRegular(sibling);
+        if (!canBeCompressed) {
+            return false;
+        }
+
+        long newDuration = sibling.getTimestamp() + sibling.duration - getTimestamp();
+        synchronized (composite) {
+            if (newDuration > duration) {
+                duration = newDuration;
+            }
+        }
+
+        composite.increaseCount();
+        composite.increaseSum(sibling.duration);
+
+        return true;
+    }
+
+    private boolean tryToCompressRegular(Span sibling) {
+        if (!isSameKind(sibling)) {
+            return false;
+        }
+
+        long maxExactMatchDuration = tracer.getConfig(CoreConfiguration.class).getSpanCompressionExactMatchMaxDuration().getMicros();
+        long maxSameKindDuration = tracer.getConfig(CoreConfiguration.class).getSpanCompressionSameKindMaxDuration().getMicros();
+
+        boolean isAlreadyComposite;
+        synchronized (composite) {
+            isAlreadyComposite = isComposite();
+            if (!isAlreadyComposite) {
+                if (StringBuilderUtils.equals(name, sibling.name)) {
+                    if (duration <= maxExactMatchDuration && sibling.duration <= maxExactMatchDuration) {
+                        composite.init(duration, "exact_match");
+                        return true;
+                    }
+                    return false;
+                }
+
+                if (duration <= maxSameKindDuration && sibling.duration <= maxSameKindDuration) {
+                    composite.init(duration, "same_kind");
+                    name.setLength(0);
+                    name.append("Calls to ").append(context.getDestination().getService().getResource());
+                    return true;
+                }
+            }
+        }
+
+        return isAlreadyComposite && tryToCompressComposite(sibling);
+    }
+
+    private boolean tryToCompressComposite(Span sibling) {
+        switch (composite.getCompressionStrategy()) {
+            case "exact_match":
+                long maxExactMatchDuration = tracer.getConfig(CoreConfiguration.class).getSpanCompressionExactMatchMaxDuration().getMicros();
+                return isSameKind(sibling) && StringBuilderUtils.equals(name, sibling.name) && sibling.duration <= maxExactMatchDuration;
+
+            case "same_kind":
+                long maxSameKindDuration = tracer.getConfig(CoreConfiguration.class).getSpanCompressionSameKindMaxDuration().getMicros();
+                return isSameKind(sibling) && sibling.duration <= maxSameKindDuration;
+            default:
+        }
+
+        return false;
+    }
+
+    private boolean isSameKind(Span other) {
+        return Objects.equals(type, other.type)
+            && Objects.equals(subtype, other.subtype)
+            && StringBuilderUtils.equals(context.getDestination().getService().getResource(), other.context.getDestination().getService().getResource());
     }
 
     @Override
     public void resetState() {
         super.resetState();
         context.resetState();
+        composite.resetState();
         stacktrace = null;
         type = null;
         subtype = null;
