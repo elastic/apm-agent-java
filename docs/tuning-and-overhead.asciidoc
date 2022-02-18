@@ -100,9 +100,10 @@ synchronous startup time, the number of instrumentations applied needs to be min
 through the `enable_instrumentations` option.
 In this use case you should identify the smallest set of instrumentation groups you can
 accept for your application monitoring, and use the `enable_instrumentations` configuration
-option detailed in the <<configuration,configuration guide>>. To assist in identifying that
-smallest set of instrumentation groups, you can run with logging level set to DEBUG, and
-view the statistics produced by the agent on normal termination of the application
+option detailed in the <<configuration,configuration guide>>. The smallest set of instrumentations
+can be found in the agent logs after normal termination of the application (since version 1.29.0).
+In addition to that you can run the agent with logging level set to DEBUG, and view the statistics
+produced by the agent on normal termination of the application.
 
 [float]
 [[tuning-agent]]

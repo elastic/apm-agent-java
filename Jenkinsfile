@@ -444,11 +444,8 @@ pipeline {
               setupAPMGitEmail(global: false)
               sh(label: "checkout ${BRANCH_NAME} branch", script: "git checkout -f '${BRANCH_NAME}'")
               sh(label: 'rebase stable', script: """
-                echo 'INFO: checkout the stable branch'
-                git rev-parse --quiet --verify stable && git checkout stable || git checkout -b stable
-                echo 'INFO: rebase with ${BRANCH_NAME}'
+                git checkout -f -b stable
                 git rebase '${BRANCH_NAME}'
-                echo 'DEBUG: current status'
                 git --no-pager log -n1 --pretty=oneline
                 git rev-parse --abbrev-ref HEAD
               """)

@@ -25,8 +25,6 @@ import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
 
-import java.io.File;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 

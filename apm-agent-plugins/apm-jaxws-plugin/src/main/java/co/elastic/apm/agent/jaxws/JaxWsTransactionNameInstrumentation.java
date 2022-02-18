@@ -35,6 +35,7 @@ import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
@@ -76,7 +77,7 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
         // the implementations have to be annotated as well
         // quote from javadoc:
         // "Marks a Java class as implementing a Web Service, or a Java interface as defining a Web Service interface."
-        return isAnnotatedWith(namedOneOf("javax.jws.WebService", "jakarta.jws.WebService")).and(not(isInterface()));
+        return not(isInterface()).and(not(isProxy())).and(isAnnotatedWith(namedOneOf("javax.jws.WebService", "jakarta.jws.WebService")));
     }
 
     @Override

@@ -35,9 +35,11 @@ import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -63,7 +65,7 @@ public abstract class BaseServerEndpointInstrumentation extends TracerAwareInstr
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return isAnnotatedWith(named(getServerEndpointClassName()));
+        return not(isInterface()).and(not(isProxy())).and(isAnnotatedWith(named(getServerEndpointClassName())));
     }
 
     @Override
