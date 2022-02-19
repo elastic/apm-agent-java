@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -383,20 +384,27 @@ public class ElasticApmTracer implements Tracer {
             span.decrementReferences();
             return;
         }
-        if (!span.isComposite()) {
+        SpanConfiguration spanConfiguration = getConfig(SpanConfiguration.class);
+        if (span.isExit()) {
+            if (span.getDuration() < spanConfiguration.getExitSpanMinDuration().getMicros()) {
+                logger.debug("Span faster than exit_span_min_duration. Request discarding {}", span);
+                span.requestDiscarding();
+            }
+        } else if (!span.isComposite()) {
             if (span.getDuration() < coreConfiguration.getSpanMinDuration().getMicros()) {
                 logger.debug("Span faster than span_min_duration. Request discarding {}", span);
                 span.requestDiscarding();
             }
-            if (span.isDiscarded()) {
-                logger.debug("Discarding span {}", span);
-                Transaction transaction = span.getTransaction();
-                if (transaction != null) {
-                    transaction.getSpanCount().getDropped().incrementAndGet();
-                }
-                span.decrementReferences();
-                return;
+        }
+        if (span.isDiscarded()) {
+            logger.debug("Discarding span {}", span);
+            Transaction transaction = span.getTransaction();
+            if (transaction != null) {
+                transaction.getSpanCount().getDropped().incrementAndGet();
             }
+            span.decrementReferences();
+            return;
+
         }
         reportSpan(span);
     }
