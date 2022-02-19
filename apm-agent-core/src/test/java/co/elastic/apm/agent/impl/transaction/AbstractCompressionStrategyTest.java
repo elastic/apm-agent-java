@@ -28,6 +28,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -156,6 +157,41 @@ abstract class AbstractCompressionStrategyTest {
             startExitSpan(t).end();
             startExitSpan(t).end();
             startExitSpan(t).withOutcome(Outcome.FAILURE).end();
+        });
+
+        List<Span> reportedSpans = reporter.getSpans();
+        assertThat(reportedSpans).hasSize(2);
+        assertCompositeSpan(reportedSpans.get(0), 2);
+        assertThat(reportedSpans.get(1).isComposite()).isFalse();
+    }
+
+    @Test
+    void testContextPropagationStopsRegularCompression() {
+        runInTransactionScope(t -> {
+            startExitSpan(t).end();
+            Span span = startExitSpan(t);
+            span.propagateTraceContext(new HashMap<String, String>(), (h, v, c) -> {
+                c.put(h, v);
+            });
+            span.end();
+        });
+
+        List<Span> reportedSpans = reporter.getSpans();
+        assertThat(reportedSpans).hasSize(2);
+        assertThat(reportedSpans.get(0).isComposite()).isFalse();
+        assertThat(reportedSpans.get(1).isComposite()).isFalse();
+    }
+
+    @Test
+    void testContextPropagationStopsCompositeCompression() {
+        runInTransactionScope(t -> {
+            startExitSpan(t).end();
+            startExitSpan(t).end();
+            Span span = startExitSpan(t);
+            span.propagateTraceContext(new HashMap<String, String>(), (h, v, c) -> {
+                c.put(h, v);
+            });
+            span.end();
         });
 
         List<Span> reportedSpans = reporter.getSpans();
