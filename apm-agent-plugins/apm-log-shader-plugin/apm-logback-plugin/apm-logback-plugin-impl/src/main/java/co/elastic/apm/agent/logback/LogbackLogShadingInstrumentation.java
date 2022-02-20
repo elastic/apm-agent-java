@@ -18,11 +18,13 @@
  */
 package co.elastic.apm.agent.logback;
 
+import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.log.shader.AbstractLogShadingInstrumentation;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.security.ProtectionDomain;
 import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
@@ -49,6 +51,11 @@ public abstract class LogbackLogShadingInstrumentation extends AbstractLogShadin
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("ch.qos.logback.core.OutputStreamAppender");
+    }
+
+    @Override
+    public ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {
+        return CustomElementMatchers.implementationVersionGte("1.0.0");
     }
 
     public static class ShadingInstrumentation extends LogbackLogShadingInstrumentation {

@@ -219,6 +219,9 @@ public class CustomElementMatchers {
                         Manifest manifest = jarFile.getManifest();
                         if (manifest != null) {
                             String implementationVersion = manifest.getMainAttributes().getValue("Implementation-Version");
+                            if (implementationVersion == null) {
+                                implementationVersion = manifest.getMainAttributes().getValue("Bundle-Version");
+                            }
                             if (implementationVersion != null) {
                                 version = Version.of(implementationVersion);
                             }
