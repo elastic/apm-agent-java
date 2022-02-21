@@ -327,7 +327,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                 } else {
                     this.tracer.endSpan(buffered);
                 }
-            } else {
+            } else if (isSampled()) {
+                Transaction transaction = getTransaction();
+                if (transaction != null) {
+                    transaction.getSpanCount().getDropped().incrementAndGet();
+                }
                 decrementReferences();
             }
         } else {
