@@ -23,7 +23,6 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Scope;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -353,7 +352,7 @@ abstract class AbstractCompressionStrategyTest {
 
     protected static void runInTransactionScope(Consumer<AbstractSpan<?>> r) {
         Transaction transaction = tracer.startRootTransaction(null).withName("Some Transaction");
-        try (Scope scope = transaction.activateInScope()) {
+        try {
             r.accept(transaction);
         } finally {
             transaction.end();
