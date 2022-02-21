@@ -258,10 +258,8 @@ public class ElasticApmAgent {
             @Override
             public void run() {
                 tracer.stop();
-                instrumentationStats.reset();
             }
         });
-        instrumentationStats.reset();
         Logger logger = getLogger();
         if (ElasticApmAgent.instrumentation != null) {
             logger.warn("Instrumentation has already been initialized");
@@ -397,7 +395,7 @@ public class ElasticApmAgent {
             }
         };
         return agentBuilder
-            .type(logger.isDebugEnabled() ? new AgentBuilder.RawMatcher() {
+            .type(instrumentationStats.shouldMeasureMatching() ? new AgentBuilder.RawMatcher() {
                 @Override
                 public boolean matches(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, Class<?> classBeingRedefined, ProtectionDomain protectionDomain) {
                     long start = System.nanoTime();
@@ -469,7 +467,7 @@ public class ElasticApmAgent {
             }
         };
         return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
-            .advice(logger.isDebugEnabled() ? new ElementMatcher<MethodDescription>() {
+            .advice(instrumentationStats.shouldMeasureMatching() ? new ElementMatcher<MethodDescription>() {
                 @Override
                 public boolean matches(MethodDescription target) {
                     long start = System.nanoTime();
