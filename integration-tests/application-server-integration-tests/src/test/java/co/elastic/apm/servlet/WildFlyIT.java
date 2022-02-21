@@ -34,7 +34,7 @@ import java.util.Arrays;
 public class WildFlyIT extends AbstractServletContainerIntegrationTest {
 
     public WildFlyIT(final String wildFlyVersion) {
-        super(new GenericContainer<>("jboss/wildfly:" + wildFlyVersion)
+        super(new GenericContainerWithTcpProxy<>("jboss/wildfly:" + wildFlyVersion)
                 // this overrides the defaults, so we have to manually re-add preferIPv4Stack
                 // the other defaults don't seem to be important
                 .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true"),

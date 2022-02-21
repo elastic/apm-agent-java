@@ -51,7 +51,7 @@ public class ServletServiceNameHelper {
             return;
         }
         ServiceInfo serviceInfo = detectServiceInfo(adapter, servletContext, servletContextClassLoader);
-        tracer.overrideServiceInfoForClassLoader(servletContextClassLoader, serviceInfo);
+        tracer.setServiceInfoForClassLoader(servletContextClassLoader, serviceInfo);
     }
 
     public static <ServletContext> ServiceInfo detectServiceInfo(ServletContextAdapter<ServletContext> adapter, ServletContext servletContext, ClassLoader servletContextClassLoader) {

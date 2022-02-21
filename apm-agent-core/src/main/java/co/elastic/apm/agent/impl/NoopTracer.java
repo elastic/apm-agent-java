@@ -130,8 +130,14 @@ class NoopTracer implements Tracer {
         return TracerState.UNINITIALIZED;
     }
 
+    @Nullable
     @Override
-    public void overrideServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo) {
+    public ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader classLoader) {
+        return null;
+    }
+
+    @Override
+    public void setServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo) {
     }
 
     @Override

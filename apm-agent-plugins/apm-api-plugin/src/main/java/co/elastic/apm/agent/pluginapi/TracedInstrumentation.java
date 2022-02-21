@@ -142,6 +142,6 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(PUBLIC_API_INSTRUMENTATION_GROUP, "annotations");
+        return Arrays.asList(PUBLIC_API_INSTRUMENTATION_GROUP, "annotations", "annotations-traced");
     }
 }

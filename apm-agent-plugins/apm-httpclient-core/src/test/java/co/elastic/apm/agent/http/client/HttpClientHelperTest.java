@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static co.elastic.apm.agent.http.client.HttpClientHelper.EXTERNAL_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("ConstantConditions")

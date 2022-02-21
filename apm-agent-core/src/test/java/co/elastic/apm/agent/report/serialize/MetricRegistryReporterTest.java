@@ -41,7 +41,7 @@ class MetricRegistryReporterTest {
                 .configurationRegistry(SpyConfiguration.createSpyConfig(SimpleSource.forTest("service_name", "foo")))
                 .reporter(reporter)
                 .buildAndStart();
-            tracer.overrideServiceInfoForClassLoader(MetricRegistryReporterTest.class.getClassLoader(), ServiceInfo.of("MetricRegistryReporterTest"));
+            tracer.setServiceInfoForClassLoader(MetricRegistryReporterTest.class.getClassLoader(), ServiceInfo.of("MetricRegistryReporterTest"));
 
             new MetricRegistryReporter(tracer).run();
 

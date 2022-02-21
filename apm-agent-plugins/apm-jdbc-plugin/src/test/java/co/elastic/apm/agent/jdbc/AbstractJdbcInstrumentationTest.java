@@ -436,7 +436,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
             .isEqualTo(expectedAffectedRows);
 
         Destination destination = span.getContext().getDestination();
-        assertThat(destination.getAddress().toString()).isEqualTo("localhost");
+        assertThat(destination.getAddress().toString()).isIn("localhost", "127.0.0.1");
         if (expectedDbVendor.equals("h2")) {
             assertThat(destination.getPort()).isEqualTo(-1);
         } else {

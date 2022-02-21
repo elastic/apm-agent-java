@@ -434,8 +434,8 @@ class ElasticApmTracerTest {
 
         ClassLoader cl = getClass().getClassLoader();
         ServiceInfo overridden = ServiceInfo.of("overridden");
-        tracer.overrideServiceInfoForClassLoader(cl, overridden);
-        assertThat(tracer.getServiceInfo(cl)).isEqualTo(overridden);
+        tracer.setServiceInfoForClassLoader(cl, overridden);
+        assertThat(tracer.getServiceInfoForClassLoader(cl)).isEqualTo(overridden);
 
         startTestRootTransaction().end();
 
@@ -452,8 +452,8 @@ class ElasticApmTracerTest {
             .configurationRegistry(localConfig)
             .buildAndStart();
         ClassLoader cl = getClass().getClassLoader();
-        tracer.overrideServiceInfoForClassLoader(cl, ServiceInfo.of("overridden"));
-        assertThat(tracer.getServiceInfo(cl)).isNull();
+        tracer.setServiceInfoForClassLoader(cl, ServiceInfo.of("overridden"));
+        assertThat(tracer.getServiceInfoForClassLoader(cl)).isNull();
 
         startTestRootTransaction().end();
 
@@ -474,8 +474,8 @@ class ElasticApmTracerTest {
             .buildAndStart();
 
         ClassLoader cl = getClass().getClassLoader();
-        tracer.overrideServiceInfoForClassLoader(cl, ServiceInfo.of("overridden"));
-        assertThat(tracer.getServiceInfo(cl)).isNull();
+        tracer.setServiceInfoForClassLoader(cl, ServiceInfo.of("overridden"));
+        assertThat(tracer.getServiceInfoForClassLoader(cl)).isNull();
 
         startTestRootTransaction().end();
 
@@ -505,7 +505,7 @@ class ElasticApmTracerTest {
             .buildAndStart();
 
         ServiceInfo overridden = ServiceInfo.of("overridden_name", "overridden_version");
-        tracer.overrideServiceInfoForClassLoader(getClass().getClassLoader(), overridden);
+        tracer.setServiceInfoForClassLoader(getClass().getClassLoader(), overridden);
 
         startTestRootTransaction().end();
 
@@ -522,8 +522,8 @@ class ElasticApmTracerTest {
 
         ServiceInfo overridden = ServiceInfo.of("overridden_name", "overridden_version");
         ClassLoader cl = getClass().getClassLoader();
-        tracer.overrideServiceInfoForClassLoader(cl, overridden);
-        assertThat(tracer.getServiceInfo(cl)).isEqualTo(overridden);
+        tracer.setServiceInfoForClassLoader(cl, overridden);
+        assertThat(tracer.getServiceInfoForClassLoader(cl)).isEqualTo(overridden);
 
         startTestRootTransaction().end();
 
