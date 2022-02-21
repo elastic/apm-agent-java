@@ -48,6 +48,7 @@ import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Composite;
+import co.elastic.apm.agent.impl.transaction.DroppedSpanStats;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.FaasTrigger;
 import co.elastic.apm.agent.impl.transaction.Id;
@@ -666,6 +667,9 @@ public class DslJsonSerializer implements PayloadSerializer {
         serializeFaas(transaction.getFaas());
         serializeContext(transaction, transaction.getContext(), traceContext);
         serializeSpanCount(transaction.getSpanCount());
+        if (transaction.isSampled()) {
+            serializeDroppedSpanStats(transaction.getDroppedSpanStats());
+        }
         double sampleRate = traceContext.getSampleRate();
         if (!Double.isNaN(sampleRate)) {
             writeField("sample_rate", sampleRate);
@@ -1116,6 +1120,27 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
+    private void serializeDroppedSpanStats(final DroppedSpanStats droppedSpanStats) {
+        writeFieldName("dropped_spans_stats");
+        jw.writeByte(ARRAY_START);
+        for (Map.Entry<DroppedSpanStats.StatsKey, DroppedSpanStats.StatsValue> stats : droppedSpanStats) {
+            jw.writeByte(OBJECT_START);
+            writeField("destination_service_resource", stats.getKey().getDestinationServiceResource());
+            writeField("outcome", stats.getKey().getOutcome().toString());
+            writeFieldName("destination");
+            jw.writeByte(OBJECT_START);
+            writeField("count", stats.getValue().getCount());
+            writeFieldName("sum");
+            jw.writeByte(OBJECT_START);
+            writeLastField("us", stats.getValue().getSum());
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(OBJECT_END);
+        }
+        jw.writeByte(ARRAY_END);
+        jw.writeByte(COMMA);
+    }
+
     private void serializeContext(@Nullable final Transaction transaction, final TransactionContext context, TraceContext traceContext) {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
@@ -1525,6 +1550,11 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void writeLastField(final String fieldName, final int value) {
+        writeFieldName(fieldName);
+        NumberConverter.serialize(value, jw);
+    }
+
+    private void writeLastField(final String fieldName, final long value) {
         writeFieldName(fieldName);
         NumberConverter.serialize(value, jw);
     }
