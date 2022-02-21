@@ -108,6 +108,10 @@ abstract class AbstractCompressionStrategyTest {
         assertCompositeSpan(reportedSpans.get(0), 4);
         assertThat(reportedSpans.get(0).getComposite().getSum()).isEqualTo(1234 + (3456 - 2345) + (4567 - 3456) + (4556 - 3467));
         assertThat(reportedSpans.get(0).getDuration()).isEqualTo(4567);
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(1);
+        assertThat(spanCount.getDropped().get()).isEqualTo(3);
     }
 
     @Test
@@ -121,6 +125,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(0);
     }
 
     @Test
@@ -135,6 +143,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(1);
     }
 
     @Test
@@ -148,6 +160,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(0);
     }
 
     @Test
@@ -162,6 +178,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(1);
     }
 
     @Test
@@ -179,6 +199,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(0);
     }
 
     @Test
@@ -197,6 +221,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(1);
     }
 
     @Test
@@ -210,6 +238,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(0);
     }
 
     @Test
@@ -224,6 +256,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(1);
     }
 
     @Test
@@ -237,6 +273,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(0);
     }
 
     @Test
@@ -251,6 +291,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(1);
     }
 
     @Test
@@ -264,6 +308,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(0);
     }
 
     @Test
@@ -278,6 +326,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(1);
     }
 
     @Test
@@ -297,6 +349,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(0);
     }
 
     @Test
@@ -317,6 +373,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(1);
     }
 
     @Test
@@ -332,6 +392,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(0);
     }
 
     @Test
@@ -348,6 +412,10 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
+
+        SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
+        assertThat(spanCount.getReported().get()).isEqualTo(2);
+        assertThat(spanCount.getDropped().get()).isEqualTo(1);
     }
 
     protected static void runInTransactionScope(Consumer<AbstractSpan<?>> r) {
