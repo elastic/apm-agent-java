@@ -18,22 +18,24 @@
  */
 package co.elastic.apm.agent.log4j1;
 
-import co.elastic.apm.agent.log.shader.AbstractLogCorrelationInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.apache.log4j.spi.LoggingEvent;
 
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class Log4j1TraceCorrelationInstrumentation extends AbstractLogCorrelationInstrumentation {
+/**
+ * Instruments {@link org.apache.log4j.Category#callAppenders(LoggingEvent)}
+ */
+public class Log4j1TraceCorrelationInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -41,23 +43,15 @@ public class Log4j1TraceCorrelationInstrumentation extends AbstractLogCorrelatio
     }
 
     @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return super.getClassLoaderMatcher().and(classLoaderCanLoadClass("org.apache.log4j.Category"));
-    }
-
-    @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return named("org.apache.log4j.Category").or(nameContains("Logger"));
-    }
-
-    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.apache.log4j.Category"));
+        return named("org.apache.log4j.Category");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("fatal").or(super.getMethodMatcher());
+        return named("callAppenders")
+            .and(takesArguments(1))
+            .and(takesArgument(0, named("org.apache.log4j.spi.LoggingEvent")));
     }
 
     public static class AdviceClass {

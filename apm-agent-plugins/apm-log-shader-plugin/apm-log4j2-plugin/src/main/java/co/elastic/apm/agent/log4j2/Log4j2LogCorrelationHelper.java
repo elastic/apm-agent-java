@@ -21,14 +21,17 @@ package co.elastic.apm.agent.log4j2;
 import co.elastic.apm.agent.log.shader.AbstractLogCorrelationHelper;
 import org.apache.logging.log4j.ThreadContext;
 
+import java.util.Map;
+
 public class Log4j2LogCorrelationHelper extends AbstractLogCorrelationHelper {
+
     @Override
-    protected void addToMdc(String key, String value) {
-        ThreadContext.put(key, value);
+    protected void addToMdc(Map<String, String> correlationIds) {
+        ThreadContext.putAll(correlationIds);
     }
 
     @Override
-    protected void removeFromMdc(String key) {
-        ThreadContext.remove(key);
+    protected void removeFromMdc(Iterable<String> correlationIdKeys) {
+        ThreadContext.removeAll(correlationIdKeys);
     }
 }

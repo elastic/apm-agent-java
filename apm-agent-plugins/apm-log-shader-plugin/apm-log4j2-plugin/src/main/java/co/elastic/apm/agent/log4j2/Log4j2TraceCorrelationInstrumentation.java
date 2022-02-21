@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.log4j2;
 
-import co.elastic.apm.agent.log.shader.AbstractLogCorrelationInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -28,12 +28,14 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class Log4j2TraceCorrelationInstrumentation extends AbstractLogCorrelationInstrumentation {
+/**
+ * Instruments {@link org.apache.logging.log4j.core.impl.LogEventFactory#createEvent}
+ */
+public class Log4j2TraceCorrelationInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -41,26 +43,21 @@ public class Log4j2TraceCorrelationInstrumentation extends AbstractLogCorrelatio
     }
 
     @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return super.getClassLoaderMatcher().and(classLoaderCanLoadClass("org.apache.logging.log4j.Logger"));
-    }
-
-    @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Logger");
+        return nameEndsWith("LogEventFactory");
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.apache.logging.log4j.Logger"));
+        return hasSuperType(
+            named("org.apache.logging.log4j.core.impl.LogEventFactory")
+                .or(named("org.apache.logging.log4j.core.impl.LocationAwareLogEventFactory"))
+        );
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("fatal").or(
-            named("catching").or(
-                super.getMethodMatcher())
-        );
+        return named("createEvent");
     }
 
     public static class AdviceClass {
