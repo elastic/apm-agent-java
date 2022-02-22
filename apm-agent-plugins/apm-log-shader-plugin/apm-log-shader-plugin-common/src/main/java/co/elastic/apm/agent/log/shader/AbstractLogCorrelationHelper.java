@@ -18,52 +18,76 @@
  */
 package co.elastic.apm.agent.log.shader;
 
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.state.CallDepth;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 
-import javax.annotation.Nullable;
-import java.util.Map;
-
+@GlobalState
 public abstract class AbstractLogCorrelationHelper {
+
+    public static final String TRACE_ID_MDC_KEY = "trace.id";
+    public static final String TRANSACTION_ID_MDC_KEY = "transaction.id";
 
     private static final CallDepth callDepth = CallDepth.get(AbstractLogCorrelationHelper.class);
 
     /**
-     * Adds the active transaction's ID and trace ID to the MDC in the outmost logging API call
-     * @param activeTransaction the currently active transaction, or {@code null} if there is no such
-     * @return returns {@code true} if the transaction IDs were added to the MDC
+     * Invokes the addition of active context metadata to the MDC (or framework-equivalent)
+     * @return returns {@code true} if the active context metadata was added to the MDC
      */
-    public boolean beforeLoggingApiCall(@Nullable Transaction activeTransaction) {
-        if (callDepth.isNestedCallAndIncrement() || activeTransaction == null) {
+    public boolean beforeLoggingEvent() {
+        if (callDepth.isNestedCallAndIncrement()) {
             return false;
         }
-        addToMdc(CorrelationIdMapAdapter.TRACE_ID, activeTransaction.getTraceContext().getTraceId().toString());
-        addToMdc(CorrelationIdMapAdapter.TRANSACTION_ID, activeTransaction.getTraceContext().getTransactionId().toString());
-        addToMdc(CorrelationIdMapAdapter.get());
-        return true;
+        return addToMdc();
     }
 
     /**
-     * Clears transaction and trace ID from the MDC if required
-     * @param added should reflect the value returned from {@link #beforeLoggingApiCall(Transaction)} for the corresponding API call
+     * Clears context metadata from the MDC if required
+     * @param addedToMdc should reflect the value returned from {@link #beforeLoggingEvent()} for the corresponding API call
      */
-    public void afterLoggingApi(boolean added) {
-        if (callDepth.isNestedCallAndDecrement() && added) {
-            removeFromMdc(CorrelationIdMapAdapter.TRACE_ID);
-            removeFromMdc(CorrelationIdMapAdapter.TRANSACTION_ID);
-            removeFromMdc(CorrelationIdMapAdapter.allKeys());
+    public void afterLoggingEvent(boolean addedToMdc) {
+        if (callDepth.isNestedCallAndDecrement() && addedToMdc) {
+            removeFromMdc();
         }
     }
 
-    protected void addToMdc(String key, String value) {
-    }
+    /**
+     * Add details of the currently active context to the logging framework MDC (or framework-equivalent)
+     * @return {@code true} if context metadata was added to the MDC, otherwise should return {@code false}
+     */
+    protected abstract boolean addToMdc();
 
-    protected void addToMdc(Map<String, String> correlationIds) {
-    }
+    protected abstract void removeFromMdc();
 
-    protected void removeFromMdc(String key) {
-    }
+    /**
+     * Default abstract implementation for {@link AbstractLogCorrelationHelper}, which retrieves the currently active context and
+     * adds metadata key-by-key.
+     */
+    public static abstract class DefaultLogCorrelationHelper extends AbstractLogCorrelationHelper {
 
-    protected void removeFromMdc(Iterable<String> correlationIdKeys) {
+        private final Tracer tracer = GlobalTracer.get();
+
+        @Override
+        protected boolean addToMdc() {
+            Transaction activeTransaction = tracer.currentTransaction();
+            if (activeTransaction == null) {
+                return false;
+            }
+            boolean added = addToMdc(TRACE_ID_MDC_KEY, activeTransaction.getTraceContext().getTraceId().toString());
+            added |= addToMdc(TRANSACTION_ID_MDC_KEY, activeTransaction.getTraceContext().getTransactionId().toString());
+            return added;
+        }
+
+        @Override
+        protected void removeFromMdc() {
+            removeFromMdc(TRACE_ID_MDC_KEY);
+            removeFromMdc(TRANSACTION_ID_MDC_KEY);
+        }
+
+        protected abstract boolean addToMdc(String key, String value);
+
+        protected abstract void removeFromMdc(String key);
     }
 }

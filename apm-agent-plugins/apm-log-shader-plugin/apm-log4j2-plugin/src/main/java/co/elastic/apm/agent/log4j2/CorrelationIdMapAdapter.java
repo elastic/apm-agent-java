@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.log.shader;
+package co.elastic.apm.agent.log4j2;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
@@ -33,18 +33,17 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-public class CorrelationIdMapAdapter extends AbstractMap<String, String> {
+import static co.elastic.apm.agent.log.shader.AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY;
+import static co.elastic.apm.agent.log.shader.AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY;
 
-    public static final String TRACE_ID = "trace.id";
-    public static final String TRANSACTION_ID = "transaction.id";
-    public static final String SPAN_ID = "span.id";
+public class CorrelationIdMapAdapter extends AbstractMap<String, String> {
 
     private static final CorrelationIdMapAdapter INSTANCE = new CorrelationIdMapAdapter();
     private static final Set<Entry<String, String>> ENTRY_SET = new TraceIdentifierEntrySet();
-    private static final List<String> ALL_KEYS = Arrays.asList(TRACE_ID, TRANSACTION_ID/*, SPAN_ID*/);
+    private static final List<String> ALL_KEYS = Arrays.asList(TRACE_ID_MDC_KEY, TRANSACTION_ID_MDC_KEY);
     private static final Tracer tracer = GlobalTracer.get();
     private static final List<Entry<String, String>> ENTRIES = Arrays.<Entry<String, String>>asList(
-        new LazyEntry(TRACE_ID, new Callable<String>() {
+        new LazyEntry(TRACE_ID_MDC_KEY, new Callable<String>() {
             @Override
             @Nullable
             public String call() {
@@ -55,7 +54,7 @@ public class CorrelationIdMapAdapter extends AbstractMap<String, String> {
                 return transaction.getTraceContext().getTraceId().toString();
             }
         }),
-        new LazyEntry(TRANSACTION_ID, new Callable<String>() {
+        new LazyEntry(TRANSACTION_ID_MDC_KEY, new Callable<String>() {
             @Override
             @Nullable
             public String call() {
@@ -65,18 +64,7 @@ public class CorrelationIdMapAdapter extends AbstractMap<String, String> {
                 }
                 return transaction.getTraceContext().getId().toString();
             }
-        })/*,
-        new LazyEntry(SPAN_ID, new Callable<String>() {
-            @Override
-            @Nullable
-            public String call() {
-                Span span = tracer.getActiveSpan();
-                if (span == null) {
-                    return null;
-                }
-                return span.getTraceContext().getId().toString();
-            }
-        })*/
+        })
     );
 
     public static Map<String, String> get() {

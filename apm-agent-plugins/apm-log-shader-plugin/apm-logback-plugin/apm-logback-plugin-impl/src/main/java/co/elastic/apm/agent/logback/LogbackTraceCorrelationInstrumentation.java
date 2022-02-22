@@ -55,13 +55,13 @@ public class LogbackTraceCorrelationInstrumentation extends TracerAwareInstrumen
         private static final LogbackLogCorrelationHelper helper = new LogbackLogCorrelationHelper();
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static boolean addToThreadContext() {
-            return helper.beforeLoggingApiCall(tracer.currentTransaction());
+        public static boolean addToMdc() {
+            return helper.beforeLoggingEvent();
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void removeFromThreadContext(@Advice.Enter boolean addedToMdc) {
-            helper.afterLoggingApi(addedToMdc);
+        public static void removeFromMdc(@Advice.Enter boolean addedToMdc) {
+            helper.afterLoggingEvent(addedToMdc);
         }
     }
 }

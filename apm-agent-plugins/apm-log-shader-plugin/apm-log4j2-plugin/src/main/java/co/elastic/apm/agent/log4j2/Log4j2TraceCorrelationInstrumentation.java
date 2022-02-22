@@ -25,17 +25,20 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.security.ProtectionDomain;
 import java.util.Collection;
 import java.util.Collections;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionGte;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
  * Instruments {@link org.apache.logging.log4j.core.impl.LogEventFactory#createEvent}
  */
-public class Log4j2TraceCorrelationInstrumentation extends TracerAwareInstrumentation {
+public abstract class Log4j2TraceCorrelationInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -60,18 +63,46 @@ public class Log4j2TraceCorrelationInstrumentation extends TracerAwareInstrument
         return named("createEvent");
     }
 
-    public static class AdviceClass {
-
-        private static final Log4j2LogCorrelationHelper helper = new Log4j2LogCorrelationHelper();
-
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static boolean addToThreadContext() {
-            return helper.beforeLoggingApiCall(tracer.currentTransaction());
+    public static class Log4j2_6TraceCorrelationInstrumentation extends Log4j2TraceCorrelationInstrumentation {
+        @Override
+        public ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {
+            return implementationVersionGte("2.6").and(not(implementationVersionGte("2.7")));
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void removeFromThreadContext(@Advice.Enter boolean addedToThreadContext) {
-            helper.afterLoggingApi(addedToThreadContext);
+        public static class AdviceClass {
+            private static final Log4j2_6LogCorrelationHelper helper = new Log4j2_6LogCorrelationHelper();
+
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static boolean addToThreadContext() {
+                return helper.beforeLoggingEvent();
+            }
+
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void removeFromThreadContext(@Advice.Enter boolean addedToMdc) {
+                helper.afterLoggingEvent(addedToMdc);
+            }
+        }
+    }
+
+    public static class Log4j2_7PlusTraceCorrelationInstrumentation extends Log4j2TraceCorrelationInstrumentation {
+        @Override
+        public ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {
+            return implementationVersionGte("2.7");
+        }
+
+        public static class AdviceClass {
+
+            private static final Log4j2_7PlusLogCorrelationHelper helper = new Log4j2_7PlusLogCorrelationHelper();
+
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static boolean addToThreadContext() {
+                return helper.beforeLoggingEvent();
+            }
+
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void removeFromThreadContext(@Advice.Enter boolean addedToThreadContext) {
+                helper.afterLoggingEvent(addedToThreadContext);
+            }
         }
     }
 }

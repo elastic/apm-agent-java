@@ -23,15 +23,19 @@ import org.apache.logging.log4j.ThreadContext;
 
 import java.util.Map;
 
-public class Log4j2LogCorrelationHelper extends AbstractLogCorrelationHelper {
+/**
+ * In log4j 2.6 {@link ThreadContext#putAll(Map)} is not yet available
+ */
+public class Log4j2_6LogCorrelationHelper extends AbstractLogCorrelationHelper.DefaultLogCorrelationHelper {
 
     @Override
-    protected void addToMdc(Map<String, String> correlationIds) {
-        ThreadContext.putAll(correlationIds);
+    protected boolean addToMdc(String key, String value) {
+        ThreadContext.put(key, value);
+        return true;
     }
 
     @Override
-    protected void removeFromMdc(Iterable<String> correlationIdKeys) {
-        ThreadContext.removeAll(correlationIdKeys);
+    protected void removeFromMdc(String key) {
+        ThreadContext.remove(key);
     }
 }

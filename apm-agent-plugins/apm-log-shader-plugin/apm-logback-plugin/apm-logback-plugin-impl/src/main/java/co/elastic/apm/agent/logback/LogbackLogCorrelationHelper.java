@@ -21,10 +21,12 @@ package co.elastic.apm.agent.logback;
 import co.elastic.apm.agent.log.shader.AbstractLogCorrelationHelper;
 import org.slf4j.MDC;
 
-public class LogbackLogCorrelationHelper extends AbstractLogCorrelationHelper {
+public class LogbackLogCorrelationHelper extends AbstractLogCorrelationHelper.DefaultLogCorrelationHelper {
+
     @Override
-    protected void addToMdc(String key, String value) {
+    protected boolean addToMdc(String key, String value) {
         MDC.put(key, value);
+        return true;
     }
 
     @Override

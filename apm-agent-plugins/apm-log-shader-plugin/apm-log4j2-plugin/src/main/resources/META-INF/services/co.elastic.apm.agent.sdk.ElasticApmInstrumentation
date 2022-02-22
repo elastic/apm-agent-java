@@ -4,4 +4,5 @@ co.elastic.apm.agent.log4j2.Log4j2EcsReformattingInstrumentation$StopAppenderIns
 co.elastic.apm.agent.log4j2.Log4j2EcsReformattingInstrumentation$OverridingInstrumentation
 
 # Trace context correlation
-co.elastic.apm.agent.log4j2.Log4j2TraceCorrelationInstrumentation
+co.elastic.apm.agent.log4j2.Log4j2TraceCorrelationInstrumentation$Log4j2_6TraceCorrelationInstrumentation
+co.elastic.apm.agent.log4j2.Log4j2TraceCorrelationInstrumentation$Log4j2_7PlusTraceCorrelationInstrumentation
