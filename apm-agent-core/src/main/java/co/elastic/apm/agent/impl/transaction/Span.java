@@ -304,7 +304,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     protected void afterEnd() {
-        if (tracer.getConfig(SpanConfiguration.class).isSpanCompressionEnabled() && parent != null) {
+        if (transaction != null && transaction.isSpanCompressionEnabled() && parent != null) {
             Span buffered = parent.bufferedSpan.get();
             if (!isCompressionEligible()) {
                 if (buffered != null) {
@@ -368,8 +368,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             return false;
         }
 
-        long maxExactMatchDuration = tracer.getConfig(SpanConfiguration.class).getSpanCompressionExactMatchMaxDuration().getMicros();
-        long maxSameKindDuration = tracer.getConfig(SpanConfiguration.class).getSpanCompressionSameKindMaxDuration().getMicros();
+        long maxExactMatchDuration = transaction.getSpanCompressionExactMatchMaxDurationUs();
+        long maxSameKindDuration = transaction.getSpanCompressionSameKindMaxDurationUs();
 
         boolean isAlreadyComposite;
         synchronized (composite) {
@@ -398,11 +398,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private boolean tryToCompressComposite(Span sibling) {
         switch (composite.getCompressionStrategy()) {
             case "exact_match":
-                long maxExactMatchDuration = tracer.getConfig(SpanConfiguration.class).getSpanCompressionExactMatchMaxDuration().getMicros();
+                long maxExactMatchDuration = transaction.getSpanCompressionExactMatchMaxDurationUs();
                 return isSameKind(sibling) && StringBuilderUtils.equals(name, sibling.name) && sibling.duration <= maxExactMatchDuration;
 
             case "same_kind":
-                long maxSameKindDuration = tracer.getConfig(SpanConfiguration.class).getSpanCompressionSameKindMaxDuration().getMicros();
+                long maxSameKindDuration = transaction.getSpanCompressionSameKindMaxDurationUs();
                 return isSameKind(sibling) && sibling.duration <= maxSameKindDuration;
             default:
         }
