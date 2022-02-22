@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ class ExactMatchCompressionStrategyTest extends AbstractCompressionStrategyTest 
 
     @BeforeAll
     static void setMaxDuration() {
-        when(tracer.getConfig(CoreConfiguration.class).getSpanCompressionSameKindMaxDuration()).thenReturn(TimeDuration.of("0ms"));
+        when(tracer.getConfig(SpanConfiguration.class).getSpanCompressionSameKindMaxDuration()).thenReturn(TimeDuration.of("0ms"));
     }
 
     @Test

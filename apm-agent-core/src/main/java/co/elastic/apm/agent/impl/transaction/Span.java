@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
@@ -303,7 +304,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     protected void afterEnd() {
-        if (tracer.getConfig(CoreConfiguration.class).isSpanCompressionEnabled()) {
+        if (tracer.getConfig(SpanConfiguration.class).isSpanCompressionEnabled()) {
             Span buffered = parent.bufferedSpan.get();
             if (!isCompressionEligible()) {
                 if (buffered != null) {
@@ -367,8 +368,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             return false;
         }
 
-        long maxExactMatchDuration = tracer.getConfig(CoreConfiguration.class).getSpanCompressionExactMatchMaxDuration().getMicros();
-        long maxSameKindDuration = tracer.getConfig(CoreConfiguration.class).getSpanCompressionSameKindMaxDuration().getMicros();
+        long maxExactMatchDuration = tracer.getConfig(SpanConfiguration.class).getSpanCompressionExactMatchMaxDuration().getMicros();
+        long maxSameKindDuration = tracer.getConfig(SpanConfiguration.class).getSpanCompressionSameKindMaxDuration().getMicros();
 
         boolean isAlreadyComposite;
         synchronized (composite) {
@@ -397,11 +398,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private boolean tryToCompressComposite(Span sibling) {
         switch (composite.getCompressionStrategy()) {
             case "exact_match":
-                long maxExactMatchDuration = tracer.getConfig(CoreConfiguration.class).getSpanCompressionExactMatchMaxDuration().getMicros();
+                long maxExactMatchDuration = tracer.getConfig(SpanConfiguration.class).getSpanCompressionExactMatchMaxDuration().getMicros();
                 return isSameKind(sibling) && StringBuilderUtils.equals(name, sibling.name) && sibling.duration <= maxExactMatchDuration;
 
             case "same_kind":
-                long maxSameKindDuration = tracer.getConfig(CoreConfiguration.class).getSpanCompressionSameKindMaxDuration().getMicros();
+                long maxSameKindDuration = tracer.getConfig(SpanConfiguration.class).getSpanCompressionSameKindMaxDuration().getMicros();
                 return isSameKind(sibling) && sibling.duration <= maxSameKindDuration;
             default:
         }

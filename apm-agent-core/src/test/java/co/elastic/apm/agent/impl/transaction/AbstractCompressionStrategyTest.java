@@ -20,7 +20,7 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.junit.jupiter.api.AfterEach;
@@ -55,10 +55,10 @@ abstract class AbstractCompressionStrategyTest {
         reporter.disableCheckUnknownOutcome();
         reporter.disableCheckDestinationAddress();
 
-        CoreConfiguration coreConfiguration = mockInstrumentationSetup.getConfig().getConfig(CoreConfiguration.class);
-        when(coreConfiguration.isSpanCompressionEnabled()).thenReturn(true);
-        when(coreConfiguration.getSpanCompressionExactMatchMaxDuration()).thenReturn(TimeDuration.of("50ms"));
-        when(coreConfiguration.getSpanCompressionSameKindMaxDuration()).thenReturn(TimeDuration.of("50ms"));
+        SpanConfiguration spanConfiguration = mockInstrumentationSetup.getConfig().getConfig(SpanConfiguration.class);
+        when(spanConfiguration.isSpanCompressionEnabled()).thenReturn(true);
+        when(spanConfiguration.getSpanCompressionExactMatchMaxDuration()).thenReturn(TimeDuration.of("50ms"));
+        when(spanConfiguration.getSpanCompressionSameKindMaxDuration()).thenReturn(TimeDuration.of("50ms"));
 
         assertThat(tracer.isRunning()).isTrue();
     }
@@ -70,7 +70,7 @@ abstract class AbstractCompressionStrategyTest {
 
     @Test
     void testCompositeSpanIsNotCreatedWhenCompressionIsNotEnabled() {
-        when(tracer.getConfig(CoreConfiguration.class).isSpanCompressionEnabled()).thenReturn(false);
+        when(tracer.getConfig(SpanConfiguration.class).isSpanCompressionEnabled()).thenReturn(false);
         try {
             runInTransactionScope(t -> {
                 startExitSpan(t).end();
@@ -82,7 +82,7 @@ abstract class AbstractCompressionStrategyTest {
             assertThat(reportedSpans).hasSize(3);
             assertThat(reportedSpans).filteredOn(Span::isComposite).isEmpty();
         } finally {
-            when(tracer.getConfig(CoreConfiguration.class).isSpanCompressionEnabled()).thenReturn(true);
+            when(tracer.getConfig(SpanConfiguration.class).isSpanCompressionEnabled()).thenReturn(true);
         }
     }
 
