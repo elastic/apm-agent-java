@@ -103,11 +103,16 @@ abstract class AbstractCompressionStrategyTest {
             span4.end(4556);
         });
 
+        runInTransactionScope(t -> {
+            startExitSpan(t).end();
+        });
+
         List<Span> reportedSpans = reporter.getSpans();
-        assertThat(reportedSpans).hasSize(1);
+        assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 4);
         assertThat(reportedSpans.get(0).getComposite().getSum()).isEqualTo(1234 + (3456 - 2345) + (4567 - 3456) + (4556 - 3467));
         assertThat(reportedSpans.get(0).getDuration()).isEqualTo(4567);
+        assertThat(reportedSpans.get(1).isComposite()).isFalse();
 
         SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
         assertThat(spanCount.getReported().get()).isEqualTo(1);

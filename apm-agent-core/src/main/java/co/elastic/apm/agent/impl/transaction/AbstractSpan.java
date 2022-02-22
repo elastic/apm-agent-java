@@ -359,6 +359,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         outcome = null;
         userOutcome = null;
         hasCapturedExceptions = false;
+        bufferedSpan.set(null);
     }
 
     public Span createSpan() {
