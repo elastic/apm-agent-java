@@ -75,9 +75,9 @@ public abstract class AbstractLogCorrelationHelper {
             if (activeTransaction == null) {
                 return false;
             }
-            boolean added = addToMdc(TRACE_ID_MDC_KEY, activeTransaction.getTraceContext().getTraceId().toString());
-            added |= addToMdc(TRANSACTION_ID_MDC_KEY, activeTransaction.getTraceContext().getTransactionId().toString());
-            return added;
+            addToMdc(TRACE_ID_MDC_KEY, activeTransaction.getTraceContext().getTraceId().toString());
+            addToMdc(TRANSACTION_ID_MDC_KEY, activeTransaction.getTraceContext().getTransactionId().toString());
+            return true;
         }
 
         @Override
@@ -86,7 +86,7 @@ public abstract class AbstractLogCorrelationHelper {
             removeFromMdc(TRANSACTION_ID_MDC_KEY);
         }
 
-        protected abstract boolean addToMdc(String key, String value);
+        protected abstract void addToMdc(String key, String value);
 
         protected abstract void removeFromMdc(String key);
     }

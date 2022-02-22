@@ -29,9 +29,8 @@ import java.util.Map;
 public class Log4j2_6LogCorrelationHelper extends AbstractLogCorrelationHelper.DefaultLogCorrelationHelper {
 
     @Override
-    protected boolean addToMdc(String key, String value) {
+    protected void addToMdc(String key, String value) {
         ThreadContext.put(key, value);
-        return true;
     }
 
     @Override

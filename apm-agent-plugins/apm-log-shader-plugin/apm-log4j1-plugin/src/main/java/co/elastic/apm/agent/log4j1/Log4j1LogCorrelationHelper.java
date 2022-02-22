@@ -24,9 +24,8 @@ import org.apache.log4j.MDC;
 public class Log4j1LogCorrelationHelper extends AbstractLogCorrelationHelper.DefaultLogCorrelationHelper {
 
     @Override
-    protected boolean addToMdc(String key, String value) {
+    protected void addToMdc(String key, String value) {
         MDC.put(key, value);
-        return true;
     }
 
     @Override
