@@ -394,18 +394,19 @@ public class ElasticApmAgent {
 
             }
         };
-        return agentBuilder
-            .type(instrumentationStats.shouldMeasureMatching() ? new AgentBuilder.RawMatcher() {
-                @Override
-                public boolean matches(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, Class<?> classBeingRedefined, ProtectionDomain protectionDomain) {
-                    long start = System.nanoTime();
-                    try {
-                        return matcher.matches(typeDescription, classLoader, module, classBeingRedefined, protectionDomain);
-                    } finally {
-                        instrumentationStats.getOrCreateTimer(instrumentation.getClass()).addTypeMatchingDuration(System.nanoTime() - start);
-                    }
+        AgentBuilder.RawMatcher statsCollectingMatcher = new AgentBuilder.RawMatcher() {
+            @Override
+            public boolean matches(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, Class<?> classBeingRedefined, ProtectionDomain protectionDomain) {
+                long start = System.nanoTime();
+                try {
+                    return matcher.matches(typeDescription, classLoader, module, classBeingRedefined, protectionDomain);
+                } finally {
+                    instrumentationStats.getOrCreateTimer(instrumentation.getClass()).addTypeMatchingDuration(System.nanoTime() - start);
                 }
-            } : matcher)
+            }
+        };
+        return agentBuilder
+            .type(instrumentationStats.shouldMeasureMatching() ? statsCollectingMatcher : matcher)
             .transform(new PatchBytecodeVersionTo51Transformer())
             .transform(getTransformer(instrumentation, logger, methodMatcher))
             .transform(new AgentBuilder.Transformer() {
@@ -466,18 +467,19 @@ public class ElasticApmAgent {
                 return matches;
             }
         };
-        return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
-            .advice(instrumentationStats.shouldMeasureMatching() ? new ElementMatcher<MethodDescription>() {
-                @Override
-                public boolean matches(MethodDescription target) {
-                    long start = System.nanoTime();
-                    try {
-                        return matcher.matches(target);
-                    } finally {
-                        instrumentationStats.getOrCreateTimer(instrumentation.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
-                    }
+        ElementMatcher<MethodDescription> statsCollectingMatcher = new ElementMatcher<MethodDescription>() {
+            @Override
+            public boolean matches(MethodDescription target) {
+                long start = System.nanoTime();
+                try {
+                    return matcher.matches(target);
+                } finally {
+                    instrumentationStats.getOrCreateTimer(instrumentation.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
                 }
-            } : matcher, instrumentation.getAdviceClassName())
+            }
+        };
+        return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
+            .advice(instrumentationStats.shouldMeasureMatching() ? statsCollectingMatcher : matcher, instrumentation.getAdviceClassName())
             .include(ClassLoader.getSystemClassLoader(), instrumentation.getClass().getClassLoader())
             .withExceptionHandler(PRINTING);
     }
