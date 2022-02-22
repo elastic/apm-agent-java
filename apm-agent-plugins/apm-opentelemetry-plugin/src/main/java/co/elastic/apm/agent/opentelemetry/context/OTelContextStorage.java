@@ -83,6 +83,11 @@ public class OTelContextStorage implements ContextStorage {
         logger.debug("upgrading active context {} to a bridged context", current);
 
         tracer.deactivate(current);
+
+        // Ensure that root context is being accessed at least once to capture the original root
+        // OTel 1.0 directly calls ArrayBasedContext.root(), whereas later versions delegate to ContextStorage.root().
+        Context.root();
+
         OTelBridgeContext upgradedContext = OTelBridgeContext.wrapElasticActiveSpan(tracer, (AbstractSpan<?>) current);
         tracer.activate(upgradedContext);
 

@@ -28,6 +28,7 @@ import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.context.Scope;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Context, Scope {
 
@@ -46,7 +47,7 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
     /**
      * OTel context used for key/value storage
      */
-    private Context otelContext;
+    private final Context otelContext;
 
     private final ElasticApmTracer tracer;
 
@@ -83,6 +84,7 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
      */
     public static OTelBridgeContext wrapElasticActiveSpan(ElasticApmTracer tracer, AbstractSpan<?> span) {
         OTelSpan otelSpan = new OTelSpan(span);
+        Objects.requireNonNull(originalRootContext, "OTel original context must be set through bridgeRootContext first");
         return new OTelBridgeContext(tracer, originalRootContext.with(otelSpan));
     }
 
