@@ -202,7 +202,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
         // verify destination
         Destination destination = span.getContext().getDestination();
-        assertThat(destination.getAddress().toString()).isEqualTo("localhost");
+        assertThat(destination.getAddress().toString()).isIn("localhost", "127.0.0.1");
         assertThat(destination.getPort()).isEqualTo(container.getMappedPort(PORT));
 
         Destination.Service service = destination.getService();

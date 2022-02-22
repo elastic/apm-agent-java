@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.hibernatesearch;
 
 import co.elastic.apm.agent.MockReporter;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
 
 import static org.assertj.core.api.Assertions.assertThat;

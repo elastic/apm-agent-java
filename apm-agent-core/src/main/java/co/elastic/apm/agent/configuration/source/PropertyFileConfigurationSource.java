@@ -20,14 +20,7 @@ package co.elastic.apm.agent.configuration.source;
 
 
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
-import org.stagemonitor.configuration.source.ConfigurationSource;
-import org.stagemonitor.configuration.source.SimpleSource;
 
-import javax.annotation.Nullable;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 
 /**

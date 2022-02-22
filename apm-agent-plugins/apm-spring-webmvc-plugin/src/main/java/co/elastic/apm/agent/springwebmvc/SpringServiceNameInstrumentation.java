@@ -97,7 +97,7 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
             ServiceInfo fromSpringApplicationNameProperty = ServiceInfo.of(applicationContext.getEnvironment().getProperty("spring.application.name", ""));
             ServiceInfo fromApplicationContextApplicationName = ServiceInfo.of(removeLeadingSlash(applicationContext.getApplicationName()));
 
-            tracer.overrideServiceInfoForClassLoader(classLoader, fromSpringApplicationNameProperty
+            tracer.setServiceInfoForClassLoader(classLoader, fromSpringApplicationNameProperty
                 .withFallback(fromServletContext)
                 .withFallback(fromApplicationContextApplicationName));
         }
