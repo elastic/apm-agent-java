@@ -375,31 +375,33 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             return false;
         }
 
-        long maxExactMatchDuration = transaction.getSpanCompressionExactMatchMaxDurationUs();
-        long maxSameKindDuration = transaction.getSpanCompressionSameKindMaxDurationUs();
-
-        boolean isAlreadyComposite;
-        synchronized (composite) {
-            isAlreadyComposite = isComposite();
-            if (!isAlreadyComposite) {
-                if (StringBuilderUtils.equals(name, sibling.name)) {
-                    if (duration.get() <= maxExactMatchDuration && sibling.duration.get() <= maxExactMatchDuration) {
-                        composite.init(duration.get(), "exact_match");
-                        return true;
-                    }
-                    return false;
-                }
-
-                if (duration.get() <= maxSameKindDuration && sibling.duration.get() <= maxSameKindDuration) {
-                    composite.init(duration.get(), "same_kind");
-                    name.setLength(0);
-                    name.append("Calls to ").append(context.getDestination().getService().getResource());
-                    return true;
-                }
-            }
+        long currentDuration = duration.get();
+        if (isComposite()) {
+            return tryToCompressComposite(sibling);
         }
 
-        return isAlreadyComposite && tryToCompressComposite(sibling);
+        if (StringBuilderUtils.equals(name, sibling.name)) {
+            long maxExactMatchDuration = transaction.getSpanCompressionExactMatchMaxDurationUs();
+            if (currentDuration <= maxExactMatchDuration && sibling.duration.get() <= maxExactMatchDuration) {
+                if (!composite.init(currentDuration, "exact_match")) {
+                    return tryToCompressComposite(sibling);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        long maxSameKindDuration = transaction.getSpanCompressionSameKindMaxDurationUs();
+        if (currentDuration <= maxSameKindDuration && sibling.duration.get() <= maxSameKindDuration) {
+            if (!composite.init(currentDuration, "same_kind")) {
+                return tryToCompressComposite(sibling);
+            }
+            name.setLength(0);
+            name.append("Calls to ").append(context.getDestination().getService().getResource());
+            return true;
+        }
+
+        return false;
     }
 
     private boolean tryToCompressComposite(Span sibling) {

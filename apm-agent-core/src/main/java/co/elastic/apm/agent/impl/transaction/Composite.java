@@ -33,10 +33,13 @@ public class Composite implements Recyclable {
     @Nullable
     private String compressionStrategy;
 
-    public void init(long sum, String compressionStrategy) {
-        this.count.set(1);
+    public boolean init(long sum, String compressionStrategy) {
+        if (!this.count.compareAndSet(0, 1)) {
+            return false;
+        }
         this.sum.set(sum);
         this.compressionStrategy = compressionStrategy;
+        return true;
     }
 
     public int getCount() {
