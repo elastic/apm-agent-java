@@ -54,7 +54,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     private long timestamp;
 
     // in microseconds
-    protected long duration;
+    protected final AtomicLong duration = new AtomicLong();
     private ChildDurationTimer childDurations = new ChildDurationTimer();
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
@@ -214,15 +214,15 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * How long the transaction took to complete, in µs
      */
     public long getDuration() {
-        return duration;
+        return duration.get();
     }
 
     public long getSelfDuration() {
-        return duration - childDurations.getDuration();
+        return duration.get() - childDurations.getDuration();
     }
 
     public double getDurationMs() {
-        return duration / AbstractSpan.MS_IN_MICROS;
+        return duration.get() / AbstractSpan.MS_IN_MICROS;
     }
 
     /**
@@ -348,7 +348,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         finished = true;
         name.setLength(0);
         timestamp = 0;
-        duration = 0;
+        duration.set(0L);
         traceContext.resetState();
         childDurations.resetState();
         references.set(0);
@@ -455,7 +455,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     public final void end(long epochMicros) {
         if (!finished) {
-            this.duration = (epochMicros - timestamp);
+            this.duration.set(epochMicros - timestamp);
             if (name.length() == 0) {
                 name.append("unnamed");
             }
