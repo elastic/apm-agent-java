@@ -341,7 +341,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     private boolean isCompressionEligible() {
-        return isExit() && isDiscardable() && (getOutcome() == null || getOutcome() == Outcome.SUCCESS);
+        return isExit() && isDiscardable() && (outcomeNotSet() || getOutcome() == Outcome.SUCCESS);
     }
 
     private boolean tryToCompress(Span sibling) {
