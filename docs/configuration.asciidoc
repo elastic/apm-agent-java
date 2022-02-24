@@ -138,6 +138,9 @@ Click on a key to get more information.
 ** <<config-use-path-as-transaction-name>>
 ** <<config-url-groups>>
 * <<config-huge-traces>>
+** <<config-span-compression-enabled>>
+** <<config-span-compression-exact-match-max-duration>>
+** <<config-span-compression-same-kind-max-duration>>
 ** <<config-exit-span-min-duration>>
 * <<config-jax-rs>>
 ** <<config-enable-jaxrs-annotation-inheritance>>
@@ -1529,6 +1532,80 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 [[config-huge-traces]]
 === Huge Traces configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-span-compression-enabled]]
+==== `span_compression_enabled` (added[1.30.0])
+
+Setting this option to true will enable span compression feature.
+Span compression reduces the collection, processing, and storage overhead, and removes clutter from the UI. The tradeoff is that some information such as DB statements of all the compressed spans will not be collected.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.span_compression_enabled` | `span_compression_enabled` | `ELASTIC_APM_SPAN_COMPRESSION_ENABLED`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-span-compression-exact-match-max-duration]]
+==== `span_compression_exact_match_max_duration` (added[1.30.0])
+
+Consecutive spans that are exact match and that are under this threshold will be compressed into a single composite span. This option does not apply to composite spans. This reduces the collection, processing, and storage overhead, and removes clutter from the UI. The tradeoff is that the DB statements of all the compressed spans will not be collected.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `50ms`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `50ms` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.span_compression_exact_match_max_duration` | `span_compression_exact_match_max_duration` | `ELASTIC_APM_SPAN_COMPRESSION_EXACT_MATCH_MAX_DURATION`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-span-compression-same-kind-max-duration]]
+==== `span_compression_same_kind_max_duration` (added[1.30.0])
+
+Consecutive spans to the same destination that are under this threshold will be compressed into a single composite span. This option does not apply to composite spans. This reduces the collection, processing, and storage overhead, and removes clutter from the UI. The tradeoff is that the DB statements of all the compressed spans will not be collected.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `5ms`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `5ms` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.span_compression_same_kind_max_duration` | `span_compression_same_kind_max_duration` | `ELASTIC_APM_SPAN_COMPRESSION_SAME_KIND_MAX_DURATION`
+|============
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-exit-span-min-duration]]
@@ -3511,6 +3588,33 @@ Example: `5ms`.
 ############################################
 # Huge Traces                              #
 ############################################
+
+# Setting this option to true will enable span compression feature.
+# Span compression reduces the collection, processing, and storage overhead, and removes clutter from the UI. The tradeoff is that some information such as DB statements of all the compressed spans will not be collected.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# span_compression_enabled=false
+
+# Consecutive spans that are exact match and that are under this threshold will be compressed into a single composite span. This option does not apply to composite spans. This reduces the collection, processing, and storage overhead, and removes clutter from the UI. The tradeoff is that the DB statements of all the compressed spans will not be collected.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 50ms.
+# Default value: 50ms
+#
+# span_compression_exact_match_max_duration=50ms
+
+# Consecutive spans to the same destination that are under this threshold will be compressed into a single composite span. This option does not apply to composite spans. This reduces the collection, processing, and storage overhead, and removes clutter from the UI. The tradeoff is that the DB statements of all the compressed spans will not be collected.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 5ms.
+# Default value: 5ms
+#
+# span_compression_same_kind_max_duration=5ms
 
 # Exit spans are spans that represent a call to an external service, like a database. If such calls are very short, they are usually not relevant and can be ignored.
 # 
