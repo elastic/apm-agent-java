@@ -59,8 +59,7 @@
         <module>apm-jdk-httpserver-plugin</module>
         <module>apm-rabbitmq</module>
         <module>apm-okhttp-test</module>
-        <module>apm-opentelemetry-plugin</module>
-        <module>apm-opentelemetry-test</module>
+        <module>apm-opentelemetry</module>
         <module>apm-cassandra</module>
         <module>apm-struts-plugin</module>
         <module>apm-vertx</module>
