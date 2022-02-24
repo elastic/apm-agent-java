@@ -48,20 +48,14 @@ public abstract class FilterInstrumentation extends AbstractServletInstrumentati
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface()).and(hasSuperType(named(getFilterClassName())));
+        return not(isInterface()).and(hasSuperType(getImplConstants().filterClass()));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("doFilter")
-            .and(takesArgument(0, named(doFilterFirstArgumentClassName())))
-            .and(takesArgument(1, named(doFilterSecondArgumentClassName())));
+            .and(takesArgument(0, getImplConstants().requestClass()))
+            .and(takesArgument(1, getImplConstants().responseClass()));
     }
-
-    public abstract String getFilterClassName();
-
-    abstract String doFilterFirstArgumentClassName();
-
-    abstract String doFilterSecondArgumentClassName();
 
 }
