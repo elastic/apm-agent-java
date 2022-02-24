@@ -2,21 +2,18 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
+        <artifactId>apm-opentelemetry</artifactId>
         <version>1.29.1-SNAPSHOT</version>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
 
     <artifactId>apm-opentelemetry-plugin</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
-        <maven.compiler.target>8</maven.compiler.target>
-        <maven.compiler.source>8</maven.compiler.source>
-        <animal.sniffer.skip>true</animal.sniffer.skip>
+        <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
 
         <version.opentelemetry>1.0.0</version.opentelemetry>
     </properties>
