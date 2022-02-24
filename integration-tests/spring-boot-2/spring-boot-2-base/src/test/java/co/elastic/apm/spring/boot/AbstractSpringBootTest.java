@@ -102,7 +102,9 @@ public abstract class AbstractSpringBootTest {
         assertThat(transaction.getContext().getUser().getId()).isEqualTo("id");
         assertThat(transaction.getContext().getUser().getEmail()).isEqualTo("email");
         assertThat(transaction.getContext().getUser().getUsername()).isEqualTo("username");
-        assertThat(transaction.getTraceContext().getServiceName()).isEqualTo("spring-boot-test");
+        // as this test runs in a standalone application and not in a servlet container,
+        // the service.name will not be overwritten for the webapp class loader based on spring.application.name
+        assertThat(transaction.getTraceContext().getServiceName()).isNull();
         assertThat(transaction.getFrameworkName()).isEqualTo("Spring Web MVC");
         assertThat(transaction.getFrameworkVersion()).isEqualTo("5.1.9.RELEASE");
     }

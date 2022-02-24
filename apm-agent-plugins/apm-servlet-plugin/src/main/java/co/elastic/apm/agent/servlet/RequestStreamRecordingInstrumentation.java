@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;

@@ -73,7 +73,7 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
             // The list of packages not to load should correspond with matching dependency exclusions from the apm-agent-core in apm-agent-plugins/pom.xml
             // As we're using a custom logging facade, plugins don't need to refer to the agent-bundled log4j2 or slf4j.
             return new DiscriminatingMultiParentClassLoader(
-                agentClassLoader, not(startsWith("org.apache.logging.log4j").and(not(startsWith("org.slf4j")))),
+                agentClassLoader, not(startsWith("org.apache.logging.log4j")).and(not(startsWith("org.slf4j"))).and(not(startsWith("co.elastic.logging.log4j2"))),
                 targetClassLoader, ElementMatchers.<String>any());
         }
     }

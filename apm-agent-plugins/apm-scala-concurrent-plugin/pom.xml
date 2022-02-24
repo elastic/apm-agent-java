@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.28.5-SNAPSHOT</version>
+        <version>1.29.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-scala-concurrent-plugin</artifactId>
@@ -36,7 +36,7 @@
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
-                <version>4.3.1</version>
+                <version>4.5.6</version>
                 <configuration>
                     <scalaVersion>2.13.2</scalaVersion>
                 </configuration>

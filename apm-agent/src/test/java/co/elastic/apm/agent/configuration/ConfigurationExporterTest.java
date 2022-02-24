@@ -111,7 +111,7 @@ class ConfigurationExporterTest {
         assertThat(renderedDocumentation)
             .withFailMessage("The rendered configuration documentation (/docs/configuration.asciidoc) is not up-to-date.\n" +
                 "If you see this error on CI, it means you have to execute the tests locally " +
-                "(./mvnw clean test -pl elastic-apm-agent -am -DfailIfNoTests=false -Dtest=ConfigurationExporterTest) " +
+                "(./mvnw clean test -pl apm-agent -am -DfailIfNoTests=false -Dtest=ConfigurationExporterTest) " +
                 "which will update the rendered docs.\n" +
                 "If you see this error while running the tests locally, there's nothing more to do - the rendered docs have been updated. " +
                 "When you execute this test the next time, it will not fail anymore.")

@@ -92,25 +92,65 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("This is used to keep all the errors and transactions of your service together\n" +
             "and is the primary filter in the Elastic APM user interface.\n" +
             "\n" +
+            "Instead of configuring the service name manually,\n" +
+            "you can also choose to rely on the service name auto-detection mechanisms of the agent.\n" +
+            "If `service_name` is set explicitly, all auto-detection mechanisms are disabled.\n" +
+            "\n" +
+            "This is how the service name auto-detection works:\n" +
+            "\n" +
+            "* For standalone applications\n" +
+            "** The agent uses `Implementation-Title` in the `META-INF/MANIFEST.MF` file if the application is started via `java -jar`.\n" +
+            "** Falls back to the name of the main class or jar file.\n" +
+            "* For applications that are deployed to a servlet container/application server, the agent auto-detects the name for each application.\n" +
+            "** For Spring-based applications, the agent uses the `spring.application.name` property, if set.\n" +
+            "** For servlet-based applications, falls back to the `Implementation-Title` in the `META-INF/MANIFEST.MF` file.\n" +
+            "** Falls back to the `display-name` of the `web.xml`, if available.\n" +
+            "** Falls back to the servlet context path the application is mapped to (unless mapped to the root context).\n" +
+            "\n" +
+            "Generally, it is recommended to rely on the service name detection based on `META-INF/MANIFEST.MF`.\n" +
+            "Spring Boot automatically adds the relevant manifest entries.\n" +
+            "For other applications that are built with Maven, this is how you add the manifest entries:\n" +
+            "\n" +
+            "<#noparse>\n" +
+            "[source,xml]\n" +
+            ".pom.xml\n" +
+            "----\n" +
+            "    <build>\n" +
+            "        <plugins>\n" +
+            "            <plugin>\n" +
+            "                <!-- replace with 'maven-war-plugin' if you're building a war -->\n" +
+            "                <artifactId>maven-jar-plugin</artifactId>\n" +
+            "                <configuration>\n" +
+            "                    <archive>\n" +
+            "                        <!-- Adds\n" +
+            "                        Implementation-Title based on ${project.name} and\n" +
+            "                        Implementation-Version based on ${project.version}\n" +
+            "                        -->\n" +
+            "                        <manifest>\n" +
+            "                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>\n" +
+            "                        </manifest>\n" +
+            "                        <!-- To customize the Implementation-* entries, remove addDefaultImplementationEntries and add them manually\n" +
+            "                        <manifestEntries>\n" +
+            "                            <Implementation-Title>foo</Implementation-Title>\n" +
+            "                            <Implementation-Version>4.2.0</Implementation-Version>\n" +
+            "                        </manifestEntries>\n" +
+            "                        -->\n" +
+            "                    </archive>\n" +
+            "                </configuration>\n" +
+            "            </plugin>\n" +
+            "        </plugins>\n" +
+            "    </build>\n" +
+            "----\n" +
+            "</#noparse>\n" +
+            "\n" +
             "The service name must conform to this regular expression: `^[a-zA-Z0-9 _-]+$`.\n" +
             "In less regexy terms:\n" +
             "Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.\n" +
             "\n" +
-            "NOTE: When relying on auto-discovery of the service name in Servlet environments (including Spring Boot),\n" +
-            "there is currently a caveat related to metrics.\n" +
-            "The consequence is that the 'Metrics' tab of a service does not show process-global metrics like CPU utilization.\n" +
-            "The reason is that metrics are reported with the detected default service name for the JVM,\n" +
-            "for example `tomcat-application`.\n" +
-            "That is because there may be multiple web applications deployed to a single JVM/servlet container.\n" +
-            "However, you can view those metrics by selecting the `tomcat-application` service name, for example.\n" +
-            "Future versions of the Elastic APM stack will have better support for that scenario.\n" +
-            "A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name\n" +
-            "or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.\n" +
-            "\n" +
             "NOTE: Service name auto discovery mechanisms require APM Server 7.0+.")
         .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name \"{0}\" must only contain characters " +
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
-        .buildWithDefault(ServiceNameUtil.getDefaultServiceName());
+        .buildWithDefault(ServiceInfo.autoDetected().getServiceName());
 
     private final ConfigurationOption<String> serviceNodeName = ConfigurationOption.stringOption()
         .key(SERVICE_NODE_NAME)
@@ -144,7 +184,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("A version string for the currently deployed version of the service. If you don’t version your deployments, " +
             "the recommended value for this field is the commit identifier of the deployed revision, " +
-            "e.g. the output of git rev-parse HEAD.")
+            "e.g. the output of git rev-parse HEAD.\n" +
+            "\n" +
+            "Similar to the auto-detection of <<config-service-name>>, " +
+            "the agent can auto-detect the service version based on the `Implementation-Title` attribute in `META-INF/MANIFEST.MF`.\n" +
+            "See <<config-service-name>> on how to set this attribute.\n" +
+            "\n")
+        .defaultValue(ServiceInfo.autoDetected().getServiceVersion())
         .build();
 
     private final ConfigurationOption<String> hostname = ConfigurationOption.stringOption()

@@ -441,7 +441,7 @@ class DslJsonSerializerTest {
     @Test
     void testTransactionNullFrameworkNameSerialization() {
         Transaction transaction = new Transaction(MockTracer.create());
-        transaction.getTraceContext().setServiceName("service-name");
+        transaction.getTraceContext().setServiceInfo("service-name", null);
         transaction.setUserFrameworkName(null);
         JsonNode transactionJson = readJsonString(serializer.toJsonString(transaction));
         assertThat(transactionJson.get("context").get("service").get("framework")).isNull();
@@ -450,7 +450,7 @@ class DslJsonSerializerTest {
     @Test
     void testTransactionEmptyFrameworkNameSerialization() {
         Transaction transaction = new Transaction(MockTracer.create());
-        transaction.getTraceContext().setServiceName("service-name");
+        transaction.getTraceContext().setServiceInfo("service-name", null);
         transaction.setUserFrameworkName("");
         JsonNode transactionJson = readJsonString(serializer.toJsonString(transaction));
         assertThat(transactionJson.get("context").get("service").get("framework")).isNull();
@@ -823,10 +823,11 @@ class DslJsonSerializerTest {
         TraceContext ctx = transaction.getTraceContext();
 
         String serviceName = RandomStringUtils.randomAlphabetic(5);
+        String serviceVersion = RandomStringUtils.randomAlphabetic(5);
         String frameworkName = RandomStringUtils.randomAlphanumeric(10);
         String frameworkVersion = RandomStringUtils.randomNumeric(3);
 
-        ctx.setServiceName(serviceName);
+        ctx.setServiceInfo(serviceName, serviceVersion);
 
         transaction.setFrameworkName(frameworkName);
         transaction.setFrameworkVersion(frameworkVersion);
@@ -839,6 +840,7 @@ class DslJsonSerializerTest {
         assertThat(jsonContext.get("user").get("email").asText()).isEqualTo("user@email.com");
         assertThat(jsonContext.get("user").get("username").asText()).isEqualTo("bob");
         assertThat(jsonContext.get("service").get("name").asText()).isEqualTo(serviceName);
+        assertThat(jsonContext.get("service").get("version").asText()).isEqualTo(serviceVersion);
         assertThat(jsonContext.get("service").get("framework").get("name").asText()).isEqualTo(frameworkName);
         assertThat(jsonContext.get("service").get("framework").get("version").asText()).isEqualTo(frameworkVersion);
 

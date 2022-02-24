@@ -20,8 +20,31 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.28.5]]
-==== 1.28.5 - YYYY/MM/DD
+[[release-notes-1.29.1]]
+==== 1.29.1 - YYYY/MM/DD
+
+[float]
+===== Features
+* Added support for setting service name and version for a transaction via the public api - {pull}2451[#2451]
+* Added support for en-/disabling each public annotation on each own - {pull}2472[#2472]
+
+[float]
+===== Performance improvements
+* Proxy classes are excluded from instrumentation in more cases - {pull}2474[#2474]
+
+[float]
+===== Performance improvements
+* Only time type/method matching if the debug logging is enabled as the results are only used when debug logging is enabled - {pull}2471[#2471]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.29.0]]
+==== 1.29.0 - 2022/02/09
+
+[float]
+===== Breaking changes
+* Changes in service name auto-discovery of jar files (see Features section)
 
 [float]
 ===== Features
@@ -29,8 +52,18 @@ endif::[]
 * Replaced `authorization` in the default value of `sanitize_field_names` with `*auth*` - {pull}2326[#2326]
 * Unsampled transactions are dropped and not sent to the APM-Server if the APM-Server version is 8.0+ - {pull}2329[#2329]
 * Adding agent logging capabilities to our SDK, making it available for external plugins - {pull}2390[#2390]
-* When the `MANIFEST.MF` of the main jar contains the `Implementation-Title` attribute, it is used as the default service name - {pull}1921[#1921]
-  Note: this may change your service names if you relied on the auto-discovery that uses the name of the jar file. If that jar file also contains an `Implementation-Title` attribute in the `MANIFEST.MF` file, the latter will take precedence.
+* Service name auto-discovery improvements
+** For applications deployed to application servers (`war` files) and standalone jars that are started with `java -jar`,
+   the agent now discovers the `META-INF/MANIFEST.MF` file.
+** If the manifest contains the `Implementation-Title` attribute, it is used as the default service name - {pull}1921[#1921], {pull}2434[#2434] +
+  *Note*: this may change your service names if you relied on the auto-discovery that uses the name of the jar file.
+  If that jar file also contains an `Implementation-Title` attribute in the `MANIFEST.MF` file, the latter will take precedence.
+** When the manifest contains the `Implementation-Version` attribute, it is used as the default service version - {pull}1726[#1726], {pull}1922[#1922], {pull}2434[#2434]
+* Added support for instrumenting Struts 2 static resource requests - {pull}1949[#1949]
+* Added support for Java/Jakarta WebSocket ServerEndpoint - {pull}2281[#2281]
+* Added support for setting the service name on Log4j2's EcsLayout - {pull}2296[#2296]
+* Print the used instrumentation groups when the application stops - {pull}2448[#2448]
+* Add `elastic.apm.start_async` property that makes the agent start on a non-premain/main thread - {pull}2454[#2454]
 
 [float]
 ===== Bug fixes
@@ -43,9 +76,9 @@ paths. The BCI warmup is on by default and may be disabled through the internal 
 ** Dubbo transaction will should be created at the provider side
 ** APM headers conversion issue within dubbo transaction
 * Fix External plugins automatic setting of span outcome - {pull}2376[#2376]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Avoid early initialization of JMX on Weblogic - {pull}2420[#2420]
+* Automatically disable class sharing on AWS lambda layer - {pull}2438[#2438]
+* Avoid standalone spring applications to have two different service names, one based on the jar name, the other based on `spring.application.name`.
 
 [[release-notes-1.28.4]]
 ==== 1.28.4 - 2021/12/30

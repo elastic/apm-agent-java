@@ -5,7 +5,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.28.5-SNAPSHOT</version>
+        <version>1.29.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>application-server-integration-tests</artifactId>
@@ -121,6 +121,12 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.terma</groupId>
+            <artifactId>javaniotcpproxy</artifactId>
+            <version>1.6</version>
             <scope>test</scope>
         </dependency>
         <dependency>

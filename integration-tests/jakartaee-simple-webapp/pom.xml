@@ -5,7 +5,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.28.5-SNAPSHOT</version>
+        <version>1.29.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>jakartaee-simple-webapp</artifactId>
@@ -19,6 +19,19 @@
 
     <build>
         <finalName>jakartaee-simple-webapp</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Implementation-Version>4.2.0</Implementation-Version>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
 
     <dependencies>
