@@ -24,6 +24,10 @@ endif::[]
 ==== 1.29.1 - YYYY/MM/DD
 
 [float]
+===== Potentially breaking changes
+* Create the JDBC spans as exit spans- {pull}2484[#2484]
+
+[float]
 ===== Features
 * Added support for setting service name and version for a transaction via the public api - {pull}2451[#2451]
 * Added support for en-/disabling each public annotation on each own - {pull}2472[#2472]
