@@ -30,6 +30,12 @@ public class Faas implements Recyclable {
     @Nullable
     private String id;
 
+    @Nullable
+    private String name;
+
+    @Nullable
+    private String version;
+
     private boolean coldStart;
 
     private final FaasTrigger trigger = new FaasTrigger();
@@ -52,6 +58,16 @@ public class Faas implements Recyclable {
         return id;
     }
 
+    @Nullable
+    public String getName() {
+        return name;
+    }
+
+    @Nullable
+    public String getVersion() {
+        return version;
+    }
+
     public Faas withExecution(@Nullable String execution) {
         this.execution = execution;
         return this;
@@ -67,10 +83,22 @@ public class Faas implements Recyclable {
         return this;
     }
 
+    public Faas withName(@Nullable String name) {
+        this.name = name;
+        return this;
+    }
+
+    public Faas withVersion(@Nullable String version) {
+        this.version = version;
+        return this;
+    }
+
     @Override
     public void resetState() {
         this.execution = null;
         this.id = null;
+        this.name = null;
+        this.version = null;
         this.coldStart = false;
         this.trigger.resetState();
     }
@@ -78,13 +106,17 @@ public class Faas implements Recyclable {
     public void copyFrom(Faas other) {
         this.execution = other.execution;
         this.id = other.id;
+        this.name = other.name;
+        this.version = other.version;
         this.coldStart = other.coldStart;
         this.trigger.copyFrom(other.trigger);
     }
 
     public boolean hasContent() {
         return execution != null || id != null ||
-                coldStart ||
-                trigger.hasContent();
+            name != null ||
+            version != null ||
+            coldStart ||
+            trigger.hasContent();
     }
 }

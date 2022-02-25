@@ -73,7 +73,10 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
         }
         Transaction transaction = doStartTransaction(input, lambdaContext);
         if (null != transaction) {
-            transaction.getFaas().withId(getFaasId(lambdaContext))
+            transaction.getFaas()
+                .withId(getFaasId(lambdaContext))
+                .withName(lambdaContext.getFunctionName())
+                .withVersion(lambdaContext.getFunctionVersion())
                 .withColdStart(isColdStart)
                 .withExecution(lambdaContext.getAwsRequestId());
             transaction.getContext().getCloudOrigin().withProvider("aws");

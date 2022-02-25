@@ -1029,6 +1029,8 @@ public class DslJsonSerializer implements PayloadSerializer {
             jw.writeByte(OBJECT_START);
             writeField("execution", faas.getExecution());
             writeField("id", faas.getId());
+            writeField("name", faas.getName());
+            writeField("version", faas.getVersion());
             serializeFaasTrigger(faas.getTrigger());
             writeLastField("coldstart", faas.isColdStart());
             jw.writeByte(OBJECT_END);

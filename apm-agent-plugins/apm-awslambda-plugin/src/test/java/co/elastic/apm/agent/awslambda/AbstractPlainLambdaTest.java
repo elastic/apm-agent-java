@@ -75,6 +75,8 @@ public abstract class AbstractPlainLambdaTest extends AbstractLambdaTest<Object,
         Faas faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
         assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
+        assertThat(faas.getName()).isEqualTo(TestContext.FUNCTION_NAME);
+        assertThat(faas.getVersion()).isEqualTo(TestContext.FUNCTION_VERSION);
         assertThat(faas.getTrigger().getType()).isEqualTo("other");
         assertThat(faas.getTrigger().getRequestId()).isNull();
     }
