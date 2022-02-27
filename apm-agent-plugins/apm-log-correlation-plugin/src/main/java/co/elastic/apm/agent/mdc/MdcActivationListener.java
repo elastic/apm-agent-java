@@ -173,7 +173,6 @@ public class MdcActivationListener implements ActivationListener {
         before(span.getTraceContext(), false);
     }
 
-    @Override
     public void beforeActivate(ErrorCapture error) throws Throwable {
         before(error.getTraceContext(), true);
     }
@@ -199,7 +198,6 @@ public class MdcActivationListener implements ActivationListener {
         after(deactivatedSpan.getTraceContext(), false);
     }
 
-    @Override
     public void afterDeactivate(ErrorCapture deactivatedError) throws Throwable {
         after(deactivatedError.getTraceContext(), true);
     }

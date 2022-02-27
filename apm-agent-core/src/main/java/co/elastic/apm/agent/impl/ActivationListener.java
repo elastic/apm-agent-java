@@ -38,14 +38,6 @@ public interface ActivationListener {
     void beforeActivate(AbstractSpan<?> span) throws Throwable;
 
     /**
-     * A callback for {@link ErrorCapture#activate()}
-     *
-     * @param error the {@link ErrorCapture} that is being activated
-     * @throws Throwable if there was an error while calling this method
-     */
-    void beforeActivate(ErrorCapture error) throws Throwable;
-
-    /**
      * A callback for {@link AbstractSpan#deactivate()}
      * <p>
      * Note: the corresponding span may already be {@link AbstractSpan#end() ended} and {@link AbstractSpan#resetState() recycled}.
@@ -56,12 +48,4 @@ public interface ActivationListener {
      * @throws Throwable if there was an error while calling this method
      */
     void afterDeactivate(AbstractSpan<?> deactivatedSpan) throws Throwable;
-
-    /**
-     * A callback for {@link ErrorCapture#deactivate()}
-     *
-     * @param deactivatedError the error that has just been deactivated
-     * @throws Throwable if there was an error while calling this method
-     */
-    void afterDeactivate(ErrorCapture deactivatedError) throws Throwable;
 }

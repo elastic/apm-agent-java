@@ -29,6 +29,7 @@ public abstract class AbstractLogCorrelationHelper {
 
     public static final String TRACE_ID_MDC_KEY = "trace.id";
     public static final String TRANSACTION_ID_MDC_KEY = "transaction.id";
+    public static final String ERROR_ID_MDC_KEY = "error.id";
 
     private static final CallDepth callDepth = CallDepth.get(AbstractLogCorrelationHelper.class);
 

@@ -20,6 +20,7 @@ package co.elastic.apm.agent.jbosslogging;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.log.shader.AbstractLogCorrelationHelper;
@@ -28,6 +29,7 @@ import org.jboss.logging.MDC;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -70,10 +72,20 @@ public class JBossLoggingCorrelationInstrumentationTest extends AbstractInstrume
     }
 
     @Test
-    public void testJdkLogger() {
+    public void testSimple() {
         assertThat(loggingCorrelationVerifier.isVerified()).isFalse();
         // TraceContext#toString() returns the text representation of the traceparent header
         logger.info(transaction.getTraceContext());
+        assertThat(loggingCorrelationVerifier.isVerified()).isTrue();
+    }
+
+    // todo: enable once support for JULI error logging is added
+    @Test
+    @Disabled
+    public void testErrorLogging() {
+        assertThat(loggingCorrelationVerifier.isVerified()).isFalse();
+        // TraceContext#toString() returns the text representation of the traceparent header
+        logger.error(transaction.getTraceContext());
         assertThat(loggingCorrelationVerifier.isVerified()).isTrue();
     }
 
@@ -96,11 +108,14 @@ public class JBossLoggingCorrelationInstrumentationTest extends AbstractInstrume
         public void publish(LogRecord record) {
             try {
                 Object traceId = MDC.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY);
-                assertThat(traceId).isNotNull();
                 System.out.println("traceId = " + traceId);
+                assertThat(traceId).isNotNull();
                 Object transactionId = MDC.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY);
-                assertThat(transactionId).isNotNull();
                 System.out.println("transactionId = " + transactionId);
+                assertThat(transactionId).isNotNull();
+                Object errorId = MDC.get(AbstractLogCorrelationHelper.ERROR_ID_MDC_KEY);
+                System.out.println("errorId = " + transactionId);
+                boolean shouldContainErrorId = record.getLevel().getName().equals("ERROR");
                 String traceParent = record.getMessage();
                 assertThat(traceParent).isNotNull();
                 Map<String, String> textHeaderMap = Map.of(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, traceParent);
@@ -109,6 +124,14 @@ public class JBossLoggingCorrelationInstrumentationTest extends AbstractInstrume
                 System.out.println("childTraceContext = " + childTraceContext);
                 assertThat(childTraceContext.getTraceId().toString()).isEqualTo(traceId.toString());
                 assertThat(childTraceContext.getParentId().toString()).isEqualTo(transactionId.toString());
+                if (shouldContainErrorId) {
+                    assertThat(errorId).isNotNull();
+                    ErrorCapture activeError = ErrorCapture.getActive();
+                    assertThat(activeError).isNotNull();
+                    assertThat(activeError.getTraceContext().getId().toString()).isEqualTo(errorId.toString());
+                } else {
+                    assertThat(errorId).isNull();
+                }
                 loggingCorrelationVerifier.setVerified();
             } catch (Throwable throwable) {
                 throwable.printStackTrace();
