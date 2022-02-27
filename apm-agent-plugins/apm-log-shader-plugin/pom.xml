@@ -22,6 +22,7 @@
         <module>apm-logback-plugin</module>
         <module>apm-log4j1-plugin</module>
         <module>apm-log4j2-plugin</module>
+        <module>apm-jboss-logging-plugin</module>
     </modules>
 
 </project>
