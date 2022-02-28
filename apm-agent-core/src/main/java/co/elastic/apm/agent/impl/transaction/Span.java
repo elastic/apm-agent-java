@@ -413,7 +413,12 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     private boolean tryToCompressComposite(Span sibling) {
-        switch (composite.getCompressionStrategy()) {
+        String compressionStrategy;
+        do {
+            compressionStrategy = composite.getCompressionStrategy();
+        } while (compressionStrategy == null);
+
+        switch (compressionStrategy) {
             case "exact_match":
                 long maxExactMatchDuration = transaction.getSpanCompressionExactMatchMaxDurationUs();
                 return isSameKind(sibling) && StringBuilderUtils.equals(name, sibling.name) && sibling.getDuration() <= maxExactMatchDuration;

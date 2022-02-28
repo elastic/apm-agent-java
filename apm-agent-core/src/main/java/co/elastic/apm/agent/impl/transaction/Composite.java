@@ -20,9 +20,9 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.objectpool.Recyclable;
 
-import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Composite implements Recyclable {
 
@@ -30,15 +30,14 @@ public class Composite implements Recyclable {
 
     private final AtomicLong sum = new AtomicLong(0L);
 
-    @Nullable
-    private String compressionStrategy;
+    private final AtomicReference<String> compressionStrategy = new AtomicReference<>(null);
 
     public boolean init(long sum, String compressionStrategy) {
         if (!this.count.compareAndSet(0, 1)) {
             return false;
         }
         this.sum.set(sum);
-        this.compressionStrategy = compressionStrategy;
+        this.compressionStrategy.set(compressionStrategy);
         return true;
     }
 
@@ -63,13 +62,13 @@ public class Composite implements Recyclable {
     }
 
     public String getCompressionStrategy() {
-        return compressionStrategy;
+        return compressionStrategy.get();
     }
 
     @Override
     public void resetState() {
         this.count.set(0);
         this.sum.set(0L);
-        this.compressionStrategy = null;
+        this.compressionStrategy.set(null);
     }
 }
