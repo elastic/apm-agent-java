@@ -323,13 +323,12 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                 return;
             }
             if (!buffered.tryToCompress(this)) {
-                if (!parent.bufferedSpan.compareAndSet(buffered, this)) {
+                if (parent.bufferedSpan.compareAndSet(buffered, this)) {
+                    this.tracer.endSpan(buffered);
+                } else {
                     // the failed update would ideally lead to a compression attempt with the new buffer,
                     // but we're dropping the compression attempt to keep things simple
-                    this.tracer.endSpan(buffered);
                     this.tracer.endSpan(this);
-                } else {
-                    this.tracer.endSpan(buffered);
                 }
             } else if (isSampled()) {
                 Transaction transaction = getTransaction();
