@@ -46,7 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
-public abstract class LogShadingInstrumentationTest extends AbstractInstrumentationTest {
+public abstract class LogReformattingInstrumentationTest extends AbstractInstrumentationTest {
 
     public static final String TRACE_MESSAGE = "Trace-this";
     public static final String DEBUG_MESSAGE = "Debug-this";
@@ -62,7 +62,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     private String serviceName;
     private Transaction transaction;
 
-    public LogShadingInstrumentationTest() {
+    public LogReformattingInstrumentationTest() {
         logger = createLoggerFacade();
         objectMapper = new ObjectMapper();
     }
@@ -86,10 +86,10 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         doReturn(ecsReformattingConfig).when(loggingConfig).getLogEcsReformatting();
     }
 
-    private void initializeShadeDir(String dirName) throws IOException {
+    private void initializeReformattingDir(String dirName) throws IOException {
         when(loggingConfig.getLogEcsFormattingDestinationDir()).thenReturn(dirName);
-        Files.deleteIfExists(Paths.get(getShadeLogFilePath()));
-        Files.deleteIfExists(Paths.get(getShadeLogFilePath() + ".1"));
+        Files.deleteIfExists(Paths.get(getLogReformattingFilePath()));
+        Files.deleteIfExists(Paths.get(getLogReformattingFilePath() + ".1"));
     }
 
     @AfterEach
@@ -101,9 +101,9 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     protected abstract LoggerFacade createLoggerFacade();
 
     @Test
-    public void testSimpleLogShading() throws Exception {
+    public void testSimpleLogReformatting() throws Exception {
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
-        initializeShadeDir("simple");
+        initializeReformattingDir("simple");
         runSimpleScenario();
     }
 
@@ -116,7 +116,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         ArrayList<String[]> rawLogLines = readRawLogLines();
         assertThat(rawLogLines).hasSize(4);
 
-        ArrayList<JsonNode> ecsLogLines = readShadeLogFile();
+        ArrayList<JsonNode> ecsLogLines = readEcsLogFile();
         assertThat(ecsLogLines).hasSize(4);
 
         for (int i = 0; i < 4; i++) {
@@ -128,14 +128,14 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     public void testMarkers() throws Exception {
         if (markersSupported()) {
             setEcsReformattingConfig(LogEcsReformatting.SHADE);
-            initializeShadeDir("markers");
+            initializeReformattingDir("markers");
             logger.debugWithMarker(DEBUG_MESSAGE);
 
             ArrayList<String[]> rawLogLines = readRawLogLines();
             assertThat(rawLogLines).hasSize(1);
             String[] rawLogLine = rawLogLines.get(0);
 
-            ArrayList<JsonNode> ecsLogLines = readShadeLogFile();
+            ArrayList<JsonNode> ecsLogLines = readEcsLogFile();
             assertThat(ecsLogLines).hasSize(1);
             JsonNode ecsLogLine = ecsLogLines.get(0);
 
@@ -154,33 +154,33 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     @Test
     public void testShadingIntoOriginalLogsDir() throws Exception {
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
-        initializeShadeDir("");
+        initializeReformattingDir("");
         runSimpleScenario();
     }
 
     @Test
-    public void testLazyShadeFileCreation() throws Exception {
-        initializeShadeDir("delayed");
+    public void testLazyEcsFileCreation() throws Exception {
+        initializeReformattingDir("delayed");
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);
-        assertThat(Files.exists(Paths.get(getShadeLogFilePath()))).isFalse();
+        assertThat(Files.exists(Paths.get(getLogReformattingFilePath()))).isFalse();
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
         logger.warn(WARN_MESSAGE);
-        assertThat(Files.exists(Paths.get(getShadeLogFilePath()))).isTrue();
+        assertThat(Files.exists(Paths.get(getLogReformattingFilePath()))).isTrue();
         logger.error(ERROR_MESSAGE);
 
         ArrayList<String[]> rawLogLines = readRawLogLines();
         assertThat(rawLogLines).hasSize(4);
 
-        ArrayList<JsonNode> ecsLogLines = readShadeLogFile();
+        ArrayList<JsonNode> ecsLogLines = readEcsLogFile();
         assertThat(ecsLogLines).hasSize(2);
         verifyEcsFormat(rawLogLines.get(2), ecsLogLines.get(0));
         verifyEcsFormat(rawLogLines.get(3), ecsLogLines.get(1));
     }
 
     @Test
-    public void testLogShadingReplaceOriginal() throws IOException {
-        initializeShadeDir("replace");
+    public void testLogReformattingReplaceOriginal() throws IOException {
+        initializeReformattingDir("replace");
         setEcsReformattingConfig(LogEcsReformatting.REPLACE);
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);
@@ -188,9 +188,9 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         logger.error(ERROR_MESSAGE);
 
         assertThat(readRawLogLines()).isEmpty();
-        ArrayList<JsonNode> shadeLogEvents = readShadeLogFile();
-        assertThat(shadeLogEvents).hasSize(4);
-        for (JsonNode ecsLogLineTree : shadeLogEvents) {
+        ArrayList<JsonNode> ecsLogEvents = readEcsLogFile();
+        assertThat(ecsLogEvents).hasSize(4);
+        for (JsonNode ecsLogLineTree : ecsLogEvents) {
             verifyEcsLogLine(ecsLogLineTree);
         }
     }
@@ -212,7 +212,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
 
     @Test
     public void testEmptyFormatterAllowList() throws Exception {
-        initializeShadeDir("disabled");
+        initializeReformattingDir("disabled");
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
         doReturn(Collections.EMPTY_LIST).when(loggingConfig).getLogEcsFormatterAllowList();
         logger.trace(TRACE_MESSAGE);
@@ -220,12 +220,12 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         logger.warn(WARN_MESSAGE);
         logger.error(ERROR_MESSAGE);
         assertThat(readRawLogLines()).hasSize(4);
-        assertThat(Files.exists(Paths.get(getShadeLogFilePath()))).isFalse();
+        assertThat(Files.exists(Paths.get(getLogReformattingFilePath()))).isFalse();
     }
 
     @Test
     public void testDynamicConfiguration() throws Exception {
-        initializeShadeDir("dynamic");
+        initializeReformattingDir("dynamic");
         for (int i = 0; i < 2; i++) {
             setEcsReformattingConfig(LogEcsReformatting.OFF);
             logger.trace(TRACE_MESSAGE);
@@ -242,7 +242,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(originalLogLines).hasSize(6);
 
         // ECS shade file should contain only WARN and ERROR messages
-        ArrayList<JsonNode> ecsLogLines = readShadeLogFile();
+        ArrayList<JsonNode> ecsLogLines = readEcsLogFile();
         assertThat(ecsLogLines).hasSize(4);
 
         // TRACE messages should be only in original file in original format
@@ -285,8 +285,8 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
     }
 
-    private ArrayList<JsonNode> readShadeLogFile() throws IOException {
-        return TestUtils.readJsonFile(getShadeLogFilePath());
+    private ArrayList<JsonNode> readEcsLogFile() throws IOException {
+        return TestUtils.readJsonFile(getLogReformattingFilePath());
     }
 
     private ArrayList<String[]> readRawLogLines() throws IOException {
@@ -301,8 +301,8 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         return Paths.get(logger.getLogFilePath());
     }
 
-    protected String getShadeLogFilePath() {
-        return Utils.computeShadeLogFilePath(logger.getLogFilePath(), loggingConfig.getLogEcsFormattingDestinationDir());
+    protected String getLogReformattingFilePath() {
+        return Utils.computeLogReformattingFilePath(logger.getLogFilePath(), loggingConfig.getLogEcsFormattingDestinationDir());
     }
 
     private void verifyEcsFormat(String[] splitRawLogLine, JsonNode ecsLogLineTree) throws Exception {
@@ -334,9 +334,9 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
      * @throws IOException thrown if we fail to read the shade log file
      */
     @Test
-    public void testShadeLogRolling() throws IOException {
+    public void testReformattedLogRolling() throws IOException {
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
-        initializeShadeDir("rolling");
+        initializeReformattingDir("rolling");
         when(loggingConfig.getLogFileSize()).thenReturn(100L);
         logger.trace("First line");
         waitForFileRolling();
@@ -351,8 +351,8 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         // However, while in log4j2 and Logback file rolling takes place BEFORE appending the new log event, in
         // log4j1 this happens AFTER the event is logged. This means we can only count on the non-active file to
         // contain a single line
-        String shadeLogFilePath = getShadeLogFilePath();
-        ArrayList<JsonNode> jsonNodes = TestUtils.readJsonFile(shadeLogFilePath + ".1");
+        String ecsLogFilePath = getLogReformattingFilePath();
+        ArrayList<JsonNode> jsonNodes = TestUtils.readJsonFile(ecsLogFilePath + ".1");
         assertThat(jsonNodes).hasSize(1);
     }
 

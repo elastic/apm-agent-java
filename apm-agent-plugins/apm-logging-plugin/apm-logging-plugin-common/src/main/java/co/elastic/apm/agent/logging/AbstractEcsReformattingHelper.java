@@ -174,7 +174,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     }
 
     /**
-     * Must be called exactly once at the enter to each {@code append()} method (or equivalent) invocation in order to
+     * Must be called exactly once at the entrance to each {@code append()} method (or equivalent) invocation in order to
      * properly detect nested invocations.
      * @param appender the instrumented appender
      * @return true if log events should be ignored for the given appender; false otherwise
@@ -296,7 +296,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     }
 
     @Nullable
-    protected String getConfiguredShadeDir() {
+    protected String getConfiguredReformattingDir() {
         return loggingConfiguration.getLogEcsFormattingDestinationDir();
     }
 

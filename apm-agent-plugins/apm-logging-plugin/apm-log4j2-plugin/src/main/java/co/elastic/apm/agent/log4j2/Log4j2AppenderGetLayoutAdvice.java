@@ -40,8 +40,8 @@ public class Log4j2AppenderGetLayoutAdvice {
     @Nullable
     @Advice.AssignReturned.ToReturned
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-    public static Layout<?> shadeLoggingEvent(@Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender,
-                                              @Advice.Return @Nullable Layout<?> originalLayout) {
+    public static Layout<?> reformatLoggingEvent(@Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender,
+                                                 @Advice.Return @Nullable Layout<?> originalLayout) {
 
         if (originalLayout == null) {
             // Effectively disables instrumentation to all database appenders

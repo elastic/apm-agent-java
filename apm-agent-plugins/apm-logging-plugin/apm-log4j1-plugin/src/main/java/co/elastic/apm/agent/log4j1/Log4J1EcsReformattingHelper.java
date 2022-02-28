@@ -79,9 +79,9 @@ class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAp
         if (originalAppender instanceof FileAppender) {
             try {
                 FileAppender fileAppender = (FileAppender) originalAppender;
-                String shadeFile = Utils.computeShadeLogFilePath(fileAppender.getFile(), getConfiguredShadeDir());
+                String reformattedFile = Utils.computeLogReformattingFilePath(fileAppender.getFile(), getConfiguredReformattingDir());
 
-                shadeAppender = new RollingFileAppender(ecsLayout, shadeFile, true);
+                shadeAppender = new RollingFileAppender(ecsLayout, reformattedFile, true);
                 shadeAppender.setMaxBackupIndex(1);
                 shadeAppender.setMaximumFileSize(getMaxLogFileSize());
                 shadeAppender.setImmediateFlush(originalAppender.getImmediateFlush());

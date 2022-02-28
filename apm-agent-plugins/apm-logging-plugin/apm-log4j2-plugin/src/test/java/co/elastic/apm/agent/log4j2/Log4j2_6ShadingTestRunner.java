@@ -32,8 +32,8 @@ public class Log4j2_6ShadingTestRunner {
             "org.apache.logging.log4j:log4j-api:2.6",
             "co.elastic.logging:log4j2-ecs-layout:1.3.2"
         );
-        runner = new TestClassWithDependencyRunner(dependencies, Log4j2ShadingTestVersions.class, Log4j2ShadingTest.class,
-            Log4j2ShadingTest.Log4j2LoggerFacade.class);
+        runner = new TestClassWithDependencyRunner(dependencies, Log4J2ReformattingTestVersions.class, Log4J2ReformattingTest.class,
+            Log4J2ReformattingTest.Log4j2LoggerFacade.class);
     }
 
     @Test

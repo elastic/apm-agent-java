@@ -1,6 +1,6 @@
 # ECS re-formatting
-co.elastic.apm.agent.logback.LogbackLogShadingInstrumentation$ShadingInstrumentation
-co.elastic.apm.agent.logback.LogbackLogShadingInstrumentation$StopAppenderInstrumentation
+co.elastic.apm.agent.logback.LogbackLogReformattingInstrumentation$ReformattingInstrumentation
+co.elastic.apm.agent.logback.LogbackLogReformattingInstrumentation$StopAppenderInstrumentation
 
 # Trace context correlation
 co.elastic.apm.agent.logback.LogbackTraceCorrelationInstrumentation

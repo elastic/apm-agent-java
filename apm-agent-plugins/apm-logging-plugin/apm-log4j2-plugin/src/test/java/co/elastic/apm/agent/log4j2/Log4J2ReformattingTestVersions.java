@@ -38,7 +38,7 @@ import java.util.List;
  * takes place during packaging).
  */
 @Ignore
-public class Log4j2ShadingTestVersions extends Log4j2ShadingTest {
+public class Log4J2ReformattingTestVersions extends Log4J2ReformattingTest {
 
     @BeforeClass
     public static void resetConfigFactory() {
@@ -64,8 +64,8 @@ public class Log4j2ShadingTestVersions extends Log4j2ShadingTest {
 
     @Test
     @Override
-    public void testSimpleLogShading() throws Exception {
-        super.testSimpleLogShading();
+    public void testSimpleLogReformatting() throws Exception {
+        super.testSimpleLogReformatting();
     }
 
     @Test
@@ -82,14 +82,14 @@ public class Log4j2ShadingTestVersions extends Log4j2ShadingTest {
 
     @Test
     @Override
-    public void testLazyShadeFileCreation() throws Exception {
-        super.testLazyShadeFileCreation();
+    public void testLazyEcsFileCreation() throws Exception {
+        super.testLazyEcsFileCreation();
     }
 
     @Test
     @Override
-    public void testLogShadingReplaceOriginal() throws IOException {
-        super.testLogShadingReplaceOriginal();
+    public void testLogReformattingReplaceOriginal() throws IOException {
+        super.testLogReformattingReplaceOriginal();
     }
 
     @Test
@@ -112,7 +112,7 @@ public class Log4j2ShadingTestVersions extends Log4j2ShadingTest {
 
     @Test
     @Override
-    public void testShadeLogRolling() throws IOException {
-        super.testShadeLogRolling();
+    public void testReformattedLogRolling() throws IOException {
+        super.testReformattedLogRolling();
     }
 }

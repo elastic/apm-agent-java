@@ -33,42 +33,42 @@ public class UtilsTest extends AbstractInstrumentationTest {
     @Nullable
     private final String logEcsFormattingDestinationDir = config.getConfig(LoggingConfiguration.class).getLogEcsFormattingDestinationDir();
 
-    private String computeShadeLogFilePathWithConfiguredDir(String logFilePath) {
-        return Utils.computeShadeLogFilePath(logFilePath, logEcsFormattingDestinationDir);
+    private String computeReformattedLogFilePathWithConfiguredDir(String logFilePath) {
+        return Utils.computeLogReformattingFilePath(logFilePath, logEcsFormattingDestinationDir);
     }
 
     @Test
     void testShadePathComputation() {
-        assertThat(computeShadeLogFilePathWithConfiguredDir("/test/absolute/path/app.log")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.ecs.json"));
-        assertThat(computeShadeLogFilePathWithConfiguredDir("test/relative/path/app.log")).isEqualTo(replaceFileSeparator("test/relative/path/app.ecs.json"));
-        assertThat(computeShadeLogFilePathWithConfiguredDir("/app.log")).isEqualTo(replaceFileSeparator("/app.ecs.json"));
-        assertThat(computeShadeLogFilePathWithConfiguredDir("app.log")).isEqualTo(replaceFileSeparator("app.ecs.json"));
+        assertThat(computeReformattedLogFilePathWithConfiguredDir("/test/absolute/path/app.log")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.ecs.json"));
+        assertThat(computeReformattedLogFilePathWithConfiguredDir("test/relative/path/app.log")).isEqualTo(replaceFileSeparator("test/relative/path/app.ecs.json"));
+        assertThat(computeReformattedLogFilePathWithConfiguredDir("/app.log")).isEqualTo(replaceFileSeparator("/app.ecs.json"));
+        assertThat(computeReformattedLogFilePathWithConfiguredDir("app.log")).isEqualTo(replaceFileSeparator("app.ecs.json"));
     }
 
     @Test
     void testReplace() {
         when(config.getConfig(LoggingConfiguration.class).getLogEcsReformatting()).thenReturn(LogEcsReformatting.REPLACE);
-        assertThat(computeShadeLogFilePathWithConfiguredDir("/test/absolute/path/app.log")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.ecs.json"));
-        assertThat(computeShadeLogFilePathWithConfiguredDir("/test/absolute/path/app")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.ecs.json"));
-        assertThat(computeShadeLogFilePathWithConfiguredDir("/test/absolute/path/app.log.1")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.log.ecs.json"));
+        assertThat(computeReformattedLogFilePathWithConfiguredDir("/test/absolute/path/app.log")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.ecs.json"));
+        assertThat(computeReformattedLogFilePathWithConfiguredDir("/test/absolute/path/app")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.ecs.json"));
+        assertThat(computeReformattedLogFilePathWithConfiguredDir("/test/absolute/path/app.log.1")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.log.ecs.json"));
     }
 
     @Test
-    void testAlternativeShadeLogsDestination_AbsolutePath() {
+    void testAlternativeLogReformattingDestination_AbsolutePath() {
         String shadeDir = "/some/alt/location";
-        assertThat(Utils.computeShadeLogFilePath("/test/absolute/path/app.log", shadeDir)).isEqualTo(replaceFileSeparator("/some/alt/location/app.ecs.json"));
-        assertThat(Utils.computeShadeLogFilePath("test/relative/path/app.log", shadeDir)).isEqualTo(replaceFileSeparator("/some/alt/location/app.ecs.json"));
-        assertThat(Utils.computeShadeLogFilePath("/app.log", shadeDir)).isEqualTo(replaceFileSeparator("/some/alt/location/app.ecs.json"));
-        assertThat(Utils.computeShadeLogFilePath("app.log", shadeDir)).isEqualTo(replaceFileSeparator("/some/alt/location/app.ecs.json"));
+        assertThat(Utils.computeLogReformattingFilePath("/test/absolute/path/app.log", shadeDir)).isEqualTo(replaceFileSeparator("/some/alt/location/app.ecs.json"));
+        assertThat(Utils.computeLogReformattingFilePath("test/relative/path/app.log", shadeDir)).isEqualTo(replaceFileSeparator("/some/alt/location/app.ecs.json"));
+        assertThat(Utils.computeLogReformattingFilePath("/app.log", shadeDir)).isEqualTo(replaceFileSeparator("/some/alt/location/app.ecs.json"));
+        assertThat(Utils.computeLogReformattingFilePath("app.log", shadeDir)).isEqualTo(replaceFileSeparator("/some/alt/location/app.ecs.json"));
     }
 
     @Test
-    void testAlternativeShadeLogsDestination_RelativePath() {
+    void testAlternativeLogsReformattingDestination_RelativePath() {
         String shadeDir = "some/alt/location";
-        assertThat(Utils.computeShadeLogFilePath("/test/absolute/path/app.log", shadeDir)).isEqualTo(replaceFileSeparator("/test/absolute/path/some/alt/location/app.ecs.json"));
-        assertThat(Utils.computeShadeLogFilePath("test/relative/path/app.log", shadeDir)).isEqualTo(replaceFileSeparator("test/relative/path/some/alt/location/app.ecs.json"));
-        assertThat(Utils.computeShadeLogFilePath("/app.log", shadeDir)).isEqualTo(replaceFileSeparator("/some/alt/location/app.ecs.json"));
-        assertThat(Utils.computeShadeLogFilePath("app.log", shadeDir)).isEqualTo(replaceFileSeparator("some/alt/location/app.ecs.json"));
+        assertThat(Utils.computeLogReformattingFilePath("/test/absolute/path/app.log", shadeDir)).isEqualTo(replaceFileSeparator("/test/absolute/path/some/alt/location/app.ecs.json"));
+        assertThat(Utils.computeLogReformattingFilePath("test/relative/path/app.log", shadeDir)).isEqualTo(replaceFileSeparator("test/relative/path/some/alt/location/app.ecs.json"));
+        assertThat(Utils.computeLogReformattingFilePath("/app.log", shadeDir)).isEqualTo(replaceFileSeparator("/some/alt/location/app.ecs.json"));
+        assertThat(Utils.computeLogReformattingFilePath("app.log", shadeDir)).isEqualTo(replaceFileSeparator("some/alt/location/app.ecs.json"));
     }
 
     @Test

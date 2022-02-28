@@ -105,13 +105,13 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
             ecsAppender = new RollingFileAppender<>();
             ecsAppender.setEncoder(ecsEncoder);
 
-            String shadeFile = Utils.computeShadeLogFilePath(fileAppender.getFile(), getConfiguredShadeDir());
-            ecsAppender.setFile(shadeFile);
+            String ecsFile = Utils.computeLogReformattingFilePath(fileAppender.getFile(), getConfiguredReformattingDir());
+            ecsAppender.setFile(ecsFile);
 
             FixedWindowRollingPolicy rollingPolicy = new FixedWindowRollingPolicy();
             rollingPolicy.setMinIndex(1);
             rollingPolicy.setMaxIndex(1);
-            rollingPolicy.setFileNamePattern(shadeFile + ".%i");
+            rollingPolicy.setFileNamePattern(ecsFile + ".%i");
             rollingPolicy.setParent(ecsAppender);
             rollingPolicy.setContext(defaultLoggerContext);
             rollingPolicy.start();

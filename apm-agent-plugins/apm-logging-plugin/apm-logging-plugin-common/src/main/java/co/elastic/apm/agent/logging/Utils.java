@@ -34,24 +34,24 @@ public class Utils {
      * @param originalLogFile the log file to which a shade file path is required
      * @return the shade log file path
      */
-    public static String computeShadeLogFilePath(String originalLogFile, @Nullable String configuredShadeFileDestinationDir) {
+    public static String computeLogReformattingFilePath(String originalLogFile, @Nullable String configuredReformattingDestinationDir) {
         Path originalFilePath = Paths.get(originalLogFile);
         Path logFileName = Paths.get(replaceFileExtensionToEcsJson(originalFilePath.getFileName().toString()));
-        Path shadeDir = computeShadeLogsDir(originalFilePath, configuredShadeFileDestinationDir);
-        if (shadeDir != null) {
-            logFileName = shadeDir.resolve(logFileName);
+        Path reformattingDir = computeLogReformattingDir(originalFilePath, configuredReformattingDestinationDir);
+        if (reformattingDir != null) {
+            logFileName = reformattingDir.resolve(logFileName);
         }
         return logFileName.toString();
     }
 
     @Nullable
-    private static Path computeShadeLogsDir(Path originalFilePath, @Nullable String configuredShadeFileDestinationDir) {
+    private static Path computeLogReformattingDir(Path originalFilePath, @Nullable String configuredReformattingDestinationDir) {
         Path shadeDir;
         Path logsDir = originalFilePath.getParent();
-        if (configuredShadeFileDestinationDir == null) {
+        if (configuredReformattingDestinationDir == null) {
             shadeDir = logsDir;
         } else {
-            shadeDir = Paths.get(configuredShadeFileDestinationDir);
+            shadeDir = Paths.get(configuredReformattingDestinationDir);
             if (!shadeDir.isAbsolute() && logsDir != null) {
                     shadeDir = logsDir.resolve(shadeDir);
             }

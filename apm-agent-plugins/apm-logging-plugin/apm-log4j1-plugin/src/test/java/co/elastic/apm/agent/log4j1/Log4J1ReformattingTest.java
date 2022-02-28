@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.log4j1;
 
-import co.elastic.apm.agent.logging.LogShadingInstrumentationTest;
+import co.elastic.apm.agent.logging.LogReformattingInstrumentationTest;
 import co.elastic.apm.agent.logging.LoggerFacade;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.LogManager;
@@ -32,7 +32,7 @@ import java.util.Objects;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-public class Log4j1ShadingTest extends LogShadingInstrumentationTest {
+public class Log4J1ReformattingTest extends LogReformattingInstrumentationTest {
 
     @Override
     protected LoggerFacade createLoggerFacade() {
@@ -41,7 +41,7 @@ public class Log4j1ShadingTest extends LogShadingInstrumentationTest {
 
     @Override
     protected void waitForFileRolling() {
-        await().untilAsserted(() -> assertThat(new File(getShadeLogFilePath()).length()).isEqualTo(0));
+        await().untilAsserted(() -> assertThat(new File(getLogReformattingFilePath()).length()).isEqualTo(0));
     }
 
     private static class Log4j1LoggerFacade implements LoggerFacade {

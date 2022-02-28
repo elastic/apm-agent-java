@@ -398,8 +398,8 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     @Nullable
     public String getLogEcsFormattingDestinationDir() {
-        String logShadingDestDir = logEcsFormattingDestinationDir.get().trim();
-        return (logShadingDestDir.isEmpty()) ? null : logShadingDestDir;
+        String logReformattingDestDir = logEcsFormattingDestinationDir.get().trim();
+        return (logReformattingDestDir.isEmpty()) ? null : logReformattingDestDir;
     }
 
     public long getLogFileSize() {

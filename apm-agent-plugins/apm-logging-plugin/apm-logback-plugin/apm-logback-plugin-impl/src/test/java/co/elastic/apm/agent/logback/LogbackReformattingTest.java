@@ -23,7 +23,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.util.ContextInitializer;
 import ch.qos.logback.core.FileAppender;
 import ch.qos.logback.core.joran.spi.JoranException;
-import co.elastic.apm.agent.logging.LogShadingInstrumentationTest;
+import co.elastic.apm.agent.logging.LogReformattingInstrumentationTest;
 import co.elastic.apm.agent.logging.LoggerFacade;
 import org.slf4j.MDC;
 import org.slf4j.Marker;
@@ -31,7 +31,7 @@ import org.slf4j.MarkerFactory;
 
 import java.net.URL;
 
-public class LogbackShadingTest extends LogShadingInstrumentationTest {
+public class LogbackReformattingTest extends LogReformattingInstrumentationTest {
 
     private static final Marker TEST_MARKER = MarkerFactory.getMarker("TEST");
 

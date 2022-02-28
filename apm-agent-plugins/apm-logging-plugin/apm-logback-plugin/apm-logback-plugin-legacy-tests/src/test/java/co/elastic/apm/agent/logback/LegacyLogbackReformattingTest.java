@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.logback;
 
-public class LegacyLogbackShadingTest extends LogbackShadingTest {
+public class LegacyLogbackReformattingTest extends LogbackReformattingTest {
 
     @Override
-    public void testShadeLogRolling() {
+    public void testReformattedLogRolling() {
         // Logback's SizeBasedTriggeringPolicy relies on something called InvocationGate to limit the frequency of
         // heavy operations like file rolling. In versions older than 1.1.8, its implementation made it unsuitable
         // for unit testing as it required minimal number of invocations (starts with 16 an increasing) that cannot be

@@ -112,7 +112,7 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
         }
 
         if (logFile != null) {
-            String shadeFile = Utils.computeShadeLogFilePath(logFile, getConfiguredShadeDir());
+            String ecsLogFile = Utils.computeLogReformattingFilePath(logFile, getConfiguredReformattingDir());
 
             // The deprecated configuration API is used in order to support older versions where the Builder API is not yet available
             //noinspection deprecation
@@ -123,7 +123,7 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
 
             // The deprecated configuration API is used in order to support older versions where the Builder API is not yet available
             //noinspection deprecation
-            ecsAppender = RollingRandomAccessFileAppender.createAppender(shadeFile, shadeFile + ".%i", "true",
+            ecsAppender = RollingRandomAccessFileAppender.createAppender(ecsLogFile, ecsLogFile + ".%i", "true",
                 ecsAppenderName, String.valueOf(((AbstractOutputStreamAppender<?>) originalAppender).getImmediateFlush()),
                 null, triggeringPolicy, rolloverStrategy, ecsFormatter, null, null, null, null, null);
 

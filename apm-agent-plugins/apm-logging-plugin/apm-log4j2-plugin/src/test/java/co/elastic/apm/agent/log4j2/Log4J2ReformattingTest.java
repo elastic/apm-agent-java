@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.log4j2;
 
-import co.elastic.apm.agent.logging.LogShadingInstrumentationTest;
+import co.elastic.apm.agent.logging.LogReformattingInstrumentationTest;
 import co.elastic.apm.agent.logging.LoggerFacade;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import org.apache.logging.log4j.LogManager;
@@ -42,7 +42,7 @@ import java.util.Objects;
  * the proper way to test integration tests with log4j2 is only through dedicated class loaders.
  */
 @Disabled
-public class Log4j2ShadingTest extends LogShadingInstrumentationTest {
+public class Log4J2ReformattingTest extends LogReformattingInstrumentationTest {
 
     @BeforeAll
     static void resetConfigFactory() {
@@ -82,7 +82,7 @@ public class Log4j2ShadingTest extends LogShadingInstrumentationTest {
 
         public Log4j2LoggerFacade() {
             try {
-                configLocation = Objects.requireNonNull(Log4j2ShadingTest.class.getClassLoader()
+                configLocation = Objects.requireNonNull(Log4J2ReformattingTest.class.getClassLoader()
                     .getResource("log4j2.xml")).toURI();
             } catch (URISyntaxException e) {
                 e.printStackTrace();

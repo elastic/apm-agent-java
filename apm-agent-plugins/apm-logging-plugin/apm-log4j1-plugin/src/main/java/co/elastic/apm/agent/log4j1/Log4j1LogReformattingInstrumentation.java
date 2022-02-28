@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.logback;
+package co.elastic.apm.agent.log4j1;
 
 import co.elastic.apm.agent.logging.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.description.method.MethodDescription;
@@ -29,58 +29,59 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
-import static net.bytebuddy.matcher.ElementMatchers.takesGenericArgument;
 
-public abstract class LogbackLogShadingInstrumentation extends AbstractLogIntegrationInstrumentation {
+public abstract class Log4j1LogReformattingInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("logback-ecs");
+        ret.add("log4j1-ecs");
         return ret;
     }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("ch.qos.logback.core.OutputStreamAppender"));
+        return not(isBootstrapClassLoader())
+            .and(classLoaderCanLoadClass("org.apache.log4j.WriterAppender"));
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("ch.qos.logback.core.OutputStreamAppender");
+        return named("org.apache.log4j.WriterAppender");
     }
 
-    public static class ShadingInstrumentation extends LogbackLogShadingInstrumentation {
+    public static class ReformattingInstrumentation extends Log4j1LogReformattingInstrumentation {
 
         /**
-         * Instrumenting {@link ch.qos.logback.core.OutputStreamAppender#append(Object)}
+         * Instrumenting {@link org.apache.log4j.WriterAppender#subAppend(org.apache.log4j.spi.LoggingEvent)}
          */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("append").and(takesGenericArgument(0, TypeDescription.Generic.Builder.typeVariable("E").build()));
+            return named("subAppend").and(takesArgument(0, named("org.apache.log4j.spi.LoggingEvent")));
         }
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.logback.LogbackAppenderAppendAdvice";
+            return "co.elastic.apm.agent.log4j1.Log4j1AppenderAppendAdvice";
         }
 
     }
 
-    public static class StopAppenderInstrumentation extends LogbackLogShadingInstrumentation {
+    public static class StopAppenderInstrumentation extends Log4j1LogReformattingInstrumentation {
 
         /**
-         * Instrumenting {@link ch.qos.logback.core.OutputStreamAppender#stop}
+         * Instrumenting {@link org.apache.log4j.WriterAppender#close()}
          */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("stop").and(takesArguments(0));
+            return named("close").and(takesArguments(0));
         }
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.logback.LogbackAppenderStopAdvice";
+            return "co.elastic.apm.agent.log4j1.Log4j1AppenderStopAdvice";
         }
 
     }
