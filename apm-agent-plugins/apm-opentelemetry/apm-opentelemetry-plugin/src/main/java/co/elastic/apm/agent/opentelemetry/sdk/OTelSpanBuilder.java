@@ -23,10 +23,13 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.MultiValueMapAccessor;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.util.VersionUtils;
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
@@ -152,6 +155,16 @@ class OTelSpanBuilder implements SpanBuilder {
             return Span.getInvalid();
         }
         span.withName(spanName);
+
+        if (span instanceof Transaction) {
+            Transaction t = ((Transaction) span);
+            t.setFrameworkName("OpenTelemetry API");
+
+            String otelVersion = VersionUtils.getVersion(OpenTelemetry.class, "io.opentelemetry", "opentelemetry-api");
+            if(otelVersion != null){
+                t.setFrameworkVersion(otelVersion);
+            }
+        }
 
         if (kind == null) {
             span.withOtelKind(OTelSpanKind.INTERNAL);
