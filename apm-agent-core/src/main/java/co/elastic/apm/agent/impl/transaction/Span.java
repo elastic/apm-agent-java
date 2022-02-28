@@ -352,19 +352,28 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             return false;
         }
 
-        long newDuration = sibling.getTimestamp() + sibling.duration.get() - getTimestamp();
         do {
-            long currentDuration = duration.get();
-            if (newDuration <= currentDuration) {
+            long currentTimestamp = timestamp.get();
+            if (currentTimestamp <= sibling.timestamp.get()) {
                 break;
             }
-            if (duration.compareAndSet(currentDuration, newDuration)) {
+            if (timestamp.compareAndSet(currentTimestamp, sibling.timestamp.get())) {
+                break;
+            }
+        } while (true);
+
+        do {
+            long currentEndTimestamp = endTimestamp.get();
+            if (sibling.endTimestamp.get() <= currentEndTimestamp) {
+                break;
+            }
+            if (endTimestamp.compareAndSet(currentEndTimestamp, sibling.endTimestamp.get())) {
                 break;
             }
         } while (true);
 
         composite.increaseCount();
-        composite.increaseSum(sibling.duration.get());
+        composite.increaseSum(sibling.getDuration());
 
         return true;
     }
@@ -374,14 +383,14 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             return false;
         }
 
-        long currentDuration = duration.get();
+        long currentDuration = getDuration();
         if (isComposite()) {
             return tryToCompressComposite(sibling);
         }
 
         if (StringBuilderUtils.equals(name, sibling.name)) {
             long maxExactMatchDuration = transaction.getSpanCompressionExactMatchMaxDurationUs();
-            if (currentDuration <= maxExactMatchDuration && sibling.duration.get() <= maxExactMatchDuration) {
+            if (currentDuration <= maxExactMatchDuration && sibling.getDuration() <= maxExactMatchDuration) {
                 if (!composite.init(currentDuration, "exact_match")) {
                     return tryToCompressComposite(sibling);
                 }
@@ -391,7 +400,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         }
 
         long maxSameKindDuration = transaction.getSpanCompressionSameKindMaxDurationUs();
-        if (currentDuration <= maxSameKindDuration && sibling.duration.get() <= maxSameKindDuration) {
+        if (currentDuration <= maxSameKindDuration && sibling.getDuration() <= maxSameKindDuration) {
             if (!composite.init(currentDuration, "same_kind")) {
                 return tryToCompressComposite(sibling);
             }
@@ -407,11 +416,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         switch (composite.getCompressionStrategy()) {
             case "exact_match":
                 long maxExactMatchDuration = transaction.getSpanCompressionExactMatchMaxDurationUs();
-                return isSameKind(sibling) && StringBuilderUtils.equals(name, sibling.name) && sibling.duration.get() <= maxExactMatchDuration;
+                return isSameKind(sibling) && StringBuilderUtils.equals(name, sibling.name) && sibling.getDuration() <= maxExactMatchDuration;
 
             case "same_kind":
                 long maxSameKindDuration = transaction.getSpanCompressionSameKindMaxDurationUs();
-                return isSameKind(sibling) && sibling.duration.get() <= maxSameKindDuration;
+                return isSameKind(sibling) && sibling.getDuration() <= maxSameKindDuration;
             default:
         }
 

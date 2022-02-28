@@ -51,10 +51,9 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     protected final StringBuilder name = new StringBuilder();
     protected final boolean collectBreakdownMetrics;
     protected final ElasticApmTracer tracer;
-    private long timestamp;
+    protected final AtomicLong timestamp = new AtomicLong();
+    protected final AtomicLong endTimestamp = new AtomicLong();
 
-    // in microseconds
-    protected final AtomicLong duration = new AtomicLong();
     private ChildDurationTimer childDurations = new ChildDurationTimer();
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
@@ -214,15 +213,15 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * How long the transaction took to complete, in µs
      */
     public long getDuration() {
-        return duration.get();
+        return endTimestamp.get() - timestamp.get();
     }
 
     public long getSelfDuration() {
-        return duration.get() - childDurations.getDuration();
+        return getDuration() - childDurations.getDuration();
     }
 
     public double getDurationMs() {
-        return duration.get() / AbstractSpan.MS_IN_MICROS;
+        return getDuration() / AbstractSpan.MS_IN_MICROS;
     }
 
     /**
@@ -336,7 +335,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * Recorded time of the span or transaction in microseconds since epoch
      */
     public long getTimestamp() {
-        return timestamp;
+        return timestamp.get();
     }
 
     public TraceContext getTraceContext() {
@@ -347,8 +346,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public void resetState() {
         finished = true;
         name.setLength(0);
-        timestamp = 0;
-        duration.set(0L);
+        timestamp.set(0L);
+        endTimestamp.set(0L);
         traceContext.resetState();
         childDurations.resetState();
         references.set(0);
@@ -455,7 +454,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     public final void end(long epochMicros) {
         if (!finished) {
-            this.duration.set(epochMicros - timestamp);
+            this.endTimestamp.set(epochMicros);
             if (name.length() == 0) {
                 name.append("unnamed");
             }
@@ -534,14 +533,14 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * @param epochMicros start timestamp in micro-seconds since epoch
      */
     public void setStartTimestamp(long epochMicros) {
-        timestamp = epochMicros;
+        timestamp.set(epochMicros);
     }
 
     /**
      * Set start timestamp from context current clock
      */
     public void setStartTimestampNow() {
-        timestamp = getTraceContext().getClock().getEpochMicros();
+        timestamp.set(getTraceContext().getClock().getEpochMicros());
     }
 
     void onChildStart(long epochMicros) {
