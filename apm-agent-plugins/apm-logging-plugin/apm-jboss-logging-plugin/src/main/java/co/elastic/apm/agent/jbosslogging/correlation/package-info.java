@@ -17,6 +17,6 @@
  * under the License.
  */
 @NonnullApi
-package co.elastic.apm.agent.jbosslogging;
+package co.elastic.apm.agent.jbosslogging.correlation;
 
 import co.elastic.apm.agent.sdk.NonnullApi;
