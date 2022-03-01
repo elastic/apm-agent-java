@@ -24,6 +24,10 @@ endif::[]
 ==== 1.29.1 - YYYY/MM/DD
 
 [float]
+===== Potentially breaking changes
+* Create the JDBC spans as exit spans- {pull}2484[#2484]
+
+[float]
 ===== Features
 * Added support for setting service name and version for a transaction via the public api - {pull}2451[#2451]
 * Added support for en-/disabling each public annotation on each own - {pull}2472[#2472]
@@ -32,6 +36,10 @@ endif::[]
 [float]
 ===== Performance improvements
 * Proxy classes are excluded from instrumentation in more cases - {pull}2474[#2474]
+
+[float]
+===== Performance improvements
+* Only time type/method matching if the debug logging is enabled as the results are only used when debug logging is enabled - {pull}2471[#2471]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

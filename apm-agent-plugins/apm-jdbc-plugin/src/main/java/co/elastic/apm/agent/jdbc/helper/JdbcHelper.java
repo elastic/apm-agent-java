@@ -93,7 +93,13 @@ public class JdbcHelper {
             return null;
         }
 
-        Span span = parent.createSpan().activate();
+        Span span = parent.createExitSpan();
+        if (span == null) {
+            return null;
+        } else {
+            span.activate();
+        }
+
         if (sql.isEmpty()) {
             span.withName("empty query");
         } else if (span.isSampled()) {
