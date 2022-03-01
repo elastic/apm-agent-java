@@ -16,7 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@NonnullApi
-package co.elastic.apm.agent.logging;
+package co.elastic.apm.agent.slf4j.error;
 
-import co.elastic.apm.agent.sdk.NonnullApi;
+import co.elastic.apm.agent.logging.error.AbstractErrorLoggingInstrumentationTest;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+class Slf4jLoggerErrorCapturingInstrumentationTest extends AbstractErrorLoggingInstrumentationTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(Slf4jLoggerErrorCapturingInstrumentationTest.class);
+
+    @Test
+    void captureException() {
+        logger.error("exception captured", new RuntimeException("some business exception"));
+        verifyThatExceptionCaptured(1, "some business exception", RuntimeException.class);
+    }
+
+}
