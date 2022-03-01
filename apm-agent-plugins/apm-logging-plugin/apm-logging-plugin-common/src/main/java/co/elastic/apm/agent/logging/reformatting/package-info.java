@@ -16,20 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jbosslogging;
+@NonnullApi
+package co.elastic.apm.agent.logging.reformatting;
 
-import co.elastic.apm.agent.logging.correlation.AbstractLogCorrelationHelper;
-import org.jboss.logging.MDC;
-
-public class JBossLoggingCorrelationHelper extends AbstractLogCorrelationHelper.DefaultLogCorrelationHelper {
-
-    @Override
-    protected void addToMdc(String key, String value) {
-        MDC.put(key, value);
-    }
-
-    @Override
-    protected void removeFromMdc(String key) {
-        MDC.remove(key);
-    }
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

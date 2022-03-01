@@ -16,20 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jbosslogging;
+package co.elastic.apm.agent.log4j2.correlation;
 
 import co.elastic.apm.agent.logging.correlation.AbstractLogCorrelationHelper;
-import org.jboss.logging.MDC;
+import org.apache.logging.log4j.ThreadContext;
 
-public class JBossLoggingCorrelationHelper extends AbstractLogCorrelationHelper.DefaultLogCorrelationHelper {
+import java.util.Map;
+
+/**
+ * In log4j 2.6 {@link ThreadContext#putAll(Map)} is not yet available
+ */
+public class Log4j2_6LogCorrelationHelper extends AbstractLogCorrelationHelper.DefaultLogCorrelationHelper {
 
     @Override
     protected void addToMdc(String key, String value) {
-        MDC.put(key, value);
+        ThreadContext.put(key, value);
     }
 
     @Override
     protected void removeFromMdc(String key) {
-        MDC.remove(key);
+        ThreadContext.remove(key);
     }
 }

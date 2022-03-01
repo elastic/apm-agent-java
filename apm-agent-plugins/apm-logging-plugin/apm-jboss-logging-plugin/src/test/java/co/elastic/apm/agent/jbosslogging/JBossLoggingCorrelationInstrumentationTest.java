@@ -23,7 +23,7 @@ import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.logging.AbstractLogCorrelationHelper;
+import co.elastic.apm.agent.logging.correlation.AbstractLogCorrelationHelper;
 import org.jboss.logging.Logger;
 import org.jboss.logging.MDC;
 import org.junit.jupiter.api.AfterEach;

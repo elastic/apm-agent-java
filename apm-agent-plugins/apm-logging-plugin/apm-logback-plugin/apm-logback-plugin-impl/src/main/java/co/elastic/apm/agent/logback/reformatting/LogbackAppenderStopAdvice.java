@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jbosslogging;
+package co.elastic.apm.agent.logback.reformatting;
 
-import co.elastic.apm.agent.logging.correlation.AbstractLogCorrelationHelper;
-import org.jboss.logging.MDC;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.OutputStreamAppender;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
-public class JBossLoggingCorrelationHelper extends AbstractLogCorrelationHelper.DefaultLogCorrelationHelper {
+public class LogbackAppenderStopAdvice {
 
-    @Override
-    protected void addToMdc(String key, String value) {
-        MDC.put(key, value);
-    }
+    private static final LogbackEcsReformattingHelper helper = new LogbackEcsReformattingHelper();
 
-    @Override
-    protected void removeFromMdc(String key) {
-        MDC.remove(key);
+    @SuppressWarnings({"unused"})
+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
+    public static void stopAppender(@Advice.This(typing = Assigner.Typing.DYNAMIC) OutputStreamAppender<ILoggingEvent> thisAppender) {
+        helper.closeShadeAppenderFor(thisAppender);
     }
 }

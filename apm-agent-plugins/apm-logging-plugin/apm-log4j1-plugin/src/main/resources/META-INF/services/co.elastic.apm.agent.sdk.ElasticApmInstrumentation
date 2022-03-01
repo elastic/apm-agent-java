@@ -1,6 +1,6 @@
 # ECS re-formatting
-co.elastic.apm.agent.log4j1.Log4j1LogReformattingInstrumentation$ReformattingInstrumentation
-co.elastic.apm.agent.log4j1.Log4j1LogReformattingInstrumentation$StopAppenderInstrumentation
+co.elastic.apm.agent.log4j1.reformatting.Log4j1LogReformattingInstrumentation$ReformattingInstrumentation
+co.elastic.apm.agent.log4j1.reformatting.Log4j1LogReformattingInstrumentation$StopAppenderInstrumentation
 
 # Trace context correlation
-co.elastic.apm.agent.log4j1.Log4j1TraceCorrelationInstrumentation
+co.elastic.apm.agent.log4j1.correlation.Log4j1LogCorrelationInstrumentation

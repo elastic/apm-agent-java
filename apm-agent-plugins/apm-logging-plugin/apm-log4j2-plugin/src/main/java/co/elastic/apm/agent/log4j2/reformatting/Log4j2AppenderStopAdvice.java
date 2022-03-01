@@ -16,20 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jbosslogging;
+package co.elastic.apm.agent.log4j2.reformatting;
 
-import co.elastic.apm.agent.logging.correlation.AbstractLogCorrelationHelper;
-import org.jboss.logging.MDC;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
+import org.apache.logging.log4j.core.Appender;
 
-public class JBossLoggingCorrelationHelper extends AbstractLogCorrelationHelper.DefaultLogCorrelationHelper {
+public class Log4j2AppenderStopAdvice {
 
-    @Override
-    protected void addToMdc(String key, String value) {
-        MDC.put(key, value);
-    }
+    private static final Log4J2EcsReformattingHelper helper = new Log4J2EcsReformattingHelper();
 
-    @Override
-    protected void removeFromMdc(String key) {
-        MDC.remove(key);
+    @SuppressWarnings({"unused"})
+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
+    public static void stopAppender(@Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender) {
+        helper.closeShadeAppenderFor(thisAppender);
     }
 }
