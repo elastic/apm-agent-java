@@ -20,6 +20,7 @@ package co.elastic.apm.agent.log4j2.correlation;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import javax.annotation.Nullable;
@@ -33,6 +34,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import static co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper.ERROR_ID_MDC_KEY;
 import static co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY;
 import static co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY;
 
@@ -40,7 +42,7 @@ class CorrelationIdMapAdapter extends AbstractMap<String, String> {
 
     private static final CorrelationIdMapAdapter INSTANCE = new CorrelationIdMapAdapter();
     private static final Set<Entry<String, String>> ENTRY_SET = new TraceIdentifierEntrySet();
-    private static final List<String> ALL_KEYS = Arrays.asList(TRACE_ID_MDC_KEY, TRANSACTION_ID_MDC_KEY);
+    private static final List<String> ALL_KEYS = Arrays.asList(TRACE_ID_MDC_KEY, TRANSACTION_ID_MDC_KEY, ERROR_ID_MDC_KEY);
     private static final Tracer tracer = GlobalTracer.get();
     private static final List<Entry<String, String>> ENTRIES = Arrays.<Entry<String, String>>asList(
         new LazyEntry(TRACE_ID_MDC_KEY, new Callable<String>() {
@@ -63,6 +65,17 @@ class CorrelationIdMapAdapter extends AbstractMap<String, String> {
                     return null;
                 }
                 return transaction.getTraceContext().getId().toString();
+            }
+        }),
+        new LazyEntry(ERROR_ID_MDC_KEY, new Callable<String>() {
+            @Override
+            @Nullable
+            public String call() {
+                ErrorCapture error = ErrorCapture.getActive();
+                if (error == null) {
+                    return null;
+                }
+                return error.getTraceContext().getId().toString();
             }
         })
     );

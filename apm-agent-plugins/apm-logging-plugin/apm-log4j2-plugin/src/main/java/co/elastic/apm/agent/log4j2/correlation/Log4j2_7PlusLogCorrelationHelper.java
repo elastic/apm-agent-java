@@ -20,6 +20,7 @@ package co.elastic.apm.agent.log4j2.correlation;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
 import org.apache.logging.log4j.ThreadContext;
 
@@ -34,7 +35,7 @@ public class Log4j2_7PlusLogCorrelationHelper extends AbstractLogCorrelationHelp
 
     @Override
     protected boolean addToMdc() {
-        if (tracer.currentTransaction() == null) {
+        if (tracer.currentTransaction() == null && ErrorCapture.getActive() == null) {
             return false;
         }
         ThreadContext.putAll(CorrelationIdMapAdapter.get());

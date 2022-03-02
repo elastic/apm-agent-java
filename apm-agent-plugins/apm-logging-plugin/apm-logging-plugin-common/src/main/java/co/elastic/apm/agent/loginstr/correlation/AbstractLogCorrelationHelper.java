@@ -20,6 +20,7 @@ package co.elastic.apm.agent.loginstr.correlation;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
@@ -49,7 +50,7 @@ public abstract class AbstractLogCorrelationHelper {
      * @param addedToMdc should reflect the value returned from {@link #beforeLoggingEvent()} for the corresponding API call
      */
     public void afterLoggingEvent(boolean addedToMdc) {
-        if (callDepth.isNestedCallAndDecrement() && addedToMdc) {
+        if (!callDepth.isNestedCallAndDecrement() && addedToMdc) {
             removeFromMdc();
         }
     }
@@ -72,19 +73,26 @@ public abstract class AbstractLogCorrelationHelper {
 
         @Override
         protected boolean addToMdc() {
+            boolean addedToMdc = false;
             Transaction activeTransaction = tracer.currentTransaction();
-            if (activeTransaction == null) {
-                return false;
+            if (activeTransaction != null) {
+                addToMdc(TRACE_ID_MDC_KEY, activeTransaction.getTraceContext().getTraceId().toString());
+                addToMdc(TRANSACTION_ID_MDC_KEY, activeTransaction.getTraceContext().getTransactionId().toString());
+                addedToMdc = true;
             }
-            addToMdc(TRACE_ID_MDC_KEY, activeTransaction.getTraceContext().getTraceId().toString());
-            addToMdc(TRANSACTION_ID_MDC_KEY, activeTransaction.getTraceContext().getTransactionId().toString());
-            return true;
+            ErrorCapture activeError = ErrorCapture.getActive();
+            if (activeError != null) {
+                addToMdc(ERROR_ID_MDC_KEY, activeError.getTraceContext().getId().toString());
+                addedToMdc = true;
+            }
+            return addedToMdc;
         }
 
         @Override
         protected void removeFromMdc() {
             removeFromMdc(TRACE_ID_MDC_KEY);
             removeFromMdc(TRANSACTION_ID_MDC_KEY);
+            removeFromMdc(ERROR_ID_MDC_KEY);
         }
 
         protected abstract void addToMdc(String key, String value);

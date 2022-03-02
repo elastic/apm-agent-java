@@ -53,8 +53,7 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Tracer
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object logEnter(@Advice.Argument(1) Throwable exception,
-                                        @Advice.Origin Class<?> clazz) {
+        public static Object logEnter(@Advice.Argument(1) Throwable exception, @Advice.Origin Class<?> clazz) {
             if (!callDepth.isNestedCallAndIncrement()) {
                 ErrorCapture error = tracer.captureException(exception, tracer.getActive(), clazz.getClassLoader());
                 if (error != null) {

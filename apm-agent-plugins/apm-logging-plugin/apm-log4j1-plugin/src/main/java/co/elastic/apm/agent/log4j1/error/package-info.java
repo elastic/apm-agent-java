@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.log4j2;
+@NonnullApi
+package co.elastic.apm.agent.log4j1.error;
 
-import co.elastic.apm.agent.loginstr.LoggingPluginClassLoaderRootPackageCustomizer;
-
-public class Log4j2PluginClassLoaderRootPackageCustomizer extends LoggingPluginClassLoaderRootPackageCustomizer {}
+import co.elastic.apm.agent.sdk.NonnullApi;

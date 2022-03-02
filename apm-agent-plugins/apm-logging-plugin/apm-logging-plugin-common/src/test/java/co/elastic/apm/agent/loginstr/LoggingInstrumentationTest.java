@@ -20,6 +20,7 @@ package co.elastic.apm.agent.loginstr;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
@@ -32,14 +33,17 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
@@ -63,6 +67,9 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
     private final LoggerFacade logger;
     private final ObjectMapper objectMapper;
+    private final SimpleDateFormat timestampFormat;
+    private final SimpleDateFormat utcTimestampFormat;
+
     private LoggingConfiguration loggingConfig;
     private String serviceName;
     private Transaction transaction;
@@ -70,6 +77,9 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     public LoggingInstrumentationTest() {
         logger = createLoggerFacade();
         objectMapper = new ObjectMapper();
+        timestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        utcTimestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        utcTimestampFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     @BeforeEach
@@ -116,7 +126,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);
         logger.warn(WARN_MESSAGE);
-        logger.error(ERROR_MESSAGE);
+        logger.error(ERROR_MESSAGE, new Throwable());
 
         ArrayList<String[]> rawLogLines = readRawLogLines();
         assertThat(rawLogLines).hasSize(4);
@@ -172,7 +182,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
         logger.warn(WARN_MESSAGE);
         assertThat(Files.exists(Paths.get(getLogReformattingFilePath()))).isTrue();
-        logger.error(ERROR_MESSAGE);
+        logger.error(ERROR_MESSAGE, new Throwable());
 
         ArrayList<String[]> rawLogLines = readRawLogLines();
         assertThat(rawLogLines).hasSize(4);
@@ -190,7 +200,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);
         logger.warn(WARN_MESSAGE);
-        logger.error(ERROR_MESSAGE);
+        logger.error(ERROR_MESSAGE, new Throwable());
 
         assertThat(readRawLogLines()).isEmpty();
         ArrayList<JsonNode> ecsLogEvents = readEcsLogFile();
@@ -206,7 +216,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);
         logger.warn(WARN_MESSAGE);
-        logger.error(ERROR_MESSAGE);
+        logger.error(ERROR_MESSAGE, new Throwable());
 
         ArrayList<JsonNode> overriddenLogEvents = TestUtils.readJsonFile(getOriginalLogFilePath().toString());
         assertThat(overriddenLogEvents).hasSize(4);
@@ -223,7 +233,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);
         logger.warn(WARN_MESSAGE);
-        logger.error(ERROR_MESSAGE);
+        logger.error(ERROR_MESSAGE, new Throwable());
         assertThat(readRawLogLines()).hasSize(4);
         assertThat(Files.exists(Paths.get(getLogReformattingFilePath()))).isFalse();
     }
@@ -239,14 +249,14 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
             setEcsReformattingConfig(LogEcsReformatting.SHADE);
             logger.warn(WARN_MESSAGE);
             setEcsReformattingConfig(LogEcsReformatting.REPLACE);
-            logger.error(ERROR_MESSAGE);
+            logger.error(ERROR_MESSAGE, new Throwable());
         }
 
         // ERROR messages should not appear in original log as they were replaced
         ArrayList<String> originalLogLines = Files.lines(getOriginalLogFilePath()).collect(Collectors.toCollection(ArrayList::new));
         assertThat(originalLogLines).hasSize(6);
 
-        // ECS shade file should contain only WARN and ERROR messages
+        // ECS log file should contain only WARN and ERROR messages
         ArrayList<JsonNode> ecsLogLines = readEcsLogFile();
         assertThat(ecsLogLines).hasSize(4);
 
@@ -268,7 +278,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         verifyEcsFormat(originalLogLines.get(5).split("\\s+"), ecsLogLines.get(2));
         assertThat(ecsLogLines.get(2).get("log.level").textValue()).isEqualTo("WARN");
 
-        // ERROR messages should be only in shade file in ECS format
+        // ERROR messages should be only in ECS log file
         verifyEcsLogLine(ecsLogLines.get(1));
         assertThat(ecsLogLines.get(1).get("log.level").textValue()).isEqualTo("ERROR");
         verifyEcsLogLine(ecsLogLines.get(3));
@@ -278,7 +288,9 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     private void verifyEcsLogLine(JsonNode ecsLogLineTree) {
         assertThat(ecsLogLineTree.get("@timestamp")).isNotNull();
         assertThat(ecsLogLineTree.get("process.thread.name").textValue()).isEqualTo("main");
-        assertThat(ecsLogLineTree.get("log.level")).isNotNull();
+        JsonNode logLevel = ecsLogLineTree.get("log.level");
+        assertThat(logLevel).isNotNull();
+        boolean isErrorLine = logLevel.textValue().equalsIgnoreCase("error");
         assertThat(ecsLogLineTree.get("log.logger").textValue()).isEqualTo("Test-File-Logger");
         assertThat(ecsLogLineTree.get("message")).isNotNull();
         assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
@@ -288,6 +300,20 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
         assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
         assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
+        verifyErrorCaptureAndCorrelation(isErrorLine, ecsLogLineTree);
+    }
+
+    private void verifyErrorCaptureAndCorrelation(boolean isErrorLine, JsonNode ecsLogLineTree) {
+        final JsonNode errorJsonNode = ecsLogLineTree.get(AbstractLogCorrelationHelper.ERROR_ID_MDC_KEY);
+        if (isErrorLine) {
+            assertThat(errorJsonNode).isNotNull();
+            List<ErrorCapture> errors = reporter.getErrors().stream()
+                .filter(error -> errorJsonNode.textValue().equals(error.getTraceContext().getId().toString()))
+                .collect(Collectors.toList());
+            assertThat(errors).hasSize(1);
+        } else {
+            assertThat(errorJsonNode).isNull();
+        }
     }
 
     private ArrayList<JsonNode> readEcsLogFile() throws IOException {
@@ -297,9 +323,23 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     private ArrayList<String[]> readRawLogLines() throws IOException {
         ArrayList<String[]> rawLogLines;
         try (Stream<String> stream = Files.lines(getOriginalLogFilePath())) {
-            rawLogLines = stream.map(line -> line.split("\\s+")).collect(Collectors.toCollection(ArrayList::new));
+            rawLogLines = stream
+                .map(line -> line.split("\\s+"))
+                // ignoring lines related to Throwable logging
+                .filter(lineParts -> safelyParseDate(lineParts[0]) != null)
+                .collect(Collectors.toCollection(ArrayList::new));
         }
         return rawLogLines;
+    }
+
+    @Nullable
+    private Date safelyParseDate(String dateAsString) {
+        try {
+            return timestampFormat.parse(dateAsString);
+        } catch (ParseException e) {
+            // the purpose of this method is to find valid date formats
+            return null;
+        }
     }
 
     private Path getOriginalLogFilePath() {
@@ -311,13 +351,13 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     }
 
     private void verifyEcsFormat(String[] splitRawLogLine, JsonNode ecsLogLineTree) throws Exception {
-        SimpleDateFormat timestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         Date rawTimestamp = timestampFormat.parse(splitRawLogLine[0]);
-        timestampFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        Date ecsTimestamp = timestampFormat.parse(ecsLogLineTree.get("@timestamp").textValue());
+        Date ecsTimestamp = utcTimestampFormat.parse(ecsLogLineTree.get("@timestamp").textValue());
         assertThat(rawTimestamp).isEqualTo(ecsTimestamp);
         assertThat(splitRawLogLine[1]).isEqualTo(ecsLogLineTree.get("process.thread.name").textValue());
-        assertThat(splitRawLogLine[2]).isEqualTo(ecsLogLineTree.get("log.level").textValue());
+        JsonNode logLevel = ecsLogLineTree.get("log.level");
+        assertThat(splitRawLogLine[2]).isEqualTo(logLevel.textValue());
+        boolean isErrorLine = logLevel.textValue().equalsIgnoreCase("error");
         assertThat(splitRawLogLine[3]).isEqualTo(ecsLogLineTree.get("log.logger").textValue());
         assertThat(splitRawLogLine[4]).isEqualTo(ecsLogLineTree.get("message").textValue());
         assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
@@ -331,6 +371,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         JsonNode transactionId = ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY);
         assertThat(transactionId).withFailMessage("Logging correlation does not work as expected").isNotNull();
         assertThat(transactionId.textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
+        verifyErrorCaptureAndCorrelation(isErrorLine, ecsLogLineTree);
     }
 
     /**

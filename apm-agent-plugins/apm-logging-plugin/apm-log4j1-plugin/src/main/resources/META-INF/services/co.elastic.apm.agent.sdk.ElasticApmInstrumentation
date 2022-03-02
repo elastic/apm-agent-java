@@ -4,3 +4,6 @@ co.elastic.apm.agent.log4j1.reformatting.Log4j1LogReformattingInstrumentation$St
 
 # Trace context correlation
 co.elastic.apm.agent.log4j1.correlation.Log4j1LogCorrelationInstrumentation
+
+# Error creation
+co.elastic.apm.agent.log4j1.error.Log4j1LoggerErrorCapturingInstrumentation
