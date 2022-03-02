@@ -30,7 +30,6 @@
         <module>apm-apache-httpclient-plugin</module>
         <module>apm-spring-resttemplate</module>
         <module>apm-httpclient-core</module>
-        <module>apm-log-correlation-plugin</module>
         <module>apm-logging-plugin</module>
         <module>apm-log-shipper-plugin</module>
         <module>apm-es-restclient-plugin</module>
