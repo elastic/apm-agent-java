@@ -16,21 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.logging;
+package co.elastic.apm.agent.loginstr;
 
+public interface LoggerFacade {
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+    void open();
 
-import java.util.ArrayList;
-import java.util.Collection;
+    void close();
 
-public abstract class AbstractLogIntegrationInstrumentation extends TracerAwareInstrumentation {
+    String getLogFilePath();
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = new ArrayList<>();
-        ret.add("logging");
-        return ret;
+    void trace(String message);
+
+    void debug(String message);
+
+    default void debugWithMarker(String message) {
+        // do nothing unless supported by framework
     }
 
+    void warn(String message);
+
+    void error(String message);
+
+    void error(String message, Throwable throwable);
+
+    void putTraceIdToMdc(String traceId);
+
+    void removeTraceIdFromMdc();
 }

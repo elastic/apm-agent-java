@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.log4j2.reformatting;
 
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
-import co.elastic.apm.agent.logging.AbstractLogIntegrationInstrumentation;
+import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

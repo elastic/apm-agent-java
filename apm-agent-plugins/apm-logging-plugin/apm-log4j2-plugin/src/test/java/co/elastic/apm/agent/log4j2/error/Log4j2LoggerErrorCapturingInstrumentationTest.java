@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.log4j2.error;
 
-import co.elastic.apm.agent.logging.error.AbstractErrorLoggingInstrumentationTest;
+import co.elastic.apm.agent.loginstr.error.AbstractErrorLoggingInstrumentationTest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;

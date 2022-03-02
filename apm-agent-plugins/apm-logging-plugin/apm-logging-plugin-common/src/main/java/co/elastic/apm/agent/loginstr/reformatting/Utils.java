@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.logging.reformatting;
+package co.elastic.apm.agent.loginstr.reformatting;
 
 import javax.annotation.Nullable;
 import java.nio.file.Path;

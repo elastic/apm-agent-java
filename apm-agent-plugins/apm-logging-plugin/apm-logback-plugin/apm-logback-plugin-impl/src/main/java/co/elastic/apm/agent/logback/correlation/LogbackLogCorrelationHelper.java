@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.logback.correlation;
 
-import co.elastic.apm.agent.logging.correlation.AbstractLogCorrelationHelper;
+import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
 import org.slf4j.MDC;
 
 public class LogbackLogCorrelationHelper extends AbstractLogCorrelationHelper.DefaultLogCorrelationHelper {

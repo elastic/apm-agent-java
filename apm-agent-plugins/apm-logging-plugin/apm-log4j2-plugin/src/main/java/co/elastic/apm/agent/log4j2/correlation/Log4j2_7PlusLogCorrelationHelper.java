@@ -20,7 +20,7 @@ package co.elastic.apm.agent.log4j2.correlation;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.logging.correlation.AbstractLogCorrelationHelper;
+import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
 import org.apache.logging.log4j.ThreadContext;
 
 import java.util.Map;

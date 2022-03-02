@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.logging.reformatting;
+package co.elastic.apm.agent.loginstr.reformatting;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
-import co.elastic.apm.agent.logging.reformatting.Utils;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;

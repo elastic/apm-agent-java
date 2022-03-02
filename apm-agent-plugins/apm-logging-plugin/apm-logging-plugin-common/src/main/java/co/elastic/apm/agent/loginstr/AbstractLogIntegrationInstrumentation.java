@@ -16,7 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@NonnullApi
-package co.elastic.apm.agent.logging.reformatting;
+package co.elastic.apm.agent.loginstr;
 
-import co.elastic.apm.agent.sdk.NonnullApi;
+
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
+public abstract class AbstractLogIntegrationInstrumentation extends TracerAwareInstrumentation {
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        Collection<String> ret = new ArrayList<>();
+        ret.add("logging");
+        return ret;
+    }
+
+}

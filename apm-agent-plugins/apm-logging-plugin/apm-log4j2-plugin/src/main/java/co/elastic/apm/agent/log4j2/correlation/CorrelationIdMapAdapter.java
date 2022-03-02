@@ -33,8 +33,8 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import static co.elastic.apm.agent.logging.correlation.AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY;
-import static co.elastic.apm.agent.logging.correlation.AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY;
+import static co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY;
+import static co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY;
 
 class CorrelationIdMapAdapter extends AbstractMap<String, String> {
 

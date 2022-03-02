@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.slf4j.error;
 
-import co.elastic.apm.agent.logging.error.AbstractLoggerErrorCapturingInstrumentation;
+import co.elastic.apm.agent.loginstr.error.AbstractLoggerErrorCapturingInstrumentation;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 

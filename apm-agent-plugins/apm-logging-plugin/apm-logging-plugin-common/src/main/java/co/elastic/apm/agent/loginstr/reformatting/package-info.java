@@ -16,31 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.logging;
+@NonnullApi
+package co.elastic.apm.agent.loginstr.reformatting;
 
-public interface LoggerFacade {
-
-    void open();
-
-    void close();
-
-    String getLogFilePath();
-
-    void trace(String message);
-
-    void debug(String message);
-
-    default void debugWithMarker(String message) {
-        // do nothing unless supported by framework
-    }
-
-    void warn(String message);
-
-    void error(String message);
-
-    void error(String message, Throwable throwable);
-
-    void putTraceIdToMdc(String traceId);
-
-    void removeTraceIdFromMdc();
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

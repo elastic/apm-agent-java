@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.logging;
+package co.elastic.apm.agent.loginstr;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.logging.correlation.AbstractLogCorrelationHelper;
-import co.elastic.apm.agent.logging.reformatting.Utils;
+import co.elastic.apm.agent.logging.LogEcsReformatting;
+import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.logging.TestUtils;
+import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
+import co.elastic.apm.agent.loginstr.reformatting.Utils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;

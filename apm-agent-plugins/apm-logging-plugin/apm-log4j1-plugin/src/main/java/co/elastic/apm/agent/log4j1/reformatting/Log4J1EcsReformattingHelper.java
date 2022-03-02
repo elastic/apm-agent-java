@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.log4j1.reformatting;
 
-import co.elastic.apm.agent.logging.reformatting.AbstractEcsReformattingHelper;
-import co.elastic.apm.agent.logging.reformatting.Utils;
+import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
+import co.elastic.apm.agent.loginstr.reformatting.Utils;
 
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;

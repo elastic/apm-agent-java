@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.slf4j.error;
 
-import co.elastic.apm.agent.logging.error.AbstractErrorLoggingInstrumentationTest;
+import co.elastic.apm.agent.loginstr.error.AbstractErrorLoggingInstrumentationTest;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

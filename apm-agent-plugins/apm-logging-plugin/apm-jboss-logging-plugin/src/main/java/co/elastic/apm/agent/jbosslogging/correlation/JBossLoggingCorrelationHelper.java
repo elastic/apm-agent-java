@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.jbosslogging.correlation;
 
-import co.elastic.apm.agent.logging.correlation.AbstractLogCorrelationHelper;
+import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
 import org.jboss.logging.MDC;
 
 public class JBossLoggingCorrelationHelper extends AbstractLogCorrelationHelper.DefaultLogCorrelationHelper {

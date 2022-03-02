@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.logging.error;
+package co.elastic.apm.agent.loginstr.error;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -44,7 +44,7 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Tracer
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.logging.error.AbstractLoggerErrorCapturingInstrumentation$LoggingAdvice";
+        return "co.elastic.apm.agent.loginstr.error.AbstractLoggerErrorCapturingInstrumentation$LoggingAdvice";
     }
 
     public static class LoggingAdvice {

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.log4j1.reformatting;
 
-import co.elastic.apm.agent.logging.AbstractLogIntegrationInstrumentation;
+import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;

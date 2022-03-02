@@ -17,6 +17,6 @@
  * under the License.
  */
 @NonnullApi
-package co.elastic.apm.agent.logging.error;
+package co.elastic.apm.agent.loginstr.error;
 
 import co.elastic.apm.agent.sdk.NonnullApi;

@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.log4j1;
 
-import co.elastic.apm.agent.logging.LoggingInstrumentationTest;
-import co.elastic.apm.agent.logging.LoggerFacade;
+import co.elastic.apm.agent.loginstr.LoggingInstrumentationTest;
+import co.elastic.apm.agent.loginstr.LoggerFacade;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
