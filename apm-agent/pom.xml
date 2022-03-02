@@ -68,11 +68,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-error-logging-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>apm-es-restclient-plugin-5_6</artifactId>
             <version>${project.version}</version>
         </dependency>
