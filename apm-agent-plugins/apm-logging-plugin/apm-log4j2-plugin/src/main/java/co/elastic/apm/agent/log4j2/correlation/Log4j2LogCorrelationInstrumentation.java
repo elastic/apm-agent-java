@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.log4j2.correlation;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -29,8 +30,10 @@ import java.security.ProtectionDomain;
 import java.util.Collection;
 import java.util.Collections;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionGte;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -43,6 +46,13 @@ public abstract class Log4j2LogCorrelationInstrumentation extends TracerAwareIns
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singleton("log4j2-correlation");
+    }
+
+    @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return not(isBootstrapClassLoader())
+            .and(not(CustomElementMatchers.isAgentClassLoader()))
+            .and(classLoaderCanLoadClass("org.apache.logging.log4j.core.impl.LogEventFactor"));
     }
 
     @Override

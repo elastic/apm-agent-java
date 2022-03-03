@@ -362,8 +362,9 @@ public class IndyBootstrap {
             if (callDepth.isNestedCallAndIncrement()) {
                 // avoid re-entrancy and stack overflow errors
                 // may happen when bootstrapping an instrumentation that also gets triggered during the bootstrap
-                // for example, adding correlation ids to the thread context when executing logger.debug
-                return null;
+                // for example, adding correlation ids to the thread context when executing logger.debug.
+                // We cannot use a static logger field as it would initialize logging before it's ready
+                LoggerFactory.getLogger(IndyBootstrap.class).warn("Nested instrumented invokedynamic instruction linkage detected", new Throwable());
             }
             String adviceClassName = (String) args[0];
             int enter = (Integer) args[1];

@@ -34,9 +34,6 @@ public abstract class LoggingPluginClassLoaderRootPackageCustomizer extends Plug
 
     @Override
     public Collection<String> pluginClassLoaderRootPackages() {
-        return Arrays.asList(
-            getPluginPackage(),
-            "co.elastic.logging"
-        );
+        return Arrays.asList(getPluginPackage(), "co.elastic.logging");
     }
 }
