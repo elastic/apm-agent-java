@@ -716,7 +716,7 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void serializeOTel(Span span) {
         OTelSpanKind kind = span.getOtelKind();
-        Map<String,Object> attributes = span.getOtelAttributes();
+        Map<String, Object> attributes = span.getOtelAttributes();
         boolean hasAttributes = !attributes.isEmpty();
         boolean hasKind = kind != null;
         if (hasKind || hasAttributes) {
@@ -757,7 +757,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private void serializeNumber(Number n, JsonWriter jw){
+    private void serializeNumber(Number n, JsonWriter jw) {
         if (n instanceof Integer) {
             NumberConverter.serialize(n.intValue(), jw);
         } else if (n instanceof Long) {
@@ -1397,7 +1397,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName(fieldName);
         jw.writeByte(OBJECT_START);
         int size = map.size();
-        if(supportsMultipleValues){
+        if (supportsMultipleValues) {
             serializePotentiallyMultiValuedEntry(map.getKey(0), map.getValue(0));
             for (int i = 1; i < size; i++) {
                 jw.writeByte(COMMA);
