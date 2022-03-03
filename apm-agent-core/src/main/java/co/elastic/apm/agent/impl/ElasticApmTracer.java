@@ -173,7 +173,7 @@ public class ElasticApmTracer implements Tracer {
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;
         if (isRunning()) {
-            transaction = createTransaction().start(TraceContext.asRoot(), null, epochMicros, sampler, initiatingClassLoader);
+            transaction = createTransaction().start(TraceContext.asRoot(), null, epochMicros, sampler);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
         return transaction;
@@ -198,7 +198,7 @@ public class ElasticApmTracer implements Tracer {
         Transaction transaction = null;
         if (isRunning()) {
             transaction = createTransaction().start(TraceContext.<C>getFromTraceContextTextHeaders(), headerCarrier,
-                textHeadersGetter, epochMicros, sampler, initiatingClassLoader);
+                textHeadersGetter, epochMicros, sampler);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
         return transaction;
@@ -217,7 +217,7 @@ public class ElasticApmTracer implements Tracer {
         Transaction transaction = null;
         if (isRunning()) {
             transaction = createTransaction().start(TraceContext.<C>getFromTraceContextBinaryHeaders(), headerCarrier,
-                binaryHeadersGetter, epochMicros, sampler, initiatingClassLoader);
+                binaryHeadersGetter, epochMicros, sampler);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
         return transaction;
