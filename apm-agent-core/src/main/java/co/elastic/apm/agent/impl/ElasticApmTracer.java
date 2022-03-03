@@ -384,18 +384,20 @@ public class ElasticApmTracer implements Tracer {
             span.decrementReferences();
             return;
         }
-        if (span.getDuration() < coreConfiguration.getSpanMinDuration().getMillis() * 1000) {
-            logger.debug("Span faster than span_min_duration. Request discarding {}", span);
-            span.requestDiscarding();
-        }
-        if (span.isDiscarded()) {
-            logger.debug("Discarding span {}", span);
-            Transaction transaction = span.getTransaction();
-            if (transaction != null) {
-                transaction.getSpanCount().getDropped().incrementAndGet();
+        if (!span.isComposite()) {
+            if (span.getDuration() < coreConfiguration.getSpanMinDuration().getMicros()) {
+                logger.debug("Span faster than span_min_duration. Request discarding {}", span);
+                span.requestDiscarding();
             }
-            span.decrementReferences();
-            return;
+            if (span.isDiscarded()) {
+                logger.debug("Discarding span {}", span);
+                Transaction transaction = span.getTransaction();
+                if (transaction != null) {
+                    transaction.getSpanCount().getDropped().incrementAndGet();
+                }
+                span.decrementReferences();
+                return;
+            }
         }
         reportSpan(span);
     }

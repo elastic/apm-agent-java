@@ -1380,7 +1380,25 @@ class DslJsonSerializerTest {
         assertThat(otelAttributes.get("attribute.long").asLong()).isEqualTo(123L);
         assertThat(otelAttributes.get("attribute.boolean").asBoolean()).isFalse();
         assertThat(otelAttributes.get("attribute.float").asDouble()).isEqualTo(0.42d);
+    }
 
+    @Test
+    void testNonCompositeSpan() {
+        Span span = new Span(MockTracer.create());
+
+        JsonNode jsonSpan = readJsonString(serializer.toJsonString(span));
+        assertThat(jsonSpan.get("composite")).isNull();
+    }
+
+    @Test
+    void testCompositeSpan() {
+        Span span = new Span(MockTracer.create());
+        span.getComposite().init(1234, "exact_match");
+
+        JsonNode jsonSpan = readJsonString(serializer.toJsonString(span));
+        assertThat(jsonSpan.get("composite").get("count").asInt()).isEqualTo(1);
+        assertThat(jsonSpan.get("composite").get("sum").asDouble()).isEqualTo(1.234);
+        assertThat(jsonSpan.get("composite").get("compression_strategy").asText()).isEqualTo("exact_match");
     }
 
     private static void checkSingleValueHeader(JsonNode json, String fieldName, String value){

@@ -47,6 +47,7 @@ import co.elastic.apm.agent.impl.metadata.RuntimeInfo;
 import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Composite;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.FaasTrigger;
 import co.elastic.apm.agent.impl.transaction.Id;
@@ -710,6 +711,9 @@ public class DslJsonSerializer implements PayloadSerializer {
             writeField("sample_rate", sampleRate);
         }
         serializeOTel(span);
+        if (span.isComposite()) {
+            serializeComposite(span.getComposite());
+        }
         serializeSpanType(span);
         jw.writeByte(OBJECT_END);
     }
@@ -767,6 +771,16 @@ public class DslJsonSerializer implements PayloadSerializer {
         } else if (n instanceof Float) {
             NumberConverter.serialize(n.floatValue(), jw);
         }
+    }
+
+    private void serializeComposite(Composite composite) {
+        writeFieldName("composite", jw);
+        jw.writeByte(OBJECT_START);
+        writeField("count", composite.getCount());
+        writeField("sum", composite.getSumMs());
+        writeLastField("compression_strategy", composite.getCompressionStrategy());
+        jw.writeByte(OBJECT_END);
+        jw.writeByte(COMMA);
     }
 
     private void serializeServiceNameWithFramework(@Nullable final Transaction transaction, final TraceContext traceContext, final ServiceOrigin serviceOrigin) {
