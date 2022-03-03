@@ -63,6 +63,10 @@ public class TimeDuration implements Comparable<TimeDuration> {
         return durationMs;
     }
 
+    public long getMicros() {
+        return 1000 * durationMs;
+    }
+
     @Override
     public String toString() {
         return durationString;
