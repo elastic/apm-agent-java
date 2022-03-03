@@ -20,8 +20,8 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.30.0]]
-==== 1.30.0 - YYYY/MM/DD
+[[release-notes-1.29.1]]
+==== 1.29.1 - YYYY/MM/DD
 
 [float]
 ===== Features
