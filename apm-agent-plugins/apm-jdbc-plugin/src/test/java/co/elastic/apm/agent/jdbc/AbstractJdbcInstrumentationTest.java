@@ -480,7 +480,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(destination.getPort()).isLessThanOrEqualTo(0);
 
         Destination.Service service = destination.getService();
-        assertThat(service.getResource()).isNullOrEmpty();
+        assertThat(service.getResource().toString()).isEqualTo("unknown");
     }
 
     private static long[] toLongArray(int[] a) {
