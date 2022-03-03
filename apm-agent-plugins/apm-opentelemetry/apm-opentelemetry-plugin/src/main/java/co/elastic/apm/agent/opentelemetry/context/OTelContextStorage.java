@@ -73,6 +73,7 @@ public class OTelContextStorage implements ContextStorage {
         }
 
         if (current instanceof OTelBridgeContext) {
+            // current context is already OTel compliant, no need to upgrade it
             return (Context) current;
         }
 
@@ -80,12 +81,16 @@ public class OTelContextStorage implements ContextStorage {
             throw new IllegalStateException("unexpected context type to upgrade: " + current.getClass().getName());
         }
 
+        // At this stage, the currently active span is a "regular elastic span", we need to upgrade and replace it with
+        // a bridged implementation that allows to make "regular elastic span" visible in the OTel context.
+
         logger.debug("upgrading active context {} to a bridged context", current);
 
         tracer.deactivate(current);
 
         // Ensure that root context is being accessed at least once to capture the original root
-        // OTel 1.0 directly calls ArrayBasedContext.root(), whereas later versions delegate to ContextStorage.root().
+        // OTel 1.0 directly calls ArrayBasedContext.root() which is not publicly accessible, later versions delegate
+        // to ContextStorage.root() which we can't call from here either.
         Context.root();
 
         OTelBridgeContext upgradedContext = OTelBridgeContext.wrapElasticActiveSpan(tracer, (AbstractSpan<?>) current);

@@ -30,6 +30,9 @@ import io.opentelemetry.context.Scope;
 import javax.annotation.Nullable;
 import java.util.Objects;
 
+/**
+ * Bridge implementation of OpenTelemetry {@link Context} that allows to provide compatibility with {@link ElasticContext}.
+ */
 public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Context, Scope {
 
     /**
@@ -57,7 +60,7 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
     }
 
     /**
-     * Captures the original root context and setup the bridged root if required
+     * Captures the original root context and sets-up the bridged root if required
      *
      * @param tracer       tracer
      * @param originalRoot original OTel root context
