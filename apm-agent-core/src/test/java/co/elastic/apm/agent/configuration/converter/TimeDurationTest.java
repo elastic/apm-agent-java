@@ -30,6 +30,11 @@ class TimeDurationTest {
     @Test
     void testParseUnitSuccess() {
         assertSoftly(softly -> {
+            softly.assertThat(TimeDuration.of("1us").getMicros()).isEqualTo(1);
+            softly.assertThat(TimeDuration.of("-1us").getMicros()).isEqualTo(-1);
+            softly.assertThat(TimeDuration.of("1us").getMillis()).isEqualTo(0);
+
+            softly.assertThat(TimeDuration.of("1ms").getMicros()).isEqualTo(1000);
             softly.assertThat(TimeDuration.of("1ms").getMillis()).isEqualTo(1);
             softly.assertThat(TimeDuration.of("-1ms").getMillis()).isEqualTo(-1);
 

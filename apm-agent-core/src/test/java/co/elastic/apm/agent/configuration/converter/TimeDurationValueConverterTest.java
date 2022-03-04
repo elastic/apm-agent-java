@@ -30,5 +30,8 @@ class TimeDurationValueConverterTest {
         assertThat(converter.convert("1").toString()).isEqualTo("1s");
         assertThat(converter.convert("1m").toString()).isEqualTo("1m");
         assertThat(converter.convert("1ms").toString()).isEqualTo("1ms");
+        assertThat(converter.convert("1us").toString()).isEqualTo("1us");
+        assertThat(converter.convert("1us").getMicros()).isEqualTo(1);
+        assertThat(converter.convert("1ms").getMicros()).isEqualTo(1000);
     }
 }
