@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nullable;
-import java.util.Map;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -86,7 +85,7 @@ class ServiceInfoTest extends CustomEnvVariables {
         final StringBuilder defaultServiceVersion = new StringBuilder();
         callWithCustomEnvVariables(awsLambdaEnvVariables, () -> {
             defaultServiceName.append(getDefaultServiceName(null));
-            defaultServiceVersion.append(ServiceInfo.autoDetect(null).getServiceVersion());
+            defaultServiceVersion.append(ServiceInfo.autoDetect(new Properties()).getServiceVersion());
             return null;
         });
         assertSoftly(softly -> {
