@@ -7,4 +7,5 @@ export ELASTIC_APM_METRICS_INTERVAL="0s"
 export ELASTIC_APM_CENTRAL_CONFIG="false"
 export ELASTIC_APM_CLOUD_PROVIDER="none"
 
-exec "$@"
+CMD="$(echo "$@" | sed 's/-Xshare:on/-Xshare:auto/g')"
+exec $CMD

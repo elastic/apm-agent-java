@@ -436,7 +436,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
             .isEqualTo(expectedAffectedRows);
 
         Destination destination = span.getContext().getDestination();
-        assertThat(destination.getAddress().toString()).isEqualTo("localhost");
+        assertThat(destination.getAddress().toString()).isIn("localhost", "127.0.0.1");
         if (expectedDbVendor.equals("h2")) {
             assertThat(destination.getPort()).isEqualTo(-1);
         } else {
@@ -480,7 +480,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(destination.getPort()).isLessThanOrEqualTo(0);
 
         Destination.Service service = destination.getService();
-        assertThat(service.getResource()).isNullOrEmpty();
+        assertThat(service.getResource().toString()).isEqualTo("unknown");
     }
 
     private static long[] toLongArray(int[] a) {

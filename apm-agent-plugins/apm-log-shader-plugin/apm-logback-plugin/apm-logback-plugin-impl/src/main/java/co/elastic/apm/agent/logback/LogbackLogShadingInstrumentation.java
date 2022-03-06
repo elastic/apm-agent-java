@@ -43,7 +43,9 @@ public abstract class LogbackLogShadingInstrumentation extends AbstractLogShadin
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("ch.qos.logback.core.OutputStreamAppender"));
+        return not(isBootstrapClassLoader())
+            .and(classLoaderCanLoadClass("ch.qos.logback.core.OutputStreamAppender"))
+            .and(classLoaderCanLoadClass("ch.qos.logback.classic.LoggerContext"));
     }
 
     @Override

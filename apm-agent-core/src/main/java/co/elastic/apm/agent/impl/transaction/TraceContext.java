@@ -241,6 +241,9 @@ public class TraceContext implements Recyclable {
     @Nullable
     private String serviceName;
 
+    @Nullable
+    private String serviceVersion;
+
     private TraceContext(ElasticApmTracer tracer, Id id) {
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         traceState = new TraceState();
@@ -436,6 +439,7 @@ public class TraceContext implements Recyclable {
         id.setToRandomValue();
         clock.init(parent.clock);
         serviceName = parent.serviceName;
+        serviceVersion = parent.serviceVersion;
         applicationClassLoader = parent.applicationClassLoader;
         traceState.copyFrom(parent.traceState);
         onMutation();
@@ -452,6 +456,7 @@ public class TraceContext implements Recyclable {
         discardable = true;
         clock.resetState();
         serviceName = null;
+        serviceVersion = null;
         applicationClassLoader = null;
         traceState.resetState();
         traceState.setSizeLimit(coreConfiguration.getTracestateSizeLimit());
@@ -652,6 +657,7 @@ public class TraceContext implements Recyclable {
         discardable = other.discardable;
         clock.init(other.clock);
         serviceName = other.serviceName;
+        serviceVersion = other.serviceVersion;
         applicationClassLoader = other.applicationClassLoader;
         traceState.copyFrom(other.traceState);
         onMutation();
@@ -676,12 +682,22 @@ public class TraceContext implements Recyclable {
     }
 
     /**
-     * Overrides the {@code co.elastic.apm.agent.impl.payload.Service#name} property sent via the meta data Intake V2 event.
+     * Overrides the {@code co.elastic.apm.agent.impl.payload.Service#name} and {@code co.elastic.apm.agent.impl.payload.Service#version} properties sent via the meta data Intake V2 event.
      *
-     * @param serviceName the service name for this event
+     * @param serviceName    the service name for this event
+     * @param serviceVersion the service version for this event
      */
-    public void setServiceName(@Nullable String serviceName) {
+    public void setServiceInfo(@Nullable String serviceName, @Nullable String serviceVersion) {
+        if (serviceName == null || serviceName.isEmpty()) {
+            return;
+        }
         this.serviceName = serviceName;
+        this.serviceVersion = serviceVersion;
+    }
+
+    @Nullable
+    public String getServiceVersion() {
+        return serviceVersion;
     }
 
     public Span createSpan() {
@@ -753,7 +769,7 @@ public class TraceContext implements Recyclable {
         ByteUtils.putLong(buffer, offset, clock.getOffset());
     }
 
-    private void asChildOf(byte[] buffer, @Nullable String serviceName) {
+    private void asChildOf(byte[] buffer, @Nullable String serviceName, @Nullable String serviceVersion) {
         int offset = 0;
         offset += traceId.fromBytes(buffer, offset);
         offset += parentId.fromBytes(buffer, offset);
@@ -763,10 +779,11 @@ public class TraceContext implements Recyclable {
         discardable = buffer[offset++] == (byte) 1;
         clock.init(ByteUtils.getLong(buffer, offset));
         this.serviceName = serviceName;
+        this.serviceVersion = serviceVersion;
         onMutation();
     }
 
-    public void deserialize(byte[] buffer, @Nullable String serviceName) {
+    public void deserialize(byte[] buffer, @Nullable String serviceName, @Nullable String serviceVersion) {
         int offset = 0;
         offset += traceId.fromBytes(buffer, offset);
         offset += id.fromBytes(buffer, offset);
@@ -775,6 +792,7 @@ public class TraceContext implements Recyclable {
         discardable = buffer[offset++] == (byte) 1;
         clock.init(ByteUtils.getLong(buffer, offset));
         this.serviceName = serviceName;
+        this.serviceVersion = serviceVersion;
         onMutation();
     }
 

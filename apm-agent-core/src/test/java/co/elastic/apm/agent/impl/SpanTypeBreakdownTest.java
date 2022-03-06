@@ -348,15 +348,30 @@ class SpanTypeBreakdownTest {
     @Test
     void testBreakdown_serviceName() {
         final Transaction transaction = createTransaction();
-        transaction.getTraceContext().setServiceName("service_name");
+        transaction.getTraceContext().setServiceInfo("service_name", null);
         transaction.createSpan(11).withType("db").withSubtype("mysql").end(23);
         transaction.end(27);
 
         tracer.getMetricRegistry().flipPhaseAndReport(metricSets -> {
-            assertThat(getTimer(metricSets, "span.self_time", "service_name", "app", null).getCount()).isEqualTo(1);
-            assertThat(getTimer(metricSets, "span.self_time", "service_name", "app", null).getTotalTimeUs()).isEqualTo(15);
-            assertThat(getTimer(metricSets, "span.self_time", "service_name", "db", "mysql").getCount()).isEqualTo(1);
-            assertThat(getTimer(metricSets, "span.self_time", "service_name", "db", "mysql").getTotalTimeUs()).isEqualTo(12);
+            assertThat(getTimer(metricSets, "span.self_time", "service_name", null, "app", null).getCount()).isEqualTo(1);
+            assertThat(getTimer(metricSets, "span.self_time", "service_name", null, "app", null).getTotalTimeUs()).isEqualTo(15);
+            assertThat(getTimer(metricSets, "span.self_time", "service_name", null, "db", "mysql").getCount()).isEqualTo(1);
+            assertThat(getTimer(metricSets, "span.self_time", "service_name", null, "db", "mysql").getTotalTimeUs()).isEqualTo(12);
+        });
+    }
+
+    @Test
+    void testBreakdown_serviceNameAndVersion() {
+        final Transaction transaction = createTransaction();
+        transaction.getTraceContext().setServiceInfo("service_name", "service_version");
+        transaction.createSpan(11).withType("db").withSubtype("mysql").end(23);
+        transaction.end(27);
+
+        tracer.getMetricRegistry().flipPhaseAndReport(metricSets -> {
+            assertThat(getTimer(metricSets, "span.self_time", "service_name", "service_version", "app", null).getCount()).isEqualTo(1);
+            assertThat(getTimer(metricSets, "span.self_time", "service_name", "service_version", "app", null).getTotalTimeUs()).isEqualTo(15);
+            assertThat(getTimer(metricSets, "span.self_time", "service_name", "service_version", "db", "mysql").getCount()).isEqualTo(1);
+            assertThat(getTimer(metricSets, "span.self_time", "service_name", "service_version", "db", "mysql").getTotalTimeUs()).isEqualTo(12);
         });
     }
 
@@ -368,13 +383,14 @@ class SpanTypeBreakdownTest {
 
     @Nullable
     private Timer getTimer(Map<? extends Labels, MetricSet> metricSets, String timerName, @Nullable String spanType, @Nullable String spanSubType) {
-        return getTimer(metricSets, timerName, null, spanType, spanSubType);
+        return getTimer(metricSets, timerName, null, null, spanType, spanSubType);
     }
 
     @Nullable
-    private Timer getTimer(Map<? extends Labels, MetricSet> metricSets, String timerName, @Nullable String serviceName, @Nullable String spanType, @Nullable String spanSubType) {
+    private Timer getTimer(Map<? extends Labels, MetricSet> metricSets, String timerName, @Nullable String serviceName, @Nullable String serviceVersion, @Nullable String spanType, @Nullable String spanSubType) {
         final MetricSet metricSet = metricSets.get(Labels.Mutable.of()
             .serviceName(serviceName)
+            .serviceVersion(serviceVersion)
             .transactionName("test")
             .transactionType("request")
             .spanType(spanType)

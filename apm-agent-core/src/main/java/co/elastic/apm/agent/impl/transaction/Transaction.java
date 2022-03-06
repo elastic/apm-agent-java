@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
@@ -87,6 +88,12 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     private int maxSpans;
 
+    private boolean spanCompressionEnabled;
+
+    private long spanCompressionExactMatchMaxDurationUs;
+
+    private long spanCompressionSameKindMaxDurationUs;
+
     @Nullable
     private String frameworkName;
 
@@ -129,6 +136,9 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     private void onTransactionStart(boolean startedAsChild, long epochMicros, Sampler sampler) {
         maxSpans = tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans();
+        spanCompressionEnabled = tracer.getConfig(SpanConfiguration.class).isSpanCompressionEnabled();
+        spanCompressionExactMatchMaxDurationUs = tracer.getConfig(SpanConfiguration.class).getSpanCompressionExactMatchMaxDuration().getMicros();
+        spanCompressionSameKindMaxDurationUs = tracer.getConfig(SpanConfiguration.class).getSpanCompressionSameKindMaxDuration().getMicros();
         if (!startedAsChild) {
             traceContext.asRootSpan(sampler);
         }
@@ -270,6 +280,9 @@ public class Transaction extends AbstractSpan<Transaction> {
         type = null;
         noop = false;
         maxSpans = 0;
+        spanCompressionEnabled = false;
+        spanCompressionExactMatchMaxDurationUs = 0L;
+        spanCompressionSameKindMaxDurationUs = 0L;
         frameworkName = null;
         frameworkVersion = null;
         faas.resetState();
@@ -364,6 +377,18 @@ public class Transaction extends AbstractSpan<Transaction> {
         return faas;
     }
 
+    public boolean isSpanCompressionEnabled() {
+        return spanCompressionEnabled;
+    }
+
+    public long getSpanCompressionExactMatchMaxDurationUs() {
+        return spanCompressionExactMatchMaxDurationUs;
+    }
+
+    public long getSpanCompressionSameKindMaxDurationUs() {
+        return spanCompressionSameKindMaxDurationUs;
+    }
+
     @Override
     protected Transaction thiz() {
         return this;
@@ -420,7 +445,10 @@ public class Transaction extends AbstractSpan<Transaction> {
             }
             final Labels.Mutable labels = labelsThreadLocal.get();
             labels.resetState();
-            labels.serviceName(getTraceContext().getServiceName()).transactionName(name).transactionType(type);
+            labels.serviceName(getTraceContext().getServiceName())
+                .serviceVersion(getTraceContext().getServiceVersion())
+                .transactionName(name)
+                .transactionType(type);
             final MetricRegistry metricRegistry = tracer.getMetricRegistry();
             long criticalValueAtEnter = metricRegistry.writerCriticalSectionEnter();
             try {

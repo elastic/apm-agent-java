@@ -8,3 +8,4 @@ co.elastic.apm.agent.configuration.MessagingConfiguration
 co.elastic.apm.agent.impl.circuitbreaker.CircuitBreakerConfiguration
 co.elastic.apm.agent.configuration.MetricsConfiguration
 co.elastic.apm.agent.configuration.ServerlessConfiguration
+co.elastic.apm.agent.configuration.SpanConfiguration
