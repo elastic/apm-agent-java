@@ -39,7 +39,7 @@ public class TimeDurationValueConverter extends AbstractValueConverter<TimeDurat
 
     @Override
     public TimeDuration convert(String s) throws IllegalArgumentException {
-        if (!s.endsWith("ms") && !s.endsWith("s") && !s.endsWith("m")) {
+        if (!s.endsWith("us") && !s.endsWith("ms") && !s.endsWith("s") && !s.endsWith("m")) {
             s += defaultDurationSuffix;
         }
         return TimeDuration.of(s);
