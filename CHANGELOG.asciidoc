@@ -32,6 +32,7 @@ endif::[]
 * Added support for setting service name and version for a transaction via the public api - {pull}2451[#2451]
 * Added support for en-/disabling each public annotation on each own - {pull}2472[#2472]
 * Added support for compressing spans - {pull}2477[#2477]
+* Added microsecond durations with `us` as unit - {pull}2496[#2496]
 * Added support for dropping fast exit spans - {pull}2491[#2491]
 
 [float]
