@@ -30,10 +30,6 @@ class TimeDurationTest {
     @Test
     void testParseUnitSuccess() {
         assertSoftly(softly -> {
-            softly.assertThat(TimeDuration.of("1us").getMicros()).isEqualTo(1);
-            softly.assertThat(TimeDuration.of("-1us").getMicros()).isEqualTo(-1);
-            softly.assertThat(TimeDuration.of("1us").getMillis()).isEqualTo(0);
-
             softly.assertThat(TimeDuration.of("1ms").getMicros()).isEqualTo(1000);
             softly.assertThat(TimeDuration.of("1ms").getMillis()).isEqualTo(1);
             softly.assertThat(TimeDuration.of("-1ms").getMillis()).isEqualTo(-1);
@@ -45,13 +41,32 @@ class TimeDurationTest {
 
             softly.assertThat(TimeDuration.of("3m").getMillis()).isEqualTo(180_000);
             softly.assertThat(TimeDuration.of("-3m").getMillis()).isEqualTo(-180_000);
+
+            softly.assertThat(TimeDuration.ofFine("1us").getMicros()).isEqualTo(1);
+            softly.assertThat(TimeDuration.ofFine("-1us").getMicros()).isEqualTo(-1);
+            softly.assertThat(TimeDuration.ofFine("1us").getMillis()).isEqualTo(0);
+
+            softly.assertThat(TimeDuration.ofFine("1ms").getMicros()).isEqualTo(1000);
+            softly.assertThat(TimeDuration.ofFine("1ms").getMillis()).isEqualTo(1);
+            softly.assertThat(TimeDuration.ofFine("-1ms").getMillis()).isEqualTo(-1);
+
+            softly.assertThat(TimeDuration.ofFine("2s").getMillis()).isEqualTo(2000);
+            softly.assertThat(TimeDuration.ofFine("-2s").getMillis()).isEqualTo(-2000);
+            softly.assertThat(TimeDuration.ofFine("2s").getMillis()).isEqualTo(2000);
+            softly.assertThat(TimeDuration.ofFine("60s").getMillis()).isEqualTo(60_000);
+
+            softly.assertThat(TimeDuration.ofFine("3m").getMillis()).isEqualTo(180_000);
+            softly.assertThat(TimeDuration.ofFine("-3m").getMillis()).isEqualTo(-180_000);
         });
     }
 
     @Test
     void testParseUnitInvalid() {
-        for (String invalid : List.of(" 1s", "1 s", "1s ", "1h")) {
+        for (String invalid : List.of("1us", " 1s", "1 s", "1s ", "1h")) {
             assertThatCode(() -> TimeDuration.of(invalid)).isInstanceOf(IllegalArgumentException.class);
+        }
+        for (String invalid : List.of(" 1s", "1 s", "1s ", "1h")) {
+            assertThatCode(() -> TimeDuration.ofFine(invalid)).isInstanceOf(IllegalArgumentException.class);
         }
     }
 }
