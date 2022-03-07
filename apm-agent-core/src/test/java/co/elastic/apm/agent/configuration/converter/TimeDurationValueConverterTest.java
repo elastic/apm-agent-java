@@ -21,6 +21,7 @@ package co.elastic.apm.agent.configuration.converter;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 class TimeDurationValueConverterTest {
 
@@ -30,8 +31,20 @@ class TimeDurationValueConverterTest {
         assertThat(converter.convert("1").toString()).isEqualTo("1s");
         assertThat(converter.convert("1m").toString()).isEqualTo("1m");
         assertThat(converter.convert("1ms").toString()).isEqualTo("1ms");
+        assertThat(converter.convert("1ms").getMicros()).isEqualTo(1000);
+
+        assertThatCode(() -> TimeDuration.of("1us")).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void convertWithDefaultFineDuration() {
+        TimeDurationValueConverter converter = TimeDurationValueConverter.withDefaultFineDuration("s");
+        assertThat(converter.convert("1").toString()).isEqualTo("1s");
+        assertThat(converter.convert("1m").toString()).isEqualTo("1m");
+        assertThat(converter.convert("1ms").toString()).isEqualTo("1ms");
         assertThat(converter.convert("1us").toString()).isEqualTo("1us");
         assertThat(converter.convert("1us").getMicros()).isEqualTo(1);
         assertThat(converter.convert("1ms").getMicros()).isEqualTo(1000);
     }
+
 }

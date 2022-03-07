@@ -34,13 +34,25 @@ public class TimeDuration implements Comparable<TimeDuration> {
     }
 
     public static TimeDuration of(String durationString) {
+        return with(durationString, false);
+    }
+
+    public static TimeDuration ofFine(String durationString) {
+        return with(durationString, true);
+    }
+
+    private static TimeDuration with(String durationString, boolean allowMicros) {
         Matcher matcher = DURATION_PATTERN.matcher(durationString);
         if (matcher.matches()) {
             long duration = Long.parseLong(matcher.group(2));
             if (matcher.group(1) != null) {
                 duration = duration * -1;
             }
-            return new TimeDuration(durationString, duration * getDurationMultiplier(matcher.group(3)));
+            String unit = matcher.group(3);
+            if (!allowMicros && "us".equals(unit)) {
+                throw new IllegalArgumentException("Invalid duration '" + durationString + "', 'us' are only supported for fine granular durations");
+            }
+            return new TimeDuration(durationString, duration * getDurationMultiplier(unit));
         } else {
             throw new IllegalArgumentException("Invalid duration '" + durationString + "'");
         }
