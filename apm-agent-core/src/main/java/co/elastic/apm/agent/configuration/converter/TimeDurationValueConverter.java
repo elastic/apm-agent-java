@@ -24,17 +24,27 @@ import org.stagemonitor.configuration.converter.AbstractValueConverter;
 public class TimeDurationValueConverter extends AbstractValueConverter<TimeDuration> {
 
     private final String defaultDurationSuffix;
+    private final boolean canUseMicros;
 
-    private TimeDurationValueConverter(String defaultDurationSuffix) {
+    private TimeDurationValueConverter(String defaultDurationSuffix, boolean canUseMicros) {
         this.defaultDurationSuffix = defaultDurationSuffix;
+        this.canUseMicros = canUseMicros;
     }
 
     public static TimeDurationValueConverter withDefaultDuration(String defaultDurationSuffix) {
-        return new TimeDurationValueConverter(defaultDurationSuffix);
+        return new TimeDurationValueConverter(defaultDurationSuffix, false);
+    }
+
+    public static TimeDurationValueConverter withDefaultFineDuration(String defaultDurationSuffix) {
+        return new TimeDurationValueConverter(defaultDurationSuffix, true);
     }
 
     public static ConfigurationOption.ConfigurationOptionBuilder<TimeDuration> durationOption(String defaultDuration) {
-        return ConfigurationOption.<TimeDuration>builder(new TimeDurationValueConverter(defaultDuration), TimeDuration.class);
+        return ConfigurationOption.<TimeDuration>builder(new TimeDurationValueConverter(defaultDuration, false), TimeDuration.class);
+    }
+
+    public static ConfigurationOption.ConfigurationOptionBuilder<TimeDuration> fineDurationOption(String defaultDuration) {
+        return ConfigurationOption.<TimeDuration>builder(new TimeDurationValueConverter(defaultDuration, true), TimeDuration.class);
     }
 
     @Override
@@ -42,7 +52,7 @@ public class TimeDurationValueConverter extends AbstractValueConverter<TimeDurat
         if (!s.endsWith("us") && !s.endsWith("ms") && !s.endsWith("s") && !s.endsWith("m")) {
             s += defaultDurationSuffix;
         }
-        return TimeDuration.of(s);
+        return canUseMicros ? TimeDuration.ofFine(s) : TimeDuration.of(s);
     }
 
     @Override

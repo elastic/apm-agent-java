@@ -65,7 +65,7 @@ public class SpanConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "NOTE: If a span propagates distributed tracing ids, it will not be ignored, even if it is shorter than the configured threshold. This is to ensure that no broken traces are recorded.")
         .dynamic(true)
-        .buildWithDefault(TimeDuration.of("1ms"));
+        .buildWithDefault(TimeDuration.ofFine("1ms"));
 
     public boolean isSpanCompressionEnabled() {
         return spanCompressionEnabled.get();
