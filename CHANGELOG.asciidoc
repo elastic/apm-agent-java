@@ -26,6 +26,7 @@ endif::[]
 [float]
 ===== Potentially breaking changes
 * Create the JDBC spans as exit spans- {pull}2484[#2484]
+* A redirected struts action does not overwrite the transaction name anymore - {pull}2502[#2502]
 
 [float]
 ===== Features
