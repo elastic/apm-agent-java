@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.loginstr.error;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import net.bytebuddy.asm.Advice;
@@ -33,7 +32,6 @@ import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public abstract class AbstractLoggerErrorCapturingInstrumentation extends TracerAwareInstrumentation {
@@ -89,10 +87,5 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Tracer
         Collection<String> ret = new ArrayList<>();
         ret.add("logging");
         return ret;
-    }
-
-    @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(CustomElementMatchers.isAgentClassLoader());
     }
 }

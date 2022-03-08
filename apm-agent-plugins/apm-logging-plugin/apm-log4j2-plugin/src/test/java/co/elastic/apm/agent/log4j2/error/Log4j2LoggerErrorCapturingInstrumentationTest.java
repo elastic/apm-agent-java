@@ -22,9 +22,15 @@ import co.elastic.apm.agent.loginstr.error.AbstractErrorLoggingInstrumentationTe
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-class Log4j2LoggerErrorCapturingInstrumentationTest extends AbstractErrorLoggingInstrumentationTest {
+/**
+ * Only tested through dedicated class loaders for latest and oldest-supported versions.
+ * See {@link Log4j2ErrorCapturingTestVersions}
+ */
+@Disabled
+public class Log4j2LoggerErrorCapturingInstrumentationTest extends AbstractErrorLoggingInstrumentationTest {
 
     private static final Logger logger = LogManager.getLogger(Log4j2LoggerErrorCapturingInstrumentationTest.class);
 

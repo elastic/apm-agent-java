@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.log4j2.error;
 
+import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.loginstr.error.AbstractLoggerErrorCapturingInstrumentation;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -47,5 +48,10 @@ public class Log4j2LoggerErrorCapturingInstrumentation extends AbstractLoggerErr
         Collection<String> ret = super.getInstrumentationGroupNames();
         ret.add("log4j2-error");
         return ret;
+    }
+
+    @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return not(CustomElementMatchers.isAgentClassLoader());
     }
 }
