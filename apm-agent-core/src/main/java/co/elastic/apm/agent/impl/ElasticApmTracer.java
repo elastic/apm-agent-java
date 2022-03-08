@@ -384,8 +384,8 @@ public class ElasticApmTracer implements Tracer {
             span.decrementReferences();
             return;
         }
-        SpanConfiguration spanConfiguration = getConfig(SpanConfiguration.class);
         if (span.isExit()) {
+            SpanConfiguration spanConfiguration = getConfig(SpanConfiguration.class);
             if (span.getDuration() < spanConfiguration.getExitSpanMinDuration().getMicros()) {
                 logger.debug("Span faster than exit_span_min_duration. Request discarding {}", span);
                 span.requestDiscarding();
