@@ -41,7 +41,7 @@ public abstract class AbstractErrorLoggingInstrumentationTest extends AbstractIn
     }
 
     protected void verifyThatExceptionCaptured(int errorCount, String exceptionMessage, Class exceptionClass) {
-        assertEquals(errorCount, reporter.getErrors().size());
+        reporter.awaitErrorCount(1);
         Throwable exception = reporter.getErrors().get(0).getException();
         assertEquals(exceptionMessage, exception.getMessage());
         assertEquals(exceptionClass, exception.getClass());
