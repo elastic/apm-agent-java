@@ -20,9 +20,7 @@ package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
-import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
@@ -32,18 +30,15 @@ import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
 public abstract class AbstractInstrumentationTest {
 
@@ -79,12 +74,6 @@ public abstract class AbstractInstrumentationTest {
 
         assertThat(tracer.isRunning()).isTrue();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
-    }
-
-    @Before
-    @BeforeEach
-    public void disableExitSpanMinDuration() {
-        when(config.getConfig(SpanConfiguration.class).getExitSpanMinDuration()).thenReturn(TimeDuration.of("0ms"));
     }
 
     @AfterAll

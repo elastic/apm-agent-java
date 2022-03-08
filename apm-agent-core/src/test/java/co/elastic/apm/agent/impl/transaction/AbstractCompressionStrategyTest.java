@@ -59,7 +59,6 @@ abstract class AbstractCompressionStrategyTest {
         when(spanConfiguration.isSpanCompressionEnabled()).thenReturn(true);
         when(spanConfiguration.getSpanCompressionExactMatchMaxDuration()).thenReturn(TimeDuration.of("50ms"));
         when(spanConfiguration.getSpanCompressionSameKindMaxDuration()).thenReturn(TimeDuration.of("50ms"));
-        when(spanConfiguration.getExitSpanMinDuration()).thenReturn(TimeDuration.of("0ms"));
 
         assertThat(tracer.isRunning()).isTrue();
     }

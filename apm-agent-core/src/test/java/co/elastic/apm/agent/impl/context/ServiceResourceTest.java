@@ -19,8 +19,6 @@
 package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.configuration.SpanConfiguration;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -40,7 +38,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
 public class ServiceResourceTest {
 
@@ -49,7 +46,6 @@ public class ServiceResourceTest {
     @BeforeAll
     static void startRootTransaction() {
         ElasticApmTracer tracer = MockTracer.createRealTracer();
-        when(tracer.getConfig(SpanConfiguration.class).getExitSpanMinDuration()).thenReturn(TimeDuration.of("0ms"));
         root = Objects.requireNonNull(tracer.startRootTransaction(null));
     }
 

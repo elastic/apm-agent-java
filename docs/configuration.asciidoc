@@ -1545,13 +1545,13 @@ NOTE: If a span propagates distributed tracing ids, it will not be ignored, even
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 Supports the duration suffixes `ms`, `s` and `m`.
-Example: `1ms`.
+Example: `0ms`.
 The default unit for this option is `ms`.
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `1ms` | TimeDuration | true
+| `0ms` | TimeDuration | true
 |============
 
 
@@ -3533,11 +3533,11 @@ The default unit for this option is `ms`.
 #
 # This setting can be changed at runtime
 # Type: TimeDuration
-# Supports the duration suffixes ms, s and m. Example: 1ms.
+# Supports the duration suffixes ms, s and m. Example: 0ms.
 # The default unit for this option is ms.
-# Default value: 1ms
+# Default value: 0ms
 #
-# exit_span_min_duration=1ms
+# exit_span_min_duration=0ms
 
 ############################################
 # JAX-RS                                   #
