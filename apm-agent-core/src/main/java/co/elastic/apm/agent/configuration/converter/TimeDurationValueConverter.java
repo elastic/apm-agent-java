@@ -71,4 +71,8 @@ public class TimeDurationValueConverter extends AbstractValueConverter<TimeDurat
     public String getDefaultDurationSuffix() {
         return defaultDurationSuffix;
     }
+
+    public boolean isCanUseMicros() {
+        return canUseMicros;
+    }
 }
