@@ -23,6 +23,7 @@
         <module>apm-log4j1-plugin</module>
         <module>apm-log4j2-plugin</module>
         <module>apm-jboss-logging-plugin</module>
+        <module>apm-jboss-logmanager-plugin</module>
         <module>apm-slf4j-plugin</module>
     </modules>
 
