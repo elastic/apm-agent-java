@@ -23,10 +23,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-public class Log4j2_6SInstrumentationTestRunner {
+public class Log4j2_6SInstrumentationTest {
     private final TestClassWithDependencyRunner runner;
 
-    public Log4j2_6SInstrumentationTestRunner() throws Exception {
+    public Log4j2_6SInstrumentationTest() throws Exception {
         List<String> dependencies = List.of(
             "org.apache.logging.log4j:log4j-core:2.6",
             "org.apache.logging.log4j:log4j-api:2.6",
