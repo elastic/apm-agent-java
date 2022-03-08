@@ -52,7 +52,7 @@ public abstract class Log4j2LogCorrelationInstrumentation extends TracerAwareIns
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
             .and(not(CustomElementMatchers.isAgentClassLoader()))
-            .and(classLoaderCanLoadClass("org.apache.logging.log4j.core.impl.LogEventFactor"));
+            .and(classLoaderCanLoadClass("org.apache.logging.log4j.core.impl.LogEventFactory"));
     }
 
     @Override
