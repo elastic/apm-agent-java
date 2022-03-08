@@ -50,8 +50,8 @@ class TimeDurationValueConverterTest {
     @Test
     void convertWithoutDefaultDurationSuffix() {
         assertThatThrownBy(() -> TimeDurationValueConverter.withDefaultDuration().convert("1"))
-            .isInstanceOf(IllegalArgumentException.class).hasMessage("'1' is missing a duration suffix");
+            .isInstanceOf(IllegalArgumentException.class).hasMessage("Invalid duration '1'");
         assertThatThrownBy(() -> TimeDurationValueConverter.withDefaultFineDuration().convert("2"))
-            .isInstanceOf(IllegalArgumentException.class).hasMessage("'2' is missing a duration suffix");
+            .isInstanceOf(IllegalArgumentException.class).hasMessage("Invalid duration '2'");
     }
 }

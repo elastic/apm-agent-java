@@ -123,7 +123,7 @@ Supports the duration suffixes `us`, `ms`, `s` and `m`.
 Supports the duration suffixes `ms`, `s` and `m`.
   </#if>
 Example: `${option.defaultValueAsString}`.
-  <#if option.valueConverter.defaultDurationSuffix??>
+  <#if option.valueConverter.defaultDurationSuffix?has_content>
 The default unit for this option is `${option.valueConverter.defaultDurationSuffix}`.
   </#if>
 </#if>
@@ -180,7 +180,7 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
   <#else>
 # Supports the duration suffixes ms, s and m. Example: ${option.defaultValueAsString}.
   </#if>
-  <#if option.valueConverter.defaultDurationSuffix??>
+  <#if option.valueConverter.defaultDurationSuffix?has_content>
 # The default unit for this option is ${option.valueConverter.defaultDurationSuffix}.
   </#if>
 </#if>

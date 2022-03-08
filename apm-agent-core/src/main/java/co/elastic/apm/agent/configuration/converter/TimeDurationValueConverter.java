@@ -32,7 +32,7 @@ public class TimeDurationValueConverter extends AbstractValueConverter<TimeDurat
     }
 
     public static TimeDurationValueConverter withDefaultDuration() {
-        return new TimeDurationValueConverter(null, false);
+        return new TimeDurationValueConverter("", false);
     }
 
     @Deprecated
@@ -41,23 +41,20 @@ public class TimeDurationValueConverter extends AbstractValueConverter<TimeDurat
     }
 
     public static TimeDurationValueConverter withDefaultFineDuration() {
-        return new TimeDurationValueConverter(null, true);
+        return new TimeDurationValueConverter("", true);
     }
 
     public static ConfigurationOption.ConfigurationOptionBuilder<TimeDuration> durationOption(String defaultDuration) {
         return ConfigurationOption.<TimeDuration>builder(new TimeDurationValueConverter(defaultDuration, false), TimeDuration.class);
     }
 
-    public static ConfigurationOption.ConfigurationOptionBuilder<TimeDuration> fineDurationOption(String defaultDuration) {
-        return ConfigurationOption.<TimeDuration>builder(new TimeDurationValueConverter(defaultDuration, true), TimeDuration.class);
+    public static ConfigurationOption.ConfigurationOptionBuilder<TimeDuration> fineDurationOption() {
+        return ConfigurationOption.<TimeDuration>builder(new TimeDurationValueConverter("", true), TimeDuration.class);
     }
 
     @Override
     public TimeDuration convert(String s) throws IllegalArgumentException {
         if (!s.endsWith("us") && !s.endsWith("ms") && !s.endsWith("s") && !s.endsWith("m")) {
-            if (defaultDurationSuffix == null) {
-                throw new IllegalArgumentException("'" + s + "' is missing a duration suffix");
-            }
             s += defaultDurationSuffix;
         }
         return canUseMicros ? TimeDuration.ofFine(s) : TimeDuration.of(s);
