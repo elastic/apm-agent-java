@@ -39,7 +39,7 @@ public class ExecuteOperationsAdvice {
             return;
         }
 
-        StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
+        StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, false);
         if (transactionName != null) {
             TransactionNameUtils.setNameFromHttpRequestPath(request.getMethod(), request.getServletPath(), transactionName, webConfig.getUrlGroups());
             StrutsFrameworkUtils.setFrameworkNameAndVersion(transaction);

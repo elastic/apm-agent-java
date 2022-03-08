@@ -35,7 +35,7 @@ public class ActionProxyAdvice {
             return;
         }
 
-        TransactionNameUtils.setNameFromClassAndMethod(actionProxy.getAction().getClass().getSimpleName(), actionProxy.getMethod(), transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
+        TransactionNameUtils.setNameFromClassAndMethod(actionProxy.getAction().getClass().getSimpleName(), actionProxy.getMethod(), transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, false));
         StrutsFrameworkUtils.setFrameworkNameAndVersion(transaction);
     }
 }
