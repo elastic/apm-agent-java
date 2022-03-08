@@ -31,12 +31,17 @@ public class TimeDurationValueConverter extends AbstractValueConverter<TimeDurat
         this.canUseMicros = canUseMicros;
     }
 
+    public static TimeDurationValueConverter withDefaultDuration() {
+        return new TimeDurationValueConverter(null, false);
+    }
+
+    @Deprecated
     public static TimeDurationValueConverter withDefaultDuration(String defaultDurationSuffix) {
         return new TimeDurationValueConverter(defaultDurationSuffix, false);
     }
 
-    public static TimeDurationValueConverter withDefaultFineDuration(String defaultDurationSuffix) {
-        return new TimeDurationValueConverter(defaultDurationSuffix, true);
+    public static TimeDurationValueConverter withDefaultFineDuration() {
+        return new TimeDurationValueConverter(null, true);
     }
 
     public static ConfigurationOption.ConfigurationOptionBuilder<TimeDuration> durationOption(String defaultDuration) {
@@ -50,6 +55,9 @@ public class TimeDurationValueConverter extends AbstractValueConverter<TimeDurat
     @Override
     public TimeDuration convert(String s) throws IllegalArgumentException {
         if (!s.endsWith("us") && !s.endsWith("ms") && !s.endsWith("s") && !s.endsWith("m")) {
+            if (defaultDurationSuffix == null) {
+                throw new IllegalArgumentException("'" + s + "' is missing a duration suffix");
+            }
             s += defaultDurationSuffix;
         }
         return canUseMicros ? TimeDuration.ofFine(s) : TimeDuration.of(s);
@@ -58,9 +66,5 @@ public class TimeDurationValueConverter extends AbstractValueConverter<TimeDurat
     @Override
     public String toString(TimeDuration value) {
         return value.toString();
-    }
-
-    public String getDefaultDurationSuffix() {
-        return defaultDurationSuffix;
     }
 }

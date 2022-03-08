@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TimeDurationValueConverterTest {
 
@@ -38,8 +39,7 @@ class TimeDurationValueConverterTest {
 
     @Test
     void convertWithDefaultFineDuration() {
-        TimeDurationValueConverter converter = TimeDurationValueConverter.withDefaultFineDuration("s");
-        assertThat(converter.convert("1").toString()).isEqualTo("1s");
+        TimeDurationValueConverter converter = TimeDurationValueConverter.withDefaultFineDuration();
         assertThat(converter.convert("1m").toString()).isEqualTo("1m");
         assertThat(converter.convert("1ms").toString()).isEqualTo("1ms");
         assertThat(converter.convert("1us").toString()).isEqualTo("1us");
@@ -47,4 +47,11 @@ class TimeDurationValueConverterTest {
         assertThat(converter.convert("1ms").getMicros()).isEqualTo(1000);
     }
 
+    @Test
+    void convertWithoutDefaultDurationSuffix() {
+        assertThatThrownBy(() -> TimeDurationValueConverter.withDefaultDuration().convert("1"))
+            .isInstanceOf(IllegalArgumentException.class).hasMessage("'1' is missing a duration suffix");
+        assertThatThrownBy(() -> TimeDurationValueConverter.withDefaultFineDuration().convert("2"))
+            .isInstanceOf(IllegalArgumentException.class).hasMessage("'2' is missing a duration suffix");
+    }
 }
