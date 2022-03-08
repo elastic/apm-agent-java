@@ -57,7 +57,7 @@ public class SpanConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(TimeDuration.of("5ms"));
 
-    private final ConfigurationOption<TimeDuration> exitSpanMinDuration = TimeDurationValueConverter.durationOption("ms")
+    private final ConfigurationOption<TimeDuration> exitSpanMinDuration = TimeDurationValueConverter.fineDurationOption("ms")
         .key("exit_span_min_duration")
         .tags("added[1.30.0]")
         .configurationCategory(HUGE_TRACES_CATEGORY)
