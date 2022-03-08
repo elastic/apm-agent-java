@@ -67,4 +67,8 @@ public class TimeDurationValueConverter extends AbstractValueConverter<TimeDurat
     public String toString(TimeDuration value) {
         return value.toString();
     }
+
+    public String getDefaultDurationSuffix() {
+        return defaultDurationSuffix;
+    }
 }

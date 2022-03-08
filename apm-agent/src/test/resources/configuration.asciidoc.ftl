@@ -119,7 +119,9 @@ ${option.description}
 <#if option.valueType?matches("TimeDuration")>
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `${option.defaultValueAsString}`.
+  <#if option.valueConverter.defaultDurationSuffix??>
 The default unit for this option is `${option.valueConverter.defaultDurationSuffix}`.
+  </#if>
 </#if>
 <#if option.validOptions?has_content>
 Valid options: <#list option.validOptionsLabelMap?values as validOption>`${validOption}`<#if validOption_has_next>, </#if></#list>
@@ -169,8 +171,9 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
     "This setting can not be changed at runtime. Changes require a restart of the application.")}
 # Type: ${option.valueType?matches("List|Collection")?then("comma separated list", option.valueType)}
 <#if option.valueType?matches("TimeDuration")>
-# Supports the duration suffixes ms, s and m. Example: ${option.defaultValueAsString}.
+  <#if option.valueConverter.defaultDurationSuffix??>
 # The default unit for this option is ${option.valueConverter.defaultDurationSuffix}.
+  </#if>
 </#if>
 # Default value: ${option.key?matches("service_name")?then(defaultServiceName?replace("\n", "\n# ", "r"), option.defaultValueAsString!)}
 #
