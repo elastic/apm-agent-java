@@ -21,7 +21,7 @@ package co.elastic.apm.agent.log4j2.correlation;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 
 import javax.annotation.Nullable;
 import java.util.AbstractMap;
@@ -49,22 +49,22 @@ class CorrelationIdMapAdapter extends AbstractMap<String, String> {
             @Override
             @Nullable
             public String call() {
-                Transaction transaction = tracer.currentTransaction();
-                if (transaction == null) {
+                AbstractSpan<?> activeSpan = tracer.getActive();
+                if (activeSpan == null) {
                     return null;
                 }
-                return transaction.getTraceContext().getTraceId().toString();
+                return activeSpan.getTraceContext().getTraceId().toString();
             }
         }),
         new LazyEntry(TRANSACTION_ID_MDC_KEY, new Callable<String>() {
             @Override
             @Nullable
             public String call() {
-                Transaction transaction = tracer.currentTransaction();
-                if (transaction == null) {
+                AbstractSpan<?> activeSpan = tracer.getActive();
+                if (activeSpan == null) {
                     return null;
                 }
-                return transaction.getTraceContext().getId().toString();
+                return activeSpan.getTraceContext().getId().toString();
             }
         }),
         new LazyEntry(ERROR_ID_MDC_KEY, new Callable<String>() {
