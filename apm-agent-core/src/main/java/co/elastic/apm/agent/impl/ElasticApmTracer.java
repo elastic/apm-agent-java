@@ -96,6 +96,7 @@ public class ElasticApmTracer implements Tracer {
     };
 
     private final CoreConfiguration coreConfiguration;
+    private final SpanConfiguration spanConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
     private final ScheduledThreadPoolExecutor sharedPool;
@@ -125,6 +126,7 @@ public class ElasticApmTracer implements Tracer {
         this.metaDataFuture = metaDataFuture;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        spanConfiguration = configurationRegistry.getConfig(SpanConfiguration.class);
 
         TracerConfiguration tracerConfiguration = configurationRegistry.getConfig(TracerConfiguration.class);
         recordingConfigOptionSet = tracerConfiguration.getRecordingConfig().get();
@@ -385,7 +387,6 @@ public class ElasticApmTracer implements Tracer {
             return;
         }
         if (span.isExit()) {
-            SpanConfiguration spanConfiguration = getConfig(SpanConfiguration.class);
             if (span.getDuration() < spanConfiguration.getExitSpanMinDuration().getMicros()) {
                 logger.debug("Span faster than exit_span_min_duration. Request discarding {}", span);
                 span.requestDiscarding();
