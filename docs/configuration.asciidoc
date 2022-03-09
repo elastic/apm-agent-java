@@ -137,6 +137,8 @@ Click on a key to get more information.
 ** <<config-transaction-ignore-user-agents>>
 ** <<config-use-path-as-transaction-name>>
 ** <<config-url-groups>>
+* <<config-huge-traces>>
+** <<config-exit-span-min-duration>>
 * <<config-jax-rs>>
 ** <<config-enable-jaxrs-annotation-inheritance>>
 ** <<config-use-jaxrs-path-as-transaction-name>>
@@ -1523,6 +1525,35 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.url_groups` | `url_groups` | `ELASTIC_APM_URL_GROUPS`
+|============
+
+[[config-huge-traces]]
+=== Huge Traces configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-exit-span-min-duration]]
+==== `exit_span_min_duration` (added[1.30.0])
+
+Exit spans are spans that represent a call to an external service, like a database. If such calls are very short, they are usually not relevant and can be ignored.
+
+NOTE: If a span propagates distributed tracing ids, it will not be ignored, even if it is shorter than the configured threshold. This is to ensure that no broken traces are recorded.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Supports the duration suffixes `us`, `ms`, `s` and `m`.
+Example: `0ms`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0ms` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.exit_span_min_duration` | `exit_span_min_duration` | `ELASTIC_APM_EXIT_SPAN_MIN_DURATION`
 |============
 
 [[config-jax-rs]]
@@ -3476,6 +3507,21 @@ Example: `5ms`.
 # Default value: 
 #
 # url_groups=
+
+############################################
+# Huge Traces                              #
+############################################
+
+# Exit spans are spans that represent a call to an external service, like a database. If such calls are very short, they are usually not relevant and can be ignored.
+# 
+# NOTE: If a span propagates distributed tracing ids, it will not be ignored, even if it is shorter than the configured threshold. This is to ensure that no broken traces are recorded.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes us, ms, s and m. Example: 0ms.
+# Default value: 0ms
+#
+# exit_span_min_duration=0ms
 
 ############################################
 # JAX-RS                                   #

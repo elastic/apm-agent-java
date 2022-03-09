@@ -57,6 +57,16 @@ public class SpanConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(TimeDuration.of("5ms"));
 
+    private final ConfigurationOption<TimeDuration> exitSpanMinDuration = TimeDurationValueConverter.fineDurationOption()
+        .key("exit_span_min_duration")
+        .tags("added[1.30.0]")
+        .configurationCategory(HUGE_TRACES_CATEGORY)
+        .description("Exit spans are spans that represent a call to an external service, like a database. If such calls are very short, they are usually not relevant and can be ignored.\n" +
+            "\n" +
+            "NOTE: If a span propagates distributed tracing ids, it will not be ignored, even if it is shorter than the configured threshold. This is to ensure that no broken traces are recorded.")
+        .dynamic(true)
+        .buildWithDefault(TimeDuration.ofFine("0ms"));
+
     public boolean isSpanCompressionEnabled() {
         return spanCompressionEnabled.get();
     }
@@ -67,5 +77,9 @@ public class SpanConfiguration extends ConfigurationOptionProvider {
 
     public TimeDuration getSpanCompressionSameKindMaxDuration() {
         return spanCompressionSameKindMaxDuration.get();
+    }
+
+    public TimeDuration getExitSpanMinDuration() {
+        return exitSpanMinDuration.get();
     }
 }

@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -44,7 +45,8 @@ public class ServiceResourceTest {
 
     @BeforeAll
     static void startRootTransaction() {
-        root = Objects.requireNonNull(MockTracer.createRealTracer().startRootTransaction(null));
+        ElasticApmTracer tracer = MockTracer.createRealTracer();
+        root = Objects.requireNonNull(tracer.startRootTransaction(null));
     }
 
     @AfterAll
