@@ -31,20 +31,25 @@ public class TimeDurationValueConverter extends AbstractValueConverter<TimeDurat
         this.canUseMicros = canUseMicros;
     }
 
+    public static TimeDurationValueConverter withDefaultDuration() {
+        return new TimeDurationValueConverter("", false);
+    }
+
+    @Deprecated
     public static TimeDurationValueConverter withDefaultDuration(String defaultDurationSuffix) {
         return new TimeDurationValueConverter(defaultDurationSuffix, false);
     }
 
-    public static TimeDurationValueConverter withDefaultFineDuration(String defaultDurationSuffix) {
-        return new TimeDurationValueConverter(defaultDurationSuffix, true);
+    public static TimeDurationValueConverter withDefaultFineDuration() {
+        return new TimeDurationValueConverter("", true);
     }
 
     public static ConfigurationOption.ConfigurationOptionBuilder<TimeDuration> durationOption(String defaultDuration) {
         return ConfigurationOption.<TimeDuration>builder(new TimeDurationValueConverter(defaultDuration, false), TimeDuration.class);
     }
 
-    public static ConfigurationOption.ConfigurationOptionBuilder<TimeDuration> fineDurationOption(String defaultDuration) {
-        return ConfigurationOption.<TimeDuration>builder(new TimeDurationValueConverter(defaultDuration, true), TimeDuration.class);
+    public static ConfigurationOption.ConfigurationOptionBuilder<TimeDuration> fineDurationOption() {
+        return ConfigurationOption.<TimeDuration>builder(new TimeDurationValueConverter("", true), TimeDuration.class);
     }
 
     @Override
@@ -60,7 +65,7 @@ public class TimeDurationValueConverter extends AbstractValueConverter<TimeDurat
         return value.toString();
     }
 
-    public String getDefaultDurationSuffix() {
-        return defaultDurationSuffix;
+    public boolean isCanUseMicros() {
+        return canUseMicros;
     }
 }
