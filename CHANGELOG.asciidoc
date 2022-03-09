@@ -33,6 +33,7 @@ endif::[]
 * Added support for en-/disabling each public annotation on each own - {pull}2472[#2472]
 * Added support for compressing spans - {pull}2477[#2477]
 * Added microsecond durations with `us` as unit - {pull}2496[#2496]
+* Added support for dropping fast exit spans - {pull}2491[#2491]
 * Improved finding docker container id on cgroup v2 enabled systems - {pull}2352[#2352]
 
 [float]
