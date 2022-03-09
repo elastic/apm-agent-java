@@ -35,7 +35,7 @@ public class SpanConfiguration extends ConfigurationOptionProvider {
             "Span compression reduces the collection, processing, and storage overhead, and removes clutter from the UI. " +
             "The tradeoff is that some information such as DB statements of all the compressed spans will not be collected.")
         .dynamic(true)
-        .buildWithDefault(false);
+        .buildWithDefault(true);
 
     private final ConfigurationOption<TimeDuration> spanCompressionExactMatchMaxDuration = TimeDurationValueConverter.durationOption("ms")
         .key("span_compression_exact_match_max_duration")
@@ -55,7 +55,7 @@ public class SpanConfiguration extends ConfigurationOptionProvider {
             "This option does not apply to composite spans. This reduces the collection, processing, and storage overhead, and removes clutter from the UI. " +
             "The tradeoff is that the DB statements of all the compressed spans will not be collected.")
         .dynamic(true)
-        .buildWithDefault(TimeDuration.of("5ms"));
+        .buildWithDefault(TimeDuration.of("0ms"));
 
     private final ConfigurationOption<TimeDuration> exitSpanMinDuration = TimeDurationValueConverter.fineDurationOption()
         .key("exit_span_min_duration")
