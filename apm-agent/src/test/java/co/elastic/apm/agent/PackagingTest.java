@@ -18,80 +18,324 @@
  */
 package co.elastic.apm.agent;
 
+import co.elastic.apm.agent.bci.PluginClassLoaderRootPackageCustomizer;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.Reader;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 public class PackagingTest {
 
+    private static final Logger log = LoggerFactory.getLogger(PackagingTest.class);
+
+    private static final Path MODULE_ROOT = getModuleRoot();
+    private static final int MAX_DEPTH = 99;
+
     @Test
-    void checkPluginDependencies() throws Exception {
-        // search for all known META-INF/services files
-
-        Path classLocation = Paths.get(PackagingTest.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-
-        Path moduleRoot = classLocation.getParent().getParent();
-        assertThat(moduleRoot).isDirectory();
-
-        // compute the list of all plugin classes by scanning service loader files from filesystem
-        Path pluginsModulePath = moduleRoot.getParent().resolve("apm-agent-plugins");
-        Set<Path> serviceLoaderFiles = Files.find(pluginsModulePath, 10, (path, attributes) -> {
-                Path fileFolder = path.getParent();
-                return Files.isRegularFile(path) && fileFolder.endsWith(Path.of("src", "main", "resources", "META-INF", "services"));
-            })
+    void checkPluginDependencies() {
+        Set<String> pluginArtifactIds = getAgentPluginModules().values().stream()
+            .filter(AgentModule::isPlugin)
+            .map(m -> m.mavenArtifactId)
             .collect(Collectors.toSet());
-
-        Set<String> pluginArtifacts = new HashSet<>();
-        serviceLoaderFiles.forEach(path -> {
-            Path pluginRoot = path.getParent().getParent().getParent().getParent().getParent().getParent();
-            String pluginArtifact = getArtifactId(pluginRoot.resolve("pom.xml"));
-            pluginArtifacts.add(pluginArtifact);
-        });
-
-        assertThat(pluginArtifacts).isNotEmpty();
-
-        checkContainsPluginAsDependencies(moduleRoot.resolve("pom.xml"), pluginArtifacts);
+        checkContainsPluginAsDependencies(MODULE_ROOT.resolve("pom.xml"), pluginArtifactIds);
     }
 
-    private static String getArtifactId(Path pomPath) {
-        MavenXpp3Reader reader = new MavenXpp3Reader();
+    @Test
+    void checkPluginInterdependencies() {
+
+        Map<String, AgentModule> plugins = getAgentPlugins();
+        Map<String, AgentModule> modules = getAgentPluginModules();
+
+        plugins.values().forEach(plugin -> {
+
+            Set<AgentModule> dependencies = plugin.getInternalDependencies().stream()
+                .filter(d->!d.equals("apm-agent-core")) // filter-out explicit dependencies to apm-agent-core
+                .filter(d->!d.equals("apm-httpclient-core")) // TODO : ignore this known issue for now
+                .filter(d->!d.equals("apm-redis-common")) // TODO : known case where it's OK
+                .filter(d->!d.equals("apm-cassandra-core-plugin")) // TODO : known case where it's OK
+                .filter(d->!d.equals("apm-log-shader-plugin-common")) // TODO : known case fixed by another PR
+                .map(modules::get)
+                .collect(Collectors.toSet());
+
+
+            for (AgentModule dep : dependencies) {
+                log.info("checking dependency from plugin '{}' to module '{}'", plugin.mavenArtifactId, dep.mavenArtifactId);
+
+                if (plugin.basePackage.equals(dep.basePackage)) {
+                    log.info("plugin '{}' with base package '{}' depends on module '{}' that have same base package", plugin.mavenArtifactId, plugin.basePackage, dep.mavenArtifactId);
+                } else {
+                    log.info("plugin '{}' with base package '{}' depends on module '{}' with base package '{}'", plugin.mavenArtifactId, plugin.basePackage, dep.mavenArtifactId, dep.basePackage);
+
+                    Collection<String> depRootPackages = dep.getClassloaderRootPackages();
+                    if (depRootPackages.isEmpty()) {
+                        // dependency is loaded in the bootstrap CL, thus it is always visible to the plugin
+                        log.info("dependency '{}' is loaded in the bootstrap CL, thus it is always visible to the '{}' plugin", dep.mavenArtifactId, plugin.mavenArtifactId);
+                    } else if (plugin.getClassloaderRootPackages().contains(dep.basePackage)) {
+                        log.info("dependency '{}' is accessible to plugin '{}' through classloader root customization", dep.mavenArtifactId, plugin.mavenArtifactId);
+                    } else {
+                        fail("dependency '%s' base package '%s' is NOT accessible to plugin '%s', using a PluginClassLoaderRootPackageCustomizer in plugin is required", dep.mavenArtifactId, dep.basePackage, plugin.mavenArtifactId);
+                    }
+
+                }
+            }
+
+        });
+
+    }
+
+    private static Map<String, AgentModule> getAgentPluginModules() {
+        // search for all maven  submodules within the plugins directory
+
+        Path pluginsModulePath = MODULE_ROOT.getParent().resolve("apm-agent-plugins");
+        Set<Path> pomFiles;
+
         try {
-            Model model = reader.read(Files.newBufferedReader(pomPath));
-            return model.getArtifactId();
+            pomFiles = Files.find(pluginsModulePath, MAX_DEPTH,
+                    (path, attributes) -> path.getFileName().toString().equals("pom.xml"))
+                .collect(Collectors.toSet());
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+
+        Map<String,AgentModule> modules = new HashMap<>();
+        pomFiles.forEach(f->{
+            Model pom = parseMaven(f);
+            String packaging = pom.getPackaging();
+
+            // only include real code dependencies, pom modules can be ignored
+            if (packaging == null || packaging.equals("jar")) {
+                modules.put(pom.getArtifactId(), new AgentModule(f.getParent()));
+            }
+        });
+        return modules;
+    }
+
+    private static Map<String, AgentModule> getAgentPlugins() {
+        // search for all known META-INF/services files
+
+        // compute the list of all plugin classes by scanning service loader files from filesystem
+        Path pluginsModulePath = MODULE_ROOT.getParent().resolve("apm-agent-plugins");
+        Set<Path> serviceLoaderFiles;
+
+        Path servicesSuffix = Path.of("src", "main", "resources", "META-INF", "services");
+        try {
+            serviceLoaderFiles = Files.find(pluginsModulePath, MAX_DEPTH,
+                    (path, attributes) -> Files.isRegularFile(path) && path.getParent().endsWith(servicesSuffix))
+                .collect(Collectors.toSet());
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+
+        Map<String, AgentModule> plugins = serviceLoaderFiles.stream()
+            .map(path -> path.getParent().getParent().getParent().getParent().getParent().getParent())
+            .collect(Collectors.toSet())
+            .stream()
+            .map(AgentModule::new)
+            .collect(Collectors.toMap(p -> p.mavenArtifactId, p -> p));
+
+        assertThat(plugins).isNotEmpty();
+        return plugins;
+    }
+
+    /**
+     * Represents a Java agent module, either a plugin or an internal dependency
+     */
+    private static class AgentModule {
+        private final Path rootFolder;
+        private final Model mavenModel;
+        private final String mavenGroupId;
+        private final String mavenArtifactId;
+
+        @Nullable
+        private final String basePackage;
+
+        private AgentModule(Path rootFolder) {
+            this.rootFolder = rootFolder.toAbsolutePath();
+            this.mavenModel = parseMaven(rootFolder.resolve("pom.xml"));
+            this.mavenArtifactId = mavenModel.getArtifactId();
+            this.basePackage = getBasePackage(rootFolder);
+
+            // verify module invariants & store effective groupID
+            String groupId = mavenModel.getGroupId();
+            if (groupId == null) {
+                assertThat(mavenModel.getParent()).isNotNull();
+                groupId = mavenModel.getParent().getGroupId();
+            }
+            this.mavenGroupId = groupId;
+            assertThat(groupId)
+                .isEqualTo("co.elastic.apm");
+        }
+
+        public boolean isPlugin() {
+            try {
+                Path servicesFolder = getServicesFolder();
+                return servicesFolder != null && Files.list(servicesFolder).count() > 0;
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        public boolean hasCode() {
+            return basePackage != null;
+        }
+
+        public Collection<String> getClassloaderRootPackages() {
+            Path servicesFolder = getServicesFolder();
+            if (servicesFolder != null) {
+                Path customizerService = servicesFolder.resolve(PluginClassLoaderRootPackageCustomizer.class.getName());
+                if (Files.exists(customizerService)) {
+                    try {
+                        List<String> lines = Files.readAllLines(customizerService);
+                        assertThat(lines).describedAs("only a single root package customizer expected").hasSize(1);
+                        PluginClassLoaderRootPackageCustomizer customizer = (PluginClassLoaderRootPackageCustomizer) Class.forName(lines.get(0), true, PackagingTest.class.getClassLoader()).getConstructor().newInstance();
+                        return customizer.pluginClassLoaderRootPackages();
+                    } catch (Exception e) {
+                        throw new IllegalStateException(e);
+                    }
+                }
+            }
+            return Collections.singleton(basePackage);
+        }
+
+        @Nullable
+        private Path getServicesFolder() {
+            Path servicesFolder = rootFolder.resolve(Path.of("src", "main", "resources", "META-INF", "services"));
+            return Files.isDirectory(servicesFolder) ? servicesFolder : null;
+        }
+
+        public Set<String> getInternalDependencies() {
+            return mavenModel.getDependencies()
+                .stream()
+                .filter(d -> getGroupId(d).equals(mavenGroupId))
+                .filter(d -> d.getScope() == null || !d.getScope().equals("test"))
+                .map(Dependency::getArtifactId)
+                .collect(Collectors.toSet());
+        }
+
+        private String getGroupId(Dependency d) {
+            String groupId = d.getGroupId();
+            return groupId.equals("${project.groupId}") ? mavenGroupId : groupId;
+        }
+
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            AgentModule that = (AgentModule) o;
+            return rootFolder.equals(that.rootFolder);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(rootFolder);
+        }
+
+        @Override
+        public String toString() {
+            return "AgentPlugin{" +
+                "rootFolder=" + rootFolder +
+                ", mavenArtifactId='" + mavenArtifactId + '\'' +
+                ", basePackage='" + basePackage + '\'' +
+                '}';
+        }
+    }
+
+    private static Model parseMaven(Path pomPath) {
+        MavenXpp3Reader reader = new MavenXpp3Reader();
+        try (Reader r = Files.newBufferedReader(pomPath)) {
+            return reader.read(r);
         } catch (IOException | XmlPullParserException e) {
             throw new IllegalStateException(e);
         }
+
+    }
+
+    @Nullable
+    private static String getBasePackage(Path pluginRoot) {
+        Path javaSources = pluginRoot.resolve("src").resolve("main").resolve("java");
+
+        if (!Files.isDirectory(javaSources)) {
+            // no java sources, it s a test module
+            return null;
+        }
+
+        Path expectedPrefix = javaSources.resolve("co").resolve("elastic").resolve("apm").resolve("agent");
+        AtomicReference<String> pluginSubPackage = new AtomicReference<>();
+
+        try {
+            Files.find(javaSources, MAX_DEPTH, (path, attributes) ->
+                    Files.isRegularFile(path)
+                        && !path.getFileName().toString().equals("module-info.java")
+                        && path.getFileName().toString().endsWith(".java"))
+                .forEach(p -> {
+                    assertThat(p)
+                        .describedAs("unexpected plugin file location '%s' should be in '%s", p, expectedPrefix)
+                        .startsWith(expectedPrefix);
+
+                    Path relativePath = expectedPrefix.relativize(p);
+                    String subPackage = relativePath.getName(0).toString();
+                    if (null == pluginSubPackage.get()) {
+                        pluginSubPackage.set(subPackage);
+                    } else {
+                        assertThat(subPackage).isEqualTo(pluginSubPackage.get());
+                    }
+                });
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+
+        assertThat(pluginSubPackage.get()).isNotNull();
+        return String.format("co.elastic.apm.agent.%s", pluginSubPackage.get());
+    }
+
+    private static Path getModuleRoot() {
+        Path classLocation;
+        try {
+            classLocation = Paths.get(PackagingTest.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException(e);
+        }
+        Path moduleRoot = classLocation.getParent().getParent();
+        assertThat(moduleRoot).isDirectory();
+        return moduleRoot;
     }
 
     private static void checkContainsPluginAsDependencies(Path pomPath, Set<String> plugins) {
         assertThat(pomPath).isRegularFile();
 
-        MavenXpp3Reader reader = new MavenXpp3Reader();
-        try {
-            Model model = reader.read(Files.newBufferedReader(pomPath));
-            Set<String> dependenciesArtifacts = model.getDependencies().stream()
-                .filter(d -> sameProjectGroup(model, d) && sameProjectVersion(model, d))
-                .map(Dependency::getArtifactId)
-                .collect(Collectors.toSet());
+        Model model = parseMaven(pomPath);
+        Set<String> dependenciesArtifacts = model.getDependencies().stream()
+            .filter(d -> sameProjectGroup(model, d) && sameProjectVersion(model, d))
+            .map(Dependency::getArtifactId)
+            .collect(Collectors.toSet());
 
-            assertThat(dependenciesArtifacts).describedAs(createDescription(plugins)).containsAll(plugins);
-        } catch (IOException | XmlPullParserException e) {
-            throw new IllegalStateException(e);
-        }
+        assertThat(dependenciesArtifacts).describedAs(createDescription(plugins)).containsAll(plugins);
 
     }
 
