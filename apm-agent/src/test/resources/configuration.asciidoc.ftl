@@ -123,9 +123,6 @@ Supports the duration suffixes `us`, `ms`, `s` and `m`.
 Supports the duration suffixes `ms`, `s` and `m`.
   </#if>
 Example: `${option.defaultValueAsString}`.
-  <#if option.valueConverter.defaultDurationSuffix?has_content>
-The default unit for this option is `${option.valueConverter.defaultDurationSuffix}`.
-  </#if>
 </#if>
 <#if option.validOptions?has_content>
 Valid options: <#list option.validOptionsLabelMap?values as validOption>`${validOption}`<#if validOption_has_next>, </#if></#list>
@@ -179,9 +176,6 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 # Supports the duration suffixes us, ms, s and m. Example: ${option.defaultValueAsString}.
   <#else>
 # Supports the duration suffixes ms, s and m. Example: ${option.defaultValueAsString}.
-  </#if>
-  <#if option.valueConverter.defaultDurationSuffix?has_content>
-# The default unit for this option is ${option.valueConverter.defaultDurationSuffix}.
   </#if>
 </#if>
 # Default value: ${option.key?matches("service_name")?then(defaultServiceName?replace("\n", "\n# ", "r"), option.defaultValueAsString!)}

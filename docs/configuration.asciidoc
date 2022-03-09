@@ -230,7 +230,6 @@ The interval at which the agent polls the stress monitors. Must be at least `1s`
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5s`.
-The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -311,7 +310,6 @@ order to detect a change of stress state. Must be at least `1m`.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `1m`.
-The default unit for this option is `m`.
 
 [options="header"]
 |============
@@ -1137,7 +1135,6 @@ the higher of both thresholds will determine which spans will be discarded.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `0ms`.
-The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -1306,7 +1303,6 @@ such as calls to a database, can be discarded using this threshold.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `0ms`.
-The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -2121,7 +2117,6 @@ The minimal duration of a profiling-inferred span is the same as the value of th
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `50ms`.
-The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -2149,7 +2144,6 @@ However, increasing the sampling interval also decreases the accuracy of the dur
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `0ms`.
-The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -2417,7 +2411,6 @@ WARNING: If timeouts are disabled or set to a high value, your app could experie
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5s`.
-The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -2525,7 +2518,6 @@ NOTE: This value has to be lower than the APM Server's `read_timeout` setting.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `10s`.
-The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -2579,7 +2571,6 @@ Set to `0s` to deactivate.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `30s`.
-The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -2753,7 +2744,6 @@ To disable stack trace collection for spans completely, set the value to `-1ms`.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5ms`.
-The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -2799,7 +2789,6 @@ The default unit for this option is `ms`.
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 5s.
-# The default unit for this option is s.
 # Default value: 5s
 #
 # stress_monitoring_interval=5s
@@ -2834,7 +2823,6 @@ The default unit for this option is `ms`.
 # This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 1m.
-# The default unit for this option is m.
 # Default value: 1m
 #
 # stress_monitor_cpu_duration_threshold=1m
@@ -3307,7 +3295,6 @@ The default unit for this option is `ms`.
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 0ms.
-# The default unit for this option is ms.
 # Default value: 0ms
 #
 # trace_methods_duration_threshold=0ms
@@ -3383,7 +3370,6 @@ The default unit for this option is `ms`.
 # This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 0ms.
-# The default unit for this option is ms.
 # Default value: 0ms
 #
 # span_min_duration=0ms
@@ -3845,7 +3831,6 @@ The default unit for this option is `ms`.
 # This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 50ms.
-# The default unit for this option is ms.
 # Default value: 50ms
 #
 # profiling_inferred_spans_sampling_interval=50ms
@@ -3857,7 +3842,6 @@ The default unit for this option is `ms`.
 # This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 0ms.
-# The default unit for this option is ms.
 # Default value: 0ms
 #
 # profiling_inferred_spans_min_duration=0ms
@@ -3997,7 +3981,6 @@ The default unit for this option is `ms`.
 # This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 5s.
-# The default unit for this option is s.
 # Default value: 5s
 #
 # server_timeout=5s
@@ -4044,7 +4027,6 @@ The default unit for this option is `ms`.
 # This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 10s.
-# The default unit for this option is s.
 # Default value: 10s
 #
 # api_request_time=10s
@@ -4067,7 +4049,6 @@ The default unit for this option is `ms`.
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 30s.
-# The default unit for this option is s.
 # Default value: 30s
 #
 # metrics_interval=30s
@@ -4154,7 +4135,6 @@ The default unit for this option is `ms`.
 # This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 5ms.
-# The default unit for this option is ms.
 # Default value: 5ms
 #
 # span_stack_trace_min_duration=5ms
