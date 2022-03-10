@@ -27,10 +27,14 @@ import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
 public class WebHelper extends AbstractVertxWebHelper {
+
+    private static final Logger log = LoggerFactory.getLogger(WebHelper.class);
 
     private static final WebHelper INSTANCE = new WebHelper(GlobalTracer.requireTracerImpl());
 
@@ -57,6 +61,8 @@ public class WebHelper extends AbstractVertxWebHelper {
             enrichRequest(httpServerRequest, transaction);
         }
 
+        log.debug("VERTX startOrGetTransaction -> {}", transaction);
+
         return transaction;
     }
 
@@ -68,6 +74,8 @@ public class WebHelper extends AbstractVertxWebHelper {
         if (transaction != null) {
             setRouteBasedTransactionName(transaction, routingContext);
         }
+
+        log.debug("VERTX setRouteBasedNameForCurrentTransaction -> transaction = {}, request = {}", transaction, request);
 
         return transaction;
     }

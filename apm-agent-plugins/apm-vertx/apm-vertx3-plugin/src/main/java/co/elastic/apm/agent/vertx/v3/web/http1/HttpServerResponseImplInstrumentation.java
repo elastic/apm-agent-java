@@ -27,6 +27,8 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -54,11 +56,16 @@ public class HttpServerResponseImplInstrumentation extends WebInstrumentation {
 
     public static class HttpResponseConstructorAdvice {
 
+        private static final Logger log = LoggerFactory.getLogger(HttpResponseConstructorAdvice.class);
+
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void enter(@Advice.This HttpServerResponse response) {
             Transaction transaction = GlobalTracer.get().currentTransaction();
             if (transaction != null) {
+                log.debug("VERTX active transaction {}, wrapping response handler", transaction);
                 response.endHandler(new ResponseEndHandlerWrapper(transaction, response));
+            } else {
+                log.debug("VERTX no active transaction, skip wrapping response handler");
             }
         }
     }

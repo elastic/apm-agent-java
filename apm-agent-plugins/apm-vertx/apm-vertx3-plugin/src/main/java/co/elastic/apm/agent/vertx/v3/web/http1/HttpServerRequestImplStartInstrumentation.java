@@ -26,6 +26,8 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -54,11 +56,14 @@ public class HttpServerRequestImplStartInstrumentation extends WebInstrumentatio
 
     public static class HttpRequestBeginAdvice {
 
+        private static final Logger log = LoggerFactory.getLogger(HttpRequestBeginAdvice.class);
+
         private static final WebHelper helper = WebHelper.getInstance();
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object enter(@Advice.This HttpServerRequestImpl request) {
+            log.debug("VERTX create transaction from request {}", request);
             Transaction transaction = helper.startOrGetTransaction(request);
             if (transaction != null) {
                 transaction.activate();

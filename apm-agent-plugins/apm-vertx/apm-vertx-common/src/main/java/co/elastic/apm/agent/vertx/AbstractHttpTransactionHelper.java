@@ -109,6 +109,8 @@ public abstract class AbstractHttpTransactionHelper {
                 transaction.getAndOverrideName(PRIO_DEFAULT),
                 webConfiguration.getUrlGroups());
         }
+
+        logger.debug("VERTX applyDefaultTransactionName transaction = {}", transaction);
     }
 
     /*

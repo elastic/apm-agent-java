@@ -21,8 +21,12 @@ package co.elastic.apm.agent.vertx;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import io.vertx.core.Handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GenericHandlerWrapper<T> implements Handler<T> {
+
+    private static final Logger log = LoggerFactory.getLogger(GenericHandlerWrapper.class);
 
     protected final Handler<T> actualHandler;
     private final AbstractSpan<?> parentSpan;
@@ -51,7 +55,10 @@ public class GenericHandlerWrapper<T> implements Handler<T> {
         AbstractSpan<?> currentSpan = GlobalTracer.get().getActive();
 
         if (currentSpan != null) {
+            log.debug("VERTX active span {}, wrapping original handler {}", currentSpan, handler);
             handler = new GenericHandlerWrapper<>(currentSpan, handler);
+        } else {
+            log.trace("VERTX no active span, skip wrapping");
         }
 
         return handler;

@@ -48,6 +48,8 @@ import java.util.Set;
 
 public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelper {
 
+    private static final Logger log = LoggerFactory.getLogger(AbstractVertxWebHelper.class);
+
     private final Logger logger = LoggerFactory.getLogger(AbstractVertxWebHelper.class);
     public static final String CONTEXT_TRANSACTION_KEY = AbstractVertxWebHelper.class.getName() + ".transaction";
     public static final String FRAMEWORK_NAME = "Vert.x-Web";
@@ -68,6 +70,8 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
             transaction = tracer.startChildTransaction(httpServerRequest.headers(), headerGetter, httpServerRequest.getClass().getClassLoader());
         }
 
+        log.trace("VERTX startOrGetTransaction -> {}", transaction);
+
         return transaction;
     }
 
@@ -85,6 +89,8 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
     }
 
     public void finalizeTransaction(HttpServerResponse httpServerResponse, Transaction transaction) {
+        log.debug("VERTX finalizeTransaction -> {}", transaction);
+
         try {
             final Response response = transaction.getContext().getResponse();
             int status = httpServerResponse.getStatusCode();

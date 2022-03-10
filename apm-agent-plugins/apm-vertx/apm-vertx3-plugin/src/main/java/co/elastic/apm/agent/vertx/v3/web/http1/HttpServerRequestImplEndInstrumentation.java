@@ -25,6 +25,8 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
@@ -54,8 +56,11 @@ public class HttpServerRequestImplEndInstrumentation extends WebInstrumentation 
 
         private static final WebHelper helper = WebHelper.getInstance();
 
+        private static final Logger log = LoggerFactory.getLogger(HttpRequestEndAdvice.class);
+
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void exit(@Advice.This HttpServerRequestImpl request) {
+            log.debug("VERTX removing transaction from context, request = {}", request);
             helper.removeTransactionFromContext(request);
         }
     }
