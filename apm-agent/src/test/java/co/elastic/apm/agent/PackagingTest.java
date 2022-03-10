@@ -38,13 +38,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
@@ -58,27 +58,28 @@ public class PackagingTest {
 
     @Test
     void checkPluginDependencies() {
-        Set<String> pluginArtifactIds = getAgentPluginModules().values().stream()
+        Set<String> pluginArtifactIds = getAgentPluginModules()
             .filter(AgentModule::isPlugin)
             .map(m -> m.mavenArtifactId)
             .collect(Collectors.toSet());
+
         checkContainsPluginAsDependencies(MODULE_ROOT.resolve("pom.xml"), pluginArtifactIds);
     }
 
     @Test
     void checkPluginInterdependencies() {
 
-        Map<String, AgentModule> plugins = getAgentPlugins();
-        Map<String, AgentModule> modules = getAgentPluginModules();
+        Stream<AgentModule> plugins = getAgentPluginModules().filter(AgentModule::isPlugin);
+        Map<String, AgentModule> modules = getAgentPluginModules().collect(Collectors.toMap(m -> m.mavenArtifactId, m -> m));
 
-        plugins.values().forEach(plugin -> {
+        plugins.forEach(plugin -> {
 
             Set<AgentModule> dependencies = plugin.getInternalDependencies().stream()
-                .filter(d->!d.equals("apm-agent-core")) // filter-out explicit dependencies to apm-agent-core
-                .filter(d->!d.equals("apm-httpclient-core")) // TODO : ignore this known issue for now
-                .filter(d->!d.equals("apm-redis-common")) // TODO : known case where it's OK
-                .filter(d->!d.equals("apm-cassandra-core-plugin")) // TODO : known case where it's OK
-                .filter(d->!d.equals("apm-log-shader-plugin-common")) // TODO : known case fixed by another PR
+                .filter(d -> !d.equals("apm-agent-core")) // filter-out explicit dependencies to apm-agent-core
+                .filter(d -> !d.equals("apm-httpclient-core")) // TODO : ignore this known issue for now
+                .filter(d -> !d.equals("apm-redis-common")) // TODO : known case where it's OK
+                .filter(d -> !d.equals("apm-cassandra-core-plugin")) // TODO : known case where it's OK
+                .filter(d -> !d.equals("apm-log-shader-plugin-common")) // TODO : known case fixed by another PR
                 .map(modules::get)
                 .collect(Collectors.toSet());
 
@@ -108,58 +109,27 @@ public class PackagingTest {
 
     }
 
-    private static Map<String, AgentModule> getAgentPluginModules() {
+    private static Stream<AgentModule> getAgentPluginModules() {
         // search for all maven  submodules within the plugins directory
 
         Path pluginsModulePath = MODULE_ROOT.getParent().resolve("apm-agent-plugins");
-        Set<Path> pomFiles;
 
+        Stream<Path> pomStream;
         try {
-            pomFiles = Files.find(pluginsModulePath, MAX_DEPTH,
+            pomStream = Files.find(pluginsModulePath, MAX_DEPTH,
                     (path, attributes) -> path.getFileName().toString().equals("pom.xml"))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toSet())
+                .stream();
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
 
-        Map<String,AgentModule> modules = new HashMap<>();
-        pomFiles.forEach(f->{
-            Model pom = parseMaven(f);
-            String packaging = pom.getPackaging();
-
+        return pomStream
+            // use an intermediate map entry to keep track of file -> pom association
+            .map(file -> Map.entry(file, parseMaven(file)))
             // only include real code dependencies, pom modules can be ignored
-            if (packaging == null || packaging.equals("jar")) {
-                modules.put(pom.getArtifactId(), new AgentModule(f.getParent()));
-            }
-        });
-        return modules;
-    }
-
-    private static Map<String, AgentModule> getAgentPlugins() {
-        // search for all known META-INF/services files
-
-        // compute the list of all plugin classes by scanning service loader files from filesystem
-        Path pluginsModulePath = MODULE_ROOT.getParent().resolve("apm-agent-plugins");
-        Set<Path> serviceLoaderFiles;
-
-        Path servicesSuffix = Path.of("src", "main", "resources", "META-INF", "services");
-        try {
-            serviceLoaderFiles = Files.find(pluginsModulePath, MAX_DEPTH,
-                    (path, attributes) -> Files.isRegularFile(path) && path.getParent().endsWith(servicesSuffix))
-                .collect(Collectors.toSet());
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-
-        Map<String, AgentModule> plugins = serviceLoaderFiles.stream()
-            .map(path -> path.getParent().getParent().getParent().getParent().getParent().getParent())
-            .collect(Collectors.toSet())
-            .stream()
-            .map(AgentModule::new)
-            .collect(Collectors.toMap(p -> p.mavenArtifactId, p -> p));
-
-        assertThat(plugins).isNotEmpty();
-        return plugins;
+            .filter(e -> e.getValue().getPackaging() == null || e.getValue().getPackaging().equals("jar"))
+            .map(e -> new AgentModule(e.getKey().getParent()));
     }
 
     /**
@@ -212,7 +182,8 @@ public class PackagingTest {
                     try {
                         List<String> lines = Files.readAllLines(customizerService);
                         assertThat(lines).describedAs("only a single root package customizer expected").hasSize(1);
-                        PluginClassLoaderRootPackageCustomizer customizer = (PluginClassLoaderRootPackageCustomizer) Class.forName(lines.get(0), true, PackagingTest.class.getClassLoader()).getConstructor().newInstance();
+                        Class<?> customizerType = Class.forName(lines.get(0), true, PackagingTest.class.getClassLoader());
+                        PluginClassLoaderRootPackageCustomizer customizer = (PluginClassLoaderRootPackageCustomizer) customizerType.getConstructor().newInstance();
                         return customizer.pluginClassLoaderRootPackages();
                     } catch (Exception e) {
                         throw new IllegalStateException(e);
