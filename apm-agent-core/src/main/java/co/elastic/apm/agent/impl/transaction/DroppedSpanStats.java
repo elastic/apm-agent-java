@@ -138,24 +138,21 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
 
     private Stats getOrCreateStats(StatsKey statsKey) {
         Stats stats = statsMap.get(statsKey);
-        if (stats != null) {
+        if (stats != null || statsMap.size() > 127) {
             statsKeyObjectPool.recycle(statsKey);
             return stats;
         }
 
-        synchronized (this) {
-            stats = statsMap.get(statsKey);
-            if (stats != null) {
-                statsKeyObjectPool.recycle(statsKey);
-                return stats;
-            }
-            if (statsMap.size() < 128) {
-                stats = statsObjectPool.createInstance();
-                statsMap.put(statsKey, stats);
-                return stats;
-            }
+        stats = statsObjectPool.createInstance();
+
+        Stats oldStats = statsMap.putIfAbsent(statsKey, stats);
+        if (oldStats != null) {
+            statsKeyObjectPool.recycle(statsKey);
+            statsObjectPool.recycle(stats);
+            return oldStats;
         }
-        return null;
+
+        return stats;
     }
 
     @Override
