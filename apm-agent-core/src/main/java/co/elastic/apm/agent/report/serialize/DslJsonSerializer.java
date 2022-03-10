@@ -1123,7 +1123,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeDroppedSpanStats(final DroppedSpanStats droppedSpanStats) {
         writeFieldName("dropped_spans_stats");
         jw.writeByte(ARRAY_START);
-        for (Map.Entry<DroppedSpanStats.StatsKey, DroppedSpanStats.StatsValue> stats : droppedSpanStats) {
+        for (Map.Entry<DroppedSpanStats.StatsKey, DroppedSpanStats.Stats> stats : droppedSpanStats) {
             jw.writeByte(OBJECT_START);
             writeField("destination_service_resource", stats.getKey().getDestinationServiceResource());
             writeField("outcome", stats.getKey().getOutcome().toString());

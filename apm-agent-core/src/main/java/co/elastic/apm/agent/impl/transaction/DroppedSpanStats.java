@@ -18,7 +18,11 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.objectpool.Allocator;
+import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -28,15 +32,20 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.StatsKey, DroppedSpanStats.StatsValue>>, Recyclable {
+public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.StatsKey, DroppedSpanStats.Stats>>, Recyclable {
 
-    public static class StatsKey {
-        private final String destinationServiceResource;
-        private final Outcome outcome;
+    public static class StatsKey implements Recyclable {
+        private String destinationServiceResource;
+        private Outcome outcome;
 
-        public StatsKey(CharSequence destinationServiceResource, Outcome outcome) {
+        public StatsKey() {
+
+        }
+
+        public StatsKey init(CharSequence destinationServiceResource, Outcome outcome) {
             this.destinationServiceResource = destinationServiceResource.toString();
             this.outcome = outcome;
+            return this;
         }
 
         public String getDestinationServiceResource() {
@@ -45,6 +54,12 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
 
         public Outcome getOutcome() {
             return outcome;
+        }
+
+        @Override
+        public void resetState() {
+            destinationServiceResource = null;
+            outcome = null;
         }
 
         @Override
@@ -61,7 +76,7 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
         }
     }
 
-    public static class StatsValue {
+    public static class Stats implements Recyclable {
         private final AtomicInteger count = new AtomicInteger(0);
         private final AtomicLong sum = new AtomicLong(0L);
 
@@ -72,12 +87,33 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
         public long getSum() {
             return sum.get();
         }
+
+        @Override
+        public void resetState() {
+            count.set(0);
+            sum.set(0L);
+        }
     }
 
-    private final ConcurrentMap<StatsKey, StatsValue> statsMap = new ConcurrentHashMap<>();
+    private static final ObjectPool<StatsKey> statsKeyObjectPool = QueueBasedObjectPool.<StatsKey>ofRecyclable(new MpmcAtomicArrayQueue<StatsKey>(512), false, new Allocator<StatsKey>() {
+        @Override
+        public StatsKey createInstance() {
+            return new StatsKey();
+        }
+    });
 
-    StatsValue getStats(String destinationServiceResource, Outcome outcome) {
-        return statsMap.get(new StatsKey(destinationServiceResource, outcome));
+    private static ObjectPool<Stats> statsObjectPool = QueueBasedObjectPool.<Stats>ofRecyclable(new MpmcAtomicArrayQueue<Stats>(512), false, new Allocator<Stats>() {
+        @Override
+        public Stats createInstance() {
+            return new Stats();
+        }
+    });
+
+    private final ConcurrentMap<StatsKey, Stats> statsMap = new ConcurrentHashMap<>();
+
+    //only used during testing
+    Stats getStats(String destinationServiceResource, Outcome outcome) {
+        return statsMap.get(new StatsKey().init(destinationServiceResource, outcome));
     }
 
     public void captureDroppedSpan(Span span) {
@@ -86,7 +122,8 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
             return;
         }
 
-        StatsValue stats = getStats(new StatsKey(resource, span.getOutcome()));
+        StatsKey statsKey = statsKeyObjectPool.createInstance().init(resource, span.getOutcome());
+        Stats stats = getOrCreateStats(statsKey);
         if (stats == null) {
             return;
         }
@@ -99,33 +136,39 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
         stats.sum.addAndGet(span.getDuration());
     }
 
-    private StatsValue getStats(StatsKey statsKey) {
-        StatsValue statsValue = statsMap.get(statsKey);
-        if (statsValue != null) {
-            return statsValue;
+    private Stats getOrCreateStats(StatsKey statsKey) {
+        Stats stats = statsMap.get(statsKey);
+        if (stats != null) {
+            statsKeyObjectPool.recycle(statsKey);
+            return stats;
         }
 
         synchronized (this) {
-            statsValue = statsMap.get(statsKey);
-            if (statsValue != null) {
-                return statsValue;
+            stats = statsMap.get(statsKey);
+            if (stats != null) {
+                statsKeyObjectPool.recycle(statsKey);
+                return stats;
             }
             if (statsMap.size() < 128) {
-                statsValue = new StatsValue();
-                statsMap.put(statsKey, statsValue);
-                return statsValue;
+                stats = statsObjectPool.createInstance();
+                statsMap.put(statsKey, stats);
+                return stats;
             }
         }
         return null;
     }
 
     @Override
-    public Iterator<Map.Entry<StatsKey, StatsValue>> iterator() {
+    public Iterator<Map.Entry<StatsKey, Stats>> iterator() {
         return statsMap.entrySet().iterator();
     }
 
     @Override
     public void resetState() {
+        for (Map.Entry<StatsKey, Stats> e : statsMap.entrySet()) {
+            statsKeyObjectPool.recycle(e.getKey());
+            statsObjectPool.recycle(e.getValue());
+        }
         statsMap.clear();
     }
 }
