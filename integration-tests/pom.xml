@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.26.1-SNAPSHOT</version>
+        <version>1.29.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>integration-tests</artifactId>
@@ -21,8 +21,11 @@
         <module>spring-boot-2</module>
         <module>soap-test</module>
         <module>cdi-app</module>
+        <module>cdi-jakartaee-app</module>
         <module>external-plugin-test</module>
         <module>runtime-attach</module>
+        <module>jakartaee-jsf-app</module>
+        <module>main-app-test</module>
     </modules>
 
     <properties>

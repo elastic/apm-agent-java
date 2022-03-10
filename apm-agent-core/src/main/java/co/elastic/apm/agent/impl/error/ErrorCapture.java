@@ -29,8 +29,8 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -239,6 +239,10 @@ public class ErrorCapture implements Recyclable {
          */
         private boolean isSampled;
         /**
+         * The related TransactionInfo name
+         */
+        private StringBuilder name = new StringBuilder();
+        /**
          * The related TransactionInfo type
          */
         @Nullable
@@ -247,11 +251,16 @@ public class ErrorCapture implements Recyclable {
         @Override
         public void resetState() {
             isSampled = false;
+            name.setLength(0);
             type = null;
         }
 
         public boolean isSampled() {
             return isSampled;
+        }
+
+        public StringBuilder getName() {
+            return name;
         }
 
         @Nullable
@@ -266,6 +275,11 @@ public class ErrorCapture implements Recyclable {
 
     public void setTransactionSampled(boolean transactionSampled) {
         transactionInfo.isSampled = transactionSampled;
+    }
+
+    public void setTransactionName(@Nullable StringBuilder name) {
+        transactionInfo.name.setLength(0);
+        transactionInfo.name.append(name);
     }
 
     public void setTransactionType(@Nullable String type) {

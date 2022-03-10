@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.AbstractApiTest;
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.api.AbstractSpanImplAccessor;
 import co.elastic.apm.api.ElasticApm;
@@ -255,6 +256,8 @@ class TransactionInstrumentationTest extends AbstractApiTest {
         }
         endTransaction();
         assertThat(errorId).isNotNull();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getOutcome()).isEqualTo(convertOutcome(Outcome.FAILURE));
     }
 
     @Test
@@ -271,6 +274,10 @@ class TransactionInstrumentationTest extends AbstractApiTest {
         }
         endTransaction();
         assertThat(errorId).isNotNull();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getOutcome()).isEqualTo(convertOutcome(Outcome.SUCCESS));
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getOutcome()).isEqualTo(convertOutcome(Outcome.FAILURE));
     }
 
     @Test
@@ -290,6 +297,27 @@ class TransactionInstrumentationTest extends AbstractApiTest {
         testSetOutcome(Outcome.SUCCESS);
     }
 
+    @Test
+    void setSetServiceInfo() {
+        transaction.setServiceInfo("My Service", "My Version");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("My Service");
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("My Version");
+    }
+
+    @Test
+    void useServiceInfoForClassLoader() {
+        try {
+            tracer.setServiceInfoForClassLoader(TransactionInstrumentationTest.class.getClassLoader(), ServiceInfo.of("My Service", "My Version"));
+            transaction.useServiceInfoForClassLoader(TransactionInstrumentationTest.class.getClassLoader());
+            endTransaction();
+            assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("My Service");
+            assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("My Version");
+        } finally {
+            tracer.resetServiceInfoOverrides();
+        }
+    }
+
     private void testSetOutcome(Outcome outcome) {
         // set it first to a different value than the expected one
         Outcome[] values = Outcome.values();
@@ -307,5 +335,9 @@ class TransactionInstrumentationTest extends AbstractApiTest {
     private void endTransaction() {
         transaction.end();
         assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    private co.elastic.apm.agent.impl.transaction.Outcome convertOutcome(Outcome apiOutcome) {
+        return co.elastic.apm.agent.impl.transaction.Outcome.valueOf(apiOutcome.toString());
     }
 }

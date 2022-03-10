@@ -23,7 +23,6 @@ pipeline {
     timestamps()
     ansiColor('xterm')
     durabilityHint('PERFORMANCE_OPTIMIZED')
-
   }
   parameters {
     string(name: 'branch_specifier', defaultValue: 'stable', description: "What branch to release from?")
@@ -45,7 +44,6 @@ pipeline {
             dir("${BASE_DIR}") {
               setupAPMGitEmail()
             }
-
             dir("${BASE_DIR}") {
               withEnv(["BRANCH_NAME=${BRANCH_SPECIFIER}"]){
                 withGitRelease() { // sets up the git release setup (remote branches, current workspace state, ...)
@@ -81,12 +79,14 @@ pipeline {
           when {
             allOf {
               expression { params.check_branch_ci_status }
-              not { branch 'stable' }
+              expression { env.BRANCH_SPECIFIER != 'stable' }
             }
           }
           steps {
             // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/"${BRANCH_SPECIFIER}"/
             whenTrue(!buildStatus(host: 'apm-ci.elastic.co', job: ['apm-agent-java', 'apm-agent-java-mbp', "${BRANCH_SPECIFIER}"], return_boolean: true)) {
+              notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] The ${BRANCH_SPECIFIER} build is not passing",
+                           body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")
               input(message: "WARNING! The ${BRANCH_SPECIFIER} build is not passing. Do you wish to continue?")
             }
           }
@@ -102,7 +102,7 @@ pipeline {
             """
             )
             dir("${BASE_DIR}") {
-              git credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba', url: 'git@github.com:elastic/apm-agent-java.git'
+              git(credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba', url: 'git@github.com:elastic/apm-agent-java.git', branch: 'main')
             }
           }
         }
@@ -153,37 +153,13 @@ pipeline {
           steps {
             dir("${BASE_DIR}") {
               script {
+                sh(script: ".ci/release/update_major_branch.sh ${RELEASE_VERSION}")
+                gitPush(args: "-f ${BRANCH_DOT_X}")
+
                 def isMajor = env.RELEASE_VERSION.endsWith(".0.0")
                 if (isMajor) {
-                  // major release, create '.x' branch
-                  sh(script: """
-                    git checkout ${RELEASE_TAG}
-                    git checkout -b ${BRANCH_DOT_X}
-                  """)
-                  gitPush()
                   input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
-                } else {
-                  // minor release, force-update existing '.x' branch. any change applied to '.x' branch, for example to
-                  // fix doc or release notes should also have been applied to master/stable branch we are releasing from
-                  sh(script: """
-                    git fetch origin ${BRANCH_DOT_X} # ensure remote branch is fetched for local checkout
-                    git checkout --track origin/${BRANCH_DOT_X}
-                    git reset --hard ${RELEASE_TAG}
-                    """)
-                  gitPush(args: "-f ${BRANCH_DOT_X}")
                 }
-              }
-            }
-          }
-          post {
-            cleanup {
-              dir("${BASE_DIR}") {
-                // restore git state before updating .x branch, otherwise later external scripts will use
-                // the version when the tag was created, which might not match the release branch state
-                sh(script: """
-                    git fetch origin ${BRANCH_SPECIFIER} # ensure remote branch is fetched for local checkout
-                    git checkout --track origin/${BRANCH_SPECIFIER}
-                """)
               }
             }
           }
@@ -211,10 +187,9 @@ pipeline {
           steps {
             dir("${BASE_DIR}"){
               script {
-                def fullUrl = "https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/${RELEASE_VERSION}/elastic-apm-agent-${RELEASE_VERSION}.pom"
                 waitUntil(initialRecurrencePeriod: 60000) {
                   script {
-                    def ret = sh(script: "curl -fs '${fullUrl}' >/dev/null 2>&1", returnStatus: true)
+                    def ret = sh(script: ".ci/release/wait_maven_artifact_published.sh ${RELEASE_VERSION}", returnStatus: true)
                     echo "Waiting for the artifacts to be published on Sonatype"
                     return ret == 0
                   }
@@ -226,12 +201,7 @@ pipeline {
         stage('Update Cloudfoundry') {
           steps {
             dir("${BASE_DIR}"){
-              // ensure that we don't rely on side effect of another step
-              sh(script: """
-                  git fetch origin ${BRANCH_SPECIFIER} # ensure remote branch is fetched for local checkout
-                  git checkout --track origin/${BRANCH_SPECIFIER}
-                  """)
-              sh(script: "./scripts/jenkins/update_cloudfoundry.sh ${RELEASE_VERSION}")
+              sh(script: ".ci/release/update_cloudfoundry.sh ${RELEASE_VERSION}")
               gitPush()
             }
           }
@@ -242,7 +212,7 @@ pipeline {
               waitUntil(initialRecurrencePeriod: 60000) {
                 script {
                   echo "Waiting for the release notes to be available"
-                    def ret = sh(script: "curl -fs https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html | grep ${RELEASE_VERSION}", returnStatus: true)
+                    def ret = sh(script: ".ci/release/wait_release_notes_published.sh ${RELEASE_VERSION}", returnStatus: true)
                     return ret == 0
                 }
               }
@@ -265,7 +235,7 @@ pipeline {
           }
           post {
             success {
-              notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
+              notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release ${env.RELEASE_VERSION} has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
             }
           }
         }

@@ -43,6 +43,9 @@ public class CloudProviderInfo {
     @Nullable
     private ProviderMachine machine;
 
+    @Nullable
+    private Service service;
+
     public CloudProviderInfo(String provider) {
         this.provider = provider;
     }
@@ -105,56 +108,13 @@ public class CloudProviderInfo {
         this.machine = machine;
     }
 
-    public static class NameAndIdField {
-        @Nullable
-        protected String id;
-        @Nullable
-        protected String name;
+    @Nullable
+    public Service getService() {
+        return service;
+    }
 
-        public NameAndIdField(@Nullable String name) {
-            this.name = name;
-        }
-
-        public NameAndIdField(@Nullable String name, @Nullable Long id) {
-            this.name = name;
-            this.id = id != null ? id.toString() : null;
-        }
-
-        public NameAndIdField(@Nullable String name, @Nullable String id) {
-            this.name = name;
-            this.id = id;
-        }
-
-        public boolean isEmpty() {
-            return id == null && name == null;
-        }
-
-        @Nullable
-        public String getId() {
-            return id;
-        }
-
-        @Nullable
-        public String getName() {
-            return name;
-        }
-
-        public void setName(@Nullable String name) {
-            this.name = name;
-        }
-
-        public void setId(@Nullable String id) {
-            this.id = id;
-        }
-
-        @Override
-        public String toString() {
-            final StringBuilder sb = new StringBuilder("{");
-            sb.append("id='").append(id).append('\'');
-            sb.append(", name='").append(name).append('\'');
-            sb.append("}");
-            return sb.toString();
-        }
+    public void setService(@Nullable Service service) {
+        this.service = service;
     }
 
     /**
@@ -192,6 +152,24 @@ public class CloudProviderInfo {
         }
     }
 
+    public static class Service {
+
+        private final String name;
+
+        public Service(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("CloudProviderInfo{");
@@ -202,6 +180,7 @@ public class CloudProviderInfo {
         sb.append(", account=").append(account);
         sb.append(", project=").append(project);
         sb.append(", machine=").append(machine);
+        sb.append(", service=").append(service);
         sb.append('}');
         return sb.toString();
     }

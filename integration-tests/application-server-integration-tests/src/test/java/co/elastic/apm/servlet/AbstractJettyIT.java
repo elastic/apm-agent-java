@@ -18,11 +18,6 @@
  */
 package co.elastic.apm.servlet;
 
-import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
-import co.elastic.apm.servlet.tests.JsfServletContainerTestApp;
-import co.elastic.apm.servlet.tests.ServletApiTestApp;
-import co.elastic.apm.servlet.tests.TestApp;
-import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
 
 import java.util.Arrays;
@@ -33,7 +28,7 @@ public abstract class AbstractJettyIT extends AbstractServletContainerIntegratio
     private String version;
 
     public AbstractJettyIT(final String version) {
-        super(new GenericContainer<>("jetty:" + version)
+        super(new GenericContainerWithTcpProxy<>("jetty:" + version)
                 .withExposedPorts(8080),
             "jetty-application",
             "/var/lib/jetty/webapps",

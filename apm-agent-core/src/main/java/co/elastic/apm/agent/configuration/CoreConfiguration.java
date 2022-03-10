@@ -25,23 +25,26 @@ import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.converter.AbstractValueConverter;
 import org.stagemonitor.configuration.converter.MapValueConverter;
+import org.stagemonitor.configuration.converter.SetValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
@@ -89,25 +92,65 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("This is used to keep all the errors and transactions of your service together\n" +
             "and is the primary filter in the Elastic APM user interface.\n" +
             "\n" +
+            "Instead of configuring the service name manually,\n" +
+            "you can also choose to rely on the service name auto-detection mechanisms of the agent.\n" +
+            "If `service_name` is set explicitly, all auto-detection mechanisms are disabled.\n" +
+            "\n" +
+            "This is how the service name auto-detection works:\n" +
+            "\n" +
+            "* For standalone applications\n" +
+            "** The agent uses `Implementation-Title` in the `META-INF/MANIFEST.MF` file if the application is started via `java -jar`.\n" +
+            "** Falls back to the name of the main class or jar file.\n" +
+            "* For applications that are deployed to a servlet container/application server, the agent auto-detects the name for each application.\n" +
+            "** For Spring-based applications, the agent uses the `spring.application.name` property, if set.\n" +
+            "** For servlet-based applications, falls back to the `Implementation-Title` in the `META-INF/MANIFEST.MF` file.\n" +
+            "** Falls back to the `display-name` of the `web.xml`, if available.\n" +
+            "** Falls back to the servlet context path the application is mapped to (unless mapped to the root context).\n" +
+            "\n" +
+            "Generally, it is recommended to rely on the service name detection based on `META-INF/MANIFEST.MF`.\n" +
+            "Spring Boot automatically adds the relevant manifest entries.\n" +
+            "For other applications that are built with Maven, this is how you add the manifest entries:\n" +
+            "\n" +
+            "<#noparse>\n" +
+            "[source,xml]\n" +
+            ".pom.xml\n" +
+            "----\n" +
+            "    <build>\n" +
+            "        <plugins>\n" +
+            "            <plugin>\n" +
+            "                <!-- replace with 'maven-war-plugin' if you're building a war -->\n" +
+            "                <artifactId>maven-jar-plugin</artifactId>\n" +
+            "                <configuration>\n" +
+            "                    <archive>\n" +
+            "                        <!-- Adds\n" +
+            "                        Implementation-Title based on ${project.name} and\n" +
+            "                        Implementation-Version based on ${project.version}\n" +
+            "                        -->\n" +
+            "                        <manifest>\n" +
+            "                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>\n" +
+            "                        </manifest>\n" +
+            "                        <!-- To customize the Implementation-* entries, remove addDefaultImplementationEntries and add them manually\n" +
+            "                        <manifestEntries>\n" +
+            "                            <Implementation-Title>foo</Implementation-Title>\n" +
+            "                            <Implementation-Version>4.2.0</Implementation-Version>\n" +
+            "                        </manifestEntries>\n" +
+            "                        -->\n" +
+            "                    </archive>\n" +
+            "                </configuration>\n" +
+            "            </plugin>\n" +
+            "        </plugins>\n" +
+            "    </build>\n" +
+            "----\n" +
+            "</#noparse>\n" +
+            "\n" +
             "The service name must conform to this regular expression: `^[a-zA-Z0-9 _-]+$`.\n" +
             "In less regexy terms:\n" +
             "Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.\n" +
             "\n" +
-            "NOTE: When relying on auto-discovery of the service name in Servlet environments (including Spring Boot),\n" +
-            "there is currently a caveat related to metrics.\n" +
-            "The consequence is that the 'Metrics' tab of a service does not show process-global metrics like CPU utilization.\n" +
-            "The reason is that metrics are reported with the detected default service name for the JVM,\n" +
-            "for example `tomcat-application`.\n" +
-            "That is because there may be multiple web applications deployed to a single JVM/servlet container.\n" +
-            "However, you can view those metrics by selecting the `tomcat-application` service name, for example.\n" +
-            "Future versions of the Elastic APM stack will have better support for that scenario.\n" +
-            "A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name\n" +
-            "or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.\n" +
-            "\n" +
             "NOTE: Service name auto discovery mechanisms require APM Server 7.0+.")
         .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name \"{0}\" must only contain characters " +
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
-        .buildWithDefault(ServiceNameUtil.getDefaultServiceName());
+        .buildWithDefault(ServiceInfo.autoDetected().getServiceName());
 
     private final ConfigurationOption<String> serviceNodeName = ConfigurationOption.stringOption()
         .key(SERVICE_NODE_NAME)
@@ -141,7 +184,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("A version string for the currently deployed version of the service. If you don’t version your deployments, " +
             "the recommended value for this field is the commit identifier of the deployed revision, " +
-            "e.g. the output of git rev-parse HEAD.")
+            "e.g. the output of git rev-parse HEAD.\n" +
+            "\n" +
+            "Similar to the auto-detection of <<config-service-name>>, " +
+            "the agent can auto-detect the service version based on the `Implementation-Title` attribute in `META-INF/MANIFEST.MF`.\n" +
+            "See <<config-service-name>> on how to set this attribute.\n" +
+            "\n")
+        .defaultValue(ServiceInfo.autoDetected().getServiceVersion())
         .build();
 
     private final ConfigurationOption<String> hostname = ConfigurationOption.stringOption()
@@ -226,13 +275,43 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("*session*"),
             WildcardMatcher.valueOf("*credit*"),
             WildcardMatcher.valueOf("*card*"),
-            // HTTP request header for basic auth, contains passwords
-            WildcardMatcher.valueOf("authorization"),
+            WildcardMatcher.valueOf("*auth*"),
             // HTTP response header which can contain session ids
             WildcardMatcher.valueOf("set-cookie")
         ));
 
-    private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.stringsOption()
+    private final ConfigurationOption<Collection<String>> enabledInstrumentations = ConfigurationOption.stringsOption()
+        .key("enable_instrumentations")
+        .configurationCategory(CORE_CATEGORY)
+        .description("A list of instrumentations which should be selectively enabled.\n" +
+            "Valid options are ${allInstrumentationGroupNames}.\n" +
+            "When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.\n" +
+            "When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.\n" +
+            "\n" +
+            "NOTE: Changing this value at runtime can slow down the application temporarily.")
+        .dynamic(true)
+        .tags("added[1.28.0]")
+        .buildWithDefault(Collections.<String>emptyList());
+
+    private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.builder(new AbstractValueConverter<Collection<String>>() {
+            @Override
+            public Collection<String> convert(String s) {
+                Collection<String> values = SetValueConverter.STRINGS_VALUE_CONVERTER.convert(s);
+                if (values.contains("incubating")) {
+                    Set<String> legacyValues = new LinkedHashSet<String>(values);
+                    legacyValues.add("experimental");
+
+                    return Collections.unmodifiableSet(legacyValues);
+                }
+
+                return values;
+            }
+
+            @Override
+            public String toString(Collection<String> value) {
+                return SetValueConverter.STRINGS_VALUE_CONVERTER.toString(value);
+            }
+        }, Collection.class)
         .key("disable_instrumentations")
         .aliasKeys("disabled_instrumentations")
         .configurationCategory(CORE_CATEGORY)
@@ -344,6 +423,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
         .description("When enabled, configures Byte Buddy to use a type pool cache.")
+        .buildWithDefault(true);
+
+    private final ConfigurationOption<Boolean> warmupByteBuddy = ConfigurationOption.booleanOption()
+        .key("warmup_byte_buddy")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("When set to true, configures Byte Buddy to warmup instrumentation processes on the \n" +
+            "attaching thread just before installing the transformer on the JVM Instrumentation.")
         .buildWithDefault(true);
 
     private final ConfigurationOption<String> bytecodeDumpPath = ConfigurationOption.stringOption()
@@ -459,14 +546,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             " - `public org.example.services.*Service#*`\n" +
             " - `public @java.inject.ApplicationScoped org.example.*`\n" +
             " - `public @java.inject.* org.example.*`\n" +
-            " - `public @@javax.enterprise.context.NormalScope org.example.*`\n" +
+            " - `public @@javax.enterprise.context.NormalScope org.example.*, public @@jakarta.enterprise.context.NormalScope org.example.*`\n" +
             "\n" +
             "NOTE: Only use wildcards if necessary.\n" +
             "The more methods you match the more overhead will be caused by the agent.\n" +
             "Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).\n" +
             "\n" +
             "NOTE: The agent will create stack traces for spans which took longer than\n" +
-            "<<config-span-frames-min-duration, `span_frames_min_duration`>>.\n" +
+            "<<config-span-stack-trace-min-duration, `span_stack_trace_min_duration`>>.\n" +
             "When tracing a large number of methods (for example by using wildcards),\n" +
             "this may lead to high overhead.\n" +
             "Consider increasing the threshold or disabling stack trace collection altogether.\n\n" +
@@ -474,6 +561,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "Trace all public methods in CDI-Annotated beans:\n\n" +
             "----\n" +
             "public @@javax.enterprise.context.NormalScope your.application.package.*\n" +
+            "public @@jakarta.enterprise.context.NormalScope your.application.package.*\n" +
             "public @@javax.inject.Scope your.application.package.*\n" +
             "----\n" +
             "NOTE: This method is only available in the Elastic APM Java Agent.\n" +
@@ -553,7 +641,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key("use_elastic_traceparent_header")
         .tags("added[1.14.0]")
         .configurationCategory(CORE_CATEGORY)
-        .description("To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent\n" +
+        .description("To enable {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing], the agent\n" +
             "adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).\n" +
             "These headers (`traceparent` and `tracestate`) are defined in the\n" +
             "https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.\n" +
@@ -635,7 +723,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     }
 
     public List<ConfigurationOption<?>> getInstrumentationOptions() {
-        return Arrays.asList(instrument, traceMethods, disabledInstrumentations, enableExperimentalInstrumentations);
+        return Arrays.asList(instrument, traceMethods, enabledInstrumentations, disabledInstrumentations, enableExperimentalInstrumentations);
     }
 
     public String getServiceName() {
@@ -686,14 +774,40 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return sanitizeFieldNames.get();
     }
 
-    public Collection<String> getDisabledInstrumentations() {
-        List<String> disabled = new ArrayList<>(disabledInstrumentations.get());
-        if (enableExperimentalInstrumentations.get()) {
-            disabled.remove("experimental");
-        } else {
-            disabled.add("experimental");
+    public boolean isInstrumentationEnabled(String instrumentationGroupName) {
+        final Collection<String> enabledInstrumentationGroupNames = enabledInstrumentations.get();
+        final Collection<String> disabledInstrumentationGroupNames = disabledInstrumentations.get();
+        return (enabledInstrumentationGroupNames.isEmpty() || enabledInstrumentationGroupNames.contains(instrumentationGroupName)) &&
+            !disabledInstrumentationGroupNames.contains(instrumentationGroupName) &&
+            (enableExperimentalInstrumentations.get() || !instrumentationGroupName.equals("experimental"));
+    }
+
+    public boolean isInstrumentationEnabled(Collection<String> instrumentationGroupNames) {
+        return isGroupEnabled(instrumentationGroupNames) &&
+            !isGroupDisabled(instrumentationGroupNames);
+    }
+
+    private boolean isGroupEnabled(Collection<String> instrumentationGroupNames) {
+        final Collection<String> enabledInstrumentationGroupNames = enabledInstrumentations.get();
+        if (enabledInstrumentationGroupNames.isEmpty()) {
+            return true;
         }
-        return disabled;
+        for (String instrumentationGroupName : instrumentationGroupNames) {
+            if (enabledInstrumentationGroupNames.contains(instrumentationGroupName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isGroupDisabled(Collection<String> instrumentationGroupNames) {
+        Collection<String> disabledInstrumentationGroupNames = disabledInstrumentations.get();
+        for (String instrumentationGroupName : instrumentationGroupNames) {
+            if (disabledInstrumentationGroupNames.contains(instrumentationGroupName)) {
+                return true;
+            }
+        }
+        return !enableExperimentalInstrumentations.get() && instrumentationGroupNames.contains("experimental");
     }
 
     public List<WildcardMatcher> getUnnestExceptions() {
@@ -714,6 +828,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isTypePoolCacheEnabled() {
         return typePoolCache.get();
+    }
+
+    public boolean shouldWarmupByteBuddy() {
+        return warmupByteBuddy.get();
     }
 
     @Nullable
@@ -777,25 +895,24 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
      * Makes sure to not initialize ConfigurationOption, which would initialize the logger
      */
     @Nullable
-    public static String getConfigFileLocation(List<ConfigurationSource> configurationSources) {
-        String configFileLocation = DEFAULT_CONFIG_FILE;
-        for (ConfigurationSource configurationSource : configurationSources) {
-            String valueFromSource = configurationSource.getValue(CONFIG_FILE);
-            if (valueFromSource != null) {
-                configFileLocation = valueFromSource;
+    public static String getConfigFileLocation(List<ConfigurationSource> configurationSources, boolean premain) {
+        String configFileLocation = premain ? DEFAULT_CONFIG_FILE : null;
+        for (ConfigurationSource source : configurationSources) {
+            String value = source.getValue(CONFIG_FILE);
+            if (value != null) {
+                configFileLocation = value;
                 break;
             }
         }
-        if (configFileLocation.contains(AGENT_HOME_PLACEHOLDER)) {
+
+        if (configFileLocation != null) {
             String agentHome = ElasticApmAgent.getAgentHome();
             if (agentHome != null) {
-                return configFileLocation.replace(AGENT_HOME_PLACEHOLDER, agentHome);
-            } else {
-                return null;
+                configFileLocation = configFileLocation.replace(AGENT_HOME_PLACEHOLDER, agentHome);
             }
-        } else {
-            return configFileLocation;
         }
+
+        return configFileLocation;
     }
 
     @Nullable
@@ -814,7 +931,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         }
     }
 
-    public long geMetadataDiscoveryTimeoutMs() {
+    public long getMetadataDiscoveryTimeoutMs() {
         return metadataTimeoutMs.get().getMillis();
     }
 

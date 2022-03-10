@@ -43,7 +43,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Collections;
 import java.util.EnumSet;
 
 import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.ERROR;
@@ -52,6 +51,7 @@ import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.INCLUDE;
 import static co.elastic.apm.agent.servlet.ServletApiAdvice.SPAN_SUBTYPE;
 import static co.elastic.apm.agent.servlet.ServletApiAdvice.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 class ServletInstrumentationTest extends AbstractServletTest {
@@ -133,24 +133,24 @@ class ServletInstrumentationTest extends AbstractServletTest {
 
     @Test
     void testForward_DispatchSpansDisabled() throws Exception {
-        when(getConfig().getConfig(CoreConfiguration.class).getDisabledInstrumentations())
-            .thenReturn(Collections.singletonList(Constants.SERVLET_API_DISPATCH));
+        when(getConfig().getConfig(CoreConfiguration.class).isInstrumentationEnabled(eq(Constants.SERVLET_API_DISPATCH)))
+            .thenReturn(false);
         callServlet(1, "/forward");
         assertThat(reporter.getSpans()).isEmpty();
     }
 
     @Test
     void testInclude_DispatchSpansDisabled() throws Exception {
-        when(getConfig().getConfig(CoreConfiguration.class).getDisabledInstrumentations())
-            .thenReturn(Collections.singletonList(Constants.SERVLET_API_DISPATCH));
+        when(getConfig().getConfig(CoreConfiguration.class).isInstrumentationEnabled(eq(Constants.SERVLET_API_DISPATCH)))
+            .thenReturn(false);
         callServlet(1, "/include");
         assertThat(reporter.getSpans()).isEmpty();
     }
 
     @Test
     void testClientError_DispatchSpansDisabled() throws Exception {
-        when(getConfig().getConfig(CoreConfiguration.class).getDisabledInstrumentations())
-            .thenReturn(Collections.singletonList(Constants.SERVLET_API_DISPATCH));
+        when(getConfig().getConfig(CoreConfiguration.class).isInstrumentationEnabled(eq(Constants.SERVLET_API_DISPATCH)))
+            .thenReturn(false);
         callServlet(1, "/unknown", "Hello Error!", 404);
         assertThat(reporter.getSpans()).isEmpty();
         assertThat(reporter.getErrors().size()).isEqualTo(1);

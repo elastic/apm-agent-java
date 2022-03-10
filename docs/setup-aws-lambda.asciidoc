@@ -1,0 +1,111 @@
+[[aws-lambda]]
+=== Get started with Lambda (Experimental)
+
+experimental::[]
+
+Getting Elastic APM set up for your lambda functions is easy,
+and there are various ways you can tweak it to fit your needs.
+
+NOTE: In order to get the full AWS Lambda tracing capabilities, use with APM Server 7.16 or higher. Using
+older versions provides most value, but some relevant metadata fields will not be indexed.
+
+[float]
+[[aws-lambda-runtimes]]
+==== Supported runtimes
+
+AWS Lambda provides multiple https://docs.aws.amazon.com/lambda/latest/dg/java-image.html[JVM base images], only the ones that support the `AWS_LAMBDA_EXEC_WRAPPER` environment variables
+are supported out of the box.
+
+Running with unsupported images is still possible but requires providing agent configuration through environment variables
+explicitly.
+
+|===
+|Tags |Java Runtime |Operating System|Supported
+
+|11
+|Java 11 (Corretto)
+|Amazon Linux 2
+|yes
+
+|8.al2
+|Java 8 (Corretto)
+|Amazon Linux 2
+|yes
+
+|8
+|Java 8 (OpenJDK)
+|Amazon Linux 2018.03
+|no
+
+|===
+
+[float]
+[[aws-lambda-installation]]
+==== Installation
+
+Setting up APM for your Java Lambda function is a two-step process. Make sure to follow _both_ of the following steps:
+
+1. <<aws-lambda-extension>>
+2. <<aws-lambda-instrumenting>>
+
+[float]
+[[aws-lambda-extension]]
+==== Install the Elastic APM Lambda extension
+
+Elastic uses a Lambda extension to forward data to an APM Server in a way that does not interfere with the execution of your Lambda function.
+
+Follow the https://www.elastic.co/guide/en/apm/guide/current/aws-lambda-extension.html[installation documentation for the extension] to setup the Elastic APM Lambda extension for your Lambda function.
+
+[float]
+[[aws-lambda-instrumenting]]
+==== Install the Elastic APM Java Agent Layer
+
+The Java Agent is installed as an AWS Layer. 
+
+1. Pick the right ARN from the https://github.com/elastic/apm-agent-java/releases[ARN table for the APM Java Agent Lambda Layer]. Note: The APM Java Agent Layer needs to be in the _same region_ as your Lambda function.
+2. Navigate to your function in the AWS Console
+3. Scroll to the Layers section and click the _Add a layer_ button
+4. Choose the _Specify an ARN_ radio button
+5. Enter the Version ARN of the APM Java Agent Layer in the _Specify an ARN_ text input
+6. Click the _Add_ button
+
+Once the APM Java Agent Layer is in place, you'll need to configure some environment variables _in addition_ to the environment variables you already configured for the APM Lambda extension. 
+Configure the following environment variables for the APM Java Agent Layer:
+
+1. (required) `AWS_LAMBDA_EXEC_WRAPPER`: set this variable's value to `/opt/elastic-apm-handler`, so that Lambda starts the runtime with an attached APM Java agent.
+2. (recommended) <<config-application-packages, `ELASTIC_APM_APPLICATION_PACKAGES`>>: setting this may improve cold start times.
+3. (optional) Fine-tune the Java agent with any of the available <<configuration, configuration options>>.
+
+That's it, if you've done all of the above you are set to go!
+Your Lambda function invocations should be traced from now on.
+
+[float]
+[[aws-lambda-performance-monitoring]]
+==== Performance monitoring
+
+Elastic APM automatically measures the performance of your lambda function executions.
+It records traces for database queries, external HTTP requests,
+and other slow operations that happen during execution.
+
+By default, the agent will trace <<supported-technologies,the usual supported technologies>>.
+To trace other events, take a look at <<java-method-monitoring, additional method tracing options>>, however note that
+due to its asynchronous nature, the <<method-sampling-based, Sampling Profiler>> is not a valid option for AWS Lambda.
+
+[float]
+[[aws-lambda-error-monitoring]]
+==== Error monitoring
+
+Whenever an `Exception` is thrown by your function handler method, the agent will send an error event to the APM Server
+and the corresponding transaction will be recorded as a failed transaction.
+Errors related to traced spans will be sent as well.
+
+[float]
+[[aws-lambda-caveats]]
+==== Caveats
+- System and custom metrics are not collected for Lambda functions. This is both because most of those are irrelevant
+and because the interval-based event sending model is not suitable for FaaS environments.
+- Cold starts can be significantly slower when the agent is installed. The higher memory limit you would allow for your
+Function, the smaller this effect would be. This doesn't affect memory usage for subsequent Function invocations,
+it is only relevant for cold starts.
+- The <<method-sampling-based,Sampling Profiler>> feature would not work because it relies on profiling sessions and
+subsequent asynchronous processing of the collected data.

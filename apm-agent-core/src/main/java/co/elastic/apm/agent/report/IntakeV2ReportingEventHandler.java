@@ -20,15 +20,15 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
-import co.elastic.apm.agent.common.ThreadUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.net.HttpURLConnection;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This reporter supports the nd-json HTTP streaming based intake v2 protocol
@@ -37,22 +37,22 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
     public static final String INTAKE_V2_URL = "/intake/v2/events";
     private final ProcessorEventHandler processorEventHandler;
-    private final Timer timeoutTimer;
+    private final ScheduledExecutorService timeoutTimer;
     @Nullable
-    private ApmServerReporter reporter;
-    @Nullable
-    private TimerTask timeoutTask;
+    private Runnable timeoutTask;
+    private final AtomicLong processed = new AtomicLong();
+    private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
 
     public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
                                          PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
         super(reporterConfiguration, payloadSerializer, apmServerClient);
         this.processorEventHandler = processorEventHandler;
-        this.timeoutTimer = new Timer(ThreadUtils.addElasticApmThreadPrefix("request-timeout-timer"), true);
+        this.timeoutTimer = ExecutorUtils.createSingleThreadSchedulingDaemonPool("request-timeout-timer");
     }
 
     @Override
     public void init(ApmServerReporter reporter) {
-        this.reporter = reporter;
+        timeoutTask = new WakeupOnTimeout(reporter);
     }
 
     @Override
@@ -62,25 +62,50 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         }
         try {
             if (!shutDown) {
-                handleEvent(event, sequence, endOfBatch);
+                if (connection != null && isApiRequestTimeExpired()) {
+                    logger.debug("Request flush because the request timeout occurred");
+                    endRequest();
+                }
+                dispatchEvent(event, sequence, endOfBatch);
             }
         } finally {
+            processed.set(sequence);
+            event.end();
             event.resetState();
         }
     }
 
-    private void handleEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
+    @Override
+    public boolean isProcessed(long sequence) {
+        return processed.get() >= sequence;
+    }
 
+    private void dispatchEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
         if (event.getType() == null) {
             return;
-        } else if (event.getType() == ReportingEvent.ReportingEventType.FLUSH) {
-            endRequest();
-            return;
-        } else if (event.getType() == ReportingEvent.ReportingEventType.SHUTDOWN) {
-            shutDown = true;
-            endRequest();
-            return;
         }
+        switch (event.getType()) {
+            case END_REQUEST:
+                endRequest();
+                break;
+            case SHUTDOWN:
+                handleShutdownEvent();
+                break;
+            case SPAN:
+            case ERROR:
+            case TRANSACTION:
+            case JSON_WRITER:
+                handleIntakeEvent(event, sequence, endOfBatch);
+                break;
+        }
+    }
+
+    private void handleShutdownEvent() {
+        shutDown = true;
+        endRequest();
+    }
+
+    private void handleIntakeEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
         processorEventHandler.onEvent(event, sequence, endOfBatch);
         try {
             if (connection == null) {
@@ -95,17 +120,19 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
                 dropped++;
             }
         } catch (Exception e) {
-            logger.error("Failed to handle event of type {} with this error: {}", event.getType(), e.getMessage());
-            logger.debug("Event handling failure", e);
-            endRequest();
-            onConnectionError(null, currentlyTransmitting + 1, 0);
-        } finally {
-            event.end();
+            handleConnectionError(event, e);
         }
 
         if (shouldEndRequest()) {
             endRequest();
         }
+    }
+
+    private void handleConnectionError(ReportingEvent event, Exception e) {
+        logger.error("Failed to handle event of type {} with this error: {}", event.getType(), e.getMessage());
+        logger.debug("Event handling failure", e);
+        endRequest();
+        onConnectionError(null, currentlyTransmitting + 1, 0);
     }
 
     /**
@@ -132,33 +159,19 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         }
     }
 
-    private void cancelTimeout() {
-        if (timeoutTask != null) {
-            timeoutTask.cancel();
-            timeoutTask = null;
-        }
-    }
-
     @Override
     @Nullable
     protected HttpURLConnection startRequest(String endpoint) throws Exception {
         HttpURLConnection connection = super.startRequest(endpoint);
         if (connection != null) {
-            if (reporter != null) {
-                timeoutTask = new FlushOnTimeoutTimerTask(reporter);
+            if (timeoutTask != null) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Scheduling request timeout in {}", reporterConfiguration.getApiRequestTime());
                 }
-                timeoutTimer.schedule(timeoutTask, reporterConfiguration.getApiRequestTime().getMillis());
+                timeoutTimer.schedule(timeoutTask, reporterConfiguration.getApiRequestTime().getMillis(), TimeUnit.MILLISECONDS);
             }
         }
         return connection;
-    }
-
-    @Override
-    public void endRequest() {
-        cancelTimeout();
-        super.endRequest();
     }
 
     @Override
@@ -166,43 +179,28 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         super.close();
         logger.info("Reported events: {}", reported);
         logger.info("Dropped events: {}", dropped);
-        timeoutTimer.cancel();
+        timeoutTimer.shutdownNow();
     }
 
-    private static class FlushOnTimeoutTimerTask extends TimerTask {
-        private static final Logger logger = LoggerFactory.getLogger(FlushOnTimeoutTimerTask.class);
+    /**
+     * Schedules a wakeup event to the disruptor.
+     * This ensures that even in quiet periods, the event handler will be woken up to end the request after api_request_time has expired.
+     */
+    private static class WakeupOnTimeout implements Runnable {
         private final ApmServerReporter reporter;
-        @Nullable
-        private volatile Future<Void> flush;
 
-        private FlushOnTimeoutTimerTask(ApmServerReporter reporter) {
+        private WakeupOnTimeout(ApmServerReporter reporter) {
             this.reporter = reporter;
         }
 
         @Override
         public void run() {
-            logger.debug("Request flush because the request timeout occurred");
             try {
-                // If the ring buffer is full this throws an exception.
-                // In case it's full due to a traffic spike it means that it will eventually flush anyway because of
-                // the max request size, but we need to catch this Exception otherwise the Timer thread dies.
-                flush = reporter.flush();
+                reporter.scheduleWakeupEvent();
             } catch (Exception e) {
-                // This shouldn't reoccur when the queue is full due to lack of communication with the APM server
-                // as the TimerTask wouldn't be scheduled unless connection succeeds.
-                logger.info("Failed to register a Flush event to the disruptor: {}", e.getMessage());
+                // should never happen in practice as we're not expecting this method to throw any exception
+                logger.warn(e.getMessage(), e);
             }
-        }
-
-        @Override
-        public boolean cancel() {
-            final boolean cancel = super.cancel();
-            final Future<Void> flush = this.flush;
-            if (flush != null) {
-                flush.cancel(false);
-            }
-            return cancel;
         }
     }
-
 }

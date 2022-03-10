@@ -35,12 +35,13 @@ import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
-import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentation {
@@ -76,20 +77,21 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
         // the implementations have to be annotated as well
         // quote from javadoc:
         // "Marks a Java class as implementing a Web Service, or a Java interface as defining a Web Service interface."
-        return isAnnotatedWith(named("javax.jws.WebService")).and(not(isInterface()));
+        return not(isInterface()).and(not(isProxy())).and(isAnnotatedWith(namedOneOf("javax.jws.WebService", "jakarta.jws.WebService")));
     }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("javax.jws.WebService"));
+            .and(classLoaderCanLoadClass("javax.jws.WebService")
+                .or(classLoaderCanLoadClass("jakarta.jws.WebService")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return overridesOrImplementsMethodThat(
             isAnnotatedWith(
-                named("javax.jws.WebMethod")))
+                namedOneOf("javax.jws.WebMethod", "jakarta.jws.WebMethod")))
             .onSuperClassesThat(isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any()));
     }
 

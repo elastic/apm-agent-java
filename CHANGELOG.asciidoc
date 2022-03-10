@@ -20,8 +20,165 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.29.1]]
+==== 1.29.1 - YYYY/MM/DD
+
+[float]
+===== Potentially breaking changes
+* Create the JDBC spans as exit spans- {pull}2484[#2484]
+
+[float]
+===== Features
+* Added support for setting service name and version for a transaction via the public api - {pull}2451[#2451]
+* Added support for en-/disabling each public annotation on each own - {pull}2472[#2472]
+* Added support for compressing spans - {pull}2477[#2477]
+* Added microsecond durations with `us` as unit - {pull}2496[#2496]
+* Added support for dropping fast exit spans - {pull}2491[#2491]
+* Added tests for elasticsearch-java client - {pull}2211[#2211]
+
+[float]
+===== Performance improvements
+* Proxy classes are excluded from instrumentation in more cases - {pull}2474[#2474]
+
+[float]
+===== Performance improvements
+* Only time type/method matching if the debug logging is enabled as the results are only used when debug logging is enabled - {pull}2471[#2471]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.29.0]]
+==== 1.29.0 - 2022/02/09
+
+[float]
+===== Breaking changes
+* Changes in service name auto-discovery of jar files (see Features section)
+
+[float]
+===== Features
+* Exceptions that are logged using the fatal log level are now captured (log4j2 only) - {pull}2377[#2377]
+* Replaced `authorization` in the default value of `sanitize_field_names` with `*auth*` - {pull}2326[#2326]
+* Unsampled transactions are dropped and not sent to the APM-Server if the APM-Server version is 8.0+ - {pull}2329[#2329]
+* Adding agent logging capabilities to our SDK, making it available for external plugins - {pull}2390[#2390]
+* Service name auto-discovery improvements
+** For applications deployed to application servers (`war` files) and standalone jars that are started with `java -jar`,
+   the agent now discovers the `META-INF/MANIFEST.MF` file.
+** If the manifest contains the `Implementation-Title` attribute, it is used as the default service name - {pull}1921[#1921], {pull}2434[#2434] +
+  *Note*: this may change your service names if you relied on the auto-discovery that uses the name of the jar file.
+  If that jar file also contains an `Implementation-Title` attribute in the `MANIFEST.MF` file, the latter will take precedence.
+** When the manifest contains the `Implementation-Version` attribute, it is used as the default service version - {pull}1726[#1726], {pull}1922[#1922], {pull}2434[#2434]
+* Added support for instrumenting Struts 2 static resource requests - {pull}1949[#1949]
+* Added support for Java/Jakarta WebSocket ServerEndpoint - {pull}2281[#2281]
+* Added support for setting the service name on Log4j2's EcsLayout - {pull}2296[#2296]
+* Print the used instrumentation groups when the application stops - {pull}2448[#2448]
+* Add `elastic.apm.start_async` property that makes the agent start on a non-premain/main thread - {pull}2454[#2454]
+
+[float]
+===== Bug fixes
+* Fix runtime attach with some docker images - {pull}2385[#2385]
+* Restore dynamic capability to `log_level` config for plugin loggers - {pull}2384[#2384]
+* Fix slf4j-related `LinkageError` - {pull}2390[#2390] and {pull}2376[#2376]
+* Fix possible deadlock occurring when Byte Buddy reads System properties by warming up bytecode instrumentation code
+paths. The BCI warmup is on by default and may be disabled through the internal `warmup_byte_buddy` config option - {pull}2368[#2368]
+* Fixed few dubbo plugin issues - {pull}2149[#2149]
+** Dubbo transaction will should be created at the provider side
+** APM headers conversion issue within dubbo transaction
+* Fix External plugins automatic setting of span outcome - {pull}2376[#2376]
+* Avoid early initialization of JMX on Weblogic - {pull}2420[#2420]
+* Automatically disable class sharing on AWS lambda layer - {pull}2438[#2438]
+* Avoid standalone spring applications to have two different service names, one based on the jar name, the other based on `spring.application.name`.
+
+[[release-notes-1.28.4]]
+==== 1.28.4 - 2021/12/30
+
+[float]
+===== Bug fixes
+* Fix `@Traced` annotation to return proper outcome instead of `failed` - {pull}2370[#2370]
+
+[float]
+===== Dependency updates
+* Update Log4j to 2.12.4 and log4j2-ecs-layout to 1.3.2 - {pull}2378[#2378]
+
+[[release-notes-1.28.3]]
+==== 1.28.3 - 2021/12/22
+
+[float]
+===== Dependency updates
+* Update Log4j to 2.12.3
+* Update ecs-logging-java to 1.3.0
+
+[float]
+===== Potentially breaking changes
+* If the agent cannot discover a service name, it now uses `unknown-java-service` instead of `my-service` - {pull}2325[#2325]
+
+[float]
+===== Bug fixes
+* Gracefully handle JDBC drivers which don't support `Connection#getCatalog` - {pull}2340[#2340]
+* Fix using JVM keystore options for communication with APM Server - {pull}2362[#2362]
+
+[[release-notes-1.28.2]]
+==== 1.28.2 - 2021/12/16
+
+[float]
+===== Dependency updates
+* Update Log4j to 2.12.2
+
+[float]
+===== Bug fixes
+* Fix module loading errors on J9 JVM - {pull}2341[#2341]
+* Fixing log4j configuration error - {pull}2343[#2343]
+
+[[release-notes-1.28.1]]
+==== 1.28.1 - 2021/12/10
+
+[float]
+===== Security 
+* Fix for "Log4Shell" RCE 0-day exploit in log4j https://nvd.nist.gov/vuln/detail/CVE-2021-44228[CVE-2021-44228] - {pull}2332[#2332]
+
+[float]
+===== Features
+* Added support to selectively enable instrumentations - {pull}2292[#2292]
+
+[float]
+===== Bug fixes
+* Preferring controller names for Spring MVC transactions, `use_path_as_transaction_name` only as a fallback - {pull}2320[#2320]
+
+[[release-notes-1.28.0]]
+==== 1.28.0 - 2021/12/07
+
+[float]
+===== Features
+* Adding experimental support for <<aws-lambda, AWS Lambda>> - {pull}1951[#1951]
+* Now supporting tomcat 10 - {pull}2229[#2229]
+
+[float]
+===== Bug fixes
+* Fix error with parsing APM Server version for 7.16+ - {pull}2313[#2313]
+
+[[release-notes-1.27.1]]
+==== 1.27.1 - 2021/11/30
+
+[float]
+===== Security
+* Resolves Local Privilege Escalation issue https://discuss.elastic.co/t/apm-java-agent-security-update/291355[ESA-2021-30] https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-37942[CVE-2021-37942]
+
+[float]
+===== Features
+* Add support to Jakarta EE for JSF - {pull}2254[#2254]
+
+[float]
+===== Bug fixes
+* Fixing missing Micrometer metrics in Spring boot due to premature initialization - {pull}2255[#2255]
+* Fixing hostname trimming of FQDN too aggressive - {pull}2286[#2286]
+* Fixing agent `unknown` version - {pull}2289[#2289]
+* Improve runtime attach configuration reliability - {pull}2283[#2283]
+
 [[release-notes-1.27.0]]
-==== 1.27.0 - YYYY/MM/DD
+==== 1.27.0 - 2021/11/15
+
+[float]
+===== Security
+* Resolves Local Privilege Escalation issue https://discuss.elastic.co/t/apm-java-agent-security-update/289627[ESA-2021-29] https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-37941[CVE-2021-37941]
 
 [float]
 ===== Potentially breaking changes
@@ -42,11 +199,23 @@ by the agent may be different. This was done in order to improve the integration
 * Update to async-profiler 1.8.7 and set configured `safemode` at load time though a new system property - {pull}2165[#2165]
 * Added support to capture `context.message.routing-key` in rabbitmq, spring amqp instrumentations - {pull}1767[#1767]
 * Breakdown metrics are now tracked per service (when using APM Server 8.0) - {pull}2208[#2208]
-* Added tests for elasticsearch-java client - {pull}2211[#2211]
+* Add support for Spring AMQP batch API - {pull}1716[#1716]
+* Add the (current) transaction name to the error (when using APM Server 8.0) - {pull}2235[#2235]
+* The JVM/JMX metrics are reported for each service name individually (when using APM Server 8.0) - {pull}2233[#2233]
+* Added <<config-span-stack-trace-min-duration,`span_stack_trace_min_duration`>> option.
+ This replaces the now deprecated `span_frames_min_duration` option.
+ The difference is that the new option has more intuitive semantics for negative values (never collect stack trace) and zero (always collect stack trace). - {pull}2220[#2220]
+* Add support to Jakarta EE for JAX-WS - {pull}2247[#2247]
+* Add support to Jakarta EE for JAX-RS - {pull}2248[#2248]
+* Add support for Jakarta EE EJB annotations `@Schedule`, `@Schedules` - {pull}2250[#2250]
+* Add support to Jakarta EE for Servlets - {pull}1912[#1912]
+* Added support to Quartz 1.x - {pull}2219[#2219]
+>>>>>>> upstream/main
 
 [float]
 ===== Performance improvements
 * Disable compression when sending data to a local APM Server
+* Reducing startup contention related to instrumentation through `ensureInstrumented` - {pull}2150[#2150]
 
 [float]
 ===== Bug fixes
@@ -64,18 +233,30 @@ discovery - {pull}2205[#2205]
 * Refactorings in the `apm-agent-plugin-sdk` that may imply breaking changes for beta users of the external plugin mechanism
 ** `WeakMapSupplier.createMap()` is now `WeakConcurrent.buildMap()` and contains more builders - {pull}2136[#2136]
 ** `GlobalThreadLocal` has been removed in favor of `DetachedThreadLocal`. To make it global, use `GlobalVariables` - {pull}2136[#2136]
-** `DynamicTransformer.Accessor.get().ensureInstrumented` is now `DynamicTransformer.ensureInstrumented` - {pull}#2164[#2164]
+** `DynamicTransformer.Accessor.get().ensureInstrumented` is now `DynamicTransformer.ensureInstrumented` - {pull}2164[#2164]
 ** The `@AssignTo.*` annotations have been removed.
    Use the `@Advice.AssignReturned.*` annotations that come with the latest version of Byte Buddy.
    If your plugin uses the old annotations, it will be skipped.
    {pull}2171[#2171]
 * Switching last instrumentations (`trace_methods`, sparkjava, JDK `HttpServer` and Struts 2) to
-`TracerAwareInstrumentation` - {pull}#2170[#2170]
-* Replace concurrency plugin maps to `SpanConcurrentHashMap` ones - {pull}#2173[#2173]
-* Align User-Agent HTTP header with other APM agents - {pull}#2177[#2177]
+`TracerAwareInstrumentation` - {pull}2170[#2170]
+* Replace concurrency plugin maps to `SpanConcurrentHashMap` ones - {pull}2173[#2173]
+* Align User-Agent HTTP header with other APM agents - {pull}2177[#2177]
 
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+[[release-notes-1.26.2]]
+==== 1.26.2 - 2021/12/30
+
+[float]
+===== Dependency updates
+* Update Log4j to 2.12.4 and log4j2-ecs-layout to 1.3.2 - {pull}2378[#2378]
+
+[[release-notes-1.26.1]]
+==== 1.26.1 - 2021/12/22
+
+[float]
+===== Dependency updates
+* Update Log4j to 2.12.3
+* Update ecs-logging-java to 1.3.0
 
 [[release-notes-1.26.0]]
 ==== 1.26.0 - 2021/09/14
@@ -99,6 +280,7 @@ to `mssql` to align with other agents.
 * Add `-download-agent-version` to the agent <<setup-attach-cli-usage-options, attach CLI tool options>>, allowing the
 user to configure an arbitrary agent version that will be downloaded from maven and attached - {pull}1959[#1959]
 * Add extra check to detect improper agent setup - {pull}2076[#2076]
+* In redis tests - embedded RedisServer is replaced by testcontainers - {pull}2221[#2221]
 
 [float]
 ===== Performance improvements
