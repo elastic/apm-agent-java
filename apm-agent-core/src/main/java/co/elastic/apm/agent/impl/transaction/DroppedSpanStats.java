@@ -122,8 +122,7 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
             return;
         }
 
-        StatsKey statsKey = statsKeyObjectPool.createInstance().init(resource, span.getOutcome());
-        Stats stats = getOrCreateStats(statsKey);
+        Stats stats = getOrCreateStats(resource.toString(), span.getOutcome());
         if (stats == null) {
             return;
         }
@@ -136,7 +135,8 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
         stats.sum.addAndGet(span.getDuration());
     }
 
-    private Stats getOrCreateStats(StatsKey statsKey) {
+    private Stats getOrCreateStats(String resource, Outcome oucome) {
+        StatsKey statsKey = statsKeyObjectPool.createInstance().init(resource, oucome);
         Stats stats = statsMap.get(statsKey);
         if (stats != null || statsMap.size() > 127) {
             statsKeyObjectPool.recycle(statsKey);
