@@ -1127,7 +1127,7 @@ public class DslJsonSerializer implements PayloadSerializer {
             jw.writeByte(OBJECT_START);
             writeField("destination_service_resource", stats.getKey().getDestinationServiceResource());
             writeField("outcome", stats.getKey().getOutcome().toString());
-            writeFieldName("destination");
+            writeFieldName("duration");
             jw.writeByte(OBJECT_START);
             writeField("count", stats.getValue().getCount());
             writeFieldName("sum");
