@@ -71,15 +71,11 @@ public class PackagingTest {
 
         Stream<AgentModule> plugins = getAgentPluginModules().filter(AgentModule::isPlugin);
         Map<String, AgentModule> modules = getAgentPluginModules().collect(Collectors.toMap(m -> m.mavenArtifactId, m -> m));
-
         plugins.forEach(plugin -> {
 
             Set<AgentModule> dependencies = plugin.getInternalDependencies().stream()
                 .filter(d -> !d.equals("apm-agent-core")) // filter-out explicit dependencies to apm-agent-core
-                .filter(d -> !d.equals("apm-httpclient-core")) // TODO : ignore this known issue for now
-                .filter(d -> !d.equals("apm-redis-common")) // TODO : known case where it's OK
-                .filter(d -> !d.equals("apm-cassandra-core-plugin")) // TODO : known case where it's OK
-                .filter(d -> !d.equals("apm-log-shader-plugin-common")) // TODO : known case fixed by another PR
+                .filter(d -> !d.equals("apm-log-shader-plugin-common")) // TODO : remove this known case when logging refactor PR is merged.
                 .map(modules::get)
                 .collect(Collectors.toSet());
 
@@ -181,7 +177,7 @@ public class PackagingTest {
                 if (Files.exists(customizerService)) {
                     try {
                         List<String> lines = Files.readAllLines(customizerService);
-                        assertThat(lines).describedAs("only a single root package customizer expected").hasSize(1);
+                        assertThat(lines).describedAs("exactly one root package customizer expected in file %s", customizerService).hasSize(1);
                         Class<?> customizerType = Class.forName(lines.get(0), true, PackagingTest.class.getClassLoader());
                         PluginClassLoaderRootPackageCustomizer customizer = (PluginClassLoaderRootPackageCustomizer) customizerType.getConstructor().newInstance();
                         return customizer.pluginClassLoaderRootPackages();
