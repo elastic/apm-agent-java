@@ -24,10 +24,12 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.ServiceOrigin;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import com.amazonaws.services.lambda.runtime.Context;
 
 import javax.annotation.Nullable;
 import java.nio.CharBuffer;
@@ -153,19 +155,45 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
         }
     }
 
-
-    protected String getHttpVersion(String protocol) {
-        // don't allocate new strings in the common cases
-        switch (protocol) {
-            case "HTTP/1.0":
-                return "1.0";
-            case "HTTP/1.1":
-                return "1.1";
-            case "HTTP/2.0":
-                return "2.0";
-            default:
-                return protocol.replace("HTTP/", "");
+    @Override
+    protected void setTransactionName(Transaction transaction, I event, Context lambdaContext) {
+        StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
+        if (transactionName != null) {
+            String httpMethod = getHttpMethod(event);
+            String requestContextPath = getRequestContextPath(event);
+            String resourcePath = getResourcePath(event);
+            if (httpMethod != null) {
+                transactionName.append(httpMethod).append(" ");
+            }
+            if (webConfiguration.isUsePathAsName() && requestContextPath != null) {
+                transactionName.append(requestContextPath);
+            } else if (resourcePath != null) {
+                String stage = getStage(event);
+                if (stage != null) {
+                    transactionName.append('/').append(stage);
+                }
+                if (!resourcePath.startsWith("/")) {
+                    transactionName.append('/');
+                }
+                transactionName.append(resourcePath);
+            } else {
+                // HTTP method may have been appended already to the name buffer, but calling the super's implementation that relies on
+                // the lambda function name would reset the buffer before appending it
+                super.setTransactionName(transaction, event, lambdaContext);
+            }
         }
     }
+
+    @Nullable
+    protected abstract String getHttpMethod(I event);
+
+    @Nullable
+    protected abstract String getRequestContextPath(I event);
+
+    @Nullable
+    protected abstract String getStage(I event);
+
+    @Nullable
+    protected abstract String getResourcePath(I event);
 
 }

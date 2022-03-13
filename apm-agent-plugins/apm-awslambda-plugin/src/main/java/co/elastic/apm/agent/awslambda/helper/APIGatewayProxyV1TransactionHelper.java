@@ -21,7 +21,6 @@ package co.elastic.apm.agent.awslambda.helper;
 import co.elastic.apm.agent.awslambda.MapTextHeaderGetter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
@@ -57,12 +56,6 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
         }
 
         return transaction;
-    }
-
-    private String getHttpMethod(APIGatewayProxyRequestEvent apiGatewayEvent) {
-        String httpMethod = apiGatewayEvent.getRequestContext().getHttpMethod();
-        httpMethod = httpMethod == null ? "GET" : httpMethod;
-        return httpMethod;
     }
 
     @Nullable
@@ -122,34 +115,28 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
         return "1.0";
     }
 
+    @Nullable
     @Override
-    protected void setTransactionName(Transaction transaction, APIGatewayProxyRequestEvent event, Context lambdaContext) {
-        StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
-        if (null != transactionName && requiredDataForTransactionNameAvailable(event)) {
-            transactionName.append(getHttpMethod(event)).append(" ");
-            if (webConfiguration.isUsePathAsName()) {
-                transactionName.append(event.getRequestContext().getPath());
-            } else {
-                setResourcePathBasedName(event, transactionName);
-            }
-        } else {
-            super.setTransactionName(transaction, event, lambdaContext);
-        }
+    protected String getHttpMethod(APIGatewayProxyRequestEvent event) {
+        String httpMethod = event.getRequestContext().getHttpMethod();
+        return (httpMethod == null) ? "GET" : httpMethod;
     }
 
-    private void setResourcePathBasedName(APIGatewayProxyRequestEvent event, StringBuilder transactionName) {
-        transactionName.append('/').append(event.getRequestContext().getStage());
-        String resourcePath = event.getRequestContext().getResourcePath();
-        if (!resourcePath.startsWith("/")) {
-            transactionName.append('/');
-        }
-        transactionName.append(resourcePath);
+    @Nullable
+    @Override
+    protected String getRequestContextPath(APIGatewayProxyRequestEvent event) {
+        return event.getRequestContext().getPath();
     }
 
-    private boolean requiredDataForTransactionNameAvailable(APIGatewayProxyRequestEvent event) {
-        return event.getRequestContext().getStage() != null &&
-            event.getRequestContext().getResourcePath() != null &&
-            event.getRequestContext().getPath() != null &&
-            event.getRequestContext().getHttpMethod() != null;
+    @Nullable
+    @Override
+    protected String getStage(APIGatewayProxyRequestEvent event) {
+        return event.getRequestContext().getStage();
+    }
+
+    @Nullable
+    @Override
+    protected String getResourcePath(APIGatewayProxyRequestEvent event) {
+        return event.getRequestContext().getResourcePath();
     }
 }

@@ -21,7 +21,6 @@ package co.elastic.apm.agent.awslambda.helper;
 import co.elastic.apm.agent.awslambda.MapTextHeaderGetter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
@@ -53,7 +52,7 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
             APIGatewayV2HTTPEvent.RequestContext.Http http = requestContext.getHttp();
             fillHttpRequestData(transaction, http.getMethod(), apiGatewayEvent.getHeaders(), requestContext.getDomainName(),
                 http.getPath(), apiGatewayEvent.getRawQueryString(), apiGatewayEvent.getBody());
-            transaction.getContext().getRequest().withHttpVersion(getHttpVersion(http.getProtocol()));
+            transaction.getContext().getRequest().withHttpVersion(http.getProtocol());
         }
 
         return transaction;
@@ -77,48 +76,39 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
         return "2.0";
     }
 
+    @Nullable
     @Override
-    protected void setTransactionName(Transaction transaction, APIGatewayV2HTTPEvent event, Context lambdaContext) {
-        StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
-        if (transactionName != null && requiredDataForTransactionNameAvailable(event)) {
-            transactionName.append(event.getRequestContext().getHttp().getMethod()).append(" ");
-            if (webConfiguration.isUsePathAsName()) {
-                transactionName.append(event.getRequestContext().getHttp().getPath());
-            } else {
-                setResourcePathBasedName(event, transactionName);
-            }
-        } else {
-            super.setTransactionName(transaction, event, lambdaContext);
-        }
+    protected String getHttpMethod(APIGatewayV2HTTPEvent event) {
+        return event.getRequestContext().getHttp().getMethod();
     }
 
-    protected void setResourcePathBasedName(APIGatewayV2HTTPEvent event, StringBuilder transactionName) {
+    @Nullable
+    @Override
+    protected String getRequestContextPath(APIGatewayV2HTTPEvent event) {
+        return event.getRequestContext().getHttp().getPath();
+    }
+
+    @Nullable
+    @Override
+    protected String getStage(APIGatewayV2HTTPEvent event) {
         String stage = event.getRequestContext().getStage();
         if(stage != null && !stage.equals("$default")){
-            transactionName.append('/');
-            transactionName.append(stage);
+            return stage;
         }
+        return null;
+    }
 
-        if (event.getRequestContext().getRouteKey() != null) {
-            String routeKey = event.getRequestContext().getRouteKey();
+    @Nullable
+    @Override
+    protected String getResourcePath(APIGatewayV2HTTPEvent event) {
+        String routeKey = event.getRequestContext().getRouteKey();
+        if (routeKey != null) {
             int idxSpace = routeKey.indexOf(' ');
 
             if (idxSpace >= 0 && routeKey.length() > idxSpace + 1) {
                 routeKey = routeKey.substring(idxSpace + 1);
             }
-
-            if (!routeKey.startsWith("/")) {
-                transactionName.append('/');
-            }
-
-            transactionName.append(routeKey);
         }
-    }
-
-    private boolean requiredDataForTransactionNameAvailable(APIGatewayV2HTTPEvent event) {
-        return event.getRequestContext().getStage() != null &&
-            event.getRequestContext().getRouteKey() != null &&
-            event.getRequestContext().getHttp().getPath() != null &&
-            event.getRequestContext().getHttp().getMethod() != null;
+        return routeKey;
     }
 }
