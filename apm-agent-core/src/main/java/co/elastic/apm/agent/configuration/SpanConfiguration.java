@@ -30,17 +30,17 @@ public class SpanConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Boolean> spanCompressionEnabled = ConfigurationOption.booleanOption()
         .key("span_compression_enabled")
         .configurationCategory(HUGE_TRACES_CATEGORY)
-        .tags("added[1.30.0]", "internal")
+        .tags("added[1.30.0]")
         .description("Setting this option to true will enable span compression feature.\n" +
             "Span compression reduces the collection, processing, and storage overhead, and removes clutter from the UI. " +
             "The tradeoff is that some information such as DB statements of all the compressed spans will not be collected.")
         .dynamic(true)
-        .buildWithDefault(false);
+        .buildWithDefault(true);
 
     private final ConfigurationOption<TimeDuration> spanCompressionExactMatchMaxDuration = TimeDurationValueConverter.durationOption("ms")
         .key("span_compression_exact_match_max_duration")
         .configurationCategory(HUGE_TRACES_CATEGORY)
-        .tags("added[1.30.0]", "internal")
+        .tags("added[1.30.0]")
         .description("Consecutive spans that are exact match and that are under this threshold will be compressed into a single composite span. " +
             "This option does not apply to composite spans. This reduces the collection, processing, and storage overhead, and removes clutter from the UI. " +
             "The tradeoff is that the DB statements of all the compressed spans will not be collected.")
@@ -50,12 +50,22 @@ public class SpanConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<TimeDuration> spanCompressionSameKindMaxDuration = TimeDurationValueConverter.durationOption("ms")
         .key("span_compression_same_kind_max_duration")
         .configurationCategory(HUGE_TRACES_CATEGORY)
-        .tags("added[1.30.0]", "internal")
+        .tags("added[1.30.0]")
         .description("Consecutive spans to the same destination that are under this threshold will be compressed into a single composite span. " +
             "This option does not apply to composite spans. This reduces the collection, processing, and storage overhead, and removes clutter from the UI. " +
             "The tradeoff is that the DB statements of all the compressed spans will not be collected.")
         .dynamic(true)
-        .buildWithDefault(TimeDuration.of("5ms"));
+        .buildWithDefault(TimeDuration.of("0ms"));
+
+    private final ConfigurationOption<TimeDuration> exitSpanMinDuration = TimeDurationValueConverter.fineDurationOption()
+        .key("exit_span_min_duration")
+        .tags("added[1.30.0]")
+        .configurationCategory(HUGE_TRACES_CATEGORY)
+        .description("Exit spans are spans that represent a call to an external service, like a database. If such calls are very short, they are usually not relevant and can be ignored.\n" +
+            "\n" +
+            "NOTE: If a span propagates distributed tracing ids, it will not be ignored, even if it is shorter than the configured threshold. This is to ensure that no broken traces are recorded.")
+        .dynamic(true)
+        .buildWithDefault(TimeDuration.ofFine("0ms"));
 
     public boolean isSpanCompressionEnabled() {
         return spanCompressionEnabled.get();
@@ -67,5 +77,9 @@ public class SpanConfiguration extends ConfigurationOptionProvider {
 
     public TimeDuration getSpanCompressionSameKindMaxDuration() {
         return spanCompressionSameKindMaxDuration.get();
+    }
+
+    public TimeDuration getExitSpanMinDuration() {
+        return exitSpanMinDuration.get();
     }
 }
