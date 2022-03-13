@@ -27,7 +27,6 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
 
@@ -60,7 +59,6 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
         return transaction;
     }
 
-    @Nonnull
     private String getHttpMethod(APIGatewayProxyRequestEvent apiGatewayEvent) {
         String httpMethod = apiGatewayEvent.getRequestContext().getHttpMethod();
         httpMethod = httpMethod == null ? "GET" : httpMethod;
