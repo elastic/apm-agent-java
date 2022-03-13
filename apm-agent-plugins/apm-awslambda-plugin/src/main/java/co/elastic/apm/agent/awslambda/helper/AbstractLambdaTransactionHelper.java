@@ -113,7 +113,7 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
         transaction.deactivate().end();
         long flushTimeout = serverlessConfiguration.getDataFlushTimeout();
         try {
-            if (!tracer.getReporter().flush(flushTimeout, TimeUnit.MILLISECONDS)) {
+            if (!tracer.getReporter().flush(flushTimeout, TimeUnit.MILLISECONDS, true)) {
                 logger.error("APM data flush haven't completed within {} milliseconds.", flushTimeout);
             }
         } catch (Exception e) {
