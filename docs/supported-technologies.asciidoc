@@ -510,8 +510,8 @@ ECS Service Name - 1.29.0
 ECS Reformatting - 1.22.0
 
 
-|log4j
-|Trace correlation - 1.x
+|log4j1
+|Trace correlation and error capture - 1.x
 
 ECS Reformatting - 1.2.17
 
@@ -520,9 +520,14 @@ ECS Reformatting - 1.2.17
 
 When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
 ECS-compatible format (since 1.22.0, experimental)
+
+Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
+When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well.
 |Trace correlation - 1.13.0
 
 ECS Reformatting - 1.22.0
+
+Error capturing - 1.30.0
 
 |Logback
 |1.1.0+
