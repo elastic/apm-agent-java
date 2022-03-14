@@ -92,7 +92,7 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
         if (functionArn == null) {
             functionArn = lambdaContext.getInvokedFunctionArn();
             String[] arnSegments = functionArn.split(":");
-            if (arnSegments.length > 6) {
+            if (arnSegments.length > 7) {
                 functionArn = functionArn.substring(0, functionArn.lastIndexOf(':'));
             }
         }
