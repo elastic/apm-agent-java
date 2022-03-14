@@ -40,6 +40,8 @@ endif::[]
 * Only time type/method matching if the debug logging is enabled as the results are only used when debug logging is enabled - {pull}2471[#2471]
 
 [float]
+===== Bug fixes
+* Fix cross-plugin dependencies triggering NoClassDefFound - {pull}2509[#2509]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
