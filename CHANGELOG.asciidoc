@@ -38,10 +38,11 @@ endif::[]
 [float]
 ===== Performance improvements
 * Proxy classes are excluded from instrumentation in more cases - {pull}2474[#2474]
+* Only time type/method matching if the debug logging is enabled as the results are only used when debug logging is enabled - {pull}2471[#2471]
 
 [float]
-===== Performance improvements
-* Only time type/method matching if the debug logging is enabled as the results are only used when debug logging is enabled - {pull}2471[#2471]
+===== Bug fixes
+* Fix cross-plugin dependencies triggering NoClassDefFound - {pull}2509[#2509]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
