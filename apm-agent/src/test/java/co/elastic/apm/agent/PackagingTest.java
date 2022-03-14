@@ -92,6 +92,8 @@ public class PackagingTest {
                     if (depRootPackages.isEmpty()) {
                         // dependency is loaded in the bootstrap CL, thus it is always visible to the plugin
                         log.info("dependency '{}' is loaded in the bootstrap CL, thus it is always visible to the '{}' plugin", dep.mavenArtifactId, plugin.mavenArtifactId);
+                    } else if (!dep.hasDependencies()) {
+                        log.info("dependency '{}' does not have dependencies, thus it is safe to load from agent or plugin CL", dep.mavenArtifactId);
                     } else if (plugin.getClassloaderRootPackages().contains(dep.basePackage)) {
                         log.info("dependency '{}' is accessible to plugin '{}' through classloader root customization", dep.mavenArtifactId, plugin.mavenArtifactId);
                     } else {
@@ -202,6 +204,10 @@ public class PackagingTest {
                 .filter(d -> d.getScope() == null || !d.getScope().equals("test"))
                 .map(Dependency::getArtifactId)
                 .collect(Collectors.toSet());
+        }
+
+        public boolean hasDependencies() {
+            return !mavenModel.getDependencies().isEmpty();
         }
 
         private String getGroupId(Dependency d) {
