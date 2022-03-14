@@ -111,7 +111,7 @@ subsequent Function invocations, it is only relevant for cold starts.
 overhead regardless of it being applicable for your specific Lambda function. You can considerably reduce the related overhead by
 specifying a limited list of enabled instrumentations through the <<config-enable-instrumentations, `enable_instrumentations`>> config.
 An automatic way to generate such list is by invoking your Lambda with the agent's default configurations and a <<config-log-level,
-`log_level`>> of `INFO` or lower. Once your Lambda runtime gets terminated (either forcibly or by timing out), it would log a message with
-the following format: `Used instrumentation groups: [aws-lambda, executor, executor-collection, fork-join, ssl-context, urlconnection]`.
+`log_level`>> of `INFO` or lower. After the first lambda invocation, the agent would log a message with the following format: `Used
+instrumentation groups: [aws-lambda, executor, executor-collection, fork-join, ssl-context, urlconnection]`.
 * The <<method-sampling-based,Sampling Profiler>> feature would not work because it relies on profiling sessions and
 subsequent asynchronous processing of the collected data.
