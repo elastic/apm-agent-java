@@ -193,11 +193,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jboss-logmanager-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>apm-slf4j-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>

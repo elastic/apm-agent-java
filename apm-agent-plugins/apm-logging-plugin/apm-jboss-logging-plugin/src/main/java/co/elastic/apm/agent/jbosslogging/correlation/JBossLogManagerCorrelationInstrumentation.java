@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jbosslogmanager.correlation;
+package co.elastic.apm.agent.jbosslogging.correlation;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.asm.Advice;
@@ -41,7 +41,7 @@ public class JBossLogManagerCorrelationInstrumentation extends TracerAwareInstru
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("jboss-logmanager-correlation");
+        return Collections.singleton("jboss-logging-correlation");
     }
 
     @Override
