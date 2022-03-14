@@ -64,7 +64,7 @@ class CorrelationIdMapAdapter extends AbstractMap<String, String> {
                 if (activeSpan == null) {
                     return null;
                 }
-                return activeSpan.getTraceContext().getId().toString();
+                return activeSpan.getTraceContext().getTransactionId().toString();
             }
         }),
         new LazyEntry(ERROR_ID_MDC_KEY, new Callable<String>() {

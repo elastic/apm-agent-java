@@ -21,6 +21,7 @@ package co.elastic.apm.agent.loginstr;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
@@ -73,6 +74,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     private LoggingConfiguration loggingConfig;
     private String serviceName;
     private Transaction transaction;
+    private Span childSpan;
 
     public LoggingInstrumentationTest() {
         logger = createLoggerFacade();
@@ -95,6 +97,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         serviceName = Objects.requireNonNull(tracer.getMetaDataFuture().get(2000, TimeUnit.MILLISECONDS).getService().getName());
 
         transaction = Objects.requireNonNull(tracer.startRootTransaction(null)).activate();
+        childSpan = transaction.createSpan().activate();
     }
 
     private void setEcsReformattingConfig(LogEcsReformatting ecsReformattingConfig) {
@@ -109,6 +112,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
     @AfterEach
     public void closeLogger() {
+        childSpan.deactivate().end();
         transaction.deactivate().end();
         logger.close();
     }
