@@ -149,27 +149,6 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(DEFAULT_LOG_FILE);
 
-    private final ConfigurationOption<Boolean> logCorrelationEnabled = ConfigurationOption.booleanOption()
-        .key("enable_log_correlation")
-        .configurationCategory(LOGGING_CATEGORY)
-        .description("A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.\n" +
-            "If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.\n" +
-            "Since version 1.16.0, the agent also adds `error.id` of captured error to the MDC just before the error message is logged.\n" +
-            "See <<log-correlation>> for more details.\n" +
-            "\n" +
-            "NOTE: While it's allowed to enable this setting at runtime, you can't disable it without a restart.")
-        .dynamic(true)
-        .addValidator(new ConfigurationOption.Validator<Boolean>() {
-            @Override
-            public void assertValid(Boolean value) {
-                if (logCorrelationEnabled != null && logCorrelationEnabled.get() && Boolean.FALSE.equals(value)) {
-                    // the reason is that otherwise the MDC will not be cleared when disabling while a span is currently active
-                    throw new IllegalArgumentException("Disabling the log correlation at runtime is not possible.");
-                }
-            }
-        })
-        .buildWithDefault(false);
-
     private final ConfigurationOption<LogEcsReformatting> logEcsReformatting = ConfigurationOption.enumOption(LogEcsReformatting.class)
         .key("log_ecs_reformatting")
         .configurationCategory(LOGGING_CATEGORY)
@@ -177,8 +156,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .description("Specifying whether and how the agent should automatically reformat application logs \n" +
             "into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for \n" +
             "further Log analysis. This functionality is available for log4j1, log4j2 and Logback. \n" +
-            "Once this option is enabled with any valid option, log correlation will be activated as well, " +
-            "regardless of the <<config-enable-log-correlation,`enable_log_correlation`>> configuration. \n" +
+            "Once this option is enabled with any valid option, log correlation will be activated as well. \n" +
             "\n" +
             "Available options:\n" +
             "\n" +
@@ -377,11 +355,6 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         // configuration provided by the configuration files in the classpath. While the JSON schema validator is only
         // used for testing and is not shipped, this is the most convenient solution to avoid verbosity here.
         Configurator.setLevel("com.networknt.schema", org.apache.logging.log4j.Level.WARN);
-    }
-
-    public boolean isLogCorrelationEnabled() {
-        // Enabling automatic ECS-reformatting implicitly enables log correlation
-        return logCorrelationEnabled.get() || getLogEcsReformatting() != LogEcsReformatting.OFF;
     }
 
     public LogEcsReformatting getLogEcsReformatting() {

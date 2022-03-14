@@ -481,24 +481,18 @@ NOTE: only classes from the quartz-jobs dependency will be instrumented automati
 
 |slf4j
 |1.4.1+
-|When <<config-enable-log-correlation>> is set to `true`,
- the agent will add a https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
- See the <<config-enable-log-correlation>> configuration option for more details.
-
- Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0).
+|Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0).
 When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
 
-|Trace correlation - 1.0.0
-
-Error capturing - 1.10.0
+|1.10.0
 
 |log4j2
 |Trace correlation - 2.0+
 
 ECS Reformatting - 2.6+
 
-|When <<config-enable-log-correlation>> is set to `true`,
-the agent will add a https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entry for `trace.id` and `transaction.id`.
+|The agent adds https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entries for active `trace.id`,
+`transaction.id` and `error.id`.
 
 The agent sets the service name for the `EcsLayout` if not provided explicitly (since 1.29.0).
 
@@ -521,8 +515,8 @@ ECS Reformatting - 1.22.0
 
 ECS Reformatting - 1.2.17
 
-|When <<config-enable-log-correlation>> is set to `true`,
-the agent will add a https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
+|The agent adds https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entries for active `trace.id`,
+`transaction.id` and `error.id`.
 
 When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
 ECS-compatible format (since 1.22.0, experimental)
@@ -532,16 +526,21 @@ ECS Reformatting - 1.22.0
 
 |Logback
 |1.1.0+
-|When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+|The agent adds https://www.slf4j.org/api/org/slf4j/MDC.html[slf4j MDC] entries for active `trace.id`, `transaction.id` and `error.id`.
+
+When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
 ECS-compatible format (since 1.22.0, experimental)
-|1.22.0
+|Trace correlation - 1.0.0
+
+ECS Reformatting - 1.22.0
 
 |JBoss Logging
 |3.0.0+
-|When <<config-enable-log-correlation>> is set to `true`,
-the agent will add a http://javadox.com/org.jboss.logging/jboss-logging/3.3.0.Final/org/jboss/logging/MDC.html[MDC]
-entry for `trace.id` and `transaction.id`. See the <<config-enable-log-correlation>> configuration option for more details.
+|The agent adds http://javadox.com/org.jboss.logging/jboss-logging/3.3.0.Final/org/jboss/logging/MDC.html[MDC]
+entries for `trace.id`, `transaction.id` and `error.id`.
 |1.23.0
+
+JBoss LogManager - 1.30.0
 
 |===
 

@@ -145,7 +145,6 @@ Click on a key to get more information.
 * <<config-logging>>
 ** <<config-log-level>>
 ** <<config-log-file>>
-** <<config-enable-log-correlation>>
 ** <<config-log-ecs-reformatting>>
 ** <<config-log-ecs-reformatting-additional-fields>>
 ** <<config-log-ecs-formatter-allow-list>>
@@ -1769,34 +1768,6 @@ When logging to std out, the log will be formatted as plain-text.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-enable-log-correlation]]
-==== `enable_log_correlation`
-
-A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.
-If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.
-Since version 1.16.0, the agent also adds `error.id` of captured error to the MDC just before the error message is logged.
-See <<log-correlation>> for more details.
-
-NOTE: While it's allowed to enable this setting at runtime, you can't disable it without a restart.
-
-<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
-
-
-[options="header"]
-|============
-| Default                          | Type                | Dynamic
-| `false` | Boolean | true
-|============
-
-
-[options="header"]
-|============
-| Java System Properties      | Property file   | Environment
-| `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
-|============
-
-// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
-[float]
 [[config-log-ecs-reformatting]]
 ==== `log_ecs_reformatting` (added[1.22.0] experimental)
 
@@ -1805,7 +1776,7 @@ NOTE: This feature is currently experimental, which means it is disabled by defa
 Specifying whether and how the agent should automatically reformat application logs 
 into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
 further Log analysis. This functionality is available for log4j1, log4j2 and Logback. 
-Once this option is enabled with any valid option, log correlation will be activated as well, regardless of the <<config-enable-log-correlation,`enable_log_correlation`>> configuration. 
+Once this option is enabled with any valid option, log correlation will be activated as well. 
 
 Available options:
 
@@ -3660,23 +3631,10 @@ The default unit for this option is `ms`.
 #
 # log_file=System.out
 
-# A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.
-# If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.
-# Since version 1.16.0, the agent also adds `error.id` of captured error to the MDC just before the error message is logged.
-# See <<log-correlation>> for more details.
-# 
-# NOTE: While it's allowed to enable this setting at runtime, you can't disable it without a restart.
-#
-# This setting can be changed at runtime
-# Type: Boolean
-# Default value: false
-#
-# enable_log_correlation=false
-
 # Specifying whether and how the agent should automatically reformat application logs 
 # into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
 # further Log analysis. This functionality is available for log4j1, log4j2 and Logback. 
-# Once this option is enabled with any valid option, log correlation will be activated as well, regardless of the <<config-enable-log-correlation,`enable_log_correlation`>> configuration. 
+# Once this option is enabled with any valid option, log correlation will be activated as well. 
 # 
 # Available options:
 # 
