@@ -1,7 +1,5 @@
 [[aws-lambda]]
-=== Get started with Lambda (Experimental)
-
-experimental::[]
+=== Get started with Lambda
 
 Getting Elastic APM set up for your lambda functions is easy,
 and there are various ways you can tweak it to fit your needs.
@@ -102,10 +100,18 @@ Errors related to traced spans will be sent as well.
 [float]
 [[aws-lambda-caveats]]
 ==== Caveats
-- System and custom metrics are not collected for Lambda functions. This is both because most of those are irrelevant
+* System and custom metrics are not collected for Lambda functions. This is both because most of those are irrelevant
 and because the interval-based event sending model is not suitable for FaaS environments.
-- Cold starts can be significantly slower when the agent is installed. The higher memory limit you would allow for your
-Function, the smaller this effect would be. This doesn't affect memory usage for subsequent Function invocations,
-it is only relevant for cold starts.
-- The <<method-sampling-based,Sampling Profiler>> feature would not work because it relies on profiling sessions and
+* Cold starts can be significantly slower when the agent is installed. If this is an issue, following are ways to deal with slow code
+starts:
+** If the only issue with slower cold starts is Lambda timing out, consider increasing the configured timeout.
+** The higher memory limit you would allow for your Function, the smaller this effect would be. This is irrelevant for
+subsequent Function invocations, it is only relevant for cold starts.
+** Much of the startup delay is related to the amount of enabled instrumentations. An enabled instrumentation will contribute to this
+overhead regardless of it being applicable for your specific Lambda function. You can considerably reduce the related overhead by
+specifying a limited list of enabled instrumentations through the <<config-enable-instrumentations, `enable_instrumentations`>> config.
+An automatic way to generate such list is by invoking your Lambda with the agent's default configurations and a <<config-log-level,
+`log_level`>> of `INFO` or lower. After the first lambda invocation, the agent would log a message with the following format: `Used
+instrumentation groups: [aws-lambda, executor, executor-collection, fork-join, ssl-context, urlconnection]`.
+* The <<method-sampling-based,Sampling Profiler>> feature would not work because it relies on profiling sessions and
 subsequent asynchronous processing of the collected data.
