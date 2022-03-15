@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.jdbc;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.db.signature.SignatureParser;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
@@ -48,6 +49,7 @@ import static co.elastic.apm.agent.jdbc.helper.JdbcHelper.DB_SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
+import static org.mockito.Mockito.when;
 
 /**
  * Uses plain connections without a connection pool
@@ -72,6 +74,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         this.expectedDbVendor = expectedDbVendor;
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT NOT NULL, BAR VARCHAR(255))");
         connection.createStatement().execute("ALTER TABLE ELASTIC_APM ADD PRIMARY KEY (FOO)");
+        when(config.getConfig(SpanConfiguration.class).isSpanCompressionEnabled()).thenReturn(false);
         transaction = startTestRootTransaction("jdbc-test");
         signatureParser = new SignatureParser();
     }

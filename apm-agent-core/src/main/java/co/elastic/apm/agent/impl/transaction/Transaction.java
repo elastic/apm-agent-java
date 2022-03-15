@@ -55,6 +55,7 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private final TransactionContext context = new TransactionContext();
     private final SpanCount spanCount = new SpanCount();
+    private final DroppedSpanStats droppedSpanStats = new DroppedSpanStats();
     /**
      * type: subtype: timer
      * <p>
@@ -259,6 +260,17 @@ public class Transaction extends AbstractSpan<Transaction> {
         return spanCount;
     }
 
+    public void captureDroppedSpan(Span span) {
+        if (span.isSampled()) {
+            spanCount.getDropped().incrementAndGet();
+        }
+        droppedSpanStats.captureDroppedSpan(span);
+    }
+
+    public DroppedSpanStats getDroppedSpanStats() {
+        return droppedSpanStats;
+    }
+
     boolean isSpanLimitReached() {
         return getSpanCount().isSpanLimitReached(maxSpans);
     }
@@ -273,6 +285,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         context.resetState();
         result = null;
         spanCount.resetState();
+        droppedSpanStats.resetState();
         type = null;
         noop = false;
         maxSpans = 0;

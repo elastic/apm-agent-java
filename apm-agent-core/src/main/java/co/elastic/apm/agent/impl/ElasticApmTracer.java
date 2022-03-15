@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -95,6 +96,7 @@ public class ElasticApmTracer implements Tracer {
     };
 
     private final CoreConfiguration coreConfiguration;
+    private final SpanConfiguration spanConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
     private final ScheduledThreadPoolExecutor sharedPool;
@@ -124,6 +126,7 @@ public class ElasticApmTracer implements Tracer {
         this.metaDataFuture = metaDataFuture;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        spanConfiguration = configurationRegistry.getConfig(SpanConfiguration.class);
 
         TracerConfiguration tracerConfiguration = configurationRegistry.getConfig(TracerConfiguration.class);
         recordingConfigOptionSet = tracerConfiguration.getRecordingConfig().get();
@@ -380,23 +383,33 @@ public class ElasticApmTracer implements Tracer {
 
     public void endSpan(Span span) {
         if (!span.isSampled()) {
+            Transaction transaction = span.getTransaction();
+            if (transaction != null) {
+                transaction.captureDroppedSpan(span);
+            }
             span.decrementReferences();
             return;
         }
-        if (!span.isComposite()) {
+        if (span.isExit()) {
+            if (span.getDuration() < spanConfiguration.getExitSpanMinDuration().getMicros()) {
+                logger.debug("Span faster than exit_span_min_duration. Request discarding {}", span);
+                span.requestDiscarding();
+            }
+        } else if (!span.isComposite()) {
             if (span.getDuration() < coreConfiguration.getSpanMinDuration().getMicros()) {
                 logger.debug("Span faster than span_min_duration. Request discarding {}", span);
                 span.requestDiscarding();
             }
-            if (span.isDiscarded()) {
-                logger.debug("Discarding span {}", span);
-                Transaction transaction = span.getTransaction();
-                if (transaction != null) {
-                    transaction.getSpanCount().getDropped().incrementAndGet();
-                }
-                span.decrementReferences();
-                return;
+        }
+        if (span.isDiscarded()) {
+            logger.debug("Discarding span {}", span);
+            Transaction transaction = span.getTransaction();
+            if (transaction != null) {
+                transaction.captureDroppedSpan(span);
             }
+            span.decrementReferences();
+            return;
+
         }
         reportSpan(span);
     }

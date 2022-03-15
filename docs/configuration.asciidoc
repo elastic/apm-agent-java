@@ -137,6 +137,11 @@ Click on a key to get more information.
 ** <<config-transaction-ignore-user-agents>>
 ** <<config-use-path-as-transaction-name>>
 ** <<config-url-groups>>
+* <<config-huge-traces>>
+** <<config-span-compression-enabled>>
+** <<config-span-compression-exact-match-max-duration>>
+** <<config-span-compression-same-kind-max-duration>>
+** <<config-exit-span-min-duration>>
 * <<config-jax-rs>>
 ** <<config-enable-jaxrs-annotation-inheritance>>
 ** <<config-use-jaxrs-path-as-transaction-name>>
@@ -229,7 +234,6 @@ The interval at which the agent polls the stress monitors. Must be at least `1s`
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5s`.
-The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -310,7 +314,6 @@ order to detect a change of stress state. Must be at least `1m`.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `1m`.
-The default unit for this option is `m`.
 
 [options="header"]
 |============
@@ -1136,7 +1139,6 @@ the higher of both thresholds will determine which spans will be discarded.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `0ms`.
-The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -1305,7 +1307,6 @@ such as calls to a database, can be discarded using this threshold.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `0ms`.
-The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -1526,6 +1527,109 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.url_groups` | `url_groups` | `ELASTIC_APM_URL_GROUPS`
+|============
+
+[[config-huge-traces]]
+=== Huge Traces configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-span-compression-enabled]]
+==== `span_compression_enabled` (added[1.30.0])
+
+Setting this option to true will enable span compression feature.
+Span compression reduces the collection, processing, and storage overhead, and removes clutter from the UI. The tradeoff is that some information such as DB statements of all the compressed spans will not be collected.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.span_compression_enabled` | `span_compression_enabled` | `ELASTIC_APM_SPAN_COMPRESSION_ENABLED`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-span-compression-exact-match-max-duration]]
+==== `span_compression_exact_match_max_duration` (added[1.30.0])
+
+Consecutive spans that are exact match and that are under this threshold will be compressed into a single composite span. This option does not apply to composite spans. This reduces the collection, processing, and storage overhead, and removes clutter from the UI. The tradeoff is that the DB statements of all the compressed spans will not be collected.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `50ms`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `50ms` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.span_compression_exact_match_max_duration` | `span_compression_exact_match_max_duration` | `ELASTIC_APM_SPAN_COMPRESSION_EXACT_MATCH_MAX_DURATION`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-span-compression-same-kind-max-duration]]
+==== `span_compression_same_kind_max_duration` (added[1.30.0])
+
+Consecutive spans to the same destination that are under this threshold will be compressed into a single composite span. This option does not apply to composite spans. This reduces the collection, processing, and storage overhead, and removes clutter from the UI. The tradeoff is that the DB statements of all the compressed spans will not be collected.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `0ms`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0ms` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.span_compression_same_kind_max_duration` | `span_compression_same_kind_max_duration` | `ELASTIC_APM_SPAN_COMPRESSION_SAME_KIND_MAX_DURATION`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-exit-span-min-duration]]
+==== `exit_span_min_duration` (added[1.30.0])
+
+Exit spans are spans that represent a call to an external service, like a database. If such calls are very short, they are usually not relevant and can be ignored.
+
+NOTE: If a span propagates distributed tracing ids, it will not be ignored, even if it is shorter than the configured threshold. This is to ensure that no broken traces are recorded.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Supports the duration suffixes `us`, `ms`, `s` and `m`.
+Example: `0ms`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0ms` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.exit_span_min_duration` | `exit_span_min_duration` | `ELASTIC_APM_EXIT_SPAN_MIN_DURATION`
 |============
 
 [[config-jax-rs]]
@@ -2092,7 +2196,6 @@ The minimal duration of a profiling-inferred span is the same as the value of th
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `50ms`.
-The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -2120,7 +2223,6 @@ However, increasing the sampling interval also decreases the accuracy of the dur
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `0ms`.
-The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -2388,7 +2490,6 @@ WARNING: If timeouts are disabled or set to a high value, your app could experie
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5s`.
-The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -2496,7 +2597,6 @@ NOTE: This value has to be lower than the APM Server's `read_timeout` setting.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `10s`.
-The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -2550,7 +2650,6 @@ Set to `0s` to deactivate.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `30s`.
-The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -2724,7 +2823,6 @@ To disable stack trace collection for spans completely, set the value to `-1ms`.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5ms`.
-The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -2770,7 +2868,6 @@ The default unit for this option is `ms`.
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 5s.
-# The default unit for this option is s.
 # Default value: 5s
 #
 # stress_monitoring_interval=5s
@@ -2805,7 +2902,6 @@ The default unit for this option is `ms`.
 # This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 1m.
-# The default unit for this option is m.
 # Default value: 1m
 #
 # stress_monitor_cpu_duration_threshold=1m
@@ -3278,7 +3374,6 @@ The default unit for this option is `ms`.
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 0ms.
-# The default unit for this option is ms.
 # Default value: 0ms
 #
 # trace_methods_duration_threshold=0ms
@@ -3354,7 +3449,6 @@ The default unit for this option is `ms`.
 # This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 0ms.
-# The default unit for this option is ms.
 # Default value: 0ms
 #
 # span_min_duration=0ms
@@ -3461,6 +3555,48 @@ The default unit for this option is `ms`.
 # Default value: 
 #
 # url_groups=
+
+############################################
+# Huge Traces                              #
+############################################
+
+# Setting this option to true will enable span compression feature.
+# Span compression reduces the collection, processing, and storage overhead, and removes clutter from the UI. The tradeoff is that some information such as DB statements of all the compressed spans will not be collected.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: true
+#
+# span_compression_enabled=true
+
+# Consecutive spans that are exact match and that are under this threshold will be compressed into a single composite span. This option does not apply to composite spans. This reduces the collection, processing, and storage overhead, and removes clutter from the UI. The tradeoff is that the DB statements of all the compressed spans will not be collected.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 50ms.
+# Default value: 50ms
+#
+# span_compression_exact_match_max_duration=50ms
+
+# Consecutive spans to the same destination that are under this threshold will be compressed into a single composite span. This option does not apply to composite spans. This reduces the collection, processing, and storage overhead, and removes clutter from the UI. The tradeoff is that the DB statements of all the compressed spans will not be collected.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 0ms.
+# Default value: 0ms
+#
+# span_compression_same_kind_max_duration=0ms
+
+# Exit spans are spans that represent a call to an external service, like a database. If such calls are very short, they are usually not relevant and can be ignored.
+# 
+# NOTE: If a span propagates distributed tracing ids, it will not be ignored, even if it is shorter than the configured threshold. This is to ensure that no broken traces are recorded.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes us, ms, s and m. Example: 0ms.
+# Default value: 0ms
+#
+# exit_span_min_duration=0ms
 
 ############################################
 # JAX-RS                                   #
@@ -3803,7 +3939,6 @@ The default unit for this option is `ms`.
 # This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 50ms.
-# The default unit for this option is ms.
 # Default value: 50ms
 #
 # profiling_inferred_spans_sampling_interval=50ms
@@ -3815,7 +3950,6 @@ The default unit for this option is `ms`.
 # This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 0ms.
-# The default unit for this option is ms.
 # Default value: 0ms
 #
 # profiling_inferred_spans_min_duration=0ms
@@ -3955,7 +4089,6 @@ The default unit for this option is `ms`.
 # This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 5s.
-# The default unit for this option is s.
 # Default value: 5s
 #
 # server_timeout=5s
@@ -4002,7 +4135,6 @@ The default unit for this option is `ms`.
 # This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 10s.
-# The default unit for this option is s.
 # Default value: 10s
 #
 # api_request_time=10s
@@ -4025,7 +4157,6 @@ The default unit for this option is `ms`.
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 30s.
-# The default unit for this option is s.
 # Default value: 30s
 #
 # metrics_interval=30s
@@ -4112,7 +4243,6 @@ The default unit for this option is `ms`.
 # This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 5ms.
-# The default unit for this option is ms.
 # Default value: 5ms
 #
 # span_stack_trace_min_duration=5ms
