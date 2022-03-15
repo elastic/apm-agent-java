@@ -383,6 +383,10 @@ public class ElasticApmTracer implements Tracer {
 
     public void endSpan(Span span) {
         if (!span.isSampled()) {
+            Transaction transaction = span.getTransaction();
+            if (transaction != null) {
+                transaction.captureDroppedSpan(span);
+            }
             span.decrementReferences();
             return;
         }
@@ -401,7 +405,7 @@ public class ElasticApmTracer implements Tracer {
             logger.debug("Discarding span {}", span);
             Transaction transaction = span.getTransaction();
             if (transaction != null) {
-                transaction.getSpanCount().getDropped().incrementAndGet();
+                transaction.captureDroppedSpan(span);
             }
             span.decrementReferences();
             return;
