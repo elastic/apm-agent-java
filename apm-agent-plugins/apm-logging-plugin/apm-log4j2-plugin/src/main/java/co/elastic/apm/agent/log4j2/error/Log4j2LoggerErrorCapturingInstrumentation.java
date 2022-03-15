@@ -31,6 +31,9 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+/**
+ * Instruments {@link org.apache.logging.log4j.Logger#error(String, Throwable)} and {@link org.apache.logging.log4j.Logger#fatal(Object, Throwable)}
+ */
 public class Log4j2LoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
 
     @Override
@@ -52,6 +55,7 @@ public class Log4j2LoggerErrorCapturingInstrumentation extends AbstractLoggerErr
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        // Do not instrument the internal agent log4j2 loggers
         return not(CustomElementMatchers.isAgentClassLoader());
     }
 }

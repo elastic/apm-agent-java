@@ -28,6 +28,9 @@ import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
+/**
+ * Instruments {@link org.slf4j.Logger#error(String, Throwable)}
+ */
 public class Slf4jLoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
 
     @Override

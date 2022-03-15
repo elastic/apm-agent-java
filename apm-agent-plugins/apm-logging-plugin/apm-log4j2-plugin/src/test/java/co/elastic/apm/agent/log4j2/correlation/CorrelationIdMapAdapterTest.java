@@ -74,4 +74,11 @@ class CorrelationIdMapAdapterTest {
         transaction.end();
         assertThat(CorrelationIdMapAdapter.get()).isEmpty();
     }
+
+    @Test
+    void testSingleInstance() {
+        assertThat(CorrelationIdMapAdapter.get()).isSameAs(CorrelationIdMapAdapter.get());
+        assertThat(CorrelationIdMapAdapter.get().entrySet()).isSameAs(CorrelationIdMapAdapter.get().entrySet());
+        assertThat(CorrelationIdMapAdapter.allKeys()).isSameAs(CorrelationIdMapAdapter.allKeys());
+    }
 }

@@ -51,6 +51,7 @@ public abstract class Log4j2LogCorrelationInstrumentation extends TracerAwareIns
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
+            // Do not instrument the agent log4j2 lib
             .and(not(CustomElementMatchers.isAgentClassLoader()))
             .and(classLoaderCanLoadClass("org.apache.logging.log4j.core.impl.LogEventFactory"));
     }

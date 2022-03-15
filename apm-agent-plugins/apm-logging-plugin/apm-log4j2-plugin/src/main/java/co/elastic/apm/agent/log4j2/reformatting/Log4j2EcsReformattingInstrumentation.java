@@ -48,6 +48,7 @@ public abstract class Log4j2EcsReformattingInstrumentation extends AbstractLogIn
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
+            // Do not instrument the internal agent log4j2 appenders
             .and(not(CustomElementMatchers.isAgentClassLoader()))
             .and(classLoaderCanLoadClass("org.apache.logging.log4j.core.Appender"));
     }

@@ -182,13 +182,14 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         initializeReformattingDir("delayed");
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);
-        assertThat(Files.exists(Paths.get(getLogReformattingFilePath()))).isFalse();
+        assertThat(Paths.get(getLogReformattingFilePath())).doesNotExist();
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
         logger.warn(WARN_MESSAGE);
-        assertThat(Files.exists(Paths.get(getLogReformattingFilePath()))).isTrue();
+        assertThat(Paths.get(getLogReformattingFilePath())).exists();
         logger.error(ERROR_MESSAGE, new Throwable());
 
         ArrayList<String[]> rawLogLines = readRawLogLines();
+        assertThat(rawLogLines).hasSize(4);
         assertThat(rawLogLines).hasSize(4);
 
         ArrayList<JsonNode> ecsLogLines = readEcsLogFile();
@@ -239,7 +240,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         logger.warn(WARN_MESSAGE);
         logger.error(ERROR_MESSAGE, new Throwable());
         assertThat(readRawLogLines()).hasSize(4);
-        assertThat(Files.exists(Paths.get(getLogReformattingFilePath()))).isFalse();
+        assertThat(Paths.get(getLogReformattingFilePath())).doesNotExist();
     }
 
     @Test

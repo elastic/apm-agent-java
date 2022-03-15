@@ -30,6 +30,9 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+/**
+ * Instruments {@link org.apache.log4j.Category#error(Object, Throwable)} and {@link org.apache.log4j.Category#fatal(Object, Throwable)}
+ */
 public class Log4j1LoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
 
     @Override
