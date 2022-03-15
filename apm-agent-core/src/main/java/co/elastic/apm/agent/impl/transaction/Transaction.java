@@ -119,17 +119,13 @@ public class Transaction extends AbstractSpan<Transaction> {
         super(tracer);
     }
 
-    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros,
-                                 Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
-        traceContext.setApplicationClassLoader(initiatingClassLoader);
+    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros, Sampler sampler) {
         boolean startedAsChild = parent != null && childContextCreator.asChildOf(traceContext, parent);
         onTransactionStart(startedAsChild, epochMicros, sampler);
         return this;
     }
 
-    public <T, A> Transaction start(TraceContext.ChildContextCreatorTwoArg<T, A> childContextCreator, @Nullable T parent, A arg,
-                                    long epochMicros, Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
-        traceContext.setApplicationClassLoader(initiatingClassLoader);
+    public <T, A> Transaction start(TraceContext.ChildContextCreatorTwoArg<T, A> childContextCreator, @Nullable T parent, A arg, long epochMicros, Sampler sampler) {
         boolean startedAsChild = childContextCreator.asChildOf(traceContext, parent, arg);
         onTransactionStart(startedAsChild, epochMicros, sampler);
         return this;

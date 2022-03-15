@@ -23,16 +23,12 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.objectpool.Recyclable;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.ByteUtils;
-import co.elastic.apm.agent.util.ClassLoaderUtils;
 import co.elastic.apm.agent.util.HexUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
@@ -97,10 +93,6 @@ public class TraceContext implements Recyclable {
 
     private static final Double SAMPLE_RATE_ZERO = 0d;
 
-    /**
-     * Helps to reduce allocations by caching {@link WeakReference}s to {@link ClassLoader}s
-     */
-    private static final WeakMap<ClassLoader, WeakReference<ClassLoader>> classLoaderWeakReferenceCache = WeakConcurrent.buildMap();
     private static final ChildContextCreator<TraceContext> FROM_PARENT_CONTEXT = new ChildContextCreator<TraceContext>() {
         @Override
         public boolean asChildOf(TraceContext child, TraceContext parent) {
@@ -224,9 +216,7 @@ public class TraceContext implements Recyclable {
     private final StringBuilder outgoingTextHeader = new StringBuilder(TEXT_HEADER_EXPECTED_LENGTH);
     private byte flags;
     private boolean discardable = true;
-    // weakly referencing to avoid CL leaks in case of leaked spans
-    @Nullable
-    private WeakReference<ClassLoader> applicationClassLoader;
+
     private final TraceState traceState;
 
     final CoreConfiguration coreConfiguration;
@@ -440,7 +430,6 @@ public class TraceContext implements Recyclable {
         clock.init(parent.clock);
         serviceName = parent.serviceName;
         serviceVersion = parent.serviceVersion;
-        applicationClassLoader = parent.applicationClassLoader;
         traceState.copyFrom(parent.traceState);
         onMutation();
     }
@@ -457,7 +446,6 @@ public class TraceContext implements Recyclable {
         clock.resetState();
         serviceName = null;
         serviceVersion = null;
-        applicationClassLoader = null;
         traceState.resetState();
         traceState.setSizeLimit(coreConfiguration.getTracestateSizeLimit());
     }
@@ -658,7 +646,6 @@ public class TraceContext implements Recyclable {
         clock.init(other.clock);
         serviceName = other.serviceName;
         serviceVersion = other.serviceVersion;
-        applicationClassLoader = other.applicationClassLoader;
         traceState.copyFrom(other.traceState);
         onMutation();
     }
@@ -726,27 +713,6 @@ public class TraceContext implements Recyclable {
     @Override
     public int hashCode() {
         return Objects.hash(traceId, id, parentId, flags);
-    }
-
-    void setApplicationClassLoader(@Nullable ClassLoader classLoader) {
-        if (ClassLoaderUtils.isBootstrapClassLoader(classLoader) || ClassLoaderUtils.isAgentClassLoader(classLoader)) {
-            return;
-        }
-        WeakReference<ClassLoader> local = classLoaderWeakReferenceCache.get(classLoader);
-        if (local == null) {
-            local = new WeakReference<>(classLoader);
-            classLoaderWeakReferenceCache.putIfAbsent(classLoader, local);
-        }
-        applicationClassLoader = local;
-    }
-
-    @Nullable
-    public ClassLoader getApplicationClassLoader() {
-        if (applicationClassLoader != null) {
-            return applicationClassLoader.get();
-        } else {
-            return null;
-        }
     }
 
     public TraceState getTraceState() {
