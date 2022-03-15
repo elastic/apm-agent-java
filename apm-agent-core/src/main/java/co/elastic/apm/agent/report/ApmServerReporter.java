@@ -70,6 +70,13 @@ public class ApmServerReporter implements Reporter {
             event.unparkAfterProcessed(unparkAfterProcessed);
         }
     };
+    private static final EventTranslatorOneArg<ReportingEvent, Thread> MAKE_FLUSH_REQUEST_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Thread>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, @Nullable Thread unparkAfterProcessed) {
+            event.setMakeFlushRequestEvent();
+            event.unparkAfterProcessed(unparkAfterProcessed);
+        }
+    };
     private static final EventTranslator<ReportingEvent> WAKEUP_EVENT_TRANSLATOR = new EventTranslator<ReportingEvent>() {
         @Override
         public void translateTo(ReportingEvent event, long sequence) {
@@ -148,7 +155,7 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public boolean flush() {
-        return flush(-1, TimeUnit.NANOSECONDS);
+        return flush(-1, TimeUnit.NANOSECONDS, false);
     }
 
     @Override
@@ -166,7 +173,10 @@ public class ApmServerReporter implements Reporter {
     }
 
     @Override
-    public boolean flush(long timeout, TimeUnit unit) {
+    public boolean flush(long timeout, TimeUnit unit, boolean followupWithFlushRequest) {
+        if (followupWithFlushRequest) {
+            return publishAndWaitForEvent(timeout, unit, MAKE_FLUSH_REQUEST_EVENT_TRANSLATOR);
+        }
         return publishAndWaitForEvent(timeout, unit, END_REQUEST_EVENT_TRANSLATOR);
     }
 

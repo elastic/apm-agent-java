@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler implements ReportingEventHandler {
 
     public static final String INTAKE_V2_URL = "/intake/v2/events";
+    public static final String INTAKE_V2_FLUSH_URL = INTAKE_V2_URL + "?flushed=true";
     private final ProcessorEventHandler processorEventHandler;
     private final ScheduledExecutorService timeoutTimer;
     @Nullable
@@ -56,7 +57,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     }
 
     @Override
-    public void onEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
+    public void onEvent(ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
         if (logger.isDebugEnabled()) {
             logger.debug("Receiving {} event (sequence {})", event.getType(), sequence);
         }
@@ -80,11 +81,15 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         return processed.get() >= sequence;
     }
 
-    private void dispatchEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
+    private void dispatchEvent(ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
         if (event.getType() == null) {
             return;
         }
         switch (event.getType()) {
+            case MAKE_FLUSH_REQUEST:
+                endRequest();
+                connection = startRequest(INTAKE_V2_FLUSH_URL);
+                // continuing to behave as END_REQUEST
             case END_REQUEST:
                 endRequest();
                 break;

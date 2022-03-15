@@ -35,6 +35,8 @@ endif::[]
 * Added microsecond durations with `us` as unit - {pull}2496[#2496]
 * Added support for dropping fast exit spans - {pull}2491[#2491]
 * Added support for collecting statistics about dropped exit spans - {pull}2505[#2505]
+* Making AWS Lambda instrumentation GA - includes some changes in Lambda transaction metadata fields and a dedicated flush HTTP request
+to the AWS Lambda extension - {pull}2424[#2424]
 * Improved finding docker container id on cgroup v2 enabled systems - {pull}2352[#2352]
 
 [float]
@@ -45,6 +47,7 @@ endif::[]
 [float]
 ===== Bug fixes
 * Fix cross-plugin dependencies triggering NoClassDefFound - {pull}2509[#2509]
+* Fix status code setting in AWS Lambda transactions triggered by API Gateway V1 - {pull}2346[#2346]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

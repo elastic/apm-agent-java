@@ -232,7 +232,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     }
 
     /**
-     * Resets and returns the name {@link StringBuilder} if the provided priority is {@code >=} {@link #namePriority} one.
+     * Resets and returns the name {@link StringBuilder} if the provided priority is {@code >=} {@link #namePriority}.
      * Otherwise, returns {@code null}
      *
      * @param namePriority the priority for the name. See also the {@code AbstractSpan#PRIO_*} constants.
