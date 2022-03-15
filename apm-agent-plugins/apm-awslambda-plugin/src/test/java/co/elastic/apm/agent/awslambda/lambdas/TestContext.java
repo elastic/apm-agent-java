@@ -28,6 +28,7 @@ public class TestContext implements Context {
     public static final String LOG_GROUP_NAME = "LOG_GROUP_NAME";
     public static final String LOG_STREAM_NAME = "LOG_STREAM_NAME";
     public static final String FUNCTION_NAME = "FUNCTION_NAME";
+    public static final String FUNCTION_EXECUTION_ENV = "AWS_Lambda_java11";
     public static final String FUNCTION_VERSION = "FUNCTION_VERSION";
     public static final String FUNCTION_REGION = "us-west-2";
     public static final String FUNCTION_ACCOUNT_ID = "123456789012";
