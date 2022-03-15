@@ -18,11 +18,10 @@
  */
 package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 
 /**
- * A callback for {@link AbstractSpan} and {@link ErrorCapture} activation and deactivation events
+ * A callback for {@link AbstractSpan} activation and deactivation events
  * <p>
  * The constructor can optionally have a {@link ElasticApmTracer} parameter.
  * </p>

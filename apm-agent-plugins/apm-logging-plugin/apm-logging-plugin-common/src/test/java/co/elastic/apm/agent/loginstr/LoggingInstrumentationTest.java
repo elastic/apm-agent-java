@@ -96,7 +96,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         // IMPORTANT: keep this last, so that it doesn't interfere with Mockito settings above
         serviceName = Objects.requireNonNull(tracer.getMetaDataFuture().get(2000, TimeUnit.MILLISECONDS).getService().getName());
 
-        transaction = Objects.requireNonNull(tracer.startRootTransaction(null)).activate();
+        transaction = startTestRootTransaction();
         childSpan = transaction.createSpan().activate();
     }
 

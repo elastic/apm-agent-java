@@ -24,15 +24,15 @@ import java.nio.file.Paths;
 
 public class Utils {
 
-    private static final String SHADE_FILE_EXTENSION = ".ecs.json";
+    private static final String ECS_JSON_FILE_EXTENSION = ".ecs.json";
 
     /**
-     * Computes a shade log file path based on a given log file. The shade log file will have the same name as the
+     * Computes a path for the ECS-reformatted file based on a given log file. The ECS log file will have the same name as the
      * original log file, but with the ".ecs.json" extension. Depending on configuration, it will be located in
      * the same directory alongside the original logs, or in an alternative directory.
      *
-     * @param originalLogFile the log file to which a shade file path is required
-     * @return the shade log file path
+     * @param originalLogFile the log file to which an ECS file path is required
+     * @return the ECS log file path
      */
     public static String computeLogReformattingFilePath(String originalLogFile, @Nullable String configuredReformattingDestinationDir) {
         Path originalFilePath = Paths.get(originalLogFile);
@@ -46,17 +46,17 @@ public class Utils {
 
     @Nullable
     private static Path computeLogReformattingDir(Path originalFilePath, @Nullable String configuredReformattingDestinationDir) {
-        Path shadeDir;
+        Path ecsDir;
         Path logsDir = originalFilePath.getParent();
         if (configuredReformattingDestinationDir == null) {
-            shadeDir = logsDir;
+            ecsDir = logsDir;
         } else {
-            shadeDir = Paths.get(configuredReformattingDestinationDir);
-            if (!shadeDir.isAbsolute() && logsDir != null) {
-                    shadeDir = logsDir.resolve(shadeDir);
+            ecsDir = Paths.get(configuredReformattingDestinationDir);
+            if (!ecsDir.isAbsolute() && logsDir != null) {
+                    ecsDir = logsDir.resolve(ecsDir);
             }
         }
-        return shadeDir;
+        return ecsDir;
     }
 
     static String replaceFileExtensionToEcsJson(String originalFileName) {
@@ -64,6 +64,6 @@ public class Utils {
         if (extensionIndex > 0) {
             originalFileName = originalFileName.substring(0, extensionIndex);
         }
-        return originalFileName.concat(SHADE_FILE_EXTENSION);
+        return originalFileName.concat(ECS_JSON_FILE_EXTENSION);
     }
 }
