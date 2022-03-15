@@ -72,7 +72,7 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
         }
 
         synchronized (OTelBridgeContext.class) {
-            if (root != null) {
+            if (root == null) {
                 originalRootContext = originalRoot;
                 root = new OTelBridgeContext(tracer, originalRoot);
             }
