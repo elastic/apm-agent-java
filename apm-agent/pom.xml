@@ -68,11 +68,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-error-logging-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>apm-es-restclient-plugin-5_6</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -173,11 +168,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-log-correlation-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>apm-log-shipper-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -194,6 +184,16 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-logback-plugin-impl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jboss-logging-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-slf4j-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

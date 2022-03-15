@@ -22,13 +22,14 @@ import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.LookupExposer;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ClassInjector;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.util.IOUtils;
 
@@ -211,6 +212,8 @@ public class IndyBootstrap {
     @Nullable
     static Method indyBootstrapMethod;
 
+    private static final CallDepth callDepth = CallDepth.get(IndyBootstrap.class);
+
     public static Method getIndyBootstrapMethod(final Logger logger) {
         if (indyBootstrapMethod != null) {
             return indyBootstrapMethod;
@@ -356,6 +359,14 @@ public class IndyBootstrap {
                                              MethodType adviceMethodType,
                                              Object... args) {
         try {
+            if (callDepth.isNestedCallAndIncrement()) {
+                // avoid re-entrancy and stack overflow errors
+                // may happen when bootstrapping an instrumentation that also gets triggered during the bootstrap
+                // for example, adding correlation ids to the thread context when executing logger.debug.
+                // We cannot use a static logger field as it would initialize logging before it's ready
+                LoggerFactory.getLogger(IndyBootstrap.class).warn("Nested instrumented invokedynamic instruction linkage detected", new Throwable());
+                return null;
+            }
             String adviceClassName = (String) args[0];
             int enter = (Integer) args[1];
             Class<?> instrumentedType = (Class<?>) args[2];
@@ -411,6 +422,8 @@ public class IndyBootstrap {
             // must not be a static field as it would initialize logging before it's ready
             LoggerFactory.getLogger(IndyBootstrap.class).error(e.getMessage(), e);
             return null;
+        } finally {
+            callDepth.decrement();
         }
     }
 
