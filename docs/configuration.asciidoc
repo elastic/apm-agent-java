@@ -1548,7 +1548,7 @@ Span compression reduces the collection, processing, and storage overhead, and r
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `false` | Boolean | true
+| `true` | Boolean | true
 |============
 
 
@@ -1593,12 +1593,12 @@ Consecutive spans to the same destination that are under this threshold will be 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 Supports the duration suffixes `ms`, `s` and `m`.
-Example: `5ms`.
+Example: `0ms`.
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `5ms` | TimeDuration | true
+| `0ms` | TimeDuration | true
 |============
 
 
@@ -3626,9 +3626,9 @@ Example: `5ms`.
 #
 # This setting can be changed at runtime
 # Type: Boolean
-# Default value: false
+# Default value: true
 #
-# span_compression_enabled=false
+# span_compression_enabled=true
 
 # Consecutive spans that are exact match and that are under this threshold will be compressed into a single composite span. This option does not apply to composite spans. This reduces the collection, processing, and storage overhead, and removes clutter from the UI. The tradeoff is that the DB statements of all the compressed spans will not be collected.
 #
@@ -3643,10 +3643,10 @@ Example: `5ms`.
 #
 # This setting can be changed at runtime
 # Type: TimeDuration
-# Supports the duration suffixes ms, s and m. Example: 5ms.
-# Default value: 5ms
+# Supports the duration suffixes ms, s and m. Example: 0ms.
+# Default value: 0ms
 #
-# span_compression_same_kind_max_duration=5ms
+# span_compression_same_kind_max_duration=0ms
 
 # Exit spans are spans that represent a call to an external service, like a database. If such calls are very short, they are usually not relevant and can be ignored.
 # 

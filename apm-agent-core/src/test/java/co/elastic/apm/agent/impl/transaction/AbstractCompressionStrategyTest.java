@@ -56,7 +56,6 @@ abstract class AbstractCompressionStrategyTest {
         reporter.disableCheckDestinationAddress();
 
         SpanConfiguration spanConfiguration = mockInstrumentationSetup.getConfig().getConfig(SpanConfiguration.class);
-        when(spanConfiguration.isSpanCompressionEnabled()).thenReturn(true);
         when(spanConfiguration.getSpanCompressionExactMatchMaxDuration()).thenReturn(TimeDuration.of("50ms"));
         when(spanConfiguration.getSpanCompressionSameKindMaxDuration()).thenReturn(TimeDuration.of("50ms"));
 
