@@ -41,20 +41,6 @@ public class ServiceFactory {
     }
 
     private void augmentServiceForAWSLambda(Service service) {
-        if (service.getName() == null || service.getName().isEmpty()) {
-            String serviceName = System.getenv("AWS_LAMBDA_FUNCTION_NAME");
-            if (null != serviceName) {
-                service.withName(serviceName);
-            }
-        }
-
-        if (service.getVersion() == null || service.getVersion().isEmpty()) {
-            String serviceVersion = System.getenv("AWS_LAMBDA_FUNCTION_VERSION");
-            if (null != serviceVersion) {
-                service.withVersion(serviceVersion);
-            }
-        }
-
         String runtimeName = System.getenv("AWS_EXECUTION_ENV");
         runtimeName = null != runtimeName ? runtimeName : "AWS_Lambda_java";
         service.withRuntime(new RuntimeInfo(runtimeName, System.getProperty("java.version")));

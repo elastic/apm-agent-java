@@ -492,7 +492,7 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public boolean flush(long timeout, TimeUnit unit) {
+    public boolean flush(long timeout, TimeUnit unit, boolean followupWithFlushRequest) {
         return true;
     }
 
