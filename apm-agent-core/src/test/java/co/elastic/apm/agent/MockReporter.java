@@ -420,6 +420,12 @@ public class MockReporter implements Reporter {
             .isEqualTo(count));
     }
 
+    public void awaitErrorCount(int count) {
+        awaitUntilAsserted(() -> assertThat(getNumReportedErrors())
+            .describedAs("expecting %d errors", count)
+            .isEqualTo(count));
+    }
+
     @Override
     public synchronized void report(ErrorCapture error) {
         if (closed) {
@@ -468,6 +474,10 @@ public class MockReporter implements Reporter {
 
     public synchronized List<ErrorCapture> getErrors() {
         return Collections.unmodifiableList(errors);
+    }
+
+    public synchronized int getNumReportedErrors() {
+        return errors.size();
     }
 
     public synchronized ErrorCapture getFirstError() {
