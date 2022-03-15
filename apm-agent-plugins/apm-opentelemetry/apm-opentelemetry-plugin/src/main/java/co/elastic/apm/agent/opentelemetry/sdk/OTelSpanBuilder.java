@@ -64,7 +64,6 @@ class OTelSpanBuilder implements SpanBuilder {
     public OTelSpanBuilder(String spanName, ElasticApmTracer elasticApmTracer) {
         this.spanName = spanName;
         this.elasticApmTracer = elasticApmTracer;
-        this.parent = elasticApmTracer.getActive();
     }
 
     @Override
@@ -142,6 +141,12 @@ class OTelSpanBuilder implements SpanBuilder {
     @Override
     public Span startSpan() {
         AbstractSpan<?> span;
+
+        if (parent == null) {
+            // when parent is not explicitly set, the currently active parent is used as fallback
+            parent = elasticApmTracer.getActive();
+        }
+
         if (remoteContext != null) {
             PotentiallyMultiValuedMap headers = new PotentiallyMultiValuedMap(2);
             W3CTraceContextPropagator.getInstance().inject(remoteContext, headers, PotentiallyMultiValuedMap::add);
