@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.struts;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.opensymphony.xwork2.ActionSupport;
 import org.apache.struts2.StrutsTestCase;
@@ -34,6 +35,11 @@ public class ActionProxyAdviceTest extends StrutsTestCase {
 
         @SuppressWarnings("unused")
         public String customMethod() {
+            return SUCCESS;
+        }
+
+        @SuppressWarnings("unused")
+        public String chainedAction() {
             return SUCCESS;
         }
     }
@@ -62,5 +68,19 @@ public class ActionProxyAdviceTest extends StrutsTestCase {
         transaction.end();
 
         assertThat(AbstractInstrumentationTest.getReporter().getFirstTransaction().getNameAsString()).isEqualTo("TestAction#customMethod");
+    }
+
+    public void testChainedAction() throws ServletException, UnsupportedEncodingException {
+        AbstractInstrumentationTest.getReporter().disableCheckStrictSpanType();
+
+        Transaction transaction = AbstractInstrumentationTest.getTracer().startRootTransaction(null).withName("struts-test").activate();
+        executeAction("/test3");
+        transaction.end();
+
+        assertThat(AbstractInstrumentationTest.getReporter().getFirstTransaction().getNameAsString()).isEqualTo("TestAction#chainedAction");
+        Span span = AbstractInstrumentationTest.getReporter().getFirstSpan();
+        assertThat(span.getNameAsString()).isEqualTo("Execute TestAction#execute");
+        assertThat(span.getType()).isEqualTo("struts");
+        assertThat(span.getSubtype()).isEqualTo("action-chain");
     }
 }

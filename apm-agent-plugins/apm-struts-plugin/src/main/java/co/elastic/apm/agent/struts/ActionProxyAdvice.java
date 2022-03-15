@@ -19,23 +19,56 @@
 package co.elastic.apm.agent.struts;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
+import com.opensymphony.xwork2.ActionContext;
 import com.opensymphony.xwork2.ActionProxy;
 import net.bytebuddy.asm.Advice;
+
+import javax.annotation.Nullable;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 
 public class ActionProxyAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void setTransactionName(@Advice.This ActionProxy actionProxy) {
+    public static Object onEnterExecute(@Advice.This ActionProxy actionProxy) {
         Transaction transaction = GlobalTracer.get().currentTransaction();
         if (transaction == null) {
+            return null;
+        }
+
+        String className = actionProxy.getAction().getClass().getSimpleName();
+        String methodName = actionProxy.getMethod();
+        if (ActionContext.getContext().get("CHAIN_HISTORY") != null) {
+            Span span = transaction.createSpan().withType("struts").withSubtype("action-chain");
+            TransactionNameUtils.setNameFromClassAndMethod(className, methodName, span.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK).append("Execute "));
+            return span.activate();
+        } else {
+            TransactionNameUtils.setNameFromClassAndMethod(className, methodName, transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
+            StrutsFrameworkUtils.setFrameworkNameAndVersion(transaction);
+            return null;
+        }
+    }
+
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+    public static void onExitExecute(@Advice.Enter @Nullable Object spanOrNull,
+                                     @Advice.Thrown @Nullable Throwable t) {
+        if (spanOrNull == null) {
             return;
         }
 
-        TransactionNameUtils.setNameFromClassAndMethod(actionProxy.getAction().getClass().getSimpleName(), actionProxy.getMethod(), transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
-        StrutsFrameworkUtils.setFrameworkNameAndVersion(transaction);
+        Span span = (Span) spanOrNull;
+        try {
+            if (t != null) {
+                span.captureException(t).withOutcome(Outcome.FAILURE);
+            } else {
+                span.withOutcome(Outcome.SUCCESS);
+            }
+        } finally {
+            span.deactivate().end();
+        }
     }
 }

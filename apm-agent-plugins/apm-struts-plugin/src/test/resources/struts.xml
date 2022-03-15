@@ -12,5 +12,8 @@
                 <param name="status">200</param>
             </result>
         </action>
+        <action name="test3" class="co.elastic.apm.agent.struts.ActionProxyAdviceTest$TestAction" method="chainedAction">
+            <result name="success" type="chain">test1</result>
+        </action>
     </package>
 </struts>
