@@ -37,6 +37,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.Mockito;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.test.StepVerifier;
@@ -369,6 +370,25 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
             .verify();
 
         // no transactions, not errors captured.
+    }
+
+    @Test
+    void testIgnoreUrlsConfig() {
+        Mockito.when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(List.of(WildcardMatcher.valueOf("*/empty-mono")));
+
+        StepVerifier.create(client.getMonoEmpty()).verifyComplete();
+
+        assertThat(reporter.getTransactions()).isEmpty();
+    }
+
+    @Test
+    void testIgnoreUserAgentsConfig() {
+        Mockito.when(config.getConfig(WebConfiguration.class).getIgnoreUserAgents()).thenReturn(List.of(WildcardMatcher.valueOf("ignored-ua")));
+        client.setHeader("User-Agent", "ignored-ua");
+
+        StepVerifier.create(client.getMonoEmpty()).verifyComplete();
+
+        assertThat(reporter.getTransactions()).isEmpty();
     }
 
     private static Predicate<ServerSentEvent<String>> checkSSE(final int index) {
