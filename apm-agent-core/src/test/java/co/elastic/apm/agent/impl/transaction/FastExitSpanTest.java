@@ -68,6 +68,10 @@ class FastExitSpanTest {
         SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
         assertThat(spanCount.getReported().get()).isEqualTo(0);
         assertThat(spanCount.getDropped().get()).isEqualTo(1);
+
+        DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
+        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS).getCount()).isEqualTo(1);
+        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS).getSum()).isEqualTo(49_999L);
     }
 
     @Test
@@ -88,6 +92,10 @@ class FastExitSpanTest {
         SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
         assertThat(spanCount.getReported().get()).isEqualTo(0);
         assertThat(spanCount.getDropped().get()).isEqualTo(3);
+
+        DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
+        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS).getCount()).isEqualTo(3);
+        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS).getSum()).isEqualTo(30_000L);
     }
 
     @Test
@@ -104,6 +112,9 @@ class FastExitSpanTest {
         SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
         assertThat(spanCount.getReported().get()).isEqualTo(1);
         assertThat(spanCount.getDropped().get()).isEqualTo(0);
+
+        DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
+        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS)).isNull();
     }
 
     @Test
@@ -124,6 +135,9 @@ class FastExitSpanTest {
         SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
         assertThat(spanCount.getReported().get()).isEqualTo(1);
         assertThat(spanCount.getDropped().get()).isEqualTo(2);
+
+        DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
+        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS)).isNull();
     }
 
     private Transaction startTransaction() {

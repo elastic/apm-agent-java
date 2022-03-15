@@ -74,14 +74,14 @@ public abstract class ServletContainerInitializerServiceNameInstrumentation exte
 
     public static class JavaxInitServiceNameInstrumentation extends ServletContainerInitializerServiceNameInstrumentation {
 
-        private static final JavaxServletApiAdapter adapter = JavaxServletApiAdapter.get();
-
         @Override
         public String rootClassNameThatClassloaderCanLoad() {
             return "javax.servlet.AsyncContext";
         }
 
         public static class AdviceClass {
+
+            private static final JavaxServletApiAdapter adapter = JavaxServletApiAdapter.get();
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onEnter(@Advice.Argument(1) @Nullable Object servletContext) {
@@ -94,14 +94,14 @@ public abstract class ServletContainerInitializerServiceNameInstrumentation exte
 
     public static class JakartaInitServiceNameInstrumentation extends ServletContainerInitializerServiceNameInstrumentation {
 
-        private static final JakartaServletApiAdapter adapter = JakartaServletApiAdapter.get();
-
         @Override
         public String rootClassNameThatClassloaderCanLoad() {
             return "jakarta.servlet.AsyncContext";
         }
 
         public static class AdviceClass {
+
+            private static final JakartaServletApiAdapter adapter = JakartaServletApiAdapter.get();
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onEnter(@Advice.Argument(1) @Nullable Object servletContext) {
