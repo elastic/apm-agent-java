@@ -35,6 +35,7 @@ endif::[]
 * Added microsecond durations with `us` as unit - {pull}2496[#2496]
 * Added support for dropping fast exit spans - {pull}2491[#2491]
 * Added support for collecting statistics about dropped exit spans - {pull}2505[#2505]
+* Struts action invocations via an action chain result start a new span - {pull}2513[#2513]
 
 [float]
 ===== Performance improvements
