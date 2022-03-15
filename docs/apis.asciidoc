@@ -45,6 +45,6 @@ but instead only rely on manual instrumentation,
 disable the auto instrumentation setting the configuration option <<config-instrument,`instrument`>> to `false`.
 --
 
-include::./api-elastic.asciidoc[]
-include::./api-opentelemetry.asciidoc[]
-include::./api-opentracing.asciidoc[]
+include::./api-elastic.asciidoc[Public API]
+include::./api-opentelemetry.asciidoc[OpenTelemetry API Bridge]
+include::./api-opentracing.asciidoc[OpenTracing API Bridge]
