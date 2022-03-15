@@ -44,6 +44,7 @@ endif::[]
 [float]
 ===== Bug fixes
 * Fix cross-plugin dependencies triggering NoClassDefFound - {pull}2509[#2509]
+* Respect `transaction_ignore_urls` and `transaction_ignore_user_agents` when creating transactions in the spring webflux instrumentation - {pull}2515[#2515]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
