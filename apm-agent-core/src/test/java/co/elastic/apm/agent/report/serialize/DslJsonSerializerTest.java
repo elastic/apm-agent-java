@@ -686,7 +686,6 @@ class DslJsonSerializerTest {
         JsonNode serviceJson = metaDataJson.get("service");
         assertThat(service).isNotNull();
         assertThat(serviceJson.get("name").textValue()).isEqualTo("MyService");
-        assertThat(serviceJson.get("id").textValue()).isEqualTo("service-id");
         assertThat(serviceJson.get("version").textValue()).isEqualTo("1.0");
 
         JsonNode languageJson = serviceJson.get("language");
@@ -1207,7 +1206,6 @@ class DslJsonSerializerTest {
     private FaaSMetaDataExtension createFaaSMetaDataExtension() {
         return new FaaSMetaDataExtension(
             new Framework("Lambda_Java", "1.2.3"),
-            "service-id",
             new NameAndIdField(null, "accountId"),
             "region"
         );
