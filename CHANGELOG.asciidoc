@@ -28,6 +28,13 @@ endif::[]
 * Create the JDBC spans as exit spans- {pull}2484[#2484]
 
 [float]
+===== Refactorings
+* Logging frameworks instrumentations - {pull}2428[#2428]. This refactoring includes:
+** Log correlation now works based on instrumentation rather than `ActivationListener` that directly updates the MDC
+** Merging the different instrumentations (log-correlation, error-capturing and ECS-reformatting) into a single plugin
+** Module structure and package naming changes
+
+[float]
 ===== Features
 * Added support for setting service name and version for a transaction via the public api - {pull}2451[#2451]
 * Added support for en-/disabling each public annotation on each own - {pull}2472[#2472]
@@ -37,6 +44,10 @@ endif::[]
 * Added support for collecting statistics about dropped exit spans - {pull}2505[#2505]
 * Making AWS Lambda instrumentation GA - includes some changes in Lambda transaction metadata fields and a dedicated flush HTTP request
 to the AWS Lambda extension - {pull}2424[#2424]
+* Changed logging correlation to be on by default. This change includes the removal of the now redundant `enable_log_correlation` config
+option. If there's a need to disable the log correlation mechanism, this can be done now through the `disable_instrumentations` config -
+{pull}2428[#2428]
+* Added automatic error event capturing for log4j1 and JBoss LogManager - {pull}2428[#2428]
 * Struts action invocations via an action chain result start a new span - {pull}2513[#2513]
 
 [float]
