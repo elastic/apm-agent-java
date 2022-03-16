@@ -917,7 +917,7 @@ config option]
 * Added `ElasticApmAttacher.attach(String propertiesLocation)` to specify a custom properties location
 * Logs message when `transaction_max_spans` has been exceeded {pull}849[#849]
 * Report the number of affected rows by a SQL statement (UPDATE,DELETE,INSERT) in 'affected_rows' span attribute {pull}707[#707]
-* Add https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-traced[`@Traced`] annotation which either creates a span or a transaction, depending on the context
+* Add <<api-traced, `@Traced`>> annotation which either creates a span or a transaction, depending on the context
 * Report JMS destination as a span/transaction context field {pull}906[#906]
 * Added https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics[`capture_jmx_metrics`] configuration option
 
@@ -1240,14 +1240,14 @@ controls which `Content-Type`s should be captured.
 ===== Features
 * Adds `@CaptureTransaction` and `@CaptureSpan` annotations which let you declaratively add custom transactions and spans.
    Note that it is required to configure the `application_packages` for this to work.
-   See the https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-annotation[documentation] for more information.
+   See the <<api-annotation, documentation>> for more information.
 * The public API now supports to activate a span on the current thread.
    This makes the span available via `ElasticApm#currentSpan()`
-   Refer to the https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-span-activate[documentation] for more details.
+   Refer to <<api-span-activate, documentation>> for more details.
 * Capturing of Elasticsearch RestClient 5.0.2+ calls.
    Currently, the `*Async` methods are not supported, only their synchronous counterparts.
 * Added API methods to enable correlating the spans created from the JavaScrip Real User Monitoring agent with the Java agent transaction.
-   More information can be found in the https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-ensure-parent-id[documentation].
+   More information can be found in the <<api-ensure-parent-id, documentation>>.
 * Added `Transaction.isSampled()` and `Span.isSampled()` methods to the public API
 * Added `Transaction#setResult` to the public API {pull}293[#293]
 
@@ -1272,14 +1272,14 @@ controls which `Content-Type`s should be captured.
 * Support for Distributed Tracing
 * Adds `@CaptureTransaction` and `@CaptureSpan` annotations which let you declaratively add custom transactions and spans.
    Note that it is required to configure the `application_packages` for this to work.
-   See the https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-annotation[documentation] for more information.
+   See the <<api-annotation, documentation>> for more information.
 * The public API now supports to activate a span on the current thread.
    This makes the span available via `ElasticApm#currentSpan()`
-   Refer to the https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-span-activate[documentation] for more details.
+   Refer to the <<api-span-activate, documentation>> for more details.
 * Capturing of Elasticsearch RestClient 5.0.2+ calls.
    Currently, the `*Async` methods are not supported, only their synchronous counterparts.
 * Added API methods to enable correlating the spans created from the JavaScrip Real User Monitoring agent with the Java agent transaction.
-   More information can be found in the https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-ensure-parent-id[documentation].
+   More information can be found in the <<api-ensure-parent-id, documentation>>.
 * Microsecond accurate timestamps {pull}261[#261]
 * Support for JAX-RS annotations.
 Transactions are named based on your resources (`ResourceClass#resourceMethod`).
