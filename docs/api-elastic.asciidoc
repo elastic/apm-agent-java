@@ -785,7 +785,7 @@ Using `null` or empty resource string will result in the omission of this field 
 [float]
 [[api-span-set-destination-address]]
 ==== `Span setDestinationAddress(String address, int port)` added[1.25.0]
-Provides a way to manually set the span's `destination.address` and `destination.port` fields. 
+Provides a way to manually set the span's `destination.address` and `destination.port` fields.
 Values set through this method will take precedence over the automatically discovered ones.
 Using `null` or empty address or non-positive port will result in the omission of the corresponding field from the
 span context.
