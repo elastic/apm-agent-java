@@ -68,9 +68,6 @@ public class MetaData {
         globalLabelValues = new ArrayList<>(globalLabels.values());
 
         if (faasMetaDataExtension != null) {
-            if (service.getId() == null) {
-                service.withId(faasMetaDataExtension.getServiceId());
-            }
             if (service.getFramework() == null && faasMetaDataExtension.getFramework() != null) {
                 service.withFramework(faasMetaDataExtension.getFramework());
             }

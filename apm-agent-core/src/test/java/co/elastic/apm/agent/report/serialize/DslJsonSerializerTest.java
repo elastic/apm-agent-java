@@ -25,9 +25,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
-import co.elastic.apm.agent.impl.metadata.MetaData;
-import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Headers;
@@ -36,8 +33,11 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.Agent;
 import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
+import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
 import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.Language;
+import co.elastic.apm.agent.impl.metadata.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
 import co.elastic.apm.agent.impl.metadata.Service;
@@ -157,7 +157,7 @@ class DslJsonSerializerTest {
     void testErrorSerialization() {
         ElasticApmTracer tracer = MockTracer.create();
         Transaction transaction = new Transaction(tracer);
-        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true), null);
+        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true));
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
@@ -206,7 +206,7 @@ class DslJsonSerializerTest {
     void testErrorSerializationWithEmptyTraceId() {
         ElasticApmTracer tracer = MockTracer.create();
         Transaction transaction = new Transaction(tracer);
-        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true), null);
+        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true));
         transaction.getTraceContext().getTraceId().resetState();
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
 
@@ -686,7 +686,6 @@ class DslJsonSerializerTest {
         JsonNode serviceJson = metaDataJson.get("service");
         assertThat(service).isNotNull();
         assertThat(serviceJson.get("name").textValue()).isEqualTo("MyService");
-        assertThat(serviceJson.get("id").textValue()).isEqualTo("service-id");
         assertThat(serviceJson.get("version").textValue()).isEqualTo("1.0");
 
         JsonNode languageJson = serviceJson.get("language");
@@ -1207,7 +1206,6 @@ class DslJsonSerializerTest {
     private FaaSMetaDataExtension createFaaSMetaDataExtension() {
         return new FaaSMetaDataExtension(
             new Framework("Lambda_Java", "1.2.3"),
-            "service-id",
             new NameAndIdField(null, "accountId"),
             "region"
         );
@@ -1215,7 +1213,7 @@ class DslJsonSerializerTest {
 
     private Transaction createRootTransaction(Sampler sampler) {
         Transaction t = new Transaction(MockTracer.create());
-        t.start(TraceContext.asRoot(), null, 0, sampler, getClass().getClassLoader());
+        t.start(TraceContext.asRoot(), null, 0, sampler);
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().withFull("http://localhost:8080/foo/bar");
@@ -1342,6 +1340,25 @@ class DslJsonSerializerTest {
         }
 
         assertThat(headersJson).isNotNull();
+    }
+
+    @Test
+    void testNonCompositeSpan() {
+        Span span = new Span(MockTracer.create());
+
+        JsonNode jsonSpan = readJsonString(serializer.toJsonString(span));
+        assertThat(jsonSpan.get("composite")).isNull();
+    }
+
+    @Test
+    void testCompositeSpan() {
+        Span span = new Span(MockTracer.create());
+        span.getComposite().init(1234, "exact_match");
+
+        JsonNode jsonSpan = readJsonString(serializer.toJsonString(span));
+        assertThat(jsonSpan.get("composite").get("count").asInt()).isEqualTo(1);
+        assertThat(jsonSpan.get("composite").get("sum").asDouble()).isEqualTo(1.234);
+        assertThat(jsonSpan.get("composite").get("compression_strategy").asText()).isEqualTo("exact_match");
     }
 
     private static void checkSingleValueHeader(JsonNode json, String fieldName, String value){

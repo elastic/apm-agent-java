@@ -48,13 +48,11 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
         Transaction transaction = tracer.startChildTransaction(apiGatewayEvent.getHeaders(), MapTextHeaderGetter.INSTANCE, apiGatewayEvent.getClass().getClassLoader());
 
         APIGatewayV2HTTPEvent.RequestContext requestContext = apiGatewayEvent.getRequestContext();
-        if (transaction != null && null != requestContext) {
+        if (transaction != null) {
             APIGatewayV2HTTPEvent.RequestContext.Http http = requestContext.getHttp();
-            if (null != http) {
-                fillHttpRequestData(transaction, http.getMethod(), apiGatewayEvent.getHeaders(), requestContext.getDomainName(),
-                        http.getPath(), apiGatewayEvent.getRawQueryString(), apiGatewayEvent.getBody());
-                transaction.getContext().getRequest().withHttpVersion(getHttpVersion(http.getProtocol()));
-            }
+            fillHttpRequestData(transaction, http.getMethod(), apiGatewayEvent.getHeaders(), requestContext.getDomainName(),
+                http.getPath(), apiGatewayEvent.getRawQueryString(), apiGatewayEvent.getBody());
+            transaction.getContext().getRequest().withHttpVersion(http.getProtocol());
         }
 
         return transaction;
@@ -67,26 +65,50 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
 
     @Override
     protected void setTransactionTriggerData(Transaction transaction, APIGatewayV2HTTPEvent apiGatewayRequest) {
-        super.setTransactionTriggerData(transaction,apiGatewayRequest);
+        super.setTransactionTriggerData(transaction, apiGatewayRequest);
         APIGatewayV2HTTPEvent.RequestContext rContext = apiGatewayRequest.getRequestContext();
-
-        if (null != rContext) {
-            String httpMethod = null != rContext.getHttp() ? rContext.getHttp().getMethod() : null;
-            setApiGatewayContextData(transaction, rContext.getRequestId(), rContext.getApiId(), httpMethod,
-                    apiGatewayRequest.getRouteKey(), rContext.getAccountId());
-        }
-    }
-
-    @Override
-    protected String getHttpMethod(APIGatewayV2HTTPEvent event) {
-        if(null != event.getRequestContext() && null != event.getRequestContext().getHttp()){
-            return event.getRequestContext().getHttp().getMethod();
-        }
-        return null;
+        setApiGatewayContextData(transaction, rContext.getRequestId(), rContext.getApiId(),
+            rContext.getDomainName(), rContext.getAccountId());
     }
 
     @Override
     protected String getApiGatewayVersion() {
         return "2.0";
+    }
+
+    @Nullable
+    @Override
+    protected String getHttpMethod(APIGatewayV2HTTPEvent event) {
+        return event.getRequestContext().getHttp().getMethod();
+    }
+
+    @Nullable
+    @Override
+    protected String getRequestContextPath(APIGatewayV2HTTPEvent event) {
+        return event.getRequestContext().getHttp().getPath();
+    }
+
+    @Nullable
+    @Override
+    protected String getStage(APIGatewayV2HTTPEvent event) {
+        String stage = event.getRequestContext().getStage();
+        if(stage != null && !stage.equals("$default")){
+            return stage;
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    protected String getResourcePath(APIGatewayV2HTTPEvent event) {
+        String routeKey = event.getRequestContext().getRouteKey();
+        if (routeKey != null) {
+            int idxSpace = routeKey.indexOf(' ');
+
+            if (idxSpace >= 0 && routeKey.length() > idxSpace + 1) {
+                routeKey = routeKey.substring(idxSpace + 1);
+            }
+        }
+        return routeKey;
     }
 }

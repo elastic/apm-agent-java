@@ -35,11 +35,11 @@ import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.User;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.Agent;
 import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
 import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.Language;
+import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.metadata.Node;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
@@ -47,6 +47,8 @@ import co.elastic.apm.agent.impl.metadata.RuntimeInfo;
 import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Composite;
+import co.elastic.apm.agent.impl.transaction.DroppedSpanStats;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.FaasTrigger;
 import co.elastic.apm.agent.impl.transaction.Id;
@@ -57,6 +59,8 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.HexUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
@@ -64,8 +68,6 @@ import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
 import com.dslplatform.json.StringConverter;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -665,6 +667,9 @@ public class DslJsonSerializer implements PayloadSerializer {
         serializeFaas(transaction.getFaas());
         serializeContext(transaction, transaction.getContext(), traceContext);
         serializeSpanCount(transaction.getSpanCount());
+        if (transaction.isSampled()) {
+            serializeDroppedSpanStats(transaction.getDroppedSpanStats());
+        }
         double sampleRate = traceContext.getSampleRate();
         if (!Double.isNaN(sampleRate)) {
             writeField("sample_rate", sampleRate);
@@ -708,8 +713,21 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (!Double.isNaN(sampleRate)) {
             writeField("sample_rate", sampleRate);
         }
+        if (span.isComposite()) {
+            serializeComposite(span.getComposite());
+        }
         serializeSpanType(span);
         jw.writeByte(OBJECT_END);
+    }
+
+    private void serializeComposite(Composite composite) {
+        writeFieldName("composite", jw);
+        jw.writeByte(OBJECT_START);
+        writeField("count", composite.getCount());
+        writeField("sum", composite.getSumMs());
+        writeLastField("compression_strategy", composite.getCompressionStrategy());
+        jw.writeByte(OBJECT_END);
+        jw.writeByte(COMMA);
     }
 
     private void serializeServiceNameWithFramework(@Nullable final Transaction transaction, final TraceContext traceContext, final ServiceOrigin serviceOrigin) {
@@ -1030,6 +1048,9 @@ public class DslJsonSerializer implements PayloadSerializer {
             writeFieldName("faas");
             jw.writeByte(OBJECT_START);
             writeField("execution", faas.getExecution());
+            writeField("id", faas.getId());
+            writeField("name", faas.getName());
+            writeField("version", faas.getVersion());
             serializeFaasTrigger(faas.getTrigger());
             writeLastField("coldstart", faas.isColdStart());
             jw.writeByte(OBJECT_END);
@@ -1099,6 +1120,32 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("dropped", spanCount.getDropped().get());
         writeLastField("started", spanCount.getReported().get());
         jw.writeByte(OBJECT_END);
+        jw.writeByte(COMMA);
+    }
+
+    private void serializeDroppedSpanStats(final DroppedSpanStats droppedSpanStats) {
+        writeFieldName("dropped_spans_stats");
+        jw.writeByte(ARRAY_START);
+
+        int i = 0;
+        for (Map.Entry<DroppedSpanStats.StatsKey, DroppedSpanStats.Stats> stats : droppedSpanStats) {
+            if (i++ >= 128) {
+                break;
+            }
+            jw.writeByte(OBJECT_START);
+            writeField("destination_service_resource", stats.getKey().getDestinationServiceResource());
+            writeField("outcome", stats.getKey().getOutcome().toString());
+            writeFieldName("duration");
+            jw.writeByte(OBJECT_START);
+            writeField("count", stats.getValue().getCount());
+            writeFieldName("sum");
+            jw.writeByte(OBJECT_START);
+            writeLastField("us", stats.getValue().getSum());
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(OBJECT_END);
+        }
+        jw.writeByte(ARRAY_END);
         jw.writeByte(COMMA);
     }
 
@@ -1511,6 +1558,11 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void writeLastField(final String fieldName, final int value) {
+        writeFieldName(fieldName);
+        NumberConverter.serialize(value, jw);
+    }
+
+    private void writeLastField(final String fieldName, final long value) {
         writeFieldName(fieldName);
         NumberConverter.serialize(value, jw);
     }
