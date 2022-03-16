@@ -23,24 +23,36 @@ import java.util.regex.Pattern;
 
 public class TimeDuration implements Comparable<TimeDuration> {
 
-    public static final Pattern DURATION_PATTERN = Pattern.compile("^(-)?(\\d+)(ms|s|m)$");
+    public static final Pattern DURATION_PATTERN = Pattern.compile("^(-)?(\\d+)(us|ms|s|m)$");
     private final String durationString;
 
-    private final long durationMs;
+    private final long durationMicros;
 
-    private TimeDuration(String durationString, long durationMs) {
+    private TimeDuration(String durationString, long durationMicros) {
         this.durationString = durationString;
-        this.durationMs = durationMs;
+        this.durationMicros = durationMicros;
     }
 
     public static TimeDuration of(String durationString) {
+        return with(durationString, false);
+    }
+
+    public static TimeDuration ofFine(String durationString) {
+        return with(durationString, true);
+    }
+
+    private static TimeDuration with(String durationString, boolean allowMicros) {
         Matcher matcher = DURATION_PATTERN.matcher(durationString);
         if (matcher.matches()) {
             long duration = Long.parseLong(matcher.group(2));
             if (matcher.group(1) != null) {
                 duration = duration * -1;
             }
-            return new TimeDuration(durationString, duration * getDurationMultiplier(matcher.group(3)));
+            String unit = matcher.group(3);
+            if (!allowMicros && "us".equals(unit)) {
+                throw new IllegalArgumentException("Invalid duration '" + durationString + "', 'us' are only supported for fine granular durations");
+            }
+            return new TimeDuration(durationString, duration * getDurationMultiplier(unit));
         } else {
             throw new IllegalArgumentException("Invalid duration '" + durationString + "'");
         }
@@ -48,23 +60,25 @@ public class TimeDuration implements Comparable<TimeDuration> {
 
     private static int getDurationMultiplier(String unit) {
         switch (unit) {
-            case "ms":
+            case "us":
                 return 1;
-            case "s":
+            case "ms":
                 return 1000;
+            case "s":
+                return 1000 *1000;
             case "m":
-                return 1000 * 60;
+                return 1000 * 1000 * 60;
             default:
                 throw new IllegalStateException("Duration unit '" + unit + "' is unknown");
         }
     }
 
     public long getMillis() {
-        return durationMs;
+        return durationMicros/1000;
     }
 
     public long getMicros() {
-        return 1000 * durationMs;
+        return durationMicros;
     }
 
     @Override
@@ -74,6 +88,6 @@ public class TimeDuration implements Comparable<TimeDuration> {
 
     @Override
     public int compareTo(TimeDuration o) {
-        return Long.compare(durationMs, o.durationMs);
+        return Long.compare(durationMicros, o.durationMicros);
     }
 }
