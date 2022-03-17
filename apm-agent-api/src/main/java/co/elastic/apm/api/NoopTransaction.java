@@ -140,6 +140,12 @@ enum NoopTransaction implements Transaction {
     }
 
     @Override
+    public Transaction setRemoteAddress(String remoteAddress) {
+        // noop
+        return this;
+    }
+
+    @Override
     public Transaction setResult(String result) {
         // noop
         return this;

@@ -85,6 +85,22 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         }
     }
 
+    public static class SetRemoteAddressInstrumentation extends TransactionInstrumentation {
+        public SetRemoteAddressInstrumentation() {
+            super(named("setRemoteAddress"));
+        }
+
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void setRemoteAddress(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+                                                @Advice.Argument(0) String remoteAddress) {
+                if (transaction instanceof Transaction) {
+                    ((Transaction) transaction).getContext().getRequest().getSocket().withRemoteAddress(remoteAddress);
+                }
+            }
+        }
+    }
+
     public static class EnsureParentIdInstrumentation extends TransactionInstrumentation {
         public EnsureParentIdInstrumentation() {
             super(named("ensureParentId"));

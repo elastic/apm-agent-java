@@ -157,6 +157,12 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     }
 
     @Override
+    public Transaction setRemoteAddress(String remoteAddress) {
+        // co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetRemoteAddress.setRemoteAddress
+        return this;
+    }
+
+    @Override
     public Transaction setResult(String result) {
         // co.elastic.apm.agent.pluginapi.TransactionInstrumentation.SetResultInstrumentation
         return this;

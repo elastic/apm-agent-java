@@ -6,6 +6,7 @@ co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$CaptureExceptionInst
 co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation$SetServiceInfoForClassLoaderInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetFrameworkNameInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetUserInstrumentation
+co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetRemoteAddressInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$EnsureParentIdInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetResultInstrumentation
 co.elastic.apm.agent.pluginapi.TransactionInstrumentation$AddCustomContextInstrumentation

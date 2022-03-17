@@ -432,6 +432,19 @@ transaction.setUser(user.getId(), user.getEmail(), user.getUsername());
 * `email`:    The user's email address or `null`, if not applicable.
 * `username`: The user's name or `null`, if not applicable.
 
+[float]
+[[api-span-set-remote-address]]
+==== `Transaction setRemoteAddress(String remoteAddress)` added[1.30.0]
+Provides a way to manually set the `http.request.socket.remote_address` field.
+Using `null` or empty remote address will result in the omission of the corresponding field from the
+transaction context.
+
+[source,java]
+----
+transaction.setRemoteAddress(inetAddress.getHostAddress());
+----
+
+* `remoteAddress`: The remote address
 
 [float]
 [[api-transaction-capture-exception]]

@@ -230,6 +230,15 @@ public interface Transaction extends Span {
     Transaction setUser(String id, String email, String username, String domain);
 
     /**
+     * Provides a way to manually set the {@code http.request.socket.remote_address} field.
+
+     * @param remoteAddress The remote address. {@code null} and empty values will cause the exclusion of the
+     *                      remote address from the transaction context.
+     */
+    @Nonnull
+    Transaction setRemoteAddress(String remoteAddress);
+
+    /**
      * A string describing the result of the transaction.
      * This is typically the HTTP status code, or e.g. "success" for a background task
      *
