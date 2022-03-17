@@ -39,14 +39,9 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
 
     private static final ClassLoader SYSTEM_CLASS_LOADER = ClassLoader.getSystemClassLoader();
 
-    private final ClassLoader targetClassLoader;
-    private final ClassLoader agentClassLoader;
-
     public IndyPluginClassLoader(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
         // See getResource on why we're using PersistenceHandler.LATENT over PersistenceHandler.MANIFEST
         super(getParent(targetClassLoader, agentClassLoader), true, typeDefinitions, PersistenceHandler.LATENT);
-        this.targetClassLoader = targetClassLoader;
-        this.agentClassLoader = agentClassLoader;
     }
 
     private static ClassLoader getParent(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader) {
@@ -99,8 +94,7 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
     @Override
     public String toString() {
         return "IndyPluginClassLoader{" +
-            "targetClassLoader=" + targetClassLoader +
-            ", agentClassLoader=" + agentClassLoader +
+            " parent=" + getParent() +
             '}';
     }
 
