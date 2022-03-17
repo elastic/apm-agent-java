@@ -97,31 +97,31 @@ public final class Constants {
             return named(filterClass);
         }
 
-        public ElementMatcher.Junction<NamedElement> requestClass() {
+        public ElementMatcher.Junction<NamedElement> requestClassMatcher() {
             return named(requestClass);
         }
 
-        public ElementMatcher.Junction<NamedElement> responseClass() {
+        public ElementMatcher.Junction<NamedElement> responseClassMatcher() {
             return named(responseClass);
         }
 
-        public ElementMatcher.Junction<NamedElement> filterChainClass() {
+        public ElementMatcher.Junction<NamedElement> filterChainClassMatcher() {
             return named(filterChainClass);
         }
 
-        public ElementMatcher.Junction<NamedElement> asyncContextClass() {
+        public ElementMatcher.Junction<NamedElement> asyncContextClassMatcher() {
             return named(asyncContextClass);
         }
 
-        public ElementMatcher.Junction<TypeDescription> servletInputStreamClass() {
+        public ElementMatcher.Junction<TypeDescription> servletInputStreamClassMatcher() {
             return named(servletInputStreamClass);
         }
 
-        public ElementMatcher.Junction<TypeDescription> servletConfigClass() {
+        public ElementMatcher.Junction<TypeDescription> servletConfigClassMatcher() {
             return named(servletConfigClass);
         }
 
-        public ElementMatcher.Junction<ClassLoader> getClassloaderFilter() {
+        public ElementMatcher.Junction<ClassLoader> getClassloaderFilterMatcher() {
             // async context class has been introduced in servlet spec 3.0
             // choice of class name to use for this test does not work as expected across all application servers
             // for example, 'javax.servlet.annotation.WebServlet' annotation is not working as expected on Payara

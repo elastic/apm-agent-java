@@ -62,7 +62,7 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("init")
-                .and(takesArgument(0, getImplConstants().servletConfigClass()));
+                .and(takesArgument(0, getImplConstants().servletConfigClassMatcher()));
         }
 
     }
@@ -71,8 +71,8 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("service")
-                .and(takesArgument(0, getImplConstants().requestClass()))
-                .and(takesArgument(1, getImplConstants().responseClass()));
+                .and(takesArgument(0, getImplConstants().requestClassMatcher()))
+                .and(takesArgument(1, getImplConstants().responseClassMatcher()));
         }
 
     }

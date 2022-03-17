@@ -44,13 +44,13 @@ public abstract class RequestStreamRecordingInstrumentation extends AbstractServ
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(getImplConstants().requestClass()).and(not(isInterface()));
+        return hasSuperType(getImplConstants().requestClassMatcher()).and(not(isInterface()));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("getInputStream")
-            .and(returns(hasSuperType(getImplConstants().servletInputStreamClass())));
+            .and(returns(hasSuperType(getImplConstants().servletInputStreamClassMatcher())));
     }
 
     @Override

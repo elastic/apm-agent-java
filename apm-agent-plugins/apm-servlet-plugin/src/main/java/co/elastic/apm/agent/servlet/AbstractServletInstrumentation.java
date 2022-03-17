@@ -36,7 +36,7 @@ public abstract class AbstractServletInstrumentation extends TracerAwareInstrume
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return getImplConstants().getClassloaderFilter();
+        return getImplConstants().getClassloaderFilterMatcher();
     }
 
 }

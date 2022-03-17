@@ -58,18 +58,18 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return not(isInterface())
-                .and(hasSuperType(getImplConstants().requestClass()));
+                .and(hasSuperType(getImplConstants().requestClassMatcher()));
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return isPublic()
                 .and(named("startAsync"))
-                .and(returns(hasSuperType(getImplConstants().asyncContextClass())))
+                .and(returns(hasSuperType(getImplConstants().asyncContextClassMatcher())))
                 .and(takesArguments(0)
                     .or(
-                        takesArgument(0, getImplConstants().requestClass())
-                            .and(takesArgument(1, getImplConstants().responseClass()))
+                        takesArgument(0, getImplConstants().requestClassMatcher())
+                            .and(takesArgument(1, getImplConstants().responseClassMatcher()))
                     )
                 );
         }
@@ -86,7 +86,7 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return not(isInterface())
-                .and(hasSuperType(getImplConstants().asyncContextClass()));
+                .and(hasSuperType(getImplConstants().asyncContextClassMatcher()));
         }
 
         @Override

@@ -43,14 +43,14 @@ public abstract class FilterChainInstrumentation extends AbstractServletInstrume
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(hasSuperType(getImplConstants().filterChainClass()));
+            .and(hasSuperType(getImplConstants().filterChainClassMatcher()));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("doFilter")
-            .and(takesArgument(0, getImplConstants().requestClass()))
-            .and(takesArgument(1, getImplConstants().responseClass()));
+            .and(takesArgument(0, getImplConstants().requestClassMatcher()))
+            .and(takesArgument(1, getImplConstants().responseClassMatcher()));
     }
 
 }
