@@ -91,6 +91,13 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
             : getParent().getResource(name);
     }
 
+    @Override
+    public String toString() {
+        return "IndyPluginClassLoader{" +
+            " parent=" + getParent() +
+            '}';
+    }
+
     public static StartsWithElementMatcher startsWith(String prefix) {
         return new StartsWithElementMatcher(prefix);
     }
