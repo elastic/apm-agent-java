@@ -580,7 +580,7 @@ public class ElasticApmAgent {
         }
     }
 
-    static InstrumentationStats getInstrumentationStats() {
+    public static InstrumentationStats getInstrumentationStats() {
         return instrumentationStats;
     }
 

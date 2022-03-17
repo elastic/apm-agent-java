@@ -65,8 +65,7 @@ public abstract class ExternalPluginTestApp extends TestApp {
     @Override
     public Map<String, String> getAdditionalEnvVariables() {
         return Map.of(
-            "ELASTIC_APM_PLUGINS_DIR", "/plugins",
-            "ELASTIC_APM_ENABLE_LOG_CORRELATION", "true"
+            "ELASTIC_APM_PLUGINS_DIR", "/plugins"
         );
     }
 

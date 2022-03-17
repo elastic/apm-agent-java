@@ -176,7 +176,7 @@ public class ElasticApmTracer implements Tracer {
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;
         if (isRunning()) {
-            transaction = createTransaction().start(TraceContext.asRoot(), null, epochMicros, sampler, initiatingClassLoader);
+            transaction = createTransaction().start(TraceContext.asRoot(), null, epochMicros, sampler);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
         return transaction;
@@ -201,7 +201,7 @@ public class ElasticApmTracer implements Tracer {
         Transaction transaction = null;
         if (isRunning()) {
             transaction = createTransaction().start(TraceContext.<C>getFromTraceContextTextHeaders(), headerCarrier,
-                textHeadersGetter, epochMicros, sampler, initiatingClassLoader);
+                textHeadersGetter, epochMicros, sampler);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
         return transaction;
@@ -220,7 +220,7 @@ public class ElasticApmTracer implements Tracer {
         Transaction transaction = null;
         if (isRunning()) {
             transaction = createTransaction().start(TraceContext.<C>getFromTraceContextBinaryHeaders(), headerCarrier,
-                binaryHeadersGetter, epochMicros, sampler, initiatingClassLoader);
+                binaryHeadersGetter, epochMicros, sampler);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
         return transaction;
@@ -383,6 +383,10 @@ public class ElasticApmTracer implements Tracer {
 
     public void endSpan(Span span) {
         if (!span.isSampled()) {
+            Transaction transaction = span.getTransaction();
+            if (transaction != null) {
+                transaction.captureDroppedSpan(span);
+            }
             span.decrementReferences();
             return;
         }
@@ -401,7 +405,7 @@ public class ElasticApmTracer implements Tracer {
             logger.debug("Discarding span {}", span);
             Transaction transaction = span.getTransaction();
             if (transaction != null) {
-                transaction.getSpanCount().getDropped().incrementAndGet();
+                transaction.captureDroppedSpan(span);
             }
             span.decrementReferences();
             return;

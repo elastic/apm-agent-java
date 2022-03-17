@@ -136,7 +136,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
 
         Faas faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
-
+        assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(faas.getTrigger().getType()).isEqualTo("pubsub");
         assertThat(faas.getTrigger().getRequestId()).isEqualTo(MESSAGE_ID);
     }
