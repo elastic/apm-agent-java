@@ -142,4 +142,14 @@ public class ShadedClassLoader extends URLClassLoader {
             return customPrefix + name;
         }
     }
+
+    @Override
+    public String toString() {
+        return "ShadedClassLoader{" +
+            "parent=" + getParent() +
+            ", customPrefix='" + customPrefix + '\'' +
+            ", manifest=" + manifest +
+            ", jarUrl=" + jarUrl +
+            '}';
+    }
 }

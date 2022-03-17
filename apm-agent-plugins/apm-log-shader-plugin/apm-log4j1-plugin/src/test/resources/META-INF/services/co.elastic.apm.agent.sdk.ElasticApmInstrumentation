@@ -1,2 +1,0 @@
-# Allows to make Log4j 1.x work on Java 17 even if not supported
-co.elastic.apm.agent.testinstr.OptionConverterInstrumentation

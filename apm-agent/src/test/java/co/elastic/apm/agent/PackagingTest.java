@@ -75,7 +75,6 @@ public class PackagingTest {
 
             Set<AgentModule> dependencies = plugin.getInternalDependencies().stream()
                 .filter(d -> !d.equals("apm-agent-core")) // filter-out explicit dependencies to apm-agent-core
-                .filter(d -> !d.equals("apm-log-shader-plugin-common")) // TODO : remove this known case when logging refactor PR is merged.
                 .map(modules::get)
                 .collect(Collectors.toSet());
 
