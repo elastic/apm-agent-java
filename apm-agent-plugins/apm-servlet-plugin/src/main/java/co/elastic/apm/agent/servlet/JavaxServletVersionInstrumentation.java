@@ -28,6 +28,11 @@ public abstract class JavaxServletVersionInstrumentation extends ServletVersionI
 
     public static class JavaxInit extends Init {
 
+        @Override
+        public Constants.ServletImpl getImplConstants() {
+            return Constants.ServletImpl.JAVAX;
+        }
+
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
@@ -36,23 +41,14 @@ public abstract class JavaxServletVersionInstrumentation extends ServletVersionI
             }
         }
 
-        @Override
-        public String servletVersionTypeMatcherClassName() {
-            return getServletVersionTypeMatcherClassName();
-        }
-
-        @Override
-        public String rootClassNameThatClassloaderCanLoad() {
-            return getRootClassNameThatClassloaderCanLoad();
-        }
-
-        @Override
-        String initMethodArgumentClassName() {
-            return "javax.servlet.ServletConfig";
-        }
     }
 
     public static class JavaxService extends Service {
+
+        @Override
+        public Constants.ServletImpl getImplConstants() {
+            return Constants.ServletImpl.JAVAX;
+        }
 
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -61,27 +57,6 @@ public abstract class JavaxServletVersionInstrumentation extends ServletVersionI
             }
         }
 
-        @Override
-        public String rootClassNameThatClassloaderCanLoad() {
-            return getRootClassNameThatClassloaderCanLoad();
-        }
-
-        @Override
-        String[] getServiceMethodArgumentClassNames() {
-            return new String[]{"javax.servlet.ServletRequest", "javax.servlet.ServletResponse"};
-        }
-
-        @Override
-        public String servletVersionTypeMatcherClassName() {
-            return getServletVersionTypeMatcherClassName();
-        }
     }
 
-    private static String getServletVersionTypeMatcherClassName() {
-        return "javax.servlet.Servlet";
-    }
-
-    private static String getRootClassNameThatClassloaderCanLoad() {
-        return "javax.servlet.AsyncContext";
-    }
 }
