@@ -59,6 +59,7 @@ option. If there's a need to disable the log correlation mechanism, this can be 
 ===== Bug fixes
 * Fix cross-plugin dependencies triggering NoClassDefFound - {pull}2509[#2509]
 * Fix status code setting in AWS Lambda transactions triggered by API Gateway V1 - {pull}2346[#2346]
+* Fix classloading OSGi bundles with partial dependency on Servlet API + avoid SecurityException with Apache Sling - {pull}2418[2418]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
