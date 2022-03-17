@@ -48,6 +48,7 @@ to the AWS Lambda extension - {pull}2424[#2424]
 option. If there's a need to disable the log correlation mechanism, this can be done now through the `disable_instrumentations` config -
 {pull}2428[#2428]
 * Added automatic error event capturing for log4j1 and JBoss LogManager - {pull}2428[#2428]
+* Added support for setting the remote address of a transaction via the public api - {pull}2522[#2522]
 
 [float]
 ===== Performance improvements
