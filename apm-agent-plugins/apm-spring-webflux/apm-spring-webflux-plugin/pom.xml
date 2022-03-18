@@ -40,6 +40,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-httpserver-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- required to test integration with API, for example custom transaction naming -->
         <dependency>
             <groupId>co.elastic.apm</groupId>
