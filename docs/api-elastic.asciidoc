@@ -432,6 +432,25 @@ transaction.setUser(user.getId(), user.getEmail(), user.getUsername());
 * `email`:    The user's email address or `null`, if not applicable.
 * `username`: The user's name or `null`, if not applicable.
 
+[float]
+[[api-transaction-set-user2]]
+==== `Transaction setUser(String id, String email, String username, String domain)` added[1.23.0]
+Call this to enrich collected performance data and errors with information about the user/client.
+This method can be called at any point during the request/response life cycle (i.e. while a transaction is active).
+The given context will be added to the active transaction.
+
+If an error is captured, the context from the active transaction is used as context for the captured error.
+
+[source,java]
+----
+transaction.setUser(user.getId(), user.getEmail(), user.getUsername(), user.getDomain());
+----
+
+
+* `id`:       The user's id or `null`, if not applicable.
+* `email`:    The user's email address or `null`, if not applicable.
+* `username`: The user's name or `null`, if not applicable.
+* `domain`:   The user's domain or `null`, if not applicable.
 
 [float]
 [[api-transaction-capture-exception]]
