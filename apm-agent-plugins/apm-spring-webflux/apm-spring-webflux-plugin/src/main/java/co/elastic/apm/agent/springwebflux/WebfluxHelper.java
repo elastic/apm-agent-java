@@ -1,4 +1,4 @@
-/*
+ /*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.httpserver.HttpServerHelper;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Request;
@@ -75,12 +76,15 @@ public class WebfluxHelper {
 
     private static final CoreConfiguration coreConfig;
     private static final WebConfiguration webConfig;
+    private static final HttpServerHelper serverHelper;
 
     private static final WeakMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakConcurrent.buildMap();
 
     static {
+
         coreConfig = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);
         webConfig = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);
+        serverHelper = new HttpServerHelper(webConfig);
     }
 
 
@@ -90,7 +94,9 @@ public class WebfluxHelper {
         Transaction transaction = WebfluxServletHelper.getServletTransaction(exchange);
         boolean fromServlet = transaction != null;
 
-        if (!fromServlet && !isExcluded(webConfig, exchange.getRequest().getPath(), exchange.getRequest().getHeaders().getFirst("User-Agent"))) {
+        String path = exchange.getRequest().getPath().value();
+        String userAgent = exchange.getRequest().getHeaders().getFirst("User-Agent");
+        if (!fromServlet && !serverHelper.isRequestExcluded(path, userAgent)) {
             transaction = tracer.startChildTransaction(exchange.getRequest().getHeaders(), HEADER_GETTER, ServerWebExchange.class.getClassLoader());
         }
 
@@ -112,26 +118,9 @@ public class WebfluxHelper {
         return Boolean.TRUE == exchange.getAttributes().get(SERVLET_TRANSACTION);
     }
 
-    public static boolean isExcluded(WebConfiguration webConfiguration, RequestPath requestPath, @Nullable String userAgentHeader) {
-        WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), requestPath.value());
-        if (excludeUrlMatcher != null) {
-            log.debug("Not tracing this request as the URL {} is ignored by the matcher {}", requestPath, excludeUrlMatcher);
-        }
-        WildcardMatcher excludeAgentMatcher = userAgentHeader != null ? WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgentHeader) : null;
-        if (excludeAgentMatcher != null) {
-            log.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}", userAgentHeader, excludeAgentMatcher);
-        }
-        boolean isExcluded = excludeUrlMatcher != null || excludeAgentMatcher != null;
-        if (!isExcluded) {
-            log.trace("No matcher found for excluding this request with request-path: {} and User-Agent: {}", requestPath, userAgentHeader);
-        }
-        return isExcluded;
-    }
-
     public static <T> Mono<T> wrapDispatcher(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
         return doWrap(mono, transaction, exchange, "webflux-dispatcher");
     }
-
 
     private static <T> Mono<T> doWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final String description) {
         //noinspection Convert2Lambda,rawtypes,Convert2Diamond
