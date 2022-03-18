@@ -26,6 +26,7 @@ endif::[]
 [float]
 ===== Potentially breaking changes
 * Create the JDBC spans as exit spans- {pull}2484[#2484]
+* WebSocket requests are now captured with transaction type request instead of custom - {pull}2501[#2501]
 
 [float]
 ===== Refactorings
