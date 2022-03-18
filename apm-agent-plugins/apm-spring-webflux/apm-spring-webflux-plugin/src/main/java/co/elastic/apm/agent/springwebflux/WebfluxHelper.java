@@ -26,16 +26,18 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import org.reactivestreams.Publisher;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.RequestPath;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.MultiValueMap;
@@ -88,7 +90,7 @@ public class WebfluxHelper {
         Transaction transaction = WebfluxServletHelper.getServletTransaction(exchange);
         boolean fromServlet = transaction != null;
 
-        if (!fromServlet) {
+        if (!fromServlet && !isExcluded(webConfig, exchange.getRequest().getPath(), exchange.getRequest().getHeaders().getFirst("User-Agent"))) {
             transaction = tracer.startChildTransaction(exchange.getRequest().getHeaders(), HEADER_GETTER, ServerWebExchange.class.getClassLoader());
         }
 
@@ -108,6 +110,22 @@ public class WebfluxHelper {
 
     public static boolean isServletTransaction(ServerWebExchange exchange) {
         return Boolean.TRUE == exchange.getAttributes().get(SERVLET_TRANSACTION);
+    }
+
+    public static boolean isExcluded(WebConfiguration webConfiguration, RequestPath requestPath, @Nullable String userAgentHeader) {
+        WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), requestPath.value());
+        if (excludeUrlMatcher != null) {
+            log.debug("Not tracing this request as the URL {} is ignored by the matcher {}", requestPath, excludeUrlMatcher);
+        }
+        WildcardMatcher excludeAgentMatcher = userAgentHeader != null ? WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgentHeader) : null;
+        if (excludeAgentMatcher != null) {
+            log.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}", userAgentHeader, excludeAgentMatcher);
+        }
+        boolean isExcluded = excludeUrlMatcher != null || excludeAgentMatcher != null;
+        if (!isExcluded) {
+            log.trace("No matcher found for excluding this request with request-path: {} and User-Agent: {}", requestPath, userAgentHeader);
+        }
+        return isExcluded;
     }
 
     public static <T> Mono<T> wrapDispatcher(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
