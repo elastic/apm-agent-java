@@ -28,13 +28,13 @@ import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpsExchange;
 import net.bytebuddy.asm.Advice;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -45,17 +45,24 @@ public class HttpHandlerAdvice {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpHandlerAdvice.class);
 
+    private static final ElasticApmTracer tracer;
+    private static final HttpServerHelper serverHelper;
+    private static final WebConfiguration webConfiguration;
+    private static final CoreConfiguration coreConfiguration;
+
+    static {
+        tracer = GlobalTracer.requireTracerImpl();
+        serverHelper = new HttpServerHelper(tracer.getConfig(WebConfiguration.class));
+        webConfiguration = tracer.getConfig(WebConfiguration.class);
+        coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+    }
+
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnterHandle(@Advice.Argument(0) HttpExchange exchange) {
-        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
-        if (tracer == null) {
-            return null;
-        }
 
-        WebConfiguration webConfiguration = tracer.getConfig(WebConfiguration.class);
         if (tracer.currentTransaction() != null
-            || isExcluded(webConfiguration, exchange.getRequestURI().getPath(), exchange.getRequestHeaders().getFirst("User-Agent"))) {
+            || serverHelper.isRequestExcluded(exchange.getRequestURI().getPath(), exchange.getRequestHeaders().getFirst("User-Agent"))) {
             return null;
         }
 
@@ -88,7 +95,6 @@ public class HttpHandlerAdvice {
             .withPathname(exchange.getRequestURI().getPath())
             .withSearch(exchange.getRequestURI().getQuery());
 
-        CoreConfiguration coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         if (transaction.isSampled() && coreConfiguration.isCaptureHeaders()) {
             Headers headers = exchange.getRequestHeaders();
             if (headers != null) {
@@ -105,22 +111,6 @@ public class HttpHandlerAdvice {
         }
 
         return transaction.activate();
-    }
-
-    public static boolean isExcluded(WebConfiguration webConfiguration, String requestPath, @Nullable String userAgentHeader) {
-        WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), requestPath);
-        if (excludeUrlMatcher != null) {
-            logger.debug("Not tracing this request as the URL {} is ignored by the matcher {}", requestPath, excludeUrlMatcher);
-        }
-        WildcardMatcher excludeAgentMatcher = userAgentHeader != null ? WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgentHeader) : null;
-        if (excludeAgentMatcher != null) {
-            logger.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}", userAgentHeader, excludeAgentMatcher);
-        }
-        boolean isExcluded = excludeUrlMatcher != null || excludeAgentMatcher != null;
-        if (!isExcluded) {
-            logger.trace("No matcher found for excluding this request with request-path: {} and User-Agent: {}", requestPath, userAgentHeader);
-        }
-        return isExcluded;
     }
 
     private static String getHostname(HttpExchange exchange) {

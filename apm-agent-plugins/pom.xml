@@ -30,8 +30,8 @@
         <module>apm-apache-httpclient-plugin</module>
         <module>apm-spring-resttemplate</module>
         <module>apm-httpclient-core</module>
-        <module>apm-log-correlation-plugin</module>
-        <module>apm-log-shader-plugin</module>
+        <module>apm-httpserver-core</module>
+        <module>apm-logging-plugin</module>
         <module>apm-log-shipper-plugin</module>
         <module>apm-es-restclient-plugin</module>
         <module>apm-okhttp-plugin</module>
@@ -45,7 +45,6 @@
         <module>apm-hibernate-search-plugin</module>
         <module>apm-redis-plugin</module>
         <module>apm-scala-concurrent-plugin</module>
-        <module>apm-error-logging-plugin</module>
         <module>apm-jmx-plugin</module>
         <module>apm-mongoclient-plugin</module>
         <module>apm-process-plugin</module>

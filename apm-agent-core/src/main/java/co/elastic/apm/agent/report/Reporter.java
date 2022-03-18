@@ -53,6 +53,11 @@ public interface Reporter extends Closeable {
      * invocation returns {@code true}.
      * </p>
      * <p>
+     * The caller may opt to atomically make a subsequent special HTTP request that tells the APM Server that it should flush data on its
+     * part as well. Given the streaming nature of the communication with the APM Server, this is not possible within the "main" event
+     * streaming request, which is created already before events are written to the connection.
+     * </p>
+     * <p>
      * If this method returns {@code false}, any of the following situations may have occurred:
      * </p>
      * <ul>
@@ -63,13 +68,15 @@ public interface Reporter extends Closeable {
      *
      * @param timeout the maximum time to wait. Negative values mean an indefinite timeout.
      * @param unit the time unit of the timeout argument
+     * @param followupWithFlushRequest if {@code true}, the reporter will atomically make a subsequent HTTP request that tells APM Server
+     *                                to flush as well, immediately after flushing the currently open connection
      * @return {code true}, if the flush has been executed successfully
      */
-    boolean flush(long timeout, TimeUnit unit);
+    boolean flush(long timeout, TimeUnit unit, boolean followupWithFlushRequest);
 
     /**
-     * Same as {@link #flush(long, TimeUnit) flush(-1, NANOSECONDS)}
-     * @see #flush(long, TimeUnit)
+     * Same as {@link #flush(long, TimeUnit, boolean) flush(-1, NANOSECONDS, false)}
+     * @see #flush(long, TimeUnit, boolean)
      */
     boolean flush();
 

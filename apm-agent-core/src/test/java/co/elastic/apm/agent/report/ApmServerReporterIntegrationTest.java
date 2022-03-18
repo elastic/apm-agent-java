@@ -48,6 +48,7 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -65,6 +66,7 @@ class ApmServerReporterIntegrationTest {
     private static Undertow server;
     private static int port;
     private static final AtomicInteger receivedIntakeApiCalls = new AtomicInteger();
+    private static final AtomicInteger receivedIntakeApiCallsWithFlushParam = new AtomicInteger();
     private static final AtomicInteger receivedEvents = new AtomicInteger();
 
     @Nullable
@@ -100,6 +102,12 @@ class ApmServerReporterIntegrationTest {
         handler = new BlockingHandler(exchange -> {
             if (statusCode < 300 && exchange.getRequestPath().equals("/intake/v2/events")) {
                 receivedIntakeApiCalls.incrementAndGet();
+                Deque<String> flushedParamValue = exchange.getQueryParameters().get("flushed");
+                if (flushedParamValue != null) {
+                    assertThat(flushedParamValue.size()).isEqualTo(1);
+                    assertThat(flushedParamValue.getFirst()).isEqualTo(Boolean.TRUE.toString());
+                    receivedIntakeApiCallsWithFlushParam.incrementAndGet();
+                }
                 InputStream in = exchange.getInputStream();
                 try (in) {
                     for (int n = 0; -1 != n; n = in.read()) {
@@ -148,15 +156,27 @@ class ApmServerReporterIntegrationTest {
         token.set(null);
         timeout.set(null);
         receivedIntakeApiCalls.set(0);
+        receivedIntakeApiCallsWithFlushParam.set(0);
         receivedEvents.set(0);
     }
 
     @Test
     void testReportTransaction() {
         reporter.report(new Transaction(tracer));
-        assertThat(reporter.flush(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(reporter.flush(5, TimeUnit.SECONDS, false)).isTrue();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
+        assertThat(receivedIntakeApiCallsWithFlushParam.get()).isEqualTo(0);
+        assertThat(reporter.getReported()).isEqualTo(1);
+    }
+
+    @Test
+    void testReportTransaction_withFlushRequest() {
+        reporter.report(new Transaction(tracer));
+        assertThat(reporter.flush(5, TimeUnit.SECONDS, true)).isTrue();
+        assertThat(reporter.getDropped()).isEqualTo(0);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(2);
+        assertThat(receivedIntakeApiCallsWithFlushParam.get()).isEqualTo(1);
         assertThat(reporter.getReported()).isEqualTo(1);
     }
 
@@ -166,6 +186,16 @@ class ApmServerReporterIntegrationTest {
         reporter.flush();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
+        assertThat(receivedIntakeApiCallsWithFlushParam.get()).isEqualTo(0);
+    }
+
+    @Test
+    void testReportSpan_withFlushRequest() {
+        reporter.report(new Span(tracer));
+        reporter.flush(5, TimeUnit.SECONDS, true);
+        assertThat(reporter.getDropped()).isEqualTo(0);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(2);
+        assertThat(receivedIntakeApiCallsWithFlushParam.get()).isEqualTo(1);
     }
 
     @Test
@@ -207,7 +237,7 @@ class ApmServerReporterIntegrationTest {
     void testFlush() {
         reporter.report(new Transaction(tracer));
         assertThat(receivedEvents.get()).isEqualTo(0);
-        assertThat(reporter.flush(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(reporter.flush(5, TimeUnit.SECONDS, false)).isTrue();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(reporter.getReported()).isEqualTo(1);
     }
@@ -217,15 +247,14 @@ class ApmServerReporterIntegrationTest {
         statusCode = HttpStatus.SERVICE_UNAVAILABLE_503;
         // try to report a few events to trigger backoff
         reporter.report(new Transaction(tracer));
-        reporter.flush(1, TimeUnit.SECONDS);
+        reporter.flush(1, TimeUnit.SECONDS, false);
         reporter.report(new Transaction(tracer));
-        reporter.flush(1, TimeUnit.SECONDS);
+        reporter.flush(1, TimeUnit.SECONDS, false);
         reporter.report(new Transaction(tracer));
-        reporter.flush(1, TimeUnit.SECONDS);
+        reporter.flush(1, TimeUnit.SECONDS, false);
         reporter.report(new Transaction(tracer));
 
         assertThat(v2handler.isHealthy()).isFalse();
-        assertThat(reporter.flush(1, TimeUnit.SECONDS)).isFalse();
+        assertThat(reporter.flush(1, TimeUnit.SECONDS, false)).isFalse();
     }
-
 }

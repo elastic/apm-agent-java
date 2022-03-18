@@ -81,13 +81,9 @@ class MetaDataTest extends CustomEnvVariables {
 
     @Test
     void testCloudProvider_ForAWSLambda_fromEnvVariables() throws Exception {
-        when(coreConfiguration.getServiceName()).thenReturn("");
         MetaData awsLambdaMetaData = createAwsLambdaMetaData();
 
         Service service = awsLambdaMetaData.getService();
-        assertThat(service.getName()).isEqualTo("function-name");
-        assertThat(service.getId()).isEqualTo("service-id");
-        assertThat(service.getVersion()).isEqualTo("function-version");
         assertThat(Objects.requireNonNull(service.getRuntime()).getName()).isEqualTo("lambda-execution");
         assertThat(Objects.requireNonNull(service.getNode()).getName()).isEqualTo("lambda-log-stream");
         Framework framework = service.getFramework();
@@ -132,7 +128,6 @@ class MetaDataTest extends CustomEnvVariables {
 
         metaDataFuture.getFaaSMetaDataExtensionFuture().complete(new FaaSMetaDataExtension(
             new Framework("Lambda_Java_framework", "1.4.3"),
-            "service-id",
             new NameAndIdField(null, "accountId"),
             "discovered-region"
         ));

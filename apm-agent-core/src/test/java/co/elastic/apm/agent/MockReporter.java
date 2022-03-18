@@ -420,6 +420,12 @@ public class MockReporter implements Reporter {
             .isEqualTo(count));
     }
 
+    public void awaitErrorCount(int count) {
+        awaitUntilAsserted(() -> assertThat(getNumReportedErrors())
+            .describedAs("expecting %d errors", count)
+            .isEqualTo(count));
+    }
+
     @Override
     public synchronized void report(ErrorCapture error) {
         if (closed) {
@@ -470,6 +476,10 @@ public class MockReporter implements Reporter {
         return Collections.unmodifiableList(errors);
     }
 
+    public synchronized int getNumReportedErrors() {
+        return errors.size();
+    }
+
     public synchronized ErrorCapture getFirstError() {
         assertThat(errors)
             .describedAs("at least one error expected, none have been reported")
@@ -492,7 +502,7 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public boolean flush(long timeout, TimeUnit unit) {
+    public boolean flush(long timeout, TimeUnit unit, boolean followupWithFlushRequest) {
         return true;
     }
 
