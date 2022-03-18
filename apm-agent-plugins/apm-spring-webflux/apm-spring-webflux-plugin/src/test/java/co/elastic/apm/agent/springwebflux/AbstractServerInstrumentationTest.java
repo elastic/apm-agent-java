@@ -37,7 +37,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.mockito.Mockito;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.test.StepVerifier;
@@ -50,6 +49,7 @@ import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.when;
 
 public abstract class AbstractServerInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -374,21 +374,21 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void testIgnoreUrlsConfig() {
-        Mockito.when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(List.of(WildcardMatcher.valueOf("*/empty-mono")));
+        when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(List.of(WildcardMatcher.valueOf("*/empty-mono")));
 
         StepVerifier.create(client.getMonoEmpty()).verifyComplete();
 
-        assertThat(reporter.getTransactions()).isEmpty();
+        reporter.assertNoTransaction();
     }
 
     @Test
     void testIgnoreUserAgentsConfig() {
-        Mockito.when(config.getConfig(WebConfiguration.class).getIgnoreUserAgents()).thenReturn(List.of(WildcardMatcher.valueOf("ignored-ua")));
+        when(config.getConfig(WebConfiguration.class).getIgnoreUserAgents()).thenReturn(List.of(WildcardMatcher.valueOf("ignored-ua")));
         client.setHeader("User-Agent", "ignored-ua");
 
         StepVerifier.create(client.getMonoEmpty()).verifyComplete();
 
-        assertThat(reporter.getTransactions()).isEmpty();
+        reporter.assertNoTransaction();
     }
 
     private static Predicate<ServerSentEvent<String>> checkSSE(final int index) {
