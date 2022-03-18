@@ -226,17 +226,23 @@ set JAVA_OPTIONS=%JAVA_OPTIONS% -Delastic.apm.server_url=http://localhost:8200
 ==== Cloud Foundry
 The Elastic Java APM Agent Framework is now part of the Cloud Foundry Java Buildpack as of link:https://github.com/cloudfoundry/java-buildpack/releases/tag/v4.19[Release v4.19].
 
+The APM Server in your Elasticsearch service must be enabled:
+
+`cf update-service my-elastic-service -c '{ "EnableAPMServer": true }'`
+
 A user provided Elastic APM service must have a name or tag with `elastic-apm` in it so that the Elastic APM Agent Framework will automatically configure the application to work with the service.
 
 Create a user provided service:
 
-`cf cups my-elastic-apm-service -p '{"server_url":"https://my-apm-server:8200","secret_token":"my-secret-token"}'`
+`cf cups my-elastic-apm-service -p '{"server_urls":"my-apm-server-url","secret_token":"my-apm-server-secret-token"}'`
 
-Bind the application to the service:
+Both `my-apm-server-url` and `my-apm-server-secret-token` are respectively `server_urls` and `secret_token` from service-key of your Elasticsearch server.
+
+Bind the application to the Elasticsearch service:
 
 `cf bind-service my-application my-elastic-apm-service`
 
-or use the `services` block in the application manifest file.
+and restage the application or use the `services` block in the application manifest file.
 
 For more details on the Elastic Java APM Agent Framework for Cloud Foundry see link:https://github.com/cloudfoundry/java-buildpack/blob/main/docs/framework-elastic_apm_agent.md[here].
 
