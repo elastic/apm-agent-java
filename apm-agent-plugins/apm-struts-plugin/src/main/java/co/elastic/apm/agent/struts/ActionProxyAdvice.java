@@ -43,7 +43,7 @@ public class ActionProxyAdvice {
         String className = actionProxy.getAction().getClass().getSimpleName();
         String methodName = actionProxy.getMethod();
         if (ActionContext.getContext().get("CHAIN_HISTORY") != null) {
-            Span span = transaction.createSpan().withType("struts").withSubtype("action-chain");
+            Span span = transaction.createSpan().withType("app").withSubtype("internal");
             TransactionNameUtils.setNameFromClassAndMethod(className, methodName, span.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK).append("Execute "));
             return span.activate();
         } else {

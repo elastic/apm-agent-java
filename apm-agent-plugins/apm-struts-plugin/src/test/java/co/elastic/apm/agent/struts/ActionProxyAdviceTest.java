@@ -80,7 +80,7 @@ public class ActionProxyAdviceTest extends StrutsTestCase {
         assertThat(AbstractInstrumentationTest.getReporter().getFirstTransaction().getNameAsString()).isEqualTo("TestAction#chainedAction");
         Span span = AbstractInstrumentationTest.getReporter().getFirstSpan();
         assertThat(span.getNameAsString()).isEqualTo("Execute TestAction#execute");
-        assertThat(span.getType()).isEqualTo("struts");
-        assertThat(span.getSubtype()).isEqualTo("action-chain");
+        assertThat(span.getType()).isEqualTo("app");
+        assertThat(span.getSubtype()).isEqualTo("internal");
     }
 }
