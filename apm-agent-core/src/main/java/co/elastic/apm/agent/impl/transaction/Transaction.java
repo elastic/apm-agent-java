@@ -226,9 +226,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (!isSampled()) {
             context.resetState();
         }
-        if (type == null) {
-            type = "custom";
-        }
+        type = normalizeType(type);
 
         if (outcomeNotSet()) {
             // set outcome from HTTP status if not already set

@@ -246,9 +246,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                 logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
             }
         }
-        if (type == null) {
-            type = "custom";
-        }
+        type = normalizeType(type);
 
         // set outcome when not explicitly set by user nor instrumentation
         if (outcomeNotSet()) {

@@ -675,4 +675,11 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return thiz();
     }
 
+    protected String normalizeType(@Nullable String type) {
+        if (type == null || type.isEmpty()) {
+            return "custom";
+        }
+        return type;
+    }
+
 }
