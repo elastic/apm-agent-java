@@ -64,7 +64,7 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
         Transaction transaction = tracer.currentTransaction();
         if (transaction != null) {
             return transaction;
-        } else if (!serverHelper.isRequestExcluded(httpServerRequest.uri(), null, httpServerRequest.headers().get(USER_AGENT_HEADER))) {
+        } else if (!serverHelper.isRequestExcluded(httpServerRequest.uri(), httpServerRequest.headers().get(USER_AGENT_HEADER))) {
             transaction = tracer.startChildTransaction(httpServerRequest.headers(), headerGetter, httpServerRequest.getClass().getClassLoader());
         }
         return transaction;

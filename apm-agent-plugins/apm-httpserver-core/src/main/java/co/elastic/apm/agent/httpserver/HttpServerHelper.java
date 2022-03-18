@@ -37,14 +37,10 @@ public class HttpServerHelper {
     }
 
     public boolean isRequestExcluded(String path, @Nullable String userAgentHeader){
-        return isRequestExcluded(path, null, userAgentHeader);
-    }
-
-    public boolean isRequestExcluded(String path, @Nullable String optionalPathSuffix, @Nullable String userAgentHeader) {
-        final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(configuration.getIgnoreUrls(), path, optionalPathSuffix);
+        final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(configuration.getIgnoreUrls(), path);
         if (excludeUrlMatcher != null && logger.isDebugEnabled()) {
-            logger.debug("Not tracing this request as the path {}{} is ignored by the matcher {}",
-                path, Objects.toString(optionalPathSuffix, ""), excludeUrlMatcher);
+            logger.debug("Not tracing this request as the path {} is ignored by the matcher {}",
+                path, excludeUrlMatcher);
         }
         final WildcardMatcher excludeAgentMatcher = userAgentHeader != null ? WildcardMatcher.anyMatch(configuration.getIgnoreUserAgents(), userAgentHeader) : null;
         if (excludeAgentMatcher != null) {
@@ -53,8 +49,8 @@ public class HttpServerHelper {
         }
         boolean isExcluded = excludeUrlMatcher != null || excludeAgentMatcher != null;
         if (!isExcluded && logger.isTraceEnabled()) {
-            logger.trace("No matcher found for excluding this request with path: {}{} and User-Agent: {}",
-                path, Objects.toString(optionalPathSuffix, ""), userAgentHeader);
+            logger.trace("No matcher found for excluding this request with path: {} and User-Agent: {}",
+                path, userAgentHeader);
         }
         return isExcluded;
     }
