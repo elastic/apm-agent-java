@@ -476,6 +476,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
             afterEnd();
         } else {
             logger.warn("End has already been called: {}", this);
+            logger.debug("Consecutive AbstractSpan#end() invocation stack trace: ", new Throwable());
             assert false;
         }
     }

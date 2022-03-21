@@ -111,15 +111,21 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                     inFlightSpans.remove(thiz);
                     // if the response code is set, the connection has been established via getOutputStream
                     // if the response code is unset even after getOutputStream has been called, there will be an exception
-                    span.getContext().getHttp().withStatusCode(responseCode);
-                    span.captureException(t).end();
+                    // checking if "finished" to avoid multiple endings on nested calls
+                    if (!span.isFinished()) {
+                        span.getContext().getHttp().withStatusCode(responseCode);
+                        span.captureException(t).end();
+                    }
                 } else if (t != null) {
                     inFlightSpans.remove(thiz);
 
                     // an exception here is synonym of failure, for example with circular redirects
-                    span.captureException(t)
-                        .withOutcome(Outcome.FAILURE)
-                        .end();
+                    // checking if "finished" to avoid multiple endings on nested calls
+                    if (!span.isFinished()) {
+                        span.captureException(t)
+                            .withOutcome(Outcome.FAILURE)
+                            .end();
+                    }
                 } else {
                     // if connect or getOutputStream has been called we can't end the span right away
                     // we have to store associate it with thiz HttpURLConnection instance and end once getInputStream has been called
