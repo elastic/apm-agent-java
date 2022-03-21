@@ -16,7 +16,7 @@
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
 
         <!-- those two properties should be updated in sync -->
-        <version.opentelemetry>1.0.0</version.opentelemetry>
+        <version.opentelemetry>1.12.0</version.opentelemetry>
         <version.opentelemetry.semconv>1.0.0-alpha</version.opentelemetry.semconv>
     </properties>
 
