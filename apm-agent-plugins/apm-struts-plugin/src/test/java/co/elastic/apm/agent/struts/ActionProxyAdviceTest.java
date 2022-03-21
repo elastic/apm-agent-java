@@ -71,15 +71,13 @@ public class ActionProxyAdviceTest extends StrutsTestCase {
     }
 
     public void testChainedAction() throws ServletException, UnsupportedEncodingException {
-        AbstractInstrumentationTest.getReporter().disableCheckStrictSpanType();
-
         Transaction transaction = AbstractInstrumentationTest.getTracer().startRootTransaction(null).withName("struts-test").activate();
         executeAction("/test3");
         transaction.end();
 
         assertThat(AbstractInstrumentationTest.getReporter().getFirstTransaction().getNameAsString()).isEqualTo("TestAction#chainedAction");
         Span span = AbstractInstrumentationTest.getReporter().getFirstSpan();
-        assertThat(span.getNameAsString()).isEqualTo("Execute TestAction#execute");
+        assertThat(span.getNameAsString()).isEqualTo("TestAction#execute");
         assertThat(span.getType()).isEqualTo("app");
         assertThat(span.getSubtype()).isEqualTo("internal");
     }
