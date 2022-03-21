@@ -26,6 +26,7 @@ endif::[]
 [float]
 ===== Potentially breaking changes
 * Create the JDBC spans as exit spans- {pull}2484[#2484]
+* WebSocket requests are now captured with transaction type request instead of custom - {pull}2501[#2501]
 
 [float]
 ===== Refactorings
@@ -48,6 +49,7 @@ to the AWS Lambda extension - {pull}2424[#2424]
 option. If there's a need to disable the log correlation mechanism, this can be done now through the `disable_instrumentations` config -
 {pull}2428[#2428]
 * Added automatic error event capturing for log4j1 and JBoss LogManager - {pull}2428[#2428]
+* Issue a warning when security manager is mis-configured - {pull}2510[#2510]
 * Added support for setting the remote address of a transaction via the public api - {pull}2522[#2522]
 
 [float]
@@ -60,6 +62,7 @@ option. If there's a need to disable the log correlation mechanism, this can be 
 * Fix cross-plugin dependencies triggering NoClassDefFound - {pull}2509[#2509]
 * Fix status code setting in AWS Lambda transactions triggered by API Gateway V1 - {pull}2346[#2346]
 * Fix classloading OSGi bundles with partial dependency on Servlet API + avoid SecurityException with Apache Sling - {pull}2418[2418]
+* Respect `transaction_ignore_urls` and `transaction_ignore_user_agents` when creating transactions in the spring webflux instrumentation - {pull}2515[#2515]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
