@@ -50,6 +50,7 @@ option. If there's a need to disable the log correlation mechanism, this can be 
 {pull}2428[#2428]
 * Added automatic error event capturing for log4j1 and JBoss LogManager - {pull}2428[#2428]
 * Issue a warning when security manager is mis-configured - {pull}2510[#2510]
+* Add experimental OpenTelemetry API bridge - {pull}1631[#1631]
 * Added support for setting the remote address of a transaction via the public api - {pull}2522[#2522]
 
 [float]
@@ -152,7 +153,7 @@ paths. The BCI warmup is on by default and may be disabled through the internal 
 ==== 1.28.1 - 2021/12/10
 
 [float]
-===== Security 
+===== Security
 * Fix for "Log4Shell" RCE 0-day exploit in log4j https://nvd.nist.gov/vuln/detail/CVE-2021-44228[CVE-2021-44228] - {pull}2332[#2332]
 
 [float]
@@ -887,7 +888,7 @@ for more details) - {pull}1009[#1009]
 *** Rely on the existing `ELASTIC_APM_CAPTURE_BODY` agent config option (off by default).
 *** Send as `context.message.body`
 *** Limit size to 10000 characters. If longer than this size, trim to 9999 and append with ellipsis
-** Introduce the `ignore_message_queues` configuration to disable instrumentation (message tagging) for specific 
+** Introduce the `ignore_message_queues` configuration to disable instrumentation (message tagging) for specific
       queues/topics as suggested in {pull}710[#710]
 ** Capture predefined message headers and all properties
 *** Rely on the existing `ELASTIC_APM_CAPTURE_HEADERS` agent config option.
@@ -911,12 +912,12 @@ for more details) - {pull}1009[#1009]
 config option]
 * Add ability to ignore some exceptions to be reported as errors <<config-ignore-exceptions[ignore_exceptions]
 * Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the 
-   polling method itself (ie from `receive` start to end), the agent will create a transaction attempting to capture 
+   polling method itself (ie from `receive` start to end), the agent will create a transaction attempting to capture
    the code executed during actual message handling.
    This logic is suitable for environments where polling APIs are invoked within dedicated polling threads.
-   This polling transaction creation strategy can be reversed through a configuration option (`message_polling_transaction_strategy`) 
-   that is not exposed in the properties file by default.  
-* Send IP obtained through `javax.servlet.ServletRequest#getRemoteAddr()` in `context.request.socket.remote_address` 
+   This polling transaction creation strategy can be reversed through a configuration option (`message_polling_transaction_strategy`)
+   that is not exposed in the properties file by default.
+* Send IP obtained through `javax.servlet.ServletRequest#getRemoteAddr()` in `context.request.socket.remote_address`
    instead of parsing from headers {pull}889[#889]
 * Added `ElasticApmAttacher.attach(String propertiesLocation)` to specify a custom properties location
 * Logs message when `transaction_max_spans` has been exceeded {pull}849[#849]
@@ -940,7 +941,7 @@ config option]
 * Add support for identifying target JVM to attach apm agent to using JVM property. See also the documentation of the <<setup-attach-cli-usage-options, `--include` and `--exclude` flags>>
 * Added <<config-capture-jmx-metrics, `capture_jmx_metrics`>> configuration option
 * Improve servlet error capture {pull}812[#812]
-  Among others, now also takes Spring MVC `@ExceptionHandler`s into account 
+  Among others, now also takes Spring MVC `@ExceptionHandler`s into account
 * Instrument Logger#error(String, Throwable) {pull}821[#821]
   Automatically captures exceptions when calling `logger.error("message", exception)`
 * Easier log correlation with https://github.com/elastic/java-ecs-logging. See <<log-correlation, docs>>.
@@ -953,7 +954,7 @@ config option]
 * Error in log when setting <<config-server-urls, server_urls>>
  to an empty string - `co.elastic.apm.agent.configuration.ApmServerConfigurationSource - Expected previousException not to be null`
 * Avoid terminating the TCP connection to APM Server when polling for configuration updates {pull}823[#823]
- 
+
 [[release-notes-1.9.0]]
 ==== 1.9.0 - 2019/08/22
 
@@ -983,7 +984,7 @@ See https://discuss.elastic.co/t/elastic-apm-agent-jdbchelper-seems-to-use-a-lot
 [float]
 ==== Breaking Changes
 * The `apm-agent-attach.jar` is not executable anymore.
-Use `apm-agent-attach-standalone.jar` instead. 
+Use `apm-agent-attach-standalone.jar` instead.
 
 [[release-notes-1.8.0]]
 ==== 1.8.0 - 2019/07/30
@@ -991,7 +992,7 @@ Use `apm-agent-attach-standalone.jar` instead.
 [float]
 ===== Features
 * Added support for tracking https://www.elastic.co/guide/en/kibana/7.3/transactions.html[time spent by span type].
-   Can be disabled by setting https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-breakdown-metrics[`breakdown_metrics`] to `false`. 
+   Can be disabled by setting https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-breakdown-metrics[`breakdown_metrics`] to `false`.
 * Added support for https://www.elastic.co/guide/en/kibana/7.3/agent-configuration.html[central configuration].
    Can be disabled by setting <<config-central-config, `central_config`>> to `false`.
 * Added support for Spring's JMS flavor - instrumenting `org.springframework.jms.listener.SessionAwareMessageListener`
@@ -1037,7 +1038,7 @@ NOTE: Using wildcards is still not the recommended approach for the `trace_metho
 This requires APM Server 7.2+.
 * Added basic support for JMS- distributed tracing for basic scenarios of `send`, `receive`, `receiveNoWait` and `onMessage`.
 Both Queues and Topics are supported.
-Async `send` APIs are not supported in this version. 
+Async `send` APIs are not supported in this version.
 NOTE: This feature is currently marked as "experimental" and is disabled by default. In order to enable,
 it is required to set the
 <<config-disable-instrumentations, `disable_instrumentations`>>
@@ -1077,11 +1078,11 @@ configuration property to an empty string.
 [float]
 ===== Related Announcements
 * Java APM Agent became part of the Cloud Foundry Java Buildpack as of https://github.com/cloudfoundry/java-buildpack/releases/tag/v4.19[Release v4.19]
- 
+
 [float]
 ===== Features
 * Support Apache HttpAsyncClient - span creation and cross-service trace context propagation
-* Added the `jvm.thread.count` metric, indicating the number of live threads in the JVM (daemon and non-daemon) 
+* Added the `jvm.thread.count` metric, indicating the number of live threads in the JVM (daemon and non-daemon)
 * Added support for WebLogic
 * Added support for Spring `@Scheduled` and EJB `@Schedule` annotations - https://github.com/elastic/apm-agent-java/pull/569[#569]
 
@@ -1111,7 +1112,7 @@ This change also renames `tag` to `label` on the API level to be compliant with 
 The `addTag(String, String)` method is still supported but deprecated in favor of `addLabel(String, String)`.
 As of version 7.x of the stack, labels will be stored under `labels` in Elasticsearch.
 Previously, they were stored under `context.tags`.
-* Support async queries made by Elasticsearch REST client 
+* Support async queries made by Elasticsearch REST client
 * Added `setStartTimestamp(long epochMicros)` and `end(long epochMicros)` API methods to `Span` and `Transaction`,
 allowing to set custom start and end timestamps.
 * Auto-detection of the `service_name` based on the `<display-name>` element of the `web.xml` with a fallback to the servlet context path.
@@ -1149,14 +1150,14 @@ controls which `Content-Type`s should be captured.
 * Introduces a new configuration option `disable_metrics` which disables the collection of metrics via a wildcard expression.
 * Support for HttpUrlConnection
 * Adds `subtype` and `action` to spans. This replaces former typing mechanism where type, subtype and action were all set through
-   the type in an hierarchical dotted-syntax. In order to support existing API usages, dotted types are parsed into subtype and action, 
-   however `Span.createSpan` and `Span.setType` are deprecated starting this version. Instead, type-less spans can be created using the new 
+   the type in an hierarchical dotted-syntax. In order to support existing API usages, dotted types are parsed into subtype and action,
+   however `Span.createSpan` and `Span.setType` are deprecated starting this version. Instead, type-less spans can be created using the new
    `Span.startSpan` API and typed spans can be created using the new `Span.startSpan(String type, String subtype, String action)` API
 * Support for JBoss EAP 6.4, 7.0, 7.1 and 7.2
 * Improved startup times
 * Support for SOAP (JAX-WS).
    SOAP client create spans and propagate context.
-   Transactions are created for `@WebService` classes and `@WebMethod` methods.  
+   Transactions are created for `@WebService` classes and `@WebMethod` methods.
 
 [float]
 ===== Bug Fixes
@@ -1189,7 +1190,7 @@ controls which `Content-Type`s should be captured.
 * Fixing a potential memory leak when there is no connection with APM server
 * Fixes NoSuchMethodError CharBuffer.flip() which occurs when using the Elasticsearch RestClient and Java 7 or 8 https://github.com/elastic/apm-agent-java/pull/401[#401]
 
- 
+
 [[release-notes-1.2.0]]
 ==== 1.2.0 - 2018/12/19
 
@@ -1198,7 +1199,7 @@ controls which `Content-Type`s should be captured.
 * Added `capture_headers` configuration option.
    Set to `false` to disable capturing request and response headers.
    This will reduce the allocation rate of the agent and can save you network bandwidth and disk space.
-* Makes the API methods `addTag`, `setName`, `setType`, `setUser` and `setResult` fluent, so that calls can be chained. 
+* Makes the API methods `addTag`, `setName`, `setType`, `setUser` and `setResult` fluent, so that calls can be chained.
 
 [float]
 ===== Bug Fixes
@@ -1218,7 +1219,7 @@ controls which `Content-Type`s should be captured.
 [float]
 ===== Bug Fixes
 * Update dsl-json which fixes a memory leak.
- See https://github.com/ngs-doo/dsl-json/pull/102[ngs-doo/dsl-json#102] for details. 
+ See https://github.com/ngs-doo/dsl-json/pull/102[ngs-doo/dsl-json#102] for details.
 * Avoid `VerifyError`s by non instrumenting classes compiled for Java 4 or earlier
 * Enable APM Server URL configuration with path (fixes #339)
 * Reverse `system.hostname` and `system.platform` order sent to APM server
@@ -1238,7 +1239,7 @@ controls which `Content-Type`s should be captured.
 * Remove intake v1 support. This version requires APM Server 6.5.0+ which supports the intake api v2.
    Until the time the APM Server 6.5.0 is officially released,
    you can test with docker by pulling the APM Server image via
-   `docker pull docker.elastic.co/apm/apm-server:6.5.0-SNAPSHOT`. 
+   `docker pull docker.elastic.co/apm/apm-server:6.5.0-SNAPSHOT`.
 
 [float]
 ===== Features
@@ -1333,7 +1334,7 @@ Transactions are named based on your resources (`ResourceClass#resourceMethod`).
 * Public API
 ** Add `Span#captureException` and `Transaction#captureException` to public API.
       `ElasticApm.captureException` is deprecated now. Use `ElasticApm.currentSpan().captureException(exception)` instead.
-** Added `Transaction.getId` and `Span.getId` methods 
+** Added `Transaction.getId` and `Span.getId` methods
 * Added support for async servlet requests
 * Added support for Payara/Glassfish
 * Incubating support for Apache HttpClient
@@ -1343,7 +1344,7 @@ Transactions are named based on your resources (`ResourceClass#resourceMethod`).
    As that could contain path parameters, like `/user/$userId` however,
    You can set the `url_groups` option to define a wildcard pattern, like `/user/*`,
    to group those paths together.
-   This is especially helpful when using an unsupported Servlet API-based framework. 
+   This is especially helpful when using an unsupported Servlet API-based framework.
 * Support duration suffixes (`ms`, `s` and `m`) for duration configuration options.
    Not using the duration suffix logs out a deprecation warning and will not be supported in future versions.
 * Add ability to add multiple APM server URLs, which enables client-side load balancing.
