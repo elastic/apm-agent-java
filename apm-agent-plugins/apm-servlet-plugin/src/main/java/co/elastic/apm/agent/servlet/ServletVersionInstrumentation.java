@@ -49,7 +49,7 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(hasSuperType(named(servletVersionTypeMatcherClassName())));
+            .and(hasSuperType(getImplConstants().servletClass()));
     }
 
     @Override
@@ -57,29 +57,24 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
         return any();
     }
 
-    public abstract String servletVersionTypeMatcherClassName();
-
     public static abstract class Init extends ServletVersionInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("init")
-                .and(takesArgument(0, named(initMethodArgumentClassName())));
+                .and(takesArgument(0, getImplConstants().servletConfigClassMatcher()));
         }
 
-        abstract String initMethodArgumentClassName();
     }
 
     public static abstract class Service extends ServletVersionInstrumentation {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            String[] classNames = getServiceMethodArgumentClassNames();
             return named("service")
-                .and(takesArgument(0, named(classNames[0])))
-                .and(takesArgument(1, named(classNames[1])));
+                .and(takesArgument(0, getImplConstants().requestClassMatcher()))
+                .and(takesArgument(1, getImplConstants().responseClassMatcher()));
         }
 
-        abstract String[] getServiceMethodArgumentClassNames();
     }
 
     public static void logServletVersion(@Nullable Object[] infoFromServletContext) {
