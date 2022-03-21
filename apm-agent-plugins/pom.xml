@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.29.1-SNAPSHOT</version>
+        <version>1.30.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-plugins</artifactId>
@@ -30,6 +30,7 @@
         <module>apm-apache-httpclient-plugin</module>
         <module>apm-spring-resttemplate</module>
         <module>apm-httpclient-core</module>
+        <module>apm-httpserver-core</module>
         <module>apm-logging-plugin</module>
         <module>apm-log-shipper-plugin</module>
         <module>apm-es-restclient-plugin</module>
@@ -57,6 +58,7 @@
         <module>apm-jdk-httpserver-plugin</module>
         <module>apm-rabbitmq</module>
         <module>apm-okhttp-test</module>
+        <module>apm-opentelemetry</module>
         <module>apm-cassandra</module>
         <module>apm-struts-plugin</module>
         <module>apm-vertx</module>

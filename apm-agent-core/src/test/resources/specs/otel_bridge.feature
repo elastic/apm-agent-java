@@ -243,4 +243,3 @@ Feature: OpenTelemetry bridge
     And OTel span ends
     Then Elastic bridged transaction type is 'request'
 
-

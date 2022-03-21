@@ -26,7 +26,17 @@ import javax.annotation.Nullable;
 
 public abstract class JakartaServletVersionInstrumentation extends ServletVersionInstrumentation {
 
+    @Override
+    public Constants.ServletImpl getImplConstants() {
+        return Constants.ServletImpl.JAKARTA;
+    }
+
     public static class JakartaInit extends Init {
+
+        @Override
+        public Constants.ServletImpl getImplConstants() {
+            return Constants.ServletImpl.JAKARTA;
+        }
 
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -36,24 +46,14 @@ public abstract class JakartaServletVersionInstrumentation extends ServletVersio
             }
         }
 
-        @Override
-        public String servletVersionTypeMatcherClassName() {
-            return getServletVersionTypeMatcherClassName();
-        }
-
-        @Override
-        public String rootClassNameThatClassloaderCanLoad() {
-            return getRootClassNameThatClassloaderCanLoad();
-        }
-
-        @Override
-        String initMethodArgumentClassName() {
-            return "jakarta.servlet.ServletConfig";
-        }
-
     }
 
     public static class JakartaService extends Service {
+
+        @Override
+        public Constants.ServletImpl getImplConstants() {
+            return Constants.ServletImpl.JAKARTA;
+        }
 
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -62,27 +62,6 @@ public abstract class JakartaServletVersionInstrumentation extends ServletVersio
             }
         }
 
-        @Override
-        public String rootClassNameThatClassloaderCanLoad() {
-            return getRootClassNameThatClassloaderCanLoad();
-        }
-
-        @Override
-        String[] getServiceMethodArgumentClassNames() {
-            return new String[]{"jakarta.servlet.ServletRequest", "jakarta.servlet.ServletResponse"};
-        }
-
-        @Override
-        public String servletVersionTypeMatcherClassName() {
-            return getServletVersionTypeMatcherClassName();
-        }
     }
 
-    private static String getServletVersionTypeMatcherClassName() {
-        return "jakarta.servlet.Servlet";
-    }
-
-    private static String getRootClassNameThatClassloaderCanLoad() {
-        return "jakarta.servlet.AsyncContext";
-    }
 }

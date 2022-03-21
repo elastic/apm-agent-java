@@ -44,22 +44,18 @@ public abstract class RequestStreamRecordingInstrumentation extends AbstractServ
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named(typeMatcherClassName())).and(not(isInterface()));
+        return hasSuperType(getImplConstants().requestClassMatcher()).and(not(isInterface()));
     }
-
-    abstract String typeMatcherClassName();
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("getInputStream")
-            .and(returns(hasSuperType(named(servletInputStreamArgumentClassName()))));
+            .and(returns(hasSuperType(getImplConstants().servletInputStreamClassMatcher())));
     }
-
-    abstract String servletInputStreamArgumentClassName();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(Constants.SERVLET_API, "servlet-input-stream");
+        return Arrays.asList(Constants.SERVLET_API, Constants.SERVLET_INPUT_STREAM);
     }
 
     public static class GetInputStreamAdvice {

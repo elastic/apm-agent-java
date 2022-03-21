@@ -1,0 +1,3 @@
+co.elastic.apm.agent.opentelemetry.GlobalOpenTelemetryInstrumentation
+co.elastic.apm.agent.opentelemetry.ContextStorageInstrumentation
+co.elastic.apm.agent.opentelemetry.ArrayBasedContextInstrumentation
