@@ -46,7 +46,13 @@ public class ServletServiceNameHelper {
         if (servletContext == null) {
             return;
         }
-        ClassLoader servletContextClassLoader = adapter.getClassLoader(servletContext);
+        ClassLoader servletContextClassLoader = null;
+
+        if (!servletContext.getClass().getName().startsWith("org.apache.sling")) {
+            // Apache Sling explicitly prevents us from getting the classloader through a SecurityException
+            servletContextClassLoader = adapter.getClassLoader(servletContext);
+        }
+
         if (servletContextClassLoader == null || nameInitialized.putIfAbsent(servletContextClassLoader, Boolean.TRUE) != null) {
             return;
         }
