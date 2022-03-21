@@ -105,6 +105,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     private boolean hasCapturedExceptions;
 
+    protected String type;
+
     protected final AtomicReference<Span> bufferedSpan = new AtomicReference<>();
 
     public int getReferenceCount() {
@@ -346,6 +348,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public void resetState() {
         finished = true;
         name.setLength(0);
+        type = null;
         timestamp.set(0L);
         endTimestamp.set(0L);
         traceContext.resetState();
@@ -459,6 +462,9 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
                 name.append("unnamed");
             }
             childDurations.onSpanEnd(epochMicros);
+
+            type = normalizeType(type);
+
             beforeEnd(epochMicros);
             this.finished = true;
             Span buffered = bufferedSpan.get();
@@ -673,6 +679,11 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public T withUserOutcome(Outcome outcome) {
         this.userOutcome = outcome;
         return thiz();
+    }
+
+    @Nullable
+    public String getType() {
+        return type;
     }
 
     protected String normalizeType(@Nullable String type) {

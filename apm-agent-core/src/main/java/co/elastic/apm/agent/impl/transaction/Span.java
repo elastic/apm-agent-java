@@ -43,13 +43,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private static long lastSpanMaxWarningTimestamp;
 
     /**
-     * General type describing this span (eg: 'db', 'ext', 'template', etc)
-     * (Required)
-     */
-    @Nullable
-    private String type;
-
-    /**
      * A subtype describing this span (eg 'mysql', 'elasticsearch', 'jsf' etc)
      * (Optional)
      */
@@ -224,11 +217,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     @Nullable
-    public String getType() {
-        return type;
-    }
-
-    @Nullable
     public String getSubtype() {
         return subtype;
     }
@@ -246,8 +234,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                 logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
             }
         }
-        type = normalizeType(type);
-
         // set outcome when not explicitly set by user nor instrumentation
         if (outcomeNotSet()) {
             Outcome outcome;

@@ -80,13 +80,6 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private boolean noop;
 
-    /**
-     * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
-     * (Required)
-     */
-    @Nullable
-    private volatile String type;
-
     private int maxSpans;
 
     private boolean spanCompressionEnabled;
@@ -226,7 +219,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (!isSampled()) {
             context.resetState();
         }
-        type = normalizeType(type);
 
         if (outcomeNotSet()) {
             // set outcome from HTTP status if not already set
@@ -284,7 +276,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         result = null;
         spanCount.resetState();
         droppedSpanStats.resetState();
-        type = null;
         noop = false;
         maxSpans = 0;
         spanCompressionEnabled = false;
@@ -305,11 +296,6 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     public void ignoreTransaction() {
         noop = true;
-    }
-
-    @Nullable
-    public String getType() {
-        return type;
     }
 
     public void addCustomContext(String key, String value) {
