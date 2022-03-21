@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.servlet.helper;
+package co.elastic.apm.agent.httpserver;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.servlet.ServletTransactionHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -35,15 +34,15 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-class ServletTransactionCreationHelperTest extends AbstractInstrumentationTest {
+class HttpServerHelperTest extends AbstractInstrumentationTest  {
 
     private WebConfiguration webConfig;
-    private ServletTransactionHelper helper;
+    private HttpServerHelper helper;
 
     @BeforeEach
     void setUp() {
         webConfig = config.getConfig(WebConfiguration.class);
-        helper = new ServletTransactionHelper(tracer);
+        helper = new HttpServerHelper(webConfig);
     }
 
     @ParameterizedTest
@@ -70,7 +69,7 @@ class ServletTransactionCreationHelperTest extends AbstractInstrumentationTest {
         when(webConfig.getIgnoreUrls())
             .thenReturn(parseWildcard(config));
 
-        boolean isIgnored = helper.isExcluded(null, path);
+        boolean isIgnored = helper.isRequestExcluded(path, null);
         assertThat(isIgnored)
             .describedAs("request with path '%s' %s be ignored", expectIgnored ? "should" : "should not", path)
             .isEqualTo(expectIgnored);
@@ -88,7 +87,7 @@ class ServletTransactionCreationHelperTest extends AbstractInstrumentationTest {
         when(webConfig.getIgnoreUserAgents())
             .thenReturn(parseWildcard(ignoreExpr));
 
-        assertThat(helper.isExcluded(userAgent, "/request/path"))
+        assertThat(helper.isRequestExcluded("/request/path", userAgent))
             .describedAs("request with user-agent '%s' should be ignored", userAgent)
             .isTrue();
     }
@@ -101,5 +100,6 @@ class ServletTransactionCreationHelperTest extends AbstractInstrumentationTest {
             .map(WildcardMatcher::valueOf)
             .collect(Collectors.toList());
     }
+
 
 }
