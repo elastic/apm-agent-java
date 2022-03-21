@@ -22,11 +22,11 @@ import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelper;
 import co.elastic.apm.agent.servlet.helper.JakartaAsyncContextAdviceHelper;
 import jakarta.servlet.AsyncContext;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 
 public class JakartaAsyncInstrumentation {
 
@@ -40,28 +40,13 @@ public class JakartaAsyncInstrumentation {
     public static class JakartaStartAsyncInstrumentation extends AsyncInstrumentation.StartAsyncInstrumentation {
 
         @Override
-        String servletRequestClassName() {
-            return "jakarta.servlet.ServletRequest";
-        }
-
-        @Override
-        String asyncContextClassName() {
-            return "jakarta.servlet.AsyncContext";
-        }
-
-        @Override
-        String servletResponseClassName() {
-            return "jakarta.servlet.ServletResponse";
+        public Constants.ServletImpl getImplConstants() {
+            return Constants.ServletImpl.JAKARTA;
         }
 
         @Override
         public String getAdviceClassName() {
             return "co.elastic.apm.agent.servlet.JakartaAsyncInstrumentation$JakartaStartAsyncInstrumentation$JakartaStartAsyncAdvice";
-        }
-
-        @Override
-        public String rootClassNameThatClassloaderCanLoad() {
-            return "jakarta.servlet.AsyncContext";
         }
 
         public static class JakartaStartAsyncAdvice {
@@ -80,8 +65,8 @@ public class JakartaAsyncInstrumentation {
     public static class JakartaAsyncContextInstrumentation extends AsyncInstrumentation.AsyncContextInstrumentation {
 
         @Override
-        String asyncContextClassName() {
-            return "jakarta.servlet.AsyncContext";
+        public Constants.ServletImpl getImplConstants() {
+            return Constants.ServletImpl.JAKARTA;
         }
 
         @Override
@@ -89,9 +74,5 @@ public class JakartaAsyncInstrumentation {
             return "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice";
         }
 
-        @Override
-        public String rootClassNameThatClassloaderCanLoad() {
-            return "jakarta.servlet.AsyncContext";
-        }
     }
 }
