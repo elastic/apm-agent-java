@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-spring-webflux</artifactId>
-        <version>1.29.1-SNAPSHOT</version>
+        <version>1.30.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-spring-webflux-plugin</artifactId>
@@ -38,6 +38,12 @@
             <artifactId>apm-spring-webflux-testapp</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-httpserver-core</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <!-- required to test integration with API, for example custom transaction naming -->
