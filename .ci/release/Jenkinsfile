@@ -17,8 +17,8 @@ pipeline {
     NOTIFY_TO = 'build-apm+apm-agent-java@elastic.co'
     BRANCH_SPECIFIER = "${params.branch_specifier}"
     SUFFIX_ARN_FILE = 'arn-file.md'
-    RELEASE_AWS_LAMBDA_VERSION = '-ver-1-29-0'
-    RELEASE_VERSION = '1.29.0'
+    //RELEASE_AWS_LAMBDA_VERSION = '-ver-1-29-0'
+    //RELEASE_VERSION = '1.29.0'
   }
   options {
     timeout(time: 3, unit: 'HOURS')
@@ -67,9 +67,6 @@ pipeline {
       options { skipDefaultCheckout () }
       stages{
         stage('Check oss.sonatype.org') {
-          when {
-            expression { return false }
-          }
           steps {
             // If this fails, an exception should be thrown and execution will halt
             dir("${BASE_DIR}"){
@@ -87,7 +84,6 @@ pipeline {
             allOf {
               expression { params.check_branch_ci_status }
               expression { env.BRANCH_SPECIFIER != 'stable' }
-              expression { return false }
             }
           }
           steps {
@@ -100,9 +96,6 @@ pipeline {
           }
         }
         stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
-          when {
-            expression { return false }
-          }
           steps {
             input(message: """
             Update CHANGELOG.asciidoc to reflect the new version release:
@@ -118,9 +111,6 @@ pipeline {
           }
         }
         stage('Set release version') {
-          when {
-            expression { return false }
-          }
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -151,9 +141,6 @@ pipeline {
           }
         }
         stage('Wait on internal CI') {
-          when {
-            expression { return false }
-          }
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
                           body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")
@@ -161,9 +148,6 @@ pipeline {
           }
         }
         stage('Nexus release') {
-          when {
-            expression { return false }
-          }
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be published in Nexus",
                          body: "Please go to (<https://oss.sonatype.org/|here>) to proceed with the manual nexus release. Login details in LastPass")
@@ -171,9 +155,6 @@ pipeline {
           }
         }
         stage('Major Branch create/update') {
-          when {
-            expression { return false }
-          }
           steps {
             dir("${BASE_DIR}") {
               script {
@@ -190,7 +171,8 @@ pipeline {
         }
         stage('Publish AWS Lambda') {
           when {
-            expression { params.publish_aws_lambda }
+            //expression { params.publish_aws_lambda }
+            expression { return false }
           }
           environment {
             SOURCE_AWS_FILE = "elastic-apm-java-aws-lambda-layer-${RELEASE_VERSION}.zip"
