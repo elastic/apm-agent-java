@@ -17,8 +17,11 @@ pipeline {
     NOTIFY_TO = 'build-apm+apm-agent-java@elastic.co'
     BRANCH_SPECIFIER = "${params.branch_specifier}"
     SUFFIX_ARN_FILE = 'arn-file.md'
-    //RELEASE_AWS_LAMBDA_VERSION = '-ver-1-29-0'
-    //RELEASE_VERSION = '1.29.0'
+    JOB_GCS_CREDENTIALS = 'internal-ci-gcs-plugin'
+    RELEASE_AWS_LAMBDA_VERSION = '-ver-1-30-0'
+    RELEASE_VERSION = '1.30.0'
+    RELEASE_TAG = "v1.30.0"
+    BRANCH_DOT_X = '1.x'
   }
   options {
     timeout(time: 3, unit: 'HOURS')
@@ -67,6 +70,9 @@ pipeline {
       options { skipDefaultCheckout () }
       stages{
         stage('Check oss.sonatype.org') {
+          when {
+            expression { return false }
+          }
           steps {
             // If this fails, an exception should be thrown and execution will halt
             dir("${BASE_DIR}"){
@@ -84,6 +90,7 @@ pipeline {
             allOf {
               expression { params.check_branch_ci_status }
               expression { env.BRANCH_SPECIFIER != 'stable' }
+              expression { return false }
             }
           }
           steps {
@@ -96,6 +103,9 @@ pipeline {
           }
         }
         stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
+          when {
+            expression { return false }
+          }
           steps {
             input(message: """
             Update CHANGELOG.asciidoc to reflect the new version release:
@@ -111,6 +121,9 @@ pipeline {
           }
         }
         stage('Set release version') {
+          when {
+            expression { return false }
+          }
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -141,6 +154,9 @@ pipeline {
           }
         }
         stage('Wait on internal CI') {
+          when {
+            expression { return false }
+          }
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
                           body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")
@@ -148,6 +164,9 @@ pipeline {
           }
         }
         stage('Nexus release') {
+          when {
+            expression { return false }
+          }
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be published in Nexus",
                          body: "Please go to (<https://oss.sonatype.org/|here>) to proceed with the manual nexus release. Login details in LastPass")
@@ -171,21 +190,22 @@ pipeline {
         }
         stage('Publish AWS Lambda') {
           when {
-            //expression { params.publish_aws_lambda }
-            expression { return false }
+            expression { params.publish_aws_lambda }
           }
           environment {
             SOURCE_AWS_FILE = "elastic-apm-java-aws-lambda-layer-${RELEASE_VERSION}.zip"
+            PATH_PREFIX = 'jobs/elastic+apm-agent-java+release/src/github.com/elastic/apm-agent-java/target/checkout/elastic-apm-agent/target'
           }
           steps {
             setEnvVar('ELASTIC_LAYER_NAME', "elastic-apm-java${env.RELEASE_AWS_LAMBDA_VERSION}")
             withAWSEnv(secret: 'secret/observability-team/ci/service-account/apm-aws-lambda', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id',
                        forceInstallation: true, version: '2.4.10') {
+              // Fetch lambda file
+              googleStorageDownload(bucketUri: "gs://internal-ci-artifacts/${env.PATH_PREFIX}/${env.SOURCE_AWS_FILE}",
+                                    credentialsId: "${JOB_GCS_CREDENTIALS}",
+                                    localDirectory: "${BASE_DIR}/elastic-apm-agent/target",
+                                    pathPrefix: env.PATH_PREFIX)
               dir("${BASE_DIR}"){
-                dir ('elastic-apm-agent/target') {
-                  // TODO: copy file from a google bucket
-                  sh(label: 'fetch AWS lambda file', script: "wget https://github.com/elastic/apm-agent-java/releases/download/v${RELEASE_VERSION}/${SOURCE_AWS_FILE} -O ${SOURCE_AWS_FILE}")
-                }
                 sh(label: 'make publish-in-all-aws-regions', script: 'make -C .ci publish-in-all-aws-regions')
                 sh(label: 'make create-arn-file', script: 'make -C .ci create-arn-file')
               }
@@ -198,9 +218,6 @@ pipeline {
           }
         }
         stage('Create GitHub release draft') {
-          when {
-            expression { return false }
-          }
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -222,9 +239,6 @@ pipeline {
           }
         }
         stage('Wait for artifact to be available in Maven Central') {
-          when {
-            expression { return false }
-          }
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -240,9 +254,6 @@ pipeline {
           }
         }
         stage('Update Cloudfoundry') {
-          when {
-            expression { return false }
-          }
           steps {
             dir("${BASE_DIR}"){
               sh(script: ".ci/release/update_cloudfoundry.sh ${RELEASE_VERSION}")
@@ -251,9 +262,6 @@ pipeline {
           }
         }
         stage('Publish release on GitHub') {
-          when {
-            expression { return false }
-          }
           steps {
             dir("${BASE_DIR}"){
               waitUntil(initialRecurrencePeriod: 60000) {
@@ -269,9 +277,6 @@ pipeline {
           }
         }
         stage('Build and push Docker images') {
-          when {
-            expression { return false }
-          }
           steps {
             dir("${BASE_DIR}"){
               // fetch agent artifact from remote repository
