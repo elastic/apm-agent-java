@@ -18,10 +18,6 @@ pipeline {
     BRANCH_SPECIFIER = "${params.branch_specifier}"
     SUFFIX_ARN_FILE = 'arn-file.md'
     JOB_GCS_CREDENTIALS = 'internal-ci-gcs-plugin'
-    RELEASE_AWS_LAMBDA_VERSION = '-ver-1-30-0'
-    RELEASE_VERSION = '1.30.0'
-    RELEASE_TAG = "v1.30.0"
-    BRANCH_DOT_X = '1.x'
   }
   options {
     timeout(time: 3, unit: 'HOURS')
@@ -70,9 +66,6 @@ pipeline {
       options { skipDefaultCheckout () }
       stages{
         stage('Check oss.sonatype.org') {
-          when {
-            expression { return false }
-          }
           steps {
             // If this fails, an exception should be thrown and execution will halt
             dir("${BASE_DIR}"){
@@ -90,7 +83,6 @@ pipeline {
             allOf {
               expression { params.check_branch_ci_status }
               expression { env.BRANCH_SPECIFIER != 'stable' }
-              expression { return false }
             }
           }
           steps {
@@ -103,9 +95,6 @@ pipeline {
           }
         }
         stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
-          when {
-            expression { return false }
-          }
           steps {
             input(message: """
             Update CHANGELOG.asciidoc to reflect the new version release:
@@ -121,9 +110,6 @@ pipeline {
           }
         }
         stage('Set release version') {
-          when {
-            expression { return false }
-          }
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -154,9 +140,6 @@ pipeline {
           }
         }
         stage('Wait on internal CI') {
-          when {
-            expression { return false }
-          }
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
                           body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")
@@ -164,9 +147,6 @@ pipeline {
           }
         }
         stage('Nexus release') {
-          when {
-            expression { return false }
-          }
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be published in Nexus",
                          body: "Please go to (<https://oss.sonatype.org/|here>) to proceed with the manual nexus release. Login details in LastPass")
