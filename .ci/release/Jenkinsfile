@@ -16,6 +16,12 @@ pipeline {
     SLACK_CHANNEL = '#apm-agent-java'
     NOTIFY_TO = 'build-apm+apm-agent-java@elastic.co'
     BRANCH_SPECIFIER = "${params.branch_specifier}"
+    SUFFIX_ARN_FILE = 'arn-file.md'
+    JOB_GCS_CREDENTIALS = 'internal-ci-gcs-plugin'
+    RELEASE_AWS_LAMBDA_VERSION = '-ver-1-30-0'
+    RELEASE_VERSION = '1.30.0'
+    RELEASE_TAG = "v1.30.0"
+    BRANCH_DOT_X = '1.x'
   }
   options {
     timeout(time: 3, unit: 'HOURS')
@@ -27,6 +33,7 @@ pipeline {
   parameters {
     string(name: 'branch_specifier', defaultValue: 'stable', description: "What branch to release from?")
     booleanParam(name: 'check_branch_ci_status', defaultValue: true, description: "Check for failing tests in the given branch (if no stable branch)?")
+    booleanParam(name: 'publish_aws_lambda', defaultValue: true, description: "Whether to upload the AWS lambda")
   }
   stages {
     stage('Initializing'){
@@ -63,6 +70,9 @@ pipeline {
       options { skipDefaultCheckout () }
       stages{
         stage('Check oss.sonatype.org') {
+          when {
+            expression { return false }
+          }
           steps {
             // If this fails, an exception should be thrown and execution will halt
             dir("${BASE_DIR}"){
@@ -80,6 +90,7 @@ pipeline {
             allOf {
               expression { params.check_branch_ci_status }
               expression { env.BRANCH_SPECIFIER != 'stable' }
+              expression { return false }
             }
           }
           steps {
@@ -92,6 +103,9 @@ pipeline {
           }
         }
         stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
+          when {
+            expression { return false }
+          }
           steps {
             input(message: """
             Update CHANGELOG.asciidoc to reflect the new version release:
@@ -107,6 +121,9 @@ pipeline {
           }
         }
         stage('Set release version') {
+          when {
+            expression { return false }
+          }
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -131,11 +148,15 @@ pipeline {
                 env.RELEASE_TAG = "v" + user_release_version
                 env.RELEASE_VERSION = user_release_version
                 env.BRANCH_DOT_X = user_release_version.substring(0, user_release_version.indexOf('.'))+'.x'
+                env.RELEASE_AWS_LAMBDA_VERSION = '-ver-' + user_release_version.replaceAll('\\.', '-')
               }
             }
           }
         }
         stage('Wait on internal CI') {
+          when {
+            expression { return false }
+          }
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
                           body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")
@@ -143,6 +164,9 @@ pipeline {
           }
         }
         stage('Nexus release') {
+          when {
+            expression { return false }
+          }
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be published in Nexus",
                          body: "Please go to (<https://oss.sonatype.org/|here>) to proceed with the manual nexus release. Login details in LastPass")
@@ -164,10 +188,41 @@ pipeline {
             }
           }
         }
+        stage('Publish AWS Lambda') {
+          when {
+            expression { params.publish_aws_lambda }
+          }
+          environment {
+            SOURCE_AWS_FILE = "elastic-apm-java-aws-lambda-layer-${RELEASE_VERSION}.zip"
+            PATH_PREFIX = 'jobs/elastic+apm-agent-java+release/src/github.com/elastic/apm-agent-java/target/checkout/elastic-apm-agent/target'
+          }
+          steps {
+            setEnvVar('ELASTIC_LAYER_NAME', "elastic-apm-java${env.RELEASE_AWS_LAMBDA_VERSION}")
+            withAWSEnv(secret: 'secret/observability-team/ci/service-account/apm-aws-lambda', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id',
+                       forceInstallation: true, version: '2.4.10') {
+              // Fetch lambda file
+              googleStorageDownload(bucketUri: "gs://internal-ci-artifacts/${env.PATH_PREFIX}/${env.SOURCE_AWS_FILE}",
+                                    credentialsId: "${JOB_GCS_CREDENTIALS}",
+                                    localDirectory: "${BASE_DIR}/elastic-apm-agent/target",
+                                    pathPrefix: env.PATH_PREFIX)
+              dir("${BASE_DIR}"){
+                sh(label: 'make publish-in-all-aws-regions', script: 'make -C .ci publish-in-all-aws-regions')
+                sh(label: 'make create-arn-file', script: 'make -C .ci create-arn-file')
+              }
+            }
+          }
+          post {
+            always {
+              archiveArtifacts(allowEmptyArchive: true, artifacts: "${BASE_DIR}/.ci/${SUFFIX_ARN_FILE}")
+            }
+          }
+        }
         stage('Create GitHub release draft') {
           steps {
             dir("${BASE_DIR}"){
               script {
+                def arnFile = ".ci/${SUFFIX_ARN_FILE}"
+                setEnvVar('ARN_CONTENT', fileExists(arnFile) ? readFile(arnFile) : '')
                 // Construct the URL with anchor for the release notes
                 // Ex: https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-1.x.html#release-notes-1.13.0
                 def finalUrl = "https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html#release-notes-${RELEASE_VERSION}"
@@ -176,7 +231,7 @@ pipeline {
                         draft: true,
                         tagName: "${RELEASE_TAG}",
                         releaseName: "Release ${RELEASE_VERSION}",
-                        body: "[Release Notes for ${RELEASE_VERSION}](${finalUrl})")
+                        body: "[Release Notes for ${RELEASE_VERSION}](${finalUrl}) \n ${ARN_CONTENT}")
                 env.RELEASE_ID = ret['id']
                 env.RELEASE_NOTES_URL = finalUrl
               }
