@@ -20,8 +20,21 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.29.1]]
-==== 1.29.1 - YYYY/MM/DD
+[[release-notes-1.30.1]]
+==== 1.30.1 - YYYY/MM/DD
+
+[float]
+===== Features
+* Improved finding docker container id on cgroup v2 enabled systems - {pull}2352[#2352]
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.30.0]]
+==== 1.30.0 - 2020/03/22
 
 [float]
 ===== Potentially breaking changes
@@ -31,7 +44,7 @@ endif::[]
 [float]
 ===== Refactorings
 * Logging frameworks instrumentations - {pull}2428[#2428]. This refactoring includes:
-** Log correlation now works based on instrumentation rather than `ActivationListener` that directly updates the MDC
+** Log correlation now works based on bytecode instrumentation rather than `ActivationListener` that directly updates the MDC
 ** Merging the different instrumentations (log-correlation, error-capturing and ECS-reformatting) into a single plugin
 ** Module structure and package naming changes
 
@@ -51,7 +64,6 @@ option. If there's a need to disable the log correlation mechanism, this can be 
 * Added automatic error event capturing for log4j1 and JBoss LogManager - {pull}2428[#2428]
 * Issue a warning when security manager is mis-configured - {pull}2510[#2510]
 * Add experimental OpenTelemetry API bridge - {pull}1631[#1631]
-* Improved finding docker container id on cgroup v2 enabled systems - {pull}2352[#2352]
 
 [float]
 ===== Performance improvements
@@ -64,9 +76,6 @@ option. If there's a need to disable the log correlation mechanism, this can be 
 * Fix status code setting in AWS Lambda transactions triggered by API Gateway V1 - {pull}2346[#2346]
 * Fix classloading OSGi bundles with partial dependency on Servlet API + avoid SecurityException with Apache Sling - {pull}2418[2418]
 * Respect `transaction_ignore_urls` and `transaction_ignore_user_agents` when creating transactions in the spring webflux instrumentation - {pull}2515[#2515]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.29.0]]
 ==== 1.29.0 - 2022/02/09
