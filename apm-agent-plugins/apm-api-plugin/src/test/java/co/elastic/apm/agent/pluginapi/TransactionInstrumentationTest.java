@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.AbstractApiTest;
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.api.AbstractSpanImplAccessor;
 import co.elastic.apm.api.ElasticApm;
@@ -294,6 +295,27 @@ class TransactionInstrumentationTest extends AbstractApiTest {
     @Test
     void setOutcome_success() {
         testSetOutcome(Outcome.SUCCESS);
+    }
+
+    @Test
+    void setSetServiceInfo() {
+        transaction.setServiceInfo("My Service", "My Version");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("My Service");
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("My Version");
+    }
+
+    @Test
+    void useServiceInfoForClassLoader() {
+        try {
+            tracer.setServiceInfoForClassLoader(TransactionInstrumentationTest.class.getClassLoader(), ServiceInfo.of("My Service", "My Version"));
+            transaction.useServiceInfoForClassLoader(TransactionInstrumentationTest.class.getClassLoader());
+            endTransaction();
+            assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("My Service");
+            assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("My Version");
+        } finally {
+            tracer.resetServiceInfoOverrides();
+        }
     }
 
     private void testSetOutcome(Outcome outcome) {

@@ -325,6 +325,10 @@
     ],
     "allow_unlisted_subtype": true
   },
+  "unknown": {
+    "__description": "For bridged spans that can't be mapped to known type/subtype",
+    "allow_null_subtype": true
+  },
   "websocket": {
     "__description": "Websockets",
     "subtypes": {

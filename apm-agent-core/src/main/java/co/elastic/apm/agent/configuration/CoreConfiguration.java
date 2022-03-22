@@ -614,7 +614,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Integer> metricSetLimit = ConfigurationOption.integerOption()
         .key("metric_set_limit")
-        .tags("added[1.29.0]")
+        .tags("added[1.31.0]")
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
         .description("Limits the number of active metric sets")

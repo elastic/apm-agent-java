@@ -24,6 +24,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URLClassLoader;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -42,6 +43,7 @@ class ShadedClassLoaderTest {
         Class<?> clazz = cl.loadClass(ShadedClassLoaderTest.class.getName());
         assertThat(clazz).isNotNull();
         assertThat(clazz).isNotSameAs(ShadedClassLoaderTest.class);
+        ((URLClassLoader) cl).close();
     }
 
     @Test
@@ -59,6 +61,7 @@ class ShadedClassLoaderTest {
         ClassLoader cl = new ShadedClassLoader(jar, null, "agent/");
         assertThatThrownBy(() -> cl.loadClass(ShadedClassLoaderTest.class.getName()))
             .isInstanceOf(ClassNotFoundException.class);
+        ((URLClassLoader) cl).close();
     }
 
     @Test
@@ -73,6 +76,7 @@ class ShadedClassLoaderTest {
         assertThat(cl.getResource(resourceName).openStream().readAllBytes()).isEqualTo(expected);
         assertThat(cl.getResources(resourceName).hasMoreElements()).isTrue();
         assertThat(cl.getResources(resourceName).nextElement().openStream().readAllBytes()).isEqualTo(expected);
+        ((URLClassLoader) cl).close();
     }
 
     @Test
@@ -82,6 +86,7 @@ class ShadedClassLoaderTest {
         String resourceName = ShadedClassLoaderTest.class.getName().replace('.', '/') + ".resource";
 
         assertThat(cl.getResourceAsStream(resourceName)).isNull();
+        ((URLClassLoader) cl).close();
     }
 
     @Test

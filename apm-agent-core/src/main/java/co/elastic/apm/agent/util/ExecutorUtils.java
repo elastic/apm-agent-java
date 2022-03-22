@@ -84,7 +84,7 @@ public final class ExecutorUtils {
             thread.setDaemon(true);
             thread.setName(threadName);
             ClassLoader originalContextCL = thread.getContextClassLoader();
-            thread.setContextClassLoader(null);
+            thread.setContextClassLoader(ExecutorUtils.class.getClassLoader());
             logThreadCreation(originalContextCL, threadName);
             return thread;
         }
@@ -116,7 +116,7 @@ public final class ExecutorUtils {
             String threadName = ThreadUtils.addElasticApmThreadPrefix(threadPurpose) + "-" + threadCounter.getAndIncrement();
             thread.setName(threadName);
             ClassLoader originalContextCL = thread.getContextClassLoader();
-            thread.setContextClassLoader(null);
+            thread.setContextClassLoader(ExecutorUtils.class.getClassLoader());
             logThreadCreation(originalContextCL, threadName);
             return thread;
         }

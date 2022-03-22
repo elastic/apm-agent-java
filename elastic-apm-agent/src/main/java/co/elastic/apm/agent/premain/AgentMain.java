@@ -27,6 +27,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.FileSystems;
+import java.security.AllPermission;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 
@@ -61,6 +62,9 @@ public class AgentMain {
     }
 
     public synchronized static void init(String agentArguments, Instrumentation instrumentation, boolean premain) {
+        // checking early as getting a property might not be provided
+        securityManagerCheck();
+
         if (Boolean.getBoolean("ElasticApm.attached")) {
             // agent is already attached; don't attach twice
             // don't fail as this is a valid case
@@ -158,6 +162,24 @@ public class AgentMain {
         } catch (Exception | LinkageError e) {
             System.err.println("[elastic-apm-agent] ERROR Failed to start agent");
             e.printStackTrace();
+        }
+    }
+
+
+    @SuppressWarnings("removal")
+    private static void securityManagerCheck() {
+        SecurityManager sm = System.getSecurityManager();
+        if (sm == null) {
+            return;
+        }
+        try {
+            sm.checkPermission(new AllPermission());
+        } catch (SecurityException e) {
+            // note: we can't get the actual path of the agent here as the Security Manager might prevent us from finding our own jar.
+            System.err.println("[elastic-apm-agent] WARN Security manager without agent grant-all permission, adding the following snippet to security policy is recommended:");
+            System.err.println("[elastic-apm-agent] WARN grant codeBase \"file:/path/to/elastic-apm-agent.jar\" {");
+            System.err.println("[elastic-apm-agent] WARN     permission java.security.AllPermission;");
+            System.err.println("[elastic-apm-agent] WARN };");
         }
     }
 

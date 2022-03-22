@@ -40,7 +40,6 @@ import org.mockserver.model.HttpResponse;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.SocatContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 
@@ -130,8 +129,6 @@ public abstract class AbstractServletContainerIntegrationTest {
     private final int webPort;
     private final String expectedDefaultServiceName;
     private final String containerName;
-    @Nullable
-    private GenericContainer<?> debugProxy;
     private TestApp currentTestApp;
 
     protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer, String expectedDefaultServiceName, String deploymentPath, String containerName) {
@@ -144,7 +141,6 @@ public abstract class AbstractServletContainerIntegrationTest {
         this.webPort = webPort;
         if (ENABLE_DEBUGGING) {
             enableDebugging(servletContainer);
-            this.debugProxy = createDebugProxy(servletContainer, debugPort);
         }
         if (runtimeAttachSupported() && !ENABLE_RUNTIME_ATTACH) {
             // If runtime attach is off for Servlet containers that support that, we need to add the javaagent here
@@ -180,29 +176,32 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_DISABLED_INSTRUMENTATIONS", "") // enable all instrumentations for integration tests
             .withEnv("ELASTIC_APM_PROFILING_SPANS_ENABLED", "true")
             .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic") // allows to use API annotations, we have to use a broad package due to multiple apps
+            .withEnv("ELASTIC_APM_SPAN_COMPRESSION_ENABLED", "false")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
-            .withExposedPorts(webPort)
-            .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withFileSystemBind(pathToAttach, "/apm-agent-attach-cli.jar")
-            .withFileSystemBind(pathToSlimAttach, "/apm-agent-attach-cli-slim.jar")
+            .withCopyFileToContainer(MountableFile.forHostPath(pathToJavaagent), "/elastic-apm-agent.jar")
+            .withCopyFileToContainer(MountableFile.forHostPath(pathToAttach), "/apm-agent-attach-cli.jar")
+            .withCopyFileToContainer(MountableFile.forHostPath(pathToSlimAttach), "/apm-agent-attach-cli-slim.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
+        if (ENABLE_DEBUGGING) {
+            servletContainer.withExposedPorts(webPort, debugPort);
+        } else {
+            servletContainer.withExposedPorts(webPort);
+        }
         for (TestApp testApp : getTestApps()) {
             testApp.getAdditionalEnvVariables().forEach(servletContainer::withEnv);
             try {
                 testApp.getAdditionalFilesToBind().forEach((pathToFile, containerPath) -> {
                     checkFilePresent(pathToFile);
-                    servletContainer.withFileSystemBind(pathToFile, containerPath);
+                    servletContainer.withCopyFileToContainer(MountableFile.forHostPath(pathToFile), containerPath);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        if (isDeployViaFileSystemBind()) {
-            for (TestApp testApp : getTestApps()) {
-                String pathToAppFile = testApp.getAppFilePath();
-                checkFilePresent(pathToAppFile);
-                servletContainer.withFileSystemBind(pathToAppFile, deploymentPath + "/" + testApp.getAppFileName());
-            }
+        for (TestApp testApp : getTestApps()) {
+            String pathToAppFile = testApp.getAppFilePath();
+            checkFilePresent(pathToAppFile);
+            servletContainer.withCopyFileToContainer(MountableFile.forHostPath(pathToAppFile), deploymentPath + "/" + testApp.getAppFileName());
         }
         this.servletContainer.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
         this.servletContainer.start();
@@ -219,13 +218,6 @@ public abstract class AbstractServletContainerIntegrationTest {
                 System.out.println(result.getStderr());
             } catch (Exception e) {
                 throw new RuntimeException(e);
-            }
-        }
-        if (!isDeployViaFileSystemBind()) {
-            for (TestApp testApp : getTestApps()) {
-                String pathToAppFile = testApp.getAppFilePath();
-                checkFilePresent(pathToAppFile);
-                servletContainer.copyFileToContainer(MountableFile.forHostPath(pathToAppFile), deploymentPath + "/" + testApp.getAppFileName());
             }
         }
     }
@@ -246,13 +238,6 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     public String getImageName() {
         return servletContainer.getDockerImageName();
-    }
-
-    /**
-     * If set to true, the war files are {@code --mount}ed into the container instead of copied, which is faster.
-     */
-    protected boolean isDeployViaFileSystemBind() {
-        return true;
     }
 
     /**
@@ -287,33 +272,12 @@ public abstract class AbstractServletContainerIntegrationTest {
     protected void enableDebugging(GenericContainer<?> servletContainer) {
     }
 
-    // makes sure the debugging port is always 5005
-    // if the port is not available, the test can still run
-    @Nullable
-    private GenericContainer<?> createDebugProxy(GenericContainer<?> servletContainer, final int debugPort) {
-        try {
-            final SocatContainer socatContainer = new SocatContainer() {{
-                addFixedExposedPort(debugPort, debugPort);
-            }}
-                .withNetwork(Network.SHARED)
-                .withTarget(debugPort, servletContainer.getNetworkAliases().get(0));
-            socatContainer.start();
-            return socatContainer;
-        } catch (Exception e) {
-            logger.warn("Starting debug proxy failed");
-            return null;
-        }
-    }
-
     @After
     public final void stopServer() {
         servletContainer.getDockerClient()
             .stopContainerCmd(servletContainer.getContainerId())
             .exec();
         servletContainer.stop();
-        if (debugProxy != null) {
-            debugProxy.stop();
-        }
     }
 
     protected Iterable<TestApp> getTestApps() {

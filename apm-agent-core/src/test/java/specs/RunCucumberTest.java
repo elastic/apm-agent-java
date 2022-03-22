@@ -23,6 +23,6 @@ import io.cucumber.junit.Cucumber;
 import org.junit.runner.RunWith;
 
 @RunWith(Cucumber.class)
-@CucumberOptions(strict = true, plugin = {"pretty"}, tags = "not @grpc")
+@CucumberOptions(strict = true, plugin = {"pretty"}, tags = "not @grpc and not @opentelemetry-bridge")
 public class RunCucumberTest {
 }
