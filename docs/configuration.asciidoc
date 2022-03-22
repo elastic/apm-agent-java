@@ -152,6 +152,7 @@ Click on a key to get more information.
 * <<config-logging>>
 ** <<config-log-level>>
 ** <<config-log-file>>
+** <<config-enable-log-correlation>>
 ** <<config-log-ecs-reformatting>>
 ** <<config-log-ecs-reformatting-additional-fields>>
 ** <<config-log-ecs-formatter-allow-list>>
@@ -1900,6 +1901,30 @@ When logging to std out, the log will be formatted as plain-text.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.log_file` | `log_file` | `ELASTIC_APM_LOG_FILE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-enable-log-correlation]]
+==== `enable_log_correlation`
+
+DEPRECATED - since agent version 1.30.0, log correlation is on by default. If you wish to disable it, 
+this can be done through the <<config-disable-instrumentations>> config.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -3815,6 +3840,15 @@ Example: `5ms`.
 # Default value: System.out
 #
 # log_file=System.out
+
+# DEPRECATED - since agent version 1.30.0, log correlation is on by default. If you wish to disable it, 
+# this can be done through the <<config-disable-instrumentations>> config.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: true
+#
+# enable_log_correlation=true
 
 # Specifying whether and how the agent should automatically reformat application logs 
 # into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
