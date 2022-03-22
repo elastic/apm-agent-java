@@ -150,6 +150,7 @@ Click on a key to get more information.
 * <<config-logging>>
 ** <<config-log-level>>
 ** <<config-log-file>>
+** <<config-enable-log-correlation>>
 ** <<config-log-ecs-reformatting>>
 ** <<config-log-ecs-reformatting-additional-fields>>
 ** <<config-log-ecs-formatter-allow-list>>
@@ -761,7 +762,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `enable_instrumentations` (added[1.28.0])
 
 A list of instrumentations which should be selectively enabled.
-Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 
@@ -789,7 +790,7 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -1868,6 +1869,30 @@ When logging to std out, the log will be formatted as plain-text.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.log_file` | `log_file` | `ELASTIC_APM_LOG_FILE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-enable-log-correlation]]
+==== `enable_log_correlation`
+
+DEPRECATED - since agent version 1.30.0, log correlation is on by default. If you wish to disable it, 
+this can be done through the <<config-disable-instrumentations>> config.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -3147,7 +3172,7 @@ Example: `5ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,*auth*,set-cookie
 
 # A list of instrumentations which should be selectively enabled.
-# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 # When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 # When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 # 
@@ -3160,7 +3185,7 @@ Example: `5ms`.
 # enable_instrumentations=
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 # For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -3766,6 +3791,15 @@ Example: `5ms`.
 # Default value: System.out
 #
 # log_file=System.out
+
+# DEPRECATED - since agent version 1.30.0, log correlation is on by default. If you wish to disable it, 
+# this can be done through the <<config-disable-instrumentations>> config.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: true
+#
+# enable_log_correlation=true
 
 # Specifying whether and how the agent should automatically reformat application logs 
 # into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
