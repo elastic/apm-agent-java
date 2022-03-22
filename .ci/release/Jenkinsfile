@@ -241,6 +241,19 @@ pipeline {
             }
           }
         }
+        stage('Build and push Docker images') {
+          steps {
+            dir("${BASE_DIR}"){
+              // fetch agent artifact from remote repository
+              withEnv(["SONATYPE_FALLBACK=1"]) {
+                sh(label: "Build Docker image", script: "./scripts/jenkins/build_docker.sh")
+                  // Get Docker registry credentials
+                  dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id')
+                  sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
+              }
+            }
+          }
+        }
         stage('Publish release on GitHub') {
           steps {
             dir("${BASE_DIR}"){
@@ -256,28 +269,13 @@ pipeline {
             }
           }
         }
-        stage('Build and push Docker images') {
-          steps {
-            dir("${BASE_DIR}"){
-              // fetch agent artifact from remote repository
-              withEnv(["SONATYPE_FALLBACK=1"]) {
-                sh(label: "Build Docker image", script: "./scripts/jenkins/build_docker.sh")
-                  // Get Docker registry credentials
-                  dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id')
-                  sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
-              }
-            }
-          }
-          post {
-            success {
-              notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release ${env.RELEASE_VERSION} has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
-            }
-          }
-        }
       }
       post {
         failure {
           notifyStatus(slackStatus: 'danger', subject: "[${env.REPO}] Release failed", body: "(<${env.RUN_DISPLAY_URL}|Open>)")
+        }
+        success {
+          notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release ${env.RELEASE_VERSION} has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
         }
       }
     }
