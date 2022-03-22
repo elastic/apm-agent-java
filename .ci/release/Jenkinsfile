@@ -174,9 +174,6 @@ pipeline {
           }
         }
         stage('Major Branch create/update') {
-          when {
-            expression { return false }
-          }
           steps {
             dir("${BASE_DIR}") {
               script {
