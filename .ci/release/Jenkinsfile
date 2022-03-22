@@ -18,6 +18,7 @@ pipeline {
     BRANCH_SPECIFIER = "${params.branch_specifier}"
     SUFFIX_ARN_FILE = 'arn-file.md'
     JOB_GCS_CREDENTIALS = 'internal-ci-gcs-plugin'
+    RELEASE_URL = "https://github.com/elastic/${env.REPO}/releases/tag"
   }
   options {
     timeout(time: 3, unit: 'HOURS')
@@ -275,7 +276,7 @@ pipeline {
           notifyStatus(slackStatus: 'danger', subject: "[${env.REPO}] Release failed", body: "(<${env.RUN_DISPLAY_URL}|Open>)")
         }
         success {
-          notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release ${env.RELEASE_VERSION} has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
+          notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release (<${env.RELEASE_URL}/${env.RELEASE_TAG}|${env.RELEASE_VERSION}>) has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
         }
       }
     }
