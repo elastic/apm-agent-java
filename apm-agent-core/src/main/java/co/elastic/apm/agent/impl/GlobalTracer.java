@@ -204,9 +204,15 @@ public class GlobalTracer implements Tracer {
         return tracer.getState();
     }
 
+    @Nullable
     @Override
-    public void overrideServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo) {
-        tracer.overrideServiceInfoForClassLoader(classLoader, serviceInfo);
+    public ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader classLoader) {
+        return tracer.getServiceInfoForClassLoader(classLoader);
+    }
+
+    @Override
+    public void setServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo) {
+        tracer.setServiceInfoForClassLoader(classLoader, serviceInfo);
     }
 
     @Override

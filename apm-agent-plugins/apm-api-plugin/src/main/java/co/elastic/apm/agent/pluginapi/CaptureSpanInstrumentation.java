@@ -123,6 +123,6 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP, "annotations");
+        return Arrays.asList(ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP, "annotations", "annotations-capture-span");
     }
 }

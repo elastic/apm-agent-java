@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.concurrent.JavaConcurrent;
-import co.elastic.apm.agent.impl.GlobalTracer;
 
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
@@ -44,11 +43,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class AsyncInstrumentation extends AbstractServletInstrumentation {
 
-    private static final String SERVLET_API_ASYNC_GROUP_NAME = "servlet-api-async";
-
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(Constants.SERVLET_API, SERVLET_API_ASYNC_GROUP_NAME);
+        return Arrays.asList(Constants.SERVLET_API, Constants.SERVLET_API_ASYNC);
     }
 
     public abstract static class StartAsyncInstrumentation extends AsyncInstrumentation {
@@ -61,27 +58,21 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return not(isInterface())
-                .and(hasSuperType(named(servletRequestClassName())));
+                .and(hasSuperType(getImplConstants().requestClassMatcher()));
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return isPublic()
                 .and(named("startAsync"))
-                .and(returns(hasSuperType(named(asyncContextClassName()))))
+                .and(returns(hasSuperType(getImplConstants().asyncContextClassMatcher())))
                 .and(takesArguments(0)
                     .or(
-                        takesArgument(0, named(servletRequestClassName()))
-                            .and(takesArgument(1, named(servletResponseClassName())))
+                        takesArgument(0, getImplConstants().requestClassMatcher())
+                            .and(takesArgument(1, getImplConstants().responseClassMatcher()))
                     )
                 );
         }
-
-        abstract String servletRequestClassName();
-
-        abstract String asyncContextClassName();
-
-        abstract String servletResponseClassName();
 
     }
 
@@ -95,7 +86,7 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return not(isInterface())
-                .and(hasSuperType(named(asyncContextClassName())));
+                .and(hasSuperType(getImplConstants().asyncContextClassMatcher()));
         }
 
         @Override
@@ -104,8 +95,6 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
                 .and(named("start"))
                 .and(takesArguments(Runnable.class));
         }
-
-        abstract String asyncContextClassName();
 
         public static class AsyncContextStartAdvice {
 

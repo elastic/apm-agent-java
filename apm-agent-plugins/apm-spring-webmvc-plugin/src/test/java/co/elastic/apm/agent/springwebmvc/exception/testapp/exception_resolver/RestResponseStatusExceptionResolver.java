@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.springwebmvc.exception.testapp.exception_resolver;
 
 import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.handler.AbstractHandlerExceptionResolver;
 

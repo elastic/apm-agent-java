@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -147,4 +148,16 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         }
     }
 
+    public static class SetServiceInfoForClassLoaderInstrumentation extends ElasticApmApiInstrumentation {
+        public SetServiceInfoForClassLoaderInstrumentation() {
+            super(named("setServiceInfoForClassLoader"));
+        }
+
+        public static class AdviceClass {
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void setServiceInfoForClassLoader(@Advice.Argument(0) @Nullable ClassLoader classLoader, @Advice.Argument(1) String serviceName, @Advice.Argument(2) @Nullable String serviceVersion) {
+                tracer.setServiceInfoForClassLoader(classLoader, ServiceInfo.of(serviceName, serviceVersion));
+            }
+        }
+    }
 }

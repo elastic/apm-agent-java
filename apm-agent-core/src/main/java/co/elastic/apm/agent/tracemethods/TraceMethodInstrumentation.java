@@ -129,7 +129,7 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
 
         static {
             CoreConfiguration config = tracer.getConfig(CoreConfiguration.class);
-            traceMethodThresholdMicros = config.getTraceMethodsDurationThreshold().getMillis() * 1000;
+            traceMethodThresholdMicros = config.getTraceMethodsDurationThreshold().getMicros();
         }
 
         @Nullable

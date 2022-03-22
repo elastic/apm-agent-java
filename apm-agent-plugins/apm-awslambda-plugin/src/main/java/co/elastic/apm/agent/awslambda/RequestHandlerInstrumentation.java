@@ -68,10 +68,11 @@ public class RequestHandlerInstrumentation extends AbstractAwsLambdaHandlerInstr
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object handlerEnter(@Advice.Argument(value = 0) Object input, @Advice.Argument(value = 1) Context lambdaContext) {
-            if (input instanceof APIGatewayV2HTTPEvent) {
+            if (input instanceof APIGatewayV2HTTPEvent && ((APIGatewayV2HTTPEvent) input).getRequestContext() != null
+                && ((APIGatewayV2HTTPEvent) input).getRequestContext().getHttp() != null) {
                 // API Gateway V2 trigger
                 return APIGatewayProxyV2TransactionHelper.getInstance().startTransaction((APIGatewayV2HTTPEvent) input, lambdaContext);
-            } else if (input instanceof APIGatewayProxyRequestEvent) {
+            } else if (input instanceof APIGatewayProxyRequestEvent && ((APIGatewayProxyRequestEvent) input).getRequestContext() != null) {
                 // API Gateway V1 trigger
                 return APIGatewayProxyV1TransactionHelper.getInstance().startTransaction((APIGatewayProxyRequestEvent) input, lambdaContext);
             } else if (input instanceof SQSEvent) {

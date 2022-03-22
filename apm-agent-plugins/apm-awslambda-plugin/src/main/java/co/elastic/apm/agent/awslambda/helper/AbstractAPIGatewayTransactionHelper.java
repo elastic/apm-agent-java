@@ -27,9 +27,9 @@ import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import com.amazonaws.services.lambda.runtime.Context;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import com.amazonaws.services.lambda.runtime.Context;
 
 import javax.annotation.Nullable;
 import java.nio.CharBuffer;
@@ -50,9 +50,6 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     protected AbstractAPIGatewayTransactionHelper(ElasticApmTracer tracer) {
         super(tracer);
     }
-
-    @Nullable
-    protected abstract String getHttpMethod(I event);
 
     protected abstract String getApiGatewayVersion();
 
@@ -84,13 +81,14 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     }
 
     private void fillUrlRelatedFields(Request request, @Nullable String serverName, @Nullable String path, @Nullable String queryString) {
+        String qString = queryString == null || queryString.trim().isEmpty() ? null: queryString;
         request.getUrl().resetState();
         request.getUrl()
             .withProtocol("https")
             .withHostname(serverName)
             .withPort(443)
             .withPathname(path)
-            .withSearch(queryString);
+            .withSearch(qString);
     }
 
     @Nullable
@@ -139,14 +137,10 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     }
 
     protected void setApiGatewayContextData(Transaction transaction, @Nullable String requestId, @Nullable String apiId,
-                                            @Nullable String httpMethod, @Nullable String resourcePath, @Nullable String accountId) {
+                                            @Nullable String domainName, @Nullable String accountId) {
         transaction.getFaas().getTrigger().withRequestId(requestId);
         ServiceOrigin serviceOrigin = transaction.getContext().getServiceOrigin();
-        serviceOrigin.withName(httpMethod);
-        if (httpMethod != null) {
-            serviceOrigin.appendToName(" ");
-        }
-        serviceOrigin.appendToName(resourcePath);
+        serviceOrigin.withName(domainName);
         serviceOrigin.withId(apiId);
 
         transaction.getContext().getCloudOrigin().withAccountId(accountId);
@@ -164,26 +158,42 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     @Override
     protected void setTransactionName(Transaction transaction, I event, Context lambdaContext) {
         StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
-        String httpMethod = getHttpMethod(event);
-        if (null != transactionName && null != httpMethod) {
-            transactionName.append(httpMethod).append(" ").append(lambdaContext.getFunctionName());
-        } else {
-            super.setTransactionName(transaction, event, lambdaContext);
+        if (transactionName != null) {
+            String httpMethod = getHttpMethod(event);
+            String requestContextPath = getRequestContextPath(event);
+            String resourcePath = getResourcePath(event);
+            if (httpMethod != null) {
+                transactionName.append(httpMethod).append(" ");
+            }
+            if (webConfiguration.isUsePathAsName() && requestContextPath != null) {
+                transactionName.append(requestContextPath);
+            } else if (resourcePath != null) {
+                String stage = getStage(event);
+                if (stage != null) {
+                    transactionName.append('/').append(stage);
+                }
+                if (!resourcePath.startsWith("/")) {
+                    transactionName.append('/');
+                }
+                transactionName.append(resourcePath);
+            } else {
+                // HTTP method may have been appended already to the name buffer, but calling the super's implementation that relies on
+                // the lambda function name would reset the buffer before appending it
+                super.setTransactionName(transaction, event, lambdaContext);
+            }
         }
     }
 
-    protected String getHttpVersion(String protocol) {
-        // don't allocate new strings in the common cases
-        switch (protocol) {
-            case "HTTP/1.0":
-                return "1.0";
-            case "HTTP/1.1":
-                return "1.1";
-            case "HTTP/2.0":
-                return "2.0";
-            default:
-                return protocol.replace("HTTP/", "");
-        }
-    }
+    @Nullable
+    protected abstract String getHttpMethod(I event);
+
+    @Nullable
+    protected abstract String getRequestContextPath(I event);
+
+    @Nullable
+    protected abstract String getStage(I event);
+
+    @Nullable
+    protected abstract String getResourcePath(I event);
 
 }

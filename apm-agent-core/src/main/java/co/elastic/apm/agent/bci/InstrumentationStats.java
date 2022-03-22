@@ -36,10 +36,13 @@ public final class InstrumentationStats {
 
     private final ConcurrentMap<String, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
 
+    private boolean measureMatching = false;
+
     void reset() {
         allInstrumentations.clear();
         usedInstrumentations.clear();
         matcherTimers.clear();
+        measureMatching = false;
     }
 
     void addInstrumentation(ElasticApmInstrumentation instrumentation) {
@@ -50,7 +53,7 @@ public final class InstrumentationStats {
         usedInstrumentations.put(instrumentation, Boolean.TRUE);
     }
 
-    Collection<String> getUsedInstrumentationGroups() {
+    public Collection<String> getUsedInstrumentationGroups() {
         Set<String> usedInstrumentationGroups = new TreeSet<>();
         for (ElasticApmInstrumentation instrumentation : usedInstrumentations.keySet()) {
             usedInstrumentationGroups.addAll(instrumentation.getInstrumentationGroupNames());
@@ -92,4 +95,11 @@ public final class InstrumentationStats {
         return matcherTimers.values();
     }
 
+    public void setMeasureMatching(boolean measureMatching) {
+        this.measureMatching = measureMatching;
+    }
+
+    public boolean shouldMeasureMatching() {
+        return measureMatching;
+    }
 }
