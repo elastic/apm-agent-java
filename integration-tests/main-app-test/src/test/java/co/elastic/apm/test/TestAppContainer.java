@@ -1,18 +1,33 @@
 /*
- * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
- * or more contributor license agreements. Licensed under the Elastic License
- * 2.0 and the Server Side Public License, v 1; you may not use this file except
- * in compliance with, at your election, the Elastic License 2.0 or the Server
- * Side Public License, v 1.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package co.elastic.apm.test;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -23,23 +38,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class TestAppContainer extends GenericContainer<TestAppContainer> {
 
+    private static final Logger log = LoggerFactory.getLogger(TestAppContainer.class);
+
     // TODO : add convenient remote debug option
 
     private static final String JAVAAGENT_PATH = "/tmp/elastic-apm-agent.jar";
     private static final String APP_PATH = "/tmp/app.jar";
     private static final String SECURITY_POLICY = "/tmp/security.policy";
 
+
     private boolean appJar;
     private boolean javaAgent;
     private final List<String> jvmProperties;
 
+    private String remoteDebugArg = null;
+
     TestAppContainer(String image) {
         super(DockerImageName.parse(image));
         this.jvmProperties = new ArrayList<>();
-
-        // try to fail fast
-        withStartupAttempts(1);
-        withStartupTimeout(Duration.of(5, ChronoUnit.SECONDS));
     }
 
     public TestAppContainer withAppJar(Path appJar) {
@@ -65,6 +81,7 @@ class TestAppContainer extends GenericContainer<TestAppContainer> {
         StringBuilder sb = new StringBuilder();
         sb.append("-D").append(key);
         if (value != null) {
+            sb.append("=");
             sb.append(value);
         }
         jvmProperties.add(sb.toString());
@@ -78,10 +95,33 @@ class TestAppContainer extends GenericContainer<TestAppContainer> {
 
     public TestAppContainer withSecurityManager(@Nullable Path policyFile) {
         withSystemProperty("java.security.manager");
-        if(policyFile != null) {
+        if (policyFile != null) {
             withCopyFileToContainer(MountableFile.forHostPath(policyFile), SECURITY_POLICY);
             withSystemProperty("java.security.policy", SECURITY_POLICY);
+            log.info("using security policy defined in {}", policyFile.toAbsolutePath());
+            try {
+                Files.readAllLines(policyFile).forEach(log::info);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
         }
+        return this;
+    }
+
+    /**
+     * Configures remote debugging for the JVM running in the container
+     *
+     * @param listenPort local port where the debugger is listening to
+     * @return this
+     */
+    public TestAppContainer withRemoteDebug(int listenPort) {
+        String dockerHostName = "host.docker.internal";
+
+        // make the docker host IP available for remote debug
+        // the 'host-gateway' is automatically translated by docker for all OSes
+        withExtraHost(dockerHostName, "host-gateway");
+
+        remoteDebugArg = String.format("-agentlib:jdwp=transport=dt_socket,server=n,address=%s:%d,suspend=y", dockerHostName, listenPort);
         return this;
     }
 
@@ -95,6 +135,10 @@ class TestAppContainer extends GenericContainer<TestAppContainer> {
             args.add("-javaagent:" + JAVAAGENT_PATH);
         }
 
+        if (remoteDebugArg != null) {
+            args.add(remoteDebugArg);
+        }
+
         args.addAll(jvmProperties);
 
         if (appJar) {
@@ -102,7 +146,13 @@ class TestAppContainer extends GenericContainer<TestAppContainer> {
             args.add(APP_PATH);
         }
 
-        withCommand(String.join(" ", args));
+        String command = String.join(" ", args);
+        log.info("starting JVM with command line: {}", command);
+        withCommand(command);
+
         super.start();
+
+        // send container logs to logger for easier debug by default
+        followOutput(new Slf4jLogConsumer(log));
     }
 }

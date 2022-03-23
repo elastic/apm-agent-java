@@ -26,6 +26,8 @@ import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -39,15 +41,12 @@ class ServiceIT { // TODO : maybe rename/move this test 'AgentSetupTest' seems a
     @ParameterizedTest
     @ValueSource(strings = {"openjdk:8", "openjdk:11", "openjdk:17"})
     void testServiceNameAndVersionFromManifest(String image) {
-        Path appJar = new File("target/main-app-test.jar").toPath();
-        Path agent = Paths.get(getAgentJar());
-        GenericContainer<TestAppContainer> app = new TestAppContainer(image)
-            .withAppJar(appJar)
-            .withJavaAgent(agent)
+        GenericContainer<TestAppContainer> app = testAppWithJavaAgent(image)
             .waitingFor(Wait.forLogMessage(".* Starting Elastic APM .*", 1));
-        app.start();
 
+        app.start();
         try {
+
             assertThat(app.getLogs()).contains(" as My Service Name (My Service Version) on ");
         } finally {
             app.stop();
@@ -56,11 +55,7 @@ class ServiceIT { // TODO : maybe rename/move this test 'AgentSetupTest' seems a
 
     @Test
     void testSecurityManagerWarning() {
-        String image = "openjdk:17";
-
-        GenericContainer<TestAppContainer> app = new TestAppContainer(image)
-            .withAppJar(Paths.get("target/main-app-test.jar"))
-            .withJavaAgent(Paths.get(getAgentJar()))
+        TestAppContainer app = testAppWithJavaAgent("openjdk:17")
             .withSecurityManager()
             .waitingFor(Wait.forLogMessage("Security manager without agent grant-all permission", 1));
 
@@ -70,7 +65,40 @@ class ServiceIT { // TODO : maybe rename/move this test 'AgentSetupTest' seems a
         assertThatThrownBy(app::start, "app startup is expected to fail");
     }
 
-    private static String getAgentJar() { // TODO : use common code to do this
+    @Test
+    void testSecurityManagerWithPolicy() throws IOException {
+        Path tempPolicy = Files.createTempFile("security", ".policy");
+
+        // use a 'grant all' policy for now
+        Files.write(tempPolicy, Arrays.asList(
+            "grant codeBase \"file:///tmp/elastic-apm-agent.jar\" {",
+            "  permission java.security.AllPermission;",
+            "};")
+        );
+
+        TestAppContainer app = testAppWithJavaAgent("openjdk:17")
+            .withSecurityManager(tempPolicy)
+            .waitingFor(Wait.forLogMessage("Hello World!", 1))
+            .withStartupTimeout(Duration.ofSeconds(5));
+
+        try {
+
+            app.start();
+
+        } finally {
+
+            app.stop();
+            Files.delete(tempPolicy);
+        }
+    }
+
+    private TestAppContainer testAppWithJavaAgent(String image) {
+        return new TestAppContainer(image)
+            .withAppJar(Paths.get("target/main-app-test.jar"))
+            .withJavaAgent(Paths.get(getAgentJar()));
+    }
+
+    private static String getAgentJar() { // TODO : refactor to use common code to do this
         File buildDir = new File("../../elastic-apm-agent/target/");
         FileFilter fileFilter = file -> file.getName().matches("elastic-apm-agent-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?.jar");
         return Arrays.stream(buildDir.listFiles(fileFilter))
