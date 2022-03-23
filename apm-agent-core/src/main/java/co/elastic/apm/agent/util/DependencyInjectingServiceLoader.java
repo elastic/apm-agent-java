@@ -144,7 +144,7 @@ public class DependencyInjectingServiceLoader<T> {
             String msg = String.format("unable to instantiate '%s', please check descriptor in META-INF", implementation);
             throw new ServiceConfigurationError(msg, e);
         } catch (UnsupportedClassVersionError e) {
-            logger.debug("Skipping {} because it only applies to more recent Java versions", implementation);
+            logger.debug("Skipping {} because it only applies to more recent Java versions and the JVM running this app is too old to load it", implementation);
             return null;
         } catch (Exception e) {
             throw new ServiceConfigurationError(e.getMessage(), e);
