@@ -19,6 +19,7 @@
 package co.elastic.apm.test;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.testcontainers.containers.GenericContainer;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.Arrays;
 
@@ -66,14 +68,14 @@ class ServiceIT { // TODO : maybe rename/move this test 'AgentSetupTest' seems a
     }
 
     @Test
-    void testSecurityManagerWithPolicy() throws IOException {
-        Path tempPolicy = Files.createTempFile("security", ".policy");
+    void testSecurityManagerWithPolicy(@TempDir Path temp) throws IOException {
+        Path tempPolicy = temp.resolve("security.policy");
 
         // use a 'grant all' policy for now
         Files.write(tempPolicy, Arrays.asList(
             "grant codeBase \"file:///tmp/elastic-apm-agent.jar\" {",
             "  permission java.security.AllPermission;",
-            "};")
+            "};"), StandardOpenOption.CREATE
         );
 
         TestAppContainer app = testAppWithJavaAgent("openjdk:17")
@@ -81,14 +83,13 @@ class ServiceIT { // TODO : maybe rename/move this test 'AgentSetupTest' seems a
             .waitingFor(Wait.forLogMessage("Hello World!", 1))
             .withStartupTimeout(Duration.ofSeconds(5));
 
-        try {
+        app.withRemoteDebug(5005);
 
+        try {
             app.start();
 
         } finally {
-
             app.stop();
-            Files.delete(tempPolicy);
         }
     }
 

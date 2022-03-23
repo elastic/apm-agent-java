@@ -29,8 +29,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -150,7 +148,12 @@ class TestAppContainer extends GenericContainer<TestAppContainer> {
         log.info("starting JVM with command line: {}", command);
         withCommand(command);
 
-        super.start();
+        try {
+
+            super.start();
+        } catch (RuntimeException e) {
+            log.error("unable to start container, set breakpoint where this log is generated to debug", e);
+        }
 
         // send container logs to logger for easier debug by default
         followOutput(new Slf4jLogConsumer(log));
