@@ -18,10 +18,7 @@ pipeline {
     BRANCH_SPECIFIER = "${params.branch_specifier}"
     SUFFIX_ARN_FILE = 'arn-file.md'
     JOB_GCS_CREDENTIALS = 'internal-ci-gcs-plugin'
-    RELEASE_AWS_LAMBDA_VERSION = '-ver-1-30-0'
-    RELEASE_VERSION = '1.30.0'
-    RELEASE_TAG = "v1.30.0"
-    BRANCH_DOT_X = '1.x'
+    RELEASE_URL = "https://github.com/elastic/${env.REPO}/releases/tag"
   }
   options {
     timeout(time: 3, unit: 'HOURS')
@@ -70,9 +67,6 @@ pipeline {
       options { skipDefaultCheckout () }
       stages{
         stage('Check oss.sonatype.org') {
-          when {
-            expression { return false }
-          }
           steps {
             // If this fails, an exception should be thrown and execution will halt
             dir("${BASE_DIR}"){
@@ -90,7 +84,6 @@ pipeline {
             allOf {
               expression { params.check_branch_ci_status }
               expression { env.BRANCH_SPECIFIER != 'stable' }
-              expression { return false }
             }
           }
           steps {
@@ -103,9 +96,6 @@ pipeline {
           }
         }
         stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
-          when {
-            expression { return false }
-          }
           steps {
             input(message: """
             Update CHANGELOG.asciidoc to reflect the new version release:
@@ -121,9 +111,6 @@ pipeline {
           }
         }
         stage('Set release version') {
-          when {
-            expression { return false }
-          }
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -154,9 +141,6 @@ pipeline {
           }
         }
         stage('Wait on internal CI') {
-          when {
-            expression { return false }
-          }
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
                           body: "Please go to (<${env.BUILD_URL}input|here>) to approve or reject within 12 hours.")
@@ -164,9 +148,6 @@ pipeline {
           }
         }
         stage('Nexus release') {
-          when {
-            expression { return false }
-          }
           steps {
             notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be published in Nexus",
                          body: "Please go to (<https://oss.sonatype.org/|here>) to proceed with the manual nexus release. Login details in LastPass")
@@ -261,6 +242,19 @@ pipeline {
             }
           }
         }
+        stage('Build and push Docker images') {
+          steps {
+            dir("${BASE_DIR}"){
+              // fetch agent artifact from remote repository
+              withEnv(["SONATYPE_FALLBACK=1"]) {
+                sh(label: "Build Docker image", script: "./scripts/jenkins/build_docker.sh")
+                  // Get Docker registry credentials
+                  dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id')
+                  sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
+              }
+            }
+          }
+        }
         stage('Publish release on GitHub') {
           steps {
             dir("${BASE_DIR}"){
@@ -276,28 +270,13 @@ pipeline {
             }
           }
         }
-        stage('Build and push Docker images') {
-          steps {
-            dir("${BASE_DIR}"){
-              // fetch agent artifact from remote repository
-              withEnv(["SONATYPE_FALLBACK=1"]) {
-                sh(label: "Build Docker image", script: "./scripts/jenkins/build_docker.sh")
-                  // Get Docker registry credentials
-                  dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id')
-                  sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
-              }
-            }
-          }
-          post {
-            success {
-              notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release ${env.RELEASE_VERSION} has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
-            }
-          }
-        }
       }
       post {
         failure {
           notifyStatus(slackStatus: 'danger', subject: "[${env.REPO}] Release failed", body: "(<${env.RUN_DISPLAY_URL}|Open>)")
+        }
+        success {
+          notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release (<${env.RELEASE_URL}/${env.RELEASE_TAG}|${env.RELEASE_VERSION}>) has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
         }
       }
     }
