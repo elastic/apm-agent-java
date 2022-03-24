@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -30,6 +31,7 @@ import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -84,17 +86,18 @@ public class ElasticApmTracer implements Tracer {
     private final ObjectPool<ErrorCapture> errorPool;
     private final Reporter reporter;
     private final ObjectPoolFactory objectPoolFactory;
-    // Maintains a stack of all the activated spans
+    // Maintains a stack of all the activated spans/contexts
     // This way its easy to retrieve the bottom of the stack (the transaction)
     // Also, the caller does not have to keep a reference to the previously active span, as that is maintained by the stack
-    private final ThreadLocal<Deque<AbstractSpan<?>>> activeStack = new ThreadLocal<Deque<AbstractSpan<?>>>() {
+    private final ThreadLocal<Deque<ElasticContext<?>>> activeStack = new ThreadLocal<Deque<ElasticContext<?>>>() {
         @Override
-        protected Deque<AbstractSpan<?>> initialValue() {
-            return new ArrayDeque<AbstractSpan<?>>();
+        protected Deque<ElasticContext<?>> initialValue() {
+            return new ArrayDeque<ElasticContext<?>>();
         }
     };
 
     private final CoreConfiguration coreConfiguration;
+    private final SpanConfiguration spanConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
     private final ScheduledThreadPoolExecutor sharedPool;
@@ -124,6 +127,7 @@ public class ElasticApmTracer implements Tracer {
         this.metaDataFuture = metaDataFuture;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        spanConfiguration = configurationRegistry.getConfig(SpanConfiguration.class);
 
         TracerConfiguration tracerConfiguration = configurationRegistry.getConfig(TracerConfiguration.class);
         recordingConfigOptionSet = tracerConfiguration.getRecordingConfig().get();
@@ -173,7 +177,7 @@ public class ElasticApmTracer implements Tracer {
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;
         if (isRunning()) {
-            transaction = createTransaction().start(TraceContext.asRoot(), null, epochMicros, sampler, initiatingClassLoader);
+            transaction = createTransaction().start(TraceContext.asRoot(), null, epochMicros, sampler);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
         return transaction;
@@ -198,7 +202,7 @@ public class ElasticApmTracer implements Tracer {
         Transaction transaction = null;
         if (isRunning()) {
             transaction = createTransaction().start(TraceContext.<C>getFromTraceContextTextHeaders(), headerCarrier,
-                textHeadersGetter, epochMicros, sampler, initiatingClassLoader);
+                textHeadersGetter, epochMicros, sampler);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
         return transaction;
@@ -217,7 +221,7 @@ public class ElasticApmTracer implements Tracer {
         Transaction transaction = null;
         if (isRunning()) {
             transaction = createTransaction().start(TraceContext.<C>getFromTraceContextBinaryHeaders(), headerCarrier,
-                binaryHeadersGetter, epochMicros, sampler, initiatingClassLoader);
+                binaryHeadersGetter, epochMicros, sampler);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
         return transaction;
@@ -253,7 +257,7 @@ public class ElasticApmTracer implements Tracer {
     @Override
     @Nullable
     public Transaction currentTransaction() {
-        final AbstractSpan<?> bottomOfStack = activeStack.get().peekLast();
+        final ElasticContext<?> bottomOfStack = activeStack.get().peekLast();
         return bottomOfStack != null ? bottomOfStack.getTransaction() : null;
     }
 
@@ -380,23 +384,33 @@ public class ElasticApmTracer implements Tracer {
 
     public void endSpan(Span span) {
         if (!span.isSampled()) {
+            Transaction transaction = span.getTransaction();
+            if (transaction != null) {
+                transaction.captureDroppedSpan(span);
+            }
             span.decrementReferences();
             return;
         }
-        if (!span.isComposite()) {
+        if (span.isExit()) {
+            if (span.getDuration() < spanConfiguration.getExitSpanMinDuration().getMicros()) {
+                logger.debug("Span faster than exit_span_min_duration. Request discarding {}", span);
+                span.requestDiscarding();
+            }
+        } else if (!span.isComposite()) {
             if (span.getDuration() < coreConfiguration.getSpanMinDuration().getMicros()) {
                 logger.debug("Span faster than span_min_duration. Request discarding {}", span);
                 span.requestDiscarding();
             }
-            if (span.isDiscarded()) {
-                logger.debug("Discarding span {}", span);
-                Transaction transaction = span.getTransaction();
-                if (transaction != null) {
-                    transaction.getSpanCount().getDropped().incrementAndGet();
-                }
-                span.decrementReferences();
-                return;
+        }
+        if (span.isDiscarded()) {
+            logger.debug("Discarding span {}", span);
+            Transaction transaction = span.getTransaction();
+            if (transaction != null) {
+                transaction.captureDroppedSpan(span);
             }
+            span.decrementReferences();
+            return;
+
         }
         reportSpan(span);
     }
@@ -481,6 +495,12 @@ public class ElasticApmTracer implements Tracer {
     @Override
     @Nullable
     public AbstractSpan<?> getActive() {
+        ElasticContext<?> active = activeStack.get().peek();
+        return active != null ? active.getSpan() : null;
+    }
+
+    @Nullable
+    public ElasticContext<?> getActiveContext() {
         return activeStack.get().peek();
     }
 
@@ -685,54 +705,105 @@ public class ElasticApmTracer implements Tracer {
         return null;
     }
 
-    public void activate(AbstractSpan<?> span) {
+    @Nullable
+    public ElasticContext<?> currentContext() {
+        return activeStack.get().peek();
+    }
+
+    public void activate(ElasticContext<?> context) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Activating {} on thread {}", span, Thread.currentThread().getId());
+            logger.debug("Activating {} on thread {}", context, Thread.currentThread().getId());
         }
-        span.incrementReferences();
+
+        ElasticContext<?> currentContext = currentContext();
+        ElasticContext<?> newContext = context;
+
+        AbstractSpan<?> span = context.getSpan();
+        if (span != null) {
+            span.incrementReferences();
+            triggerActivationListeners(span, true);
+        } else if(currentContext != null) {
+            // when there is no span attached to the context we are attaching to but there is one in the current
+            // context, we just propagate to the context that will be activated.
+            span = currentContext.getSpan();
+            if (span != null) {
+                newContext = context.withActiveSpan(span);
+            }
+        }
+
+        activeStack.get().push(newContext);
+    }
+
+    public Scope activateInScope(final ElasticContext<?> context) {
+        // already in scope
+        if (getActiveContext() == context) {
+            return Scope.NoopScope.INSTANCE;
+        }
+        context.activate();
+
+        if (context instanceof Scope) {
+            // we can take shortcut and avoid creating a separate object
+            return (Scope) context;
+        }
+        return new Scope() {
+            @Override
+            public void close() {
+                context.deactivate();
+            }
+        };
+    }
+
+    public void deactivate(ElasticContext<?> context) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Deactivating {} on thread {}", context, Thread.currentThread().getId());
+        }
+        ElasticContext<?> activeContext = activeStack.get().poll();
+        AbstractSpan<?> span = context.getSpan();
+
+        if (activeContext != context && context == span) {
+            // when context has been upgraded, we need to deactivate the original span
+            activeContext = context;
+        }
+
+        try {
+            assertIsActive(context, activeContext);
+
+            if (null != span) {
+                triggerActivationListeners(span, false);
+            }
+        } finally {
+            if (null != span) {
+                span.decrementReferences();
+            }
+        }
+    }
+
+    private void assertIsActive(ElasticContext<?> context, @Nullable ElasticContext<?> currentlyActive) {
+        if (context != currentlyActive) {
+            logger.warn("Deactivating a context ({}) which is not the currently active one ({}). " +
+                "This can happen when not properly deactivating a previous span or context.", context, currentlyActive);
+
+            if (assertionsEnabled) {
+                throw new AssertionError("Deactivating a context that is not the active one");
+            }
+        }
+    }
+
+    private void triggerActivationListeners(AbstractSpan<?> span, boolean isActivate) {
         List<ActivationListener> activationListeners = getActivationListeners();
         for (int i = 0, size = activationListeners.size(); i < size; i++) {
+            ActivationListener listener = activationListeners.get(i);
             try {
-                activationListeners.get(i).beforeActivate(span);
+                if (isActivate) {
+                    listener.beforeActivate(span);
+                } else {
+                    // `this` is guaranteed to not be recycled yet as the reference count is only decremented after this method has executed
+                    listener.afterDeactivate(span);
+                }
             } catch (Error e) {
                 throw e;
             } catch (Throwable t) {
-                logger.warn("Exception while calling {}#beforeActivate", activationListeners.get(i).getClass().getSimpleName(), t);
-            }
-        }
-        activeStack.get().push(span);
-    }
-
-    public void deactivate(AbstractSpan<?> span) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Deactivating {} on thread {}", span, Thread.currentThread().getId());
-        }
-        try {
-            final Deque<AbstractSpan<?>> stack = activeStack.get();
-            assertIsActive(span, stack.poll());
-            List<ActivationListener> activationListeners = getActivationListeners();
-            for (int i = 0, size = activationListeners.size(); i < size; i++) {
-                try {
-                    // `this` is guaranteed to not be recycled yet as the reference count is only decremented after this method has executed
-                    activationListeners.get(i).afterDeactivate(span);
-                } catch (Error e) {
-                    throw e;
-                } catch (Throwable t) {
-                    logger.warn("Exception while calling {}#afterDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
-                }
-            }
-        } finally {
-            span.decrementReferences();
-        }
-    }
-
-    private void assertIsActive(AbstractSpan<?> span, @Nullable AbstractSpan<?> currentlyActive) {
-        if (span != currentlyActive) {
-            logger.warn("Deactivating a span ({}) which is not the currently active span ({}). " +
-                "This can happen when not properly deactivating a previous span.", span, currentlyActive);
-
-            if (assertionsEnabled) {
-                throw new AssertionError("Deactivating a span that is not the active one");
+                logger.warn("Exception while calling {}#{}", listener.getClass().getSimpleName(), isActivate ? "beforeActivate" : "afterDeactivate", t);
             }
         }
     }

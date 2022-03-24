@@ -147,7 +147,7 @@ class IntakeV2ReportingEventHandlerTest {
     }
 
     @Test
-    void testReport() {
+    void testReport() throws Exception {
         reportTransaction(reportingEventHandler);
         reportSpan();
         reportError();
@@ -166,13 +166,13 @@ class IntakeV2ReportingEventHandlerTest {
     }
 
     @Test
-    void testNoopWhenNotConnected() {
+    void testNoopWhenNotConnected() throws Exception {
         reportTransaction(nonConnectedReportingEventHandler);
         assertThat(nonConnectedReportingEventHandler.getBufferSize()).isEqualTo(0);
     }
 
     @Test
-    void testShutDown() {
+    void testShutDown() throws Exception {
         reportTransaction(reportingEventHandler);
         sendShutdownEvent();
         reportSpan();
@@ -185,7 +185,7 @@ class IntakeV2ReportingEventHandlerTest {
     }
 
     @Test
-    void testReportRoundRobinOnServerError() {
+    void testReportRoundRobinOnServerError() throws Exception {
         mockApmServer1.stubFor(post(INTAKE_V2_URL).willReturn(serviceUnavailable()));
 
         reportTransaction(reportingEventHandler);
@@ -221,28 +221,28 @@ class IntakeV2ReportingEventHandlerTest {
         assertThat(IntakeV2ReportingEventHandler.getRandomJitter(100)).isBetween(-10L, 10L);
     }
 
-    private void reportTransaction(IntakeV2ReportingEventHandler reportingEventHandler) {
+    private void reportTransaction(IntakeV2ReportingEventHandler reportingEventHandler) throws Exception {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setTransaction(new Transaction(MockTracer.create()));
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
-    private void reportSpan() {
+    private void reportSpan() throws Exception {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setSpan(new Span(MockTracer.create()));
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
-    private void reportError() {
+    private void reportError() throws Exception {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setError(new ErrorCapture(MockTracer.create()));
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
-    private void reportBytes(byte[] bytes) {
+    private void reportBytes(byte[] bytes) throws Exception {
         final ReportingEvent reportingEvent = new ReportingEvent();
         JsonWriter jw = new DslJson<>().newWriter();
         jw.writeAscii(bytes);
@@ -251,7 +251,7 @@ class IntakeV2ReportingEventHandlerTest {
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
-    private void sendShutdownEvent() {
+    private void sendShutdownEvent() throws Exception {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.shutdownEvent();
         reportingEventHandler.onEvent(reportingEvent, -1, true);

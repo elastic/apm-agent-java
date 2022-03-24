@@ -16,6 +16,9 @@ pipeline {
     SLACK_CHANNEL = '#apm-agent-java'
     NOTIFY_TO = 'build-apm+apm-agent-java@elastic.co'
     BRANCH_SPECIFIER = "${params.branch_specifier}"
+    SUFFIX_ARN_FILE = 'arn-file.md'
+    JOB_GCS_CREDENTIALS = 'internal-ci-gcs-plugin'
+    RELEASE_URL = "https://github.com/elastic/${env.REPO}/releases/tag"
   }
   options {
     timeout(time: 3, unit: 'HOURS')
@@ -27,6 +30,7 @@ pipeline {
   parameters {
     string(name: 'branch_specifier', defaultValue: 'stable', description: "What branch to release from?")
     booleanParam(name: 'check_branch_ci_status', defaultValue: true, description: "Check for failing tests in the given branch (if no stable branch)?")
+    booleanParam(name: 'publish_aws_lambda', defaultValue: true, description: "Whether to upload the AWS lambda")
   }
   stages {
     stage('Initializing'){
@@ -131,6 +135,7 @@ pipeline {
                 env.RELEASE_TAG = "v" + user_release_version
                 env.RELEASE_VERSION = user_release_version
                 env.BRANCH_DOT_X = user_release_version.substring(0, user_release_version.indexOf('.'))+'.x'
+                env.RELEASE_AWS_LAMBDA_VERSION = '-ver-' + user_release_version.replaceAll('\\.', '-')
               }
             }
           }
@@ -164,10 +169,41 @@ pipeline {
             }
           }
         }
+        stage('Publish AWS Lambda') {
+          when {
+            expression { params.publish_aws_lambda }
+          }
+          environment {
+            SOURCE_AWS_FILE = "elastic-apm-java-aws-lambda-layer-${RELEASE_VERSION}.zip"
+            PATH_PREFIX = 'jobs/elastic+apm-agent-java+release/src/github.com/elastic/apm-agent-java/target/checkout/elastic-apm-agent/target'
+          }
+          steps {
+            setEnvVar('ELASTIC_LAYER_NAME', "elastic-apm-java${env.RELEASE_AWS_LAMBDA_VERSION}")
+            withAWSEnv(secret: 'secret/observability-team/ci/service-account/apm-aws-lambda', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id',
+                       forceInstallation: true, version: '2.4.10') {
+              // Fetch lambda file
+              googleStorageDownload(bucketUri: "gs://internal-ci-artifacts/${env.PATH_PREFIX}/${env.SOURCE_AWS_FILE}",
+                                    credentialsId: "${JOB_GCS_CREDENTIALS}",
+                                    localDirectory: "${BASE_DIR}/elastic-apm-agent/target",
+                                    pathPrefix: env.PATH_PREFIX)
+              dir("${BASE_DIR}"){
+                sh(label: 'make publish-in-all-aws-regions', script: 'make -C .ci publish-in-all-aws-regions')
+                sh(label: 'make create-arn-file', script: 'make -C .ci create-arn-file')
+              }
+            }
+          }
+          post {
+            always {
+              archiveArtifacts(allowEmptyArchive: true, artifacts: "${BASE_DIR}/.ci/${SUFFIX_ARN_FILE}")
+            }
+          }
+        }
         stage('Create GitHub release draft') {
           steps {
             dir("${BASE_DIR}"){
               script {
+                def arnFile = ".ci/${SUFFIX_ARN_FILE}"
+                setEnvVar('ARN_CONTENT', fileExists(arnFile) ? readFile(arnFile) : '')
                 // Construct the URL with anchor for the release notes
                 // Ex: https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-1.x.html#release-notes-1.13.0
                 def finalUrl = "https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${BRANCH_DOT_X}.html#release-notes-${RELEASE_VERSION}"
@@ -176,7 +212,7 @@ pipeline {
                         draft: true,
                         tagName: "${RELEASE_TAG}",
                         releaseName: "Release ${RELEASE_VERSION}",
-                        body: "[Release Notes for ${RELEASE_VERSION}](${finalUrl})")
+                        body: "[Release Notes for ${RELEASE_VERSION}](${finalUrl}) \n ${ARN_CONTENT}")
                 env.RELEASE_ID = ret['id']
                 env.RELEASE_NOTES_URL = finalUrl
               }
@@ -206,6 +242,19 @@ pipeline {
             }
           }
         }
+        stage('Build and push Docker images') {
+          steps {
+            dir("${BASE_DIR}"){
+              // fetch agent artifact from remote repository
+              withEnv(["SONATYPE_FALLBACK=1"]) {
+                sh(label: "Build Docker image", script: "./scripts/jenkins/build_docker.sh")
+                  // Get Docker registry credentials
+                  dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id')
+                  sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
+              }
+            }
+          }
+        }
         stage('Publish release on GitHub') {
           steps {
             dir("${BASE_DIR}"){
@@ -221,28 +270,13 @@ pipeline {
             }
           }
         }
-        stage('Build and push Docker images') {
-          steps {
-            dir("${BASE_DIR}"){
-              // fetch agent artifact from remote repository
-              withEnv(["SONATYPE_FALLBACK=1"]) {
-                sh(label: "Build Docker image", script: "./scripts/jenkins/build_docker.sh")
-                  // Get Docker registry credentials
-                  dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id')
-                  sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
-              }
-            }
-          }
-          post {
-            success {
-              notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release ${env.RELEASE_VERSION} has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
-            }
-          }
-        }
       }
       post {
         failure {
           notifyStatus(slackStatus: 'danger', subject: "[${env.REPO}] Release failed", body: "(<${env.RUN_DISPLAY_URL}|Open>)")
+        }
+        success {
+          notifyStatus(slackStatus: 'good', subject: "[${env.REPO}] Release published", body: "Great news! The release (<${env.RELEASE_URL}/${env.RELEASE_TAG}|${env.RELEASE_VERSION}>) has completed successfully. (<${env.RUN_DISPLAY_URL}|Open>).")
         }
       }
     }

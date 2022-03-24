@@ -74,6 +74,7 @@ import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.nio.file.Paths;
+import java.security.AllPermission;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -579,7 +580,7 @@ public class ElasticApmAgent {
         }
     }
 
-    static InstrumentationStats getInstrumentationStats() {
+    public static InstrumentationStats getInstrumentationStats() {
         return instrumentationStats;
     }
 

@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.servlet.servicename;
 
 import co.elastic.apm.agent.servlet.AbstractServletInstrumentation;
+import co.elastic.apm.agent.servlet.Constants;
 import co.elastic.apm.agent.servlet.ServletServiceNameHelper;
 import co.elastic.apm.agent.servlet.adapter.JakartaServletApiAdapter;
 import co.elastic.apm.agent.servlet.adapter.JavaxServletApiAdapter;
@@ -80,14 +81,15 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
 
     public static class JavaxInitServiceNameInstrumentation extends InitServiceNameInstrumentation {
 
-        private static final JavaxServletApiAdapter adapter = JavaxServletApiAdapter.get();
-
         @Override
-        public String rootClassNameThatClassloaderCanLoad() {
-            return "javax.servlet.AsyncContext";
+        public Constants.ServletImpl getImplConstants() {
+            return Constants.ServletImpl.JAVAX;
         }
 
         public static class AdviceClass {
+
+            private static final JavaxServletApiAdapter adapter = JavaxServletApiAdapter.get();
+
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onEnter(@Advice.Argument(0) @Nullable Object arg) {
                 javax.servlet.ServletContext servletContext;
@@ -107,14 +109,14 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
 
     public static class JakartaInitServiceNameInstrumentation extends InitServiceNameInstrumentation {
 
-        private static final JakartaServletApiAdapter adapter = JakartaServletApiAdapter.get();
-
         @Override
-        public String rootClassNameThatClassloaderCanLoad() {
-            return "jakarta.servlet.AsyncContext";
+        public Constants.ServletImpl getImplConstants() {
+            return Constants.ServletImpl.JAKARTA;
         }
 
         public static class AdviceClass {
+
+            private static final JakartaServletApiAdapter adapter = JakartaServletApiAdapter.get();
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onEnter(@Advice.Argument(0) @Nullable Object arg) {

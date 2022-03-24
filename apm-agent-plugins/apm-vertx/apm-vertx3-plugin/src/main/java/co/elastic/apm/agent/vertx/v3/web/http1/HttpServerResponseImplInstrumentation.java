@@ -64,7 +64,7 @@ public class HttpServerResponseImplInstrumentation extends WebInstrumentation {
             Transaction transaction = GlobalTracer.get().currentTransaction();
             if (transaction != null) {
                 log.debug("VERTX active transaction {}, wrapping response handler", transaction);
-                response.endHandler(new ResponseEndHandlerWrapper(transaction, response));
+                response.endHandler(new ResponseEndHandlerWrapper(transaction, response, null));
             } else {
                 log.debug("VERTX no active transaction, skip wrapping response handler");
             }
