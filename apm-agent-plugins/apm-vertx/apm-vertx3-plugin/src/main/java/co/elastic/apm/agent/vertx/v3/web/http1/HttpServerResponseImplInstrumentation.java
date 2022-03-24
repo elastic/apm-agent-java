@@ -37,6 +37,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * Instruments {@link io.vertx.core.http.impl.HttpServerResponseImpl} constructor to create and append {@link ResponseEndHandlerWrapper}
  * for transaction finalization.
  */
+@Deprecated // class to be removed
 public class HttpServerResponseImplInstrumentation extends WebInstrumentation {
 
     @Override

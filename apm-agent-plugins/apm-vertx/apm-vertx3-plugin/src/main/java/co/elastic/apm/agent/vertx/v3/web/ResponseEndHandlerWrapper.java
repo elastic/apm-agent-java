@@ -33,17 +33,12 @@ public class ResponseEndHandlerWrapper implements Handler<Void> {
     private Handler<Void> actualHandler;
     private final Transaction transaction;
     private final HttpServerResponse response;
-    @Nullable
     private final HttpServerRequest request;
 
-    public ResponseEndHandlerWrapper(Transaction transaction, HttpServerResponse response, @Nullable HttpServerRequest request) {
+    public ResponseEndHandlerWrapper(Transaction transaction, HttpServerResponse response, HttpServerRequest request) {
         this.transaction = transaction;
         this.response = response;
         this.request = request;
-    }
-
-    public ResponseEndHandlerWrapper(Transaction transaction, HttpServerResponse response) {
-        this(transaction, response, null);
     }
 
     public void setActualHandler(Handler<Void> actualHandler) {
@@ -58,9 +53,7 @@ public class ResponseEndHandlerWrapper implements Handler<Void> {
             }
         } finally {
             helper.finalizeTransaction(response, transaction);
-            if (request != null) {
-                helper.removeTransactionFromContext(request);
-            }
+            helper.removeTransactionFromContext(request);
         }
     }
 }

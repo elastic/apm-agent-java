@@ -19,9 +19,11 @@
 package co.elastic.apm.agent.vertx.v3.web.http1;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.vertx.v3.web.ResponseEndHandlerWrapper;
 import co.elastic.apm.agent.vertx.v3.web.WebHelper;
 import co.elastic.apm.agent.vertx.v3.web.WebInstrumentation;
 import io.vertx.core.http.impl.HttpServerRequestImpl;
+import io.vertx.core.http.impl.HttpServerResponseImpl;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -75,10 +77,14 @@ public class HttpServerRequestImplStartInstrumentation extends WebInstrumentatio
         public static void exit(@Advice.This HttpServerRequestImpl request,
                                 @Advice.Enter Object transactionObj,
                                 @Advice.Thrown @Nullable Throwable thrown) {
-            if (transactionObj instanceof Transaction) {
-                Transaction transaction = (Transaction) transactionObj;
-                transaction.captureException(thrown).deactivate();
+            if (!(transactionObj instanceof Transaction)) {
+                return;
             }
+            Transaction transaction = (Transaction) transactionObj;
+            transaction.captureException(thrown).deactivate();
+
+            HttpServerResponseImpl response = request.response();
+            response.endHandler(new ResponseEndHandlerWrapper(transaction, response, request));
         }
     }
 }

@@ -60,7 +60,7 @@ public class HttpServerRequestImplEndInstrumentation extends WebInstrumentation 
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void exit(@Advice.This HttpServerRequestImpl request) {
-            log.debug("VERTX removing transaction from context, request = {}", request);
+            log.debug("VERTX removing transaction from context, request end = {}", request);
             helper.removeTransactionFromContext(request);
         }
     }

@@ -9,7 +9,7 @@ co.elastic.apm.agent.vertx.v3.web.WebInstrumentation$RouteInstrumentation
 co.elastic.apm.agent.vertx.v3.web.WebInstrumentation$RequestBufferInstrumentation
 co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestImplStartInstrumentation
 co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestImplEndInstrumentation
-co.elastic.apm.agent.vertx.v3.web.http1.HttpServerResponseImplInstrumentation
+# co.elastic.apm.agent.vertx.v3.web.http1.HttpServerResponseImplInstrumentation
 co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestWrapperInstrumentation
 co.elastic.apm.agent.vertx.v3.web.http2.Http2Instrumentation
 # vertx webclient
