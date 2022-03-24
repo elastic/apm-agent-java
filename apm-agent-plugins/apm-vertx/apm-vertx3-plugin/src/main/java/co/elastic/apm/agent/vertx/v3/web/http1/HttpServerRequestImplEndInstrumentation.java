@@ -56,11 +56,8 @@ public class HttpServerRequestImplEndInstrumentation extends WebInstrumentation 
 
         private static final WebHelper helper = WebHelper.getInstance();
 
-        private static final Logger log = LoggerFactory.getLogger(HttpRequestEndAdvice.class);
-
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void exit(@Advice.This HttpServerRequestImpl request) {
-            log.debug("VERTX removing transaction from context, request end = {}", request);
             helper.removeTransactionFromContext(request);
         }
     }

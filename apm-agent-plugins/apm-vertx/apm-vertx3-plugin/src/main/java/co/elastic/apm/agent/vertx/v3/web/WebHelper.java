@@ -53,15 +53,15 @@ public class WebHelper extends AbstractVertxWebHelper {
     }
 
     @Nullable
-    public Transaction startOrGetTransaction(HttpServerRequest httpServerRequest) {
-        Transaction transaction = super.startOrGetTransaction(httpServerRequest);
+    public Transaction startOrGetTransaction(HttpServerRequest request) {
+        Transaction transaction = super.startOrGetTransaction(request);
 
         if (transaction != null) {
-            requestTransactionMap.put(httpServerRequest, transaction);
-            enrichRequest(httpServerRequest, transaction);
+            requestTransactionMap.put(request, transaction);
+            enrichRequest(request, transaction);
         }
 
-        log.debug("VERTX startOrGetTransaction -> {}", transaction);
+        log.debug("VERTX startOrGetTransaction -> request = {}, transaction = {}", request, transaction);
 
         return transaction;
     }
@@ -84,6 +84,8 @@ public class WebHelper extends AbstractVertxWebHelper {
         if (request.getClass().getName().equals("io.vertx.ext.web.impl.HttpServerRequestWrapper")) {
             request = request.endHandler(noopHandler);
         }
+        log.debug("VERTX removeTransactionFromContext, request = {}", request);
+
         requestTransactionMap.remove(request);
     }
 
