@@ -30,7 +30,7 @@ public class VertxServerTest extends CommonVertxWebTest {
     @Test
     void testWrongMethod() throws Exception {
         Response response = http().get("/post");
-        expectTransaction(response, "/post", NOT_FOUND_RESPONSE_BODY, "GET unknown route", 404);
+        expectTransaction(response, "/post", "", "GET unknown route", 405);
     }
 
     @Override
