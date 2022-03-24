@@ -30,7 +30,7 @@ endif::[]
 === Java Agent version 1.x
 
 [[release-notes-1.30.0]]
-==== 1.30.0 - 2020/03/22
+==== 1.30.0 - 2022/03/22
 
 [float]
 ===== Potentially breaking changes
