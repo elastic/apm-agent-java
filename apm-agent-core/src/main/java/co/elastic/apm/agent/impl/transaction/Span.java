@@ -156,14 +156,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     /**
-     * Keywords of specific relevance in the span's domain (eg: 'db', 'template', 'ext', etc)
-     */
-    public Span withType(@Nullable String type) {
-        this.type = normalizeEmpty(type);
-        return this;
-    }
-
-    /**
      * Sets the span's subtype, related to the  (eg: 'mysql', 'postgresql', 'jsf' etc)
      */
     public Span withSubtype(@Nullable String subtype) {
@@ -179,10 +171,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return this;
     }
 
-    @Nullable
-    private static String normalizeEmpty(@Nullable String value) {
-        return value == null || value.isEmpty() ? null : value;
-    }
 
     /**
      * Sets span.type, span.subtype and span.action. If no subtype and action are provided, assumes the legacy usage of hierarchical
@@ -422,7 +410,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         context.resetState();
         composite.resetState();
         stacktrace = null;
-        type = null;
         subtype = null;
         action = null;
         parent = null;

@@ -170,14 +170,6 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     /**
-     * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
-     */
-    public Transaction withType(@Nullable String type) {
-        this.type = type;
-        return this;
-    }
-
-    /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
     @Nullable

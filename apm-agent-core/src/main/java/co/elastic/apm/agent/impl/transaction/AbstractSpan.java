@@ -107,7 +107,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     private boolean hasCapturedExceptions;
 
-    protected String type;
+    @Nullable
+    protected volatile String type;
 
     protected final AtomicReference<Span> bufferedSpan = new AtomicReference<>();
 
@@ -335,6 +336,16 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
             this.namePriority = priority;
         }
         return thiz();
+    }
+
+    public T withType(@Nullable String type){
+        this.type = normalizeEmpty(type);
+        return thiz();
+    }
+
+    @Nullable
+    protected static String normalizeEmpty(@Nullable String value) {
+        return value == null || value.isEmpty() ? null : value;
     }
 
     /**
