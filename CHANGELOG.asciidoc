@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* normalize empty `transaction.type` and `span.type` - {pull}2525[#2525]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
