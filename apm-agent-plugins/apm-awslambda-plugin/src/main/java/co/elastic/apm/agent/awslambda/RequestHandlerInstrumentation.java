@@ -74,7 +74,7 @@ public class RequestHandlerInstrumentation extends AbstractAwsLambdaHandlerInstr
                 Transaction transaction = (Transaction) transactionObj;
 
                 if (output != null && output.getClass().getName().startsWith("com.amazonaws.services.lambda.runtime.events")) {
-                    // handler uses aws events, it's save to assume that the AWS events classes are available
+                    // handler uses aws events, it's safe to assume that the AWS events classes are available
                     AWSEventsHelper.finalizeTransaction(transaction, output, thrown);
                 } else {
                     // Fallback instrumentation (AWS events classes might be not available)
