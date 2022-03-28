@@ -58,7 +58,7 @@ public class RequestHandlerInstrumentation extends AbstractAwsLambdaHandlerInstr
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object handlerEnter(@Nullable @Advice.Argument(value = 0) Object input, @Advice.Argument(value = 1) Context lambdaContext) {
             if (input != null && input.getClass().getName().startsWith("com.amazonaws.services.lambda.runtime.events")) {
-                // handler uses aws events, it's save to assume that the AWS events classes are available
+                // handler uses aws events, it's safe to assume that the AWS events classes are available
                 return AWSEventsHelper.startTransaction(input, lambdaContext);
             } else {
                 // Fallback instrumentation (AWS events classes might be not available)
