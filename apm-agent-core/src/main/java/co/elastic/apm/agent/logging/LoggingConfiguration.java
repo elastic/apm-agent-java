@@ -149,14 +149,6 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(DEFAULT_LOG_FILE);
 
-    private final ConfigurationOption<Boolean> logCorrelationEnabled = ConfigurationOption.booleanOption()
-        .key("enable_log_correlation")
-        .configurationCategory(LOGGING_CATEGORY)
-        .description("DEPRECATED - since agent version 1.30.0, log correlation is on by default. If you wish to disable it, \n" +
-            "this can be done through the <<config-disable-instrumentations>> config.")
-        .dynamic(false)
-        .buildWithDefault(true);
-
     private final ConfigurationOption<LogEcsReformatting> logEcsReformatting = ConfigurationOption.enumOption(LogEcsReformatting.class)
         .key("log_ecs_reformatting")
         .configurationCategory(LOGGING_CATEGORY)
