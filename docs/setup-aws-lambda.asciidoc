@@ -9,7 +9,8 @@ Follow the <<aws-lambda-java-quick-start>> Guide to get started in minutes and c
 [float]
 [[aws-lambda-java-quick-start]]
 ==== Quick Start
-include::{apm-aws-repo-dir}/add-extension/code.asciidoc[]
+
+include::{apm-aws-lambda-root}/docs/add-extension/code.asciidoc[]
 
 Before starting with the setup make sure you are using one of the  <<supported-aws-lambda-runtimes, supported AWS Lambda runtimes>>.
 
@@ -18,22 +19,22 @@ To get started with APM for your Java AWS Lambda functions, follow the steps bel
 [float]
 ===== Step 1: Select the AWS Region and Architecture
 
-include::{apm-aws-repo-dir}/lambda-selector/lambda-attributes-selector.asciidoc[]
+include::{apm-aws-lambda-root}/docs/lambda-selector/lambda-attributes-selector.asciidoc[]
 
 [float]
 ===== Step 2: Add the APM Layers to your Lambda function
 
-include::{apm-aws-repo-dir}/lambda-selector/extension-arn-replacement.asciidoc[]
+include::{apm-aws-lambda-root}/docs/lambda-selector/extension-arn-replacement.asciidoc[]
 include::./lambda/java-arn-replacement.asciidoc[]
 
 Both, the APM Lambda Extension and the Java APM Agent are added to your Lambda function as https://docs.aws.amazon.com/lambda/latest/dg/invocation-layers.html[AWS Lambda Layers]. Therefore, you need to add the corresponding Layer ARNs (identifiers) to your Lambda function.
 
-include::{apm-aws-repo-dir}/add-extension/add-extension-layer-widget.asciidoc[]
+include::{apm-aws-lambda-root}/docs/add-extension/add-extension-layer-widget.asciidoc[]
 
 [float]
 ===== Step 3: Configure APM on AWS Lambda
 
-The APM Lambda Extension and the APM Java agent are configured through environment variables on the AWS Lambda function. 
+The APM Lambda Extension and the APM Java agent are configured through environment variables on the AWS Lambda function.
 
 For the minimal configuration, you will need the _APM Server URL_ to set the destination for APM data and an **{apm-guide-ref}/secret-token.html[APM Secret Token]**.
 If you prefer to use an APM API key instead of the APM secret token, use the `ELASTIC_APM_API_KEY` environment variable instead of `ELASTIC_APM_SECRET_TOKEN` in the following configuration.
