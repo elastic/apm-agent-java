@@ -122,7 +122,7 @@ public class ElasticApmTracerBuilder {
     }
 
     // protected only for testing
-    public ElasticApmTracerBuilder withApmServerClient(ApmServerClient apmServerClient) {
+   ElasticApmTracerBuilder withApmServerClient(ApmServerClient apmServerClient) {
         this.apmServerClient = apmServerClient;
         return this;
     }
