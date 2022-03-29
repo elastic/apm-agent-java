@@ -28,6 +28,7 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.LoggerUtils;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -44,6 +45,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public static final int PRIO_LOW_LEVEL_FRAMEWORK = 10;
     public static final int PRIO_DEFAULT = 0;
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
+    private static final Logger oneTimeDuplicatedEndLogger = LoggerUtils.logOnce(logger);
+
     protected static final double MS_IN_MICROS = TimeUnit.MILLISECONDS.toMicros(1);
     protected final TraceContext traceContext;
 
@@ -475,8 +478,12 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
             }
             afterEnd();
         } else {
-            logger.warn("End has already been called: {}", this);
-            logger.debug("Consecutive AbstractSpan#end() invocation stack trace: ", new Throwable());
+            if (oneTimeDuplicatedEndLogger.isWarnEnabled()) {
+                oneTimeDuplicatedEndLogger.warn("End has already been called: " + this, new Throwable());
+            } else {
+                logger.warn("End has already been called: {}", this);
+                logger.debug("Consecutive AbstractSpan#end() invocation stack trace: ", new Throwable());
+            }
             assert false;
         }
     }
