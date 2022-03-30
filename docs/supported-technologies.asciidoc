@@ -588,7 +588,7 @@ JBoss LogManager - 1.30.0
 [[supported-aws-lambda-runtimes]]
 === AWS Lambda runtimes
 
-AWS Lambda provides multiple https://docs.aws.amazon.com/lambda/latest/dg/java-image.html[JVM base images], only the ones that support the `AWS_LAMBDA_EXEC_WRAPPER` environment variables are supported out of the box.
+AWS Lambda provides multiple https://docs.aws.amazon.com/lambda/latest/dg/java-image.html[JVM base images]. Only those that support the `AWS_LAMBDA_EXEC_WRAPPER` environment variables are supported out of the box.
 
 Running with unsupported images is still possible but requires providing agent configuration through environment variables
 explicitly.
