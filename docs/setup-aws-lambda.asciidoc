@@ -8,9 +8,12 @@ The Java APM Agent can be used with AWS Lambda to monitor the execution of your 
 [[aws-lambda-java-prerequisites]]
 ==== Prerequisites
 
-. You need an APM server where the APM data will be sent to. {apm-guide-ref}/apm-quick-start.html[Set up an APM Server] if you have not not done so yet. For the best-possible performance we recommend to setup APM on Elastic Cloud in the _same AWS region_ as your AWS Lambda functions. 
-. Make sure you are using one of the supported AWS Lambda Java runtimes.
+. You need an APM Server to send APM data to. Follow the {apm-guide-ref}/apm-quick-start.html[APM Quick start] if you have not set one up yet. For the best-possible performance, we recommend setting up APM on {ecloud} in the same AWS region as your AWS Lambda functions.
+. Make sure you are using one of the supported AWS Lambda Java runtimes:
++
+--
 include::supported-technologies.asciidoc[tag=aws-lambda-runtimes]
+--
 
 [float]
 [[aws-lambda-java-quick-start]]
