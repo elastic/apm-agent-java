@@ -22,8 +22,8 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.source.ConfigSources;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -40,6 +40,7 @@ import org.junit.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.converter.UrlValueConverter;
 
+import javax.annotation.Nullable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -92,15 +93,20 @@ public class ApmServerClientTest {
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
         coreConfiguration = config.getConfig(CoreConfiguration.class);
         objectPoolFactory = new TestObjectPoolFactory();
-        config.save("server_urls", url1.toString() + "," + url2.toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
+        config.save("server_urls", url1 + "," + url2, SpyConfiguration.CONFIG_SOURCE_NAME);
         urlList = List.of(UrlValueConverter.INSTANCE.convert(url1.toString()), UrlValueConverter.INSTANCE.convert(url2.toString()));
+
+        apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
+
         tracer = new ElasticApmTracerBuilder()
+            .withApmServerClient(apmServerClient)
             .configurationRegistry(config)
             .withObjectPoolFactory(objectPoolFactory)
             .buildAndStart();
 
-        apmServerClient = tracer.getApmServerClient();
-        apmServerClient.start(tracer.getConfig(ReporterConfiguration.class).getServerUrls());
+        // force a known order, with server1, then server2
+        // tracer start will actually randomize it
+        apmServerClient.start(urlList);
     }
 
     @Test
@@ -291,13 +297,13 @@ public class ApmServerClientTest {
     }
 
     @Test
-    public void testApmServerVersion() throws IOException {
+    public void testApmServerVersion() {
         assertThat(apmServerClient.isAtLeast(Version.of("6.7.0"))).isTrue();
         assertThat(apmServerClient.isAtLeast(Version.of("6.7.1"))).isFalse();
         assertThat(apmServerClient.supportsNonStringLabels()).isTrue();
-        apmServer1.stubFor(get(urlEqualTo("/"))
-            .willReturn(okForJson(Map.of("version", "6.6.1"))));
-        config.save("server_url", new URL("http", "localhost", apmServer1.port(), "/").toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
+
+        stubServerVersion(apmServer1, "6.6.1");
+        checkApmServerVersion("6.6.1");
         assertThat(apmServerClient.supportsNonStringLabels()).isFalse();
 
     }
@@ -320,5 +326,66 @@ public class ApmServerClientTest {
         assertThat(ApmServerClient.escapeHeaderComment("8()9")).isEqualTo("8__9");
         assertThat(ApmServerClient.escapeHeaderComment("iPad; U; CPU OS 3_2_1 like Mac OS X; en-us")).isEqualTo("iPad; U; CPU OS 3_2_1 like Mac OS X; en-us");
         assertThat(ApmServerClient.escapeHeaderComment("iPad; U; CPU \\OS 3_2_1 like Mac OS X; en-us")).isEqualTo("iPad; U; CPU _OS 3_2_1 like Mac OS X; en-us");
+    }
+
+    @Test
+    public void testSupportUnsampledTransactions() {
+        testSupportUnsampledTransactions(null, true);
+        testSupportUnsampledTransactions("7.0.0", true);
+        testSupportUnsampledTransactions("8.0.0", false);
+    }
+
+    private void testSupportUnsampledTransactions(@Nullable String version, boolean expected) {
+
+        // supported by default as we stub 6.x server by default
+        if (version != null && !version.isEmpty()) {
+            stubServerVersion(apmServer1, version);
+        }
+
+        // we have to re-create client as version is cached
+        apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
+        apmServerClient.start(Collections.singletonList(UrlValueConverter.INSTANCE.convert(String.format("http://localhost:%d/", apmServer1.port()))));
+
+        if (version != null) {
+            // we have to check version to ensure it's not in-progress
+            checkApmServerVersion(version);
+        }
+
+        assertThat(apmServerClient.supportsKeepingUnsampledTransaction())
+            .describedAs("keeping unsampled transactions for version %s is expected to be %s", version, expected)
+            .isEqualTo(expected);
+    }
+
+    /**
+     * Stubs the APM server endpoint with a specific version
+     *
+     * @param apmServer APM server wiremock rule
+     * @param version   version to stub
+     */
+    void stubServerVersion(WireMockRule apmServer, String version) {
+        apmServer.stubFor(get(urlEqualTo("/"))
+            .willReturn(okForJson(Map.of("version", version))));
+
+        try {
+            URL url = new URL("http", "localhost", apmServer.port(), "/");
+            config.save("server_url", url.toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+
+    }
+
+    private void checkApmServerVersion(String expectedVersion) {
+        // retrieving version is asynchronous, and implementation assumes default when the version hasn't been
+        // actually retrieved from server
+        Version serverVersion;
+        try {
+            serverVersion = apmServerClient.getApmServerVersion(1L, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+
+        assertThat(serverVersion).isNotNull();
+        assertThat(serverVersion.toString()).isEqualTo(expectedVersion);
     }
 }
