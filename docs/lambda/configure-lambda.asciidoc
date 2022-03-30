@@ -14,7 +14,9 @@ ELASTIC_APM_LAMBDA_APM_SERVER = <YOUR-APM-SERVER-URL>     # this is your APM Ser
 ELASTIC_APM_SECRET_TOKEN      = <YOUR-APM-SECRET-TOKEN>   # this is your APM secret token
 ----
 
-image:images/lambda-env-vars.png[image of environment variables configuration section in AWS Console]
+--
+include::{apm-aws-lambda-root}/docs/images/images.asciidoc[tag=java-env-vars]
+--
 
 // end::console-with-agent[]
 
@@ -42,7 +44,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       ...
-      Environment: 
+      Environment:
           Variables:
             AWS_LAMBDA_EXEC_WRAPPER: /opt/elastic-apm-handler
             ELASTIC_APM_LAMBDA_APM_SERVER: <YOUR-APM-SERVER-URL>
