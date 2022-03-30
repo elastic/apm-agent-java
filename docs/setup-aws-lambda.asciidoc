@@ -27,7 +27,7 @@ include::{apm-aws-lambda-root}/docs/lambda-selector/lambda-attributes-selector.a
 include::{apm-aws-lambda-root}/docs/lambda-selector/extension-arn-replacement.asciidoc[]
 include::./lambda/java-arn-replacement.asciidoc[]
 
-Both, the APM Lambda Extension and the Java APM Agent are added to your Lambda function as https://docs.aws.amazon.com/lambda/latest/dg/invocation-layers.html[AWS Lambda Layers]. Therefore, you need to add the corresponding Layer ARNs (identifiers) to your Lambda function.
+Both the APM Lambda Extension and the Java APM Agent are added to your Lambda function as https://docs.aws.amazon.com/lambda/latest/dg/invocation-layers.html[AWS Lambda Layers]. Therefore, you need to add the corresponding Layer ARNs (identifiers) to your Lambda function.
 
 include::{apm-aws-lambda-root}/docs/add-extension/add-extension-layer-widget.asciidoc[]
 
