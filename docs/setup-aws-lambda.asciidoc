@@ -50,9 +50,8 @@ Your Lambda function invocations should be traced from now on.
 [[aws-lambda-features-and-caveats]]
 ==== Features & Caveats
 
-The AWS Lambda as a runtime behaves different with respect to some aspect compared to conventional runtimes.
-While most APM and monitoring concepts are applicable to AWS Lambda, there are also a few limitations and specifics.
-Read on to learn more about the Java APM features and caveats on AWS Lambda.
+The AWS Lambda as a runtime behaves differently from conventional runtimes.
+While most APM and monitoring concepts apply to AWS Lambda, there are a few differences and limitations to be aware of.
 
 [float]
 [[aws-lambda-performance-monitoring]]
