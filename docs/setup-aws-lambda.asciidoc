@@ -43,7 +43,7 @@ include::./lambda/configure-lambda-widget.asciidoc[]
 
 You can optionally <<configuration, fine-tune the Java agent >> or the {apm-guide-ref}/aws-lambda-config-options.html[configuration of the APM Lambda Extension].
 
-That's it, if you've done all of the above you are set to go!
+That's it; After following the steps above, you're ready to go!
 Your Lambda function invocations should be traced from now on.
 
 [float]
