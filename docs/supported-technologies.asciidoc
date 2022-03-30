@@ -593,6 +593,8 @@ AWS Lambda provides multiple https://docs.aws.amazon.com/lambda/latest/dg/java-i
 Running with unsupported images is still possible but requires providing agent configuration through environment variables
 explicitly.
 
+// tag::aws-lambda-runtimes[]
+
 |===
 |Tags |Java Runtime |Operating System|Supported
 
@@ -612,6 +614,8 @@ explicitly.
 |no
 
 |===
+
+// end::aws-lambda-runtimes[]
 
 [float]
 [[supported-java-methods]]
