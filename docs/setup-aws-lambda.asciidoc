@@ -8,8 +8,8 @@ The Java APM Agent can be used with AWS Lambda to monitor the execution of your 
 [[aws-lambda-java-prerequisites]]
 ==== Prerequisites
 
-Before starting with the setup make sure you are using one of the supported AWS Lambda runtimes.
-
+. You need an APM server where the APM data will be sent to. {apm-guide-ref}/apm-quick-start.html[Set up an APM Server] if you have not not done so yet. For the best-possible performance we recommend to setup APM on Elastic Cloud in the _same AWS region_ as your AWS Lambda functions. 
+. Make sure you are using one of the supported AWS Lambda Java runtimes.
 include::supported-technologies.asciidoc[tag=aws-lambda-runtimes]
 
 [float]
@@ -39,7 +39,7 @@ include::{apm-aws-lambda-root}/docs/add-extension/add-extension-layer-widget.asc
 The APM Lambda Extension and the APM Java agent are configured through environment variables on the AWS Lambda function.
 
 For the minimal configuration, you will need the _APM Server URL_ to set the destination for APM data and an _{apm-guide-ref}/secret-token.html[APM Secret Token]_.
-If you prefer to use an APM API key instead of the APM secret token, use the `ELASTIC_APM_API_KEY` environment variable instead of `ELASTIC_APM_SECRET_TOKEN` in the following configuration.
+If you prefer to use an {apm-guide-ref}/api-key.html[APM API key] instead of the APM secret token, use the `ELASTIC_APM_API_KEY` environment variable instead of `ELASTIC_APM_SECRET_TOKEN` in the following configuration.
 
 include::./lambda/configure-lambda-widget.asciidoc[]
 
