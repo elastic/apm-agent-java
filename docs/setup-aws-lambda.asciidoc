@@ -5,6 +5,12 @@
 The Java APM Agent can be used with AWS Lambda to monitor the execution of your AWS Lambda functions.
 
 [float]
+[[aws-lambda-java-quick-start]]
+=== Quick Start
+
+To get started with APM for your Java AWS Lambda functions, follow the steps below.
+
+[float]
 [[aws-lambda-java-prerequisites]]
 ==== Prerequisites
 
@@ -16,18 +22,12 @@ include::supported-technologies.asciidoc[tag=aws-lambda-runtimes]
 --
 
 [float]
-[[aws-lambda-java-quick-start]]
-==== Quick Start
-
-To get started with APM for your Java AWS Lambda functions, follow the steps below.
-
-[float]
-===== Step 1: Select the AWS Region and Architecture
+==== Step 1: Select the AWS Region and Architecture
 
 include::{apm-aws-lambda-root}/docs/lambda-selector/lambda-attributes-selector.asciidoc[]
 
 [float]
-===== Step 2: Add the APM Layers to your Lambda function
+==== Step 2: Add the APM Layers to your Lambda function
 
 include::{apm-aws-lambda-root}/docs/lambda-selector/extension-arn-replacement.asciidoc[]
 include::./lambda/java-arn-replacement.asciidoc[]
@@ -37,7 +37,7 @@ Both the {apm-guide-ref}/aws-lambda-arch.html[APM Lambda Extension] and the Java
 include::{apm-aws-lambda-root}/docs/add-extension/add-extension-layer-widget.asciidoc[]
 
 [float]
-===== Step 3: Configure APM on AWS Lambda
+==== Step 3: Configure APM on AWS Lambda
 
 The APM Lambda Extension and the APM Java agent are configured through environment variables on the AWS Lambda function.
 
@@ -55,14 +55,14 @@ Read on to learn more about the features and limitations of the Java APM Agent o
 
 [float]
 [[aws-lambda-features-and-caveats]]
-==== Features and Caveats
+=== Features and Caveats
 
 The AWS Lambda as a runtime behaves differently from conventional runtimes.
 While most APM and monitoring concepts apply to AWS Lambda, there are a few differences and limitations to be aware of.
 
 [float]
 [[aws-lambda-performance-monitoring]]
-===== Performance monitoring
+==== Performance monitoring
 
 Elastic APM automatically measures the performance of your lambda function executions.
 It records traces for database queries, external HTTP requests,
@@ -74,7 +74,7 @@ due to its asynchronous nature, the <<method-sampling-based, Sampling Profiler>>
 
 [float]
 [[aws-lambda-error-monitoring]]
-===== Error monitoring
+==== Error monitoring
 
 Whenever an `Exception` is thrown by your function handler method, the agent will send an error event to the APM Server
 and the corresponding transaction will be recorded as a failed transaction.
@@ -82,7 +82,7 @@ Errors related to traced spans will be sent as well.
 
 [float]
 [[aws-lambda-caveats]]
-===== Caveats
+==== Caveats
 * System and custom metrics are not collected for Lambda functions. This is both because most of those are irrelevant
 and because the interval-based event sending model is not suitable for FaaS environments.
 * Cold starts can be significantly slower when the agent is installed. If this is an issue, following are ways to deal with slow code
