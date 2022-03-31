@@ -152,7 +152,7 @@ rendering
 
 
 |Vert.x Web
-|3.x, 4.x
+|3.6+
 |Captures incoming HTTP requests as transactions
 |1.24.0 (experimental)
 
