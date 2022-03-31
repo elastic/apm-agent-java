@@ -95,7 +95,7 @@ public class ShadedClassLoader extends URLClassLoader {
 
     private Class<?> defineClass(String name, byte[] classBytes) {
         String packageName = getPackageName(name);
-        if (packageName != null && !isPackageDefined(packageName)) {
+        if (packageName != null && isPackageNotDefined(packageName)) {
             try {
                 if (manifest != null) {
                     definePackage(packageName, manifest, jarUrl);
@@ -104,7 +104,7 @@ public class ShadedClassLoader extends URLClassLoader {
                 }
             } catch (IllegalStateException e){
                 // The package may have been defined by a parent class loader in the meantime
-                if (!isPackageDefined(packageName)) {
+                if (isPackageNotDefined(packageName)) {
                     throw e;
                 }
             }
@@ -112,7 +112,7 @@ public class ShadedClassLoader extends URLClassLoader {
         return defineClass(name, classBytes, 0, classBytes.length, ShadedClassLoader.class.getProtectionDomain());
     }
 
-    private boolean isPackageDefined(String packageName){
+    private boolean isPackageNotDefined(String packageName){
         Package pkg;
         if(getDefinedPackage != null){
             try {
