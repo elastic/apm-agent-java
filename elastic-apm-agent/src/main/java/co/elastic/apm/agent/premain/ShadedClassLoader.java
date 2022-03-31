@@ -69,10 +69,9 @@ public class ShadedClassLoader extends URLClassLoader {
                     "getDefinedPackage",
                     MethodType.methodType(Package.class, String.class),
                     ShadedClassLoader.class);
-        } catch (NoSuchMethodException e) {
-            // ignored
-        } catch (IllegalAccessException e){
-            throw new IllegalStateException(e);
+        } catch (NoSuchMethodException|IllegalAccessException e) {
+            // ignored, the method is either absent or we don't have access to it.
+            // On IBM J9 an IllegalAccessException is thrown because the method is present but package-private
         }
         getDefinedPackage = methodHandle;
     }
