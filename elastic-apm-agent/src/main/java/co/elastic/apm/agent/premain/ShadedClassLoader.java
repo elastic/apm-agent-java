@@ -23,6 +23,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Enumeration;
@@ -51,8 +54,20 @@ public class ShadedClassLoader extends URLClassLoader {
     public static final String SHADED_CLASS_EXTENSION = ".esclazz";
     private static final String CLASS_EXTENSION = ".class";
 
+    private static final MethodHandle getDefinedPackage;
+
     static {
         ClassLoader.registerAsParallelCapable();
+
+        MethodHandle methodHandle = null;
+        try {
+            methodHandle = MethodHandles.lookup().findVirtual(ClassLoader.class, "getDefinedPackage", MethodType.methodType(Package.class, String.class));
+        } catch (NoSuchMethodException e) {
+            // ignored
+        } catch (IllegalAccessException e){
+            throw new IllegalStateException(e);
+        }
+        getDefinedPackage = methodHandle;
     }
 
     private final String customPrefix;
@@ -80,15 +95,37 @@ public class ShadedClassLoader extends URLClassLoader {
 
     private Class<?> defineClass(String name, byte[] classBytes) {
         String packageName = getPackageName(name);
-        if (packageName != null && getDefinedPackage(packageName) == null) {
-            if (manifest != null) {
-                definePackage(packageName, manifest, jarUrl);
-            } else {
-                definePackage(packageName, null, null, null, null, null, null, null);
+        if (packageName != null && !isPackageDefined(packageName)) {
+            try {
+                if (manifest != null) {
+                    definePackage(packageName, manifest, jarUrl);
+                } else {
+                    definePackage(packageName, null, null, null, null, null, null, null);
+                }
+            } catch (IllegalStateException e){
+                // The package may have been defined by a parent class loader in the meantime
+                if (!isPackageDefined(packageName)) {
+                    throw e;
+                }
             }
         }
         return defineClass(name, classBytes, 0, classBytes.length, ShadedClassLoader.class.getProtectionDomain());
     }
+
+    private boolean isPackageDefined(String packageName){
+        Package pkg;
+        if(getDefinedPackage != null){
+            try {
+                pkg = (Package) getDefinedPackage.invoke(this, packageName);
+            } catch (Throwable e) {
+                throw new IllegalStateException(e);
+            }
+        } else {
+            pkg = getDefinedPackage(packageName);
+        }
+        return pkg != null;
+    }
+
 
     @Nullable
     public String getPackageName(String className) {
