@@ -80,18 +80,11 @@ public class ShadedClassLoader extends URLClassLoader {
 
     private Class<?> defineClass(String name, byte[] classBytes) {
         String packageName = getPackageName(name);
-        if (packageName != null && getPackage(packageName) == null) {
-            try {
-                if (manifest != null) {
-                    definePackage(name, manifest, jarUrl);
-                } else {
-                    definePackage(packageName, null, null, null, null, null, null, null);
-                }
-            } catch (IllegalArgumentException e) {
-                // The package may have been defined by a parent class loader in the meantime
-                if (getPackage(packageName) == null) {
-                    throw e;
-                }
+        if (packageName != null && getDefinedPackage(packageName) == null) {
+            if (manifest != null) {
+                definePackage(packageName, manifest, jarUrl);
+            } else {
+                definePackage(packageName, null, null, null, null, null, null, null);
             }
         }
         return defineClass(name, classBytes, 0, classBytes.length, ShadedClassLoader.class.getProtectionDomain());
