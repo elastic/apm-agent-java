@@ -23,6 +23,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.http.impl.HttpServerRequestImpl;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -34,7 +35,8 @@ import javax.annotation.Nullable;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * Instruments {@link io.vertx.core.http.impl.HttpServerRequestImpl#doEnd()} to remove the context from the context map again.
+ * Instruments {@link HttpServerRequestImpl#handleEnd()} and {@link io.vertx.core.http.impl.Http2ServerRequestImpl#handleEnd} to finalize
+ * the transaction and remove the mapping.
  */
 @SuppressWarnings("JavadocReference")
 public class HttpServerRequestImplEndInstrumentation extends WebInstrumentation {
