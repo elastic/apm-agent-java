@@ -179,6 +179,13 @@
                         <goals>
                             <goal>revision</goal>
                         </goals>
+                        <configuration>
+                            <verbose>true</verbose>
+                            <!-- enable by default when executing from CLI -->
+                            <skipViaCommandLine>false</skipViaCommandLine>
+                            <!-- use native git when executing from CLI (Jgit is unable to deal with worktrees) -->
+                            <useNativeGitViaCommandLine>true</useNativeGitViaCommandLine>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
