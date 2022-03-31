@@ -19,6 +19,8 @@
 package co.elastic.apm.agent.vertx.v3.web.http1;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.vertx.v3.web.WebHelper;
 import co.elastic.apm.agent.vertx.v3.web.WebInstrumentation;
 import io.vertx.core.http.impl.HttpServerRequestImpl;
@@ -49,6 +51,8 @@ public class Http1StartTransactionInstrumentation extends WebInstrumentation {
 
     public static class AdviceClass {
 
+        private static final Logger log = LoggerFactory.getLogger(AdviceClass.class);
+
         private static final WebHelper helper = WebHelper.getInstance();
 
         @Nullable
@@ -58,6 +62,7 @@ public class Http1StartTransactionInstrumentation extends WebInstrumentation {
             if (transaction != null) {
                 transaction.activate();
             }
+            log.debug("VERTX-DEBUG: started Vert.x 3.x HTTP 1 transaction: {}", transaction);
             return transaction;
         }
 

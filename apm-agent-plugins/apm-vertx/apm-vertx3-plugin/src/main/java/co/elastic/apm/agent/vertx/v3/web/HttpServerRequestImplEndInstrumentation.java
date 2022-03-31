@@ -19,6 +19,8 @@
 package co.elastic.apm.agent.vertx.v3.web;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import net.bytebuddy.asm.Advice;
@@ -55,6 +57,8 @@ public class HttpServerRequestImplEndInstrumentation extends WebInstrumentation 
 
     public static class HttpRequestEndAdvice {
 
+        private static final Logger log = LoggerFactory.getLogger(HttpRequestEndAdvice.class);
+
         private static final WebHelper helper = WebHelper.getInstance();
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
@@ -63,6 +67,9 @@ public class HttpServerRequestImplEndInstrumentation extends WebInstrumentation 
             Transaction transaction = helper.removeTransactionFromContext(request);
             if (transaction != null) {
                 helper.finalizeTransaction(response, transaction);
+                log.debug("VERTX-DEBUG: ended Vert.x transaction {} with details from this response: {}", transaction, response);
+            } else {
+                log.debug("VERTX-DEBUG: could not find a transaction for the following Vert.x request: {}", request);
             }
         }
     }

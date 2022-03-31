@@ -18,6 +18,9 @@
  */
 package co.elastic.apm.agent.vertx.v3.web.http2;
 
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.vertx.v3.web.WebHelper;
 import co.elastic.apm.agent.vertx.v3.web.WebInstrumentation;
 import io.vertx.core.http.impl.Http2ServerRequestImpl;
@@ -46,9 +49,12 @@ public class Http2StartTransactionInstrumentation extends WebInstrumentation {
 
     public static class AdviceClass {
 
+        private static final Logger log = LoggerFactory.getLogger(AdviceClass.class);
+
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void exit(@Advice.Return Http2ServerRequestImpl request) {
-            WebHelper.getInstance().startOrGetTransaction(request);
+            Transaction transaction = WebHelper.getInstance().startOrGetTransaction(request);
+            log.debug("VERTX-DEBUG: started Vert.x 3.x HTTP 2 transaction: {}", transaction);
         }
     }
 }

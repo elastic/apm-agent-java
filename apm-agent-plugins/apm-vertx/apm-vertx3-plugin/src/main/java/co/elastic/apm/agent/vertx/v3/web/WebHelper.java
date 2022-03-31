@@ -22,6 +22,8 @@ import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import io.vertx.core.Handler;
@@ -31,6 +33,8 @@ import io.vertx.ext.web.RoutingContext;
 import javax.annotation.Nullable;
 
 public class WebHelper extends AbstractVertxWebHelper {
+
+    private static final Logger log = LoggerFactory.getLogger(WebHelper.class);
 
     private static final WebHelper INSTANCE = new WebHelper(GlobalTracer.requireTracerImpl());
 
@@ -81,8 +85,11 @@ public class WebHelper extends AbstractVertxWebHelper {
     public Transaction getTransactionForRequest(HttpServerRequest request) {
         if (request.getClass().getName().equals("io.vertx.ext.web.impl.HttpServerRequestWrapper")) {
             request = request.endHandler(noopHandler);
+            log.debug("VERTX-DEBUG: Vert.x request obtained through endHandler instrumentation: {}", request);
         }
-        return requestTransactionMap.get(request);
+        Transaction transaction = requestTransactionMap.get(request);
+        log.debug("VERTX-DEBUG: transaction {} is mapped to the Vert.x request: {}", transaction, request);
+        return transaction;
     }
 
     public static class NoopHandler implements Handler<Void> {
