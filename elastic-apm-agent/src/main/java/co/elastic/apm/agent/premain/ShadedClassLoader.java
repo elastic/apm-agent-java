@@ -64,14 +64,14 @@ public class ShadedClassLoader extends URLClassLoader {
 
         MethodHandle methodHandle = null;
         try {
-            methodHandle = MethodHandles.lookup()
-                .findSpecial(ClassLoader.class,
+            methodHandle = MethodHandles.publicLookup()
+                .findVirtual(ShadedClassLoader.class,
                     "getDefinedPackage",
-                    MethodType.methodType(Package.class, String.class),
-                    ShadedClassLoader.class);
-        } catch (NoSuchMethodException|IllegalAccessException e) {
-            // ignored, the method is either absent or we don't have access to it.
-            // On IBM J9 an IllegalAccessException is thrown because the method is present but package-private
+                    MethodType.methodType(Package.class, String.class));
+        } catch (NoSuchMethodException e) {
+            // ignored as method is not present
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException(e);
         }
         getDefinedPackage = methodHandle;
     }
@@ -108,7 +108,7 @@ public class ShadedClassLoader extends URLClassLoader {
                 } else {
                     definePackage(packageName, null, null, null, null, null, null, null);
                 }
-            } catch (IllegalStateException e){
+            } catch (IllegalArgumentException e){
                 // The package may have been defined by a parent class loader in the meantime
                 if (isPackageNotDefined(packageName)) {
                     throw e;
@@ -119,11 +119,11 @@ public class ShadedClassLoader extends URLClassLoader {
     }
 
     @SuppressWarnings("deprecation")
-    private boolean isPackageNotDefined(String packageName){
+    private boolean isPackageNotDefined(String packageName) {
         Package pkg;
-        if(getDefinedPackage != null){
+        if (getDefinedPackage != null) {
             try {
-                pkg = (Package) getDefinedPackage.invokeExact(packageName);
+                pkg = (Package) getDefinedPackage.invokeExact(this, packageName);
             } catch (Throwable e) {
                 throw new IllegalStateException(e);
             }
@@ -131,7 +131,7 @@ public class ShadedClassLoader extends URLClassLoader {
             // use deprecated method for Java < 9
             pkg = getPackage(packageName);
         }
-        return pkg != null;
+        return pkg == null;
     }
 
     @Nullable
