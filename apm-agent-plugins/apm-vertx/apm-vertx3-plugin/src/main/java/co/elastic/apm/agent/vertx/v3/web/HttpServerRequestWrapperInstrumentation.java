@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.vertx.v3.web.http1;
+package co.elastic.apm.agent.vertx.v3.web;
 
-import co.elastic.apm.agent.vertx.v3.web.WebHelper;
-import co.elastic.apm.agent.vertx.v3.web.WebInstrumentation;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
 import net.bytebuddy.asm.Advice;
@@ -54,7 +52,7 @@ public class HttpServerRequestWrapperInstrumentation extends WebInstrumentation 
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestWrapperInstrumentation$HttpServerRequestWrapperAdvice";
+        return "co.elastic.apm.agent.vertx.v3.web.HttpServerRequestWrapperInstrumentation$HttpServerRequestWrapperAdvice";
     }
 
     public static class HttpServerRequestWrapperAdvice {

@@ -100,65 +100,6 @@ public abstract class WebInstrumentation extends Vertx3Instrumentation {
     }
 
     /**
-     * Instruments {@link io.vertx.core.http.HttpServerResponse#endHandler(io.vertx.core.Handler)} to handle proper wrapping of existing end
-     * handlers when adding our {@link ResponseEndHandlerWrapper} for transaction finalization.
-     */
-    public static class ResponseEndHandlerInstrumentation extends WebInstrumentation {
-
-        @Override
-        public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-            return nameStartsWith("io.vertx.core.http.impl");
-        }
-
-        @Override
-        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return not(isInterface())
-                .and(hasSuperType(named("io.vertx.core.http.HttpServerResponse")))
-                .and(declaresField(named("endHandler")));
-        }
-
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("endHandler")
-                .and(takesArgument(0, named("io.vertx.core.Handler")));
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return "co.elastic.apm.agent.vertx.v3.web.WebInstrumentation$ResponseEndHandlerInstrumentation$ResponseEndHandlerAdvice";
-        }
-
-        public static class ResponseEndHandlerAdvice {
-
-            @Nullable
-            @Advice.AssignReturned.ToFields(@ToField(value = "endHandler"))
-            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static Handler<Void> wrapHandler(@Advice.Argument(value = 0) Handler<Void> handler,
-                                                    @Advice.FieldValue(value = "endHandler") @Nullable Handler<Void> internalHandler) {
-                if (internalHandler instanceof ResponseEndHandlerWrapper && handler instanceof ResponseEndHandlerWrapper) {
-                    // avoid setting our wrapper multiple times
-                    return internalHandler;
-                }
-
-                if (handler instanceof ResponseEndHandlerWrapper) {
-                    if (internalHandler != null) {
-                        // wrap the existing internal handler into our added wrapper
-                        ((ResponseEndHandlerWrapper) handler).setActualHandler(internalHandler);
-                    }
-                    return handler;
-                } else if (internalHandler instanceof ResponseEndHandlerWrapper) {
-                    // wrap new added handler into our wrapper that already is the internal one
-                    ((ResponseEndHandlerWrapper) internalHandler).setActualHandler(handler);
-                    return internalHandler;
-                }
-
-                return internalHandler;
-            }
-        }
-
-    }
-
-    /**
      * Instruments
      * <ul>
      *     <li>{@link io.vertx.core.http.impl.HttpServerRequestImpl#handleData(io.vertx.core.buffer.Buffer)}</li>

@@ -16,50 +16,53 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.vertx.v3.web.http2;
+package co.elastic.apm.agent.vertx.v3.web;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.vertx.v3.web.ResponseEndHandlerWrapper;
-import co.elastic.apm.agent.vertx.v3.web.WebHelper;
-import co.elastic.apm.agent.vertx.v3.web.WebInstrumentation;
-import io.vertx.core.http.impl.Http2ServerRequestImpl;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
+import javax.annotation.Nullable;
+
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * Instruments {@link io.vertx.core.http.impl.Http2ServerRequestImpl} to start transaction and append {@link ResponseEndHandlerWrapper}
- * for later transaction finalization.
+ * Instruments {@link io.vertx.core.http.impl.HttpServerRequestImpl#doEnd()} to remove the context from the context map again.
  */
-public class Http2Instrumentation extends WebInstrumentation {
+@SuppressWarnings("JavadocReference")
+public class HttpServerRequestImplEndInstrumentation extends WebInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("io.vertx.core.http.impl.Http2ServerRequestImpl");
+        return named("io.vertx.core.http.impl.HttpServerRequestImpl")
+            .or(named("io.vertx.core.http.impl.Http2ServerRequestImpl"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isConstructor();
+        return named("handleEnd");
     }
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.vertx.v3.web.http2.Http2Instrumentation$Http2ServerRequestAdvice";
+        return "co.elastic.apm.agent.vertx.v3.web.HttpServerRequestImplEndInstrumentation$HttpRequestEndAdvice";
     }
 
-    public static class Http2ServerRequestAdvice {
+    public static class HttpRequestEndAdvice {
+
+        private static final WebHelper helper = WebHelper.getInstance();
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void enter(@Advice.This Http2ServerRequestImpl request) {
-            Transaction transaction = WebHelper.getInstance().startOrGetTransaction(request);
-
-            if (transaction != null && request.response() != null) {
-                request.response().endHandler(new ResponseEndHandlerWrapper(transaction, request.response(), request));
+        public static void exit(@Advice.This HttpServerRequest request,
+                                @Advice.FieldValue(value = "response", typing = Assigner.Typing.DYNAMIC) @Nullable HttpServerResponse response) {
+            Transaction transaction = helper.removeTransactionFromContext(request);
+            if (transaction != null) {
+                helper.finalizeTransaction(response, transaction);
             }
         }
     }

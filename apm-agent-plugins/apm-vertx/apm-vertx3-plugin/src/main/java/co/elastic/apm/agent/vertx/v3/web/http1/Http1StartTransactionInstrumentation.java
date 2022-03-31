@@ -36,7 +36,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
  * Instruments {@link io.vertx.core.http.impl.HttpServerRequestImpl#handleBegin()} to start transaction from.
  */
 @SuppressWarnings("JavadocReference")
-public class HttpServerRequestImplStartInstrumentation extends WebInstrumentation {
+public class Http1StartTransactionInstrumentation extends WebInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("io.vertx.core.http.impl.HttpServerRequestImpl");
@@ -47,12 +47,7 @@ public class HttpServerRequestImplStartInstrumentation extends WebInstrumentatio
         return named("handleBegin").and(takesNoArguments());
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return "co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestImplStartInstrumentation$HttpRequestBeginAdvice";
-    }
-
-    public static class HttpRequestBeginAdvice {
+    public static class AdviceClass {
 
         private static final WebHelper helper = WebHelper.getInstance();
 

@@ -16,50 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.vertx.v3.web.http1;
+package co.elastic.apm.agent.vertx.v3.web.http2;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.vertx.v3.web.ResponseEndHandlerWrapper;
+import co.elastic.apm.agent.vertx.v3.web.WebHelper;
 import co.elastic.apm.agent.vertx.v3.web.WebInstrumentation;
-import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.http.impl.Http2ServerRequestImpl;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 /**
- * Instruments {@link io.vertx.core.http.impl.HttpServerResponseImpl} constructor to create and append {@link ResponseEndHandlerWrapper}
- * for transaction finalization.
+ * Instruments {@link io.vertx.core.http.impl.Http2ServerConnection#createRequest} to start transaction
  */
-public class HttpServerResponseImplInstrumentation extends WebInstrumentation {
+public class Http2StartTransactionInstrumentation extends WebInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("io.vertx.core.http.impl.HttpServerResponseImpl");
+        return named("io.vertx.core.http.impl.Http2ServerConnection");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isConstructor();
+        return named("createRequest").and(returns(named("io.vertx.core.http.impl.Http2ServerRequestImpl")));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return "co.elastic.apm.agent.vertx.v3.web.http1.HttpServerResponseImplInstrumentation$HttpResponseConstructorAdvice";
-    }
-
-    public static class HttpResponseConstructorAdvice {
+    public static class AdviceClass {
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void enter(@Advice.This HttpServerResponse response) {
-            Transaction transaction = GlobalTracer.get().currentTransaction();
-            if (transaction != null) {
-                response.endHandler(new ResponseEndHandlerWrapper(transaction, response));
-            }
+        public static void exit(@Advice.Return Http2ServerRequestImpl request) {
+            WebHelper.getInstance().startOrGetTransaction(request);
         }
     }
 }

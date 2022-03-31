@@ -41,7 +41,7 @@ public class WebHelper extends AbstractVertxWebHelper {
     }
 
     // this handler is used to mark the instrumented call of HttpServerRequestWrapper.endHandler(...) as a call
-    // that should do nothing than returning the wrapped delegate instance of type HttpServerRequestImpl.
+    // that should do nothing other than returning the wrapped delegate instance of type HttpServerRequestImpl.
     private final NoopHandler noopHandler = new NoopHandler();
 
     WebHelper(ElasticApmTracer tracer) {
@@ -72,11 +72,9 @@ public class WebHelper extends AbstractVertxWebHelper {
         return transaction;
     }
 
-    public void removeTransactionFromContext(HttpServerRequest request) {
-        if (request.getClass().getName().equals("io.vertx.ext.web.impl.HttpServerRequestWrapper")) {
-            request = request.endHandler(noopHandler);
-        }
-        requestTransactionMap.remove(request);
+    @Nullable
+    public Transaction removeTransactionFromContext(HttpServerRequest request) {
+        return requestTransactionMap.remove(request);
     }
 
     @Nullable
@@ -86,7 +84,6 @@ public class WebHelper extends AbstractVertxWebHelper {
         }
         return requestTransactionMap.get(request);
     }
-
 
     public static class NoopHandler implements Handler<Void> {
 

@@ -33,6 +33,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -51,7 +52,7 @@ public abstract class CommonVertxServerClientTest extends AbstractVertxWebTest {
         reporter.awaitSpanCount(1);
 
         List<Transaction> transactions = reporter.getTransactions();
-        assertThat(transactions.stream().map(t -> t.getNameAsString())).containsExactly("GET /downstream", "GET /" + targetPath);
+        assertThat(transactions.stream().map(t -> t.getNameAsString())).containsAll(Set.of("GET /downstream", "GET /" + targetPath));
 
         Transaction firstTransaction = transactions.stream().filter(t -> t.getNameAsString().contains(targetPath)).findFirst().get();
         Transaction secondTransaction = transactions.stream().filter(t -> t.getNameAsString().contains("downstream")).findFirst().get();
@@ -73,7 +74,8 @@ public abstract class CommonVertxServerClientTest extends AbstractVertxWebTest {
         reporter.awaitSpanCount(2);
 
         List<Transaction> transactions = reporter.getTransactions();
-        assertThat(transactions.stream().map(t -> t.getNameAsString())).containsExactly("GET /downstream", "GET /with-extra-span/" + targetPath);
+        assertThat(transactions.stream().map(t -> t.getNameAsString())).containsAll(Set.of("GET /downstream",
+            "GET /with-extra-span/" + targetPath));
 
         Transaction firstTransaction = transactions.stream().filter(t -> t.getNameAsString().contains(targetPath)).findFirst().get();
         Transaction secondTransaction = transactions.stream().filter(t -> t.getNameAsString().contains("downstream")).findFirst().get();
