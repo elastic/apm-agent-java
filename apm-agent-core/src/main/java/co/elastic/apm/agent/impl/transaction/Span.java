@@ -305,13 +305,12 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (transaction != null && transaction.isSpanCompressionEnabled() && parent != null) {
             Span buffered = parent.bufferedSpan.get();
             if (!isCompressionEligible()) {
-                parent.decrementReferences();
                 if (buffered != null) {
                     if (parent.bufferedSpan.compareAndSet(buffered, null)) {
-                        parent.decrementReferences();
                         this.tracer.endSpan(buffered);
                     }
                 }
+                parent.decrementReferences();
                 this.tracer.endSpan(this);
                 return;
             }
@@ -319,12 +318,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                 if (!parent.bufferedSpan.compareAndSet(null, this)) {
                     // the failed update would ideally lead to a compression attempt with the new buffer,
                     // but we're dropping the compression attempt to keep things simple
-                    parent.decrementReferences();
                     this.tracer.endSpan(this);
                 }
+                parent.decrementReferences();
                 return;
             }
-            parent.decrementReferences();
             if (!buffered.tryToCompress(this)) {
                 if (parent.bufferedSpan.compareAndSet(buffered, this)) {
                     this.tracer.endSpan(buffered);
@@ -333,11 +331,13 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                     // but we're dropping the compression attempt to keep things simple
                     this.tracer.endSpan(this);
                 }
+                parent.decrementReferences();
             } else if (isSampled()) {
                 Transaction transaction = getTransaction();
                 if (transaction != null) {
                     transaction.getSpanCount().getDropped().incrementAndGet();
                 }
+                parent.decrementReferences();
                 decrementReferences();
             }
         } else {
