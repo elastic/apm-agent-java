@@ -54,6 +54,9 @@ public class ShadedClassLoader extends URLClassLoader {
     public static final String SHADED_CLASS_EXTENSION = ".esclazz";
     private static final String CLASS_EXTENSION = ".class";
 
+    /**
+     * Method handle for ClassLoader.getDefinedPackage that was added in Java 9
+     */
     private static final MethodHandle getDefinedPackage;
 
     static {
@@ -61,7 +64,11 @@ public class ShadedClassLoader extends URLClassLoader {
 
         MethodHandle methodHandle = null;
         try {
-            methodHandle = MethodHandles.lookup().findVirtual(ClassLoader.class, "getDefinedPackage", MethodType.methodType(Package.class, String.class));
+            methodHandle = MethodHandles.lookup()
+                .findSpecial(ClassLoader.class,
+                    "getDefinedPackage",
+                    MethodType.methodType(Package.class, String.class),
+                    ShadedClassLoader.class);
         } catch (NoSuchMethodException e) {
             // ignored
         } catch (IllegalAccessException e){
@@ -112,20 +119,21 @@ public class ShadedClassLoader extends URLClassLoader {
         return defineClass(name, classBytes, 0, classBytes.length, ShadedClassLoader.class.getProtectionDomain());
     }
 
+    @SuppressWarnings("deprecation")
     private boolean isPackageNotDefined(String packageName){
         Package pkg;
         if(getDefinedPackage != null){
             try {
-                pkg = (Package) getDefinedPackage.invoke(this, packageName);
+                pkg = (Package) getDefinedPackage.invokeExact(packageName);
             } catch (Throwable e) {
                 throw new IllegalStateException(e);
             }
         } else {
-            pkg = getDefinedPackage(packageName);
+            // use deprecated method for Java < 9
+            pkg = getPackage(packageName);
         }
         return pkg != null;
     }
-
 
     @Nullable
     public String getPackageName(String className) {
