@@ -23,9 +23,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Enumeration;
@@ -90,7 +87,7 @@ public class ShadedClassLoader extends URLClassLoader {
                 } else {
                     definePackage(packageName, null, null, null, null, null, null, null);
                 }
-            } catch (IllegalArgumentException e){
+            } catch (IllegalArgumentException e) {
                 // The package may have been defined by a parent class loader in the meantime
                 if (!isPackageDefined(packageName)) {
                     throw e;
@@ -101,7 +98,7 @@ public class ShadedClassLoader extends URLClassLoader {
     }
 
     @SuppressWarnings("deprecation")
-    private boolean isPackageDefined(String packageName){
+    private boolean isPackageDefined(String packageName) {
         // The 'getPackage' method is deprecated as of Java 9, 'getDefinedPackage' is the alternative.
         //
         // The only difference is that 'getDefinedPackage' does not delegate to parent CL for lookup.
