@@ -27,6 +27,9 @@ import org.apache.logging.log4j.spi.LoggerContext;
 import org.apache.logging.log4j.spi.LoggerContextFactory;
 import org.apache.logging.log4j.util.StackLocatorUtil;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+
 /**
  * Based on {@code org.apache.logging.slf4j.Log4jLoggerFactory}
  */
@@ -34,6 +37,18 @@ public class Log4jLoggerFactoryBridge extends AbstractLoggerAdapter<Logger> impl
 
     private static final String FQCN = Log4jLoggerFactoryBridge.class.getName();
     private static final String PACKAGE = "co.elastic.apm.agent.sdk.logging";
+
+    @Override
+    public Logger getLogger(final String name) {
+        // we have to wrap into a doPrivileged call because the logging initialization often requires
+        // elevated privileges, for example to access the classloader when running with a security manager.
+        return AccessController.doPrivileged(new PrivilegedAction<Logger>() {
+            @Override
+            public Logger run() {
+                return Log4jLoggerFactoryBridge.super.getLogger(name);
+            }
+        });
+    }
 
     public static void shutdown() {
         LoggerContextFactory factory = LogManager.getFactory();

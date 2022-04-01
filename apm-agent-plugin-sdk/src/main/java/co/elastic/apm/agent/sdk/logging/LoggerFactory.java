@@ -18,9 +18,6 @@
  */
 package co.elastic.apm.agent.sdk.logging;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-
 public class LoggerFactory {
 
     private static volatile ILoggerFactory iLoggerFactory;
@@ -40,14 +37,7 @@ public class LoggerFactory {
             return NoopLogger.INSTANCE;
         }
 
-        // we have to wrap into a doPrivileged call because the logging initialization often requirest
-        // elevated privileges, for example to access the classloader when running with a security manager.
-        return AccessController.doPrivileged(new PrivilegedAction<Logger>() {
-            @Override
-            public Logger run() {
-                return iLoggerFactory.getLogger(name);
-            }
-        });
+        return iLoggerFactory.getLogger(name);
     }
 
     /**
