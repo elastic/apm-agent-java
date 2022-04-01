@@ -18,6 +18,9 @@
  */
 package co.elastic.apm.agent.sdk.logging;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+
 public class LoggerFactory {
 
     private static volatile ILoggerFactory iLoggerFactory;
@@ -36,8 +39,12 @@ public class LoggerFactory {
         if (iLoggerFactory == null) {
             return NoopLogger.INSTANCE;
         }
-
-        return iLoggerFactory.getLogger(name);
+        return AccessController.doPrivileged(new PrivilegedAction<Logger>() {
+            @Override
+            public Logger run() {
+                return iLoggerFactory.getLogger(name);
+            }
+        });
     }
 
     /**
