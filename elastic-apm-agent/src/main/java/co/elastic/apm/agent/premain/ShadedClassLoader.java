@@ -80,21 +80,31 @@ public class ShadedClassLoader extends URLClassLoader {
 
     private Class<?> defineClass(String name, byte[] classBytes) {
         String packageName = getPackageName(name);
-        if (packageName != null && getPackage(packageName) == null) {
+        if (packageName != null && !isPackageDefined(packageName)) {
             try {
                 if (manifest != null) {
-                    definePackage(name, manifest, jarUrl);
+                    definePackage(packageName, manifest, jarUrl);
                 } else {
                     definePackage(packageName, null, null, null, null, null, null, null);
                 }
             } catch (IllegalArgumentException e) {
                 // The package may have been defined by a parent class loader in the meantime
-                if (getPackage(packageName) == null) {
+                if (!isPackageDefined(packageName)) {
                     throw e;
                 }
             }
         }
         return defineClass(name, classBytes, 0, classBytes.length, ShadedClassLoader.class.getProtectionDomain());
+    }
+
+    @SuppressWarnings("deprecation")
+    private boolean isPackageDefined(String packageName) {
+        // The 'getPackage' method is deprecated as of Java 9, 'getDefinedPackage' is the alternative.
+        //
+        // The only difference is that 'getDefinedPackage' does not delegate to parent CL for lookup.
+        // Given we are only interested on the fact that the package is defined or not without caring about which CL
+        // has defined it, it does not make any difference in our case.
+        return getPackage(packageName) != null;
     }
 
     @Nullable
