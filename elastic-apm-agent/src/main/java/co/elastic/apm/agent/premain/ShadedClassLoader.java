@@ -54,26 +54,8 @@ public class ShadedClassLoader extends URLClassLoader {
     public static final String SHADED_CLASS_EXTENSION = ".esclazz";
     private static final String CLASS_EXTENSION = ".class";
 
-    /**
-     * Method handle for ClassLoader.getDefinedPackage that was added in Java 9
-     */
-    private static final MethodHandle getDefinedPackage;
-
     static {
         ClassLoader.registerAsParallelCapable();
-
-        MethodHandle methodHandle = null;
-        try {
-            methodHandle = MethodHandles.publicLookup()
-                .findVirtual(ShadedClassLoader.class,
-                    "getDefinedPackage",
-                    MethodType.methodType(Package.class, String.class));
-        } catch (NoSuchMethodException e) {
-            // ignored as method is not present
-        } catch (IllegalAccessException e) {
-            throw new IllegalStateException(e);
-        }
-        getDefinedPackage = methodHandle;
     }
 
     private final String customPrefix;
@@ -101,7 +83,7 @@ public class ShadedClassLoader extends URLClassLoader {
 
     private Class<?> defineClass(String name, byte[] classBytes) {
         String packageName = getPackageName(name);
-        if (packageName != null && isPackageNotDefined(packageName)) {
+        if (packageName != null && !isPackageDefined(packageName)) {
             try {
                 if (manifest != null) {
                     definePackage(packageName, manifest, jarUrl);
@@ -110,7 +92,7 @@ public class ShadedClassLoader extends URLClassLoader {
                 }
             } catch (IllegalArgumentException e){
                 // The package may have been defined by a parent class loader in the meantime
-                if (isPackageNotDefined(packageName)) {
+                if (!isPackageDefined(packageName)) {
                     throw e;
                 }
             }
@@ -119,19 +101,13 @@ public class ShadedClassLoader extends URLClassLoader {
     }
 
     @SuppressWarnings("deprecation")
-    private boolean isPackageNotDefined(String packageName) {
-        Package pkg;
-        if (getDefinedPackage != null) {
-            try {
-                pkg = (Package) getDefinedPackage.invokeExact(this, packageName);
-            } catch (Throwable e) {
-                throw new IllegalStateException(e);
-            }
-        } else {
-            // use deprecated method for Java < 9
-            pkg = getPackage(packageName);
-        }
-        return pkg == null;
+    private boolean isPackageDefined(String packageName){
+        // The 'getPackage' method is deprecated as of Java 9, 'getDefinedPackage' is the alternative.
+        //
+        // The only difference is that 'getDefinedPackage' does not delegate to parent CL for lookup.
+        // Given we are only interested on the fact that the package is defined or not without caring about which CL
+        // has defined it, it does not make any difference in our case.
+        return getPackage(packageName) != null;
     }
 
     @Nullable
