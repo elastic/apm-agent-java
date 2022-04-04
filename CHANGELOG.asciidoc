@@ -30,6 +30,8 @@ endif::[]
 {pull}2546[#2546]
 * Fix shaded classloader package definition - {pull}2566[#2566]
 * Fix logging initialization with Security Manager - {pull}2568[#2568]
+* normalize empty `transaction.type` and `span.type` - {pull}2525[#2525]
+
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

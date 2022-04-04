@@ -43,13 +43,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private static long lastSpanMaxWarningTimestamp;
 
     /**
-     * General type describing this span (eg: 'db', 'ext', 'template', etc)
-     * (Required)
-     */
-    @Nullable
-    private String type;
-
-    /**
      * A subtype describing this span (eg 'mysql', 'elasticsearch', 'jsf' etc)
      * (Optional)
      */
@@ -163,14 +156,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     /**
-     * Keywords of specific relevance in the span's domain (eg: 'db', 'template', 'ext', etc)
-     */
-    public Span withType(@Nullable String type) {
-        this.type = normalizeEmpty(type);
-        return this;
-    }
-
-    /**
      * Sets the span's subtype, related to the  (eg: 'mysql', 'postgresql', 'jsf' etc)
      */
     public Span withSubtype(@Nullable String subtype) {
@@ -186,10 +171,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return this;
     }
 
-    @Nullable
-    private static String normalizeEmpty(@Nullable String value) {
-        return value == null || value.isEmpty() ? null : value;
-    }
 
     /**
      * Sets span.type, span.subtype and span.action. If no subtype and action are provided, assumes the legacy usage of hierarchical
@@ -224,11 +205,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     @Nullable
-    public String getType() {
-        return type;
-    }
-
-    @Nullable
     public String getSubtype() {
         return subtype;
     }
@@ -240,16 +216,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     public void beforeEnd(long epochMicros) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("endSpan {}", this);
-            if (logger.isTraceEnabled()) {
-                logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
-            }
-        }
-        if (type == null) {
-            type = "custom";
-        }
-
         // set outcome when not explicitly set by user nor instrumentation
         if (outcomeNotSet()) {
             Outcome outcome;
@@ -445,7 +411,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         context.resetState();
         composite.resetState();
         stacktrace = null;
-        type = null;
         subtype = null;
         action = null;
         parent = null;

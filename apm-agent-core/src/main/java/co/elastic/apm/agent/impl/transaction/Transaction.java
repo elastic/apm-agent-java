@@ -80,13 +80,6 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private boolean noop;
 
-    /**
-     * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
-     * (Required)
-     */
-    @Nullable
-    private volatile String type;
-
     private int maxSpans;
 
     private boolean spanCompressionEnabled;
@@ -177,14 +170,6 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     /**
-     * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
-     */
-    public Transaction withType(@Nullable String type) {
-        this.type = type;
-        return this;
-    }
-
-    /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
     @Nullable
@@ -225,9 +210,6 @@ public class Transaction extends AbstractSpan<Transaction> {
     public void beforeEnd(long epochMicros) {
         if (!isSampled()) {
             context.resetState();
-        }
-        if (type == null) {
-            type = "custom";
         }
 
         if (outcomeNotSet()) {
@@ -286,7 +268,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         result = null;
         spanCount.resetState();
         droppedSpanStats.resetState();
-        type = null;
         noop = false;
         maxSpans = 0;
         spanCompressionEnabled = false;
@@ -307,11 +288,6 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     public void ignoreTransaction() {
         noop = true;
-    }
-
-    @Nullable
-    public String getType() {
-        return type;
     }
 
     public void addCustomContext(String key, String value) {
