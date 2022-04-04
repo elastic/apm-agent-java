@@ -33,9 +33,12 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
@@ -48,6 +51,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ElasticApmTracerTest {
@@ -56,6 +62,8 @@ class ElasticApmTracerTest {
     private MockReporter reporter;
     private ConfigurationRegistry config;
 
+    private ApmServerClient apmServerClient;
+
     private TestObjectPoolFactory objectPoolFactory;
 
     @BeforeEach
@@ -63,10 +71,15 @@ class ElasticApmTracerTest {
         objectPoolFactory = new TestObjectPoolFactory();
         reporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
+
+        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), config.getConfig(CoreConfiguration.class));
+        apmServerClient = mock(ApmServerClient.class, delegatesTo(apmServerClient));
+
         tracerImpl = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
             .withObjectPoolFactory(objectPoolFactory)
+            .withApmServerClient(apmServerClient)
             .buildAndStart();
     }
 
@@ -338,7 +351,19 @@ class ElasticApmTracerTest {
     }
 
     @Test
-    void testSamplingNone() throws IOException {
+    void testSamplingNone_sendUnsampled() throws IOException {
+        doReturn(true).when(apmServerClient).supportsKeepingUnsampledTransaction();
+        testSamplingNone(true);
+    }
+
+    @Test
+    void testSamplingNone_dropUnsampled() throws IOException {
+        doReturn(false).when(apmServerClient).supportsKeepingUnsampledTransaction();
+        testSamplingNone(false);
+    }
+
+    void testSamplingNone(boolean keepUnsampled) throws IOException {
+
         config.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
         Transaction transaction = startTestRootTransaction().withType("request");
 
@@ -350,11 +375,30 @@ class ElasticApmTracerTest {
             }
             transaction.end();
         }
-        // we do report non-sampled transactions (without the context)
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getSpans()).hasSize(0);
-        assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isNull();
-        assertThat(reporter.getFirstTransaction().getType()).isEqualTo("request");
+
+        if(keepUnsampled){
+            // we do report non-sampled transactions (without the context)
+            assertThat(reporter.getTransactions())
+                .describedAs("non-sampled transaction should be kept")
+                .hasSize(1);
+
+            assertThat(reporter.getFirstTransaction().getType()).isEqualTo("request");
+            assertThat(reporter.getFirstTransaction().isSampled()).isFalse();
+
+            assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail())
+                .describedAs("non-sampled transaction context should be drpped")
+                .isNull();
+        } else {
+            assertThat(reporter.getTransactions())
+                .describedAs("non-sampled transaction should be dropped")
+                .hasSize(0);
+
+        }
+
+        assertThat(reporter.getSpans())
+            .describedAs("spans within non-sampled transactions should dropped")
+            .hasSize(0);
+
     }
 
     @Test

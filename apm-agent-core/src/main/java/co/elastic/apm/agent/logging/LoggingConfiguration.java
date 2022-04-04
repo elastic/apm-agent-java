@@ -149,22 +149,16 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(DEFAULT_LOG_FILE);
 
-    private final ConfigurationOption<Boolean> logCorrelationEnabled = ConfigurationOption.booleanOption()
-        .key("enable_log_correlation")
-        .configurationCategory(LOGGING_CATEGORY)
-        .description("DEPRECATED - since agent version 1.30.0, log correlation is on by default. If you wish to disable it, \n" +
-            "this can be done through the <<config-disable-instrumentations>> config.")
-        .dynamic(false)
-        .buildWithDefault(true);
-
     private final ConfigurationOption<LogEcsReformatting> logEcsReformatting = ConfigurationOption.enumOption(LogEcsReformatting.class)
         .key("log_ecs_reformatting")
         .configurationCategory(LOGGING_CATEGORY)
         .tags("added[1.22.0]", "experimental")
         .description("Specifying whether and how the agent should automatically reformat application logs \n" +
-            "into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for \n" +
+            "into {ecs-logging-ref}/intro.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for \n" +
             "further Log analysis. This functionality is available for log4j1, log4j2 and Logback. \n" +
             "The ECS log lines will include active trace/transaction/error IDs, if there are such. \n" +
+            "\n" +
+            "To properly ingest and parse ECS JSON logs, follow the {ecs-logging-java-ref}/setup.html#setup-step-2[getting started guide].\n" +
             "\n" +
             "Available options:\n" +
             "\n" +

@@ -79,7 +79,7 @@ public class MockReporter implements Reporter {
     private boolean checkDestinationService = true;
     // Allows optional opt-out for unknown outcome
     private boolean checkUnknownOutcomes = true;
-    // Allows optional opt-out from strick span type/sub-type checking
+    // Allows optional opt-out from strict span type/sub-type checking
     private boolean checkStrictSpanType = true;
 
     /**

@@ -379,10 +379,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     private boolean tryToCompressComposite(Span sibling) {
-        String compressionStrategy;
-        do {
-            compressionStrategy = composite.getCompressionStrategy();
-        } while (compressionStrategy == null);
+        String compressionStrategy = composite.getCompressionStrategy();
+        if (compressionStrategy == null) {
+            //lose the compression rather than retry, so that the application proceeds with minimum delay
+            return false;
+        }
 
         switch (compressionStrategy) {
             case "exact_match":
