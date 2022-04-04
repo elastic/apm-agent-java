@@ -176,7 +176,9 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             " - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. \n" +
             "\n" +
             "NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option \n" +
-            "is also valid for other appenders, like System out and console")
+            "is also valid for other appenders, like System out and console.\n" +
+            "This option only applies to pattern layouts/formatters by default.\n" +
+            "See also <<config-log-ecs-formatter-allow-list, `log_ecs_formatter_allow_list`>>.")
         .dynamic(true)
         .buildWithDefault(LogEcsReformatting.OFF);
 

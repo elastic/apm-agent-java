@@ -1900,7 +1900,9 @@ Available options:
  - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. 
 
 NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option 
-is also valid for other appenders, like System out and console
+is also valid for other appenders, like System out and console.
+This option only applies to pattern layouts/formatters by default.
+See also <<config-log-ecs-formatter-allow-list, `log_ecs_formatter_allow_list`>>.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -3792,7 +3794,9 @@ Example: `5ms`.
 #  - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. 
 # 
 # NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option 
-# is also valid for other appenders, like System out and console
+# is also valid for other appenders, like System out and console.
+# This option only applies to pattern layouts/formatters by default.
+# See also <<config-log-ecs-formatter-allow-list, `log_ecs_formatter_allow_list`>>.
 #
 # Valid options: OFF, SHADE, REPLACE, OVERRIDE
 # This setting can be changed at runtime
