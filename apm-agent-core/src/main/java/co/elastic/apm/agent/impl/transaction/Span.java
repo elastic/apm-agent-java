@@ -263,7 +263,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         }
         if (parent != null) {
             parent.onChildEnd(epochMicros);
-            parent.decrementReferences();
         }
     }
 
@@ -277,6 +276,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                         this.tracer.endSpan(buffered);
                     }
                 }
+                parent.decrementReferences();
                 this.tracer.endSpan(this);
                 return;
             }
@@ -286,6 +286,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                     // but we're dropping the compression attempt to keep things simple
                     this.tracer.endSpan(this);
                 }
+                parent.decrementReferences();
                 return;
             }
             if (!buffered.tryToCompress(this)) {
@@ -296,14 +297,19 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                     // but we're dropping the compression attempt to keep things simple
                     this.tracer.endSpan(this);
                 }
+                parent.decrementReferences();
             } else if (isSampled()) {
                 Transaction transaction = getTransaction();
                 if (transaction != null) {
                     transaction.getSpanCount().getDropped().incrementAndGet();
                 }
+                parent.decrementReferences();
                 decrementReferences();
             }
         } else {
+            if (parent != null) {
+                parent.decrementReferences();
+            }
             this.tracer.endSpan(this);
         }
     }
