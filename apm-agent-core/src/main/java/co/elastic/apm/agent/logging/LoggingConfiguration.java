@@ -154,9 +154,14 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(LOGGING_CATEGORY)
         .tags("added[1.22.0]", "experimental")
         .description("Specifying whether and how the agent should automatically reformat application logs \n" +
-            "into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for \n" +
+            "into {ecs-logging-ref}/intro.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for \n" +
             "further Log analysis. This functionality is available for log4j1, log4j2 and Logback. \n" +
             "The ECS log lines will include active trace/transaction/error IDs, if there are such. \n" +
+            "\n" +
+            "This option only applies to pattern layouts/formatters by default.\n" +
+            "See also <<config-log-ecs-formatter-allow-list, `log_ecs_formatter_allow_list`>>." +
+            "\n" +
+            "To properly ingest and parse ECS JSON logs, follow the {ecs-logging-java-ref}/setup.html#setup-step-2[getting started guide].\n" +
             "\n" +
             "Available options:\n" +
             "\n" +
@@ -174,7 +179,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             " - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. \n" +
             "\n" +
             "NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option \n" +
-            "is also valid for other appenders, like System out and console")
+            "is also valid for other appenders, like System out and console.\n")
         .dynamic(true)
         .buildWithDefault(LogEcsReformatting.OFF);
 

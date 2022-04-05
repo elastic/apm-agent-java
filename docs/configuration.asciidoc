@@ -1878,9 +1878,13 @@ When logging to std out, the log will be formatted as plain-text.
 NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
 
 Specifying whether and how the agent should automatically reformat application logs 
-into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
+into {ecs-logging-ref}/intro.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
 further Log analysis. This functionality is available for log4j1, log4j2 and Logback. 
 The ECS log lines will include active trace/transaction/error IDs, if there are such. 
+
+This option only applies to pattern layouts/formatters by default.
+See also <<config-log-ecs-formatter-allow-list, `log_ecs_formatter_allow_list`>>.
+To properly ingest and parse ECS JSON logs, follow the {ecs-logging-java-ref}/setup.html#setup-step-2[getting started guide].
 
 Available options:
 
@@ -1898,7 +1902,8 @@ Available options:
  - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. 
 
 NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option 
-is also valid for other appenders, like System out and console
+is also valid for other appenders, like System out and console.
+
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -3768,9 +3773,13 @@ Example: `5ms`.
 # log_file=System.out
 
 # Specifying whether and how the agent should automatically reformat application logs 
-# into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
+# into {ecs-logging-ref}/intro.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
 # further Log analysis. This functionality is available for log4j1, log4j2 and Logback. 
 # The ECS log lines will include active trace/transaction/error IDs, if there are such. 
+# 
+# This option only applies to pattern layouts/formatters by default.
+# See also <<config-log-ecs-formatter-allow-list, `log_ecs_formatter_allow_list`>>.
+# To properly ingest and parse ECS JSON logs, follow the {ecs-logging-java-ref}/setup.html#setup-step-2[getting started guide].
 # 
 # Available options:
 # 
@@ -3788,7 +3797,8 @@ Example: `5ms`.
 #  - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. 
 # 
 # NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option 
-# is also valid for other appenders, like System out and console
+# is also valid for other appenders, like System out and console.
+# 
 #
 # Valid options: OFF, SHADE, REPLACE, OVERRIDE
 # This setting can be changed at runtime
