@@ -323,6 +323,11 @@ through https://discuss.elastic.co/c/observability/apm/58[our forum] or by openi
 https://github.com/elastic/apm-agent-java[GitHub repository].
 
 [float]
+[[trouble-shooting-jlink]]
+==== Custom Java runtimes using `jlink` ====
+If you use `jlink` to create a custom runtime, make sure the following modules are added: `--add-modules java.base,java.logging,java,jdk.zipfs`
+
+[float]
 [[disable-agent]]
 === Disable the Agent
 In the unlikely event the agent causes disruptions to a production application,

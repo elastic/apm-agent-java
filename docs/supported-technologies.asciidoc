@@ -15,6 +15,7 @@ This section lists all supported technologies.
 * <<supported-logging-frameworks>>
 * <<supported-process-frameworks>>
 * <<supported-rpc-frameworks>>
+* <<supported-aws-lambda-runtimes>>
 * <<supported-java-methods>>
 * <<supported-metrics>>
 * <<supported-technologies-caveats>>
@@ -152,7 +153,7 @@ rendering
 
 
 |Vert.x Web
-|3.x, 4.x
+|3.6+
 |Captures incoming HTTP requests as transactions
 |1.24.0 (experimental)
 
@@ -582,6 +583,39 @@ JBoss LogManager - 1.30.0
 | 1.16.0
 
 |===
+
+[float]
+[[supported-aws-lambda-runtimes]]
+=== AWS Lambda runtimes
+
+AWS Lambda provides multiple https://docs.aws.amazon.com/lambda/latest/dg/java-image.html[JVM base images]. Only those that support the `AWS_LAMBDA_EXEC_WRAPPER` environment variables are supported out of the box.
+
+Running with unsupported images is still possible but requires providing agent configuration through environment variables
+explicitly.
+
+// tag::aws-lambda-runtimes[]
+
+|===
+|Tags |Java Runtime |Operating System|Supported
+
+|11
+|Java 11 (Corretto)
+|Amazon Linux 2
+|yes
+
+|8.al2
+|Java 8 (Corretto)
+|Amazon Linux 2
+|yes
+
+|8
+|Java 8 (OpenJDK)
+|Amazon Linux 2018.03
+|no
+
+|===
+
+// end::aws-lambda-runtimes[]
 
 [float]
 [[supported-java-methods]]

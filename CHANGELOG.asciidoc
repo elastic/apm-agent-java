@@ -28,6 +28,11 @@ endif::[]
 * Fixed AWS Lambda instrumentation for AWS handler classes with input object types that are not AWS Events classes  - {pull}2551[#2551]
 * Fixed service name discovery based on MANIFEST.MF file through `ServletContainerInitializer#onStartup` on Jakarta Servlet containers -
 {pull}2546[#2546]
+* Fix shaded classloader package definition - {pull}2566[#2566]
+* Fix logging initialization with Security Manager - {pull}2568[#2568]
+* normalize empty `transaction.type` and `span.type` - {pull}2525[#2525]
+* Allowing square brackets within the <<config-capture-jmx-metrics>> config value - {pull}2547[#2547]
+
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
