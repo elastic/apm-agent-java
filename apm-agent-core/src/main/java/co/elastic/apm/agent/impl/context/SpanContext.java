@@ -65,7 +65,7 @@ public class SpanContext extends AbstractContext {
         return destination;
     }
 
-    public ServiceTarget serviceTarget() {
+    public ServiceTarget getServiceTarget() {
         return serviceTarget;
     }
 
@@ -79,6 +79,10 @@ public class SpanContext extends AbstractContext {
     }
 
     public boolean hasContent() {
-        return super.hasContent() || db.hasContent() || http.hasContent() || destination.hasContent();
+        return super.hasContent()
+            || db.hasContent()
+            || http.hasContent()
+            || destination.hasContent()
+            || serviceTarget.hasContent();
     }
 }

@@ -58,17 +58,24 @@ public class ServiceResourceTest {
     @MethodSource("getTestCases")
     void testServiceResourceInference(JsonNode testCase) {
         Span span = createSpan(testCase);
-        StringBuilder serviceResource = span.getContext().getDestination().getService().getResource();
+
+        // increment reference count to prevent recycling while test executes
+        span.incrementReferences();
+
         // auto-inference happens now
         span.end();
+
         String expected = getTextValueOrNull(testCase, "expected_resource");
         if (expected == null) {
             expected = "";
         }
-        String actual = serviceResource.toString();
+        CharSequence resource = span.getContext().getServiceTarget().getDestinationResource();
+        String actual = resource != null ? resource.toString() : "";
         assertThat(actual)
             .withFailMessage(String.format("%s, expected: `%s`, actual: `%s`", getTextValueOrNull(testCase, "failure_message"), expected, actual))
             .isEqualTo(expected);
+
+        span.decrementReferences();
     }
 
     private Span createSpan(JsonNode testCase) {
@@ -118,7 +125,9 @@ public class ServiceResourceTest {
                 if (serviceJson != null) {
                     String resource = getTextValueOrNull(serviceJson, "resource");
                     if (resource != null) {
-                        context.getDestination().getService().withResource(resource);
+                        StringBuilder internalResource = context.getServiceTarget().getRawDestinationResource();
+                        internalResource.setLength(0);
+                        internalResource.append(resource);
                     }
                 }
             }
