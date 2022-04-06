@@ -110,6 +110,9 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     private boolean hasCapturedExceptions;
 
+    @Nullable
+    protected volatile String type;
+
     protected final AtomicReference<Span> bufferedSpan = new AtomicReference<>();
 
     @Nullable
@@ -338,6 +341,16 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return thiz();
     }
 
+    public T withType(@Nullable String type){
+        this.type = normalizeEmpty(type);
+        return thiz();
+    }
+
+    @Nullable
+    protected static String normalizeEmpty(@Nullable String value) {
+        return value == null || value.isEmpty() ? null : value;
+    }
+
     /**
      * Recorded time of the span or transaction in microseconds since epoch
      */
@@ -353,6 +366,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public void resetState() {
         finished = true;
         name.setLength(0);
+        type = null;
         timestamp.set(0L);
         endTimestamp.set(0L);
         traceContext.resetState();
@@ -468,6 +482,9 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
                 name.append("unnamed");
             }
             childDurations.onSpanEnd(epochMicros);
+
+            type = normalizeType(type);
+
             beforeEnd(epochMicros);
             this.finished = true;
             Span buffered = bufferedSpan.get();
@@ -706,6 +723,18 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     public Map<String, Object> getOtelAttributes() {
         return otelAttributes;
+    }
+
+    @Nullable
+    public String getType() {
+        return type;
+    }
+
+    private String normalizeType(@Nullable String type) {
+        if (type == null || type.isEmpty()) {
+            return "custom";
+        }
+        return type;
     }
 
 }
