@@ -40,6 +40,11 @@ public class SpanContext extends AbstractContext {
     private final Destination destination = new Destination();
 
     /**
+     * An object containing contextual data for service target
+     */
+    private final ServiceTarget serviceTarget = new ServiceTarget();
+
+    /**
      * An object containing contextual data for database spans
      */
     public Db getDb() {
@@ -60,12 +65,17 @@ public class SpanContext extends AbstractContext {
         return destination;
     }
 
+    public ServiceTarget serviceTarget() {
+        return serviceTarget;
+    }
+
     @Override
     public void resetState() {
         super.resetState();
         db.resetState();
         http.resetState();
         destination.resetState();
+        serviceTarget.resetState();
     }
 
     public boolean hasContent() {
