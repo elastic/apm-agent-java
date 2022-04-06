@@ -40,7 +40,7 @@ import java.util.concurrent.Executor;
 
 public class TestConnection implements Connection {
 
-    private Connection delegate;
+    private final Connection delegate;
 
     private boolean isGetMetadataSupported = false;
     private boolean isGetCatalogSupported = false;

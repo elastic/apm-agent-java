@@ -20,7 +20,6 @@ package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.db.signature.Scanner;
 import co.elastic.apm.agent.db.signature.SignatureParser;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.jdbc.JdbcFilter;
@@ -119,16 +118,18 @@ public class JdbcHelper {
         String vendor = "unknown";
         if (connectionMetaData != null) {
             vendor = connectionMetaData.getDbVendor();
+            String instance = connectionMetaData.getInstance();
             span.getContext().getDb()
-                .withInstance(connectionMetaData.getInstance())
+                .withInstance(instance)
                 .withUser(connectionMetaData.getUser());
-            Destination destination = span.getContext().getDestination()
+
+            span.getContext().getDestination()
                 .withAddress(connectionMetaData.getHost())
                 .withPort(connectionMetaData.getPort());
-            destination.getService()
-                .withName(vendor)
-                .withResource(vendor)
-                .withType(DB_SPAN_TYPE);
+
+            span.getContext().getServiceTarget()
+                .withType(vendor)
+                .withName(instance);
         }
         span.withSubtype(vendor).withAction(DB_SPAN_ACTION);
 

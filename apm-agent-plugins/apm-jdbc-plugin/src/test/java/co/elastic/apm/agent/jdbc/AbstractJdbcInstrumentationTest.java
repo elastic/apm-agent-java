@@ -23,6 +23,7 @@ import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.db.signature.SignatureParser;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -415,7 +416,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         return assertSpanRecorded(rawSql, preparedStatement, expectedAffectedRows, connection.getCatalog());
     }
 
-    private Span assertSpanRecorded(String rawSql, boolean preparedStatement, long expectedAffectedRows, String expectedDbInstance) throws SQLException {
+    private Span assertSpanRecorded(String rawSql, boolean preparedStatement, long expectedAffectedRows, @Nullable String expectedDbInstance) throws SQLException {
         assertThat(reporter.getSpans())
             .describedAs("one span is expected")
             .hasSize(1);
@@ -446,8 +447,13 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
             assertThat(destination.getPort()).isGreaterThan(0);
         }
 
-        Destination.Service service = destination.getService();
-        assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor);
+        ServiceTarget sserviceTarget = span.getContext().getServiceTarget();
+        assertThat(sserviceTarget.getType()).isEqualTo(expectedDbVendor);
+        if(expectedDbInstance == null){
+            assertThat(sserviceTarget.getName()).isNull();
+        } else {
+            assertThat(sserviceTarget.getName().toString()).isEqualTo(expectedDbInstance);
+        }
 
         assertThat(span.getOutcome())
             .describedAs("span outcome should be explicitly set to either failure or success")
