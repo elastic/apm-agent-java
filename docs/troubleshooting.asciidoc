@@ -325,7 +325,7 @@ https://github.com/elastic/apm-agent-java[GitHub repository].
 [float]
 [[trouble-shooting-jlink]]
 ==== Custom Java runtimes using `jlink` ====
-If you use `jlink` to create a custom runtime, make sure the following modules are added: `--add-modules java.base,java.logging,java,jdk.zipfs`
+If you use `jlink` to create a custom runtime, make sure the following modules are added: `--add-modules java.base,java.logging,java,jdk.zipfs,java.management,jdk.management`
 
 [float]
 [[disable-agent]]
