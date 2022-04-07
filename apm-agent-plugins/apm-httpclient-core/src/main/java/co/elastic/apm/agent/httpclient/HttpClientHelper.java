@@ -76,31 +76,25 @@ public class HttpClientHelper {
             return;
         }
 
-        boolean isDefaultPort = false;
         if ("http".equals(scheme)) {
             if (port < 0) {
                 port = 80;
-            }
-            if (port == 80) {
-                isDefaultPort = true;
             }
         } else if ("https".equals(scheme)) {
             if (port < 0) {
                 port = 443;
             }
-            if (port == 443) {
-                isDefaultPort = true;
-            }
         } else {
             return;
         }
 
-        Destination destination = span.getContext().getDestination().withAddress(host).withPort(port);
-        destination.getService().getResource().append(host).append(":").append(port);
-        destination.getService().getName().append(scheme).append("://").append(host);
-        if (!isDefaultPort) {
-            destination.getService().getName().append(":").append(port);
-        }
-        destination.getService().withType(EXTERNAL_TYPE);
+        span.getContext().getDestination()
+            .withAddress(host)
+            .withPort(port);
+
+        span.getContext().getServiceTarget()
+            .withType("http")
+            .withHostAndPortDestinationResource(host, port);
+
     }
 }

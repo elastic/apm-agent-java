@@ -33,7 +33,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import java.io.IOException;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumentationTest {
@@ -87,8 +87,10 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
                 assertThat(destination.getAddress().toString()).isEqualTo(expectedAddress);
                 assertThat(destination.getPort()).isEqualTo(redisPort);
             }
-            Destination.Service service = destination.getService();
-            assertThat(service.getResource().toString()).isEqualTo("redis");
+
+            assertThat(span.getContext().getServiceTarget())
+                .hasType("redis")
+                .hasDestinationResource("redis");
         }
     }
 

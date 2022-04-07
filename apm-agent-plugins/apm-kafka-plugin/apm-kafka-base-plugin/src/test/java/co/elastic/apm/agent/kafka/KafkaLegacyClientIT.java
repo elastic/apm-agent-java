@@ -23,6 +23,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Message;
+import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -53,7 +54,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
@@ -295,8 +296,10 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
         assertThat(pollSpan.getSubtype()).isEqualTo("kafka");
         assertThat(pollSpan.getAction()).isEqualTo("poll");
         assertThat(pollSpan.getNameAsString()).isEqualTo("KafkaConsumer#poll");
-        Destination.Service service = pollSpan.getContext().getDestination().getService();
-        assertThat(service.getResource().toString()).isEqualTo("kafka");
+
+        assertThat(pollSpan.getContext().getServiceTarget())
+            .hasType("kafka")
+            .hasNoName();
     }
 
     private void verifySendSpanContents(Span sendSpan) {
@@ -315,8 +318,9 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
             assertThat(destination.getPort()).isEqualTo(0);
             assertThat(destination.getAddress().toString()).isEmpty();
         }
-        Destination.Service service = destination.getService();
-        assertThat(service.getResource().toString()).isEqualTo("kafka/" + REQUEST_TOPIC);
+        assertThat(context.getServiceTarget())
+            .hasType("kafka")
+            .hasName(REQUEST_TOPIC);
     }
 
 

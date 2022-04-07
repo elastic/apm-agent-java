@@ -37,7 +37,7 @@ import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 public class ServiceResourceTest {
 
@@ -67,14 +67,13 @@ public class ServiceResourceTest {
 
         String expected = getTextValueOrNull(testCase, "expected_resource");
         if (expected == null) {
-            expected = "";
+            // no resource nor any target fields is expected
+            assertThat(span.getContext().getServiceTarget()).isEmpty();
+        } else {
+            assertThat(span.getContext().getServiceTarget())
+                .describedAs(getTextValueOrNull(testCase, "failure_message"))
+                .hasDestinationResource(expected);
         }
-        CharSequence resource = span.getContext().getServiceTarget().getDestinationResource();
-        String actual = resource != null ? resource.toString() : "";
-        assertThat(actual)
-            .withFailMessage(String.format("%s, expected: `%s`, actual: `%s`", getTextValueOrNull(testCase, "failure_message"), expected, actual))
-            .isEqualTo(expected);
-
         span.decrementReferences();
     }
 

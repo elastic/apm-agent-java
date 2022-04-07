@@ -308,15 +308,13 @@ public class GrpcHelper {
             .withType("external")
             .withSubtype(GRPC);
 
-        if (authority != null) {
-            Destination destination = span.getContext().getDestination()
-                .withAddressPort(authority);
+        span.getContext().getDestination()
+            .withAddressPort(authority);
 
-            destination.getService()
-                .withName(GRPC)
-                .withResource(authority)
-                .withType(GRPC);
-        }
+        span.getContext().getServiceTarget()
+            .withType(GRPC)
+            .withName(authority);
+
         return span.activate();
     }
 

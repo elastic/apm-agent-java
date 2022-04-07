@@ -278,11 +278,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             } else if (internalUrl.hasContent()) {
 
                 // direct modification of destination resource to ensure compatibility
-                StringBuilder serviceResource = serviceTarget.getRawDestinationResource();
-                serviceResource.append(internalUrl.getHostname());
-                if (internalUrl.getPort() > 0) {
-                    serviceResource.append(':').append(internalUrl.getPort());
-                }
+                serviceTarget.withHostAndPortDestinationResource(internalUrl.getHostname(), internalUrl.getPort());
             } else {
                 serviceTarget.withType(targetServiceType);
             }

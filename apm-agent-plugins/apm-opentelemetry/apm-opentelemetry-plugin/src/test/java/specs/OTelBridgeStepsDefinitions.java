@@ -44,7 +44,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+
 
 public class OTelBridgeStepsDefinitions {
 
@@ -289,14 +290,14 @@ public class OTelBridgeStepsDefinitions {
 
     @Then("Elastic bridged span destination resource is not set")
     public void bridgeObjectDestinationResourceNotSet() {
-        assertThat(getDestinationResource()).isEmpty();
+        assertThat(getBridgedSpan().getContext().getServiceTarget()).isEmpty();
     }
 
     @Then("Elastic bridged span destination resource is set to {string}")
     public void bridgeObjectDestinationResource(String expected) {
-        assertThat(getDestinationResource())
+        assertThat(getBridgedSpan().getContext().getServiceTarget())
             .describedAs("destination resource expected for otel attributes: %s", getBridgedSpan().getOtelAttributes())
-            .isEqualTo(expected);
+            .hasDestinationResource(expected);
     }
 
     @Then("Elastic bridged {contextType} outcome is {string}")
@@ -314,10 +315,6 @@ public class OTelBridgeStepsDefinitions {
     @Given("OTel span ends")
     public void otelSpanEnds() {
         otelSpan.end();
-    }
-
-    private String getDestinationResource() {
-        return getBridgedSpan().getContext().getDestination().getService().getResource().toString();
     }
 
     private AbstractSpan<?> getBridgedAbstractSpan() {

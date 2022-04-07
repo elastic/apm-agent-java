@@ -27,7 +27,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Objects;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+
 
 class SpanDestinationApiTest extends AbstractApiTest {
 
@@ -52,8 +53,11 @@ class SpanDestinationApiTest extends AbstractApiTest {
     private void setDestinationDetailsThroughInternalApi() {
         internalSpan.getContext().getDestination()
             .withAddress(INTERNAL_ADDRESS)
-            .withPort(INTERNAL_PORT)
-            .getService().withResource(INTERNAL_RESOURCE);
+            .withPort(INTERNAL_PORT);
+
+        StringBuilder rawDestinationResource = internalSpan.getContext().getServiceTarget().getRawDestinationResource();
+        rawDestinationResource.setLength(0);
+        rawDestinationResource.append(INTERNAL_RESOURCE);
     }
 
     @AfterEach
@@ -143,6 +147,7 @@ class SpanDestinationApiTest extends AbstractApiTest {
         Destination destination = span.getContext().getDestination();
         assertThat(destination.getAddress().toString()).isEqualTo(expectedAddress);
         assertThat(destination.getPort()).isEqualTo(expectedPort);
-        assertThat(destination.getService().getResource().toString()).isEqualTo(expectedResource);
+
+        assertThat(span.getContext().getServiceTarget()).hasDestinationResource(expectedResource);
     }
 }

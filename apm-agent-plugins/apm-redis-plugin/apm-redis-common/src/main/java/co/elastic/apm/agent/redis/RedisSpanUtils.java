@@ -41,10 +41,8 @@ public class RedisSpanUtils {
             .withType("db")
             .withSubtype("redis")
             .withAction("query");
-        span.getContext().getDestination().getService()
-            .withName("redis")
-            .withResource("redis")
-            .withType("db");
+        span.getContext().getServiceTarget()
+            .withType("redis");
         return span.activate();
     }
 }

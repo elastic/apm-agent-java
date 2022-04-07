@@ -35,7 +35,8 @@ import org.testcontainers.containers.GenericContainer;
 import java.util.Collection;
 import java.util.List;
 
-import static org.assertj.core.api.Java6Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+
 
 public abstract class AbstractMongoClientInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -205,8 +206,11 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
         assertThat(destination.getAddress().toString()).isIn("localhost", "127.0.0.1");
         assertThat(destination.getPort()).isEqualTo(container.getMappedPort(PORT));
 
-        Destination.Service service = destination.getService();
-        assertThat(service.getResource().toString()).isEqualTo("mongodb");
+        String dbInstance = span.getContext().getDb().getInstance();
+
+        assertThat(span.getContext().getServiceTarget())
+            .hasType("mongodb")
+            .hasName(dbInstance);
     }
 
     private static String getSpanName(String operation) {

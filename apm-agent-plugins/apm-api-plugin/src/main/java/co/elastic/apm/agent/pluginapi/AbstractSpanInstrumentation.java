@@ -463,7 +463,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             public static void setDestinationService(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
                                                      @Advice.Argument(0) @Nullable String resource) {
                 if (context instanceof Span) {
-                    ((Span) context).getContext().getDestination().getService().withUserResource(resource);
+                    ((Span) context).getContext().getServiceTarget().withUserDestinationResource(resource);
                 }
             }
         }

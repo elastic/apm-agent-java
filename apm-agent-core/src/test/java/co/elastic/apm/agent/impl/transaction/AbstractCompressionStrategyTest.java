@@ -31,7 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 abstract class AbstractCompressionStrategyTest {
@@ -388,7 +388,7 @@ abstract class AbstractCompressionStrategyTest {
         runInTransactionScope(t -> {
             startExitSpan(t).end();
             Span span = startExitSpan(t);
-            span.getContext().getDestination().getService().withResource("another_resource");
+            assertThat(span.getContext().getServiceTarget()).hasDestinationResource("another_resource");
             span.end();
         });
 
@@ -408,7 +408,7 @@ abstract class AbstractCompressionStrategyTest {
             startExitSpan(t).end();
             startExitSpan(t).end();
             Span span = startExitSpan(t);
-            span.getContext().getDestination().getService().withResource("another_resource");
+            assertThat(span.getContext().getServiceTarget()).hasDestinationResource("another_resource");
             span.end();
         });
 
@@ -437,7 +437,7 @@ abstract class AbstractCompressionStrategyTest {
 
     protected Span startSpan(AbstractSpan<?> parent) {
         Span span = parent.createSpan().withName(getSpanName()).withType("some_type").withSubtype("some_subtype");
-        span.getContext().getDestination().getService().withResource("some_resource");
+        assertThat(span.getContext().getServiceTarget()).hasDestinationResource("some_resource");
 
         return span;
     }

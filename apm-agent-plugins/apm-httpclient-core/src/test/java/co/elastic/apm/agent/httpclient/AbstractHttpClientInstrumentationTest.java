@@ -50,6 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static co.elastic.apm.agent.impl.transaction.TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
@@ -57,7 +58,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.seeOther;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractHttpClientInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -119,7 +119,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         try {
             exitSpan.withType("custom").withSubtype("exit");
             exitSpan.getContext().getDestination().withAddress("test-host").withPort(6000);
-            exitSpan.getContext().getDestination().getService().withResource("test-resource");
+            exitSpan.getContext().getServiceTarget().withType("test-resource");
             exitSpan.activate();
             performGetWithinTransaction(path);
             verifyTraceContextHeaders(exitSpan, path);
@@ -188,7 +188,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
         assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
         assertThat(destination.getPort()).isEqualTo(port);
-        assertThat(destination.getService().getResource().toString()).isEqualTo("%s:%d", host, port);
+
+        assertThat(span.getContext().getServiceTarget())
+            .hasDestinationResource(String.format("%s:%d", host, port));
 
         if (requestExecuted) {
             verifyTraceContextHeaders(span, path);

@@ -47,7 +47,7 @@ import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.jdbc.helper.JdbcHelper.DB_SPAN_ACTION;
 import static co.elastic.apm.agent.jdbc.helper.JdbcHelper.DB_SPAN_TYPE;
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.when;
@@ -447,12 +447,14 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
             assertThat(destination.getPort()).isGreaterThan(0);
         }
 
-        ServiceTarget sserviceTarget = span.getContext().getServiceTarget();
-        assertThat(sserviceTarget.getType()).isEqualTo(expectedDbVendor);
-        if(expectedDbInstance == null){
-            assertThat(sserviceTarget.getName()).isNull();
+        if (expectedDbInstance == null) {
+            assertThat(span.getContext().getServiceTarget())
+                .hasType(expectedDbVendor)
+                .hasNoName();
         } else {
-            assertThat(sserviceTarget.getName().toString()).isEqualTo(expectedDbInstance);
+            assertThat(span.getContext().getServiceTarget())
+                .hasType(expectedDbVendor)
+                .hasName(expectedDbInstance);
         }
 
         assertThat(span.getOutcome())
@@ -488,8 +490,10 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(destination.getAddress()).isNullOrEmpty();
         assertThat(destination.getPort()).isLessThanOrEqualTo(0);
 
-        Destination.Service service = destination.getService();
-        assertThat(service.getResource().toString()).isEqualTo("unknown");
+        assertThat(jdbcSpan.getContext().getServiceTarget())
+            .hasType("unknown")
+            .hasNoName()
+            .hasDestinationResource("unknown");
     }
 
     private static long[] toLongArray(int[] a) {

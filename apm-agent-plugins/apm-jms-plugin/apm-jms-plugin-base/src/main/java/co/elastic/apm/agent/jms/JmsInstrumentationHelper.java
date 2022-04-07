@@ -125,12 +125,12 @@ public class JmsInstrumentationHelper {
 
         span.propagateTraceContext(message, JmsMessagePropertyAccessor.instance());
         if (span.isSampled()) {
-            span.getContext().getDestination().getService()
-                .withName("jms")
-                .withResource("jms")
-                .withType(MESSAGING_TYPE);
+
+            span.getContext().getServiceTarget()
+                .withType("jms")
+                .withName(destinationName);
+
             if (destinationName != null) {
-                span.getContext().getDestination().getService().getResource().append("/").append(destinationName);
                 span.withName("JMS SEND to ");
                 addDestinationDetails(destination, destinationName, span);
                 if (isDestinationNameComputed) {

@@ -36,7 +36,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+
 
 class SpanInstrumentationTest extends AbstractApiTest {
 
@@ -97,7 +98,7 @@ class SpanInstrumentationTest extends AbstractApiTest {
         endSpan(span);
         co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
         // relying on auto-inference of context.destination.service.resource
-        assertThat(internalSpan.getContext().getDestination().getService().getResource().toString()).isEqualTo("bar");
+        assertThat(internalSpan.getContext().getServiceTarget()).hasDestinationResource("bar");
     }
 
     @Test
@@ -110,7 +111,7 @@ class SpanInstrumentationTest extends AbstractApiTest {
         endSpan(span);
         co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
         // relying on auto-inference of context.destination.service.resource
-        assertThat(internalSpan.getContext().getDestination().getService().getResource().toString()).isEqualTo("bar");
+        assertThat(internalSpan.getContext().getServiceTarget()).hasDestinationResource("bar");
     }
 
     @Test
@@ -129,7 +130,7 @@ class SpanInstrumentationTest extends AbstractApiTest {
         endSpan(parent);
         co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
         // relying on auto-inference of context.destination.service.resource
-        assertThat(internalSpan.getContext().getDestination().getService().getResource().toString()).isEqualTo("bar");
+        assertThat(internalSpan.getContext().getServiceTarget()).hasDestinationResource("bar");
     }
 
     @Test
@@ -156,7 +157,8 @@ class SpanInstrumentationTest extends AbstractApiTest {
         assertThat(reporter.getFirstSpan().getContext().getLabel("booleanKey")).isEqualTo(randomBoolean);
         assertThat(reporter.getFirstSpan().getContext().getDestination().getAddress().toString()).isEqualTo("localhost");
         assertThat(reporter.getFirstSpan().getContext().getDestination().getPort()).isEqualTo(443);
-        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getResource().toString()).isEqualTo("resource:123");
+
+        assertThat(reporter.getFirstSpan().getContext().getServiceTarget()).hasDestinationResource("resource:123");
     }
 
     private void endSpan(Span span) {

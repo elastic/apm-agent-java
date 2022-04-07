@@ -59,7 +59,7 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -264,9 +264,10 @@ public class MockReporter implements Reporter {
                 assertThat(destination.getPort()).describedAs("destination port is required").isGreaterThan(0);
             }
         }
-        Destination.Service service = destination.getService();
         if (checkDestinationService) {
-            assertThat(service.getResource()).describedAs("service resource is required").isNotEmpty();
+            assertThat(span.getContext().getServiceTarget().getDestinationResource())
+                .describedAs("service resource is required")
+                .isNotEmpty();
         }
     }
 
