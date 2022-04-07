@@ -1024,12 +1024,10 @@ public class DslJsonSerializer implements PayloadSerializer {
             writeFieldName("target");
             jw.writeByte(OBJECT_START);
 
-
             CharSequence name = serviceTarget.getName();
             if (name != null) {
                 writeField("type", serviceTarget.getType());
-                jw.writeByte(COMMA);
-                writeField("name", serviceTarget.getType());
+                writeLastField("name", serviceTarget.getType());
             } else {
                 writeLastField("type", serviceTarget.getType());
             }
