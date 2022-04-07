@@ -270,7 +270,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     protected void afterEnd() {
         if (transaction != null && transaction.isSpanCompressionEnabled() && parent != null) {
             Span buffered = parent.bufferedSpan.get();
-            if (!isCompressionEligible()) {
+            if (parent.isFinished() || !isCompressionEligible()) {
                 if (buffered != null) {
                     if (parent.bufferedSpan.compareAndSet(buffered, null)) {
                         this.tracer.endSpan(buffered);
