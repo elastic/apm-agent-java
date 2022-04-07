@@ -23,6 +23,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.ServiceTarget;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -388,7 +389,12 @@ abstract class AbstractCompressionStrategyTest {
         runInTransactionScope(t -> {
             startExitSpan(t).end();
             Span span = startExitSpan(t);
-            assertThat(span.getContext().getServiceTarget()).hasDestinationResource("another_resource");
+
+            // set alternative resource from user API
+            assertThat(span.getContext().getServiceTarget().withUserDestinationResource("another_resource"))
+                .hasName("another_resource")
+                .hasDestinationResource("another_resource");
+
             span.end();
         });
 
@@ -408,7 +414,14 @@ abstract class AbstractCompressionStrategyTest {
             startExitSpan(t).end();
             startExitSpan(t).end();
             Span span = startExitSpan(t);
-            assertThat(span.getContext().getServiceTarget()).hasDestinationResource("another_resource");
+
+            // set alternative resource from type
+            ServiceTarget serviceTarget = span.getContext().getServiceTarget();
+            serviceTarget.resetState();
+            assertThat(serviceTarget.withType("another"))
+                .hasType("another")
+                .hasDestinationResource("another");
+
             span.end();
         });
 
@@ -432,14 +445,13 @@ abstract class AbstractCompressionStrategyTest {
     }
 
     protected Span startExitSpan(AbstractSpan<?> parent) {
-        return startSpan(parent).asExit();
+        Span span = startSpan(parent).asExit();
+        span.getContext().getServiceTarget().withType("service-type").withName("service-name");
+        return span;
     }
 
     protected Span startSpan(AbstractSpan<?> parent) {
-        Span span = parent.createSpan().withName(getSpanName()).withType("some_type").withSubtype("some_subtype");
-        assertThat(span.getContext().getServiceTarget()).hasDestinationResource("some_resource");
-
-        return span;
+        return parent.createSpan().withName(getSpanName()).withType("some_type").withSubtype("some_subtype");
     }
 
     protected abstract String getSpanName();

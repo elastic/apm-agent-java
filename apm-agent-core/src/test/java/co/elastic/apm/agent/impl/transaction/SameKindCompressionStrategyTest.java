@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.impl.context.ServiceTarget;
+
 class SameKindCompressionStrategyTest extends AbstractCompressionStrategyTest {
 
     private int spansCreated = 0;
@@ -33,6 +35,11 @@ class SameKindCompressionStrategyTest extends AbstractCompressionStrategyTest {
 
     @Override
     protected String getCompositeSpanName(Span span) {
-        return "Calls to " + span.getContext().getDestination().getService().getResource();
+        StringBuilder name = new StringBuilder().append("Calls to ");
+        ServiceTarget serviceTarget = span.getContext().getServiceTarget();
+        name.append(serviceTarget.getType());
+        name.append("/");
+        name.append(serviceTarget.getName());
+        return name.toString();
     }
 }

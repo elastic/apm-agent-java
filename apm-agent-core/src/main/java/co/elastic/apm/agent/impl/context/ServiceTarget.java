@@ -124,7 +124,8 @@ public class ServiceTarget implements Recyclable {
     }
 
     /**
-     * @return destination resource: provided by user or inferred from type and name, {@literal null} if no such exists
+     * @return destination resource: provided by user or inferred from type and name, {@literal null} if no such exists.
+     * Should only be used to ensure compatibility with features that rely on 'span.destination.service.resource'.
      */
     @Nullable
     public CharSequence getDestinationResource() {

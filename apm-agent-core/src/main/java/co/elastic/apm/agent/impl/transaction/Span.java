@@ -29,7 +29,7 @@ import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.util.StringBuilderUtils;
+import co.elastic.apm.agent.util.CharSequenceUtils;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -380,7 +380,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             return tryToCompressComposite(sibling);
         }
 
-        if (StringBuilderUtils.equals(name, sibling.name)) {
+        if (CharSequenceUtils.equals(name, sibling.name)) {
             long maxExactMatchDuration = transaction.getSpanCompressionExactMatchMaxDurationUs();
             if (currentDuration <= maxExactMatchDuration && sibling.getDuration() <= maxExactMatchDuration) {
                 if (!composite.init(currentDuration, "exact_match")) {
@@ -397,7 +397,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                 return tryToCompressComposite(sibling);
             }
             name.setLength(0);
-            name.append("Calls to ").append(context.getDestination().getService().getResource());
+            // TODO : removing the destination resource here will require to change the compressed spans spec
+            name.append("Calls to ").append(context.getServiceTarget().getDestinationResource());
             return true;
         }
 
@@ -413,7 +414,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         switch (compressionStrategy) {
             case "exact_match":
                 long maxExactMatchDuration = transaction.getSpanCompressionExactMatchMaxDurationUs();
-                return isSameKind(sibling) && StringBuilderUtils.equals(name, sibling.name) && sibling.getDuration() <= maxExactMatchDuration;
+                return isSameKind(sibling) && CharSequenceUtils.equals(name, sibling.name) && sibling.getDuration() <= maxExactMatchDuration;
 
             case "same_kind":
                 long maxSameKindDuration = transaction.getSpanCompressionSameKindMaxDurationUs();
@@ -430,7 +431,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return Objects.equals(type, other.type)
             && Objects.equals(subtype, other.subtype)
             && Objects.equals(serviceTarget.getType(), otherServiceTarget.getType())
-            && Objects.equals(serviceTarget.getName(), otherServiceTarget.getName());
+            && CharSequenceUtils.equals(serviceTarget.getName(), otherServiceTarget.getName());
     }
 
     @Override

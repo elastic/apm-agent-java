@@ -18,14 +18,22 @@
  */
 package co.elastic.apm.agent.util;
 
-public class StringBuilderUtils {
+import javax.annotation.Nullable;
 
-    public static boolean equals(StringBuilder sb1, StringBuilder sb2) {
-        if (sb1.length() != sb2.length()) {
+public class CharSequenceUtils {
+
+    public static boolean equals(@Nullable CharSequence cs1, @Nullable CharSequence cs2) {
+        if (cs1 == cs2) {
+            return true;
+        }
+        if (cs1 == null || cs2 == null) {
             return false;
         }
-        for (int i = 0; i < sb1.length(); ++i) {
-            if (sb1.charAt(i) != sb2.charAt(i)) {
+        if (cs1.length() != cs2.length()) {
+            return false;
+        }
+        for (int i = 0; i < cs1.length(); ++i) {
+            if (cs1.charAt(i) != cs2.charAt(i)) {
                 return false;
             }
         }
