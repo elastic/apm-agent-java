@@ -55,9 +55,9 @@ class SpanDestinationApiTest extends AbstractApiTest {
             .withAddress(INTERNAL_ADDRESS)
             .withPort(INTERNAL_PORT);
 
-        StringBuilder rawDestinationResource = internalSpan.getContext().getServiceTarget().getRawDestinationResource();
-        rawDestinationResource.setLength(0);
-        rawDestinationResource.append(INTERNAL_RESOURCE);
+        internalSpan.getContext().getServiceTarget()
+            // using only the type in the resource name
+            .withType(INTERNAL_RESOURCE);
     }
 
     @AfterEach

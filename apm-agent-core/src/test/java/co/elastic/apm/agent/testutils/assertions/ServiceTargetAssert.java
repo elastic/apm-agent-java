@@ -90,7 +90,6 @@ public class ServiceTargetAssert extends AbstractAssert<ServiceTargetAssert, Ser
         checkNull("Expected service target without destination resource was %s", actual.getDestinationResource());
         checkTrue("Expected service target without content", !actual.hasContent());
         hasNotDestinationResourceSetByUser();
-        checkTrue("Expected service target with empty raw destination resource", actual.getRawDestinationResource().length() == 0);
         return this;
     }
 

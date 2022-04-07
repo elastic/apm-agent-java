@@ -124,9 +124,8 @@ public class ServiceResourceTest {
                 if (serviceJson != null) {
                     String resource = getTextValueOrNull(serviceJson, "resource");
                     if (resource != null) {
-                        StringBuilder internalResource = context.getServiceTarget().getRawDestinationResource();
-                        internalResource.setLength(0);
-                        internalResource.append(resource);
+                        // we use the user-provided resource to emulate an existing resource value
+                        context.getServiceTarget().withUserDestinationResource(resource);
                     }
                 }
             }

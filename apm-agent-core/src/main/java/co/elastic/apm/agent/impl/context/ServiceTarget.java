@@ -32,20 +32,22 @@ public class ServiceTarget implements Recyclable {
 
     private final StringBuilder name;
 
+    // only used as a buffer to avoid re-writing
     private final StringBuilder destinationResource;
 
-    private boolean destinationResourceSetByUser;
+    private boolean resourceSetByUser;
+
+    private boolean onlyNameInResource = false;
 
     ServiceTarget() {
         this.name = new StringBuilder();
         this.destinationResource = new StringBuilder();
+        resetState();
     }
 
     public ServiceTarget withType(@Nullable String type) {
         this.type = type;
-        if (!destinationResourceSetByUser) {
-            destinationResource.setLength(0);
-        }
+        this.destinationResource.setLength(0); // invalidate cached value
         return this;
     }
 
@@ -55,13 +57,12 @@ public class ServiceTarget implements Recyclable {
     }
 
     public ServiceTarget withName(@Nullable CharSequence name) {
+        if (name == null || name.length() == 0 || resourceSetByUser) {
+            return this;
+        }
+        this.destinationResource.setLength(0); // invalidate cached value
         this.name.setLength(0);
-        if (name != null) {
-            this.name.append(name);
-        }
-        if (!destinationResourceSetByUser) {
-            destinationResource.setLength(0);
-        }
+        this.name.append(name);
         return this;
     }
 
@@ -71,33 +72,41 @@ public class ServiceTarget implements Recyclable {
     }
 
     /**
-     * @return internal destination resource
+     * Sets the name from host and port, overwriting any prior existing resource value and removing type from resource value
+     *
+     * @param host host name or IP
+     * @param port network port
+     * @return this
      */
-    public StringBuilder getRawDestinationResource(){
-        return destinationResource;
-    }
-
-    // TODO test for null input
-    public ServiceTarget withUserDestinationResource(@Nullable CharSequence userDestinationResource) {
-        if (userDestinationResource != null && userDestinationResource.length() > 0) {
-            destinationResource.setLength(0);
-            destinationResource.append(userDestinationResource);
-            destinationResourceSetByUser = true;
-        }
-        return this;
-    }
-
     public ServiceTarget withHostAndPortDestinationResource(@Nullable CharSequence host, int port) {
         if (host == null || host.length() == 0) {
             return this;
         }
+        onlyNameInResource = true;
+
         destinationResource.setLength(0);
-        destinationResource.append(host);
+        name.setLength(0);
+        name.append(host);
 
         if (port > 0) {
-            destinationResource.append(":").append(port);
+            name.append(":").append(port);
         }
+        return this;
+    }
 
+    /**
+     * Sets the user-provided service name, overwriting any prior existing resource value and removing type from resource value
+     *
+     * @param name user-provided destination resource
+     * @return this
+     */
+    public ServiceTarget withUserDestinationResource(@Nullable CharSequence name) {
+        if (name != null && name.length() > 0) {
+            onlyNameInResource = true;
+            resourceSetByUser = true;
+            this.name.setLength(0);
+            this.name.append(name);
+        }
         return this;
     }
 
@@ -106,13 +115,12 @@ public class ServiceTarget implements Recyclable {
         type = null;
         name.setLength(0);
         destinationResource.setLength(0);
-        destinationResourceSetByUser = false;
+        resourceSetByUser = false;
+        onlyNameInResource = false;
     }
 
     public boolean hasContent() {
-        return type != null
-            || name.length() > 0
-            || destinationResource.length() > 0;
+        return type != null || name.length() > 0;
     }
 
     /**
@@ -120,41 +128,28 @@ public class ServiceTarget implements Recyclable {
      */
     @Nullable
     public CharSequence getDestinationResource() {
-        if (destinationResource.length() > 0) {
-            return destinationResource;
-        }
-
         if (type == null || type.isEmpty()) {
             return null;
         }
-
         if (name.length() == 0) {
             return type;
         }
 
-        destinationResource.append(type);
-        destinationResource.append("/");
-        destinationResource.append(name);
-        return destinationResource;
-    }
-
-    public boolean isDestinationResourceSetByUser(){
-        return destinationResourceSetByUser;
-    }
-
-    /**
-     * Parses an existing destination resource as service target for compatibility
-     *
-     * @param destinationResource destination resource string
-     */
-    public void copyFromDestinationResource(String destinationResource) {
-        int slashIndex = destinationResource.indexOf('/');
-        if (slashIndex <= 0 || slashIndex == destinationResource.length() - 1) {
-            this.type = destinationResource;
-        } else {
-            this.type = destinationResource.substring(0, slashIndex);
-            this.name.append(destinationResource, slashIndex + 1, destinationResource.length());
+        if (onlyNameInResource) {
+            return name;
         }
+
+        if (destinationResource.length() == 0) {
+            destinationResource.append(type);
+            destinationResource.append("/");
+            destinationResource.append(name);
+        }
+        return destinationResource;
+
+    }
+
+    public boolean isDestinationResourceSetByUser() {
+        return resourceSetByUser;
     }
 
     public void copyFrom(ServiceTarget other) {
@@ -162,7 +157,8 @@ public class ServiceTarget implements Recyclable {
         this.withName(other.name);
         this.destinationResource.setLength(0);
         this.destinationResource.append(other.destinationResource);
-        this.destinationResourceSetByUser = other.destinationResourceSetByUser;
+        this.resourceSetByUser = other.resourceSetByUser;
+        this.onlyNameInResource = other.onlyNameInResource;
     }
 
 }

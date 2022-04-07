@@ -63,7 +63,6 @@ class ServiceTargetTest {
             .hasType("service-type")
             .hasName("service-name");
 
-
         assertThat(serviceTarget)
             .hasDestinationResource("service-type/service-name");
 
@@ -75,31 +74,6 @@ class ServiceTargetTest {
             .hasNotDestinationResourceSetByUser();
 
         assertThat(serviceTarget.hasContent()).isTrue();
-
-        serviceTarget.resetState();
-        assertThat(serviceTarget).isEmpty();
-    }
-
-    @ParameterizedTest
-    @CsvSource(nullValues = {"NULL"}, delimiterString = "|", value = {
-        "type/name|type|name",
-        "type|type|NULL",
-        "/type|/type|NULL",
-        "type/|type/|NULL"})
-    void copyFromServiceDestinationResource(String destinationResource, @Nullable String expectedType, @Nullable String expectedName) {
-        ServiceTarget serviceTarget = new ServiceTarget();
-
-        serviceTarget.copyFromDestinationResource(destinationResource);
-
-        assertThat(serviceTarget).hasType(expectedType);
-        if (expectedName == null) {
-            assertThat(serviceTarget).hasNoName();
-        } else {
-            assertThat(serviceTarget).hasName(expectedName);
-        }
-
-        assertThat(serviceTarget)
-            .hasDestinationResource(destinationResource);
 
         serviceTarget.resetState();
         assertThat(serviceTarget).isEmpty();
@@ -134,7 +108,7 @@ class ServiceTargetTest {
     void setDestinationResourceFromHostAndPort() {
         ServiceTarget serviceTarget = new ServiceTarget().withType("test").withName("name");
         assertThat(serviceTarget)
-            .describedAs("destination resource should be infered from type an name")
+            .describedAs("destination resource should be inferred from type an name")
             .hasDestinationResource("test/name");
 
         // host and port is just a convenience to override the default inferred value

@@ -79,28 +79,8 @@ class DestinationTest {
         checkPort(33, d -> d.withPort(42).withUserPort(33));
         checkPort(33, d -> d.withUserPort(33).withPort(42));
     }
-
-    @Test
-    void userServiceResourceHavePriority() {
-        checkServiceResource("resource", s -> s.withResource("resource"));
-        checkServiceResource("user-resource", s -> s.withResource("resource").withUserResource("user-resource"));
-        checkServiceResource("user-resource", s -> s.withUserResource("user-resource").withResource("resource"));
-
-        Destination.Service emptyService = new Destination.Service().withResource("resource").withUserResource("");
-        assertThat(emptyService.getResource()).isEmpty();
-        assertThat(emptyService.hasContent()).isFalse();
-    }
-
-    private void checkServiceResource(String expected, Function<Destination.Service, Destination.Service> operations) {
-        Destination.Service service = new Destination.Service();
-        operations.apply(service);
-        assertThat(service.getResource().toString())
-            .isEqualTo(expected);
-
-        assertThat(service.hasContent()).isTrue();
-    }
-
-    private static void checkPort(int expected,Function<Destination,Destination> operations ){
+    
+    private static void checkPort(int expected, Function<Destination, Destination> operations) {
         Destination destination = new Destination();
         operations.apply(destination);
         assertThat(destination.getPort()).isEqualTo(expected);
@@ -108,7 +88,7 @@ class DestinationTest {
         assertThat(destination.hasContent()).isTrue();
     }
 
-    private static void checkAddress(String expected, Function<Destination,Destination> operations){
+    private static void checkAddress(String expected, Function<Destination, Destination> operations) {
         Destination destination = new Destination();
         operations.apply(destination);
         assertThat(destination.getAddress().toString()) // call to toString required otherwise comparison fails

@@ -425,9 +425,12 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     private boolean isSameKind(Span other) {
+        ServiceTarget serviceTarget = context.getServiceTarget();
+        ServiceTarget otherServiceTarget = other.context.getServiceTarget();
         return Objects.equals(type, other.type)
             && Objects.equals(subtype, other.subtype)
-            && StringBuilderUtils.equals(context.getDestination().getService().getResource(), other.context.getDestination().getService().getResource());
+            && Objects.equals(serviceTarget.getType(), otherServiceTarget.getType())
+            && Objects.equals(serviceTarget.getName(), otherServiceTarget.getName());
     }
 
     @Override
