@@ -33,6 +33,7 @@ import org.junit.runners.Parameterized;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.ELASTICSEARCH;
@@ -122,10 +123,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected void validateDbContextContent(Span span, String statement) {
-        Db db = span.getContext().getDb();
-        assertThat(db.getType()).isEqualTo(ELASTICSEARCH);
-        assertThat((CharSequence) db.getStatementBuffer()).isNotNull();
-        assertThat(db.getStatementBuffer().toString()).isEqualTo(statement);
+        validateDbContextContent(span, Collections.singletonList(statement));
     }
 
     protected void validateDbContextContent(Span span, List<String> oneOfStatements) {
