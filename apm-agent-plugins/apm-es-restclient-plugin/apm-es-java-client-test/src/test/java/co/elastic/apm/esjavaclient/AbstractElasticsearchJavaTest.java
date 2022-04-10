@@ -1,9 +1,11 @@
 package co.elastic.apm.esjavaclient;
 
 import co.elastic.apm.agent.esrestclient.AbstractEsClientInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import co.elastic.clients.elasticsearch._types.SearchType;
 import co.elastic.clients.elasticsearch._types.StoredScript;
@@ -30,6 +32,9 @@ import co.elastic.clients.elasticsearch.core.SearchTemplateRequest;
 import co.elastic.clients.elasticsearch.core.SearchTemplateResponse;
 import co.elastic.clients.elasticsearch.core.UpdateRequest;
 import co.elastic.clients.elasticsearch.core.UpdateResponse;
+import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
+import co.elastic.clients.elasticsearch.core.bulk.DeleteOperation;
+import co.elastic.clients.elasticsearch.core.bulk.IndexOperation;
 import co.elastic.clients.elasticsearch.core.msearch.MultiSearchItem;
 import co.elastic.clients.elasticsearch.core.msearch.MultiSearchResponseItem;
 import co.elastic.clients.elasticsearch.core.msearch.MultisearchBody;
@@ -45,6 +50,7 @@ import co.elastic.clients.elasticsearch.indices.DeleteIndexResponse;
 import co.elastic.clients.elasticsearch.rollup.RollupSearchRequest;
 import co.elastic.clients.elasticsearch.rollup.RollupSearchResponse;
 import co.elastic.clients.json.JsonData;
+import jakarta.json.Json;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,23 +90,30 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
     }
 
     @Test
-    public void testTryToDeleteNonExistingIndex() throws IOException, InterruptedException {
-        Exception apiException = null;
+    public void testTryToDeleteNonExistingIndex() {
+        Throwable cause = null;
         try {
             doDeleteIndex(new DeleteIndexRequest.Builder().index(SECOND_INDEX).build());
-        } catch (Exception ae) {
-            LOGGER.error("Exception during deleting non-existing index", ae);
+        } catch (ExecutionException ee) {
+            // async scenario
+            cause = ee.getCause();
+        } catch (Exception e) {
+            LOGGER.error("Exception during deleting non-existing index", e);
             // sync scenario
-            apiException = ae;
+            cause = e;
         }
 
-        assertThat(apiException).isNotNull();
-        // TODO
-//        ElasticsearchError elasticsearchError = (ElasticsearchError) apiException.error();
-//        assertThat(elasticsearchError.status()).isEqualTo(404);
-        LOGGER.debug("Elasticsearch error = {}", apiException.toString());
+        assertThat(cause).isInstanceOf(ElasticsearchException.class);
 
-        // no errors captured, because in this case event come to ResponseListener#onSuccess
+        ElasticsearchException ee = (ElasticsearchException) cause;
+        assertThat(ee.status()).isEqualTo(404);
+
+        assertThat(cause).isNotNull();
+
+//        no errors captured, because in this case event come to ResponseListener#onSuccess
+//        assertThatErrorsExistWhenDeleteNonExistingIndex();
+
+        assertThat(reporter.getFirstSpan().getOutcome()).isEqualTo(Outcome.FAILURE);
     }
 
     @Test
@@ -310,25 +323,29 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         }
     }
 
-//    @Test
-//    public void testScenarioAsBulkRequest() throws IOException, ExecutionException, InterruptedException {
-//        BulkRequest bulkRequest = new BulkRequest.Builder()
-//            .operations(new BulkOperation.Builder()
-//                .index(new IndexOperation.Builder<>()
-//                    .index(INDEX)
-//                    .id("2")
-//                    .build()).build()).
-//        (new BulkRequest.Builder()
-//            .addOperation(new Operation.Builder().index(new IndexOperation(indexOperationBuilder -> indexOperationBuilder.index(INDEX).id("2"))).build())
-//            .addDocument(Map.of(FOO, BAR))
-//            .addOperation(new Operation.Builder().delete(new DeleteOperation(deleteOperationBuilder -> deleteOperationBuilder.index(INDEX).id("2"))).build())
-//            .refresh(JsonValue.TRUE)
-//            .timeout("1m"));
-//
-//        doBulk(bulkRequest);
-//
-//        validateSpanContentAfterBulkRequest();
-//    }
+    @Test
+    public void testScenarioAsBulkRequest() throws IOException, ExecutionException, InterruptedException {
+        BulkRequest bulkRequest = new BulkRequest.Builder()
+            .operations(new BulkOperation.Builder()
+                    .index(new IndexOperation.Builder<>()
+                        .index(INDEX)
+                        .id("2")
+                        .document(Json.createObjectBuilder()
+                            .add(FOO, BAR)
+                            .build())
+                        .build()).build(),
+                new BulkOperation.Builder()
+                    .delete(new DeleteOperation.Builder()
+                        .index(INDEX)
+                        .id("2")
+                        .build()).build())
+            .refresh(Refresh.True)
+            .build();
+
+        doBulk(bulkRequest);
+
+        validateSpanContentAfterBulkRequest();
+    }
 
     private void verifyMultiSearchTemplateSpanContent(Span span) {
         String immutablePart = "{\"index\":[\"my-index\"],\"search_type\":\"query_then_fetch\"}\n" +
@@ -343,10 +360,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         String end = "}\n";
 
         List<String> possibleSpanContent = params.stream()
-                .map(k -> {
-                    return immutablePart + k + end;
-                }).collect(Collectors.toList());;
-
+            .map(k -> immutablePart + k + end).collect(Collectors.toList());
 
         validateDbContextContent(span, possibleSpanContent);
     }
@@ -438,7 +452,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         return client.bulk(bulkRequest);
     }
 
-    private DeleteResponse deleteDocument() throws InterruptedException, ExecutionException, IOException {
+    private DeleteResponse deleteDocument() throws IOException {
         return client.delete(new DeleteRequest.Builder().index(INDEX).type(DOC_TYPE).id(DOC_ID).refresh(Refresh.True).build());
     }
 
