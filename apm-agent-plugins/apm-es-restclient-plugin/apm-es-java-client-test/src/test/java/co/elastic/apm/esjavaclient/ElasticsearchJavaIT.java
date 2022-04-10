@@ -1,12 +1,12 @@
 package co.elastic.apm.esjavaclient;
 
-import co.elastic.clients.base.RestClientTransport;
-import co.elastic.clients.base.Transport;
 import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch.indices.CreateRequest;
-import co.elastic.clients.elasticsearch.indices.DeleteRequest;
+import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import co.elastic.clients.elasticsearch.indices.DeleteIndexRequest;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.ElasticsearchTransport;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -23,7 +23,7 @@ import java.io.IOException;
 @RunWith(Parameterized.class)
 public class ElasticsearchJavaIT extends AbstractElasticsearchJavaTest {
 
-    private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.15.0";
+    private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.17.1";
 
     public ElasticsearchJavaIT(boolean async) {
         this.async = async;
@@ -40,11 +40,11 @@ public class ElasticsearchJavaIT extends AbstractElasticsearchJavaTest {
             .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider))
             .build();
 
-        Transport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
+        ElasticsearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
         client = new ElasticsearchClient(transport);
         asyncClient = new ElasticsearchAsyncClient(transport);
 
-        client.indices().create(new CreateRequest(builder -> builder.index(INDEX)));
+        client.indices().create(new CreateIndexRequest.Builder().index(INDEX).build());
         reporter.reset();
     }
 
@@ -52,7 +52,7 @@ public class ElasticsearchJavaIT extends AbstractElasticsearchJavaTest {
     public static void stopElasticsearchContainerAndClient() throws IOException {
         if (client != null) {
             // prevent misleading NPE when failed to start container
-            client.indices().delete(new DeleteRequest(builder -> builder.index(INDEX)));
+            client.indices().delete(new DeleteIndexRequest.Builder().index(INDEX).build());
         }
     }
 }
