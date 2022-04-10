@@ -126,12 +126,12 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         validateDbContextContent(span, Collections.singletonList(statement));
     }
 
-    protected void validateDbContextContent(Span span, List<String> oneOfStatements) {
+    protected void validateDbContextContent(Span span, List<String> possibleContents) {
         Db db = span.getContext().getDb();
         assertThat(db.getType()).isEqualTo(ELASTICSEARCH);
         assertThat((CharSequence) db.getStatementBuffer()).isNotNull();
 
-        assertThat(db.getStatementBuffer().toString()).isIn(oneOfStatements);
+        assertThat(db.getStatementBuffer().toString()).isIn(possibleContents);
     }
 
     protected void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
