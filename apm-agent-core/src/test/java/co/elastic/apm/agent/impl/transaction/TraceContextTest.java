@@ -733,7 +733,7 @@ class TraceContextTest {
         traceContext.serialize(serializedContext);
 
         TraceContext deserialized = TraceContext.with64BitId(tracer);
-        deserialized.deserialize(serializedContext, null);
+        deserialized.deserialize(serializedContext, null, null);
 
         assertThat(deserialized.traceIdAndIdEquals(serializedContext)).isTrue();
         assertThat(deserialized.getTraceId()).isEqualTo(traceContext.getTraceId());
@@ -744,4 +744,27 @@ class TraceContextTest {
         assertThat(deserialized.getClock().getOffset()).isEqualTo(traceContext.getClock().getOffset());
     }
 
+    @Test
+    void testSetServiceInfoWithEmptyServiceName() {
+        TraceContext traceContext = TraceContext.with64BitId(tracer);
+
+        traceContext.setServiceInfo(null, "My Version");
+        assertThat(traceContext.getServiceName()).isNull();
+        assertThat(traceContext.getServiceVersion()).isNull();
+        traceContext.setServiceInfo("", "My Version");
+        assertThat(traceContext.getServiceName()).isNull();
+        assertThat(traceContext.getServiceVersion()).isNull();
+    }
+
+    @Test
+    void testSetServiceInfoWithNonEmptyServiceName() {
+        TraceContext traceContext = TraceContext.with64BitId(tracer);
+
+        traceContext.setServiceInfo("My Service", null);
+        assertThat(traceContext.getServiceName()).isEqualTo("My Service");
+        assertThat(traceContext.getServiceVersion()).isNull();
+        traceContext.setServiceInfo("My Service", "My Version");
+        assertThat(traceContext.getServiceName()).isEqualTo("My Service");
+        assertThat(traceContext.getServiceVersion()).isEqualTo("My Version");
+    }
 }

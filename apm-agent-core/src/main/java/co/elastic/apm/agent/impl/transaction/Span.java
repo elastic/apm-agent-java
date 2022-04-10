@@ -27,11 +27,13 @@ import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.objectpool.Recyclable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.StringBuilderUtils;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public class Span extends AbstractSpan<Span> implements Recyclable {
@@ -39,13 +41,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private static final Logger logger = LoggerFactory.getLogger(Span.class);
     public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
     private static long lastSpanMaxWarningTimestamp;
-
-    /**
-     * General type describing this span (eg: 'db', 'ext', 'template', etc)
-     * (Required)
-     */
-    @Nullable
-    private String type;
 
     /**
      * A subtype describing this span (eg 'mysql', 'elasticsearch', 'jsf' etc)
@@ -65,6 +60,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Any other arbitrary data captured by the agent, optionally provided by the user
      */
     private final SpanContext context = new SpanContext();
+    private final Composite composite = new Composite();
     @Nullable
     private Throwable stacktrace;
     @Nullable
@@ -151,12 +147,12 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return context;
     }
 
-    /**
-     * Keywords of specific relevance in the span's domain (eg: 'db', 'template', 'ext', etc)
-     */
-    public Span withType(@Nullable String type) {
-        this.type = normalizeEmpty(type);
-        return this;
+    public boolean isComposite() {
+        return composite.getCount() > 0;
+    }
+
+    public Composite getComposite() {
+        return composite;
     }
 
     /**
@@ -175,10 +171,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return this;
     }
 
-    @Nullable
-    private static String normalizeEmpty(@Nullable String value) {
-        return value == null || value.isEmpty() ? null : value;
-    }
 
     /**
      * Sets span.type, span.subtype and span.action. If no subtype and action are provided, assumes the legacy usage of hierarchical
@@ -213,11 +205,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     @Nullable
-    public String getType() {
-        return type;
-    }
-
-    @Nullable
     public String getSubtype() {
         return subtype;
     }
@@ -229,16 +216,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     public void beforeEnd(long epochMicros) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("endSpan {}", this);
-            if (logger.isTraceEnabled()) {
-                logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
-            }
-        }
-        if (type == null) {
-            type = "custom";
-        }
-
         // set outcome when not explicitly set by user nor instrumentation
         if (outcomeNotSet()) {
             Outcome outcome;
@@ -253,7 +230,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         }
 
         // auto-infer context.destination.service.resource as per spec:
-        // https://github.com/elastic/apm/blob/master/specs/agents/tracing-spans-destination.md#contextdestinationserviceresource
+        // https://github.com/elastic/apm/blob/main/specs/agents/tracing-spans-destination.md#contextdestinationserviceresource
         Destination.Service service = getContext().getDestination().getService();
         StringBuilder serviceResource = service.getResource();
         if (isExit() && serviceResource.length() == 0 && !service.isResourceSetByUser()) {
@@ -286,21 +263,160 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         }
         if (parent != null) {
             parent.onChildEnd(epochMicros);
-            parent.decrementReferences();
         }
     }
 
     @Override
     protected void afterEnd() {
-        this.tracer.endSpan(this);
+        if (transaction != null && transaction.isSpanCompressionEnabled() && parent != null) {
+            Span buffered = parent.bufferedSpan.get();
+            if (parent.isFinished() || !isCompressionEligible()) {
+                if (buffered != null) {
+                    if (parent.bufferedSpan.compareAndSet(buffered, null)) {
+                        this.tracer.endSpan(buffered);
+                    }
+                }
+                parent.decrementReferences();
+                this.tracer.endSpan(this);
+                return;
+            }
+            if (buffered == null) {
+                if (!parent.bufferedSpan.compareAndSet(null, this)) {
+                    // the failed update would ideally lead to a compression attempt with the new buffer,
+                    // but we're dropping the compression attempt to keep things simple
+                    this.tracer.endSpan(this);
+                }
+                parent.decrementReferences();
+                return;
+            }
+            if (!buffered.tryToCompress(this)) {
+                if (parent.bufferedSpan.compareAndSet(buffered, this)) {
+                    this.tracer.endSpan(buffered);
+                } else {
+                    // the failed update would ideally lead to a compression attempt with the new buffer,
+                    // but we're dropping the compression attempt to keep things simple
+                    this.tracer.endSpan(this);
+                }
+                parent.decrementReferences();
+            } else if (isSampled()) {
+                Transaction transaction = getTransaction();
+                if (transaction != null) {
+                    transaction.getSpanCount().getDropped().incrementAndGet();
+                }
+                parent.decrementReferences();
+                decrementReferences();
+            }
+        } else {
+            if (parent != null) {
+                parent.decrementReferences();
+            }
+            this.tracer.endSpan(this);
+        }
+    }
+
+    private boolean isCompressionEligible() {
+        return isExit() && isDiscardable() && (outcomeNotSet() || getOutcome() == Outcome.SUCCESS);
+    }
+
+    private boolean tryToCompress(Span sibling) {
+        boolean canBeCompressed = isComposite() ? tryToCompressComposite(sibling) : tryToCompressRegular(sibling);
+        if (!canBeCompressed) {
+            return false;
+        }
+
+        do {
+            long currentTimestamp = timestamp.get();
+            if (currentTimestamp <= sibling.timestamp.get()) {
+                break;
+            }
+            if (timestamp.compareAndSet(currentTimestamp, sibling.timestamp.get())) {
+                break;
+            }
+        } while (true);
+
+        do {
+            long currentEndTimestamp = endTimestamp.get();
+            if (sibling.endTimestamp.get() <= currentEndTimestamp) {
+                break;
+            }
+            if (endTimestamp.compareAndSet(currentEndTimestamp, sibling.endTimestamp.get())) {
+                break;
+            }
+        } while (true);
+
+        composite.increaseCount();
+        composite.increaseSum(sibling.getDuration());
+
+        return true;
+    }
+
+    private boolean tryToCompressRegular(Span sibling) {
+        if (!isSameKind(sibling)) {
+            return false;
+        }
+
+        long currentDuration = getDuration();
+        if (isComposite()) {
+            return tryToCompressComposite(sibling);
+        }
+
+        if (StringBuilderUtils.equals(name, sibling.name)) {
+            long maxExactMatchDuration = transaction.getSpanCompressionExactMatchMaxDurationUs();
+            if (currentDuration <= maxExactMatchDuration && sibling.getDuration() <= maxExactMatchDuration) {
+                if (!composite.init(currentDuration, "exact_match")) {
+                    return tryToCompressComposite(sibling);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        long maxSameKindDuration = transaction.getSpanCompressionSameKindMaxDurationUs();
+        if (currentDuration <= maxSameKindDuration && sibling.getDuration() <= maxSameKindDuration) {
+            if (!composite.init(currentDuration, "same_kind")) {
+                return tryToCompressComposite(sibling);
+            }
+            name.setLength(0);
+            name.append("Calls to ").append(context.getDestination().getService().getResource());
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean tryToCompressComposite(Span sibling) {
+        String compressionStrategy = composite.getCompressionStrategy();
+        if (compressionStrategy == null) {
+            //lose the compression rather than retry, so that the application proceeds with minimum delay
+            return false;
+        }
+
+        switch (compressionStrategy) {
+            case "exact_match":
+                long maxExactMatchDuration = transaction.getSpanCompressionExactMatchMaxDurationUs();
+                return isSameKind(sibling) && StringBuilderUtils.equals(name, sibling.name) && sibling.getDuration() <= maxExactMatchDuration;
+
+            case "same_kind":
+                long maxSameKindDuration = transaction.getSpanCompressionSameKindMaxDurationUs();
+                return isSameKind(sibling) && sibling.getDuration() <= maxSameKindDuration;
+            default:
+        }
+
+        return false;
+    }
+
+    private boolean isSameKind(Span other) {
+        return Objects.equals(type, other.type)
+            && Objects.equals(subtype, other.subtype)
+            && StringBuilderUtils.equals(context.getDestination().getService().getResource(), other.context.getDestination().getService().getResource());
     }
 
     @Override
     public void resetState() {
         super.resetState();
         context.resetState();
+        composite.resetState();
         stacktrace = null;
-        type = null;
         subtype = null;
         action = null;
         parent = null;

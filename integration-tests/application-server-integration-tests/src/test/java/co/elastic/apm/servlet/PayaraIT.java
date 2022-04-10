@@ -19,13 +19,12 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
-import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
+import co.elastic.apm.servlet.tests.JavaxExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.util.Arrays;
@@ -34,7 +33,7 @@ import java.util.Arrays;
 public class PayaraIT extends AbstractServletContainerIntegrationTest {
 
     public PayaraIT(final String serverVersion, final String deploymentsFolder) {
-        super(new GenericContainer<>(
+        super(new GenericContainerWithTcpProxy<>(
                 new ImageFromDockerfile()
                     .withDockerfileFromBuilder(builder -> {
                             builder
@@ -75,7 +74,7 @@ public class PayaraIT extends AbstractServletContainerIntegrationTest {
             ServletApiTestApp.class,
             JsfApplicationServerTestApp.class,
             CdiApplicationServerTestApp.class,
-            ExternalPluginTestApp.class
+            JavaxExternalPluginTestApp.class
         );
     }
 }

@@ -29,6 +29,7 @@ import java.util.concurrent.locks.LockSupport;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.END_REQUEST;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.JSON_WRITER;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.MAKE_FLUSH_REQUEST;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SHUTDOWN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SPAN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.TRANSACTION;
@@ -69,6 +70,10 @@ public class ReportingEvent {
 
     public void setEndRequestEvent() {
         this.type = END_REQUEST;
+    }
+
+    public void setMakeFlushRequestEvent() {
+        this.type = MAKE_FLUSH_REQUEST;
     }
 
     @Nullable
@@ -144,6 +149,6 @@ public class ReportingEvent {
     }
 
     enum ReportingEventType {
-        END_REQUEST, TRANSACTION, SPAN, ERROR, SHUTDOWN, JSON_WRITER, WAKEUP
+        END_REQUEST, MAKE_FLUSH_REQUEST, TRANSACTION, SPAN, ERROR, SHUTDOWN, JSON_WRITER, WAKEUP
     }
 }

@@ -15,6 +15,7 @@ This section lists all supported technologies.
 * <<supported-logging-frameworks>>
 * <<supported-process-frameworks>>
 * <<supported-rpc-frameworks>>
+* <<supported-aws-lambda-runtimes>>
 * <<supported-java-methods>>
 * <<supported-metrics>>
 * <<supported-technologies-caveats>>
@@ -28,7 +29,7 @@ Another option is to add a dependency to the agent's <<public-api, public API>>
 in order to programmatically create custom transactions and spans.
 
 If you want to extend the auto-instrumentation capabilities of the agent,
-the https://github.com/elastic/apm-agent-java/blob/master/CONTRIBUTING.md[contributing guide] should get you started.
+the https://github.com/elastic/apm-agent-java/blob/main/CONTRIBUTING.md[contributing guide] should get you started.
 
 NOTE: If, for example,
 the HTTP client library of your choice is not listed,
@@ -41,14 +42,14 @@ the agent does not capture transactions.
 === Java versions
 
 |===
-|Vendor |Supported versions | Notes
+|Vendor |Supported versions |Notes
 
 |Oracle JDK
-|7u60+, 8u40+, 9, 10, 11
+|7u60+, 8u40+, 9, 10, 11, 17
 |`--module-path` has not been tested yet
 
-|Open JDK
-|7u60+, 8u40+, 9, 10, 11
+|OpenJDK
+|7u60+, 8u40+, 9, 10, 11, 17
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
@@ -64,7 +65,9 @@ the agent does not capture transactions.
 |
 |===
 
-NOTE: Early Java 8 versions before update 40 are *not supported* because they have
+**Early Java 8 and Java 7**
+
+Early Java 8 versions before update 40 are *not supported* because they have
 several bugs that might result in JVM crashes when a java agent is active,
 thus agent *will not start* on those versions.
 Similarly, Java 7 versions before update 60 are not supported as they are buggy in regard to invokedynamic.
@@ -91,7 +94,7 @@ the JVM arguments.
  Starting in version 1.18.0, additional spans are created if the servlet dispatches execution to another servlet through the `forward` or
  `include` APIs, or to an error page.
  See also <<supported-app-servers>>
-|1.0.0
+|1.0.0, 4.0+ (`jakarta.servlet`) since 1.28.0
 
 |Spring Web MVC
 |4.x, 5.x
@@ -105,10 +108,10 @@ the JVM arguments.
 |1.24.0 (experimental)
 
 |JavaServer Faces
-|2.2.x, 2.3.x
+|2.2.x, 2.3.x, 3.0.x
 |If you are using JSF, transactions are named based on the requested Facelets and spans are captured for visibility into execution and
 rendering
-|1.0.0
+|1.0.0, `jakarta.faces` since 1.28.0
 
 |Spring Boot
 |1.5+, 2.x
@@ -116,7 +119,7 @@ rendering
 |1.0.0
 
 |JAX-RS
-|2.x
+|2.x, 3.x
 |The transactions are named based on your resources (`ResourceClass#resourceMethod`).
  Note that only the packages configured in <<config-application-packages>> are scanned for JAX-RS resources.
  If you don't set this option,
@@ -124,18 +127,18 @@ rendering
  This comes at the cost of increased startup times, however.
 
  Note: JAX-RS is only supported when running on a supported <<supported-app-servers, Application Server/Servlet Container>>.
-|1.0.0
+|1.0.0, `jakarta.ws.rs` since 1.28.0
 
 |JAX-WS
 |
-|The transactions are named based on your `@javax.jws.WebService` annotated classes and `@javax.jws.WebMethod` annotated method names (`WebServiceClass#webMethod`).
+|The transactions are named based on your `@javax.jws.WebService`, `@jakarta.jws.WebService` annotated classes and `@javax.jws.WebMethod`, `@jakarta.jws.WebMethod` annotated method names (`WebServiceClass#webMethod`).
  Note that only the packages configured in <<config-application-packages>> are scanned for JAX-WS resources.
  If you don't set this option,
  all classes are scanned.
  This comes at the cost of increased startup times, however.
 
  Note: JAX-WS is only supported when running on a supported <<supported-app-servers, Application Server/Servlet Container>> and when using the HTTP binding.
-|1.4.0
+|1.4.0, `jakarta.jws` since 1.28.0
 
 |Grails
 |3+
@@ -149,7 +152,7 @@ rendering
 
 
 |Vert.x Web
-|3.x, 4.x
+|3.6+
 |Captures incoming HTTP requests as transactions
 |1.24.0 (experimental)
 
@@ -168,6 +171,11 @@ rendering
 |
 |1.25.0
 
+|Java API for WebSocket
+|1.0
+|Captures methods annotated with `@OnOpen`, `@OnMessage`, `@OnError`, or `@OnClose` as transactions for classes that are annotated with `@ServerEndpoint`.
+|1.29.0
+
 |===
 
 
@@ -183,7 +191,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |Server |Supported versions
 
 |<<setup-tomcat,Tomcat>>
-|7.x, 8.5.x, 9.x
+|7.x, 8.5.x, 9.x, 10.x
 
 |<<setup-jboss-wildfly,WildFly>>
 |8-16
@@ -400,7 +408,7 @@ same trace.
 side, the agent reads the context from the Message property through `javax.jms.MessageConsumer#receive`,
 `javax.jms.MessageConsumer#receiveNoWait`, `javax.jms.JMSConsumer#receive`, `javax.jms.JMSConsumer#receiveNoWait` or
 `javax.jms.MessageListener#onMessage` and uses it for enabling distributed tracing.
-|Enabled by default since 1.13.0, added as an experimental plugin in 1.7.0
+|Enabled by default since 1.13.0, added as an experimental plugin in 1.7.0, `jakarta.jms` since 1.28.0
 
 |Kafka
 | <0.11.0 - without distributed tracing; 0.11.0+ - full support
@@ -448,15 +456,19 @@ When using a scheduling framework a transaction for every execution will be crea
 `org.springframework.scheduling.annotation.Scheduled`
 `org.springframework.scheduling.annotation.Schedules`
 `javax.ejb.Schedule`
-`javax.ejb.Schedules` in order to create a transaction with the type `scheduled`, representing the scheduled task execution
-|1.6.0
+`javax.ejb.Schedules`
+`jakarta.ejb.Schedule`
+`jakarta.ejb.Schedules` in order to create a transaction with the type `scheduled`, representing the scheduled task execution
+|1.6.0, `jakarta.ejb.Schedule` since 1.28.0
 
 |Quartz
-|2.0+
+|1.0+
 |The agent instruments the `execute` method of any class implementing `org.quartz.Job`, as well as the `executeInternal` method of any class extending `org.springframework.scheduling.quartz.QuartzJobBean`, and creates a transaction with the type `scheduled`, representing the job execution
 
 NOTE: only classes from the quartz-jobs dependency will be instrumented automatically. For the instrumentation of other jobs the package must be added to the <<config-application-packages>> parameter.
-|1.8.0
+|1.8.0 - 2.0+
+
+1.26.0 - 1.0+
 
 |TimerTask
 |
@@ -474,24 +486,20 @@ NOTE: only classes from the quartz-jobs dependency will be instrumented automati
 
 |slf4j
 |1.4.1+
-|When <<config-enable-log-correlation>> is set to `true`,
- the agent will add a https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
- See the <<config-enable-log-correlation>> configuration option for more details.
-
- Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0).
+|Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0).
 When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
 
-|Trace correlation - 1.0.0
-
-Error capturing - 1.10.0
+|1.10.0
 
 |log4j2
 |Trace correlation - 2.0+
 
 ECS Reformatting - 2.6+
 
-|When <<config-enable-log-correlation>> is set to `true`,
-the agent will add a https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entry for `trace.id` and `transaction.id`.
+|The agent adds https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entries for active `trace.id`,
+`transaction.id` and `error.id`.
+
+The agent sets the service name for the `EcsLayout` if not provided explicitly (since 1.29.0).
 
 When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
 ECS-compatible format (since 1.22.0, experimental)
@@ -502,35 +510,47 @@ When doing so, the ID corresponding the captured error (`error.id`) is added to 
 
 Error capturing - 1.10.0
 
+ECS Service Name - 1.29.0
+
 ECS Reformatting - 1.22.0
 
 
-|log4j
-|Trace correlation - 1.x
+|log4j1
+|Trace correlation and error capture - 1.x
 
 ECS Reformatting - 1.2.17
 
-|When <<config-enable-log-correlation>> is set to `true`,
-the agent will add a https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
+|The agent adds https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entries for active `trace.id`,
+`transaction.id` and `error.id`.
 
 When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
 ECS-compatible format (since 1.22.0, experimental)
+
+Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
+When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well.
 |Trace correlation - 1.13.0
 
 ECS Reformatting - 1.22.0
 
+Error capturing - 1.30.0
+
 |Logback
 |1.1.0+
-|When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+|The agent adds https://www.slf4j.org/api/org/slf4j/MDC.html[slf4j MDC] entries for active `trace.id`, `transaction.id` and `error.id`.
+
+When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
 ECS-compatible format (since 1.22.0, experimental)
-|1.22.0
+|Trace correlation - 1.0.0
+
+ECS Reformatting - 1.22.0
 
 |JBoss Logging
 |3.0.0+
-|When <<config-enable-log-correlation>> is set to `true`,
-the agent will add a http://javadox.com/org.jboss.logging/jboss-logging/3.3.0.Final/org/jboss/logging/MDC.html[MDC]
-entry for `trace.id` and `transaction.id`. See the <<config-enable-log-correlation>> configuration option for more details.
+|The agent adds http://javadox.com/org.jboss.logging/jboss-logging/3.3.0.Final/org/jboss/logging/MDC.html[MDC]
+entries for `trace.id`, `transaction.id` and `error.id`.
 |1.23.0
+
+JBoss LogManager - 1.30.0
 
 |===
 
@@ -567,6 +587,39 @@ entry for `trace.id` and `transaction.id`. See the <<config-enable-log-correlati
 | 1.16.0
 
 |===
+
+[float]
+[[supported-aws-lambda-runtimes]]
+=== AWS Lambda runtimes
+
+AWS Lambda provides multiple https://docs.aws.amazon.com/lambda/latest/dg/java-image.html[JVM base images]. Only those that support the `AWS_LAMBDA_EXEC_WRAPPER` environment variables are supported out of the box.
+
+Running with unsupported images is still possible but requires providing agent configuration through environment variables
+explicitly.
+
+// tag::aws-lambda-runtimes[]
+
+|===
+|Tags |Java Runtime |Operating System|Supported
+
+|11
+|Java 11 (Corretto)
+|Amazon Linux 2
+|yes
+
+|8.al2
+|Java 8 (Corretto)
+|Amazon Linux 2
+|yes
+
+|8
+|Java 8 (OpenJDK)
+|Amazon Linux 2018.03
+|no
+
+|===
+
+// end::aws-lambda-runtimes[]
 
 [float]
 [[supported-java-methods]]

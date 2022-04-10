@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.httpserver.HttpServerHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
@@ -28,9 +28,11 @@ import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.servlet.adapter.ServletContextAdapter;
+import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
 import co.elastic.apm.agent.util.TransactionNameUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -41,7 +43,6 @@ import java.util.Set;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
-import static co.elastic.apm.agent.servlet.ServletGlobalState.nameInitialized;
 
 public class ServletTransactionHelper {
 
@@ -57,41 +58,34 @@ public class ServletTransactionHelper {
     private final Set<String> METHODS_WITH_BODY = new HashSet<>(Arrays.asList("POST", "PUT", "PATCH", "DELETE"));
     private final CoreConfiguration coreConfiguration;
     private final WebConfiguration webConfiguration;
+    private final ElasticApmTracer tracer;
+    private final HttpServerHelper serverHelper;
 
     public ServletTransactionHelper(ElasticApmTracer tracer) {
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         this.webConfiguration = tracer.getConfig(WebConfiguration.class);
+        this.tracer = tracer;
+        this.serverHelper = new HttpServerHelper(webConfiguration);
     }
 
-    public static void determineServiceName(@Nullable String servletContextName, @Nullable ClassLoader servletContextClassLoader, @Nullable String contextPath) {
-        if (servletContextClassLoader == null || nameInitialized.putIfAbsent(servletContextClassLoader, Boolean.TRUE) != null) {
-            return;
+    @Nullable
+    public <HttpServletRequest, ServletContext> Transaction createAndActivateTransaction(
+        ServletRequestAdapter<HttpServletRequest, ServletContext> requestAdapter,
+        ServletContextAdapter<ServletContext> contextAdapter,
+        HttpServletRequest request) {
+        // only create a transaction if there is not already one
+        if (tracer.currentTransaction() != null) {
+            return null;
         }
-
-        if (logger.isDebugEnabled()) {
-            logger.debug("Inferring service name for class loader [{}] based on servlet context path `{}` and request context path `{}`",
-                servletContextClassLoader,
-                servletContextName,
-                contextPath
-            );
+        if (serverHelper.isRequestExcluded(requestAdapter.getRequestURI(request), requestAdapter.getHeader(request, "User-Agent"))) {
+            return null;
         }
-
-        @Nullable
-        String serviceName = servletContextName;
-        if ("application".equals(serviceName) || "".equals(serviceName) || "/".equals(serviceName)) {
-            // payara returns an empty string as opposed to null
-            // spring applications which did not set spring.application.name have application as the default
-            // jetty returns context path when no display name is set, which could be the root context of "/"
-            // this is a worse default than the one we would otherwise choose
-            serviceName = null;
+        ClassLoader cl = contextAdapter.getClassLoader(requestAdapter.getServletContext(request));
+        Transaction transaction = tracer.startChildTransaction(request, requestAdapter.getRequestHeaderGetter(), cl);
+        if (transaction != null) {
+            transaction.activate();
         }
-        if (serviceName == null && contextPath != null && !contextPath.isEmpty()) {
-            // remove leading slash
-            serviceName = contextPath.substring(1);
-        }
-        if (serviceName != null) {
-            GlobalTracer.get().overrideServiceNameForClassLoader(servletContextClassLoader, serviceName);
-        }
+        return transaction;
     }
 
     public void fillRequestContext(Transaction transaction, String protocol, String method, boolean secure,

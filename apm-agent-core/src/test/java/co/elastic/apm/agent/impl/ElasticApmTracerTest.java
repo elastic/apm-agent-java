@@ -20,21 +20,25 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServiceNameUtil;
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
+import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
@@ -42,10 +46,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ElasticApmTracerTest {
@@ -54,6 +62,8 @@ class ElasticApmTracerTest {
     private MockReporter reporter;
     private ConfigurationRegistry config;
 
+    private ApmServerClient apmServerClient;
+
     private TestObjectPoolFactory objectPoolFactory;
 
     @BeforeEach
@@ -61,10 +71,15 @@ class ElasticApmTracerTest {
         objectPoolFactory = new TestObjectPoolFactory();
         reporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
+
+        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), config.getConfig(CoreConfiguration.class));
+        apmServerClient = mock(ApmServerClient.class, delegatesTo(apmServerClient));
+
         tracerImpl = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
             .withObjectPoolFactory(objectPoolFactory)
+            .withApmServerClient(apmServerClient)
             .buildAndStart();
     }
 
@@ -72,7 +87,7 @@ class ElasticApmTracerTest {
     void cleanupAndCheck() {
         reporter.assertRecycledAfterDecrementingReferences();
         objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
-        tracerImpl.resetServiceNameOverrides();
+        tracerImpl.resetServiceInfoOverrides();
     }
 
     @Test
@@ -119,7 +134,8 @@ class ElasticApmTracerTest {
 
     @Test
     void testDisableStacktraces() {
-        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(0L);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs()).thenReturn(-1L);
+
         Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
@@ -133,7 +149,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testEnableStacktraces() throws InterruptedException {
-        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(-1L);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs()).thenReturn(0L);
         Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
@@ -148,7 +164,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testDisableStacktracesForFastSpans() {
-        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(100L);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs()).thenReturn(100L);
         Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
@@ -163,7 +179,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testEnableStacktracesForSlowSpans() throws InterruptedException {
-        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(1L);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs()).thenReturn(1L);
         Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
@@ -335,7 +351,19 @@ class ElasticApmTracerTest {
     }
 
     @Test
-    void testSamplingNone() throws IOException {
+    void testSamplingNone_sendUnsampled() throws IOException {
+        doReturn(true).when(apmServerClient).supportsKeepingUnsampledTransaction();
+        testSamplingNone(true);
+    }
+
+    @Test
+    void testSamplingNone_dropUnsampled() throws IOException {
+        doReturn(false).when(apmServerClient).supportsKeepingUnsampledTransaction();
+        testSamplingNone(false);
+    }
+
+    void testSamplingNone(boolean keepUnsampled) throws IOException {
+
         config.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
         Transaction transaction = startTestRootTransaction().withType("request");
 
@@ -347,11 +375,30 @@ class ElasticApmTracerTest {
             }
             transaction.end();
         }
-        // we do report non-sampled transactions (without the context)
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getSpans()).hasSize(0);
-        assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isNull();
-        assertThat(reporter.getFirstTransaction().getType()).isEqualTo("request");
+
+        if(keepUnsampled){
+            // we do report non-sampled transactions (without the context)
+            assertThat(reporter.getTransactions())
+                .describedAs("non-sampled transaction should be kept")
+                .hasSize(1);
+
+            assertThat(reporter.getFirstTransaction().getType()).isEqualTo("request");
+            assertThat(reporter.getFirstTransaction().isSampled()).isFalse();
+
+            assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail())
+                .describedAs("non-sampled transaction context should be drpped")
+                .isNull();
+        } else {
+            assertThat(reporter.getTransactions())
+                .describedAs("non-sampled transaction should be dropped")
+                .hasSize(0);
+
+        }
+
+        assertThat(reporter.getSpans())
+            .describedAs("spans within non-sampled transactions should dropped")
+            .hasSize(0);
+
     }
 
     @Test
@@ -428,22 +475,29 @@ class ElasticApmTracerTest {
             .configurationRegistry(SpyConfiguration.createSpyConfig())
             .reporter(reporter)
             .buildAndStart();
-        tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
+
+        ClassLoader cl = getClass().getClassLoader();
+        ServiceInfo overridden = ServiceInfo.of("overridden");
+        tracer.setServiceInfoForClassLoader(cl, overridden);
+        assertThat(tracer.getServiceInfoForClassLoader(cl)).isEqualTo(overridden);
 
         startTestRootTransaction().end();
 
-
-        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
+        checkServiceInfo(reporter.getFirstTransaction(), overridden);
     }
 
     @Test
     void testNotOverrideServiceNameWhenServiceNameConfigured() {
-        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(new PropertyFileConfigurationSource("test.elasticapm.with-service-name.properties"));
+        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
+            Objects.requireNonNull(ConfigSources.fromClasspath("test.elasticapm.with-service-name.properties", ClassLoader.getSystemClassLoader())));
+
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)
             .configurationRegistry(localConfig)
             .buildAndStart();
-        tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
+        ClassLoader cl = getClass().getClassLoader();
+        tracer.setServiceInfoForClassLoader(cl, ServiceInfo.of("overridden"));
+        assertThat(tracer.getServiceInfoForClassLoader(cl)).isNull();
 
         startTestRootTransaction().end();
 
@@ -456,17 +510,24 @@ class ElasticApmTracerTest {
         String command = System.setProperty("sun.java.command", "TEST_SERVICE_NAME");
 
         ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
-            new PropertyFileConfigurationSource("test.elasticapm.with-service-name.properties")
+            Objects.requireNonNull(ConfigSources.fromClasspath("test.elasticapm.with-service-name.properties", ClassLoader.getSystemClassLoader()))
         );
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)
             .configurationRegistry(localConfig)
             .buildAndStart();
-        tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
+
+        ClassLoader cl = getClass().getClassLoader();
+        tracer.setServiceInfoForClassLoader(cl, ServiceInfo.of("overridden"));
+        assertThat(tracer.getServiceInfoForClassLoader(cl)).isNull();
+
         startTestRootTransaction().end();
 
         CoreConfiguration coreConfig = localConfig.getConfig(CoreConfiguration.class);
-        assertThat(ServiceNameUtil.getDefaultServiceName()).isEqualTo(coreConfig.getServiceName());
+
+        assertThat(ServiceInfo.autoDetect(System.getProperties()))
+            .isEqualTo(ServiceInfo.of(coreConfig.getServiceName()));
+
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isNull();
         if (command != null) {
             System.setProperty("sun.java.command", command);
@@ -475,11 +536,50 @@ class ElasticApmTracerTest {
         }
     }
 
+    private static void checkServiceInfo(Transaction transaction, ServiceInfo expected) {
+        TraceContext traceContext = transaction.getTraceContext();
+        assertThat(traceContext.getServiceName()).isEqualTo(expected.getServiceName());
+        assertThat(traceContext.getServiceVersion()).isEqualTo(expected.getServiceVersion());
+    }
+
+    @Test
+    void testOverrideServiceVersionWithoutExplicitServiceVersion() {
+        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .reporter(reporter)
+            .buildAndStart();
+
+        ServiceInfo overridden = ServiceInfo.of("overridden_name", "overridden_version");
+        tracer.setServiceInfoForClassLoader(getClass().getClassLoader(), overridden);
+
+        startTestRootTransaction().end();
+
+        checkServiceInfo(reporter.getFirstTransaction(), overridden);
+    }
+
+    @Test
+    void testNotOverrideServiceVersionWhenServiceVersionConfigured() {
+        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(ConfigSources.fromClasspath("test.elasticapm.with-service-version.properties", ClassLoader.getSystemClassLoader()));
+        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .reporter(reporter)
+            .configurationRegistry(localConfig)
+            .buildAndStart();
+
+        ServiceInfo overridden = ServiceInfo.of("overridden_name", "overridden_version");
+        ClassLoader cl = getClass().getClassLoader();
+        tracer.setServiceInfoForClassLoader(cl, overridden);
+        assertThat(tracer.getServiceInfoForClassLoader(cl)).isEqualTo(overridden);
+
+        startTestRootTransaction().end();
+
+        checkServiceInfo(reporter.getFirstTransaction(), overridden);
+    }
+
     @Test
     void testCaptureExceptionAndGetErrorId() {
         Transaction transaction = startTestRootTransaction();
         String errorId = transaction.captureExceptionAndGetErrorId(new Exception("test"));
         transaction.end();
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
 
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(errorId).isNotNull();

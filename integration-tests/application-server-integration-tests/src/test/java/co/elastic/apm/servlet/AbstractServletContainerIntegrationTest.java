@@ -19,6 +19,8 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.servlet.tests.TestApp;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,12 +37,9 @@ import org.junit.Test;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.SocatContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 
@@ -102,7 +101,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
 
     private static MockServerContainer mockServerContainer = new MockServerContainer()
-        //.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(MockServerContainer.class)))
+        //.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class))
         .withNetworkAliases("apm-server")
         .withNetwork(Network.SHARED);
     private static OkHttpClient httpClient;
@@ -130,8 +129,6 @@ public abstract class AbstractServletContainerIntegrationTest {
     private final int webPort;
     private final String expectedDefaultServiceName;
     private final String containerName;
-    @Nullable
-    private GenericContainer<?> debugProxy;
     private TestApp currentTestApp;
 
     protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer, String expectedDefaultServiceName, String deploymentPath, String containerName) {
@@ -144,7 +141,6 @@ public abstract class AbstractServletContainerIntegrationTest {
         this.webPort = webPort;
         if (ENABLE_DEBUGGING) {
             enableDebugging(servletContainer);
-            this.debugProxy = createDebugProxy(servletContainer, debugPort);
         }
         if (runtimeAttachSupported() && !ENABLE_RUNTIME_ATTACH) {
             // If runtime attach is off for Servlet containers that support that, we need to add the javaagent here
@@ -156,6 +152,12 @@ public abstract class AbstractServletContainerIntegrationTest {
         List<String> ignoreUrls = new ArrayList<>();
         for (TestApp app : getTestApps()) {
             ignoreUrls.add(String.format("/%s/status*", app.getDeploymentContext()));
+            for (String ignorePath : app.getPathsToIgnore()) {
+                if (ignorePath.startsWith("/")) {
+                    ignorePath = ignorePath.substring(1);
+                }
+                ignoreUrls.add(String.format("/%s/%s", app.getDeploymentContext(), ignorePath));
+            }
         }
         ignoreUrls.add("/favicon.ico");
         String ignoreUrlConfig = String.join(",", ignoreUrls);
@@ -170,33 +172,36 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_CAPTURE_JMX_METRICS", "object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=test_heap_metric]")
             .withEnv("ELASTIC_APM_CAPTURE_BODY", "all")
             .withEnv("ELASTIC_APM_CIRCUIT_BREAKER_ENABLED", "true")
-            .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
+            .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*, public @@jakarta.enterprise.context.NormalScope co.elastic.*")
             .withEnv("ELASTIC_APM_DISABLED_INSTRUMENTATIONS", "") // enable all instrumentations for integration tests
             .withEnv("ELASTIC_APM_PROFILING_SPANS_ENABLED", "true")
             .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic") // allows to use API annotations, we have to use a broad package due to multiple apps
+            .withEnv("ELASTIC_APM_SPAN_COMPRESSION_ENABLED", "false")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
-            .withExposedPorts(webPort)
-            .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withFileSystemBind(pathToAttach, "/apm-agent-attach-cli.jar")
-            .withFileSystemBind(pathToSlimAttach, "/apm-agent-attach-cli-slim.jar")
+            .withCopyFileToContainer(MountableFile.forHostPath(pathToJavaagent), "/elastic-apm-agent.jar")
+            .withCopyFileToContainer(MountableFile.forHostPath(pathToAttach), "/apm-agent-attach-cli.jar")
+            .withCopyFileToContainer(MountableFile.forHostPath(pathToSlimAttach), "/apm-agent-attach-cli-slim.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
+        if (ENABLE_DEBUGGING) {
+            servletContainer.withExposedPorts(webPort, debugPort);
+        } else {
+            servletContainer.withExposedPorts(webPort);
+        }
         for (TestApp testApp : getTestApps()) {
             testApp.getAdditionalEnvVariables().forEach(servletContainer::withEnv);
             try {
                 testApp.getAdditionalFilesToBind().forEach((pathToFile, containerPath) -> {
                     checkFilePresent(pathToFile);
-                    servletContainer.withFileSystemBind(pathToFile, containerPath);
+                    servletContainer.withCopyFileToContainer(MountableFile.forHostPath(pathToFile), containerPath);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        if (isDeployViaFileSystemBind()) {
-            for (TestApp testApp : getTestApps()) {
-                String pathToAppFile = testApp.getAppFilePath();
-                checkFilePresent(pathToAppFile);
-                servletContainer.withFileSystemBind(pathToAppFile, deploymentPath + "/" + testApp.getAppFileName());
-            }
+        for (TestApp testApp : getTestApps()) {
+            String pathToAppFile = testApp.getAppFilePath();
+            checkFilePresent(pathToAppFile);
+            servletContainer.withCopyFileToContainer(MountableFile.forHostPath(pathToAppFile), deploymentPath + "/" + testApp.getAppFileName());
         }
         this.servletContainer.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
         this.servletContainer.start();
@@ -213,13 +218,6 @@ public abstract class AbstractServletContainerIntegrationTest {
                 System.out.println(result.getStderr());
             } catch (Exception e) {
                 throw new RuntimeException(e);
-            }
-        }
-        if (!isDeployViaFileSystemBind()) {
-            for (TestApp testApp : getTestApps()) {
-                String pathToAppFile = testApp.getAppFilePath();
-                checkFilePresent(pathToAppFile);
-                servletContainer.copyFileToContainer(MountableFile.forHostPath(pathToAppFile), deploymentPath + "/" + testApp.getAppFileName());
             }
         }
     }
@@ -240,13 +238,6 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     public String getImageName() {
         return servletContainer.getDockerImageName();
-    }
-
-    /**
-     * If set to true, the war files are {@code --mount}ed into the container instead of copied, which is faster.
-     */
-    protected boolean isDeployViaFileSystemBind() {
-        return true;
     }
 
     /**
@@ -281,33 +272,12 @@ public abstract class AbstractServletContainerIntegrationTest {
     protected void enableDebugging(GenericContainer<?> servletContainer) {
     }
 
-    // makes sure the debugging port is always 5005
-    // if the port is not available, the test can still run
-    @Nullable
-    private GenericContainer<?> createDebugProxy(GenericContainer<?> servletContainer, final int debugPort) {
-        try {
-            final SocatContainer socatContainer = new SocatContainer() {{
-                addFixedExposedPort(debugPort, debugPort);
-            }}
-                .withNetwork(Network.SHARED)
-                .withTarget(debugPort, servletContainer.getNetworkAliases().get(0));
-            socatContainer.start();
-            return socatContainer;
-        } catch (Exception e) {
-            logger.warn("Starting debug proxy failed");
-            return null;
-        }
-    }
-
     @After
     public final void stopServer() {
         servletContainer.getDockerClient()
             .stopContainerCmd(servletContainer.getContainerId())
             .exec();
         servletContainer.stop();
-        if (debugProxy != null) {
-            debugProxy.stop();
-        }
     }
 
     protected Iterable<TestApp> getTestApps() {
@@ -592,14 +562,23 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     private void validateServiceName(JsonNode event) {
         String expectedServiceName = currentTestApp.getExpectedServiceName();
-        if (expectedServiceName != null && event != null) {
-            JsonNode contextService = event.get("context").get("service");
-            assertThat(contextService)
-                .withFailMessage("No service name set. Expected '%s'. Event was %s", expectedServiceName, event)
-                .isNotNull();
+        String expectedServiceVersion = currentTestApp.getExpectedServiceVersion();
+        if (event == null || (expectedServiceName == null &&  expectedServiceVersion == null)) {
+            return;
+        }
+        JsonNode contextService = event.get("context").get("service");
+        assertThat(contextService)
+            .withFailMessage("No service context available.")
+            .isNotNull();
+        if (expectedServiceName != null) {
             assertThat(contextService.get("name").textValue())
-                .describedAs("Event has non-expected service name %s", event)
+                .describedAs("Event has unexpected service name %s", event)
                 .isEqualTo(expectedServiceName);
+        }
+        if (expectedServiceVersion != null) {
+            assertThat(contextService.get("version").textValue())
+                .describedAs("Event has no service version %s", event)
+                .isEqualTo(expectedServiceVersion);
         }
     }
 

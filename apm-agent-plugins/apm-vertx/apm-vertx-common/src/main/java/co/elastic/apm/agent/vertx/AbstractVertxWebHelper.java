@@ -33,8 +33,8 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.nio.CharBuffer;
@@ -61,13 +61,12 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
 
     @Nullable
     protected Transaction startOrGetTransaction(HttpServerRequest httpServerRequest) {
-        Transaction transaction = null;
-        if (tracer.currentTransaction() != null) {
-            return tracer.currentTransaction();
-        } else if (!isExcluded(httpServerRequest.uri(), null, httpServerRequest.headers().get(USER_AGENT_HEADER))) {
+        Transaction transaction = tracer.currentTransaction();
+        if (transaction != null) {
+            return transaction;
+        } else if (!serverHelper.isRequestExcluded(httpServerRequest.uri(), httpServerRequest.headers().get(USER_AGENT_HEADER))) {
             transaction = tracer.startChildTransaction(httpServerRequest.headers(), headerGetter, httpServerRequest.getClass().getClassLoader());
         }
-
         return transaction;
     }
 

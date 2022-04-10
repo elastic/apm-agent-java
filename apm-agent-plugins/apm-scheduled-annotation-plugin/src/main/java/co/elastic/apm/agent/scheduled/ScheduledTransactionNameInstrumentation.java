@@ -31,17 +31,19 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
-import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrumentation {
 
@@ -57,7 +59,7 @@ public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrume
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object setTransactionName(@SimpleMethodSignature String signature,
-                                                 @Advice.Origin Class<?> clazz) {
+                                                @Advice.Origin Class<?> clazz) {
             AbstractSpan<?> active = tracer.getActive();
             if (active == null) {
                 Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
@@ -89,17 +91,15 @@ public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrume
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>none())
+            .and(not(isProxy()))
             .and(declaresMethod(getMethodMatcher()));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return isAnnotatedWith(
-            named("org.springframework.scheduling.annotation.Scheduled")
-                .or(named("org.springframework.scheduling.annotation.Schedules"))
-                .or(named("javax.ejb.Schedule"))
-                .or(named("javax.ejb.Schedules"))
-        );
+            namedOneOf("org.springframework.scheduling.annotation.Scheduled", "org.springframework.scheduling.annotation.Schedules",
+                "javax.ejb.Schedule", "javax.ejb.Schedules", "jakarta.ejb.Schedule", "jakarta.ejb.Schedules"));
     }
 
     @Override

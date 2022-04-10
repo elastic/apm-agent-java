@@ -84,6 +84,12 @@ public class GreetingWebClient {
         return requestMono("GET", "/hello", 200);
     }
 
+    public Mono<String> getPreAuthorized(int expectedStatus) { return requestMono("GET", "/preauthorized", expectedStatus); }
+
+    public Mono<String> getSecurityContextUsername(int expectedStatus) { return requestMono("GET", "/username", expectedStatus); }
+
+    public Mono<String> getSecurityContextUsernameByPathSecured(int expectedStatus) { return requestMono("GET", "/path-username", expectedStatus); }
+
     public Mono<String> getMappingError404() {
         return requestMono("GET", "/error-404", 404);
     }
@@ -124,7 +130,7 @@ public class GreetingWebClient {
 
     public List<String> webSocketPingPong(int count) {
 
-        // taken from https://github.com/spring-projects/spring-framework/blob/master/spring-webflux/src/test/java/org/springframework/web/reactive/socket/WebSocketIntegrationTests.java
+        // taken from https://github.com/spring-projects/spring-framework/blob/main/spring-webflux/src/test/java/org/springframework/web/reactive/socket/WebSocketIntegrationTests.java
         Flux<String> input = Flux.range(1, count).map(i -> "ping-" + i);
 
         AtomicReference<List<String>> actualRef = new AtomicReference<>();
@@ -155,6 +161,7 @@ public class GreetingWebClient {
     public Mono<String> requestMono(String method, String path, int expectedStatus) {
         Mono<String> request = request(method, path, expectedStatus)
             .bodyToMono(String.class)
+            .doOnError((throwable) -> logger.error("Exception occurred during requesting with exception class [{}]", throwable.getClass().getCanonicalName()))
             .publishOn(clientScheduler);
         return logEnabled ? request.log(logger) : request;
     }

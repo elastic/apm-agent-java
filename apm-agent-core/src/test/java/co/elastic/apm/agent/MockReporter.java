@@ -19,9 +19,9 @@
 package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
@@ -69,7 +69,9 @@ public class MockReporter implements Reporter {
 
     // A set of exit span subtypes that do not support address and port discovery
     private static final Set<String> SPAN_TYPES_WITHOUT_ADDRESS;
-    // A map of exit span type to actions that that do not support address and port discovery
+    // A map of exit span type to subtypes that do not support address and port discovery
+    private static final Map<String, Collection<String>> SPAN_SUBTYPES_WITHOUT_ADDRESS;
+    // A map of exit span subtypes to actions that do not support address and port discovery
     private static final Map<String, Collection<String>> SPAN_ACTIONS_WITHOUT_ADDRESS;
     // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
     private boolean checkDestinationAddress = true;
@@ -77,7 +79,7 @@ public class MockReporter implements Reporter {
     private boolean checkDestinationService = true;
     // Allows optional opt-out for unknown outcome
     private boolean checkUnknownOutcomes = true;
-    // Allows optional opt-out from strick span type/sub-type checking
+    // Allows optional opt-out from strict span type/sub-type checking
     private boolean checkStrictSpanType = true;
 
     /**
@@ -99,6 +101,7 @@ public class MockReporter implements Reporter {
 
     static {
         SPAN_TYPES_WITHOUT_ADDRESS = Set.of("jms");
+        SPAN_SUBTYPES_WITHOUT_ADDRESS = Map.of("db", Set.of("h2", "unknown"));
         SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"));
     }
 
@@ -252,9 +255,11 @@ public class MockReporter implements Reporter {
         }
         Destination destination = span.getContext().getDestination();
         if (checkDestinationAddress && !SPAN_TYPES_WITHOUT_ADDRESS.contains(span.getSubtype())) {
+            // see if this span's subtype is not supported for its type
+            Collection<String> unsupportedSubtypes = SPAN_SUBTYPES_WITHOUT_ADDRESS.getOrDefault(span.getType(), Collections.emptySet());
             // see if this span's action is not supported for its subtype
             Collection<String> unsupportedActions = SPAN_ACTIONS_WITHOUT_ADDRESS.getOrDefault(span.getSubtype(), Collections.emptySet());
-            if (!unsupportedActions.contains(span.getAction())) {
+            if (!(unsupportedSubtypes.contains(span.getSubtype()) || unsupportedActions.contains(span.getAction()))) {
                 assertThat(destination.getAddress()).describedAs("destination address is required").isNotEmpty();
                 assertThat(destination.getPort()).describedAs("destination port is required").isGreaterThan(0);
             }
@@ -415,6 +420,12 @@ public class MockReporter implements Reporter {
             .isEqualTo(count));
     }
 
+    public void awaitErrorCount(int count) {
+        awaitUntilAsserted(() -> assertThat(getNumReportedErrors())
+            .describedAs("expecting %d errors", count)
+            .isEqualTo(count));
+    }
+
     @Override
     public synchronized void report(ErrorCapture error) {
         if (closed) {
@@ -465,6 +476,10 @@ public class MockReporter implements Reporter {
         return Collections.unmodifiableList(errors);
     }
 
+    public synchronized int getNumReportedErrors() {
+        return errors.size();
+    }
+
     public synchronized ErrorCapture getFirstError() {
         assertThat(errors)
             .describedAs("at least one error expected, none have been reported")
@@ -487,7 +502,7 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public boolean flush(long timeout, TimeUnit unit) {
+    public boolean flush(long timeout, TimeUnit unit, boolean followupWithFlushRequest) {
         return true;
     }
 

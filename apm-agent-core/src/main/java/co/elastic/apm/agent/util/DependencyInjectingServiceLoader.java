@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
@@ -143,8 +143,8 @@ public class DependencyInjectingServiceLoader<T> {
         } catch (InstantiationException e) {
             String msg = String.format("unable to instantiate '%s', please check descriptor in META-INF", implementation);
             throw new ServiceConfigurationError(msg, e);
-        } catch(UnsupportedClassVersionError e) {
-            logger.debug(String.format("unable to instantiate '%s', unsupported class version error: %s", implementation, e.getMessage()));
+        } catch (UnsupportedClassVersionError e) {
+            logger.debug("Skipping {} because it only applies to more recent Java versions and the JVM running this app is too old to load it", implementation);
             return null;
         } catch (Exception e) {
             throw new ServiceConfigurationError(e.getMessage(), e);

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.impl.metadata;
 
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.util.CustomEnvVariables;
 import org.junit.jupiter.api.Test;
 
@@ -27,28 +28,36 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 public class SystemInfoTest extends CustomEnvVariables {
 
     private static final SystemInfo systemInfo;
     private static final boolean isWindows;
+    private static final ServerlessConfiguration serverlessConfiguration;
+
 
     static {
-        systemInfo = SystemInfo.create("hostname", 0);
+        serverlessConfiguration = config.getConfig(ServerlessConfiguration.class);
+        systemInfo = SystemInfo.create("hostname", 0, serverlessConfiguration);
         isWindows = SystemInfo.isWindows(systemInfo.getPlatform());
     }
-
 
     @Test
     void testHostnameDiscoveryThroughCommand() {
         String hostname = SystemInfo.discoverHostnameThroughCommand(isWindows, 300);
-        assertThat(hostname).isNotNull();
+        assertThat(hostname).isNotNull().isNotEmpty();
+        assertThat(hostname)
+            .describedAs("hostname command output should be normalized")
+            .isEqualTo(hostname.trim());
     }
 
     @Test
     void testHostnameDiscoveryThroughEnv() {
         Map<String, String> customEnvVariables = new HashMap<>();
         if (isWindows) {
+            // when running on Windows the actual computer name will be the netbios name, thus won't match exactly
+            // the entry in the map. It's fine here for testing as it just proves we get the expected value set in map
             customEnvVariables.put("COMPUTERNAME", "Windows_hostname");
             runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(true)).isEqualTo("Windows_hostname"));
         } else {
@@ -61,17 +70,29 @@ public class SystemInfoTest extends CustomEnvVariables {
 
     @Test
     void testHostnameDiscoveryFallbackThroughInetAddress() throws UnknownHostException {
-        String expectedHostname = InetAddress.getLocalHost().getHostName();
+        String expectedHostname = SystemInfo.removeDomain(InetAddress.getLocalHost().getHostName());
 
         Map<String, String> customEnvVariables = new HashMap<>();
-        if (isWindows) {
-            customEnvVariables.put("COMPUTERNAME", null);
-            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.fallbackHostnameDiscovery(true)).isEqualTo(expectedHostname));
-        } else {
-            customEnvVariables.put("HOST", null);
-            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.fallbackHostnameDiscovery(false)).isEqualTo(expectedHostname));
-            customEnvVariables.put("HOSTNAME", null);
-            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.fallbackHostnameDiscovery(false)).isEqualTo(expectedHostname));
+        // none of those env variables should be available to trigger the fallback on all platforms
+        customEnvVariables.put("HOST", null);
+        customEnvVariables.put("HOSTNAME", null);
+        customEnvVariables.put("COMPUTERNAME", null);
+
+        runWithCustomEnvVariables(customEnvVariables, () -> {
+
+            // sanity check for test instrumentation to ensure those are not set
+            checkSystemPropertiesNotSet("HOST","HOSTNAME","COMPUTERNAME");
+
+            assertThat(SystemInfo.fallbackHostnameDiscovery(isWindows))
+                .isEqualTo(expectedHostname);
+        });
+    }
+
+    private static void checkSystemPropertiesNotSet(String... keys){
+        Map<String, String> map = System.getenv();
+        for (String key : keys) {
+            assertThat(System.getenv(key)).isNull();
+            assertThat(map.get(key)).isNull();
         }
     }
 
@@ -79,5 +100,16 @@ public class SystemInfoTest extends CustomEnvVariables {
     void testDomainRemoval() {
         assertThat(SystemInfo.removeDomain("hostname")).isEqualTo("hostname");
         assertThat(SystemInfo.removeDomain("hostname.and.domain")).isEqualTo("hostname");
+    }
+
+    @Test
+    void testLambdaShortcut() {
+        when(serverlessConfiguration.runsOnAwsLambda()).thenReturn(true);
+        SystemInfo systemInfo = SystemInfo.create(null, 0, serverlessConfiguration);
+        assertThat(systemInfo.getArchitecture()).isNotNull();
+        assertThat(systemInfo.getPlatform()).isNotNull();
+        assertThat(systemInfo.getDetectedHostname()).isNull();
+        assertThat(systemInfo.getContainerInfo()).isNull();
+        assertThat(systemInfo.getKubernetesInfo()).isNull();
     }
 }

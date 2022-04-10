@@ -26,15 +26,18 @@ import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.report.ReporterConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
-public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recyclable {
+public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recyclable, ElasticContext<T> {
     public static final int PRIO_USER_SUPPLIED = 1000;
     public static final int PRIO_HIGH_LEVEL_FRAMEWORK = 100;
     public static final int PRIO_METHOD_SIGNATURE = 100;
@@ -50,10 +53,9 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     protected final StringBuilder name = new StringBuilder();
     protected final boolean collectBreakdownMetrics;
     protected final ElasticApmTracer tracer;
-    private long timestamp;
+    protected final AtomicLong timestamp = new AtomicLong();
+    protected final AtomicLong endTimestamp = new AtomicLong();
 
-    // in microseconds
-    protected long duration;
     private ChildDurationTimer childDurations = new ChildDurationTimer();
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
@@ -105,6 +107,16 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     private boolean hasCapturedExceptions;
 
+    @Nullable
+    protected volatile String type;
+
+    protected final AtomicReference<Span> bufferedSpan = new AtomicReference<>();
+
+    @Nullable
+    private OTelSpanKind otelKind = null;
+
+    private final Map<String, Object> otelAttributes = new HashMap<>();
+
     public int getReferenceCount() {
         return references.get();
     }
@@ -132,9 +144,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public boolean isDiscarded() {
         return discardRequested && getTraceContext().isDiscardable();
     }
-
-    @Nullable
-    public abstract Transaction getTransaction();
 
     private static class ChildDurationTimer implements Recyclable {
 
@@ -211,15 +220,15 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * How long the transaction took to complete, in µs
      */
     public long getDuration() {
-        return duration;
+        return endTimestamp.get() - timestamp.get();
     }
 
     public long getSelfDuration() {
-        return duration - childDurations.getDuration();
+        return getDuration() - childDurations.getDuration();
     }
 
     public double getDurationMs() {
-        return duration / AbstractSpan.MS_IN_MICROS;
+        return getDuration() / AbstractSpan.MS_IN_MICROS;
     }
 
     /**
@@ -230,7 +239,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     }
 
     /**
-     * Resets and returns the name {@link StringBuilder} if the provided priority is {@code >=} {@link #namePriority} one.
+     * Resets and returns the name {@link StringBuilder} if the provided priority is {@code >=} {@link #namePriority}.
      * Otherwise, returns {@code null}
      *
      * @param namePriority the priority for the name. See also the {@code AbstractSpan#PRIO_*} constants.
@@ -329,11 +338,21 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return thiz();
     }
 
+    public T withType(@Nullable String type){
+        this.type = normalizeEmpty(type);
+        return thiz();
+    }
+
+    @Nullable
+    protected static String normalizeEmpty(@Nullable String value) {
+        return value == null || value.isEmpty() ? null : value;
+    }
+
     /**
      * Recorded time of the span or transaction in microseconds since epoch
      */
     public long getTimestamp() {
-        return timestamp;
+        return timestamp.get();
     }
 
     public TraceContext getTraceContext() {
@@ -344,8 +363,9 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public void resetState() {
         finished = true;
         name.setLength(0);
-        timestamp = 0;
-        duration = 0;
+        type = null;
+        timestamp.set(0L);
+        endTimestamp.set(0L);
         traceContext.resetState();
         childDurations.resetState();
         references.set(0);
@@ -356,6 +376,9 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         outcome = null;
         userOutcome = null;
         hasCapturedExceptions = false;
+        bufferedSpan.set(null);
+        otelKind = null;
+        otelAttributes.clear();
     }
 
     public Span createSpan() {
@@ -390,15 +413,18 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return isExit;
     }
 
-
-    public void captureException(long epochMicros, Throwable t) {
-        tracer.captureAndReportException(epochMicros, t, this);
+    @Nullable
+    public String captureExceptionAndGetErrorId(long epochMicros, @Nullable Throwable t) {
+        if (t != null) {
+            hasCapturedExceptions = true;
+            return tracer.captureAndReportException(epochMicros, t, this);
+        }
+        return null;
     }
 
     public T captureException(@Nullable Throwable t) {
         if (t != null) {
-            hasCapturedExceptions = true;
-            captureException(getTraceContext().getClock().getEpochMicros(), t);
+            captureExceptionAndGetErrorId(getTraceContext().getClock().getEpochMicros(), t);
         }
         return (T) this;
     }
@@ -409,7 +435,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     @Nullable
     public String captureExceptionAndGetErrorId(@Nullable Throwable t) {
-        return tracer.captureAndReportException(getTraceContext().getClock().getEpochMicros(), t, this);
+        return captureExceptionAndGetErrorId(getTraceContext().getClock().getEpochMicros(), t);
     }
 
     public void addLabel(String key, String value) {
@@ -448,13 +474,22 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     public final void end(long epochMicros) {
         if (!finished) {
-            this.duration = (epochMicros - timestamp);
+            this.endTimestamp.set(epochMicros);
             if (name.length() == 0) {
                 name.append("unnamed");
             }
             childDurations.onSpanEnd(epochMicros);
+
+            type = normalizeType(type);
+
             beforeEnd(epochMicros);
             this.finished = true;
+            Span buffered = bufferedSpan.get();
+            if (buffered != null) {
+                if (bufferedSpan.compareAndSet(buffered, null)) {
+                    this.tracer.endSpan(buffered);
+                }
+            }
             afterEnd();
         } else {
             logger.warn("End has already been called: {}", this);
@@ -491,28 +526,21 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return false;
     }
 
+    @Override
     public T activate() {
         tracer.activate(this);
         return (T) this;
     }
 
+    @Override
     public T deactivate() {
         tracer.deactivate(this);
         return (T) this;
     }
 
+    @Override
     public Scope activateInScope() {
-        // already in scope
-        if (tracer.getActive() == this) {
-            return Scope.NoopScope.INSTANCE;
-        }
-        activate();
-        return new Scope() {
-            @Override
-            public void close() {
-                deactivate();
-            }
-        };
+        return tracer.activateInScope(this);
     }
 
     /**
@@ -521,14 +549,14 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * @param epochMicros start timestamp in micro-seconds since epoch
      */
     public void setStartTimestamp(long epochMicros) {
-        timestamp = epochMicros;
+        timestamp.set(epochMicros);
     }
 
     /**
      * Set start timestamp from context current clock
      */
     public void setStartTimestampNow() {
-        timestamp = getTraceContext().getClock().getEpochMicros();
+        timestamp.set(getTraceContext().getClock().getEpochMicros());
     }
 
     void onChildStart(long epochMicros) {
@@ -661,6 +689,44 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public T withUserOutcome(Outcome outcome) {
         this.userOutcome = outcome;
         return thiz();
+    }
+
+    @Override
+    public ElasticContext<T> withActiveSpan(AbstractSpan<?> span) {
+        // for internal spans the active span is only stored implicitly in the stack, hence we have no requirement
+        // to have any other kind of context storage.
+        return this;
+    }
+
+    @Override
+    public AbstractSpan<?> getSpan() {
+        return this;
+    }
+
+    public T withOtelKind(OTelSpanKind kind) {
+        this.otelKind = kind;
+        return thiz();
+    }
+
+    @Nullable
+    public OTelSpanKind getOtelKind() {
+        return otelKind;
+    }
+
+    public Map<String, Object> getOtelAttributes() {
+        return otelAttributes;
+    }
+
+    @Nullable
+    public String getType() {
+        return type;
+    }
+
+    private String normalizeType(@Nullable String type) {
+        if (type == null || type.isEmpty()) {
+            return "custom";
+        }
+        return type;
     }
 
 }

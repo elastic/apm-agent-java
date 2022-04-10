@@ -20,18 +20,25 @@ package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.testinstr.SystemSingleEnvVariablesInstrumentation;
-import org.junit.jupiter.api.Test;
 
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.concurrent.Callable;
 
 public abstract class CustomEnvVariables extends AbstractInstrumentationTest {
 
-    protected void runWithCustomEnvVariables(Map<String, String> customEnvVariables, Runnable task) {
+    protected void runWithCustomEnvVariables(Map<String, String> customEnvVariables, Runnable runnable) {
         try {
             SystemSingleEnvVariablesInstrumentation.setCustomEnvVariables(customEnvVariables);
-            task.run();
+            runnable.run();
+        } finally {
+            SystemSingleEnvVariablesInstrumentation.clearCustomEnvVariables();
+        }
+    }
+
+    protected <V> V callWithCustomEnvVariables(Map<String, String> customEnvVariables, Callable<V> callable) throws Exception {
+        try {
+            SystemSingleEnvVariablesInstrumentation.setCustomEnvVariables(customEnvVariables);
+            return callable.call();
         } finally {
             SystemSingleEnvVariablesInstrumentation.clearCustomEnvVariables();
         }

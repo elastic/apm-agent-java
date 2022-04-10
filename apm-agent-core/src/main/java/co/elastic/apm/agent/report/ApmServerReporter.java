@@ -32,8 +32,8 @@ import com.lmax.disruptor.IgnoreExceptionHandler;
 import com.lmax.disruptor.InsufficientCapacityException;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.ThreadFactory;
@@ -67,6 +67,13 @@ public class ApmServerReporter implements Reporter {
         @Override
         public void translateTo(ReportingEvent event, long sequence, @Nullable Thread unparkAfterProcessed) {
             event.setEndRequestEvent();
+            event.unparkAfterProcessed(unparkAfterProcessed);
+        }
+    };
+    private static final EventTranslatorOneArg<ReportingEvent, Thread> MAKE_FLUSH_REQUEST_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Thread>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, @Nullable Thread unparkAfterProcessed) {
+            event.setMakeFlushRequestEvent();
             event.unparkAfterProcessed(unparkAfterProcessed);
         }
     };
@@ -148,7 +155,7 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public boolean flush() {
-        return flush(-1, TimeUnit.NANOSECONDS);
+        return flush(-1, TimeUnit.NANOSECONDS, false);
     }
 
     @Override
@@ -166,7 +173,10 @@ public class ApmServerReporter implements Reporter {
     }
 
     @Override
-    public boolean flush(long timeout, TimeUnit unit) {
+    public boolean flush(long timeout, TimeUnit unit, boolean followupWithFlushRequest) {
+        if (followupWithFlushRequest) {
+            return publishAndWaitForEvent(timeout, unit, MAKE_FLUSH_REQUEST_EVENT_TRANSLATOR);
+        }
         return publishAndWaitForEvent(timeout, unit, END_REQUEST_EVENT_TRANSLATOR);
     }
 

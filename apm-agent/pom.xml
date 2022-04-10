@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.26.1-SNAPSHOT</version>
+        <version>1.30.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent</artifactId>
@@ -21,16 +21,9 @@
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
 
-        <!-- default value that will be overloaded through commit-id plugin -->
-        <git.commit.id.abbrev>UNKNOWN</git.commit.id.abbrev>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jul-to-slf4j</artifactId>
-            <version>${version.slf4j}</version>
-        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>
@@ -38,7 +31,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-indy-bootstrap-module</artifactId>
+            <artifactId>apm-agent-bootstrap</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -71,11 +64,6 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-dubbo-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-error-logging-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -180,11 +168,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-log-correlation-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>apm-log-shipper-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -200,7 +183,22 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-logback-plugin-impl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jboss-logging-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-slf4j-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -235,7 +233,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-quartz-job-plugin</artifactId>
+            <artifactId>apm-quartz-1-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-quartz-2-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -316,6 +319,21 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-vertx4-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-awslambda-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jakarta-websocket-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-ecs-logging-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -404,20 +422,26 @@
                             <shadedArtifactAttached>false</shadedArtifactAttached>
                             <filters>
                                 <filter>
-                                    <artifact>*:*</artifact>
+                                    <artifact>${project.groupId}:apm-agent-cached-lookup-key</artifact>
                                     <excludes>
-                                        <exclude>**/module-info.class</exclude>
-                                        <exclude>META-INF/versions/**</exclude>
+                                        <exclude>**/*</exclude>
                                     </excludes>
                                 </filter>
                                 <filter>
                                     <artifact>org.apache.logging.log4j:log4j-core</artifact>
-                                    <!--
-                                    Eliminating exposure to the log4j2 vulnerability related to the SMTP appender -
-                                    https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle
-                                    -->
+                                    <!--Keep in sync with apm-agent-attach-cli/pom.xml-->
                                     <excludes>
+                                        <!--
+                                        Eliminating exposure to the log4j2 vulnerability related to the SMTP appender -
+                                        https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle
+                                        -->
                                         <exclude>org/apache/logging/log4j/core/appender/SmtpAppender.class</exclude>
+                                        <!--
+                                        Strip out JndiLookup class to avoid any possibility of exploitation of CVE-2021-44228
+                                        See: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44228
+                                        See: https://issues.apache.org/jira/browse/LOG4J2-3201
+                                        -->
+                                        <exclude>org/apache/logging/log4j/core/lookup/JndiLookup.class</exclude>
                                     </excludes>
                                 </filter>
                                 <filter>
@@ -445,11 +469,10 @@
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
                                         <Automatic-Module-Name>${project.groupId}.agent</Automatic-Module-Name>
-                                        <SCM-Revision>${git.commit.id.abbrev}</SCM-Revision>
                                     </manifestEntries>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer" />
-                                <transformer implementation="com.github.edwgiz.maven_shade_plugin.log4j2_cache_transformer.PluginsCacheFileTransformer"/>
+                                <transformer implementation="com.github.edwgiz.maven_shade_plugin.log4j2_cache_transformer.PluginsCacheFileTransformer" />
                             </transformers>
                         </configuration>
                     </execution>
@@ -474,19 +497,6 @@
                                 <dependencySourceInclude>${project.groupId}:apm-agent-core</dependencySourceInclude>
                             </dependencySourceIncludes>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>pl.project13.maven</groupId>
-                <artifactId>git-commit-id-plugin</artifactId>
-                <version>4.0.2</version>
-                <executions>
-                    <execution>
-                        <id>get-the-git-infos</id>
-                        <goals>
-                            <goal>revision</goal>
-                        </goals>
                     </execution>
                 </executions>
             </plugin>

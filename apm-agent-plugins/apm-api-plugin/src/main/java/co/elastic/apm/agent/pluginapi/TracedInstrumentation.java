@@ -108,7 +108,7 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
             if (abstractSpan instanceof AbstractSpan<?>) {
                 ((AbstractSpan<?>) abstractSpan)
                     .captureException(t)
-                    .withOutcome(t != null ? Outcome.FAILURE : Outcome.FAILURE)
+                    .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
                     .deactivate()
                     .end();
             }
@@ -142,6 +142,6 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(PUBLIC_API_INSTRUMENTATION_GROUP, "annotations");
+        return Arrays.asList(PUBLIC_API_INSTRUMENTATION_GROUP, "annotations", "annotations-traced");
     }
 }

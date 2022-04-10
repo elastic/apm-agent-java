@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
@@ -54,6 +55,7 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private final TransactionContext context = new TransactionContext();
     private final SpanCount spanCount = new SpanCount();
+    private final DroppedSpanStats droppedSpanStats = new DroppedSpanStats();
     /**
      * type: subtype: timer
      * <p>
@@ -78,14 +80,13 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private boolean noop;
 
-    /**
-     * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
-     * (Required)
-     */
-    @Nullable
-    private volatile String type;
-
     private int maxSpans;
+
+    private boolean spanCompressionEnabled;
+
+    private long spanCompressionExactMatchMaxDurationUs;
+
+    private long spanCompressionSameKindMaxDurationUs;
 
     @Nullable
     private String frameworkName;
@@ -94,6 +95,13 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     @Nullable
     private String frameworkVersion;
+
+    /**
+     * Faas
+     * <p>
+     * If a services is executed as a serverless function (function as a service), FaaS-specific information can be collected within this object.
+     */
+    private final Faas faas = new Faas();
 
     @Override
     public Transaction getTransaction() {
@@ -104,17 +112,13 @@ public class Transaction extends AbstractSpan<Transaction> {
         super(tracer);
     }
 
-    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros,
-                                 Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
-        traceContext.setApplicationClassLoader(initiatingClassLoader);
+    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros, Sampler sampler) {
         boolean startedAsChild = parent != null && childContextCreator.asChildOf(traceContext, parent);
         onTransactionStart(startedAsChild, epochMicros, sampler);
         return this;
     }
 
-    public <T, A> Transaction start(TraceContext.ChildContextCreatorTwoArg<T, A> childContextCreator, @Nullable T parent, A arg,
-                                    long epochMicros, Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
-        traceContext.setApplicationClassLoader(initiatingClassLoader);
+    public <T, A> Transaction start(TraceContext.ChildContextCreatorTwoArg<T, A> childContextCreator, @Nullable T parent, A arg, long epochMicros, Sampler sampler) {
         boolean startedAsChild = childContextCreator.asChildOf(traceContext, parent, arg);
         onTransactionStart(startedAsChild, epochMicros, sampler);
         return this;
@@ -122,6 +126,9 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     private void onTransactionStart(boolean startedAsChild, long epochMicros, Sampler sampler) {
         maxSpans = tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans();
+        spanCompressionEnabled = tracer.getConfig(SpanConfiguration.class).isSpanCompressionEnabled();
+        spanCompressionExactMatchMaxDurationUs = tracer.getConfig(SpanConfiguration.class).getSpanCompressionExactMatchMaxDuration().getMicros();
+        spanCompressionSameKindMaxDurationUs = tracer.getConfig(SpanConfiguration.class).getSpanCompressionSameKindMaxDuration().getMicros();
         if (!startedAsChild) {
             traceContext.asRootSpan(sampler);
         }
@@ -160,14 +167,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         synchronized (this) {
             return context;
         }
-    }
-
-    /**
-     * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
-     */
-    public Transaction withType(@Nullable String type) {
-        this.type = type;
-        return this;
     }
 
     /**
@@ -212,9 +211,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (!isSampled()) {
             context.resetState();
         }
-        if (type == null) {
-            type = "custom";
-        }
 
         if (outcomeNotSet()) {
             // set outcome from HTTP status if not already set
@@ -246,6 +242,17 @@ public class Transaction extends AbstractSpan<Transaction> {
         return spanCount;
     }
 
+    public void captureDroppedSpan(Span span) {
+        if (span.isSampled()) {
+            spanCount.getDropped().incrementAndGet();
+        }
+        droppedSpanStats.captureDroppedSpan(span);
+    }
+
+    public DroppedSpanStats getDroppedSpanStats() {
+        return droppedSpanStats;
+    }
+
     boolean isSpanLimitReached() {
         return getSpanCount().isSpanLimitReached(maxSpans);
     }
@@ -260,11 +267,15 @@ public class Transaction extends AbstractSpan<Transaction> {
         context.resetState();
         result = null;
         spanCount.resetState();
-        type = null;
+        droppedSpanStats.resetState();
         noop = false;
         maxSpans = 0;
+        spanCompressionEnabled = false;
+        spanCompressionExactMatchMaxDurationUs = 0L;
+        spanCompressionSameKindMaxDurationUs = 0L;
         frameworkName = null;
         frameworkVersion = null;
+        faas.resetState();
         // don't clear timerBySpanTypeAndSubtype map (see field-level javadoc)
     }
 
@@ -277,11 +288,6 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     public void ignoreTransaction() {
         noop = true;
-    }
-
-    @Nullable
-    public String getType() {
-        return type;
     }
 
     public void addCustomContext(String key, String value) {
@@ -347,6 +353,27 @@ public class Transaction extends AbstractSpan<Transaction> {
         return this.frameworkVersion;
     }
 
+    /**
+     * Function as a Service (Faas)
+     * <p>
+     * If a services is executed as a serverless function (function as a service), FaaS-specific information can be collected within this object.
+     */
+    public Faas getFaas() {
+        return faas;
+    }
+
+    public boolean isSpanCompressionEnabled() {
+        return spanCompressionEnabled;
+    }
+
+    public long getSpanCompressionExactMatchMaxDurationUs() {
+        return spanCompressionExactMatchMaxDurationUs;
+    }
+
+    public long getSpanCompressionSameKindMaxDurationUs() {
+        return spanCompressionSameKindMaxDurationUs;
+    }
+
     @Override
     protected Transaction thiz() {
         return this;
@@ -403,7 +430,10 @@ public class Transaction extends AbstractSpan<Transaction> {
             }
             final Labels.Mutable labels = labelsThreadLocal.get();
             labels.resetState();
-            labels.serviceName(getTraceContext().getServiceName()).transactionName(name).transactionType(type);
+            labels.serviceName(getTraceContext().getServiceName())
+                .serviceVersion(getTraceContext().getServiceVersion())
+                .transactionName(name)
+                .transactionType(type);
             final MetricRegistry metricRegistry = tracer.getMetricRegistry();
             long criticalValueAtEnter = metricRegistry.writerCriticalSectionEnter();
             try {

@@ -20,8 +20,8 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
@@ -122,8 +122,8 @@ public class AbstractIntakeApiHandler {
                 payloadSerializer.flushToOutputStream();
                 requestStartedNanos = System.nanoTime();
             } catch (IOException e) {
-                logger.error("Error trying to connect to APM Server at {}. Some details about SSL configurations corresponding " +
-                    "the current connection are logged at INFO level.", connection.getURL());
+                logger.error("Error trying to connect to APM Server at {}. Although not necessarily related to SSL, some related SSL " +
+                    "configurations corresponding the current connection are logged at INFO level.", connection.getURL());
                 if (logger.isInfoEnabled() && connection instanceof HttpsURLConnection) {
                     HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
                     try {

@@ -19,7 +19,6 @@
 package co.elastic.apm.attach;
 
 import co.elastic.apm.attach.bouncycastle.BouncyCastleVerifier;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.FileAlreadyExistsException;
