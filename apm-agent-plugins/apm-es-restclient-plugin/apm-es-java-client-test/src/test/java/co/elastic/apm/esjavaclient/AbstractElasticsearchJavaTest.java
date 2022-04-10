@@ -5,7 +5,9 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Refresh;
+import co.elastic.clients.elasticsearch._types.SearchType;
 import co.elastic.clients.elasticsearch._types.StoredScript;
+import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
@@ -28,6 +30,9 @@ import co.elastic.clients.elasticsearch.core.SearchTemplateRequest;
 import co.elastic.clients.elasticsearch.core.SearchTemplateResponse;
 import co.elastic.clients.elasticsearch.core.UpdateRequest;
 import co.elastic.clients.elasticsearch.core.UpdateResponse;
+import co.elastic.clients.elasticsearch.core.msearch.MultisearchBody;
+import co.elastic.clients.elasticsearch.core.msearch.MultisearchHeader;
+import co.elastic.clients.elasticsearch.core.msearch.RequestItem;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
@@ -177,48 +182,41 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         }
     }
 
-    // TODO resolve problem with newline
-//    @Test
-//    @Ignore
-//    public void testMultiSearchRequest_validateSpanContentAndDbContext() throws InterruptedException, ExecutionException, IOException {
-//        prepareDefaultDocumentAndIndex();
-//        reporter.reset();
-//
-//        MsearchRequest multiSearchRequest = new MsearchRequest.Builder()
-//            .index(INDEX)
-//            .searches(new RequestItem.Builder()
-//                    .body(new MultisearchBody.Builder()
-//                        .build() Json.createObjectBuilder()
-//                        .add("index", Json.createArrayBuilder().add(INDEX))
-//                        .add("types", Json.createArrayBuilder())
-//                        .add("search_type", "query_then_fetch")
-//                        .add("ccs_minimize_roundtrips", true)
-//                        .build())
-//                        .build(),
-//
-//                Json.createObjectBuilder()
-//                    .add("query", Json.createObjectBuilder()
-//                        .add("match", Json.createObjectBuilder()
-//                            .add(FOO, Json.createObjectBuilder()
-//                                .add("query", BAR)
-//                                .add("operator", "OR")))
-//                        .build()))
-//            .build();
-//
-//        ApiException apiException = null;
-//        try {
-//            MsearchResponse response = doMultiSearch(multiSearchRequest, Map.class);
-//
-//            List<Span> spans = reporter.getSpans();
-//            assertThat(spans).hasSize(1);
-//            Span span = spans.get(0);
-//            validateSpanContent(span, "Elasticsearch: POST /_msearch", 200, "POST");
-//            verifyMultiSearchSpanContent(span);
-//
-//        } finally {
-//            deleteDocument();
-//        }
-//    }
+    @Test
+    public void testMultiSearchRequest_validateSpanContentAndDbContext() throws InterruptedException, ExecutionException, IOException {
+        prepareDefaultDocumentAndIndex();
+        reporter.reset();
+
+        MsearchRequest multiSearchRequest = new MsearchRequest.Builder()
+            .index(INDEX)
+            .searches(new RequestItem.Builder()
+                .header(new MultisearchHeader.Builder()
+                    .index(INDEX)
+                    .searchType(SearchType.QueryThenFetch)
+                    .build())
+                .body(new MultisearchBody.Builder()
+                    .query(new Query.Builder()
+                        .match(new MatchQuery.Builder()
+                            .field(FOO)
+                            .query(BAR)
+                            .build())
+                        .build())
+                    .build())
+                .build())
+            .build();
+
+        try {
+            doMultiSearch(multiSearchRequest, Map.class);
+
+            List<Span> spans = reporter.getSpans();
+            assertThat(spans).hasSize(1);
+            Span span = spans.get(0);
+            validateSpanContent(span, String.format("Elasticsearch: POST /%s/_msearch", INDEX), 200, "POST");
+            verifyMultiSearchSpanContent(span);
+        } finally {
+            deleteDocument();
+        }
+    }
 
     @Test
     public void testRollupSearch_validateSpanContentAndDbContext() throws InterruptedException, ExecutionException, IOException {
