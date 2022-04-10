@@ -366,8 +366,8 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
     }
 
     private void verifyMultiSearchSpanContent(Span span) {
-        validateDbContextContent(span, "{\"index\":[\"my-index\"],\"types\":[],\"search_type\":\"query_then_fetch\"}\n" +
-            "{\"query\":{\"match\":{\"foo\":{\"query\":\"bar\",\"operator\":\"OR\",\"prefix_length\":0,\"max_expansions\":50,\"fuzzy_transpositions\":true,\"lenient\":false,\"zero_terms_query\":\"NONE\",\"auto_generate_synonyms_phrase_query\":true,\"boost\":1.0}}}}\n");
+        validateDbContextContent(span, "{\"index\":[\"my-index\"],\"search_type\":\"query_then_fetch\"}\n" +
+            "{\"query\":{\"match\":{\"foo\":{\"query\":\"bar\"}}}}\n");
     }
 
     private void verifyTotalHits(HitsMetadata hitsMetadata) {

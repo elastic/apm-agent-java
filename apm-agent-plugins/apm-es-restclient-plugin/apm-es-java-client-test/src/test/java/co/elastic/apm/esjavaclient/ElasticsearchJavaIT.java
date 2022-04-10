@@ -23,7 +23,7 @@ import java.io.IOException;
 @RunWith(Parameterized.class)
 public class ElasticsearchJavaIT extends AbstractElasticsearchJavaTest {
 
-    private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.17.1";
+    private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.17.2";
 
     public ElasticsearchJavaIT(boolean async) {
         this.async = async;
