@@ -39,7 +39,6 @@ import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumen
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.SPAN_ACTION;
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.anyOf;
 
 public abstract class AbstractEsClientInstrumentationTest extends AbstractInstrumentationTest {
 
