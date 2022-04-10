@@ -30,9 +30,12 @@ import co.elastic.clients.elasticsearch.core.SearchTemplateRequest;
 import co.elastic.clients.elasticsearch.core.SearchTemplateResponse;
 import co.elastic.clients.elasticsearch.core.UpdateRequest;
 import co.elastic.clients.elasticsearch.core.UpdateResponse;
+import co.elastic.clients.elasticsearch.core.msearch.MultiSearchItem;
+import co.elastic.clients.elasticsearch.core.msearch.MultiSearchResponseItem;
 import co.elastic.clients.elasticsearch.core.msearch.MultisearchBody;
 import co.elastic.clients.elasticsearch.core.msearch.MultisearchHeader;
 import co.elastic.clients.elasticsearch.core.msearch.RequestItem;
+import co.elastic.clients.elasticsearch.core.msearch_template.TemplateConfig;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
@@ -47,11 +50,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -266,36 +271,44 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         }
     }
 
-    // TODO - newline problem, check response data and resolve verifyTotalHits
-//    @Test
-//    @Ignore
-//    public void testMultisearchTemplateRequest_validateSpanContentAndDbContext() throws InterruptedException, ExecutionException, IOException {
-//        prepareDefaultDocumentAndIndex();
-//        prepareMustacheScriptAndSave();
-//        reporter.reset();
-//
-//        MsearchTemplateRequest multiRequest = new MsearchTemplateRequest(builder -> builder.searchTemplates(
-//            new TemplateItem(itemBuilder -> itemBuilder.index(INDEX)
-//                .id("elastic-search-template")
-//                .params(Map.of("field", JsonData.of(FOO), "value", JsonData.of(BAR), "size", JsonData.of(5))))
-//        ));
-//
-//        try {
-//            MsearchTemplateResponse<Map> response = doMultiSearchTemplate(multiRequest, Map.class);
-//
-//            List<JsonValue> items = response.responses();
-//            assertThat(items.size()).isEqualTo(1);
-////        verifyTotalHits(items.get(0).getResponse().getResponse().getHits());
-//            List<Span> spans = reporter.getSpans();
-//            assertThat(spans).hasSize(1);
-//            Span span = spans.get(0);
-//            validateSpanContent(span, String.format("Elasticsearch: POST /_msearch/template", INDEX), 200, "POST");
-//            verifyMultiSearchTemplateSpanContent(span);
-//        } finally {
-//            deleteMustacheScript();
-//            deleteDocument();
-//        }
-//    }
+    @Test
+    public void testMultisearchTemplateRequest_validateSpanContentAndDbContext() throws InterruptedException, ExecutionException, IOException {
+        prepareDefaultDocumentAndIndex();
+        prepareMustacheScriptAndSave();
+        reporter.reset();
+
+
+        MsearchTemplateRequest multiRequest = new MsearchTemplateRequest.Builder()
+            .searchTemplates(new co.elastic.clients.elasticsearch.core.msearch_template.RequestItem.Builder()
+                .header(new MultisearchHeader.Builder()
+                    .index(INDEX)
+                    .searchType(SearchType.QueryThenFetch)
+                    .build())
+                .body(new TemplateConfig.Builder()
+                    .id("elastic-search-template")
+                    .params(
+                        Map.of("field", JsonData.of(FOO), "value", JsonData.of(BAR), "size", JsonData.of(5)))
+                    .build()
+                ).build())
+            .build();
+
+        try {
+            MsearchTemplateResponse<Map> response = doMultiSearchTemplate(multiRequest, Map.class);
+
+            List<MultiSearchResponseItem<Map>> items = response.responses();
+            assertThat(items.size()).isEqualTo(1);
+            MultiSearchItem multiSearchItem = (MultiSearchItem) items.get(0)._get();
+            verifyTotalHits(multiSearchItem.hits());
+            List<Span> spans = reporter.getSpans();
+            assertThat(spans).hasSize(1);
+            Span span = spans.get(0);
+            validateSpanContent(span, String.format("Elasticsearch: POST /_msearch/template", INDEX), 200, "POST");
+            verifyMultiSearchTemplateSpanContent(span);
+        } finally {
+            deleteMustacheScript();
+            deleteDocument();
+        }
+    }
 
 //    @Test
 //    public void testScenarioAsBulkRequest() throws IOException, ExecutionException, InterruptedException {
@@ -318,8 +331,24 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
 //    }
 
     private void verifyMultiSearchTemplateSpanContent(Span span) {
-        validateDbContextContent(span, "{\"index\":[\"my-index\"],\"types\":[],\"search_type\":\"query_then_fetch\"}\n" +
-            "{\"source\":\"{  \\\"query\\\": { \\\"term\\\" : { \\\"{{field}}\\\" : \\\"{{value}}\\\" } },  \\\"size\\\" : \\\"{{size}}\\\"}\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"},\"explain\":false,\"profile\":false}\n");
+        String immutablePart = "{\"index\":[\"my-index\"],\"search_type\":\"query_then_fetch\"}\n" +
+            "{\"id\":\"elastic-search-template\",\"params\":";
+        List<String> params = Arrays.asList(
+            "{\"size\":5,\"field\":\"foo\",\"value\":\"bar\"}",
+            "{\"size\":5,\"value\":\"bar\",\"field\":\"foo\"}",
+            "{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"}",
+            "{\"value\":\"bar\",\"size\":5,\"field\":\"foo\"}",
+            "{\"field\":\"foo\",\"value\":\"bar\",\"size\":5}",
+            "{\"value\":\"bar\",\"field\":\"foo\",\"size\":5}");
+        String end = "}\n";
+
+        List<String> possibleSpanContent = params.stream()
+                .map(k -> {
+                    return immutablePart + k + end;
+                }).collect(Collectors.toList());;
+
+
+        validateDbContextContent(span, possibleSpanContent);
     }
 
     private void verifyMultiSearchSpanContent(Span span) {

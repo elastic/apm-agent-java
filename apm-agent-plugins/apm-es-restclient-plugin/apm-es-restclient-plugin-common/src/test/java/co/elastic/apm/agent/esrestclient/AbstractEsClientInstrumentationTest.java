@@ -39,6 +39,7 @@ import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumen
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.SPAN_ACTION;
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.anyOf;
 
 public abstract class AbstractEsClientInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -126,6 +127,14 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(db.getType()).isEqualTo(ELASTICSEARCH);
         assertThat((CharSequence) db.getStatementBuffer()).isNotNull();
         assertThat(db.getStatementBuffer().toString()).isEqualTo(statement);
+    }
+
+    protected void validateDbContextContent(Span span, List<String> oneOfStatements) {
+        Db db = span.getContext().getDb();
+        assertThat(db.getType()).isEqualTo(ELASTICSEARCH);
+        assertThat((CharSequence) db.getStatementBuffer()).isNotNull();
+
+        assertThat(db.getStatementBuffer().toString()).isIn(oneOfStatements);
     }
 
     protected void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
