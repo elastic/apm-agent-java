@@ -87,11 +87,11 @@ public abstract class BaseServerEndpointInstrumentation extends TracerAwareInstr
             if (currentTransaction == null) {
                 Transaction rootTransaction = tracer.startRootTransaction(Thread.currentThread().getContextClassLoader());
                 if (rootTransaction != null) {
-                    setTransactionName(rootTransaction, signature, frameworkName, frameworkVersion);
+                    setTransactionTypeAndName(rootTransaction, signature, frameworkName, frameworkVersion);
                     return rootTransaction.activate();
                 }
             } else {
-                setTransactionName(currentTransaction, signature, frameworkName, frameworkVersion);
+                setTransactionTypeAndName(currentTransaction, signature, frameworkName, frameworkVersion);
             }
 
             return null;
@@ -112,7 +112,8 @@ public abstract class BaseServerEndpointInstrumentation extends TracerAwareInstr
             }
         }
 
-        private static void setTransactionName(Transaction transaction, String signature, String frameworkName, @Nullable String frameworkVersion) {
+        private static void setTransactionTypeAndName(Transaction transaction, String signature, String frameworkName, @Nullable String frameworkVersion) {
+            transaction.withType(Transaction.TYPE_REQUEST);
             transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK, false);
             transaction.setFrameworkName(frameworkName);
             transaction.setFrameworkVersion(frameworkVersion);

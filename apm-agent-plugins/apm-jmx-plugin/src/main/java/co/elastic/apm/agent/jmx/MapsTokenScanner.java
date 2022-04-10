@@ -34,6 +34,7 @@ import java.util.Map;
 public class MapsTokenScanner {
     private final String input;
     private int pos; // read position char offset
+    private int valueOpenSquareBracket; // allows square brackets within values
 
     public MapsTokenScanner(String input) {
         this.input = input;
@@ -130,21 +131,25 @@ public class MapsTokenScanner {
         if (!isNext('[')) {
             throw new IllegalArgumentException("Expected value start token '[' at pos " + pos + " in '" + input + "'");
         } else {
+            valueOpenSquareBracket++;
             next();
         }
         int start = pos;
-        while (!isNext(']')) {
+        while (valueOpenSquareBracket > 0) {
             if (isNext('[')) {
-                throw new IllegalArgumentException("Invalid char '[' within a value at pos " + pos + " in '" + input + "'");
+                valueOpenSquareBracket++;
+            } else if (isNext(']')) {
+                valueOpenSquareBracket--;
             }
             if (!hasNext()) {
                 throw new IllegalArgumentException("Expected end value token ']' at pos " + pos + " in '" + input + "'");
             }
             next();
         }
-        String value = input.substring(start, pos);
-        next();
-        return value;
+        if (pos > 0) {
+            return input.substring(start, pos-1);
+        }
+        throw new IllegalArgumentException("Empty values are not allowed");
     }
 
     void skipWhiteSpace() {

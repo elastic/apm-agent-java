@@ -18,10 +18,12 @@
  */
 package co.elastic.apm.agent.configuration;
 
+import co.elastic.apm.agent.util.CustomEnvVariables;
 import org.junit.jupiter.api.Test;
 
-import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.Nullable;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -29,7 +31,7 @@ import java.util.jar.Manifest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
-class ServiceInfoTest {
+class ServiceInfoTest extends CustomEnvVariables {
 
     private static String getDefaultServiceName(@Nullable String sunJavaCommand) {
         Properties properties = new Properties();
@@ -71,6 +73,18 @@ class ServiceInfoTest {
             softly.assertThat(getDefaultServiceName("foo/my-app-1.0.0-RC1.jar baz")).isEqualTo("my-app");
             softly.assertThat(getDefaultServiceName("C:\\foo\\my-app.jar")).isEqualTo("my-app");
             softly.assertThat(getDefaultServiceName("C:\\foo bar\\my-app-1.0.0-BUILD-SNAPSHOT.jar qux")).isEqualTo("my-app");
+        });
+    }
+
+    @Test
+    void testDefaultsWithLambda() throws Exception {
+        final Map<String, String> awsLambdaEnvVariables = new HashMap<>();
+        awsLambdaEnvVariables.put("AWS_LAMBDA_FUNCTION_NAME", "my-lambda-function");
+        awsLambdaEnvVariables.put("AWS_LAMBDA_FUNCTION_VERSION", "24");
+        ServiceInfo serviceInfo = callWithCustomEnvVariables(awsLambdaEnvVariables, () -> ServiceInfo.autoDetect(new Properties()));
+        assertSoftly(softly -> {
+            softly.assertThat(serviceInfo.getServiceName()).isEqualTo("my-lambda-function");
+            softly.assertThat(serviceInfo.getServiceVersion()).isEqualTo("24");
         });
     }
 

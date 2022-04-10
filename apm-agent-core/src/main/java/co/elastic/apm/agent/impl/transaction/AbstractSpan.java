@@ -30,12 +30,14 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recyclable {
+public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recyclable, ElasticContext<T> {
     public static final int PRIO_USER_SUPPLIED = 1000;
     public static final int PRIO_HIGH_LEVEL_FRAMEWORK = 100;
     public static final int PRIO_METHOD_SIGNATURE = 100;
@@ -105,7 +107,15 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     private boolean hasCapturedExceptions;
 
+    @Nullable
+    protected volatile String type;
+
     protected final AtomicReference<Span> bufferedSpan = new AtomicReference<>();
+
+    @Nullable
+    private OTelSpanKind otelKind = null;
+
+    private final Map<String, Object> otelAttributes = new HashMap<>();
 
     public int getReferenceCount() {
         return references.get();
@@ -134,9 +144,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public boolean isDiscarded() {
         return discardRequested && getTraceContext().isDiscardable();
     }
-
-    @Nullable
-    public abstract Transaction getTransaction();
 
     private static class ChildDurationTimer implements Recyclable {
 
@@ -232,7 +239,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     }
 
     /**
-     * Resets and returns the name {@link StringBuilder} if the provided priority is {@code >=} {@link #namePriority} one.
+     * Resets and returns the name {@link StringBuilder} if the provided priority is {@code >=} {@link #namePriority}.
      * Otherwise, returns {@code null}
      *
      * @param namePriority the priority for the name. See also the {@code AbstractSpan#PRIO_*} constants.
@@ -331,6 +338,16 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return thiz();
     }
 
+    public T withType(@Nullable String type){
+        this.type = normalizeEmpty(type);
+        return thiz();
+    }
+
+    @Nullable
+    protected static String normalizeEmpty(@Nullable String value) {
+        return value == null || value.isEmpty() ? null : value;
+    }
+
     /**
      * Recorded time of the span or transaction in microseconds since epoch
      */
@@ -346,6 +363,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public void resetState() {
         finished = true;
         name.setLength(0);
+        type = null;
         timestamp.set(0L);
         endTimestamp.set(0L);
         traceContext.resetState();
@@ -359,6 +377,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         userOutcome = null;
         hasCapturedExceptions = false;
         bufferedSpan.set(null);
+        otelKind = null;
+        otelAttributes.clear();
     }
 
     public Span createSpan() {
@@ -459,6 +479,9 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
                 name.append("unnamed");
             }
             childDurations.onSpanEnd(epochMicros);
+
+            type = normalizeType(type);
+
             beforeEnd(epochMicros);
             this.finished = true;
             Span buffered = bufferedSpan.get();
@@ -503,28 +526,21 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return false;
     }
 
+    @Override
     public T activate() {
         tracer.activate(this);
         return (T) this;
     }
 
+    @Override
     public T deactivate() {
         tracer.deactivate(this);
         return (T) this;
     }
 
+    @Override
     public Scope activateInScope() {
-        // already in scope
-        if (tracer.getActive() == this) {
-            return Scope.NoopScope.INSTANCE;
-        }
-        activate();
-        return new Scope() {
-            @Override
-            public void close() {
-                deactivate();
-            }
-        };
+        return tracer.activateInScope(this);
     }
 
     /**
@@ -673,6 +689,44 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public T withUserOutcome(Outcome outcome) {
         this.userOutcome = outcome;
         return thiz();
+    }
+
+    @Override
+    public ElasticContext<T> withActiveSpan(AbstractSpan<?> span) {
+        // for internal spans the active span is only stored implicitly in the stack, hence we have no requirement
+        // to have any other kind of context storage.
+        return this;
+    }
+
+    @Override
+    public AbstractSpan<?> getSpan() {
+        return this;
+    }
+
+    public T withOtelKind(OTelSpanKind kind) {
+        this.otelKind = kind;
+        return thiz();
+    }
+
+    @Nullable
+    public OTelSpanKind getOtelKind() {
+        return otelKind;
+    }
+
+    public Map<String, Object> getOtelAttributes() {
+        return otelAttributes;
+    }
+
+    @Nullable
+    public String getType() {
+        return type;
+    }
+
+    private String normalizeType(@Nullable String type) {
+        if (type == null || type.isEmpty()) {
+            return "custom";
+        }
+        return type;
     }
 
 }

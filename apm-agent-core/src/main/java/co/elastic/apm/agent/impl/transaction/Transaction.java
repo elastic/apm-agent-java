@@ -55,6 +55,7 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private final TransactionContext context = new TransactionContext();
     private final SpanCount spanCount = new SpanCount();
+    private final DroppedSpanStats droppedSpanStats = new DroppedSpanStats();
     /**
      * type: subtype: timer
      * <p>
@@ -78,13 +79,6 @@ public class Transaction extends AbstractSpan<Transaction> {
      * Noop transactions won't be reported at all, in contrast to non-sampled transactions.
      */
     private boolean noop;
-
-    /**
-     * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
-     * (Required)
-     */
-    @Nullable
-    private volatile String type;
 
     private int maxSpans;
 
@@ -118,17 +112,13 @@ public class Transaction extends AbstractSpan<Transaction> {
         super(tracer);
     }
 
-    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros,
-                                 Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
-        traceContext.setApplicationClassLoader(initiatingClassLoader);
+    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros, Sampler sampler) {
         boolean startedAsChild = parent != null && childContextCreator.asChildOf(traceContext, parent);
         onTransactionStart(startedAsChild, epochMicros, sampler);
         return this;
     }
 
-    public <T, A> Transaction start(TraceContext.ChildContextCreatorTwoArg<T, A> childContextCreator, @Nullable T parent, A arg,
-                                    long epochMicros, Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
-        traceContext.setApplicationClassLoader(initiatingClassLoader);
+    public <T, A> Transaction start(TraceContext.ChildContextCreatorTwoArg<T, A> childContextCreator, @Nullable T parent, A arg, long epochMicros, Sampler sampler) {
         boolean startedAsChild = childContextCreator.asChildOf(traceContext, parent, arg);
         onTransactionStart(startedAsChild, epochMicros, sampler);
         return this;
@@ -180,14 +170,6 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     /**
-     * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
-     */
-    public Transaction withType(@Nullable String type) {
-        this.type = type;
-        return this;
-    }
-
-    /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
     @Nullable
@@ -229,9 +211,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (!isSampled()) {
             context.resetState();
         }
-        if (type == null) {
-            type = "custom";
-        }
 
         if (outcomeNotSet()) {
             // set outcome from HTTP status if not already set
@@ -263,6 +242,17 @@ public class Transaction extends AbstractSpan<Transaction> {
         return spanCount;
     }
 
+    public void captureDroppedSpan(Span span) {
+        if (span.isSampled()) {
+            spanCount.getDropped().incrementAndGet();
+        }
+        droppedSpanStats.captureDroppedSpan(span);
+    }
+
+    public DroppedSpanStats getDroppedSpanStats() {
+        return droppedSpanStats;
+    }
+
     boolean isSpanLimitReached() {
         return getSpanCount().isSpanLimitReached(maxSpans);
     }
@@ -277,7 +267,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         context.resetState();
         result = null;
         spanCount.resetState();
-        type = null;
+        droppedSpanStats.resetState();
         noop = false;
         maxSpans = 0;
         spanCompressionEnabled = false;
@@ -298,11 +288,6 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     public void ignoreTransaction() {
         noop = true;
-    }
-
-    @Nullable
-    public String getType() {
-        return type;
     }
 
     public void addCustomContext(String key, String value) {
