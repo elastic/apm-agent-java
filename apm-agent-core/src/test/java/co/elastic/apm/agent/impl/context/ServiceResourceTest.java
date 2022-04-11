@@ -22,6 +22,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.testutils.assertions.ServiceTargetAssert;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -65,15 +66,32 @@ public class ServiceResourceTest {
         // auto-inference happens now
         span.end();
 
-        String expected = getTextValueOrNull(testCase, "expected_resource");
-        if (expected == null) {
-            // no resource nor any target fields is expected
-            assertThat(span.getContext().getServiceTarget()).isEmpty();
+        JsonNode jsonServiceTarget = testCase.get("expected_service_target");
+
+        ServiceTarget serviceTarget = span.getContext().getServiceTarget();
+        ServiceTargetAssert testAssertion = assertThat(serviceTarget)
+            .describedAs(getTextValueOrNull(testCase, "failure_message"));
+
+        if (jsonServiceTarget == null || jsonServiceTarget.isNull()) {
+            testAssertion.isEmpty();
         } else {
-            assertThat(span.getContext().getServiceTarget())
-                .describedAs(getTextValueOrNull(testCase, "failure_message"))
-                .hasDestinationResource(expected);
+
+            testAssertion.hasType(getTextValueOrNull(jsonServiceTarget, "type"));
+            String name = getTextValueOrNull(jsonServiceTarget, "name");
+            if (name != null) {
+                testAssertion.hasName(name);
+            } else {
+                testAssertion.hasNoName();
+            }
         }
+
+        JsonNode jsonResource = testCase.get("expected_resource");
+        if (jsonResource == null || jsonResource.isNull()) {
+            testAssertion.isEmpty();
+        } else {
+            testAssertion.hasDestinationResource(jsonResource.asText());
+        }
+
         span.decrementReferences();
     }
 
@@ -118,17 +136,17 @@ public class ServiceResourceTest {
                     }
                 }
             }
-            JsonNode destinationJson = contextJson.get("destination");
-            if (destinationJson != null) {
-                JsonNode serviceJson = destinationJson.get("service");
-                if (serviceJson != null) {
-                    String resource = getTextValueOrNull(serviceJson, "resource");
-                    if (resource != null) {
-                        // we use the user-provided resource to emulate an existing resource value
-                        context.getServiceTarget().withUserDestinationResource(resource);
-                    }
+
+            JsonNode serviceJson = contextJson.get("service");
+            if (serviceJson != null) {
+                JsonNode targetServiceJson = serviceJson.get("target");
+                if (targetServiceJson != null) {
+                    context.getServiceTarget()
+                        .withType(getTextValueOrNull(targetServiceJson, "type"))
+                        .withName(getTextValueOrNull(targetServiceJson, "name"));
                 }
             }
+
         }
         return span;
     }

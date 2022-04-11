@@ -235,16 +235,17 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (isExit() && !serviceTarget.hasContent()) {
             Db db = context.getDb();
             Message message = context.getMessage();
-            Url internalUrl = context.getHttp().getInternalUrl();
+            Url httpUrl = context.getHttp().getInternalUrl();
             String targetServiceType = (subtype != null) ? subtype : type;
             if (db.hasContent()) {
                 serviceTarget.withType(targetServiceType).withName(db.getInstance());
             } else if (message.hasContent()) {
                 serviceTarget.withType(targetServiceType).withName(message.getQueueName());
-            } else if (internalUrl.hasContent()) {
+            } else if (httpUrl.hasContent()) {
 
                 // direct modification of destination resource to ensure compatibility
-                serviceTarget.withHostAndPortDestinationResource(internalUrl.getHostname(), internalUrl.getPort());
+                serviceTarget.withType("http")
+                    .withHostAndPortDestinationResource(httpUrl.getHostname(), httpUrl.getPort());
             } else {
                 serviceTarget.withType(targetServiceType);
             }
