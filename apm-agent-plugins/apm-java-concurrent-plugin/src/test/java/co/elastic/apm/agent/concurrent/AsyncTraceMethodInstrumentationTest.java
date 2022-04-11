@@ -39,7 +39,6 @@ import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 class AsyncTraceMethodInstrumentationTest {
 
@@ -53,9 +52,8 @@ class AsyncTraceMethodInstrumentationTest {
         reporter = mockInstrumentationSetup.getReporter();
         ConfigurationRegistry config = mockInstrumentationSetup.getConfig();
         coreConfiguration = config.getConfig(CoreConfiguration.class);
-        when(coreConfiguration.getTraceMethods()).thenReturn(Arrays.asList(
-            MethodMatcher.of("private co.elastic.apm.agent.concurrent.AsyncTraceMethodInstrumentationTest$TestAsyncTraceMethodsClass#*"))
-        );
+        MethodMatcher testTraceMethodMatcher = MethodMatcher.of("private co.elastic.apm.agent.concurrent.AsyncTraceMethodInstrumentationTest$TestAsyncTraceMethodsClass#*");
+        doReturn(Arrays.asList(testTraceMethodMatcher)).when(coreConfiguration).getTraceMethods();
 
         for (String tag : testInfo.getTags()) {
             TimeDuration duration = TimeDuration.of(tag.split("=")[1]);
@@ -68,6 +66,7 @@ class AsyncTraceMethodInstrumentationTest {
         }
 
         tracer = mockInstrumentationSetup.getTracer();
+        assertThat(tracer.getConfig(CoreConfiguration.class).getTraceMethods()).containsExactly(testTraceMethodMatcher);
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 
