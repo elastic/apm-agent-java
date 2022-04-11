@@ -23,6 +23,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.ServiceTarget;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -70,8 +71,10 @@ class FastExitSpanTest {
         assertThat(spanCount.getDropped().get()).isEqualTo(1);
 
         DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
-        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS).getCount()).isEqualTo(1);
-        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS).getSum()).isEqualTo(49_999L);
+
+        ServiceTarget st = new ServiceTarget().withType("postgresql");
+        assertThat(droppedSpanStats.getStats(st, Outcome.SUCCESS).getCount()).isEqualTo(1);
+        assertThat(droppedSpanStats.getStats(st, Outcome.SUCCESS).getSum()).isEqualTo(49_999L);
     }
 
     @Test
@@ -94,8 +97,10 @@ class FastExitSpanTest {
         assertThat(spanCount.getDropped().get()).isEqualTo(3);
 
         DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
-        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS).getCount()).isEqualTo(3);
-        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS).getSum()).isEqualTo(30_000L);
+
+        ServiceTarget st = new ServiceTarget().withType("postgresql");
+        assertThat(droppedSpanStats.getStats(st, Outcome.SUCCESS).getCount()).isEqualTo(3);
+        assertThat(droppedSpanStats.getStats(st, Outcome.SUCCESS).getSum()).isEqualTo(30_000L);
     }
 
     @Test
@@ -114,7 +119,8 @@ class FastExitSpanTest {
         assertThat(spanCount.getDropped().get()).isEqualTo(0);
 
         DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
-        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS)).isNull();
+        ServiceTarget st = new ServiceTarget().withType("postgresql");
+        assertThat(droppedSpanStats.getStats(st, Outcome.SUCCESS)).isNull();
     }
 
     @Test
@@ -137,7 +143,9 @@ class FastExitSpanTest {
         assertThat(spanCount.getDropped().get()).isEqualTo(2);
 
         DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
-        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS)).isNull();
+
+        ServiceTarget st = new ServiceTarget().withType("postgresql");
+        assertThat(droppedSpanStats.getStats(st, Outcome.SUCCESS)).isNull();
     }
 
     private Transaction startTransaction() {

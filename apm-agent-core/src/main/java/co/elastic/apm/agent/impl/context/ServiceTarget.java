@@ -39,7 +39,7 @@ public class ServiceTarget implements Recyclable {
 
     private boolean onlyNameInResource = false;
 
-    ServiceTarget() {
+    public ServiceTarget() {
         this.name = new StringBuilder();
         this.destinationResource = new StringBuilder();
         resetState();
