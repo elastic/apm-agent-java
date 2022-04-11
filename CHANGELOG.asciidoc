@@ -32,6 +32,7 @@ endif::[]
 * Fix logging initialization with Security Manager - {pull}2568[#2568]
 * normalize empty `transaction.type` and `span.type` - {pull}2525[#2525]
 * Allowing square brackets within the <<config-capture-jmx-metrics>> config value - {pull}2547[#2547]
+* Fixed duplicated ending of `HttpUrlConnection` spans - {pull}2530[#2530]
 
 
 [[release-notes-1.x]]
