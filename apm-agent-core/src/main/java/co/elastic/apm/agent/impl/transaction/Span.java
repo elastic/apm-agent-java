@@ -232,7 +232,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         // auto-infer context.destination.service.resource as per spec:
         // https://github.com/elastic/apm/blob/main/specs/agents/tracing-spans-destination.md#contextdestinationserviceresource
         ServiceTarget serviceTarget = getContext().getServiceTarget();
-        if (isExit() && !serviceTarget.hasContent()) {
+        if (isExit() && !serviceTarget.hasContent() && !serviceTarget.isSetByUser()) {
             Db db = context.getDb();
             Message message = context.getMessage();
             Url httpUrl = context.getHttp().getInternalUrl();

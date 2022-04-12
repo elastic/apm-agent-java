@@ -19,43 +19,16 @@
 package co.elastic.apm.agent.testutils.assertions;
 
 import co.elastic.apm.agent.impl.context.ServiceTarget;
-import org.assertj.core.api.AbstractAssert;
 
-import javax.annotation.Nullable;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-public class ServiceTargetAssert extends AbstractAssert<ServiceTargetAssert, ServiceTarget> {
+public class ServiceTargetAssert extends BaseAssert<ServiceTargetAssert, ServiceTarget> {
 
     ServiceTargetAssert(ServiceTarget actual) {
         super(actual, ServiceTargetAssert.class);
     }
 
-    private static String normalizeToString(CharSequence cs){
-        return cs == null ? null: cs.toString();
-    }
-
-    private void checkString(String msg, String expected, @Nullable String actual) {
-        if (!expected.equals(actual)) {
-            failWithMessage(msg, expected, actual);
-        }
-    }
-
-    private void checkNull(String msg, @Nullable Object actual){
-        if(actual != null){
-            failWithMessage(msg, actual);
-        }
-    }
-
-    private void checkTrue(String msg, boolean expectedTrue){
-        if(!expectedTrue){
-            failWithMessage(msg);
-        }
-    }
-
     public ServiceTargetAssert hasType(String type) {
         isNotNull();
-        checkString("Expected service target with type %s but was %s",type, actual.getType());
+        checkString("Expected service target with type %s but was %s", type, actual.getType());
         return this;
     }
 
@@ -77,11 +50,20 @@ public class ServiceTargetAssert extends AbstractAssert<ServiceTargetAssert, Ser
         return this;
     }
 
+    @Deprecated
     public ServiceTargetAssert hasNotDestinationResourceSetByUser() {
-        checkTrue("Expected service target without destination resource set by user", !actual.isDestinationResourceSetByUser());
+        return isNotSetByUser();
+    }
+
+    public ServiceTargetAssert isSetByUser() {
+        checkTrue("Expected service target set by user", actual.isSetByUser());
         return this;
     }
 
+    public ServiceTargetAssert isNotSetByUser() {
+        checkTrue("Expected service target not set by user", !actual.isSetByUser());
+        return this;
+    }
 
     public ServiceTargetAssert isEmpty() {
         isNotNull();
@@ -89,7 +71,6 @@ public class ServiceTargetAssert extends AbstractAssert<ServiceTargetAssert, Ser
         hasNoName();
         checkNull("Expected service target without destination resource was %s", actual.getDestinationResource());
         checkTrue("Expected service target without content", !actual.hasContent());
-        hasNotDestinationResourceSetByUser();
         return this;
     }
 

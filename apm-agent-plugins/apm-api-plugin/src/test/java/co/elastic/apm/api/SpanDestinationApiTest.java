@@ -19,7 +19,6 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractApiTest;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +46,15 @@ class SpanDestinationApiTest extends AbstractApiTest {
             .withType("custom")
             .withSubtype("test")
             .activate();
+
         setDestinationDetailsThroughInternalApi();
+
+        // test defaults set from internal API
+        assertThat(internalSpan.getContext().getServiceTarget())
+            .hasDestinationResource(INTERNAL_RESOURCE);
+        assertThat(internalSpan.getContext().getDestination())
+            .hasAddress(INTERNAL_ADDRESS)
+            .hasPort(INTERNAL_PORT);
     }
 
     private void setDestinationDetailsThroughInternalApi() {
@@ -68,7 +75,8 @@ class SpanDestinationApiTest extends AbstractApiTest {
     @Test
     void testSetDestinationAddressWithNonNullValues() {
         ElasticApm.currentSpan().setDestinationAddress("address", 80);
-        assertDestinationDetails("address", 80, INTERNAL_RESOURCE);
+
+        assertThat(getSpan().getContext().getDestination()).hasAddress("address").hasPort(80);
     }
 
     @Test
@@ -76,13 +84,13 @@ class SpanDestinationApiTest extends AbstractApiTest {
         ElasticApm.currentSpan().setDestinationAddress("address", 80);
         setDestinationDetailsThroughInternalApi();
         // Address details set through public API should be preferred even if set before internal setting
-        assertDestinationDetails("address", 80, INTERNAL_RESOURCE);
+        assertThat(getSpan().getContext().getDestination()).hasAddress("address").hasPort(80);
     }
 
     @Test
     void testSetDestinationAddressWithNegativePort() {
         ElasticApm.currentSpan().setDestinationAddress("address", -1);
-        assertDestinationDetails("address", -1, INTERNAL_RESOURCE);
+        assertThat(getSpan().getContext().getDestination()).hasAddress("address").hasNoPort();
     }
 
     @Test
@@ -90,40 +98,40 @@ class SpanDestinationApiTest extends AbstractApiTest {
         ElasticApm.currentSpan().setDestinationAddress("address", -1);
         setDestinationDetailsThroughInternalApi();
         // using invalid port should unset original setting even if internal used last
-        assertDestinationDetails("address", -1, INTERNAL_RESOURCE);
+        assertThat(getSpan().getContext().getDestination()).hasAddress("address").hasNoPort();
     }
 
     @Test
     void testSetDestinationAddressWithNullAddress() {
         ElasticApm.currentSpan().setDestinationAddress(null, 80);
-        assertDestinationDetails("", 80, INTERNAL_RESOURCE );
+        assertThat(getSpan().getContext().getDestination()).hasEmptyAddress().hasPort(80);
     }
 
     @Test
     void testInternalSetAddressAfterApiInvalidAddress() {
         ElasticApm.currentSpan().setDestinationAddress(null, 80);
         setDestinationDetailsThroughInternalApi();
-        assertDestinationDetails("", 80, INTERNAL_RESOURCE);
+        assertThat(getSpan().getContext().getDestination()).hasEmptyAddress().hasPort(80);
     }
 
     @Test
     void testSetDestinationServiceWithNonEmptyValue() {
         ElasticApm.currentSpan().setDestinationService("service-resource");
-        assertDestinationDetails(INTERNAL_ADDRESS, INTERNAL_PORT, "service-resource");
+        assertThat(getSpan().getContext().getServiceTarget()).isSetByUser().hasDestinationResource("service-resource");
     }
 
     @Test
     void testInternalSetServiceAfterApiValid() {
         ElasticApm.currentSpan().setDestinationService("service-resource");
         setDestinationDetailsThroughInternalApi();
-        assertDestinationDetails(INTERNAL_ADDRESS, INTERNAL_PORT, "service-resource");
+        assertThat(getSpan().getContext().getServiceTarget()).isSetByUser().hasDestinationResource("service-resource");
     }
 
     @Test
     void testSetDestinationServiceWithNullServiceResource() {
         reporter.disableCheckDestinationService();
         ElasticApm.currentSpan().setDestinationService(null);
-        assertDestinationDetails(INTERNAL_ADDRESS, INTERNAL_PORT, "");
+        assertThat(getSpan().getContext().getServiceTarget()).isSetByUser().isEmpty();
     }
 
     @Test
@@ -131,23 +139,20 @@ class SpanDestinationApiTest extends AbstractApiTest {
         reporter.disableCheckDestinationService();
         ElasticApm.currentSpan().setDestinationService(null);
         setDestinationDetailsThroughInternalApi();
-        assertDestinationDetails(INTERNAL_ADDRESS, INTERNAL_PORT, "");
+        assertThat(getSpan().getContext().getServiceTarget()).isSetByUser().isEmpty();
     }
 
     @Test
     void testSetDestinationServiceWithEmptyServiceResource() {
         reporter.disableCheckDestinationService();
         ElasticApm.currentSpan().setDestinationService("");
-        assertDestinationDetails(INTERNAL_ADDRESS, INTERNAL_PORT, "");
+        assertThat(getSpan().getContext().getServiceTarget()).isSetByUser().isEmpty();
     }
 
-    private void assertDestinationDetails(String expectedAddress, int expectedPort, String expectedResource) {
+    private Span getSpan() {
         internalSpan.deactivate().end();
         Span span = reporter.getFirstSpan();
-        Destination destination = span.getContext().getDestination();
-        assertThat(destination.getAddress().toString()).isEqualTo(expectedAddress);
-        assertThat(destination.getPort()).isEqualTo(expectedPort);
-
-        assertThat(span.getContext().getServiceTarget()).hasDestinationResource(expectedResource);
+        return span;
     }
+
 }

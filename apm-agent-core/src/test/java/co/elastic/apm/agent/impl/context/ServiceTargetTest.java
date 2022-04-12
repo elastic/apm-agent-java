@@ -19,14 +19,12 @@
 package co.elastic.apm.agent.impl.context;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
@@ -36,6 +34,8 @@ class ServiceTargetTest {
     void createEmpty() {
         ServiceTarget serviceTarget = new ServiceTarget();
         assertThat(serviceTarget).isEmpty();
+        assertThat(serviceTarget).isNotSetByUser();
+        assertThat(serviceTarget).hasNoName();
     }
 
     @Test
@@ -48,11 +48,13 @@ class ServiceTargetTest {
             .hasNoName()
             .hasDestinationResource(serviceType);
 
-        assertThat(serviceTarget.isDestinationResourceSetByUser()).isFalse();
+        assertThat(serviceTarget).isNotSetByUser();
+
         assertThat(serviceTarget.hasContent()).isTrue();
 
         serviceTarget.resetState();
         assertThat(serviceTarget).isEmpty();
+        assertThat(serviceTarget).isNotSetByUser();
     }
 
     @Test
@@ -71,7 +73,7 @@ class ServiceTargetTest {
             .isSameAs(serviceTarget.getDestinationResource());
 
         assertThat(serviceTarget)
-            .hasNotDestinationResourceSetByUser();
+            .isNotSetByUser();
 
         assertThat(serviceTarget.hasContent()).isTrue();
 
@@ -80,7 +82,7 @@ class ServiceTargetTest {
     }
 
     @Test
-    void userResourcePriority() {
+    void userValuePriority() {
 
         Function<ServiceTarget, ServiceTarget> userSetOperation = st -> st.withUserDestinationResource("user-provided");
         Function<ServiceTarget, ServiceTarget> typeNameOperation = st -> st.withType("type").withName("name");
@@ -94,14 +96,30 @@ class ServiceTargetTest {
         Arrays.asList(operations).forEach(o -> o.apply(serviceTarget));
 
         assertThat(serviceTarget).hasDestinationResource("user-provided");
-        assertThat(serviceTarget.isDestinationResourceSetByUser()).isTrue();
+        assertThat(serviceTarget.isSetByUser()).isTrue();
     }
 
     @Test
     void emptyOrNullUserDestinationResourceIsIgnored() {
+        // using null or empty value should allow user to empty service target
+        Stream.of("",null).forEach(value -> {
+            ServiceTarget serviceTarget = new ServiceTarget();
+            assertThat(serviceTarget.withUserDestinationResource(value))
+                .isEmpty()
+                .isSetByUser();
+        });
+
+    }
+
+    @Test
+    void userResourceWithoutExplicitType() {
         ServiceTarget serviceTarget = new ServiceTarget();
-        assertThat(serviceTarget.withUserDestinationResource(null)).hasNotDestinationResourceSetByUser();
-        assertThat(serviceTarget.withUserDestinationResource("")).hasNotDestinationResourceSetByUser();
+        serviceTarget.withUserDestinationResource("user-resource");
+        assertThat(serviceTarget)
+            .isSetByUser()
+            .hasName("user-resource")
+            .hasDestinationResource("user-resource");
+
     }
 
     @Test
@@ -141,7 +159,7 @@ class ServiceTargetTest {
             ServiceTarget::getType,
             st -> st.getName().toString(),
             st -> st.getDestinationResource().toString(),
-            ServiceTarget::isDestinationResourceSetByUser);
+            ServiceTarget::isSetByUser);
 
     }
 

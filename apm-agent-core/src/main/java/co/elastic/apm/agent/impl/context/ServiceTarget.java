@@ -35,7 +35,7 @@ public class ServiceTarget implements Recyclable {
     // only used as a buffer to avoid re-writing
     private final StringBuilder destinationResource;
 
-    private boolean resourceSetByUser;
+    private boolean setByUser;
 
     private boolean onlyNameInResource = false;
 
@@ -46,6 +46,9 @@ public class ServiceTarget implements Recyclable {
     }
 
     public ServiceTarget withType(@Nullable String type) {
+        if (setByUser) {
+            return this;
+        }
         this.type = type;
         this.destinationResource.setLength(0); // invalidate cached value
         return this;
@@ -57,7 +60,7 @@ public class ServiceTarget implements Recyclable {
     }
 
     public ServiceTarget withName(@Nullable CharSequence name) {
-        if (name == null || name.length() == 0 || resourceSetByUser) {
+        if (name == null || name.length() == 0 || setByUser) {
             return this;
         }
         this.destinationResource.setLength(0); // invalidate cached value
@@ -101,12 +104,14 @@ public class ServiceTarget implements Recyclable {
      * @return this
      */
     public ServiceTarget withUserDestinationResource(@Nullable CharSequence name) {
-        if (name != null && name.length() > 0) {
-            onlyNameInResource = true;
-            resourceSetByUser = true;
+        if (name == null || name.length() == 0) {
+            resetState();
+        } else {
             this.name.setLength(0);
             this.name.append(name);
         }
+        onlyNameInResource = true;
+        setByUser = true;
         return this;
     }
 
@@ -115,7 +120,7 @@ public class ServiceTarget implements Recyclable {
         type = null;
         name.setLength(0);
         destinationResource.setLength(0);
-        resourceSetByUser = false;
+        setByUser = false;
         onlyNameInResource = false;
     }
 
@@ -129,9 +134,6 @@ public class ServiceTarget implements Recyclable {
      */
     @Nullable
     public CharSequence getDestinationResource() {
-        if (type == null || type.isEmpty()) {
-            return null;
-        }
         if (name.length() == 0) {
             return type;
         }
@@ -149,8 +151,11 @@ public class ServiceTarget implements Recyclable {
 
     }
 
-    public boolean isDestinationResourceSetByUser() {
-        return resourceSetByUser;
+    /**
+     * @return {@literal true} if it has been set by user, {@literal false} otherwise.
+     */
+    public boolean isSetByUser() {
+        return setByUser;
     }
 
     public void copyFrom(ServiceTarget other) {
@@ -158,7 +163,7 @@ public class ServiceTarget implements Recyclable {
         this.withName(other.name);
         this.destinationResource.setLength(0);
         this.destinationResource.append(other.destinationResource);
-        this.resourceSetByUser = other.resourceSetByUser;
+        this.setByUser = other.setByUser;
         this.onlyNameInResource = other.onlyNameInResource;
     }
 

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.testutils.assertions;
 
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
 
 public class Assertions extends org.assertj.core.api.Assertions {
@@ -27,5 +28,9 @@ public class Assertions extends org.assertj.core.api.Assertions {
 
     public static ServiceTargetAssert assertThat(ServiceTarget serviceTarget) {
         return new ServiceTargetAssert(serviceTarget);
+    }
+
+    public static DestinationAssert assertThat(Destination destination){
+        return new DestinationAssert(destination);
     }
 }

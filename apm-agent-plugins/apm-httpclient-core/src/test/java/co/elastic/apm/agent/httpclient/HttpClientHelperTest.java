@@ -91,7 +91,9 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
         assertThat(reporter.getSpans()).hasSize(1);
         Span httpSpan = reporter.getFirstSpan();
         assertThat(httpSpan.getContext().getHttp().getUrl().toString()).isEqualTo("https://151.101.114.217/index.html");
-        assertThat(httpSpan.getContext().getServiceTarget()).hasDestinationResource("151.101.114.217:443");
+        assertThat(httpSpan.getContext().getServiceTarget())
+            .hasType("http")
+            .hasDestinationResource("151.101.114.217:443");
         Destination destination = httpSpan.getContext().getDestination();
         assertThat(destination.getAddress().toString()).isEqualTo("151.101.114.217");
         assertThat(destination.getPort()).isEqualTo(443);
