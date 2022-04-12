@@ -191,6 +191,16 @@ class ServiceTargetTest {
 
     @Test
     void testHostPort() {
+        ServiceTarget st = new ServiceTarget();
+        st.withHostAndPortDestinationResource("host", 99);
+
+        assertThat(st)
+            .hasName("host:99")
+            .hasDestinationResource("host:99")
+            .isNotSetByUser();
+
+        assertThat(st.getType())
+            .isNull();
 
     }
 

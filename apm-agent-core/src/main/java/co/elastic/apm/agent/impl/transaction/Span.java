@@ -369,13 +369,35 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             if (!composite.init(currentDuration, "same_kind")) {
                 return tryToCompressComposite(sibling);
             }
-            name.setLength(0);
-            // TODO : removing the destination resource here will require to change the compressed spans spec
-            name.append("Calls to ").append(context.getServiceTarget().getDestinationResource());
+            setCompressedSpanName();
             return true;
         }
 
         return false;
+    }
+
+    private void setCompressedSpanName() {
+        name.setLength(0);
+
+        ServiceTarget serviceTarget = context.getServiceTarget();
+        String serviceType = serviceTarget.getType();
+        CharSequence serviceName = serviceTarget.getName();
+
+        name.append("Calls to ");
+        if (serviceType == null && serviceName == null) {
+            name.append("unknown");
+        } else {
+            boolean hasType = serviceType != null;
+            if (hasType) {
+                name.append(serviceType);
+            }
+            if (serviceName != null) {
+                if (hasType) {
+                    name.append('/');
+                }
+                name.append(serviceName);
+            }
+        }
     }
 
     private boolean tryToCompressComposite(Span sibling) {
