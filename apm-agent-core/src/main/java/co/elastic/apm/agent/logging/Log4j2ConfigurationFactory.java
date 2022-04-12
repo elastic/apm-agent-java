@@ -91,12 +91,20 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
                 logFile = logFile.replace(AGENT_HOME_PLACEHOLDER, agentHome);
             }
         }
-        logFile = new File(logFile).getAbsolutePath();
-        final File logDir = new File(logFile).getParentFile();
-        if (!logDir.exists()) {
-            logDir.mkdirs();
+
+        boolean canWrite;
+        try {
+            logFile = new File(logFile).getAbsolutePath();
+            final File logDir = new File(logFile).getParentFile();
+            if (!logDir.exists()) {
+                logDir.mkdirs();
+            }
+            canWrite = logDir.canWrite();
+        } catch (SecurityException e) {
+            canWrite = false;
         }
-        if (!logDir.canWrite()) {
+
+        if(!canWrite){
             System.err.println("[elastic-apm-agent] WARN Log file " + logFile + " is not writable. Falling back to System.out.");
             return SYSTEM_OUT;
         }
