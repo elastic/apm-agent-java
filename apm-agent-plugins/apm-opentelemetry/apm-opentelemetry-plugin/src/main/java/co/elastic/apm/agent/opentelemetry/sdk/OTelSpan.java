@@ -217,7 +217,7 @@ public class OTelSpan implements Span {
 
             s.getContext().getServiceTarget()
                 .withType(subType)
-                .withHostAndPortDestinationResource(netPeer, netPort);
+                .withHostAndPortDestinationResource(httpHost, netPort);
         }
 
         if (type == null) {
