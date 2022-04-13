@@ -436,12 +436,12 @@ class DslJsonSerializerTest {
         assertThat(80).isEqualTo(destination.get("port").intValue());
         JsonNode service = destination.get("service");
         assertThat(service).isNotNull();
-        assertThat("whatever.com:80").isEqualTo(service.get("resource").textValue());
+        assertThat(service.get("resource").textValue()).isEqualTo("whatever.com:80");
         assertThat(service.get("name").textValue()).isEmpty();
         assertThat(service.get("type").textValue()).isEmpty();
         JsonNode serviceTarget = context.get("service").get("target");
         assertThat(serviceTarget.get("type").asText()).isEqualTo("http");
-        assertThat(serviceTarget.get("name")).isNull();
+        assertThat(serviceTarget.get("name").asText()).isEqualTo("whatever.com:80");
     }
 
     @Test
@@ -470,7 +470,9 @@ class DslJsonSerializerTest {
         span.getContext().getServiceTarget().withUserDestinationResource("");
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
-        assertThat(spanJson.get("context").get("destination")).isNull();
+        JsonNode contextJson = spanJson.get("context");
+        assertThat(contextJson.get("destination")).isNull();
+        assertThat(contextJson.get("service")).isNull();
     }
 
     @Test
