@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.opentelemetry.sdk;
 
+import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
@@ -194,7 +195,10 @@ public class OTelSpan implements Span {
 
             s.getContext().getServiceTarget()
                 .withType(subType)
-                .withName(service);
+                // default service name on rpc.service
+                .withName(service)
+                // host:port with higher priority
+                .withHostAndPortDestinationResource(netPeer, netPort);
 
         } else if (httpUrl != null || httpScheme != null) {
             type = "external";

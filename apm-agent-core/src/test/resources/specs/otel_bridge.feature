@@ -225,15 +225,16 @@ Feature: OpenTelemetry bridge
     Then Elastic bridged span subtype is "<rpc.system>"
     Then Elastic bridged span OTel attributes are copied as-is
     Then Elastic bridged span destination resource is set to "<resource>"
+    Then Elastic bridged span service target type is "<rpc.system>" and name is "<target_service_name>"
     Examples:
-      | rpc.system | rpc.service | net.peer.ip | net.peer.name | net.peer.port | resource                  |
-      | grpc       |             |             |               |               | grpc                      |
-      | grpc       | myService   |             |               |               | grpc/myService            |
-      | grpc       | myService   |             | rpc-server    |               | rpc-server/myService      |
-      | grpc       | myService   | 127.0.0.1   | rpc-server    |               | rpc-server/myService      |
-      | grpc       |             | 127.0.0.1   | rpc-server    | 7777          | rpc-server:7777           |
-      | grpc       | myService   | 127.0.0.1   | rpc-server    | 7777          | rpc-server:7777/myService |
-      | grpc       | myService   | 127.0.0.1   |               | 7777          | 127.0.0.1:7777/myService  |
+      | rpc.system | rpc.service | net.peer.ip | net.peer.name | net.peer.port | resource        | target_service_name |
+      | grpc       |             |             |               |               | grpc            |                     |
+      | grpc       | myService   |             |               |               | grpc/myService  | myService           |
+      | grpc       | myService   |             | rpc-server    |               | rpc-server      | rpc-server          |
+      | grpc       | myService   | 127.0.0.1   | rpc-server    |               | rpc-server      | rpc-server          |
+      | grpc       |             | 127.0.0.1   | rpc-server    | 7777          | rpc-server:7777 | rpc-server:7777     |
+      | grpc       | myService   | 127.0.0.1   | rpc-server    | 7777          | rpc-server:7777 | rpc-server:7777     |
+      | grpc       | myService   | 127.0.0.1   |               | 7777          | 127.0.0.1:7777  | 127.0.0.1:7777      |
 
   # --- RPC server
   # https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md
