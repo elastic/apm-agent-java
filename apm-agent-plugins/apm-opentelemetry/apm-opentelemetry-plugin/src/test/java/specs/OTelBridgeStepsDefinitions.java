@@ -19,6 +19,7 @@
 package specs;
 
 import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -305,6 +306,18 @@ public class OTelBridgeStepsDefinitions {
         assertThat(otelSpan.getInternalSpan().getOutcome())
             .isEqualTo(OutcomeStepsDefinitions.fromString(outcome));
 
+    }
+
+    @Then("Elastic bridged span service target type is {string} and name is {string}")
+    public void bridgedSpanTargetServiceType(String type, String name) {
+        ServiceTarget serviceTarget = getBridgedSpan().getContext().getServiceTarget();
+        assertThat(serviceTarget).hasType(type);
+
+        if (name != null && !name.isEmpty()) {
+            assertThat(serviceTarget).hasName(name);
+        } else {
+            assertThat(serviceTarget).hasNoName();
+        }
     }
 
     @Then("OTel span status set to {string}")

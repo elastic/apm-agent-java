@@ -207,7 +207,7 @@ public class OTelSpan implements Span {
             if (httpHost == null && httpUrl != null) {
                 URI httpUri = parseURI(httpUrl);
                 if (httpUri != null) {
-                    netPeer = httpUri.getHost();
+                    httpHost = httpUri.getHost();
                     netPort = httpUri.getPort();
                     httpScheme = httpUri.getScheme();
                 }
