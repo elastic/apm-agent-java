@@ -20,8 +20,26 @@ endif::[]
 
 === Unreleased
 
+
+[[release-notes-1.30.2]]
+==== 1.30.2 - YYYY/MM/DD
+
+[float]
+===== Breaking changes
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+
 [[release-notes-1.30.1]]
-==== 1.30.1 - YYYY/MM/DD
+==== 1.30.1 - 2022/04/12
 
 [float]
 ===== Bug fixes
@@ -32,10 +50,9 @@ endif::[]
 * Fix logging initialization with Security Manager - {pull}2568[#2568]
 * normalize empty `transaction.type` and `span.type` - {pull}2525[#2525]
 * Allowing square brackets within the <<config-capture-jmx-metrics>> config value - {pull}2547[#2547]
+* Fixed duplicated ending of `HttpUrlConnection` spans - {pull}2530[#2530]
+* Compressed span fixes - {pull}2576[#2576], {pull}2552[#2552], {pull}2558[#2558]
 
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.30.0]]
 ==== 1.30.0 - 2022/03/22
