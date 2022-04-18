@@ -3,6 +3,7 @@ co.elastic.apm.agent.vertx.v3.EventLoopInstrumentation$SetTimerInstrumentation
 co.elastic.apm.agent.vertx.v3.EventLoopInstrumentation$OnContextInstrumentation
 co.elastic.apm.agent.vertx.v3.EventLoopInstrumentation$ExecuteBlockingInstrumentation
 co.elastic.apm.agent.vertx.v3.TaskQueueInstrumentation
+
 # vertx web
 co.elastic.apm.agent.vertx.v3.web.WebInstrumentation$RouteInstrumentation
 co.elastic.apm.agent.vertx.v3.web.WebInstrumentation$RequestBufferInstrumentation
@@ -10,6 +11,9 @@ co.elastic.apm.agent.vertx.v3.web.HttpServerRequestImplEndInstrumentation
 co.elastic.apm.agent.vertx.v3.web.HttpServerRequestWrapperInstrumentation
 co.elastic.apm.agent.vertx.v3.web.http1.Http1StartTransactionInstrumentation
 co.elastic.apm.agent.vertx.v3.web.http2.Http2StartTransactionInstrumentation
+co.elastic.apm.agent.vertx.v3.web.http2.Http2ServerResponseImplEndInstrumentation$WriteInstrumentation
+co.elastic.apm.agent.vertx.v3.web.http2.Http2ServerResponseImplEndInstrumentation$CloseInstrumentation
+
 # vertx webclient
 co.elastic.apm.agent.vertx.v3.webclient.WebClientInstrumentation$HttpContextSendRequestInstrumentation
 co.elastic.apm.agent.vertx.v3.webclient.WebClientInstrumentation$HttpContextDispatchResponseInstrumentation

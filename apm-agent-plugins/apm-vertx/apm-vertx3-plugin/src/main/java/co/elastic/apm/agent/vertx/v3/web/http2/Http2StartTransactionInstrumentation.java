@@ -54,6 +54,10 @@ public class Http2StartTransactionInstrumentation extends WebInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void exit(@Advice.Return Http2ServerRequestImpl request) {
             Transaction transaction = WebHelper.getInstance().startOrGetTransaction(request);
+            if (transaction != null) {
+                // In HTTP 2, there may still be response processing after request end has ended the transaction
+                WebHelper.getInstance().mapTransaction(request.response(), transaction);
+            }
             log.debug("VERTX-DEBUG: started Vert.x 3.x HTTP 2 transaction: {}", transaction);
         }
     }

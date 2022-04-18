@@ -66,7 +66,7 @@ public class HttpServerRequestImplEndInstrumentation extends WebInstrumentation 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void exit(@Advice.This HttpServerRequest request,
                                 @Advice.FieldValue(value = "response", typing = Assigner.Typing.DYNAMIC) @Nullable HttpServerResponse response) {
-            Transaction transaction = helper.removeTransactionFromContext(request);
+            Transaction transaction = helper.removeTransactionMapping(request);
             if (transaction != null) {
                 helper.finalizeTransaction(response, transaction);
                 log.debug("VERTX-DEBUG: ended Vert.x transaction {} with details from this response: {}", transaction, response);

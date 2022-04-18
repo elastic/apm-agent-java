@@ -137,7 +137,7 @@ public abstract class WebInstrumentation extends Vertx3Instrumentation {
             private static final WebHelper helper = WebHelper.getInstance();
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void wrapHandler(@Advice.This HttpServerRequest request, @Advice.Argument(value = 0) Buffer requestDataBuffer) {
+            public static void captureBody(@Advice.This HttpServerRequest request, @Advice.Argument(value = 0) Buffer requestDataBuffer) {
                 Transaction transaction = WebHelper.getInstance().getTransactionForRequest(request);
                 helper.captureBody(transaction, requestDataBuffer);
             }

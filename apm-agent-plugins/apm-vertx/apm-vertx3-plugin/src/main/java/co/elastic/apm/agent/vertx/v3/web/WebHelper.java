@@ -38,7 +38,7 @@ public class WebHelper extends AbstractVertxWebHelper {
 
     private static final WebHelper INSTANCE = new WebHelper(GlobalTracer.requireTracerImpl());
 
-    static final WeakMap<HttpServerRequest, Transaction> requestTransactionMap = WeakConcurrentProviderImpl.createWeakSpanMap();
+    static final WeakMap<Object, Transaction> transactionMap = WeakConcurrentProviderImpl.createWeakSpanMap();
 
     public static WebHelper getInstance() {
         return INSTANCE;
@@ -57,7 +57,7 @@ public class WebHelper extends AbstractVertxWebHelper {
         Transaction transaction = super.startOrGetTransaction(httpServerRequest);
 
         if (transaction != null) {
-            requestTransactionMap.put(httpServerRequest, transaction);
+            mapTransaction(httpServerRequest, transaction);
             enrichRequest(httpServerRequest, transaction);
         }
 
@@ -77,8 +77,18 @@ public class WebHelper extends AbstractVertxWebHelper {
     }
 
     @Nullable
-    public Transaction removeTransactionFromContext(HttpServerRequest request) {
-        return requestTransactionMap.remove(request);
+    public Transaction mapTransaction(Object key, Transaction transaction) {
+        return transactionMap.put(key, transaction);
+    }
+
+    @Nullable
+    public Transaction lookupTransaction(Object key) {
+        return transactionMap.get(key);
+    }
+
+    @Nullable
+    public Transaction removeTransactionMapping(Object key) {
+        return transactionMap.remove(key);
     }
 
     @Nullable
@@ -87,8 +97,13 @@ public class WebHelper extends AbstractVertxWebHelper {
             request = request.endHandler(noopHandler);
             log.debug("VERTX-DEBUG: Vert.x request obtained through endHandler instrumentation: {}", request);
         }
-        Transaction transaction = requestTransactionMap.get(request);
-        log.debug("VERTX-DEBUG: transaction {} is mapped to the Vert.x request: {}", transaction, request);
+        Transaction transaction = lookupTransaction(request);
+        if (transaction != null) {
+            log.debug("VERTX-DEBUG: transaction {} is mapped to the Vert.x request: {}", transaction, request);
+        } else {
+            // If transaction already ended and removed, there may still be handling in HTTP 2
+            transaction = lookupTransaction(request.response());
+        }
         return transaction;
     }
 
