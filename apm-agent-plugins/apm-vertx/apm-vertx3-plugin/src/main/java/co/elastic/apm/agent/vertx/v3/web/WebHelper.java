@@ -76,9 +76,8 @@ public class WebHelper extends AbstractVertxWebHelper {
         return transaction;
     }
 
-    @Nullable
-    public Transaction mapTransaction(Object key, Transaction transaction) {
-        return transactionMap.put(key, transaction);
+    public void mapTransaction(Object key, Transaction transaction) {
+        transactionMap.put(key, transaction);
     }
 
     @Nullable
