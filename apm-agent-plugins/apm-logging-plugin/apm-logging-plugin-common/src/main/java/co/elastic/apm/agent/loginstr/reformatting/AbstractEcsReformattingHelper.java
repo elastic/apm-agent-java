@@ -462,5 +462,9 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
         return loggingConfiguration.getLogFileSize();
     }
 
+    protected long getDefaultMaxLogFileSize() {
+        return loggingConfiguration.getDefaultLogFileSize();
+    }
+
     protected abstract void closeShadeAppender(A shadeAppender);
 }

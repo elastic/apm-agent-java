@@ -386,6 +386,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         return logFileSize.get().getBytes();
     }
 
+    public long getDefaultLogFileSize() {
+        return logFileSize.getValueConverter().convert(logFileSize.getDefaultValueAsString()).getBytes();
+    }
+
     public boolean isShipAgentLogs() {
         return shipAgentLogs.get();
     }

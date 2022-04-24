@@ -22,6 +22,7 @@ import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.logging.jul.EcsFormatter;
 
 import javax.annotation.Nullable;
@@ -37,6 +38,7 @@ import java.util.logging.StreamHandler;
 class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandler, Formatter> {
 
     private static final Logger logger = LoggerFactory.getLogger(JulEcsReformattingHelper.class);
+    private static final Logger oneTimeLogFileLimitWarningLogger = LoggerUtils.logOnce(logger);
 
     private static final ThreadLocal<String> currentPattern = new ThreadLocal<>();
     private static final ThreadLocal<Path> currentExampleLogFile = new ThreadLocal<>();
@@ -105,6 +107,12 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
                 // In earlier versions, there is only constructor with log file limit given as int, whereas in later ones there are
                 // overloads for both either int or long. Typically, this should be enough, but not necessarily
                 int maxLogFileSize = (int) getMaxLogFileSize();
+                if ((long) maxLogFileSize != getMaxLogFileSize()) {
+                    maxLogFileSize = (int) getDefaultMaxLogFileSize();
+                    oneTimeLogFileLimitWarningLogger.warn("Configured log max size ({} bytes) is too big for JUL settings, which " +
+                        "use int to configure the file size limit. Consider reducing the log max size configuration to a value below " +
+                        "Integer#MAX_VALUE. Defaulting to {} bytes.", getMaxLogFileSize(), maxLogFileSize);
+                }
                 shadeHandler = new FileHandler(pattern, maxLogFileSize, 2, true);
                 shadeHandler.setFormatter(ecsFormatter);
             } catch (Exception e) {
