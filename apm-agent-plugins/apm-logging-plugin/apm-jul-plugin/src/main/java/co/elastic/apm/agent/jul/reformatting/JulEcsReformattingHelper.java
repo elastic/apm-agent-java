@@ -102,7 +102,10 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
                     getConfiguredReformattingDir(),
                     true
                 );
-                shadeHandler = new FileHandler(pattern, getMaxLogFileSize(), 2, true);
+                // In earlier versions, there is only constructor with log file limit given as int, whereas in later ones there are
+                // overloads for both either int or long. Typically, this should be enough, but not necessarily
+                int maxLogFileSize = (int) getMaxLogFileSize();
+                shadeHandler = new FileHandler(pattern, maxLogFileSize, 2, true);
                 shadeHandler.setFormatter(ecsFormatter);
             } catch (Exception e) {
                 logger.error("Failed to create Log shading FileAppender. Auto ECS reformatting will not work.", e);
