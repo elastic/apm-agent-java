@@ -210,7 +210,9 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(Arrays.asList(
             WildcardMatcher.valueOf("*PatternLayout*"),
             WildcardMatcher.valueOf("org.apache.log4j.SimpleLayout"),
-            WildcardMatcher.valueOf("ch.qos.logback.core.encoder.EchoEncoder")
+            WildcardMatcher.valueOf("ch.qos.logback.core.encoder.EchoEncoder"),
+            WildcardMatcher.valueOf("java.util.logging.SimpleFormatter"),
+            WildcardMatcher.valueOf("org.springframework.boot.logging.java.SimpleFormatter")
         ));
 
     private final ConfigurationOption<String> logEcsFormattingDestinationDir = ConfigurationOption.stringOption()
