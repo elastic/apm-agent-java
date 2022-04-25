@@ -487,9 +487,9 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
             span.finish();
         }
         transaction.finish();
-        assertThat(reporter.getTransactions())
-            .describedAs("no transaction should be captured when not sampling")
-            .hasSize(0);
+
+        reporter.assertNoTransaction(100);
+        reporter.assertNoSpan(100);
     }
 
     @Test
