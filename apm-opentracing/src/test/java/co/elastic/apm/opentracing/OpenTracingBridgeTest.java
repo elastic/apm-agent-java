@@ -475,7 +475,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testManualSampling() {
+    void testManualSamplingDisabled() {
         Span transaction = apmTracer.buildSpan("transaction")
             .withTag("sampling.priority", 0)
             .withTag("foo", "bar")
@@ -487,9 +487,9 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
             span.finish();
         }
         transaction.finish();
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isNull();
-        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(reporter.getTransactions())
+            .describedAs("no transaction should be captured when not sampling")
+            .hasSize(0);
     }
 
     @Test
