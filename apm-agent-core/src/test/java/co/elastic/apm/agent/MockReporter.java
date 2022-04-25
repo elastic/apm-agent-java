@@ -597,7 +597,7 @@ public class MockReporter implements Reporter {
         for (int i = 0; i < timeoutMs; i += 5) {
             try {
                 runnable.run();
-                thrown = null;
+                return;
             } catch (Throwable e) {
                 thrown = e;
                 LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));
@@ -612,13 +612,13 @@ public class MockReporter implements Reporter {
      * @param timeoutMs timeout of the condition
      * @param runnable  a runnable that throws an exception when the condition is not met
      */
-    public void awaitUntilTimeout(long timeoutMs, ThrowingRunnable runnable){
+    public void awaitUntilTimeout(long timeoutMs, ThrowingRunnable runnable) {
         for (int i = 0; i < timeoutMs; i += 5) {
             try {
                 runnable.run();
                 LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));
             } catch (Throwable e) {
-                throw new RuntimeException(String.format("Condition not fulfilled within %d ms", timeoutMs), e);
+                throw new RuntimeException(String.format("Condition not fulfilled within %d ms (timeout at %d ms)", i, timeoutMs), e);
             }
         }
     }
