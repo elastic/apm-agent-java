@@ -330,7 +330,7 @@ public class ApmServerClientTest {
 
     @Test
     public void testSupportUnsampledTransactions() {
-        testSupportUnsampledTransactions(null, true);
+        testSupportUnsampledTransactions(null, false);
         testSupportUnsampledTransactions("7.0.0", true);
         testSupportUnsampledTransactions("8.0.0", false);
     }
