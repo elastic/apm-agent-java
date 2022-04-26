@@ -51,6 +51,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.assertj.core.data.Offset.offset;
+import static org.mockito.Mockito.doReturn;
 
 class OpenTracingBridgeTest extends AbstractInstrumentationTest {
 
@@ -474,8 +475,14 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
 
     }
 
-    @Test
-    void testManualSamplingDisabled() {
+    @ParameterizedTest
+    @ValueSource(booleans =  {true, false})
+    void testManualSamplingDisabled(boolean serverSupportsUnsampled) {
+
+        doReturn(serverSupportsUnsampled)
+            .when(apmServerClient)
+            .supportsKeepingUnsampledTransaction();
+
         Span transaction = apmTracer.buildSpan("transaction")
             .withTag("sampling.priority", 0)
             .withTag("foo", "bar")
@@ -488,7 +495,14 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         }
         transaction.finish();
 
-        reporter.assertNoTransaction(100);
+        if(serverSupportsUnsampled){
+            reporter.awaitTransactionCount(1);
+            assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isNull();
+        } else {
+            reporter.assertNoTransaction(100);
+        }
+
+        // in all cases spans are not expected
         reporter.assertNoSpan(100);
     }
 
