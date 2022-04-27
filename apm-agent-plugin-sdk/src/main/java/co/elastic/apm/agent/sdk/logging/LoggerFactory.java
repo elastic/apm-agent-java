@@ -34,8 +34,9 @@ public class LoggerFactory {
 
     /**
      * Return a logger named according to the name parameter.
-     * <br/>
+     * <p>
      * A lazy-initialization logger implementation will be returned when this method is called before {@link #initialize(ILoggerFactory)}
+     * </p>
      *
      * @param name The name of the logger.
      * @return logger
