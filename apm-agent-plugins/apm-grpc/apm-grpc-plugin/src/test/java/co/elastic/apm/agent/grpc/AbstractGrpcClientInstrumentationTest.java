@@ -65,6 +65,9 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         }
 
         app.stop();
+
+        // as weak maps are used, proper object recycling required GC
+        reporter.enableGcWhenAssertingObjectRecycling();
     }
 
     @Test
