@@ -95,11 +95,6 @@ public class JakartaeeJaxRsTransactionNameInstrumentationTest extends JerseyTest
     }
 
     @Test
-    public void testJaxRsTransactionNameNonSampledTransactions() throws IOException {
-        helper.testJaxRsTransactionNameNonSampledTransactions();
-    }
-
-    @Test
     public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabled() {
         helper.testJaxRsTransactionNameFromPathAnnotationInheritanceEnabled();
     }
@@ -138,12 +133,7 @@ public class JakartaeeJaxRsTransactionNameInstrumentationTest extends JerseyTest
     public void testJaxRsFrameworkNameAndVersion() throws IOException {
         helper.testJaxRsFrameworkNameAndVersion("3.0.0");
     }
-
-    @Test
-    public void testJaxRsFrameworkNameAndVersionWithNonSampledTransaction() throws IOException {
-        helper.testJaxRsFrameworkNameAndVersionWithNonSampledTransaction("3.0.0");
-    }
-
+    
     /**
      * Make a GET request against the target path wrapped in an apm transaction.
      *
