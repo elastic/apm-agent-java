@@ -19,6 +19,8 @@
 package co.elastic.apm.agent.vertx.v3.web.http1;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.vertx.v3.web.WebHelper;
 import co.elastic.apm.agent.vertx.v3.web.WebInstrumentation;
 import io.vertx.core.http.impl.HttpServerRequestImpl;
@@ -36,7 +38,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
  * Instruments {@link io.vertx.core.http.impl.HttpServerRequestImpl#handleBegin()} to start transaction from.
  */
 @SuppressWarnings("JavadocReference")
-public class HttpServerRequestImplStartInstrumentation extends WebInstrumentation {
+public class Http1StartTransactionInstrumentation extends WebInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("io.vertx.core.http.impl.HttpServerRequestImpl");
@@ -47,12 +49,9 @@ public class HttpServerRequestImplStartInstrumentation extends WebInstrumentatio
         return named("handleBegin").and(takesNoArguments());
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return "co.elastic.apm.agent.vertx.v3.web.http1.HttpServerRequestImplStartInstrumentation$HttpRequestBeginAdvice";
-    }
+    public static class AdviceClass {
 
-    public static class HttpRequestBeginAdvice {
+        private static final Logger log = LoggerFactory.getLogger(AdviceClass.class);
 
         private static final WebHelper helper = WebHelper.getInstance();
 
@@ -63,6 +62,7 @@ public class HttpServerRequestImplStartInstrumentation extends WebInstrumentatio
             if (transaction != null) {
                 transaction.activate();
             }
+            log.debug("VERTX-DEBUG: started Vert.x 3.x HTTP 1 transaction: {}", transaction);
             return transaction;
         }
 
