@@ -495,7 +495,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         }
         transaction.finish();
 
-        if(serverSupportsUnsampled){
+        if (serverSupportsUnsampled) {
             reporter.awaitTransactionCount(1);
             assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isNull();
         } else {
