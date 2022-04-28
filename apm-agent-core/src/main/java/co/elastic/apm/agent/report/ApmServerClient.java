@@ -340,8 +340,8 @@ public class ApmServerClient {
     }
 
     public boolean supportsKeepingUnsampledTransaction() {
-        // supportsKeepingUnsampledTransaction is called from application threads
-        // return true instead of blocking the thread
+        // Method is called from application threads thus we have to return fast to avoid blocking application threads
+        // When server version is not known we assume that it's a 7.x or earlier and keep sending unsampled.
         if (apmServerVersion != null && !apmServerVersion.isDone()) {
             return true;
         }
