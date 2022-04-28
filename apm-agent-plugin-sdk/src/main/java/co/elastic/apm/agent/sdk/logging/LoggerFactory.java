@@ -62,19 +62,22 @@ public class LoggerFactory {
             return null;
         }
 
-        return AccessController.doPrivileged(new PrivilegedAction<Logger>() {
+        Logger logger = AccessController.doPrivileged(new PrivilegedAction<Logger>() {
             @Override
             public Logger run() {
                 return iLoggerFactory.getLogger(name);
             }
         });
+        // in case the factory is unable to provide a logger, we return Noop impl to prevent further calls to the factory
+        return logger != null ? logger : NoopLogger.INSTANCE;
     }
 
     /**
      * Lazy-initialization logger when the {@link #initialize(ILoggerFactory)} method hasn't been called yet. Allows to
      * make calls to {@link #getLogger} before {@link #initialize} to have a valid logger.
      */
-    private static class LazyInitLogger implements Logger {
+    // package-private for testing
+    static class LazyInitLogger implements Logger {
 
         private final String name;
         private volatile Logger delegate = null;
@@ -88,7 +91,8 @@ public class LoggerFactory {
             return name;
         }
 
-        private Logger getDelegate() {
+        // package-private for testing
+        Logger getDelegate() {
             if (delegate != null) {
                 return delegate;
             }
@@ -248,7 +252,8 @@ public class LoggerFactory {
         }
     }
 
-    private static class NoopLogger implements Logger {
+    // package-private for testing
+    static class NoopLogger implements Logger {
 
         static final NoopLogger INSTANCE = new NoopLogger();
 
