@@ -343,7 +343,7 @@ public class ApmServerClient {
         // Method is called from application threads thus we have to return fast to avoid blocking application threads
         // When server version is not known we assume that it's a recent one and discard unsampled transactions.
         if (apmServerVersion != null && !apmServerVersion.isDone()) {
-            return false;
+            return true;
         }
         return isLowerThan(VERSION_8_0);
     }
