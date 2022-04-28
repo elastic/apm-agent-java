@@ -603,9 +603,7 @@ public class MockReporter implements Reporter {
                 LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));
             }
         }
-        if (thrown != null) {
-            throw new RuntimeException(String.format("Condition not fulfilled within %d ms", timeoutMs), thrown);
-        }
+        throw new RuntimeException(String.format("Condition not fulfilled within %d ms", timeoutMs), thrown);
     }
 
     /**
