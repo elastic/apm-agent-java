@@ -32,7 +32,7 @@ endif::[]
 
 [float]
 ===== Bug fixes
-
+* Fixed multiple dropped stats types in a transaction producing invalid JSON: {pull}2589[#2589]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
