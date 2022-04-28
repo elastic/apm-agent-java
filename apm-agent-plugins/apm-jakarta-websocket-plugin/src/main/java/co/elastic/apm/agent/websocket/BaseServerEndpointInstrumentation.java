@@ -35,9 +35,11 @@ import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -63,7 +65,7 @@ public abstract class BaseServerEndpointInstrumentation extends TracerAwareInstr
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return isAnnotatedWith(named(getServerEndpointClassName()));
+        return not(isInterface()).and(not(isProxy())).and(isAnnotatedWith(named(getServerEndpointClassName())));
     }
 
     @Override
@@ -85,11 +87,11 @@ public abstract class BaseServerEndpointInstrumentation extends TracerAwareInstr
             if (currentTransaction == null) {
                 Transaction rootTransaction = tracer.startRootTransaction(Thread.currentThread().getContextClassLoader());
                 if (rootTransaction != null) {
-                    setTransactionName(rootTransaction, signature, frameworkName, frameworkVersion);
+                    setTransactionTypeAndName(rootTransaction, signature, frameworkName, frameworkVersion);
                     return rootTransaction.activate();
                 }
             } else {
-                setTransactionName(currentTransaction, signature, frameworkName, frameworkVersion);
+                setTransactionTypeAndName(currentTransaction, signature, frameworkName, frameworkVersion);
             }
 
             return null;
@@ -110,7 +112,8 @@ public abstract class BaseServerEndpointInstrumentation extends TracerAwareInstr
             }
         }
 
-        private static void setTransactionName(Transaction transaction, String signature, String frameworkName, @Nullable String frameworkVersion) {
+        private static void setTransactionTypeAndName(Transaction transaction, String signature, String frameworkName, @Nullable String frameworkVersion) {
+            transaction.withType(Transaction.TYPE_REQUEST);
             transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK, false);
             transaction.setFrameworkName(frameworkName);
             transaction.setFrameworkVersion(frameworkVersion);

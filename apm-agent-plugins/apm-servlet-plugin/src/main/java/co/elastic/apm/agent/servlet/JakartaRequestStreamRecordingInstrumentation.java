@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.servlet.helper.JakartaRecordingServletInputStreamWrapper;
 import jakarta.servlet.ServletInputStream;
@@ -30,23 +29,13 @@ import javax.annotation.Nullable;
 public class JakartaRequestStreamRecordingInstrumentation extends RequestStreamRecordingInstrumentation {
 
     @Override
-    String typeMatcherClassName() {
-        return "jakarta.servlet.ServletRequest";
-    }
-
-    @Override
-    String servletInputStreamArgumentClassName() {
-        return "jakarta.servlet.ServletInputStream";
+    public Constants.ServletImpl getImplConstants() {
+        return Constants.ServletImpl.JAKARTA;
     }
 
     @Override
     public String getAdviceClassName() {
         return "co.elastic.apm.agent.servlet.JakartaRequestStreamRecordingInstrumentation$GetInputStreamAdvice";
-    }
-
-    @Override
-    public String rootClassNameThatClassloaderCanLoad() {
-        return "jakarta.servlet.AsyncContext";
     }
 
     public static class GetInputStreamAdvice {

@@ -20,18 +20,18 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import io.undertow.Undertow;
 import io.undertow.io.Sender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.testcontainers.Testcontainers;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.utility.MountableFile;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -123,8 +123,8 @@ public class ApmServerClientProxySupportIT {
         String squidConfig = String.format("squid/squid_%s.conf", useAuth ? "basic-auth" : "no-auth");
 
         proxy = new GenericContainer<>(DOCKER_IMAGE_NAME)
-            .withClasspathResourceMapping(squidConfig, "/etc/squid/squid.conf", BindMode.READ_ONLY)
-            .withClasspathResourceMapping("squid/squid_passwd", "/etc/squid/passwd", BindMode.READ_ONLY);
+            .withCopyFileToContainer(MountableFile.forClasspathResource(squidConfig), "/etc/squid/squid.conf")
+            .withCopyFileToContainer(MountableFile.forClasspathResource("squid/squid_passwd"), "/etc/squid/passwd");
 
         proxy.addExposedPorts(3128);
         proxy.start();

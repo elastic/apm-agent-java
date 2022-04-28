@@ -49,6 +49,7 @@ import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.when;
 
 public abstract class AbstractServerInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -369,6 +370,25 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
             .verify();
 
         // no transactions, not errors captured.
+    }
+
+    @Test
+    void testIgnoreUrlsConfig() {
+        when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(List.of(WildcardMatcher.valueOf("*/empty-mono")));
+
+        StepVerifier.create(client.getMonoEmpty()).verifyComplete();
+
+        reporter.assertNoTransaction();
+    }
+
+    @Test
+    void testIgnoreUserAgentsConfig() {
+        when(config.getConfig(WebConfiguration.class).getIgnoreUserAgents()).thenReturn(List.of(WildcardMatcher.valueOf("ignored-ua")));
+        client.setHeader("User-Agent", "ignored-ua");
+
+        StepVerifier.create(client.getMonoEmpty()).verifyComplete();
+
+        reporter.assertNoTransaction();
     }
 
     private static Predicate<ServerSentEvent<String>> checkSSE(final int index) {

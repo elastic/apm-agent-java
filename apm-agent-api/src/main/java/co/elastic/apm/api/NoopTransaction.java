@@ -49,6 +49,20 @@ enum NoopTransaction implements Transaction {
     }
 
     @Nonnull
+    @Override
+    public Transaction setServiceInfo(String serviceName, String serviceVersion) {
+        // noop
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction useServiceInfoForClassLoader(ClassLoader classLoader) {
+        // noop
+        return this;
+    }
+
+    @Nonnull
     @Deprecated
     @Override
     public Transaction addTag(String key, String value) {

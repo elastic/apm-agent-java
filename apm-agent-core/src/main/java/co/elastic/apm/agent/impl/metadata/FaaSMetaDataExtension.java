@@ -34,12 +34,6 @@ public class FaaSMetaDataExtension {
     private final Framework framework;
 
     /**
-     * ID of the service emitting this event
-     */
-    @Nullable
-    private final String serviceId;
-
-    /**
      * Details of the cloud account owning the current service
      */
     @Nullable
@@ -51,9 +45,8 @@ public class FaaSMetaDataExtension {
     @Nullable
     private final String region;
 
-    public FaaSMetaDataExtension(@Nullable Framework framework, @Nullable String serviceId, @Nullable NameAndIdField account, @Nullable String region) {
+    public FaaSMetaDataExtension(@Nullable Framework framework, @Nullable NameAndIdField account, @Nullable String region) {
         this.framework = framework;
-        this.serviceId = serviceId;
         this.account = account;
         this.region = region;
     }
@@ -61,11 +54,6 @@ public class FaaSMetaDataExtension {
     @Nullable
     public Framework getFramework() {
         return framework;
-    }
-
-    @Nullable
-    public String getServiceId() {
-        return serviceId;
     }
 
     @Nullable

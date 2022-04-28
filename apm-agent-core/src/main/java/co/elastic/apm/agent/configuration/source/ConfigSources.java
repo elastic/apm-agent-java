@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.configuration.source;
 
-import org.stagemonitor.configuration.source.ConfigurationSource;
 import org.stagemonitor.configuration.source.SimpleSource;
 
 import javax.annotation.Nullable;

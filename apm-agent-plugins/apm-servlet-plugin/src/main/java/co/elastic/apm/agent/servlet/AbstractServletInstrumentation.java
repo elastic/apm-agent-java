@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
@@ -33,13 +32,11 @@ public abstract class AbstractServletInstrumentation extends TracerAwareInstrume
         return Collections.singleton(Constants.SERVLET_API);
     }
 
+    public abstract Constants.ServletImpl getImplConstants();
+
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        // this class has been introduced in servlet spec 3.0
-        // choice of class name to use for this test does not work as expected across all application servers
-        // for example, 'javax.servlet.annotation.WebServlet' annotation is not working as expected on Payara
-        return CustomElementMatchers.classLoaderCanLoadClass(rootClassNameThatClassloaderCanLoad());
+        return getImplConstants().getClassloaderFilterMatcher();
     }
 
-    public abstract String rootClassNameThatClassloaderCanLoad();
 }

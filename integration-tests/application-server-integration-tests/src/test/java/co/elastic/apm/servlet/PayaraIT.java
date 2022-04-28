@@ -25,7 +25,6 @@ import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.util.Arrays;
@@ -34,7 +33,7 @@ import java.util.Arrays;
 public class PayaraIT extends AbstractServletContainerIntegrationTest {
 
     public PayaraIT(final String serverVersion, final String deploymentsFolder) {
-        super(new GenericContainer<>(
+        super(new GenericContainerWithTcpProxy<>(
                 new ImageFromDockerfile()
                     .withDockerfileFromBuilder(builder -> {
                             builder

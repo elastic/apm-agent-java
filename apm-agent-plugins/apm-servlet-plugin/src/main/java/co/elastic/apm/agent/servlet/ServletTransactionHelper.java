@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.httpserver.HttpServerHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
@@ -58,11 +59,13 @@ public class ServletTransactionHelper {
     private final CoreConfiguration coreConfiguration;
     private final WebConfiguration webConfiguration;
     private final ElasticApmTracer tracer;
+    private final HttpServerHelper serverHelper;
 
     public ServletTransactionHelper(ElasticApmTracer tracer) {
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         this.webConfiguration = tracer.getConfig(WebConfiguration.class);
         this.tracer = tracer;
+        this.serverHelper = new HttpServerHelper(webConfiguration);
     }
 
     @Nullable
@@ -74,7 +77,7 @@ public class ServletTransactionHelper {
         if (tracer.currentTransaction() != null) {
             return null;
         }
-        if (isExcluded(requestAdapter.getHeader(request, "User-Agent"), requestAdapter.getRequestURI(request))) {
+        if (serverHelper.isRequestExcluded(requestAdapter.getRequestURI(request), requestAdapter.getHeader(request, "User-Agent"))) {
             return null;
         }
         ClassLoader cl = contextAdapter.getClassLoader(requestAdapter.getServletContext(request));
@@ -83,23 +86,6 @@ public class ServletTransactionHelper {
             transaction.activate();
         }
         return transaction;
-    }
-
-    public boolean isExcluded(@Nullable String userAgent, String requestUri) {
-        final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), requestUri);
-
-        if (excludeUrlMatcher != null && logger.isDebugEnabled()) {
-            logger.debug("Not tracing this request as the URL {} is ignored by the matcher {}", requestUri, excludeUrlMatcher);
-        }
-        final WildcardMatcher excludeAgentMatcher = userAgent != null ? WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgent) : null;
-        if (excludeAgentMatcher != null) {
-            logger.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}", userAgent, excludeAgentMatcher);
-        }
-        boolean isExcluded = excludeUrlMatcher != null || excludeAgentMatcher != null;
-        if (!isExcluded && logger.isTraceEnabled()) {
-            logger.trace("No matcher found for excluding this request with URL: {}, and User-Agent: {}", requestUri, userAgent);
-        }
-        return isExcluded;
     }
 
     public void fillRequestContext(Transaction transaction, String protocol, String method, boolean secure,

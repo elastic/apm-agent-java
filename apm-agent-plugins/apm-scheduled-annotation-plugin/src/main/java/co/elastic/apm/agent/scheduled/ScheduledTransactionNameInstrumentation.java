@@ -39,9 +39,11 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrumentation {
 
@@ -89,6 +91,7 @@ public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrume
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>none())
+            .and(not(isProxy()))
             .and(declaresMethod(getMethodMatcher()));
     }
 

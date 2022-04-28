@@ -22,8 +22,9 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Map;
+import javax.annotation.Nullable;
 
+import static net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC;
 import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -36,17 +37,11 @@ public class SystemSingleEnvVariablesInstrumentation extends SystemEnvVariableIn
     }
 
     public static class AdviceClass {
-        @Advice.AssignReturned.ToReturned
+        // note: requires to use the array return form in order to be able to set return value to 'null'
+        @Advice.AssignReturned.ToReturned(index = 0, typing = DYNAMIC)
         @Advice.OnMethodExit(onThrowable = Throwable.class, inline = false)
-        public static String appendToEnvVariables(@Advice.Argument(0) String varName, @Advice.Return String ret) {
-            Map<String, String> customEnvVariables = customEnvVariablesTL.get();
-            if (customEnvVariables != null) {
-                String customValue = customEnvVariables.get(varName);
-                if (customValue != null) {
-                    ret = customValue;
-                }
-            }
-            return ret;
+        public static Object[] alterEnvVariables(@Advice.Argument(0) String varName, @Advice.Return @Nullable String ret) {
+            return new Object[]{getCustomEnvironmentEntry(varName, ret)};
         }
     }
 }

@@ -130,7 +130,7 @@ class UrlTest {
         // only the 'full' property is always computed
         // other attributes are not parsed unless sanitization is applied (which is an implementation detail)
         if(input.contains("@")){
-            assertThat(url.getHostname()).isEqualTo("localhost");
+            assertThat(url.getHostname()).isIn("localhost", "127.0.0.1");
             assertThat(url.getPort()).isEqualTo(80);
         } else {
             assertThat(url.getHostname()).isNull();

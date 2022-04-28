@@ -44,7 +44,9 @@ public class ClassLoaderUtils {
     }
 
     public static boolean isAgentClassLoader(@Nullable ClassLoader classLoader) {
-        return classLoader != null && classLoader.getClass().getName().startsWith("co.elastic.apm");
+        return (classLoader != null && classLoader.getClass().getName().startsWith("co.elastic.apm")) ||
+            // This one also covers unit tests, where the app class loader loads the agent
+            ClassLoaderUtils.class.getClassLoader().equals(classLoader);
     }
 
     public static boolean isBootstrapClassLoader(@Nullable ClassLoader classLoader) {

@@ -23,6 +23,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -37,8 +38,8 @@ class ServiceIT {
     void testServiceNameAndVersionFromManifest(String image) {
         assertThat(new File("target/main-app-test.jar")).exists();
         GenericContainer<?> app = new GenericContainer<>(DockerImageName.parse(image))
-            .withFileSystemBind(getAgentJar(), "/tmp/elastic-apm-agent.jar")
-            .withFileSystemBind("target/main-app-test.jar", "/tmp/main-app.jar")
+            .withCopyFileToContainer(MountableFile.forHostPath(getAgentJar()), "/tmp/elastic-apm-agent.jar")
+            .withCopyFileToContainer(MountableFile.forHostPath("target/main-app-test.jar"), "/tmp/main-app.jar")
             .withCommand("java -javaagent:/tmp/elastic-apm-agent.jar -jar /tmp/main-app.jar")
             .waitingFor(Wait.forLogMessage(".* Starting Elastic APM .*", 1));
         app.start();

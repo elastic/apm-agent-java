@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -142,6 +143,41 @@ public class TransactionInstrumentation extends ApiInstrumentation {
                         transaction.addCustomContext(key, (Number) value);
                     } else if (value instanceof Boolean) {
                         transaction.addCustomContext(key, (Boolean) value);
+                    }
+                }
+            }
+        }
+    }
+
+    public static class SetServiceInfoInstrumentation extends TransactionInstrumentation {
+        public SetServiceInfoInstrumentation() {
+            super(named("setServiceInfo"));
+        }
+
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void setServiceInfo(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+                                              @Advice.Argument(0) String serviceName, @Advice.Argument(1) String serviceVersion) {
+                if (transaction instanceof Transaction) {
+                    ((Transaction) transaction).getTraceContext().setServiceInfo(serviceName, serviceVersion);
+                }
+            }
+        }
+    }
+
+    public static class UseServiceInfoForClassLoaderInstrumentation extends TransactionInstrumentation {
+        public UseServiceInfoForClassLoaderInstrumentation() {
+            super(named("useServiceInfoForClassLoader"));
+        }
+
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void useServiceInfoForClassLoader(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+                                                            @Advice.Argument(0) ClassLoader classLoader) {
+                if (transaction instanceof Transaction) {
+                    ServiceInfo serviceInfo = tracer.getServiceInfoForClassLoader(classLoader);
+                    if (serviceInfo != null) {
+                        ((Transaction) transaction).getTraceContext().setServiceInfo(serviceInfo.getServiceName(), serviceInfo.getServiceVersion());
                     }
                 }
             }

@@ -19,7 +19,14 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -71,5 +78,41 @@ class SpanTest {
         assertThat(span.withType("").getType()).isNull();
         assertThat(span.withSubtype("").getSubtype()).isNull();
         assertThat(span.withAction("").getAction()).isNull();
+    }
+
+    @ParameterizedTest
+    @MethodSource("typeTestArguments")
+    void normalizeType(String type, String expectedType) {
+
+        ElasticApmTracer tracer = MockTracer.createRealTracer();
+        Transaction transaction = new Transaction(tracer);
+
+        transaction.start(TraceContext.asRoot(), null, 0, ConstantSampler.of(true));
+        try {
+            Span span = new Span(tracer);
+
+            span.start(TraceContext.fromParent(), transaction, -1L);
+
+            assertThat(span.getType())
+                .describedAs("span type should not be set by default")
+                .isNull();
+
+            span.withType(type);
+
+            span.end();
+
+            assertThat(span.getType()).isEqualTo(expectedType);
+        } finally {
+            transaction.end();
+        }
+
+    }
+
+    static Stream<Arguments> typeTestArguments() {
+        return Stream.of(
+            Arguments.of("", "custom"),
+            Arguments.of(null, "custom"),
+            Arguments.of("my-type", "my-type")
+        );
     }
 }

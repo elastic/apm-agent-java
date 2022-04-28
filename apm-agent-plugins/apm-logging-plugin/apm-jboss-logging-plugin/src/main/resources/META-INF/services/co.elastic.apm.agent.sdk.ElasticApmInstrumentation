@@ -1,0 +1,2 @@
+co.elastic.apm.agent.jbosslogging.correlation.JBossLoggingCorrelationInstrumentation
+co.elastic.apm.agent.jbosslogging.correlation.JBossLogManagerCorrelationInstrumentation

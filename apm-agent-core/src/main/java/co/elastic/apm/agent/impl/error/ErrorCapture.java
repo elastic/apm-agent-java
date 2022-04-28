@@ -44,6 +44,8 @@ public class ErrorCapture implements Recyclable {
 
     private static final Logger logger = LoggerFactory.getLogger(ErrorCapture.class);
 
+    private static final ThreadLocal<ErrorCapture> activeError = new ThreadLocal<>();
+
     private final TraceContext traceContext;
 
     /**
@@ -205,32 +207,18 @@ public class ErrorCapture implements Recyclable {
     }
 
     public ErrorCapture activate() {
-        List<ActivationListener> activationListeners = tracer.getActivationListeners();
-        for (int i = 0; i < activationListeners.size(); i++) {
-            try {
-                activationListeners.get(i).beforeActivate(this);
-            } catch (Error e) {
-                throw e;
-            } catch (Throwable t) {
-                logger.warn("Exception while calling {}#beforeActivate", activationListeners.get(i).getClass().getSimpleName(), t);
-            }
-        }
+        activeError.set(this);
         return this;
     }
 
     public ErrorCapture deactivate() {
-        List<ActivationListener> activationListeners = tracer.getActivationListeners();
-        for (int i = 0; i < activationListeners.size(); i++) {
-            try {
-                // `this` is guaranteed to not be recycled yet as the reference count is only decremented after this method has executed
-                activationListeners.get(i).afterDeactivate(this);
-            } catch (Error e) {
-                throw e;
-            } catch (Throwable t) {
-                logger.warn("Exception while calling {}#afterDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
-            }
-        }
+        activeError.remove();
         return this;
+    }
+
+    @Nullable
+    public static ErrorCapture getActive() {
+        return activeError.get();
     }
 
     public static class TransactionInfo implements Recyclable {

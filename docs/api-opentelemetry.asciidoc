@@ -1,0 +1,146 @@
+ifdef::env-github[]
+NOTE: For the best reading experience,
+please view this documentation at https://www.elastic.co/guide/en/apm/agent/java[elastic.co]
+endif::[]
+
+[[opentelementry-bridge]]
+=== OpenTelemetry bridge
+
+NOTE: Added as experimental in 1.30.0.
+To enable it, set <<config-enable-experimental-instrumentations, `enable_experimental_instrumentations`>> to `true`.
+
+The Elastic APM OpenTelemetry bridge allows creating Elastic APM `Transactions` and `Spans`,
+using the OpenTelemetry API.
+In other words,
+it translates the calls to the OpenTelemetry API to Elastic APM and thus allows for reusing existing instrumentation.
+
+NOTE: While manual instrumentations using the OpenTelemetry API can be adapted to the Elastic APM Java agent, it's not possible to use the instrumentations from
+https://github.com/open-telemetry/opentelemetry-java-instrumentation[opentelemetry-java-instrumentation] in the context of the Elastic APM Java agent. +
+However, you can use https://github.com/open-telemetry/opentelemetry-java-instrumentation[opentelemetry-java-instrumentation] (aka the OpenTelementry Java agent)
+and send the data to APM Server.
+See the {apm-guide-ref}/open-telemetry.html[OpenTelemetry integration docs] for more details.
+
+The first span of a service will be converted to an Elastic APM
+{apm-guide-ref}/data-model-transactions.html[`Transaction`],
+subsequent spans are mapped to Elastic APM
+{apm-guide-ref}/data-model-spans.html[`Span`].
+
+[float]
+[[otel-getting-started]]
+==== Getting started
+The first step in getting started with the OpenTelemetry API bridge is to declare a dependency to the API:
+
+[source,xml]
+.pom.xml
+----
+<dependency>
+    <groupId>io.opentelemetry</groupId>
+    <artifactId>opentelemetry-api</artifactId>
+    <version>${version.opentelemetry}</version>
+</dependency>
+----
+
+[source,groovy]
+.build.gradle
+----
+compile "io.opentelemetry:opentelemetry-api:$openTelemetryVersion"
+----
+
+The minimum required OpenTelemetry version is 1.0.1.
+
+[float]
+[[otel-init-tracer]]
+==== Initialize tracer
+
+There's no separate dependency needed for the bridge itself.
+The Java agent hooks into `GlobalOpenTelemetry` to return it's own implementation of `OpenTelemetry`
+that is connected to the internal tracer of the agent.
+
+[source,java]
+----
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Tracer;
+
+OpenTelemetry openTelemetry = GlobalOpenTelemetry.get();
+Tracer tracer = openTelemetry.getTracer("");
+
+----
+
+To disable that behavior,
+and to rely on the standard discovery mechanism of `GlobalOpenTelemetry`,
+you can set <<config-disable-instrumentations, `disable_instrumentations`>> to `opentelemetry`.
+
+[float]
+[[otel-set-attribute]]
+==== Add custom metadata to a span
+
+If you like the spans created by the Elastic APM Java agent's auto-instrumentation,
+but you want to add a custom label,
+you can use the OpenTelemetry API to get ahold of the current span and call `setAttribute`:
+
+[source,java]
+----
+Span.current().setAttribute("foo", "bar");
+----
+
+[float]
+[[otel-create-transaction-span]]
+==== Create a child of the active span
+
+This is an example for adding a custom span to the span created by the Java agent's auto-instrumentation.
+
+[source,java]
+----
+// if there's an active span, it will implicitly be the parent
+// in case there's no parent, the custom span will become a Elastic APM transaction
+Span custom = tracer.spanBuilder("my custom span").startSpan();
+// making your child the current one makes the Java agent aware of this span
+// if the agent creates spans in the context of myTracedMethod() (such as outgoing requests),
+// they'll be added as a child of your custom span
+try (Scope scope = custom.makeCurrent()) {
+    myTracedMethod();
+} catch (Exception e) {
+    custom.recordException(e);
+    throw e;
+} finally {
+    custom.end();
+}
+----
+
+To learn more about the OpenTelemetry API,
+head over do https://opentelemetry.io/docs/java/manual_instrumentation/[their documentation].
+
+[float]
+[[otel-caveats]]
+==== Caveats
+Not all features of the OpenTelemetry API are supported.
+
+[float]
+[[otel-metrics]]
+===== Metrics
+This bridge only supports the tracing API.
+The Metrics API is currently not supported.
+
+[float]
+[[otel-propagation]]
+===== In process context propagation
+Entries that are added to the current context,
+`Context.current().with(...).makeCurrent()` cannot be retrieved via `Context.current().get(...)`.
+
+[float]
+[[otel-references]]
+===== Span References
+The `SpanBuilder#addLink` method is currently not supported.
+Spans can only have a single parent (`SpanBuilder#setParent`)
+
+[float]
+[[otel-baggage]]
+===== Baggage
+Propagating baggage within or outside the process is not supported.
+Baggage items are silently dropped.
+
+[float]
+[[otel-events]]
+===== Events
+Events are silently dropped, for example `Span.current().addEvent("my event")`.

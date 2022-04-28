@@ -45,7 +45,6 @@ public abstract class AbstractStreamHandlerLambdaTest extends AbstractInstrument
         MetaData metaData = tracer.getMetaDataFuture().get(100, TimeUnit.MILLISECONDS);
         assertThat(metaData).isNotNull();
         assertThat(metaData.getService()).isNotNull();
-        assertThat(metaData.getService().getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(metaData.getService().getRuntime()).isNotNull();
         assertThat(metaData.getService().getRuntime().getName()).startsWith("AWS_Lambda_java");
         assertThat(metaData.getService().getRuntime().getVersion()).isEqualTo(System.getProperty("java.version"));
@@ -87,7 +86,7 @@ public abstract class AbstractStreamHandlerLambdaTest extends AbstractInstrument
 
         Faas faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
-
+        assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(faas.getTrigger().getType()).isEqualTo("other");
         assertThat(faas.getTrigger().getRequestId()).isNull();
     }

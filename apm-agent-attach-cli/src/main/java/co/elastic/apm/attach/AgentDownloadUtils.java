@@ -48,7 +48,13 @@ public class AgentDownloadUtils {
         }
 
         URL jarLocation = AgentDownloadUtils.class.getProtectionDomain().getCodeSource().getLocation();
-        Path attacherCliDir = Paths.get(jarLocation.getPath()).getParent();
+        String jarLocationPath = jarLocation.getPath();
+        if (jarLocationPath.matches("/\\w\\:.*")){
+            // looks something like /C:/path... - Paths.get() doesn't like that
+            // so strip the leading /
+            jarLocationPath = jarLocationPath.substring(1);
+        }
+        Path attacherCliDir = Paths.get(jarLocationPath).getParent();
 
         Path agentBaseDir;
         if (Files.isWritable(attacherCliDir)) {

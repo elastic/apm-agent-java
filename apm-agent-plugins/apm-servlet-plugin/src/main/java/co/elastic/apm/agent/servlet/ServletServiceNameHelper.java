@@ -46,12 +46,18 @@ public class ServletServiceNameHelper {
         if (servletContext == null) {
             return;
         }
-        ClassLoader servletContextClassLoader = adapter.getClassLoader(servletContext);
+        ClassLoader servletContextClassLoader = null;
+
+        if (!servletContext.getClass().getName().startsWith("org.apache.sling")) {
+            // Apache Sling explicitly prevents us from getting the classloader through a SecurityException
+            servletContextClassLoader = adapter.getClassLoader(servletContext);
+        }
+
         if (servletContextClassLoader == null || nameInitialized.putIfAbsent(servletContextClassLoader, Boolean.TRUE) != null) {
             return;
         }
         ServiceInfo serviceInfo = detectServiceInfo(adapter, servletContext, servletContextClassLoader);
-        tracer.overrideServiceInfoForClassLoader(servletContextClassLoader, serviceInfo);
+        tracer.setServiceInfoForClassLoader(servletContextClassLoader, serviceInfo);
     }
 
     public static <ServletContext> ServiceInfo detectServiceInfo(ServletContextAdapter<ServletContext> adapter, ServletContext servletContext, ClassLoader servletContextClassLoader) {

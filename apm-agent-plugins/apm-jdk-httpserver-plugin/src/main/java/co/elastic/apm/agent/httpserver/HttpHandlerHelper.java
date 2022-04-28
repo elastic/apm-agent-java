@@ -28,7 +28,7 @@ import java.util.List;
 
 public class HttpHandlerHelper {
 
-    public static final List<Class<? extends ElasticApmInstrumentation>> INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(HttpHandlerInstrumentation.class);
+    private static final List<Class<? extends ElasticApmInstrumentation>> INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(HttpHandlerInstrumentation.class);
 
     public static void ensureInstrumented(@Nullable HttpHandler handler) {
         if (null == handler) {

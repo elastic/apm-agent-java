@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.sparkjava;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;

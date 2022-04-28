@@ -129,4 +129,12 @@ class DiscriminatingMultiParentClassLoader extends ClassLoader {
         }
         return Collections.emptyEnumeration();
     }
+
+    @Override
+    public String toString() {
+        return "DiscriminatingMultiParentClassLoader{" +
+            "agentClassLoader = " + parents.get(0) + " discriminator = "+ discriminators.get(0) +
+            ", targetClassLoader =" + parents.get(1) + " discriminator = " + discriminators.get(1) +
+            '}';
+    }
 }

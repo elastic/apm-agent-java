@@ -348,7 +348,7 @@ class SpanTypeBreakdownTest {
     @Test
     void testBreakdown_serviceName() {
         final Transaction transaction = createTransaction();
-        transaction.getTraceContext().setServiceName("service_name");
+        transaction.getTraceContext().setServiceInfo("service_name", null);
         transaction.createSpan(11).withType("db").withSubtype("mysql").end(23);
         transaction.end(27);
 
@@ -363,8 +363,7 @@ class SpanTypeBreakdownTest {
     @Test
     void testBreakdown_serviceNameAndVersion() {
         final Transaction transaction = createTransaction();
-        transaction.getTraceContext().setServiceName("service_name");
-        transaction.getTraceContext().setServiceVersion("service_version");
+        transaction.getTraceContext().setServiceInfo("service_name", "service_version");
         transaction.createSpan(11).withType("db").withSubtype("mysql").end(23);
         transaction.end(27);
 
