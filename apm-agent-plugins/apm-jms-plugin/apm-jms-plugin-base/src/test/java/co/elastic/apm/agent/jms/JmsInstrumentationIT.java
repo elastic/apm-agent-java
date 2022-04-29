@@ -215,26 +215,6 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
 
-    @SuppressWarnings("ConstantConditions")
-    @Test
-    public void testQueueSendReceiveOnNonTracedThread_NonSampledTransaction() throws Exception {
-        final Queue queue = createTestQueue();
-
-        // End current transaction and start a non-sampled one
-        tracer.currentTransaction().deactivate().end();
-        reporter.reset();
-        startAndActivateTransaction(ConstantSampler.of(false));
-
-        doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
-        Transaction receiveTransaction = reporter.getFirstTransaction(500);
-        assertThat(receiveTransaction.isSampled()).isFalse();
-        assertThat(reporter.getSpans()).isEmpty();
-        assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from queue " + queue.getQueueName());
-        assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(tracer.currentTransaction().getTraceContext().getTraceId());
-        assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId());
-        assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
-    }
-
     @Test
     public void testAgentPaused() throws Exception {
         TracerInternalApiUtils.pauseTracer(tracer);

@@ -84,6 +84,12 @@ pipeline {
             env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
             env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
             env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
+
+            if (env.ONLY_DOCS == "true") {
+              // those GH checks are required, and docs build skips them we artificially make them as OK
+              githubCheck(name: "Application Server integration tests", status: 'neutral');
+              githubCheck(name: "Non-Application Server integration tests", status: 'neutral');
+            }
           }
         }
       }
@@ -114,7 +120,7 @@ pipeline {
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           steps {
-            withGithubNotify(context: 'Build', tab: 'artifacts') {
+            withGithubNotify(context: "${STAGE_NAME}", tab: 'artifacts') {
               deleteDir()
               unstash 'source'
               // prepare m2 repository with the existing dependencies
@@ -163,7 +169,7 @@ pipeline {
                 PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               steps {
-                withGithubNotify(context: 'Unit Tests', tab: 'tests') {
+                withGithubNotify(context: "${STAGE_NAME}", tab: 'tests') {
                   deleteDir()
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   dir("${BASE_DIR}") {
@@ -236,7 +242,7 @@ pipeline {
                 PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               steps {
-                withGithubNotify(context: 'Non-Application Server integration tests', tab: 'tests') {
+                withGithubNotify(context: "${STAGE_NAME}", tab: 'tests') {
                   deleteDir()
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   dir("${BASE_DIR}") {
@@ -269,7 +275,7 @@ pipeline {
                 PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               steps {
-                withGithubNotify(context: 'Application Server integration tests', tab: 'tests') {
+                withGithubNotify(context: "${STAGE_NAME}", tab: 'tests') {
                   deleteDir()
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   dir("${BASE_DIR}") {
@@ -305,7 +311,7 @@ pipeline {
                 }
               }
               steps {
-                withGithubNotify(context: 'Benchmarks', tab: 'artifacts') {
+                withGithubNotify(context: "${STAGE_NAME}", tab: 'artifacts') {
                   deleteDir()
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   dir("${BASE_DIR}"){
@@ -334,7 +340,7 @@ pipeline {
                 PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               steps {
-                withGithubNotify(context: 'Javadoc') {
+                withGithubNotify(context: "${STAGE_NAME}") {
                   deleteDir()
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   dir("${BASE_DIR}"){
@@ -403,7 +409,7 @@ pipeline {
             stages {
               stage('JDK Unit Tests') {
                 steps {
-                  withGithubNotify(context: "Unit Tests ${JDK_VERSION}", tab: 'tests') {
+                  withGithubNotify(context: "${STAGE_NAME} ${JDK_VERSION}", tab: 'tests') {
                     deleteDir()
                     unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                     dir("${BASE_DIR}"){

@@ -30,8 +30,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.concurrent.CyclicBarrier;
@@ -65,6 +65,9 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         }
 
         app.stop();
+
+        // as weak maps are used, proper object recycling required GC
+        reporter.enableGcWhenAssertingObjectRecycling();
     }
 
     @Test
