@@ -78,7 +78,7 @@ pipeline {
         script {
           dir("${BASE_DIR}"){
             // Skip all the stages except docs for PR's with asciidoc and md changes only
-            env.ONLY_DOCS = isGitRegionMatch(patterns: [ '.*\\.(asciidoc|md)' ], shouldMatchAll: true)
+            env.ONLY_DOCS = isGitRegionMatch(patterns: [ 'Jenkinsfile|.*\\.(asciidoc|md)' ], shouldMatchAll: true)
             // Prepare the env variables for the benchmark results
             env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
             env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
@@ -86,8 +86,7 @@ pipeline {
             env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
 
             if (env.ONLY_DOCS == "true") {
-              // those GH checks are required, and docs build skips them we artificially make them as OK with empty
-              // blocks.
+              // those GH checks are required, and docs build skips them we artificially make them as OK
               githubCheck(name: "Application Server integration tests", status: 'neutral');
               githubCheck(name: "Non-Application Server integration tests", status: 'neutral');
             }
