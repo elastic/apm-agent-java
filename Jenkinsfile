@@ -84,6 +84,12 @@ pipeline {
             env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
             env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
             env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
+
+            if (env.ONLY_DOCS == "true") {
+              // TODO : ideally we should mark those as 'neutral' when skipped
+              withGithubNotify(context: "Application Server integration tests"){ }
+              withGithubNotify(context: "Non-Application Server integration tests"){ }
+            }
           }
         }
       }
@@ -102,29 +108,385 @@ pipeline {
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
       stages {
-
-        stage('experiment-gh-notify') {
+        /**
+         * Build on a linux environment.
+         */
+        stage('Build') {
+          when {
+            beforeAgent true
+            expression { return env.ONLY_DOCS == "false" }
+          }
+          environment {
+            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+          }
           steps {
-            withGithubNotify(context: "${STAGE_NAME}") {
-
+            withGithubNotify(context: "${STAGE_NAME}", tab: 'artifacts') {
+              deleteDir()
+              unstash 'source'
+              // prepare m2 repository with the existing dependencies
+              whenTrue(fileExists('/var/lib/jenkins/.m2/repository')) {
+                sh label: 'Prepare .m2 cached folder', returnStatus: true, script: 'cp -Rf /var/lib/jenkins/.m2/repository ${HOME}/.m2'
+                sh label: 'Size .m2', returnStatus: true, script: 'du -hs .m2'
+              }
+              dir("${BASE_DIR}"){
+                withOtelEnv() {
+                  retryWithSleep(retries: 5, seconds: 10) {
+                    sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                  }
+                  sh label: 'mvn license', script: "./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
+                }
+              }
+              stashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+              archiveArtifacts allowEmptyArchive: true,
+                artifacts: "\
+                  ${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,\
+                  ${BASE_DIR}/elastic-apm-agent/target/elastic-apm-java-aws-lambda-layer-*.zip,\
+                  ${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
+                  ${BASE_DIR}/apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar,\
+                  ${BASE_DIR}/apm-agent-api/target/apm-agent-api-*.jar,\
+                  ${BASE_DIR}/target/site/aggregate-third-party-report.html",
+                onlyIfSuccessful: true
             }
           }
         }
-        stage('experiment-skipped') {
+        stage('Tests') {
           when {
             beforeAgent true
-            expression { return false }
+            expression { return env.ONLY_DOCS == "false" }
           }
-          steps {
-            withGithubNotify(context: "${STAGE_NAME}") {
-
+          failFast true
+          parallel {
+            /**
+             * Run only unit tests
+             */
+            stage('Unit Tests') {
+              options { skipDefaultCheckout() }
+              when {
+                beforeAgent true
+                allOf {
+                  expression { return env.ONLY_DOCS == "false" }
+                  expression { return params.test_ci }
+                }
+              }
+              environment {
+                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+              }
+              steps {
+                withGithubNotify(context: "${STAGE_NAME}", tab: 'tests') {
+                  deleteDir()
+                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                  dir("${BASE_DIR}") {
+                    withOtelEnv() {
+                      sh label: 'mvn test', script: './mvnw test'
+                    }
+                  }
+                }
+              }
+              post {
+                always {
+                  reportTestResults()
+                }
+              }
+            }
+            /** *
+             * Build & Test on Windows environment
+             */
+            stage('Build & Test Windows') {
+              agent { label 'windows-2019-docker-immutable' }
+              options { skipDefaultCheckout() }
+              when {
+                beforeAgent true
+                allOf {
+                  expression { return env.ONLY_DOCS == "false" }
+                  expression { return params.test_ci }
+                  anyOf {
+                    expression { return params.windows_ci }
+                    expression { return env.GITHUB_COMMENT?.contains('windows tests') }
+                    expression { matchesPrLabel(label: 'ci:windows') }
+                  }
+                }
+              }
+              environment {
+                JAVA_HOME = "C:\\Users\\jenkins\\.java\\${env.JAVA_VERSION}"
+                PATH = "${env.JAVA_HOME}\\bin;${env.PATH}"
+              }
+              steps {
+                withGithubNotify(context: 'Build & Test Windows') {
+                  deleteDir()
+                  unstash 'source'
+                  dir("${BASE_DIR}") {
+                    echo "${env.PATH}"
+                    retryWithSleep(retries: 5, seconds: 10) {
+                      bat label: 'mvn clean install', script: "mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true"
+                    }
+                    bat label: 'mvn test', script: "mvnw test"
+                  }
+                }
+              }
+              post {
+                always {
+                  reportTestResults()
+                }
+              }
+            }
+            stage('Non-Application Server integration tests') {
+              agent { label 'linux && immutable' }
+              options { skipDefaultCheckout() }
+              when {
+                beforeAgent true
+                anyOf {
+                  expression { return params.agent_integration_tests_ci }
+                  expression { return env.GITHUB_COMMENT?.contains('integration tests') }
+                  expression { matchesPrLabel(label: 'ci:agent-integration') }
+                  expression { return env.CHANGE_ID != null && !pullRequest.draft }
+                  expression { return env.ONLY_DOCS == "true" } // required check, thus must be executed for docs
+                  not { changeRequest() }
+                }
+              }
+              environment {
+                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+              }
+              steps {
+                withGithubNotify(context: "${STAGE_NAME}", tab: 'tests') {
+                  deleteDir()
+                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                  dir("${BASE_DIR}") {
+                    withOtelEnv() {
+                      sh './mvnw -q -P ci-non-application-server-integration-tests verify'
+                    }
+                  }
+                }
+              }
+              post {
+                always {
+                  reportTestResults()
+                }
+              }
+            }
+            stage('Application Server integration tests') {
+              agent { label 'linux && immutable' }
+              options { skipDefaultCheckout() }
+              when {
+                beforeAgent true
+                anyOf {
+                  expression { return params.agent_integration_tests_ci }
+                  expression { return env.GITHUB_COMMENT?.contains('integration tests') }
+                  expression { matchesPrLabel(label: 'ci:agent-integration') }
+                  expression { return env.CHANGE_ID != null && !pullRequest.draft }
+                  not { changeRequest() }
+                }
+              }
+              environment {
+                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+              }
+              steps {
+                withGithubNotify(context: "${STAGE_NAME}", tab: 'tests') {
+                  deleteDir()
+                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                  dir("${BASE_DIR}") {
+                    withOtelEnv() {
+                      sh './mvnw -q -P ci-application-server-integration-tests verify'
+                    }
+                  }
+                }
+              }
+              post {
+                always {
+                  reportTestResults()
+                }
+              }
+            }
+            /**
+             * Run the benchmarks and store the results on ES.
+             * The result JSON files are also archive into Jenkins.
+             */
+            stage('Benchmarks') {
+              agent { label 'metal' }
+              options { skipDefaultCheckout() }
+              environment {
+                NO_BUILD = "true"
+                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+              }
+              when {
+                beforeAgent true
+                anyOf {
+                  branch 'main'
+                  expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
+                  expression { return params.bench_ci }
+                }
+              }
+              steps {
+                withGithubNotify(context: "${STAGE_NAME}", tab: 'artifacts') {
+                  deleteDir()
+                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                  dir("${BASE_DIR}"){
+                    withOtelEnv() {
+                      sh './scripts/jenkins/run-benchmarks.sh'
+                    }
+                  }
+                }
+              }
+              post {
+                always {
+                  archiveArtifacts(allowEmptyArchive: true,
+                    artifacts: "${BASE_DIR}/${RESULT_FILE}",
+                    onlyIfSuccessful: false)
+                  sendBenchmarks(file: "${BASE_DIR}/${BULK_UPLOAD_FILE}", index: "benchmark-java")
+                }
+              }
+            }
+            /**
+             * Build javadoc
+             */
+            stage('Javadoc') {
+              agent { label 'linux && immutable' }
+              options { skipDefaultCheckout() }
+              environment {
+                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+              }
+              steps {
+                withGithubNotify(context: "${STAGE_NAME}") {
+                  deleteDir()
+                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                  dir("${BASE_DIR}"){
+                    withOtelEnv() {
+                      sh """#!/bin/bash
+                      set -euxo pipefail
+                      ./mvnw compile javadoc:javadoc
+                      """
+                    }
+                  }
+                }
+              }
             }
           }
-          post {
-            always {
+        }
+        stage('End-To-End Integration Tests') {
+          agent none
+          when {
+            allOf {
+              expression { return env.ONLY_DOCS == "false" }
+              anyOf {
+                expression { return params.end_to_end_tests_ci }
+                expression { return env.GITHUB_COMMENT?.contains('end-to-end tests') }
+                expression { matchesPrLabel(label: 'ci:end-to-end') }
+                expression { return env.CHANGE_ID != null && !pullRequest.draft }
+                not { changeRequest() }
+              }
+            }
+          }
+          steps {
+            build(job: env.ITS_PIPELINE, propagate: false, wait: false,
+                  parameters: [string(name: 'INTEGRATION_TEST', value: 'Java'),
+                               string(name: 'BUILD_OPTS', value: "--java-agent-version ${env.GIT_BASE_COMMIT} --opbeans-java-agent-branch ${env.GIT_BASE_COMMIT}"),
+                               string(name: 'GITHUB_CHECK_NAME', value: env.GITHUB_CHECK_ITS_NAME),
+                               string(name: 'GITHUB_CHECK_REPO', value: env.REPO),
+                               string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])
+            githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
+          }
+        }
+        stage('JDK Compatibility Tests') {
+          options { skipDefaultCheckout() }
+          when {
+            beforeAgent true
+            allOf {
+              expression { return env.ONLY_DOCS == "false" }
+              anyOf {
+                expression { return params.jdk_compatibility_ci }
+                expression { return env.GITHUB_COMMENT?.contains('jdk compatibility tests') }
+                expression { matchesPrLabel(label: 'ci:jdk-compatibility') }
+              }
+            }
+          }
+          environment {
+            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+          }
+          matrix {
+            agent { label 'linux && immutable' }
+            axes {
+              axis {
+                // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
+                name 'JDK_VERSION'
+                // 'openjdk18'  disabled for now see https://github.com/elastic/apm-agent-java/issues/2328
+                values 'openjdk17'
+              }
+            }
+            stages {
+              stage('JDK Unit Tests') {
+                steps {
+                  withGithubNotify(context: "${STAGE_NAME} ${JDK_VERSION}", tab: 'tests') {
+                    deleteDir()
+                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+                    dir("${BASE_DIR}"){
+                      withOtelEnv() {
+                        sh(label: "./mvnw test for ${JDK_VERSION}", script: './mvnw test')
+                      }
+                    }
+                  }
+                }
+                post {
+                  always {
+                    reportTestResults()
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    stage('Releases') {
+      when {
+        anyOf {
+          branch 'main'
+          tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+        }
+      }
+      stages {
+        stage('Stable') {
+          options { skipDefaultCheckout() }
+          when {
+            branch 'main'
+          }
+          steps {
+            deleteDir()
+            unstash 'source'
+            dir("${BASE_DIR}"){
+              setupAPMGitEmail(global: false)
+              sh(label: "checkout ${BRANCH_NAME} branch", script: "git checkout -f '${BRANCH_NAME}'")
+              sh(label: 'rebase stable', script: """
+                git checkout -f -b stable
+                git rebase '${BRANCH_NAME}'
+                git --no-pager log -n1 --pretty=oneline
+                git rev-parse --abbrev-ref HEAD
+              """)
+              gitPush()
+            }
+          }
+        }
+        stage('AfterRelease') {
+          options { skipDefaultCheckout() }
+          when {
+            tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+          }
+          stages {
+            stage('Opbeans') {
+              environment {
+                REPO_NAME = "${OPBEANS_REPO}"
+              }
               steps {
-                echo "always executed even if skipped ?"
-                // if yes, then we just have to detect when it's skipped
+                deleteDir()
+                dir("${OPBEANS_REPO}"){
+                  git(credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
+                      url: "git@github.com:elastic/${OPBEANS_REPO}.git",
+                      branch: 'main')
+                  // It's required to transform the tag value to the artifact version
+                  sh script: ".ci/bump-version.sh ${env.BRANCH_NAME.replaceAll('^v', '')}", label: 'Bump version'
+                  // The opbeans-java pipeline will trigger a release for the main branch
+                  gitPush()
+                  // The opbeans-java pipeline will trigger a release for the release tag
+                  gitCreateTag(tag: "${env.BRANCH_NAME}")
+                }
               }
             }
           }
