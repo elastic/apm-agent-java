@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import co.elastic.apm.agent.report.ApmServerClient;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -60,6 +61,7 @@ public abstract class AbstractInstrumentationTest {
     protected static MockReporter reporter;
     protected static ConfigurationRegistry config;
     protected static TestObjectPoolFactory objectPoolFactory;
+    protected static ApmServerClient apmServerClient;
     private boolean validateRecycling = true;
 
     @BeforeAll
@@ -75,6 +77,7 @@ public abstract class AbstractInstrumentationTest {
         config = mockInstrumentationSetup.getConfig();
         objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
         reporter = mockInstrumentationSetup.getReporter();
+        apmServerClient = mockInstrumentationSetup.getApmServerClient();
 
         assertThat(tracer.isRunning()).isTrue();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());

@@ -75,26 +75,31 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
 
     protected void setRouteBasedTransactionName(Transaction transaction, RoutingContext routingContext) {
         if (!webConfiguration.isUsePathAsName()) {
-            StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
-            if (transactionName != null) {
-                transactionName.append(routingContext.request().method().name())
-                    .append(" ").append(routingContext.currentRoute().getPath());
+            String path = routingContext.currentRoute().getPath();
+            if (path != null) {
+                StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
+                if (transactionName != null) {
+                    transactionName.append(routingContext.request().method().name())
+                        .append(" ").append(path);
+                }
             }
         }
     }
 
-    public void finalizeTransaction(HttpServerResponse httpServerResponse, Transaction transaction) {
+    public void finalizeTransaction(@Nullable HttpServerResponse httpServerResponse, Transaction transaction) {
         try {
-            final Response response = transaction.getContext().getResponse();
-            int status = httpServerResponse.getStatusCode();
-            setResponseHeaders(transaction, httpServerResponse, response);
+            if (httpServerResponse != null) {
+                final Response response = transaction.getContext().getResponse();
+                int status = httpServerResponse.getStatusCode();
+                setResponseHeaders(transaction, httpServerResponse, response);
 
-            fillResponse(response, null, status);
-            transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
-
-            transaction.end();
+                fillResponse(response, null, status);
+                transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
+            }
         } catch (Throwable e) {
             logger.warn("Exception while capturing Elastic APM transaction", e);
+        } finally {
+            transaction.end();
         }
     }
 
