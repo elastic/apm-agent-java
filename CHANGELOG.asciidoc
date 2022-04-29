@@ -15,6 +15,9 @@ endif::[]
 * Cool new feature: {pull}2526[#2526]
 
 [float]
+===== Refactorings
+
+[float]
 ===== Bug fixes
 ////
 
