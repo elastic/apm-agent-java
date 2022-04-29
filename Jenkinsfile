@@ -86,7 +86,8 @@ pipeline {
             env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
 
             if (env.ONLY_DOCS == "true") {
-              // TODO : ideally we should mark those as 'neutral' when skipped
+              // those GH checks are required, and docs build skips them we artificially make them as OK with empty
+              // blocks. Maybe a better alternative would be to report those as 'neutral' status.
               withGithubNotify(context: "Application Server integration tests"){ }
               withGithubNotify(context: "Non-Application Server integration tests"){ }
             }
