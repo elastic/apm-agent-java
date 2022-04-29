@@ -87,9 +87,9 @@ pipeline {
 
             if (env.ONLY_DOCS == "true") {
               // those GH checks are required, and docs build skips them we artificially make them as OK with empty
-              // blocks. Maybe a better alternative would be to report those as 'neutral' status.
-              withGithubNotify(context: "Application Server integration tests"){ }
-              withGithubNotify(context: "Non-Application Server integration tests"){ }
+              // blocks.
+              githubCheck(name: "Application Server integration tests", status: 'neutral');
+              githubCheck(name: "Non-Application Server integration tests", status: 'neutral');
             }
           }
         }
