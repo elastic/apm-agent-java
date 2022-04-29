@@ -60,7 +60,7 @@ public class WarmupInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.emptyList();
+        return Collections.singletonList("instrumentation-warmup");
     }
 
     @Override
