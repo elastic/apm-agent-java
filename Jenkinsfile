@@ -163,10 +163,7 @@ pipeline {
               options { skipDefaultCheckout() }
               when {
                 beforeAgent true
-                allOf {
-                  expression { return env.ONLY_DOCS == "false" }
-                  expression { return params.test_ci }
-                }
+                expression { return params.test_ci }
               }
               environment {
                 PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
@@ -197,7 +194,6 @@ pipeline {
               when {
                 beforeAgent true
                 allOf {
-                  expression { return env.ONLY_DOCS == "false" }
                   expression { return params.test_ci }
                   anyOf {
                     expression { return params.windows_ci }
@@ -239,7 +235,6 @@ pipeline {
                   expression { return env.GITHUB_COMMENT?.contains('integration tests') }
                   expression { matchesPrLabel(label: 'ci:agent-integration') }
                   expression { return env.CHANGE_ID != null && !pullRequest.draft }
-                  expression { return env.ONLY_DOCS == "true" } // required check, thus must be executed for docs
                   not { changeRequest() }
                 }
               }
