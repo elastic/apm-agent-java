@@ -20,23 +20,29 @@ endif::[]
 
 === Unreleased
 
-
 [[release-notes-1.30.2]]
 ==== 1.30.2 - YYYY/MM/DD
 
 [float]
-===== Breaking changes
+===== Refactorings
+* Vert.x 3.x instrumentation was refactored to remove constructor instrumentation as well as wrapping of response handler. In addition,
+Vert.x 3.x transactions are now ended when the request end event occurs, instead of the response end event. In HTTP 2 request handling,
+the transaction is still kept alive after request (and transaction) end, until response end, when it is then allowed to recycle. This
+allows for spans representing asynchronous handling of requests for which the corresponding transaction has ended - {pull}2564[#2564]
 
 [float]
 ===== Features
 
 [float]
 ===== Bug fixes
-
+* Fixed multiple dropped stats types in a transaction producing invalid JSON: {pull}2589[#2589]
+* Fixed NoClassDefFoundError when using OTel bridge and span.*current() : {pull}2596[#2596]
+* Fallback to standard output when Security Manager prevents writing to log file - {pull}2581[#2581]
+* Fix missing transactions when using Vert.x 3.x with HTTP 1 - {pull}2564[#2564]
+* Fix Vert.x `GET null` transactions to be named `GET unknown route`, according to spec - {pull}2564[#2564]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
-
 
 [[release-notes-1.30.1]]
 ==== 1.30.1 - 2022/04/12

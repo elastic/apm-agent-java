@@ -49,6 +49,9 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
     @AfterEach
     void afterEach() throws Exception {
         app.stop();
+
+        // as weak maps are used, proper object recycling required GC
+        reporter.enableGcWhenAssertingObjectRecycling();
     }
 
     @Test
