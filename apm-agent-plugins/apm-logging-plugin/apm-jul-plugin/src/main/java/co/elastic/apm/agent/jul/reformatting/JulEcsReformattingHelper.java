@@ -23,6 +23,7 @@ import co.elastic.apm.agent.loginstr.reformatting.Utils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
+import co.elastic.logging.AdditionalField;
 import co.elastic.logging.jul.EcsFormatter;
 
 import javax.annotation.Nullable;
@@ -30,7 +31,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
 import java.util.logging.StreamHandler;
@@ -69,26 +73,31 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
 
     @Override
     protected String getAppenderName(StreamHandler handler) {
-        return handler.getClass().getSimpleName();
+        if (handler instanceof FileHandler) {
+            return "FILE";
+        } else if (handler instanceof ConsoleHandler) {
+            return "CONSOLE";
+        } else {
+            return handler.getClass().getSimpleName();
+        }
     }
 
     @Override
     protected Formatter createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName,
                                         @Nullable Map<String, String> additionalFields, Formatter originalFormatter) {
         EcsFormatter ecsFormatter = new EcsFormatter();
-        // todo: release ECS-JUL with public access for these methods
-//        ecsFormatter.setServiceName(serviceName);
-//        ecsFormatter.setServiceNodeName(serviceNodeName);
+        ecsFormatter.setServiceName(serviceName);
+        ecsFormatter.setServiceNodeName(serviceNodeName);
         ecsFormatter.setEventDataset(eventDataset);
-        if (additionalFields != null) {
+        if (additionalFields != null && !additionalFields.isEmpty()) {
+            List<AdditionalField> additionalFieldList = new ArrayList<>();
             for (Map.Entry<String, String> keyValuePair : additionalFields.entrySet()) {
-                // todo: release ECS-JUL with ecsFormatter.setAdditionalField(List<AdditionalField>)
-//                ecsFormatter.setAdditionalField(keyValuePair.getKey() + "=" + keyValuePair.getValue());
+                additionalFieldList.add(new AdditionalField(keyValuePair.getKey(), keyValuePair.getValue()));
             }
-//            ecsFormatter.setAdditionalFields();
+            ecsFormatter.setAdditionalFields(additionalFieldList);
         }
-//        ecsFormatter.setIncludeOrigin(false);
-//        ecsFormatter.setStackTraceAsArray(false);
+        ecsFormatter.setIncludeOrigin(false);
+        ecsFormatter.setStackTraceAsArray(false);
         return ecsFormatter;
     }
 

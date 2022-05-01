@@ -306,13 +306,11 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     }
 
     private void verifyTracingMetadata(JsonNode ecsLogLineTree) {
-        if (isTracingMetadataSupported()) {
-            assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
-            assertThat(ecsLogLineTree.get("service.node.name").textValue()).isEqualTo(SERVICE_NODE_NAME);
-            assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
-            assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo("v42");
-            assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
-        }
+        assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
+        assertThat(ecsLogLineTree.get("service.node.name").textValue()).isEqualTo(SERVICE_NODE_NAME);
+        assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
+        assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo("v42");
+        assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
     }
 
     private void verifyErrorCaptureAndCorrelation(boolean isErrorLine, JsonNode ecsLogLineTree) {
@@ -390,10 +388,6 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     }
 
     protected boolean isLogCorrelationSupported() {
-        return true;
-    }
-
-    protected boolean isTracingMetadataSupported() {
         return true;
     }
 

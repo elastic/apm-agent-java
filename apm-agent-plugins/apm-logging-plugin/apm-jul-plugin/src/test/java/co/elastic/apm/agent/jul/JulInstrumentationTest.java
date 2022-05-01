@@ -56,11 +56,6 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
         return false;
     }
 
-    @Override
-    protected boolean isTracingMetadataSupported() {
-        return false;
-    }
-
     /**
      * Custom log levels that match other logging frameworks
      */
