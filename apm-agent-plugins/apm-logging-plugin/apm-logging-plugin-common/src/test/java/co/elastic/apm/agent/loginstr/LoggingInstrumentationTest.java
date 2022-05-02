@@ -63,8 +63,10 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     public static final String WARN_MESSAGE = "Warn-this";
     public static final String ERROR_MESSAGE = "Error-this";
 
+    private static final String SERVICE_VERSION = "v42";
+
     private static final String SERVICE_NODE_NAME = "my-service-node";
-    private static final Map<String, String> ADDITIONAL_FIELDS = Map.of("service.version", "v42", "some.field", "some-value");
+    private static final Map<String, String> ADDITIONAL_FIELDS = Map.of("some.field", "some-value");
 
     private final LoggerFacade logger;
     private final ObjectMapper objectMapper;
@@ -86,6 +88,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
     @BeforeEach
     public void setup() throws Exception {
+        doReturn(SERVICE_VERSION).when(config.getConfig(CoreConfiguration.class)).getServiceVersion();
         doReturn(SERVICE_NODE_NAME).when(config.getConfig(CoreConfiguration.class)).getServiceNodeName();
 
         loggingConfig = config.getConfig(LoggingConfiguration.class);
