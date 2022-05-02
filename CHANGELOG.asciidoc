@@ -32,6 +32,7 @@ allows for spans representing asynchronous handling of requests for which the co
 
 [float]
 ===== Features
+* Set the service version when using the ECS reformatting of the application logs: {pull}2603[#2603]
 
 [float]
 ===== Bug fixes
