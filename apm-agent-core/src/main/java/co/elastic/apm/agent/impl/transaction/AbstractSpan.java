@@ -113,6 +113,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     @Nullable
     protected volatile String type;
 
+    protected volatile boolean sync = true;
+
     protected final AtomicReference<Span> bufferedSpan = new AtomicReference<>();
 
     @Nullable
@@ -341,8 +343,13 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return thiz();
     }
 
-    public T withType(@Nullable String type){
+    public T withType(@Nullable String type) {
         this.type = normalizeEmpty(type);
+        return thiz();
+    }
+
+    public T withSync(boolean sync) {
+        this.sync = sync;
         return thiz();
     }
 
@@ -367,6 +374,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         finished = true;
         name.setLength(0);
         type = null;
+        sync = true;
         timestamp.set(0L);
         endTimestamp.set(0L);
         traceContext.resetState();
@@ -728,6 +736,10 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     @Nullable
     public String getType() {
         return type;
+    }
+
+    public boolean isSync() {
+        return sync;
     }
 
     private String normalizeType(@Nullable String type) {

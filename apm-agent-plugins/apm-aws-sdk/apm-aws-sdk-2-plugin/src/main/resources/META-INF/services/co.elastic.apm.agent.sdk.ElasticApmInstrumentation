@@ -1,0 +1,2 @@
+co.elastic.apm.agent.awssdk.v2.BaseSyncClientHandlerInstrumentation
+co.elastic.apm.agent.awssdk.v2.BaseAsyncClientHandlerInstrumentation
