@@ -149,10 +149,10 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     private final LoggingConfiguration loggingConfiguration;
 
     @Nullable
-    private final String configuredServiceName;
+    private final String globalServiceName;
 
     @Nullable
-    private final String configuredServiceVersion;
+    private final String globalServiceVersion;
 
     @Nullable
     private final String configuredServiceNodeName;
@@ -169,8 +169,8 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
             "",
             tracer.getConfig(ServerlessConfiguration.class)
         );
-        configuredServiceName = service.getName();
-        configuredServiceVersion = service.getVersion();
+        globalServiceName = service.getName();
+        globalServiceVersion = service.getVersion();
         if (service.getNode() != null) {
             configuredServiceNodeName = service.getNode().getName();
         } else {
@@ -432,28 +432,28 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
 
     /**
      * We currently get the same service name that is reported in the metadata document.
-     * This may mismatch automatically-discovered service names (if not configured). However, we only set it
-     * once when configuring our appender, so we can have only one service name. In addition, if we use the
-     * in-context service name (eg through MDC), all log events that will not occur within a traced transaction
-     * will get a the global service name.
+     * This would mismatch automatically-discovered service names (if not configured) when relying on multi-service auto-discovery.
+     * However, we only set it once when configuring our appender, so we can have only one service name. In addition, if we use the
+     * in-context service name (eg through MDC), all log events that will not occur within a traced transaction will get the global
+     * service name.
      *
      * @return the configured service name or the globally-automatically-discovered one (not one that is context-dependent)
      */
     @Nullable
     private String getServiceName() {
-        return configuredServiceName;
+        return globalServiceName;
     }
 
     /**
      * We currently get the same service version that is reported in the metadata document.
-     * This may mismatch automatically-discovered service version (if not configured). However, we only set it
-     * once when configuring our appender, so we can have only one service version.
+     * This would mismatch automatically-discovered service version (if not configured) when relying on multi-service auto-discovery.
+     * However, we only set it once when configuring our appender, so we can have only one service version.
      *
      * @return the configured service version or the globally-automatically-discovered one (not one that is context-dependent)
      */
     @Nullable
     private String getServiceVersion() {
-        return configuredServiceVersion;
+        return globalServiceVersion;
     }
 
     /**
