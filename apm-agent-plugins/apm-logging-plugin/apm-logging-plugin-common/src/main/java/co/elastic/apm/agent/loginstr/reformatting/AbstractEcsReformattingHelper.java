@@ -152,6 +152,9 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     private final String configuredServiceName;
 
     @Nullable
+    private final String configuredServiceVersion;
+
+    @Nullable
     private final String configuredServiceNodeName;
 
     @Nullable
@@ -167,6 +170,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
             tracer.getConfig(ServerlessConfiguration.class)
         );
         configuredServiceName = service.getName();
+        configuredServiceVersion = service.getVersion();
         if (service.getNode() != null) {
             configuredServiceNodeName = service.getNode().getName();
         } else {
@@ -230,8 +234,8 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
                     mappedFormatter = originalFormatter;
                     String serviceName = getServiceName();
                     F createdEcsFormatter = createEcsFormatter(
-                        getEventDataset(originalAppender, serviceName), serviceName, configuredServiceNodeName,
-                        additionalFields, originalFormatter
+                        getEventDataset(originalAppender, serviceName), serviceName, getServiceVersion(),
+                        configuredServiceNodeName, additionalFields, originalFormatter
                     );
                     setFormatter(originalAppender, createdEcsFormatter);
                     ecsFormatter = createdEcsFormatter;
@@ -313,8 +317,8 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
                 if (shouldApplyEcsReformatting(originalAppender)) {
                     String serviceName = getServiceName();
                     F ecsFormatter = createEcsFormatter(
-                        getEventDataset(originalAppender, serviceName), serviceName, configuredServiceNodeName,
-                        additionalFields, getFormatterFrom(originalAppender)
+                        getEventDataset(originalAppender, serviceName), serviceName, getServiceVersion(),
+                        configuredServiceNodeName, additionalFields, getFormatterFrom(originalAppender)
                     );
                     ecsAppender = createAndStartEcsAppender(originalAppender, ECS_SHADE_APPENDER_NAME, ecsFormatter);
                     if (ecsAppender == null) {
@@ -422,8 +426,9 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     @Nullable
     protected abstract A createAndStartEcsAppender(A originalAppender, String ecsAppenderName, F ecsFormatter);
 
-    protected abstract F createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName,
-                                            @Nullable Map<String, String> additionalFields, F originalFormatter);
+    protected abstract F createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceVersion,
+                                            @Nullable String serviceNodeName, @Nullable Map<String, String> additionalFields,
+                                            F originalFormatter);
 
     /**
      * We currently get the same service name that is reported in the metadata document.
@@ -437,6 +442,18 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     @Nullable
     private String getServiceName() {
         return configuredServiceName;
+    }
+
+    /**
+     * We currently get the same service version that is reported in the metadata document.
+     * This may mismatch automatically-discovered service version (if not configured). However, we only set it
+     * once when configuring our appender, so we can have only one service version.
+     *
+     * @return the configured service version or the globally-automatically-discovered one (not one that is context-dependent)
+     */
+    @Nullable
+    private String getServiceVersion() {
+        return configuredServiceVersion;
     }
 
     /**
