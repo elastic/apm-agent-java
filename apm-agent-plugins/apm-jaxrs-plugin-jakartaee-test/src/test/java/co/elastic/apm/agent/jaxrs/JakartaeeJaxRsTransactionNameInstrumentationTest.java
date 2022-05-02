@@ -131,9 +131,9 @@ public class JakartaeeJaxRsTransactionNameInstrumentationTest extends JerseyTest
 
     @Test
     public void testJaxRsFrameworkNameAndVersion() throws IOException {
-        helper.testJaxRsFrameworkNameAndVersion("3.0.0");
+        helper.testJaxRsFrameworkNameAndVersion("3.1.0");
     }
-    
+
     /**
      * Make a GET request against the target path wrapped in an apm transaction.
      *
