@@ -32,6 +32,7 @@ allows for spans representing asynchronous handling of requests for which the co
 
 [float]
 ===== Features
+* Added support for setting the service version on Log4j2's EcsLayout - {pull}2604[#2604]
 
 [float]
 ===== Bug fixes
