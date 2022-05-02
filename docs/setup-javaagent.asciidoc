@@ -234,9 +234,9 @@ A user provided Elastic APM service must have a name or tag with `elastic-apm` i
 
 Create a user provided service:
 
-`cf cups my-elastic-apm-service -p '{"server_urls":"my-apm-server-url","secret_token":"my-apm-server-secret-token"}'`
+`cf cups my-elastic-apm-service -p '{"server_url":"my-apm-server-url","secret_token":"my-apm-server-secret-token"}'`
 
-Both `my-apm-server-url` and `my-apm-server-secret-token` are respectively `server_urls` and `secret_token` from service-key of your Elasticsearch server.
+Both `my-apm-server-url` and `my-apm-server-secret-token` are respectively `server_url` and `secret_token` from service-key of your Elasticsearch server.
 
 Bind the application to the Elasticsearch service:
 
