@@ -66,7 +66,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     private static final String SERVICE_VERSION = "v42";
 
     private static final String SERVICE_NODE_NAME = "my-service-node";
-    private static final Map<String, String> ADDITIONAL_FIELDS = Map.of("some.field", "some-value");
+    private static final Map<String, String> ADDITIONAL_FIELDS = Map.of("some.field", "some-value", "another.field", "another-value");
 
     private final LoggerFacade logger;
     private final ObjectMapper objectMapper;
@@ -306,6 +306,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
         assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo("v42");
         assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
+        assertThat(ecsLogLineTree.get("another.field").textValue()).isEqualTo("another-value");
         assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
         assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
         verifyErrorCaptureAndCorrelation(isErrorLine, ecsLogLineTree);
