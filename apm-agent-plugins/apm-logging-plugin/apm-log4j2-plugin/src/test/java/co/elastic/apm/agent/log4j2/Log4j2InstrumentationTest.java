@@ -27,6 +27,7 @@ import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 import org.apache.logging.log4j.ThreadContext;
 import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.RandomAccessFileAppender;
 import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.junit.jupiter.api.AfterAll;
@@ -95,7 +96,10 @@ public class Log4j2InstrumentationTest extends LoggingInstrumentationTest {
         @Override
         public void open() {
             log4j2Logger = LogManager.getLogger("Test-File-Logger");
-            ((org.apache.logging.log4j.core.Logger) log4j2Logger).getContext().setConfigLocation(configLocation);
+            assertThat(log4j2Logger).isInstanceOf(org.apache.logging.log4j.core.Logger.class);
+
+            LoggerContext loggerContext = ((org.apache.logging.log4j.core.Logger) log4j2Logger).getContext();
+            loggerContext.setConfigLocation(configLocation);
         }
 
         @Override
@@ -105,8 +109,8 @@ public class Log4j2InstrumentationTest extends LoggingInstrumentationTest {
 
         @Override
         public String getLogFilePath() {
-            assertThat(log4j2Logger).isNotNull();
-            assertThat(log4j2Logger).isInstanceOf(org.apache.logging.log4j.core.Logger.class);
+            assertThat(log4j2Logger)
+                .isInstanceOf(org.apache.logging.log4j.core.Logger.class);
             org.apache.logging.log4j.core.Logger logger = (org.apache.logging.log4j.core.Logger) log4j2Logger;
 
             assertThat(logger.getAppenders()).containsKey("FILE");
