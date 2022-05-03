@@ -193,7 +193,6 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
         ArrayList<String[]> rawLogLines = readRawLogLines();
         assertThat(rawLogLines).hasSize(4);
-        assertThat(rawLogLines).hasSize(4);
 
         ArrayList<JsonNode> ecsLogLines = readEcsLogFile();
         assertThat(ecsLogLines).hasSize(2);
@@ -301,15 +300,24 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         boolean isErrorLine = logLevel.textValue().equalsIgnoreCase("error");
         assertThat(ecsLogLineTree.get("log.logger").textValue()).isEqualTo("Test-File-Logger");
         assertThat(ecsLogLineTree.get("message")).isNotNull();
+        verifyTracingMetadata(ecsLogLineTree);
+        if (isLogCorrelationSupported()) {
+            assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
+            assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
+            verifyErrorCaptureAndCorrelation(isErrorLine, ecsLogLineTree);
+        } else {
+            assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY)).isNull();
+            assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY)).isNull();
+        }
+    }
+
+    private void verifyTracingMetadata(JsonNode ecsLogLineTree) {
         assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
         assertThat(ecsLogLineTree.get("service.node.name").textValue()).isEqualTo(SERVICE_NODE_NAME);
         assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
         assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo("v42");
         assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
         assertThat(ecsLogLineTree.get("another.field").textValue()).isEqualTo("another-value");
-        assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
-        assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
-        verifyErrorCaptureAndCorrelation(isErrorLine, ecsLogLineTree);
     }
 
     private void verifyErrorCaptureAndCorrelation(boolean isErrorLine, JsonNode ecsLogLineTree) {
@@ -335,6 +343,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
             rawLogLines = stream
                 .map(line -> line.split("\\s+"))
                 // ignoring lines related to Throwable logging
+                .filter(lineParts -> lineParts.length > 0)
                 .filter(lineParts -> safelyParseDate(lineParts[0]) != null)
                 .collect(Collectors.toCollection(ArrayList::new));
         }
@@ -369,18 +378,27 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         boolean isErrorLine = logLevel.textValue().equalsIgnoreCase("error");
         assertThat(splitRawLogLine[3]).isEqualTo(ecsLogLineTree.get("log.logger").textValue());
         assertThat(splitRawLogLine[4]).isEqualTo(ecsLogLineTree.get("message").textValue());
-        assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
-        assertThat(ecsLogLineTree.get("service.node.name").textValue()).isEqualTo(SERVICE_NODE_NAME);
-        assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
-        assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo("v42");
-        assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
-        JsonNode traceId = ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY);
-        assertThat(traceId).withFailMessage("Logging correlation does not work as expected").isNotNull();
-        assertThat(traceId.textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
-        JsonNode transactionId = ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY);
-        assertThat(transactionId).withFailMessage("Logging correlation does not work as expected").isNotNull();
-        assertThat(transactionId.textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
-        verifyErrorCaptureAndCorrelation(isErrorLine, ecsLogLineTree);
+        verifyTracingMetadata(ecsLogLineTree);
+        verifyLogCorrelation(ecsLogLineTree, isErrorLine);
+    }
+
+    private void verifyLogCorrelation(JsonNode ecsLogLineTree, boolean isErrorLine) {
+        if (isLogCorrelationSupported()) {
+            JsonNode traceId = ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY);
+            assertThat(traceId).withFailMessage("Logging correlation does not work as expected").isNotNull();
+            assertThat(traceId.textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
+            JsonNode transactionId = ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY);
+            assertThat(transactionId).withFailMessage("Logging correlation does not work as expected").isNotNull();
+            assertThat(transactionId.textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
+            verifyErrorCaptureAndCorrelation(isErrorLine, ecsLogLineTree);
+        } else {
+            assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY)).isNull();
+            assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY)).isNull();
+        }
+    }
+
+    protected boolean isLogCorrelationSupported() {
+        return true;
     }
 
     /**
@@ -411,7 +429,14 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         // log4j1 this happens AFTER the event is logged. This means we can only count on the non-active file to
         // contain a single line
         String ecsLogFilePath = getLogReformattingFilePath();
-        ArrayList<JsonNode> jsonNodes = TestUtils.readJsonFile(ecsLogFilePath + ".1");
+        // in JUL, the base file is also denoted with a number (0)
+        if (ecsLogFilePath.endsWith(".0")) {
+            ecsLogFilePath = ecsLogFilePath.substring(0, ecsLogFilePath.length() - 2);
+        }
+        if (!ecsLogFilePath.endsWith(".1")) {
+            ecsLogFilePath = ecsLogFilePath + ".1";
+        }
+        ArrayList<JsonNode> jsonNodes = TestUtils.readJsonFile(ecsLogFilePath);
         assertThat(jsonNodes).hasSize(1);
     }
 
