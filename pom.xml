@@ -298,19 +298,6 @@
                 </plugins>
             </build>
         </profile>
-        <profile>
-            <id>git-worktree</id>
-            <activation>
-                <file>
-                    <!-- in a secondary worktree, '.git' is a file, not a folder -->
-                    <missing>.git/HEAD</missing>
-                </file>
-            </activation>
-            <properties>
-                <!-- when using git worktrees, native git client is required as JGit does not support this yet -->
-                <maven.gitcommitid.nativegit>true</maven.gitcommitid.nativegit>
-            </properties>
-        </profile>
     </profiles>
 
     <build>
