@@ -135,14 +135,22 @@ class SpanTest {
         Span parent1 = transaction.createSpan();
         Map<String, String> textTraceContextCarrier = new HashMap<>();
         parent1.propagateTraceContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE);
-        testSpan.addSpanLink(TraceContext.getFromTraceContextTextHeaders(), TextHeaderMapAccessor.INSTANCE, textTraceContextCarrier);
+        assertThat(testSpan.addSpanLink(
+            TraceContext.getFromTraceContextTextHeaders(),
+            TextHeaderMapAccessor.INSTANCE,
+            textTraceContextCarrier)
+        ).isTrue();
         assertThat(objectPoolFactory.getSpanLinksPool().getObjectsInPool()).isEqualTo(0);
         assertThat(objectPoolFactory.getSpanLinksPool().getRequestedObjectCount()).isEqualTo(1);
         assertThat(testSpan.getSpanLinks()).hasSize(1);
         Span parent2 = transaction.createSpan();
         Map<String, byte[]> binaryTraceContextCarrier = new HashMap<>();
         parent2.propagateTraceContext(binaryTraceContextCarrier, BinaryHeaderMapAccessor.INSTANCE);
-        testSpan.addSpanLink(TraceContext.getFromTraceContextBinaryHeaders(), BinaryHeaderMapAccessor.INSTANCE, binaryTraceContextCarrier);
+        assertThat(testSpan.addSpanLink(
+            TraceContext.getFromTraceContextBinaryHeaders(),
+            BinaryHeaderMapAccessor.INSTANCE,
+            binaryTraceContextCarrier)
+        ).isTrue();
         assertThat(objectPoolFactory.getSpanLinksPool().getObjectsInPool()).isEqualTo(0);
         assertThat(objectPoolFactory.getSpanLinksPool().getRequestedObjectCount()).isEqualTo(2);
         List<TraceContext> spanLinks = testSpan.getSpanLinks();

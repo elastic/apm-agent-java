@@ -377,18 +377,21 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * @param carrier the object from which the tracecontext header is to be retrieved
      * @param <H> the tracecontext header type - either binary ({@code byte[]}) or textual ({@code String})
      * @param <C> the tracecontext header carrier type, e.g. Kafka record or JMS message
+     * @return {@code true} if added, {@code false} otherwise
      */
-    public <H, C> void addSpanLink(TraceContext.ChildContextCreatorTwoArg<C, HeaderGetter<H, C>> childContextCreator,
+    public <H, C> boolean addSpanLink(TraceContext.ChildContextCreatorTwoArg<C, HeaderGetter<H, C>> childContextCreator,
                                     HeaderGetter<H, C> headerGetter, @Nullable C carrier) {
         if (spanLinks.size() == MAX_ALLOWED_SPAN_LINKS) {
             oneTimeMaxSpanLinksLogger.warn("Span links for {} has reached the allowed maximum ({}). No more spans will be linked.",
                 this, MAX_ALLOWED_SPAN_LINKS);
-            return;
+            return false;
         }
+        boolean added = false;
         try {
             TraceContext childTraceContext = tracer.createSpanLink();
             if (childContextCreator.asChildOf(childTraceContext, carrier, headerGetter)) {
                 spanLinks.add(childTraceContext);
+                added = true;
             } else {
                 tracer.recycle(childTraceContext);
             }
@@ -396,6 +399,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
             logger.error(String.format("Failed to add span link to %s from header carrier %s and %s", this, carrier,
                 headerGetter.getClass().getName()), e);
         }
+        return added;
     }
 
     /**
