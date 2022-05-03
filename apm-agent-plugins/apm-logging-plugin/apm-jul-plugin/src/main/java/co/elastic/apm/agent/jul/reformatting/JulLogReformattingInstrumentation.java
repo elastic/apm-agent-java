@@ -47,6 +47,9 @@ public abstract class JulLogReformattingInstrumentation extends AbstractLogInteg
         return isBootstrapClassLoader();
     }
 
+    /**
+     * Instruments {@link java.util.logging.FileHandler#publish(LogRecord)}
+     */
     public static class FileReformattingInstrumentation extends JulLogReformattingInstrumentation {
 
         @Override
@@ -68,6 +71,9 @@ public abstract class JulLogReformattingInstrumentation extends AbstractLogInteg
         }
     }
 
+    /**
+     * Instruments {@link java.util.logging.ConsoleHandler#publish(LogRecord)}
+     */
     public static class ConsoleReformattingInstrumentation extends JulLogReformattingInstrumentation {
 
         @Override
