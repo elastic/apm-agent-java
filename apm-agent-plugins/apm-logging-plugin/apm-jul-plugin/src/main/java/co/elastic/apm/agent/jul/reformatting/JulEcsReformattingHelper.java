@@ -83,10 +83,12 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
     }
 
     @Override
-    protected Formatter createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName,
-                                        @Nullable Map<String, String> additionalFields, Formatter originalFormatter) {
+    protected Formatter createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceVersion,
+                                           @Nullable String serviceNodeName, @Nullable Map<String, String> additionalFields,
+                                           Formatter originalFormatter) {
         EcsFormatter ecsFormatter = new EcsFormatter();
         ecsFormatter.setServiceName(serviceName);
+        ecsFormatter.setServiceVersion(serviceVersion);
         ecsFormatter.setServiceNodeName(serviceNodeName);
         ecsFormatter.setEventDataset(eventDataset);
         if (additionalFields != null && !additionalFields.isEmpty()) {
