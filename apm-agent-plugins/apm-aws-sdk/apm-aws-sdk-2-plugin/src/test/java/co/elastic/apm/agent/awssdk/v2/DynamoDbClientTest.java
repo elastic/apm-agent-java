@@ -42,9 +42,13 @@ import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
 import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
 
-import java.util.List;
+import java.util.AbstractMap;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -53,6 +57,13 @@ public class DynamoDbClientTest extends AbstractAwsClientTest {
 
     private DynamoDbClient dynamoDB;
     private DynamoDbAsyncClient dynamoDBAsync;
+
+    private static final Map<String, AttributeValue> ITEM = Stream.of(
+        new AbstractMap.SimpleEntry<>("attributeOne", AttributeValue.builder().s("valueOne").build()),
+        new AbstractMap.SimpleEntry<>("attributeTwo", AttributeValue.builder().n("10").build()))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    private static final Map<String, AttributeValue> EXPRESSION_ATTRIBUTE_VALUES = Collections.singletonMap(":one", AttributeValue.builder().s("valueOne").build());
 
     @BeforeEach
     public void setupClient() {
@@ -75,11 +86,11 @@ public class DynamoDbClientTest extends AbstractAwsClientTest {
 
         executeTest("CreateTable", "query", TABLE_NAME, () -> dynamoDB.createTable(CreateTableRequest.builder()
             .tableName(TABLE_NAME)
-            .attributeDefinitions(List.of(
+            .attributeDefinitions(Arrays.asList(
                 AttributeDefinition.builder().attributeName("attributeOne").attributeType(ScalarAttributeType.S).build(),
                 AttributeDefinition.builder().attributeName("attributeTwo").attributeType(ScalarAttributeType.N).build()
             ))
-            .keySchema(List.of(
+            .keySchema(Arrays.asList(
                 KeySchemaElement.builder().attributeName("attributeOne").keyType(KeyType.HASH).build(),
                 KeySchemaElement.builder().attributeName("attributeTwo").keyType(KeyType.RANGE).build()
             ))
@@ -90,13 +101,13 @@ public class DynamoDbClientTest extends AbstractAwsClientTest {
 
         executeTest("PutItem", "query", TABLE_NAME, () -> dynamoDB.putItem(PutItemRequest.builder()
             .tableName(TABLE_NAME)
-            .item(Map.of("attributeOne", AttributeValue.builder().s("valueOne").build(), "attributeTwo", AttributeValue.builder().n("10").build()))
+            .item(ITEM)
             .build()));
 
         executeTest("Query", "query", TABLE_NAME, () -> dynamoDB.query(QueryRequest.builder()
             .tableName(TABLE_NAME)
             .keyConditionExpression(KEY_CONDITION_EXPRESSION)
-            .expressionAttributeValues(Map.of(":one", AttributeValue.builder().s("valueOne").build()))
+            .expressionAttributeValues(EXPRESSION_ATTRIBUTE_VALUES)
             .build()));
         Span span = reporter.getSpanByName("DynamoDB Query " + TABLE_NAME);
         assertThat(span.getContext().getDb().getStatement()).isEqualTo(KEY_CONDITION_EXPRESSION);
@@ -105,7 +116,7 @@ public class DynamoDbClientTest extends AbstractAwsClientTest {
 
         executeTestWithException(ResourceNotFoundException.class, "PutItem", "query", TABLE_NAME + "exception", () -> dynamoDB.putItem(PutItemRequest.builder()
             .tableName(TABLE_NAME + "exception")
-            .item(Map.of("attributeOne", AttributeValue.builder().s("valueOne").build(), "attributeTwo", AttributeValue.builder().n("10").build()))
+            .item(ITEM)
             .build()));
 
         assertThat(reporter.getSpans().size()).isEqualTo(6);
@@ -123,11 +134,11 @@ public class DynamoDbClientTest extends AbstractAwsClientTest {
 
         executeTest("CreateTable", "query", TABLE_NAME, () -> dynamoDBAsync.createTable(CreateTableRequest.builder()
             .tableName(TABLE_NAME)
-            .attributeDefinitions(List.of(
+            .attributeDefinitions(Arrays.asList(
                 AttributeDefinition.builder().attributeName("attributeOne").attributeType(ScalarAttributeType.S).build(),
                 AttributeDefinition.builder().attributeName("attributeTwo").attributeType(ScalarAttributeType.N).build()
             ))
-            .keySchema(List.of(
+            .keySchema(Arrays.asList(
                 KeySchemaElement.builder().attributeName("attributeOne").keyType(KeyType.HASH).build(),
                 KeySchemaElement.builder().attributeName("attributeTwo").keyType(KeyType.RANGE).build()
             ))
@@ -138,13 +149,13 @@ public class DynamoDbClientTest extends AbstractAwsClientTest {
 
         executeTest("PutItem", "query", TABLE_NAME, () -> dynamoDBAsync.putItem(PutItemRequest.builder()
             .tableName(TABLE_NAME)
-            .item(Map.of("attributeOne", AttributeValue.builder().s("valueOne").build(), "attributeTwo", AttributeValue.builder().n("10").build()))
+            .item(ITEM)
             .build()));
 
         executeTest("Query", "query", TABLE_NAME, () -> dynamoDBAsync.query(QueryRequest.builder()
             .tableName(TABLE_NAME)
             .keyConditionExpression(KEY_CONDITION_EXPRESSION)
-            .expressionAttributeValues(Map.of(":one", AttributeValue.builder().s("valueOne").build()))
+            .expressionAttributeValues(EXPRESSION_ATTRIBUTE_VALUES)
             .build()));
         Span span = reporter.getSpanByName("DynamoDB Query " + TABLE_NAME);
         assertThat(span.getContext().getDb().getStatement()).isEqualTo(KEY_CONDITION_EXPRESSION);
@@ -153,7 +164,7 @@ public class DynamoDbClientTest extends AbstractAwsClientTest {
 
         executeTestWithException(CompletionException.class, "PutItem", "query", TABLE_NAME + "exception", () -> dynamoDBAsync.putItem(PutItemRequest.builder()
             .tableName(TABLE_NAME + "exception")
-            .item(Map.of("attributeOne", AttributeValue.builder().s("valueOne").build(), "attributeTwo", AttributeValue.builder().n("10").build()))
+            .item(ITEM)
             .build()));
 
         assertThat(reporter.getSpans().size()).isEqualTo(6);
