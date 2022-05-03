@@ -12,9 +12,15 @@
     <artifactId>apm-aws-sdk-2-plugin</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
+
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
         <version.aws.sdk>[2.12.0,)</version.aws.sdk>
+
+        <!-- AWS SDK v2 is compiled for Java 8 -->
+        <maven.compiler.target>8</maven.compiler.target>
+        <maven.compiler.source>${maven.compiler.target}</maven.compiler.source>
+        <animal.sniffer.skip>true</animal.sniffer.skip>
     </properties>
 
     <dependencies>
