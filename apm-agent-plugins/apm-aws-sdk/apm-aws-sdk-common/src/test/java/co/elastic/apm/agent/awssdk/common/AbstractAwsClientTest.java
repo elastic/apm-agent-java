@@ -26,11 +26,13 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,10 +58,18 @@ public abstract class AbstractAwsClientTest extends AbstractInstrumentationTest 
     protected abstract LocalStackContainer.Service localstackService();
 
     protected void executeTest(String operationName, String entityName, Supplier<?> test) {
-        executeTest(operationName, operationName, entityName, test);
+        executeTest(operationName, operationName, entityName, test, null);
+    }
+
+    protected void executeTest(String operationName, String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
+        executeTest(operationName, operationName, entityName, test, assertions);
     }
 
     protected void executeTest(String operationName, String action, String entityName, Supplier<?> test) {
+        executeTest(operationName, action, entityName, test, null);
+    }
+
+    protected void executeTest(String operationName, String action, String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
         Object result = test.get();
         if (result instanceof CompletableFuture) {
             ((CompletableFuture<?>) result).join();
@@ -79,21 +89,35 @@ public abstract class AbstractAwsClientTest extends AbstractInstrumentationTest 
         assertThat(span.getType()).isEqualTo(type());
         assertThat(span.getSubtype()).isEqualTo(localstackService().getLocalStackName());
         assertThat(span.getAction()).isEqualTo(action);
-        assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
         assertThat(span.getContext().getDestination().getAddress().toString())
             .isEqualTo(localstack.getEndpointOverride(LocalStackContainer.Service.S3).getHost());
+        if(assertions != null){
+            assertions.accept(span);
+        }
     }
 
     protected void executeTestWithException(Class<? extends Exception> exceptionType, String operationName, String entityName, Supplier<?> test) {
         executeTestWithException(exceptionType, operationName, operationName, entityName, test);
     }
 
+
     protected void executeTestWithException(Class<? extends Exception> exceptionType, String operationName, String action, String entityName, Supplier<?> test) {
+        executeTestWithException(exceptionType, operationName, action, entityName, test, null);
+    }
+
+    protected void executeTestWithException(Class<? extends Exception> exceptionType, String operationName, String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
+        executeTestWithException(exceptionType, operationName, operationName, entityName, test, assertions);
+    }
+
+    protected void executeTestWithException(Class<? extends Exception> exceptionType, String operationName, String action, String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
         assertThatExceptionOfType(exceptionType).isThrownBy(() -> executeTest(operationName, action, entityName, test));
 
         String spanName = awsService() + " " + operationName + (entityName != null ? " " + entityName : "");
 
         Span span = reporter.getSpanByName(spanName);
         assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
+        if(assertions != null){
+            assertions.accept(span);
+        }
     }
 }

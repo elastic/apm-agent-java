@@ -28,7 +28,6 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsync;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsyncClient;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMappingException;
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.BillingMode;
@@ -39,13 +38,13 @@ import com.amazonaws.services.dynamodbv2.model.PutItemRequest;
 import com.amazonaws.services.dynamodbv2.model.QueryRequest;
 import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -54,6 +53,8 @@ public class DynamoDbClientTest extends AbstractAwsClientTest {
 
     private AmazonDynamoDB dynamoDB;
     private AmazonDynamoDBAsync dynamoDBAsync;
+
+    private Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
 
     @BeforeEach
     public void setupClient() {
@@ -72,34 +73,39 @@ public class DynamoDbClientTest extends AbstractAwsClientTest {
         Transaction transaction = startTestRootTransaction("s3-test");
 
         executeTest("CreateTable", "query", TABLE_NAME, () -> dynamoDB.createTable(new CreateTableRequest().withTableName(TABLE_NAME)
-            .withAttributeDefinitions(List.of(
-                new AttributeDefinition("attributeOne", ScalarAttributeType.S),
-                new AttributeDefinition("attributeTwo", ScalarAttributeType.N)
-            ))
-            .withKeySchema(List.of(
-                new KeySchemaElement("attributeOne",KeyType.HASH),
-                new KeySchemaElement("attributeTwo",KeyType.RANGE)
-            ))
-            .withBillingMode(BillingMode.PAY_PER_REQUEST)));
+                .withAttributeDefinitions(List.of(
+                    new AttributeDefinition("attributeOne", ScalarAttributeType.S),
+                    new AttributeDefinition("attributeTwo", ScalarAttributeType.N)
+                ))
+                .withKeySchema(List.of(
+                    new KeySchemaElement("attributeOne", KeyType.HASH),
+                    new KeySchemaElement("attributeTwo", KeyType.RANGE)
+                ))
+                .withBillingMode(BillingMode.PAY_PER_REQUEST)),
+            dbAssert);
 
-        executeTest("ListTables", "query", null, () -> dynamoDB.listTables());
+        executeTest("ListTables", "query", null, () -> dynamoDB.listTables(),
+            dbAssert);
 
         executeTest("PutItem", "query", TABLE_NAME, () -> dynamoDB.putItem(
             new PutItemRequest(TABLE_NAME,
-                Map.of("attributeOne", new AttributeValue("valueOne"), "attributeTwo", new AttributeValue().withN("10")))));
+                Map.of("attributeOne", new AttributeValue("valueOne"), "attributeTwo", new AttributeValue().withN("10")))),
+            dbAssert);
 
         executeTest("Query", "query", TABLE_NAME, () -> dynamoDB.query(
             new QueryRequest(TABLE_NAME)
                 .withKeyConditionExpression(KEY_CONDITION_EXPRESSION)
-                .withExpressionAttributeValues(Map.of(":one", new AttributeValue("valueOne")))));
-        Span span = reporter.getSpanByName("DynamoDB Query " + TABLE_NAME);
-        assertThat(span.getContext().getDb().getStatement()).isEqualTo(KEY_CONDITION_EXPRESSION);
+                .withExpressionAttributeValues(Map.of(":one", new AttributeValue("valueOne")))),
+            dbAssert
+                .andThen(span -> assertThat(span.getContext().getDb().getStatement()).isEqualTo(KEY_CONDITION_EXPRESSION)));
 
-        executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDB.deleteTable(TABLE_NAME));
+        executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDB.deleteTable(TABLE_NAME),
+            dbAssert);
 
-        executeTestWithException(ResourceNotFoundException.class,"PutItem", "query",TABLE_NAME + "-exception", () -> dynamoDB.putItem(
+        executeTestWithException(ResourceNotFoundException.class, "PutItem", "query", TABLE_NAME + "-exception", () -> dynamoDB.putItem(
             new PutItemRequest(TABLE_NAME + "-exception",
-                Map.of("attributeOne", new AttributeValue("valueOne"), "attributeTwo", new AttributeValue().withN("10")))));
+                Map.of("attributeOne", new AttributeValue("valueOne"), "attributeTwo", new AttributeValue().withN("10")))),
+            dbAssert);
 
         assertThat(reporter.getSpans().size()).isEqualTo(6);
 
@@ -114,34 +120,39 @@ public class DynamoDbClientTest extends AbstractAwsClientTest {
         Transaction transaction = startTestRootTransaction("s3-test");
 
         executeTest("CreateTable", "query", TABLE_NAME, () -> dynamoDBAsync.createTableAsync(new CreateTableRequest().withTableName(TABLE_NAME)
-            .withAttributeDefinitions(List.of(
-                new AttributeDefinition("attributeOne", ScalarAttributeType.S),
-                new AttributeDefinition("attributeTwo", ScalarAttributeType.N)
-            ))
-            .withKeySchema(List.of(
-                new KeySchemaElement("attributeOne",KeyType.HASH),
-                new KeySchemaElement("attributeTwo",KeyType.RANGE)
-            ))
-            .withBillingMode(BillingMode.PAY_PER_REQUEST)));
+                .withAttributeDefinitions(List.of(
+                    new AttributeDefinition("attributeOne", ScalarAttributeType.S),
+                    new AttributeDefinition("attributeTwo", ScalarAttributeType.N)
+                ))
+                .withKeySchema(List.of(
+                    new KeySchemaElement("attributeOne", KeyType.HASH),
+                    new KeySchemaElement("attributeTwo", KeyType.RANGE)
+                ))
+                .withBillingMode(BillingMode.PAY_PER_REQUEST)),
+            dbAssert);
 
-        executeTest("ListTables", "query", null, () -> dynamoDBAsync.listTablesAsync());
+        executeTest("ListTables", "query", null, () -> dynamoDBAsync.listTablesAsync(),
+            dbAssert);
 
         executeTest("PutItem", "query", TABLE_NAME, () -> dynamoDBAsync.putItemAsync(
             new PutItemRequest(TABLE_NAME,
-                Map.of("attributeOne", new AttributeValue("valueOne"), "attributeTwo", new AttributeValue().withN("10")))));
+                Map.of("attributeOne", new AttributeValue("valueOne"), "attributeTwo", new AttributeValue().withN("10")))),
+            dbAssert);
 
         executeTest("Query", "query", TABLE_NAME, () -> dynamoDBAsync.queryAsync(
             new QueryRequest(TABLE_NAME)
                 .withKeyConditionExpression(KEY_CONDITION_EXPRESSION)
-                .withExpressionAttributeValues(Map.of(":one", new AttributeValue("valueOne")))));
-        Span span = reporter.getSpanByName("DynamoDB Query " + TABLE_NAME);
-        assertThat(span.getContext().getDb().getStatement()).isEqualTo(KEY_CONDITION_EXPRESSION);
+                .withExpressionAttributeValues(Map.of(":one", new AttributeValue("valueOne")))),
+            dbAssert
+                .andThen(span -> assertThat(span.getContext().getDb().getStatement()).isEqualTo(KEY_CONDITION_EXPRESSION)));
 
-        executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDBAsync.deleteTableAsync(TABLE_NAME));
+        executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDBAsync.deleteTableAsync(TABLE_NAME),
+            dbAssert);
 
-        executeTestWithException(ResourceNotFoundException.class,"PutItem", "query",TABLE_NAME + "-exception", () -> dynamoDBAsync.putItem(
+        executeTestWithException(ResourceNotFoundException.class, "PutItem", "query", TABLE_NAME + "-exception", () -> dynamoDBAsync.putItem(
             new PutItemRequest(TABLE_NAME + "-exception",
-                Map.of("attributeOne", new AttributeValue("valueOne"), "attributeTwo", new AttributeValue().withN("10")))));
+                Map.of("attributeOne", new AttributeValue("valueOne"), "attributeTwo", new AttributeValue().withN("10")))),
+            dbAssert);
 
         assertThat(reporter.getSpans().size()).isEqualTo(6);
 
