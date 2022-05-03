@@ -661,6 +661,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeTimestamp(transaction.getTimestamp());
         writeField("name", transaction.getNameForSerialization());
         serializeTraceContext(traceContext, false);
+        serializeSpanLinks(transaction.getSpanLinks());
         writeField("type", transaction.getType());
         writeField("duration", transaction.getDurationMs());
         writeField("result", transaction.getResult());
@@ -681,15 +682,15 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void serializeTraceContext(TraceContext traceContext, boolean serializeTransactionId) {
         // errors might only have an id
-        writeHexField("id", traceContext.getId());
+        writeNonLastIdField("id", traceContext.getId());
         if (!traceContext.getTraceId().isEmpty()) {
-            writeHexField("trace_id", traceContext.getTraceId());
+            writeNonLastIdField("trace_id", traceContext.getTraceId());
             // transaction_id and parent_id may only be sent alongside a valid trace_id
             if (serializeTransactionId && !traceContext.getTransactionId().isEmpty()) {
-                writeHexField("transaction_id", traceContext.getTransactionId());
+                writeNonLastIdField("transaction_id", traceContext.getTransactionId());
             }
             if (!traceContext.getParentId().isEmpty()) {
-                writeHexField("parent_id", traceContext.getParentId());
+                writeNonLastIdField("parent_id", traceContext.getParentId());
             }
         }
     }
@@ -702,6 +703,7 @@ public class DslJsonSerializer implements PayloadSerializer {
 
         writeField("outcome", span.getOutcome().toString());
         serializeTraceContext(traceContext, true);
+        serializeSpanLinks(span.getSpanLinks());
         writeField("duration", span.getDurationMs());
         if (span.getStacktrace() != null) {
             serializeStacktrace(span.getStacktrace().getStackTrace());
@@ -720,6 +722,25 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
         serializeSpanType(span);
         jw.writeByte(OBJECT_END);
+    }
+
+    private void serializeSpanLinks(List<TraceContext> spanLinks) {
+        if (!spanLinks.isEmpty()) {
+            writeFieldName("links");
+            jw.writeByte(ARRAY_START);
+            for (int i = 0, size = spanLinks.size(); i < size; i++) {
+                if (i > 0) {
+                    jw.writeByte(COMMA);
+                }
+                TraceContext traceContext = spanLinks.get(i);
+                jw.writeByte(OBJECT_START);
+                writeNonLastIdField("trace_id", traceContext.getTraceId());
+                writeIdField("span_id", traceContext.getParentId());
+                jw.writeByte(OBJECT_END);
+            }
+            jw.writeByte(ARRAY_END);
+            jw.writeByte(COMMA);
+        }
     }
 
     private void serializeOTel(Span span) {
@@ -1682,12 +1703,16 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private void writeHexField(String fieldName, Id traceId) {
+    private void writeNonLastIdField(String fieldName, Id id) {
+        writeIdField(fieldName, id);
+        jw.writeByte(COMMA);
+    }
+
+    private void writeIdField(String fieldName, Id id) {
         writeFieldName(fieldName);
         jw.writeByte(JsonWriter.QUOTE);
-        traceId.writeAsHex(jw);
+        id.writeAsHex(jw);
         jw.writeByte(JsonWriter.QUOTE);
-        jw.writeByte(COMMA);
     }
 
     private void writeTimestamp(final long epochMicros) {

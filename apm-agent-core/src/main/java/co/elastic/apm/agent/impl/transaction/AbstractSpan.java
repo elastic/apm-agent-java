@@ -31,7 +31,9 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,6 +48,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public static final int PRIO_DEFAULT = 0;
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
     private static final Logger oneTimeDuplicatedEndLogger = LoggerUtils.logOnce(logger);
+    private static final Logger oneTimeMaxSpanLinksLogger = LoggerUtils.logOnce(logger);
 
     protected static final double MS_IN_MICROS = TimeUnit.MILLISECONDS.toMicros(1);
     protected final TraceContext traceContext;
@@ -114,6 +117,10 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     protected volatile String type;
 
     protected final AtomicReference<Span> bufferedSpan = new AtomicReference<>();
+
+    // Span links handling
+    public static final int MAX_ALLOWED_SPAN_LINKS = 1000;
+    private final List<TraceContext> spanLinks = new ArrayList<>();
 
     @Nullable
     private OTelSpanKind otelKind = null;
@@ -362,6 +369,46 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return traceContext;
     }
 
+    /**
+     * Adds a span link based on the tracecontext header retrieved from the provided {@code carrier} through the provided {@code
+     * headerGetter}.
+     * @param childContextCreator the proper tracecontext inference implementation, corresponding on the header and types
+     * @param headerGetter the proper header extractor, corresponding the header and carrier types
+     * @param carrier the object from which the tracecontext header is to be retrieved
+     * @param <H> the tracecontext header type - either binary ({@code byte[]}) or textual ({@code String})
+     * @param <C> the tracecontext header carrier type, e.g. Kafka record or JMS message
+     */
+    public <H, C> void addSpanLink(TraceContext.ChildContextCreatorTwoArg<C, HeaderGetter<H, C>> childContextCreator,
+                                    HeaderGetter<H, C> headerGetter, @Nullable C carrier) {
+        if (spanLinks.size() == MAX_ALLOWED_SPAN_LINKS) {
+            oneTimeMaxSpanLinksLogger.warn("Span links for {} has reached the allowed maximum ({}). No more spans will be linked.",
+                this, MAX_ALLOWED_SPAN_LINKS);
+            return;
+        }
+        try {
+            TraceContext childTraceContext = tracer.createSpanLink();
+            if (childContextCreator.asChildOf(childTraceContext, carrier, headerGetter)) {
+                spanLinks.add(childTraceContext);
+            } else {
+                tracer.recycle(childTraceContext);
+            }
+        } catch (Exception e) {
+            logger.error(String.format("Failed to add span link to %s from header carrier %s and %s", this, carrier,
+                headerGetter.getClass().getName()), e);
+        }
+    }
+
+    /**
+     * Returns a list of links from this span to other spans in the format of child {@link TraceContext}s, of which parent is the linked
+     * span. For each entry in the returned list, the linked span {@code traceId} can be retrieved through
+     * {@link TraceContext#getTraceId()} and the {@code spanId} can be retrieved through {@link TraceContext#getParentId()}.
+     *
+     * @return a list of child {@link TraceContext}s of linked spans
+     */
+    public List<TraceContext> getSpanLinks() {
+        return spanLinks;
+    }
+
     @Override
     public void resetState() {
         finished = true;
@@ -380,8 +427,17 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         userOutcome = null;
         hasCapturedExceptions = false;
         bufferedSpan.set(null);
+        recycleSpanLinks();
         otelKind = null;
         otelAttributes.clear();
+    }
+
+    private void recycleSpanLinks() {
+        //noinspection ForLoopReplaceableByForEach
+        for (int i = 0; i < spanLinks.size(); i++) {
+            tracer.recycle(spanLinks.get(i));
+        }
+        spanLinks.clear();
     }
 
     public Span createSpan() {

@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -26,8 +25,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
-import co.elastic.apm.agent.report.ReporterConfiguration;
-import co.elastic.apm.agent.util.Version;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import static org.mockito.ArgumentMatchers.any;
