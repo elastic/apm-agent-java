@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.vertx.v3.web;
+package co.elastic.apm.agent.vertx.v3.web.http2;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.http.impl.HttpServerRequestImpl;
+import co.elastic.apm.agent.vertx.v3.web.WebHelper;
+import co.elastic.apm.agent.vertx.v3.web.WebInstrumentation;
+import io.vertx.core.http.impl.Http2ServerRequestImpl;
+import io.vertx.core.http.impl.Http2ServerResponseImpl;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
@@ -35,16 +35,14 @@ import javax.annotation.Nullable;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * Instruments {@link HttpServerRequestImpl#handleEnd()} and {@link io.vertx.core.http.impl.Http2ServerRequestImpl#handleEnd} to finalize
- * the transaction and remove the mapping.
+ * Instruments {@link Http2ServerRequestImpl#handleEnd} to finalize the transaction and remove request mapping.
  */
 @SuppressWarnings("JavadocReference")
-public class HttpServerRequestImplEndInstrumentation extends WebInstrumentation {
+public class Http2ServerRequestImplEndInstrumentation extends WebInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("io.vertx.core.http.impl.HttpServerRequestImpl")
-            .or(named("io.vertx.core.http.impl.Http2ServerRequestImpl"));
+        return named("io.vertx.core.http.impl.Http2ServerRequestImpl");
     }
 
     @Override
@@ -54,7 +52,7 @@ public class HttpServerRequestImplEndInstrumentation extends WebInstrumentation 
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.vertx.v3.web.HttpServerRequestImplEndInstrumentation$HttpRequestEndAdvice";
+        return "co.elastic.apm.agent.vertx.v3.web.http2.Http2ServerRequestImplEndInstrumentation$HttpRequestEndAdvice";
     }
 
     public static class HttpRequestEndAdvice {
@@ -64,14 +62,14 @@ public class HttpServerRequestImplEndInstrumentation extends WebInstrumentation 
         private static final WebHelper helper = WebHelper.getInstance();
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void exit(@Advice.This HttpServerRequest request,
-                                @Advice.FieldValue(value = "response", typing = Assigner.Typing.DYNAMIC) @Nullable HttpServerResponse response) {
+        public static void exit(@Advice.This Http2ServerRequestImpl request,
+                                @Advice.FieldValue("response") @Nullable Http2ServerResponseImpl response) {
             Transaction transaction = helper.removeTransactionMapping(request);
             if (transaction != null) {
                 helper.finalizeTransaction(response, transaction);
-                log.debug("VERTX-DEBUG: ended Vert.x transaction {} with details from this response: {}", transaction, response);
+                log.debug("VERTX-DEBUG: ended Vert.x HTTP 2 transaction {} with details from this response: {}", transaction, response);
             } else {
-                log.debug("VERTX-DEBUG: could not find a transaction for the following Vert.x request: {}", request);
+                log.debug("VERTX-DEBUG: could not find a transaction for the following Vert.x HTTP 2 request: {}", request);
             }
         }
     }
