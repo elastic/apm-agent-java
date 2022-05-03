@@ -382,7 +382,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
 
     /**
      * Checks whether the given appender is a shading appender, so to avoid recursive reformatting
-     * @return true if the provide appender is a shading appender; false otherwise
+     * @return true if the provided appender is a shading appender; false otherwise
      */
     private boolean isShadingAppender(A appender) {
         //noinspection StringEquality
@@ -477,6 +477,10 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
 
     protected long getMaxLogFileSize() {
         return loggingConfiguration.getLogFileSize();
+    }
+
+    protected long getDefaultMaxLogFileSize() {
+        return loggingConfiguration.getDefaultLogFileSize();
     }
 
     protected abstract void closeShadeAppender(A shadeAppender);
