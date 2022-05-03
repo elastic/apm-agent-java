@@ -24,6 +24,13 @@ endif::[]
 ==== 1.30.2 - YYYY/MM/DD
 
 [float]
+===== Potentially breaking changes
+* Starting this version, when using <<config-log-ecs-reformatting>>, the agent will automatically set the `service.version` field.
+If you are using ECS-logging and set the `service.version` through a custom field, the behaviour is not strictly defined. Remove the
+custom `service.name` field setting and either allow the agent to automatically discover and set it, or use the
+<<config-service-version>> config option to set it manually.
+
+[float]
 ===== Refactorings
 * Vert.x 3.x instrumentation was refactored to remove constructor instrumentation as well as wrapping of response handler. In addition,
 Vert.x 3.x transactions are now ended when the request end event occurs, instead of the response end event. In HTTP 2 request handling,
@@ -32,6 +39,7 @@ allows for spans representing asynchronous handling of requests for which the co
 
 [float]
 ===== Features
+* Set the service version when using the ECS reformatting of the application logs: {pull}2603[#2603]
 * Added support for setting the service version on Log4j2's EcsLayout - {pull}2604[#2604]
 
 [float]
