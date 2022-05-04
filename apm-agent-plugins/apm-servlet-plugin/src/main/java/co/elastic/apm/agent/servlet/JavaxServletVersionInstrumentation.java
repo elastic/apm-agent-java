@@ -24,9 +24,9 @@ import javax.annotation.Nullable;
 import javax.servlet.Servlet;
 import javax.servlet.ServletConfig;
 
-public abstract class JavaxServletVersionInstrumentation extends ServletVersionInstrumentation {
+public abstract class JavaxServletVersionInstrumentation {
 
-    public static class JavaxInit extends Init {
+    public static class JavaxInit extends ServletVersionInstrumentation.Init {
 
         @Override
         public Constants.ServletImpl getImplConstants() {
@@ -43,7 +43,7 @@ public abstract class JavaxServletVersionInstrumentation extends ServletVersionI
 
     }
 
-    public static class JavaxService extends Service {
+    public static class JavaxService extends ServletVersionInstrumentation.Service {
 
         @Override
         public Constants.ServletImpl getImplConstants() {
@@ -56,7 +56,5 @@ public abstract class JavaxServletVersionInstrumentation extends ServletVersionI
                 logServletVersion(JavaxUtil.getInfoFromServletContext(servlet.getServletConfig()));
             }
         }
-
     }
-
 }

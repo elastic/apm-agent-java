@@ -18,6 +18,12 @@
  */
 package co.elastic.apm.agent.sdk.logging;
 
+import javax.annotation.Nullable;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.Iterator;
+import java.util.ServiceLoader;
+
 public class LoggerFactory {
 
     private static volatile ILoggerFactory iLoggerFactory;
@@ -28,15 +34,16 @@ public class LoggerFactory {
 
     /**
      * Return a logger named according to the name parameter.
+     * <p>
+     * A lazy-initialization logger implementation will be returned when this method is called before {@link #initialize(ILoggerFactory)}
+     * </p>
      *
      * @param name The name of the logger.
      * @return logger
      */
     public static Logger getLogger(String name) {
-        if (iLoggerFactory == null) {
-            return NoopLogger.INSTANCE;
-        }
-        return iLoggerFactory.getLogger(name);
+        Logger logger = getLoggerFromFactory(name);
+        return logger != null ? logger : new LazyInitLogger(name);
     }
 
     /**
@@ -49,7 +56,204 @@ public class LoggerFactory {
         return getLogger(clazz.getName());
     }
 
-    private static class NoopLogger implements Logger {
+    @Nullable
+    private static Logger getLoggerFromFactory(final String name) {
+        if (iLoggerFactory == null) {
+            return null;
+        }
+
+        Logger logger = AccessController.doPrivileged(new PrivilegedAction<Logger>() {
+            @Override
+            public Logger run() {
+                return iLoggerFactory.getLogger(name);
+            }
+        });
+        // in case the factory is unable to provide a logger, we return Noop impl to prevent further calls to the factory
+        return logger != null ? logger : NoopLogger.INSTANCE;
+    }
+
+    /**
+     * Lazy-initialization logger when the {@link #initialize(ILoggerFactory)} method hasn't been called yet. Allows to
+     * make calls to {@link #getLogger} before {@link #initialize} to have a valid logger.
+     */
+    // package-private for testing
+    static class LazyInitLogger implements Logger {
+
+        private final String name;
+        private volatile Logger delegate = null;
+
+        LazyInitLogger(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        // package-private for testing
+        Logger getDelegate() {
+            if (delegate != null) {
+                return delegate;
+            }
+
+            delegate = getLoggerFromFactory(name);
+            return delegate != null ? delegate : NoopLogger.INSTANCE;
+        }
+
+        @Override
+        public boolean isTraceEnabled() {
+            return getDelegate().isTraceEnabled();
+        }
+
+        @Override
+        public void trace(String msg) {
+            getDelegate().trace(msg);
+        }
+
+        @Override
+        public void trace(String format, Object arg) {
+            getDelegate().trace(format, arg);
+        }
+
+        @Override
+        public void trace(String format, Object arg1, Object arg2) {
+            getDelegate().trace(format, arg1, arg2);
+        }
+
+        @Override
+        public void trace(String format, Object... arguments) {
+            getDelegate().trace(format, arguments);
+        }
+
+        @Override
+        public void trace(String msg, Throwable t) {
+            getDelegate().trace(msg, t);
+        }
+
+        @Override
+        public boolean isDebugEnabled() {
+            return getDelegate().isDebugEnabled();
+        }
+
+        @Override
+        public void debug(String msg) {
+            getDelegate().debug(msg);
+        }
+
+        @Override
+        public void debug(String format, Object arg) {
+            getDelegate().debug(format, arg);
+        }
+
+        @Override
+        public void debug(String format, Object arg1, Object arg2) {
+            getDelegate().debug(format, arg1, arg2);
+        }
+
+        @Override
+        public void debug(String format, Object... arguments) {
+            getDelegate().debug(format, arguments);
+        }
+
+        @Override
+        public void debug(String msg, Throwable t) {
+            getDelegate().debug(msg, t);
+        }
+
+        @Override
+        public boolean isInfoEnabled() {
+            return getDelegate().isInfoEnabled();
+        }
+
+        @Override
+        public void info(String msg) {
+            getDelegate().info(msg);
+        }
+
+        @Override
+        public void info(String format, Object arg) {
+            getDelegate().info(format, arg);
+        }
+
+        @Override
+        public void info(String format, Object arg1, Object arg2) {
+            getDelegate().info(format, arg1, arg2);
+        }
+
+        @Override
+        public void info(String format, Object... arguments) {
+            getDelegate().info(format, arguments);
+        }
+
+        @Override
+        public void info(String msg, Throwable t) {
+            getDelegate().info(msg, t);
+        }
+
+        @Override
+        public boolean isWarnEnabled() {
+            return getDelegate().isWarnEnabled();
+        }
+
+        @Override
+        public void warn(String msg) {
+            getDelegate().warn(msg);
+        }
+
+        @Override
+        public void warn(String format, Object arg) {
+            getDelegate().warn(format, arg);
+        }
+
+        @Override
+        public void warn(String format, Object... arguments) {
+            getDelegate().warn(format, arguments);
+        }
+
+        @Override
+        public void warn(String format, Object arg1, Object arg2) {
+            getDelegate().warn(format, arg1, arg2);
+        }
+
+        @Override
+        public void warn(String msg, Throwable t) {
+            getDelegate().warn(msg, t);
+        }
+
+        @Override
+        public boolean isErrorEnabled() {
+            return getDelegate().isErrorEnabled();
+        }
+
+        @Override
+        public void error(String msg) {
+            getDelegate().error(msg);
+        }
+
+        @Override
+        public void error(String format, Object arg) {
+            getDelegate().error(format, arg);
+        }
+
+        @Override
+        public void error(String format, Object arg1, Object arg2) {
+            getDelegate().error(format, arg1, arg2);
+        }
+
+        @Override
+        public void error(String format, Object... arguments) {
+            getDelegate().error(format, arguments);
+        }
+
+        @Override
+        public void error(String msg, Throwable t) {
+            getDelegate().error(msg, t);
+        }
+    }
+
+    // package-private for testing
+    static class NoopLogger implements Logger {
 
         static final NoopLogger INSTANCE = new NoopLogger();
 

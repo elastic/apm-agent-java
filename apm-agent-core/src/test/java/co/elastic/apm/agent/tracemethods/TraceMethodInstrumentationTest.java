@@ -24,12 +24,9 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
-import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
@@ -115,20 +112,6 @@ class TraceMethodInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TestClass#traceMe");
         // if original configuration was used, a span would have been created - see `testTraceMethod`
-        assertThat(reporter.getSpans()).hasSize(0);
-    }
-
-    @Test
-    void testTraceMethodNonSampledTransaction() {
-        Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(false), 0, getClass().getClassLoader());
-        transaction.withName("not sampled");
-        try (Scope scope = transaction.activateInScope()) {
-            TestClass.traceMe();
-        }
-        transaction.end();
-
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("not sampled");
         assertThat(reporter.getSpans()).hasSize(0);
     }
 
