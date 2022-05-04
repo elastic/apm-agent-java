@@ -24,8 +24,18 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.logging.log4j2.EcsLayout;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.matcher.ElementMatcher;
 
-public class Log4j2ServiceNameInstrumentation extends AbstractLog4j2ServiceInstrumentation {
+import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+
+public class Log4j2ServiceVersionInstrumentation extends AbstractLog4j2ServiceInstrumentation {
+
+    @Override
+    public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
+        return super.getTypeMatcher().and(declaresMethod(named("setServiceVersion")));
+    }
 
     public static class AdviceClass {
 
@@ -33,10 +43,10 @@ public class Log4j2ServiceNameInstrumentation extends AbstractLog4j2ServiceInstr
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.This EcsLayout.Builder builder) {
-            if (builder.getServiceName() == null || builder.getServiceName().isEmpty()) {
+            if (builder.getServiceVersion() == null || builder.getServiceVersion().isEmpty()) {
                 ServiceInfo serviceInfo = tracer.getServiceInfoForClassLoader(Thread.currentThread().getContextClassLoader());
-                String configuredServiceName = tracer.getConfig(CoreConfiguration.class).getServiceName();
-                builder.setServiceName(serviceInfo != null ? serviceInfo.getServiceName() : configuredServiceName);
+                String configuredServiceVersion = tracer.getConfig(CoreConfiguration.class).getServiceVersion();
+                builder.setServiceVersion(serviceInfo != null ? serviceInfo.getServiceVersion() : configuredServiceVersion);
             }
         }
     }
