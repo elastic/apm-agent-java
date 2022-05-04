@@ -53,6 +53,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
+import org.testcontainers.utility.DockerImageName;
 
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
@@ -108,9 +109,9 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
     @BeforeClass
     public static void setup() {
-        // confluent versions 5.3.0 correspond Kafka versions 2.3.0 -
+        // confluent versions 7.1.0 correspond Kafka versions 3.1.0 -
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
-        kafka = new KafkaContainer("5.3.0");
+        kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka").withTag("7.1.0"));
         kafka.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
         kafka.start();
         kafkaPort = kafka.getMappedPort(KafkaContainer.KAFKA_PORT);
