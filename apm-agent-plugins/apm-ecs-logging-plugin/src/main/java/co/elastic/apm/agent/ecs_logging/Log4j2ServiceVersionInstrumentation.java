@@ -33,9 +33,8 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 public class Log4j2ServiceVersionInstrumentation extends AbstractLog4j2ServiceInstrumentation {
 
     @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return ((ElementMatcher.Junction<? super TypeDescription>) super.getTypeMatcher())
-            .and(declaresMethod(named("setServiceVersion")));
+    public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
+        return super.getTypeMatcher().and(declaresMethod(named("setServiceVersion")));
     }
 
     public static class AdviceClass {

@@ -38,7 +38,7 @@ public class AbstractLog4j2ServiceInstrumentation extends TracerAwareInstrumenta
     }
 
     @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+    public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
         return named("co.elastic.logging.log4j2.EcsLayout$Builder");
     }
 
