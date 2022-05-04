@@ -20,8 +20,15 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.30.2]]
-==== 1.30.2 - YYYY/MM/DD
+[[release-notes-1.31.0]]
+==== 1.31.0 - YYYY/MM/DD
+
+[float]
+===== Potentially breaking changes
+* Starting this version, when using <<config-log-ecs-reformatting>>, the agent will automatically set the `service.version` field.
+If you are using ECS-logging and set the `service.version` through a custom field, the behaviour is not strictly defined. Remove the
+custom `service.name` field setting and either allow the agent to automatically discover and set it, or use the
+<<config-service-version>> config option to set it manually.
 
 [float]
 ===== Refactorings
@@ -32,6 +39,8 @@ allows for spans representing asynchronous handling of requests for which the co
 
 [float]
 ===== Features
+* Set the service version when using the ECS reformatting of the application logs: {pull}2603[#2603]
+* Add ECS-reformatting support for `java.util.logging` - {pull}2591[#2591]
 
 [float]
 ===== Bug fixes

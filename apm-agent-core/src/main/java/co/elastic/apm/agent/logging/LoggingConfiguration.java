@@ -155,7 +155,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.22.0]", "experimental")
         .description("Specifying whether and how the agent should automatically reformat application logs \n" +
             "into {ecs-logging-ref}/intro.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for \n" +
-            "further Log analysis. This functionality is available for log4j1, log4j2 and Logback. \n" +
+            "further Log analysis. This functionality is available for log4j1, log4j2, Logback and `java.util.logging`. \n" +
             "The ECS log lines will include active trace/transaction/error IDs, if there are such. \n" +
             "\n" +
             "This option only applies to pattern layouts/formatters by default.\n" +
@@ -210,7 +210,9 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(Arrays.asList(
             WildcardMatcher.valueOf("*PatternLayout*"),
             WildcardMatcher.valueOf("org.apache.log4j.SimpleLayout"),
-            WildcardMatcher.valueOf("ch.qos.logback.core.encoder.EchoEncoder")
+            WildcardMatcher.valueOf("ch.qos.logback.core.encoder.EchoEncoder"),
+            WildcardMatcher.valueOf("java.util.logging.SimpleFormatter"),
+            WildcardMatcher.valueOf("org.springframework.boot.logging.java.SimpleFormatter")
         ));
 
     private final ConfigurationOption<String> logEcsFormattingDestinationDir = ConfigurationOption.stringOption()
@@ -382,6 +384,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     public long getLogFileSize() {
         return logFileSize.get().getBytes();
+    }
+
+    public long getDefaultLogFileSize() {
+        return logFileSize.getValueConverter().convert(logFileSize.getDefaultValueAsString()).getBytes();
     }
 
     public boolean isShipAgentLogs() {
