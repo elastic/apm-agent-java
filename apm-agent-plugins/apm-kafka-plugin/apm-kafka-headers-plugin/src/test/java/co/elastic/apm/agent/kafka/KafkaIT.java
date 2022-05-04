@@ -56,6 +56,7 @@ import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -371,16 +372,21 @@ public class KafkaIT extends AbstractInstrumentationTest {
         verifyKafkaTransactionContents(transactions.get(1), sendRequestSpan1, SECOND_MESSAGE_VALUE, REQUEST_TOPIC);
 
         Span pollSpan = spans.get(4);
-        verifyPollSpanContents(pollSpan);
+        verifyPollSpanContents(pollSpan, sendReplySpan0, sendReplySpan1);
     }
 
-    private void verifyPollSpanContents(Span pollSpan) {
+    private void verifyPollSpanContents(Span pollSpan, Span... sendSpans) {
         assertThat(pollSpan.getType()).isEqualTo("messaging");
         assertThat(pollSpan.getSubtype()).isEqualTo("kafka");
         assertThat(pollSpan.getAction()).isEqualTo("poll");
         assertThat(pollSpan.getNameAsString()).isEqualTo("KafkaConsumer#poll");
         Destination.Service service = pollSpan.getContext().getDestination().getService();
         assertThat(service.getResource().toString()).isEqualTo("kafka");
+        List<TraceContext> spanLinks = pollSpan.getSpanLinks();
+        assertThat(spanLinks).hasSize(sendSpans.length);
+        Arrays.stream(sendSpans).forEach(
+            sendSpan -> assertThat(spanLinks.stream()).anyMatch(link -> link.getParentId().equals(sendSpan.getTraceContext().getId()))
+        );
     }
 
     private void verifySendSpanContents(Span sendSpan, String topicName) {
