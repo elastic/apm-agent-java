@@ -383,6 +383,13 @@ public class ElasticApmTracer implements Tracer {
     }
 
     public void endSpan(Span span) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("endSpan {}", span);
+            if (logger.isTraceEnabled()) {
+                logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
+            }
+        }
+
         if (!span.isSampled()) {
             Transaction transaction = span.getTransaction();
             if (transaction != null) {

@@ -1189,6 +1189,9 @@ public class DslJsonSerializer implements PayloadSerializer {
             if (i++ >= 128) {
                 break;
             }
+            if (i > 1) {
+                jw.writeByte(COMMA);
+            }
             jw.writeByte(OBJECT_START);
             writeField("destination_service_resource", stats.getKey().getDestinationServiceResource());
             writeField("outcome", stats.getKey().getOutcome().toString());
