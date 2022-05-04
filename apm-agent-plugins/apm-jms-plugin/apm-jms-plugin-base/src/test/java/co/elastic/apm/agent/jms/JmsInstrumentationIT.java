@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.junit.After;
@@ -389,6 +390,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         } else {
             assertThat(receiveSpan.getContext().getMessage().getAge()).isGreaterThanOrEqualTo(0);
         }
+        List<TraceContext> spanLinks = receiveSpan.getSpanLinks();
+        assertThat(spanLinks).hasSize(1);
+        assertThat(spanLinks.get(0).getTraceId()).isEqualTo(sendSpan.getTraceContext().getTraceId());
+        assertThat(spanLinks.get(0).getParentId()).isEqualTo(sendSpan.getTraceContext().getId());
 
         if (sendToNoopSpan != null) {
             assertThat(sendToNoopSpan.getTraceContext().getTraceId()).isEqualTo(receiveTraceId);
