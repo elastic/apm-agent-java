@@ -42,8 +42,11 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAmount;
+import java.time.temporal.TemporalUnit;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -551,6 +554,52 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
             span.recordException(new IllegalStateException());
             span.setStatus(StatusCode.ERROR);
         });
+    }
+
+    @Test
+    public void startEndWithExplicitTimestamp() {
+        Instant startTransaction = Instant.now().minus(1, ChronoUnit.HOURS).truncatedTo(ChronoUnit.MILLIS);
+        Instant endTransaction = startTransaction.plus(5, ChronoUnit.SECONDS);
+
+        Instant startSpan = startTransaction.plus(2, ChronoUnit.SECONDS);
+        Instant endSpan = startSpan.plus(1, ChronoUnit.SECONDS);
+
+        Span otelTransaction = otelTracer.spanBuilder("transaction")
+            .setStartTimestamp(startTransaction)
+            // emulate an incoming grpc request
+            .setAttribute("rpc.system", "grpc").setSpanKind(SpanKind.SERVER)
+            .startSpan()
+            .setStatus(StatusCode.ERROR);
+
+        try (Scope scope = otelTransaction.makeCurrent()) {
+            otelTracer.spanBuilder("span")
+                .setStartTimestamp(startSpan)
+                // emulate an outgoing grpc request
+                .setAttribute("rpc.system", "grpc").setSpanKind(SpanKind.CLIENT)
+                .startSpan()
+                .setStatus(StatusCode.UNSET)
+                .end(endSpan);
+        } finally {
+            otelTransaction.end(endTransaction);
+        }
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+        Transaction transaction = reporter.getFirstTransaction();
+        assertThat(transaction.getNameAsString()).isEqualTo("transaction");
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
+        assertThat(transaction.getTimestamp()).isEqualTo(startTransaction.toEpochMilli() * 1000);
+        assertThat(transaction.getDuration()).isEqualTo(TimeUnit.SECONDS.toMicros(5));
+        assertThat(transaction.getType()).isEqualTo("request");
+
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        co.elastic.apm.agent.impl.transaction.Span span = reporter.getFirstSpan();
+        assertThat(span.getNameAsString()).isEqualTo("span");
+        assertThat(span.getOutcome()).isEqualTo(Outcome.UNKNOWN);
+        assertThat(span.getTimestamp()).isEqualTo(startSpan.toEpochMilli() * 1000);
+        assertThat(span.getDuration()).isEqualTo(TimeUnit.SECONDS.toMicros(1));
+        assertThat(span.getType()).isEqualTo("external");
+        assertThat(span.getSubtype()).isEqualTo("grpc");
     }
 
     private void checkReportError(Outcome expectedOutcome, Consumer<Span> actions) {
