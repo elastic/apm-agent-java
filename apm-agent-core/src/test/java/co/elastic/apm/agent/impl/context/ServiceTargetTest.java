@@ -129,20 +129,30 @@ class ServiceTargetTest {
             .describedAs("destination resource should be inferred from type an name")
             .hasDestinationResource("test/name");
 
-        // host and port is just a convenience to override the default inferred value
+        assertThat(serviceTarget.withHostPortName("hostname", 80))
+            .hasType("test")
+            .hasName("hostname:80")
+            .hasDestinationResource("test/hostname:80");
 
-        assertThat(serviceTarget.withHostAndPortDestinationResource("hostname", 80))
-            .hasDestinationResource("hostname:80");
+        // keep only name
+        serviceTarget.withNameOnlyDestinationResource();
 
-        assertThat(serviceTarget.withHostAndPortDestinationResource("host-only", -1))
+        assertThat(serviceTarget.withHostPortName("hostname", 433))
+            .hasName("hostname:433")
+            .hasDestinationResource("hostname:433");
+
+        assertThat(serviceTarget.withHostPortName("host-only", -1))
+            .hasName("host-only")
             .hasDestinationResource("host-only");
 
-        assertThat(serviceTarget.withHostAndPortDestinationResource(null, 80))
+        assertThat(serviceTarget.withHostPortName(null, 80))
             .describedAs("null host should be ignored")
+            .hasName("host-only")
             .hasDestinationResource("host-only");
 
-        assertThat(serviceTarget.withHostAndPortDestinationResource("", 80))
+        assertThat(serviceTarget.withHostPortName("", 80))
             .describedAs("empty host should be ignored")
+            .hasName("host-only")
             .hasDestinationResource("host-only");
     }
 
@@ -192,7 +202,7 @@ class ServiceTargetTest {
     @Test
     void testHostPort() {
         ServiceTarget st = new ServiceTarget();
-        st.withHostAndPortDestinationResource("host", 99);
+        st.withHostPortName("host", 99);
 
         assertThat(st)
             .hasName("host:99")

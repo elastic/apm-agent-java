@@ -94,7 +94,8 @@ public class HttpClientHelper {
 
         span.getContext().getServiceTarget()
             .withType("http")
-            .withHostAndPortDestinationResource(host, port);
+            .withHostPortName(host, port)
+            .withNameOnlyDestinationResource();
 
     }
 }

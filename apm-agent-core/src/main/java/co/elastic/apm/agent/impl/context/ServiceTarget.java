@@ -75,19 +75,29 @@ public class ServiceTarget implements Recyclable {
     }
 
     /**
-     * Sets the name from host and port, overwriting any prior existing resource value and removing type from resource value
+     * Makes the legacy destination resource use value of name instead of the {@code "type/name"} format
+     *
+     * @return this
+     */
+    public ServiceTarget withNameOnlyDestinationResource() {
+        onlyNameInResource = true;
+        destinationResource.setLength(0);
+        return this;
+    }
+
+    /**
+     * Sets the name from host and port
      *
      * @param host host name or IP
      * @param port network port
      * @return this
      */
-    public ServiceTarget withHostAndPortDestinationResource(@Nullable CharSequence host, int port) {
+    public ServiceTarget withHostPortName(@Nullable CharSequence host, int port) {
         if (host == null || host.length() == 0) {
             return this;
         }
-        onlyNameInResource = true;
+        this.destinationResource.setLength(0); // invalidate cached value
 
-        destinationResource.setLength(0);
         name.setLength(0);
         name.append(host);
 
@@ -104,10 +114,9 @@ public class ServiceTarget implements Recyclable {
      * @return this
      */
     public ServiceTarget withUserDestinationResource(@Nullable CharSequence name) {
-        if (name == null || name.length() == 0) {
-            resetState();
-        } else {
-            this.name.setLength(0);
+        this.destinationResource.setLength(0); // invalidate cached value
+        this.name.setLength(0);
+        if (name != null && name.length() > 0) {
             this.name.append(name);
         }
         onlyNameInResource = true;

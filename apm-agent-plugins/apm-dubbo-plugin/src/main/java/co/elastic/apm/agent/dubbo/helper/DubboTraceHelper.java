@@ -53,7 +53,8 @@ public class DubboTraceHelper {
 
         span.getContext().getServiceTarget()
             .withType(DUBBO_SUBTYPE)
-            .withHostAndPortDestinationResource(remoteAddress.getHostName(), remoteAddress.getPort());
+            .withHostPortName(remoteAddress.getHostName(), remoteAddress.getPort())
+            .withNameOnlyDestinationResource();
 
         return span.activate();
     }

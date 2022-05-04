@@ -426,7 +426,8 @@ class DslJsonSerializerTest {
 
         span.getContext().getServiceTarget()
             .withType("http")
-            .withHostAndPortDestinationResource("whatever.com", 80);
+            .withHostPortName("whatever.com", 80)
+            .withNameOnlyDestinationResource();
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode context = spanJson.get("context");

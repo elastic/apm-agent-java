@@ -313,7 +313,8 @@ public class GrpcHelper {
 
         span.getContext().getServiceTarget()
             .withType(GRPC)
-            .withName(authority);
+            .withName(authority)
+            .withNameOnlyDestinationResource();
 
         return span.activate();
     }

@@ -198,7 +198,8 @@ public class OTelSpan implements Span {
                 // default service name on rpc.service
                 .withName(service)
                 // host:port with higher priority
-                .withHostAndPortDestinationResource(netPeer, netPort);
+                .withHostPortName(netPeer, netPort)
+                .withNameOnlyDestinationResource();
 
         } else if (httpUrl != null || httpScheme != null) {
             type = "external";
@@ -221,7 +222,8 @@ public class OTelSpan implements Span {
 
             s.getContext().getServiceTarget()
                 .withType(subType)
-                .withHostAndPortDestinationResource(httpHost, netPort);
+                .withHostPortName(httpHost, netPort)
+                .withNameOnlyDestinationResource();
         }
 
         if (type == null) {
