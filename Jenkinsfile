@@ -95,12 +95,6 @@ pipeline {
     }
     stage('Builds') {
       options { skipDefaultCheckout() }
-      when {
-        // Tags are not required to be built/tested.
-        not {
-          tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
-        }
-      }
       environment {
         HOME = "${env.WORKSPACE}"
         JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
@@ -431,10 +425,7 @@ pipeline {
     }
     stage('Releases') {
       when {
-        anyOf {
-          branch 'main'
-          tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
-        }
+        branch 'main'
       }
       stages {
         stage('Stable') {
