@@ -18,45 +18,24 @@
  */
 package co.elastic.apm.agent.ecs_logging;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.logging.log4j2.EcsLayout;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Arrays;
-import java.util.Collection;
-
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class Log4j2ServiceVersionInstrumentation extends TracerAwareInstrumentation {
-
-    @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(CustomElementMatchers.isAgentClassLoader());
-    }
+public class Log4j2ServiceVersionInstrumentation extends AbstractLog4j2ServiceInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.logging.log4j2.EcsLayout$Builder").and(declaresMethod(named("setServiceVersion")));
-    }
-
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("build");
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("logging", "log4j2-ecs");
+        return ((ElementMatcher.Junction<? super TypeDescription>) super.getTypeMatcher())
+            .and(declaresMethod(named("setServiceVersion")));
     }
 
     public static class AdviceClass {
