@@ -16,31 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.log4j1.reformatting;
+package co.elastic.apm.agent.jul.reformatting;
 
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
-import org.apache.log4j.WriterAppender;
-import org.apache.log4j.spi.LoggingEvent;
 
-public class Log4j1AppenderAppendAdvice {
+import java.util.logging.StreamHandler;
 
-    private static final Log4J1EcsReformattingHelper helper = new Log4J1EcsReformattingHelper();
+public class JulHandlerCloseAdvice {
 
-    @SuppressWarnings("unused")
-    @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
-    public static boolean initializeReformatting(@Advice.This(typing = Assigner.Typing.DYNAMIC) WriterAppender thisAppender) {
-        return helper.onAppendEnter(thisAppender);
-    }
+    private static final JulEcsReformattingHelper helper = new JulEcsReformattingHelper();
 
     @SuppressWarnings({"unused"})
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-    public static void reformatLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LoggingEvent eventObject,
-                                            @Advice.This(typing = Assigner.Typing.DYNAMIC) WriterAppender thisAppender) {
-
-        WriterAppender shadeAppender = helper.onAppendExit(thisAppender);
-        if (shadeAppender != null) {
-            shadeAppender.append(eventObject);
-        }
+    public static void stopAppender(@Advice.This(typing = Assigner.Typing.DYNAMIC) StreamHandler thisHandler) {
+        helper.closeShadeAppenderFor(thisHandler);
     }
 }
