@@ -86,7 +86,7 @@ public class ServiceTarget implements Recyclable {
     }
 
     /**
-     * Sets the name from host and port
+     * Sets the name from host and port, equivalent to calling {@code withName(host+":"+port)}
      *
      * @param host host name or IP
      * @param port network port
