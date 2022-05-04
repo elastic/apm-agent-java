@@ -255,7 +255,10 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                 RabbitMqHelper.captureDestination(exchange, connection.getAddress(), connection.getPort(), span);
 
                 if (properties != null) {
-                    span.addSpanLink(TraceContext.getFromTraceContextTextHeaders(), RabbitMQTextHeaderGetter.INSTANCE, properties);
+                    span.addSpanLink(
+                        TraceContext.<AMQP.BasicProperties>getFromTraceContextTextHeaders(),
+                        RabbitMQTextHeaderGetter.INSTANCE,
+                        properties);
                 }
 
                 span.captureException(thrown)

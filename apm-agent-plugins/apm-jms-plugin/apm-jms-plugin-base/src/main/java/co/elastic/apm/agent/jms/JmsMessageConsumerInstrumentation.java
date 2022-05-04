@@ -175,7 +175,11 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                             helper.addMessageDetails(message, abstractSpan);
                         }
                     } else if (abstractSpan != null) {
-                        abstractSpan.addSpanLink(TraceContext.getFromTraceContextTextHeaders(), JmsMessagePropertyAccessor.instance(), message);
+                        abstractSpan.addSpanLink(
+                            TraceContext.<Message>getFromTraceContextTextHeaders(),
+                            JmsMessagePropertyAccessor.instance(),
+                            message
+                        );
                     }
                 } else if (abstractSpan instanceof Transaction) {
                     // Do not report polling transactions if not yielding messages
