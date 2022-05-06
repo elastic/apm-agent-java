@@ -20,8 +20,8 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.30.2]]
-==== 1.30.2 - YYYY/MM/DD
+[[release-notes-1.31.0]]
+==== 1.31.0 - YYYY/MM/DD
 
 [float]
 ===== Potentially breaking changes
@@ -40,6 +40,8 @@ allows for spans representing asynchronous handling of requests for which the co
 [float]
 ===== Features
 * Set the service version when using the ECS reformatting of the application logs: {pull}2603[#2603]
+* Add ECS-reformatting support for `java.util.logging` - {pull}2591[#2591]
+* Added support for setting the service version on Log4j2's EcsLayout - {pull}2604[#2604]
 
 [float]
 ===== Bug fixes
@@ -48,6 +50,7 @@ allows for spans representing asynchronous handling of requests for which the co
 * Fallback to standard output when Security Manager prevents writing to log file - {pull}2581[#2581]
 * Fix missing transactions when using Vert.x 3.x with HTTP 1 - {pull}2564[#2564]
 * Fix Vert.x `GET null` transactions to be named `GET unknown route`, according to spec - {pull}2564[#2564]
+* Fix OpenTelemetry bridge span end with explicit timestamp - {pull}2615[#2615]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
