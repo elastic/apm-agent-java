@@ -42,6 +42,7 @@ allows for spans representing asynchronous handling of requests for which the co
 * Set the service version when using the ECS reformatting of the application logs: {pull}2603[#2603]
 * Add ECS-reformatting support for `java.util.logging` - {pull}2591[#2591]
 * Added support for setting the service version on Log4j2's EcsLayout - {pull}2604[#2604]
+* Added support for AWS S3 and DynamoDB - {pull}2606[#2606]
 
 [float]
 ===== Bug fixes

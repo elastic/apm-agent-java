@@ -699,7 +699,9 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_START);
         writeField("name", span.getNameForSerialization());
         writeTimestamp(span.getTimestamp());
-
+        if(!span.isSync()){
+            writeField("sync", span.isSync());
+        }
         writeField("outcome", span.getOutcome().toString());
         serializeTraceContext(traceContext, true);
         writeField("duration", span.getDurationMs());
