@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.awssdk.v2;
 
-import co.elastic.apm.agent.awssdk.common.AbstractAwsClientTest;
+import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -45,7 +45,7 @@ import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class S3ClientTest extends AbstractAwsClientTest {
+public class S3ClientIT extends AbstractAwsClientIT {
     private S3Client s3;
     private S3AsyncClient s3Async;
 
