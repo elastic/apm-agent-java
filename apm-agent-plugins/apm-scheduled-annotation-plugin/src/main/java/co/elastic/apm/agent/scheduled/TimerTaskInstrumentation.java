@@ -40,6 +40,7 @@ import java.util.Collection;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperClass;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
     private static final String FRAMEWORK_NAME = "TimerTask";
@@ -88,7 +89,8 @@ public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>none())
-            .and(hasSuperClass(named("java.util.TimerTask")));
+            .and(hasSuperClass(named("java.util.TimerTask")))
+            .and(not(co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy()));
     }
 
     @Override
