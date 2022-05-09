@@ -40,7 +40,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.fail;
 
 @Testcontainers
-public abstract class AbstractAwsClientTest extends AbstractInstrumentationTest {
+public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
     private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:0.14.2");
     protected static final String BUCKET_NAME = "some-test-bucket";
     protected static final String NEW_BUCKET_NAME = "new-test-bucket";
