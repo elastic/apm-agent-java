@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.awssdk.v1;
 
-import co.elastic.apm.agent.awssdk.common.AbstractAwsClientTest;
+import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -49,7 +49,7 @@ import java.util.function.Consumer;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-public class DynamoDbClientTest extends AbstractAwsClientTest {
+public class DynamoDbClientIT extends AbstractAwsClientIT {
 
     private AmazonDynamoDB dynamoDB;
     private AmazonDynamoDBAsync dynamoDBAsync;
