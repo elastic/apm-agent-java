@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.awssdk.v1;
 
-import co.elastic.apm.agent.awssdk.common.AbstractAwsClientTest;
+import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
 
-public class S3ClientTest extends AbstractAwsClientTest {
+public class S3ClientIT extends AbstractAwsClientIT {
 
     private AmazonS3 s3;
 
