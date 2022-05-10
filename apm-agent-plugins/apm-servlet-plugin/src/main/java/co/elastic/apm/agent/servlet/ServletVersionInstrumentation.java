@@ -82,10 +82,15 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
             return;
         }
 
+        if (infoFromServletContext == null) {
+            logger.debug("Servlet configuration unavailable, cannot determine Servlet version");
+            return;
+        }
+
         int majorVersion = -1;
         int minorVersion = -1;
         String serverInfo = null;
-        if (infoFromServletContext != null && infoFromServletContext.length > 2) {
+        if (infoFromServletContext.length > 2) {
             if (infoFromServletContext[0] != null) {
                 majorVersion = (int) infoFromServletContext[0];
             }
