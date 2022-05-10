@@ -78,12 +78,7 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
     }
 
     public static void logServletVersion(@Nullable Object[] infoFromServletContext) {
-        if (!logger.isInfoEnabled() && logger.isWarnEnabled()) {
-            return;
-        }
-
-        if (infoFromServletContext == null) {
-            logger.debug("Servlet configuration unavailable, cannot determine Servlet version");
+        if (infoFromServletContext == null || !logger.isWarnEnabled() || !logger.isDebugEnabled()) {
             return;
         }
 
