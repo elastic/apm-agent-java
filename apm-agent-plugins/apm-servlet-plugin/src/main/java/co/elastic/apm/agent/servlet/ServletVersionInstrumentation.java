@@ -28,6 +28,9 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -40,6 +43,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public abstract class ServletVersionInstrumentation extends AbstractServletInstrumentation {
 
     private static final Logger logger = LoggerUtils.logOnce(LoggerFactory.getLogger(ServletVersionInstrumentation.class));
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singleton("servlet-version");
+    }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
