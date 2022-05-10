@@ -38,6 +38,6 @@ class JakartaServerEndpointInstrumentationTest extends BaseServerEndpointInstrum
 
     @Override
     protected String getFrameworkVersion() {
-        return "2.0.0";
+        return "2.1.0";
     }
 }
