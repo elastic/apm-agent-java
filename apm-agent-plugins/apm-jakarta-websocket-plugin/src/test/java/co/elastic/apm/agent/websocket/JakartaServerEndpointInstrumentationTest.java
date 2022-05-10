@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.websocket;
 
+import co.elastic.apm.agent.util.VersionUtils;
 import co.elastic.apm.agent.websocket.endpoint.JakartaServerEndpoint;
 
 class JakartaServerEndpointInstrumentationTest extends BaseServerEndpointInstrumentationTest {
@@ -38,6 +39,6 @@ class JakartaServerEndpointInstrumentationTest extends BaseServerEndpointInstrum
 
     @Override
     protected String getFrameworkVersion() {
-        return "2.1.0";
+        return VersionUtils.getVersion(jakarta.websocket.server.ServerEndpoint.class, "jakarta.websocket", "jakarta.websocket-api");
     }
 }
