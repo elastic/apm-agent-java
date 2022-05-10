@@ -43,6 +43,7 @@ allows for spans representing asynchronous handling of requests for which the co
 * Add ECS-reformatting support for `java.util.logging` - {pull}2591[#2591]
 * Added support for setting the service version on Log4j2's EcsLayout - {pull}2604[#2604]
 * Added support for AWS S3 and DynamoDB - {pull}2606[#2606]
+* Added tests for elasticsearch-java client - {pull}2211[#2211]
 
 [float]
 ===== Bug fixes
@@ -58,10 +59,6 @@ allows for spans representing asynchronous handling of requests for which the co
 
 [[release-notes-1.30.1]]
 ==== 1.30.1 - 2022/04/12
-
-[float]
-===== Features
-* Added tests for elasticsearch-java client - {pull}2211[#2211]
 
 [float]
 ===== Bug fixes
