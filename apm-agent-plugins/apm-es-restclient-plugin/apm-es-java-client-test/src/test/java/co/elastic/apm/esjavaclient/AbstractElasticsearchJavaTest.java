@@ -205,8 +205,22 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         prepareDefaultDocumentAndIndex();
         reporter.reset();
 
-        MsearchRequest multiSearchRequest = new MsearchRequest.Builder()
-            .index(INDEX)
+        MsearchRequest multiSearchRequest = getMultiSearchRequestBuilder().build();
+        MsearchRequest multiSearchRequestWithIndex = getMultiSearchRequestBuilder().index(INDEX).build();
+
+        try {
+            doMultiSearchAndSpanValidate(multiSearchRequest, "Elasticsearch: POST /_msearch");
+
+            reporter.reset();
+
+            doMultiSearchAndSpanValidate(multiSearchRequestWithIndex, String.format("Elasticsearch: POST /%s/_msearch", INDEX));
+        } finally {
+            deleteDocument();
+        }
+    }
+
+    private MsearchRequest.Builder getMultiSearchRequestBuilder() {
+        return new MsearchRequest.Builder()
             .searches(new RequestItem.Builder()
                 .header(new MultisearchHeader.Builder()
                     .index(INDEX)
@@ -220,20 +234,17 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
                             .build())
                         .build())
                     .build())
-                .build())
-            .build();
+                .build());
+    }
 
-        try {
-            doMultiSearch(multiSearchRequest, Map.class);
+    private void doMultiSearchAndSpanValidate(MsearchRequest multiSearchRequest, String expectedSpanName) throws IOException, ExecutionException, InterruptedException {
+        doMultiSearch(multiSearchRequest, Map.class);
 
-            List<Span> spans = reporter.getSpans();
-            assertThat(spans).hasSize(1);
-            Span span = spans.get(0);
-            validateSpanContent(span, String.format("Elasticsearch: POST /%s/_msearch", INDEX), 200, "POST");
-            verifyMultiSearchSpanContent(span);
-        } finally {
-            deleteDocument();
-        }
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        Span span = spans.get(0);
+        validateSpanContent(span, expectedSpanName, 200, "POST");
+        verifyMultiSearchSpanContent(span);
     }
 
     @Test
