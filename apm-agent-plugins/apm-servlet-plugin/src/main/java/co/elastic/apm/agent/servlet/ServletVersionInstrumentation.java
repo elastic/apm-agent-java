@@ -78,7 +78,7 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
     }
 
     public static void logServletVersion(@Nullable Object[] infoFromServletContext) {
-        if (infoFromServletContext == null || !logger.isWarnEnabled() || !logger.isDebugEnabled()) {
+        if (infoFromServletContext == null || !logger.isWarnEnabled() || !logger.isInfoEnabled()) {
             return;
         }
 
@@ -103,4 +103,7 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
         }
     }
 
+    public static boolean isLogEnabled() {
+        return logger.isInfoEnabled() || logger.isWarnEnabled();
+    }
 }
