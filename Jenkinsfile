@@ -15,7 +15,6 @@ pipeline {
     GITHUB_CHECK_ITS_NAME = 'End-To-End Integration Tests'
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/main'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
-    OPBEANS_REPO = 'opbeans-java'
     JAVA_VERSION = "${params.JAVA_VERSION}"
     JOB_GCS_BUCKET_STASH = 'apm-ci-temp'
     JOB_GCS_CREDENTIALS = 'apm-ci-gcs-plugin'
@@ -84,18 +83,18 @@ pipeline {
             env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
             env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
             env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
+
+            if (env.ONLY_DOCS == "true") {
+              // those GH checks are required, and docs build skips them we artificially make them as OK
+              githubCheck(name: "Application Server integration tests", status: 'neutral');
+              githubCheck(name: "Non-Application Server integration tests", status: 'neutral');
+            }
           }
         }
       }
     }
     stage('Builds') {
       options { skipDefaultCheckout() }
-      when {
-        // Tags are not required to be built/tested.
-        not {
-          tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
-        }
-      }
       environment {
         HOME = "${env.WORKSPACE}"
         JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
@@ -114,7 +113,7 @@ pipeline {
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           steps {
-            withGithubNotify(context: 'Build', tab: 'artifacts') {
+            withGithubNotify(context: "${STAGE_NAME}", tab: 'artifacts') {
               deleteDir()
               unstash 'source'
               // prepare m2 repository with the existing dependencies
@@ -163,7 +162,7 @@ pipeline {
                 PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               steps {
-                withGithubNotify(context: 'Unit Tests', tab: 'tests') {
+                withGithubNotify(context: "${STAGE_NAME}", tab: 'tests') {
                   deleteDir()
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   dir("${BASE_DIR}") {
@@ -236,7 +235,7 @@ pipeline {
                 PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               steps {
-                withGithubNotify(context: 'Non-Application Server integration tests', tab: 'tests') {
+                withGithubNotify(context: "${STAGE_NAME}", tab: 'tests') {
                   deleteDir()
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   dir("${BASE_DIR}") {
@@ -269,7 +268,7 @@ pipeline {
                 PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               steps {
-                withGithubNotify(context: 'Application Server integration tests', tab: 'tests') {
+                withGithubNotify(context: "${STAGE_NAME}", tab: 'tests') {
                   deleteDir()
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   dir("${BASE_DIR}") {
@@ -305,7 +304,7 @@ pipeline {
                 }
               }
               steps {
-                withGithubNotify(context: 'Benchmarks', tab: 'artifacts') {
+                withGithubNotify(context: "${STAGE_NAME}", tab: 'artifacts') {
                   deleteDir()
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   dir("${BASE_DIR}"){
@@ -334,7 +333,7 @@ pipeline {
                 PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               steps {
-                withGithubNotify(context: 'Javadoc') {
+                withGithubNotify(context: "${STAGE_NAME}") {
                   deleteDir()
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   dir("${BASE_DIR}"){
@@ -403,7 +402,7 @@ pipeline {
             stages {
               stage('JDK Unit Tests') {
                 steps {
-                  withGithubNotify(context: "Unit Tests ${JDK_VERSION}", tab: 'tests') {
+                  withGithubNotify(context: "${STAGE_NAME} ${JDK_VERSION}", tab: 'tests') {
                     deleteDir()
                     unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                     dir("${BASE_DIR}"){
@@ -426,10 +425,7 @@ pipeline {
     }
     stage('Releases') {
       when {
-        anyOf {
-          branch 'main'
-          tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
-        }
+        branch 'main'
       }
       stages {
         stage('Stable') {
@@ -450,33 +446,6 @@ pipeline {
                 git rev-parse --abbrev-ref HEAD
               """)
               gitPush()
-            }
-          }
-        }
-        stage('AfterRelease') {
-          options { skipDefaultCheckout() }
-          when {
-            tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
-          }
-          stages {
-            stage('Opbeans') {
-              environment {
-                REPO_NAME = "${OPBEANS_REPO}"
-              }
-              steps {
-                deleteDir()
-                dir("${OPBEANS_REPO}"){
-                  git(credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
-                      url: "git@github.com:elastic/${OPBEANS_REPO}.git",
-                      branch: 'main')
-                  // It's required to transform the tag value to the artifact version
-                  sh script: ".ci/bump-version.sh ${env.BRANCH_NAME.replaceAll('^v', '')}", label: 'Bump version'
-                  // The opbeans-java pipeline will trigger a release for the main branch
-                  gitPush()
-                  // The opbeans-java pipeline will trigger a release for the release tag
-                  gitCreateTag(tag: "${env.BRANCH_NAME}")
-                }
-              }
             }
           }
         }

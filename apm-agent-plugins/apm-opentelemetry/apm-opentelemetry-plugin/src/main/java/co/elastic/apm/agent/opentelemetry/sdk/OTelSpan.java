@@ -258,6 +258,11 @@ public class OTelSpan implements Span {
 
     @Override
     public void end(long timestamp, TimeUnit unit) {
+        if (span instanceof Transaction) {
+            onTransactionEnd((Transaction) span);
+        } else if (span instanceof co.elastic.apm.agent.impl.transaction.Span) {
+            onSpanEnd((co.elastic.apm.agent.impl.transaction.Span) span);
+        }
         span.end(unit.toMicros(timestamp));
     }
 

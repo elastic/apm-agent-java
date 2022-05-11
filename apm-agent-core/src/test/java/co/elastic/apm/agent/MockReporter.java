@@ -384,7 +384,7 @@ public class MockReporter implements Reporter {
     }
 
     public void assertNoTransaction(long timeoutMs) {
-        awaitUntilAsserted(timeoutMs, this::assertNoTransaction);
+        awaitUntilTimeout(timeoutMs, this::assertNoTransaction);
     }
 
     public Span getFirstSpan(long timeoutMs) {
@@ -404,9 +404,7 @@ public class MockReporter implements Reporter {
     }
 
     public void assertNoSpan(long timeoutMs) {
-        awaitUntilAsserted(timeoutMs, () -> assertThat(getSpans()).isEmpty());
-
-        assertNoSpan();
+        awaitUntilTimeout(timeoutMs, this::assertNoSpan);
     }
 
     public void awaitTransactionCount(int count) {
@@ -593,21 +591,34 @@ public class MockReporter implements Reporter {
      * This is an issue when testing instrumentations that instrument {@link java.util.concurrent.Executor}.
      *
      * @param timeoutMs the timeout of the condition
-     * @param runnable  a runnable that trows an exception if the condition is not met
+     * @param runnable  a runnable that throws an exception if the condition is not met
      */
     public void awaitUntilAsserted(long timeoutMs, ThrowingRunnable runnable) {
         Throwable thrown = null;
         for (int i = 0; i < timeoutMs; i += 5) {
             try {
                 runnable.run();
-                thrown = null;
+                return;
             } catch (Throwable e) {
                 thrown = e;
                 LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));
             }
         }
-        if (thrown != null) {
-            throw new RuntimeException(String.format("Condition not fulfilled within %d ms", timeoutMs), thrown);
+        throw new RuntimeException(String.format("Condition not fulfilled within %d ms", timeoutMs), thrown);
+    }
+
+    /**
+     * @param timeoutMs timeout of the condition
+     * @param runnable  a runnable that throws an exception when the condition is not met
+     */
+    public void awaitUntilTimeout(long timeoutMs, ThrowingRunnable runnable) {
+        for (int i = 0; i < timeoutMs; i += 5) {
+            try {
+                runnable.run();
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));
+            } catch (Throwable e) {
+                throw new RuntimeException(String.format("Condition not fulfilled within %d ms (timeout at %d ms)", i, timeoutMs), e);
+            }
         }
     }
 

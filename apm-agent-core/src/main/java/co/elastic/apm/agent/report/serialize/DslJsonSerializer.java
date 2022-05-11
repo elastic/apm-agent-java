@@ -700,7 +700,9 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_START);
         writeField("name", span.getNameForSerialization());
         writeTimestamp(span.getTimestamp());
-
+        if(!span.isSync()){
+            writeField("sync", span.isSync());
+        }
         writeField("outcome", span.getOutcome().toString());
         serializeTraceContext(traceContext, true);
         writeField("duration", span.getDurationMs());
@@ -1212,6 +1214,9 @@ public class DslJsonSerializer implements PayloadSerializer {
         for (Map.Entry<DroppedSpanStats.StatsKey, DroppedSpanStats.Stats> stats : droppedSpanStats) {
             if (i++ >= 128) {
                 break;
+            }
+            if (i > 1) {
+                jw.writeByte(COMMA);
             }
             jw.writeByte(OBJECT_START);
             writeField("destination_service_resource", stats.getKey().getDestinationServiceResource());

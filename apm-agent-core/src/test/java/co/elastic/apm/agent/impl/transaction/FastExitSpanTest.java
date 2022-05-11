@@ -78,7 +78,7 @@ class FastExitSpanTest {
     }
 
     @Test
-    void testCompositeExitSpanBelowDuration() {
+    void testCompositeExitSpanBelowDurationAndMoreThanOneDroppedSpanStatsEntry() {
         Transaction transaction = startTransaction();
         try {
             Span span = startExitSpan(transaction, 0L);
@@ -86,6 +86,11 @@ class FastExitSpanTest {
             startExitSpan(transaction, 10_000L).end(20_000L);
             startExitSpan(transaction, 20_000L).end(30_000L);
             assertThat(span.isComposite()).isTrue();
+            //second span destination to ensure more than one dropped span stats entry
+            Span span2 = startExitSpan(transaction, 30_000L, "mysql");
+            span2.end(40_000L);
+            startExitSpan(transaction, 40_000L, "mysql").end(50_000L);
+            assertThat(span2.isComposite()).isTrue();
         } finally {
             transaction.end();
         }
@@ -94,7 +99,7 @@ class FastExitSpanTest {
 
         SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
         assertThat(spanCount.getReported().get()).isEqualTo(0);
-        assertThat(spanCount.getDropped().get()).isEqualTo(3);
+        assertThat(spanCount.getDropped().get()).isEqualTo(5);
 
         DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
 
@@ -153,7 +158,10 @@ class FastExitSpanTest {
     }
 
     protected Span startExitSpan(AbstractSpan<?> parent, long startTimestamp) {
-        Span span = parent.createExitSpan().withName("Some Name").withType("db").withSubtype("postgresql");
+    return startExitSpan(parent, startTimestamp, "postgresql");
+    }
+    protected Span startExitSpan(AbstractSpan<?> parent, long startTimestamp, String subtype) {
+        Span span = parent.createExitSpan().withName("Some Name").withType("db").withSubtype(subtype);
         span.getContext().getDestination().withAddress("127.0.0.1").withPort(5432);
         span.setStartTimestamp(startTimestamp);
 
