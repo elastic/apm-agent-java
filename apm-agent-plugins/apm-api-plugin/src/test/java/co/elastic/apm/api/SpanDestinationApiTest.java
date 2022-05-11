@@ -117,7 +117,12 @@ class SpanDestinationApiTest extends AbstractApiTest {
     @Test
     void testSetDestinationServiceWithNonEmptyValue() {
         ElasticApm.currentSpan().setDestinationService("service-resource");
-        assertThat(getSpan().getContext().getServiceTarget()).isSetByUser().hasDestinationResource("service-resource");
+
+        assertThat(getSpan().getContext().getServiceTarget())
+            .isSetByUser()
+            .hasDestinationResource("service-resource")
+            .hasType("internal-resource") // should reuse the already set value
+            .hasName("service-resource");
     }
 
     @Test
@@ -147,6 +152,26 @@ class SpanDestinationApiTest extends AbstractApiTest {
         reporter.disableCheckDestinationService();
         ElasticApm.currentSpan().setDestinationService("");
         assertThat(getSpan().getContext().getServiceTarget()).isSetByUser().isEmpty();
+    }
+
+    @Test
+    void testSetServiceTargetTypeAndName() {
+        ElasticApm.currentSpan().setServiceTarget("my-type", "my-name");
+        assertThat(getSpan().getContext().getServiceTarget())
+            .isSetByUser()
+            .hasType("my-type")
+            .hasName("my-name")
+            .hasDestinationResource("my-type/my-name"); // default format unless using destination resource
+    }
+
+    @Test
+    void testSetServiceTargetTypeNameAndServiceResource() {
+        ElasticApm.currentSpan().setServiceTarget("my-type", "my-name").setDestinationService("my-resource");
+        assertThat(getSpan().getContext().getServiceTarget())
+            .isSetByUser()
+            .hasType("my-type")
+            .hasName("my-resource") // in this case the original name is overridden as we store resource in name
+            .hasDestinationResource("my-resource");
     }
 
     private Span getSpan() {

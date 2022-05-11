@@ -466,4 +466,15 @@ public interface Span {
      */
     @Nonnull
     Span setDestinationService(@Nullable String resource);
+
+    /**
+     * Provides a way to manually set the {@code service.target.type} and {@code service.target.name} fields that are used
+     * for service maps and the identification of downstream services. Those fields are ignored for apm-server < 8.3.
+     *
+     * @param type service target type, usually same value as {@code span.subtype}
+     * @param name service target name: value depends on backend type, for databases it's usually the database name
+     * @return this span
+     */
+    @Nonnull
+    Span setServiceTarget(@Nullable String type, @Nullable String name);
 }

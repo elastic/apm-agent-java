@@ -391,7 +391,7 @@ abstract class AbstractCompressionStrategyTest {
             Span span = startExitSpan(t);
 
             // set alternative resource from user API
-            assertThat(span.getContext().getServiceTarget().withUserDestinationResource("another_resource"))
+            assertThat(span.getContext().getServiceTarget().withUserType(null).withUserName("another_resource").withNameOnlyDestinationResource())
                 .hasName("another_resource")
                 .hasDestinationResource("another_resource");
 

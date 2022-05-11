@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
+import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -463,7 +464,37 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             public static void setDestinationService(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
                                                      @Advice.Argument(0) @Nullable String resource) {
                 if (context instanceof Span) {
-                    ((Span) context).getContext().getServiceTarget().withUserDestinationResource(resource);
+                    ServiceTarget serviceTarget = ((Span) context).getContext().getServiceTarget();
+                    if (resource == null || resource.isEmpty()) {
+                        serviceTarget.withUserType(null).withUserName(null);
+                    } else {
+                        String currentType = serviceTarget.getType();
+                        serviceTarget
+                            .withUserType(currentType != null ? currentType : "unknown")
+                            .withUserName(resource)
+                            .withNameOnlyDestinationResource();
+                    }
+
+                }
+            }
+        }
+    }
+
+    public static class SetServiceTargetInstrumentation extends AbstractSpanInstrumentation {
+
+        public SetServiceTargetInstrumentation() {
+            super(named("doSetServiceTarget"));
+        }
+
+        public static class AdviceClass {
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void setServiceTarget(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                                @Advice.Argument(0) @Nullable String type,
+                                                @Advice.Argument(1) @Nullable String name) {
+                if (context instanceof Span) {
+                    ((Span) context).getContext().getServiceTarget()
+                        .withUserType(type)
+                        .withUserName(name);
                 }
             }
         }

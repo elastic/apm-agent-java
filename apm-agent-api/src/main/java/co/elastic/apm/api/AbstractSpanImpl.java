@@ -178,4 +178,8 @@ abstract class AbstractSpanImpl implements Span {
     protected void doSetDestinationService(@Nullable String resource) {
         // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.SetDestinationServiceInstrumentation
     }
+
+    protected void doSetServiceTarget(@Nullable String type, @Nullable String name) {
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.SetServiceTargetInstrumentation
+    }
 }

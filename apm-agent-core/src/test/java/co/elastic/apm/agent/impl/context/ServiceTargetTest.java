@@ -21,7 +21,6 @@ package co.elastic.apm.agent.impl.context;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -36,6 +35,7 @@ class ServiceTargetTest {
         assertThat(serviceTarget).isEmpty();
         assertThat(serviceTarget).isNotSetByUser();
         assertThat(serviceTarget).hasNoName();
+        assertThat(serviceTarget.getType()).isNull();
     }
 
     @Test
@@ -54,7 +54,6 @@ class ServiceTargetTest {
 
         serviceTarget.resetState();
         assertThat(serviceTarget).isEmpty();
-        assertThat(serviceTarget).isNotSetByUser();
     }
 
     @Test
@@ -84,27 +83,20 @@ class ServiceTargetTest {
     @Test
     void userValuePriority() {
 
-        Function<ServiceTarget, ServiceTarget> userSetOperation = st -> st.withUserDestinationResource("user-provided");
-        Function<ServiceTarget, ServiceTarget> typeNameOperation = st -> st.withType("type").withName("name");
-
-        testUserResourcePriority(userSetOperation, typeNameOperation);
-        testUserResourcePriority(typeNameOperation, userSetOperation);
-    }
-
-    private void testUserResourcePriority(Function<ServiceTarget, ServiceTarget>... operations) {
         ServiceTarget serviceTarget = new ServiceTarget();
-        Arrays.asList(operations).forEach(o -> o.apply(serviceTarget));
+        serviceTarget.withType("type").withName("name");
+        assertThat(serviceTarget).hasType("type").hasName("name").isNotSetByUser();
 
-        assertThat(serviceTarget).hasDestinationResource("user-provided");
-        assertThat(serviceTarget.isSetByUser()).isTrue();
+        assertThat(serviceTarget.withUserType("user-type")).hasType("user-type").isSetByUser();
+        assertThat(serviceTarget.withUserName("user-name")).hasName("user-name").isSetByUser();
     }
 
     @Test
     void emptyOrNullUserDestinationResourceIsIgnored() {
         // using null or empty value should allow user to empty service target
-        Stream.of("",null).forEach(value -> {
+        Stream.of("", null).forEach(value -> {
             ServiceTarget serviceTarget = new ServiceTarget();
-            assertThat(serviceTarget.withUserDestinationResource(value))
+            assertThat(serviceTarget.withUserName(value))
                 .isEmpty()
                 .isSetByUser();
         });
@@ -114,12 +106,10 @@ class ServiceTargetTest {
     @Test
     void userResourceWithoutExplicitType() {
         ServiceTarget serviceTarget = new ServiceTarget();
-        serviceTarget.withUserDestinationResource("user-resource");
+        serviceTarget.withName("user-resource").withNameOnlyDestinationResource();
         assertThat(serviceTarget)
-            .isSetByUser()
             .hasName("user-resource")
             .hasDestinationResource("user-resource");
-
     }
 
     @Test
@@ -165,7 +155,7 @@ class ServiceTargetTest {
             ServiceTarget::getType,
             st -> st.getName().toString());
 
-        testCopy(st -> st.withType("type").withName("name").withUserDestinationResource("user-resource"),
+        testCopy(st -> st.withUserType("user-type").withUserName("user-resource").withNameOnlyDestinationResource(),
             ServiceTarget::getType,
             st -> st.getName().toString(),
             st -> st.getDestinationResource().toString(),
@@ -201,8 +191,9 @@ class ServiceTargetTest {
 
     @Test
     void testHostPort() {
-        ServiceTarget st = new ServiceTarget();
-        st.withHostPortName("host", 99);
+        ServiceTarget st = new ServiceTarget()
+            .withHostPortName("host", 99)
+            .withNameOnlyDestinationResource();
 
         assertThat(st)
             .hasName("host:99")
@@ -211,6 +202,15 @@ class ServiceTargetTest {
 
         assertThat(st.getType())
             .isNull();
+
+    }
+
+    @Test
+    void emptyOrNullUserType() {
+        Stream.of("", null).forEach(type -> {
+            ServiceTarget st = new ServiceTarget().withUserType(type).withName("name");
+            assertThat(st).hasDestinationResource("name");
+        });
 
     }
 

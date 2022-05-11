@@ -125,4 +125,11 @@ class SpanImpl extends AbstractSpanImpl {
         doSetDestinationService(resource);
         return this;
     }
+
+    @Nonnull
+    @Override
+    public Span setServiceTarget(@Nullable String type, @Nullable String name) {
+        doSetServiceTarget(type, name);
+        return this;
+    }
 }
