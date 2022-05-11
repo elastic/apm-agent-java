@@ -62,10 +62,7 @@ public abstract class AbstractDynamoDBInstrumentationHelper<R, C> {
             }
         }
 
-        span.getContext()
-            .getDestination()
-            .getService()
-            .withResource(DYNAMO_DB_TYPE);
+        span.getContext().getServiceTarget().withType(DYNAMO_DB_TYPE);
 
         span.getContext().getDestination()
             .withAddress(httpURI.getHost())

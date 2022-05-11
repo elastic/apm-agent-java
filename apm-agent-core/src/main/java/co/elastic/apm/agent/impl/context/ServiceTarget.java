@@ -126,20 +126,6 @@ public class ServiceTarget implements Recyclable {
         return this;
     }
 
-    /**
-     * Sets the user-provided service name, overwriting any prior existing resource value and removing type from resource value
-     *
-     * @param name user-provided destination resource
-     * @return this
-     */
-    @Deprecated
-    public ServiceTarget withUserDestinationResource(@Nullable CharSequence name) {
-        withUserName(name);
-        onlyNameInResource = true;
-        invalidateCache();
-        return this;
-    }
-
     @Override
     public void resetState() {
         type = null;
