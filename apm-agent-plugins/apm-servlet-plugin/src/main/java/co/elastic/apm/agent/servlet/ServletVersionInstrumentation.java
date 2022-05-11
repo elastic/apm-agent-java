@@ -28,8 +28,8 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -46,7 +46,7 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("servlet-version");
+        return Arrays.asList(Constants.SERVLET_API, "servlet-version");
     }
 
     @Override
