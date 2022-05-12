@@ -336,7 +336,7 @@ public class ConnectionMetaData {
 
         DB2("db2") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
+            ConnectionMetaData parse(String connectionUrl, @Nullable String instance, String user) {
                 return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 50000, instance, user);
             }
         },
@@ -344,21 +344,21 @@ public class ConnectionMetaData {
         H2("h2") {
             // Actually behaves like the default, but better have it explicit
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
+            ConnectionMetaData parse(String connectionUrl, @Nullable String instance, String user) {
                 return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, -1, instance, user);
             }
         },
 
         DERBY("derby") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
+            ConnectionMetaData parse(String connectionUrl, @Nullable String instance, String user) {
                 return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 1527, instance, user);
             }
         },
 
         HSQLDB("hsqldb") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
+            ConnectionMetaData parse(String connectionUrl, @Nullable String instance, String user) {
                 return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 9001, instance, user);
             }
         },
@@ -371,7 +371,7 @@ public class ConnectionMetaData {
             ));
 
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
+            ConnectionMetaData parse(String connectionUrl, @Nullable String instance, String user) {
                 // just like MySQL
                 String host = "localhost";
                 int port = 3306;
@@ -398,7 +398,7 @@ public class ConnectionMetaData {
 
         SQLSERVER("sqlserver") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
+            ConnectionMetaData parse(String connectionUrl, @Nullable String instance, String user) {
                 // just like MySQL
                 String host = "localhost";
                 int port = 1433;
@@ -436,7 +436,7 @@ public class ConnectionMetaData {
 
         UNKNOWN("unknown") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
+            ConnectionMetaData parse(String connectionUrl, @Nullable String instance, String user) {
                 return new ConnectionMetaData(dbVendor, null, -1, instance, user);
             }
         };
@@ -447,7 +447,7 @@ public class ConnectionMetaData {
 
         final String dbVendor;
 
-        abstract ConnectionMetaData parse(String connectionUrl, String instance, String user);
+        abstract ConnectionMetaData parse(String connectionUrl, @Nullable String instance, String user);
 
         static ConnectionMetaData defaultParse(String connectionUrl, String dbVendor, int defaultPort, @Nullable String instance, String user) {
             // Examples:
