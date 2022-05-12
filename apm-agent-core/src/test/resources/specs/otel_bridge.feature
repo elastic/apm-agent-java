@@ -229,7 +229,7 @@ Feature: OpenTelemetry bridge
     Examples:
       | rpc.system | rpc.service | net.peer.ip | net.peer.name | net.peer.port | resource        | target_service_name |
       | grpc       |             |             |               |               | grpc            |                     |
-      | grpc       | myService   |             |               |               | grpc/myService  | myService           |
+      | grpc       | myService   |             |               |               | myService       | myService           |
       | grpc       | myService   |             | rpc-server    |               | rpc-server      | rpc-server          |
       | grpc       | myService   | 127.0.0.1   | rpc-server    |               | rpc-server      | rpc-server          |
       | grpc       |             | 127.0.0.1   | rpc-server    | 7777          | rpc-server:7777 | rpc-server:7777     |
