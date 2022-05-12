@@ -809,6 +809,13 @@ Using `null` or empty address or non-positive port will result in the omission o
 span context.
 
 [float]
+[[api-span-set-service-target]]
+==== `Span setServiceTarget(String address, int port)` added[1.32.0]
+Provides a way to manually set the span `service.target.type` and `service.target.name` fields.
+Values set through this method will take precedence over the automatically discovered ones.
+Using `null` or empty string values will result in the omission of those fields from the span context.
+
+[float]
 [[api-span-end]]
 ==== `void end()`
 Ends the span and schedules it to be reported to the APM Server.
