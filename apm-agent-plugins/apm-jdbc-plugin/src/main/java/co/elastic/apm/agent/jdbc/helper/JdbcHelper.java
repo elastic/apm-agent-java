@@ -168,7 +168,15 @@ public class JdbcHelper {
 
         try {
             DatabaseMetaData metaData = connection.getMetaData();
-            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), safeGetCatalog(connection), metaData.getUserName());
+            connectionMetaData = ConnectionMetaData.parse(metaData.getURL())
+                .withConnectionInstance(safeGetCatalog(connection))
+                .withConnectionUser(metaData.getUserName())
+                .build();
+
+            if(logger.isDebugEnabled()){
+                logger.debug("Based on the connection URL {}, parsed metadata is: {}", metaData.getURL(), connectionMetaData);
+            }
+
             if (supported == null) {
                 markSupported(JdbcFeature.METADATA, type);
             }
