@@ -32,10 +32,10 @@ custom `service.name` field setting and either allow the agent to automatically 
 
 [float]
 ===== Refactorings
-* Vert.x 3.x instrumentation was refactored to remove constructor instrumentation as well as wrapping of response handler. In addition,
-Vert.x 3.x transactions are now ended when the request end event occurs, instead of the response end event. In HTTP 2 request handling,
-the transaction is still kept alive after request (and transaction) end, until response end, when it is then allowed to recycle. This
-allows for spans representing asynchronous handling of requests for which the corresponding transaction has ended - {pull}2564[#2564]
+* Vert.x 3.x instrumentation was refactored to remove constructor instrumentation as well as wrapping of response handler. In addition, in
+HTTP 2 request handling, transactions are ended when the request end event occurs and are kept alive until response end, when they are allowed
+to recycle. This allows for spans representing asynchronous handling of requests for which the corresponding transaction has ended -
+{pull}2564[#2564]
 
 [float]
 ===== Features
