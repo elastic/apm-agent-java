@@ -548,6 +548,12 @@ entries for `trace.id`, `transaction.id` and `error.id`.
 
 JBoss LogManager - 1.30.0
 
+|JUL - `java.util.logging`
+|All supported Java versions
+|When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+ECS-compatible format
+|1.31.0
+
 |===
 
 [float]
