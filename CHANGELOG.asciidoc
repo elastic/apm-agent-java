@@ -54,6 +54,7 @@ to recycle. This allows for spans representing asynchronous handling of requests
 * Fix missing transactions when using Vert.x 3.x with HTTP 1 - {pull}2564[#2564]
 * Fix Vert.x `GET null` transactions to be named `GET unknown route`, according to spec - {pull}2564[#2564]
 * Fix OpenTelemetry bridge span end with explicit timestamp - {pull}2615[#2615]
+* Fix improper naming for `scheduled` transactions created by `java.util.TimerTask` instrumentation - {pull}2620[#2620]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
