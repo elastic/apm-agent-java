@@ -246,9 +246,10 @@ public class ConnectionMetaData {
         MYSQL("mysql") {
             @Override
             Builder parse(String vendorUrl, Builder builder) {
-                return builder.withHostLocalhost()
-                    .withPort(3306)
-                    .withHostPort(parseMySqlFlavor(vendorUrl));
+                builder.withHostLocalhost()
+                    .withPort(3306);
+                parseMySqlFlavor(vendorUrl, builder);
+                return builder;
             }
         },
 
@@ -310,9 +311,11 @@ public class ConnectionMetaData {
                 if (!vendorUrl.contains("//")) {
                     vendorUrl = "//" + vendorUrl;
                 }
-                return builder.withHostLocalhost()
-                    .withPort(3306)
-                    .withHostPort(parseMySqlFlavor(vendorUrl));
+
+                builder.withHostLocalhost()
+                    .withPort(3306);
+                parseMySqlFlavor(vendorUrl, builder);
+                return builder;
             }
 
         },
@@ -419,6 +422,27 @@ public class ConnectionMetaData {
                 vendorUrl = vendorUrl.substring(0, indexOfProperties);
             }
 
+            builder.withHostLocalhost();// default to localhost when not known
+
+
+            int authorityStart = vendorUrl.indexOf("//");
+            if (authorityStart >= 0) {
+                String authority = vendorUrl.substring(authorityStart + 2);
+
+                if (authority.equals("/")) {
+                    // for urls such as: jdbc:hsqldb:///
+                    builder.withLocalAccess();
+                } else {
+                    int authorityEnd = authority.indexOf('/');
+                    if (authorityEnd >= 0) {
+                        authority = authority.substring(0, authorityEnd);
+                    }
+
+                    parseAuthority(authority, builder);
+                }
+            }
+
+
             if(!vendorUrl.startsWith("/")) {
                 // assume only db name
                 builder.withInstance(vendorUrl);
@@ -428,9 +452,7 @@ public class ConnectionMetaData {
                 builder.withInstance(vendorUrl.substring(dbNameStart + 1));
             }
 
-            return builder
-                .withHostLocalhost() // default to localhost when not known
-                .withHostPort(parseHostPort(vendorUrl));
+            return builder;
         }
 
         /**
@@ -507,6 +529,47 @@ public class ConnectionMetaData {
             return new HostPort(host, port);
         }
 
+        /**
+         * Parses the authority part of JDBC URL
+         *
+         * @param authority authority string in the 'host' or 'host:666' format
+         * @param builder   builder
+         */
+        static void parseAuthority(String authority, Builder builder) {
+            if(authority.isEmpty()){
+                return;
+            }
+
+            String host;
+            int port = -1;
+            int indexOfColon = authority.indexOf(':');
+            if (indexOfColon > 0) {
+                // check if IPv6
+                int lastIndexOfColon = authority.lastIndexOf(':');
+                if (indexOfColon != lastIndexOfColon) {
+                    // IPv6 - [::1] or ::1 or [::1]:666
+                    int indexOfIpv6End = authority.indexOf(']');
+                    if (indexOfIpv6End > 0 && authority.length() > indexOfIpv6End + 1) {
+                        indexOfColon = indexOfIpv6End + 1;
+                    } else {
+                        // no port specified
+                        indexOfColon = -1;
+                    }
+                }
+            }
+
+            if (indexOfColon > 0) {
+                host = authority.substring(0, indexOfColon);
+                if (authority.length() > indexOfColon + 1) {
+                    port = toNumericPort(authority, authority.substring(indexOfColon + 1));
+                }
+            } else {
+                host = authority;
+            }
+
+            builder.withHost(host).withPort(port);
+        }
+
         static int toNumericPort(String url, String portString) {
             int port = -1;
             try {
@@ -517,8 +580,14 @@ public class ConnectionMetaData {
             return port;
         }
 
-        @Nullable
-        static HostPort parseMySqlFlavor(String connectionUrl) {
+
+        /**
+         * Parses MySQL connection URL
+         *
+         * @param vendorUrl vendor URL, everything after the 'jdbc:mysql:' prefix.
+         * @param builder   builder
+         */
+        static void parseMySqlFlavor(String vendorUrl, Builder builder) {
             // https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-jdbc-url-format.html
             // General structure:
             // protocol//[hosts][/database][?properties]
@@ -539,10 +608,9 @@ public class ConnectionMetaData {
             // jdbc:mysql://sandy:secret@[address=(host=myhost1)(port=1111)(key1=value1),address=(host=myhost2)(port=2222)(key2=value2)]/db
             // jdbc:mysql://sandy:secret@[myhost1:1111,address=(host=myhost2)(port=2222)(key2=value2)]/db
 
-            HostPort ret = null;
-            connectionUrl = connectionUrl.toLowerCase().trim();
+            vendorUrl = vendorUrl.toLowerCase().trim();
             final Pattern pattern = Pattern.compile("//([^/?]+)");
-            Matcher matcher = pattern.matcher(connectionUrl);
+            Matcher matcher = pattern.matcher(vendorUrl);
             if (matcher.find()) {
                 String hostsPart = matcher.group(1);
 
@@ -580,12 +648,13 @@ public class ConnectionMetaData {
                         int port = -1;
                         Matcher portMatcher = Pattern.compile("\\s*port\\s*=\\s*([^)]+)\\s*").matcher(tmp);
                         if (portMatcher.find()) {
-                            port = toNumericPort(connectionUrl, portMatcher.group(1).trim());
+                            port = toNumericPort(vendorUrl, portMatcher.group(1).trim());
                         }
-                        return new HostPort(host, port);
+                        builder.withHost(host).withPort(port);
+                        return;
                     } else {
-                        logger.warn("Failed to parse address from a connection URL: {}", connectionUrl);
-                        return null;
+                        logger.warn("Failed to parse address from a connection URL: {}", vendorUrl);
+                        builder.withParsingError();
                     }
                 }
 
@@ -602,15 +671,16 @@ public class ConnectionMetaData {
                             if (keyValue[0].trim().equals("host")) {
                                 host = keyValue[1].trim();
                             } else if (keyValue[0].trim().equals("port")) {
-                                port = toNumericPort(connectionUrl, keyValue[1].trim());
+                                port = toNumericPort(vendorUrl, keyValue[1].trim());
                             }
                         }
                     }
                     if (host != null) {
-                        return new HostPort(host, port);
+                        builder.withHost(host).withPort(port);
+                        return;
                     } else {
-                        logger.warn("Failed to parse address from a connection URL: {}", connectionUrl);
-                        return null;
+                        logger.warn("Failed to parse address from a connection URL: {}", vendorUrl);
+                        builder.withParsingError();
                     }
                 }
 
@@ -628,13 +698,13 @@ public class ConnectionMetaData {
                     if (firstHost.length() > indexOfUserDetailsEnd + 1) {
                         firstHost = firstHost.substring(indexOfUserDetailsEnd + 1).trim();
                     } else {
-                        return null;
+                        return;
                     }
                 }
 
-                ret = parseAuthority(firstHost.trim());
+                parseAuthority(firstHost.trim(), builder);
             }
-            return ret;
+
         }
 
         static class HostPort {
@@ -786,6 +856,7 @@ public class ConnectionMetaData {
         public Builder withParsingError() {
             host = null;
             port = -1;
+            instance = null;
             return this;
         }
     }
