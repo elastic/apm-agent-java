@@ -53,7 +53,14 @@ public class OTelSpan implements Span {
 
     @Override
     public <T> Span setAttribute(AttributeKey<T> key, @Nonnull T value) {
-        span.getOtelAttributes().put(key.getKey(), value);
+        boolean behavioralAttribute = false;
+        if (key.getKey().equals(BehavioralAttributes.NON_DISCARDABLE)) {
+            span.setNonDiscardable();
+            behavioralAttribute = true;
+        }
+        if (!behavioralAttribute) {
+            span.getOtelAttributes().put(key.getKey(), value);
+        }
         return this;
     }
 
