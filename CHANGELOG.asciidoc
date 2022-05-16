@@ -32,10 +32,11 @@ custom `service.name` field setting and either allow the agent to automatically 
 
 [float]
 ===== Refactorings
-* Vert.x 3.x instrumentation was refactored to remove constructor instrumentation as well as wrapping of response handler. In addition,
-Vert.x 3.x transactions are now ended when the request end event occurs, instead of the response end event. In HTTP 2 request handling,
-the transaction is still kept alive after request (and transaction) end, until response end, when it is then allowed to recycle. This
-allows for spans representing asynchronous handling of requests for which the corresponding transaction has ended - {pull}2564[#2564]
+* Vert.x 3.x instrumentation was refactored to remove constructor instrumentation as well as wrapping of response handler. In addition, in
+HTTP 2 request handling, transactions are ended when the request end event occurs and are kept alive until response end, when they are allowed
+to recycle. This allows for spans representing asynchronous handling of requests for which the corresponding transaction has ended -
+{pull}2564[#2564]
+* Jedis clients instrumentation was changed
 
 [float]
 ===== Features
@@ -43,6 +44,7 @@ allows for spans representing asynchronous handling of requests for which the co
 * Add ECS-reformatting support for `java.util.logging` - {pull}2591[#2591]
 * Added support for setting the service version on Log4j2's EcsLayout - {pull}2604[#2604]
 * Added support for AWS S3 and DynamoDB - {pull}2606[#2606]
+* Added support for Jedis 4.x clients
 
 [float]
 ===== Bug fixes
@@ -52,6 +54,7 @@ allows for spans representing asynchronous handling of requests for which the co
 * Fix missing transactions when using Vert.x 3.x with HTTP 1 - {pull}2564[#2564]
 * Fix Vert.x `GET null` transactions to be named `GET unknown route`, according to spec - {pull}2564[#2564]
 * Fix OpenTelemetry bridge span end with explicit timestamp - {pull}2615[#2615]
+* Fix improper naming for `scheduled` transactions created by `java.util.TimerTask` instrumentation - {pull}2620[#2620]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

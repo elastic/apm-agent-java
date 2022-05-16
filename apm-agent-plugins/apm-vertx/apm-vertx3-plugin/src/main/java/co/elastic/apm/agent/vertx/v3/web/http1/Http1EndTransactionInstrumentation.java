@@ -23,55 +23,56 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.vertx.v3.web.WebHelper;
 import co.elastic.apm.agent.vertx.v3.web.WebInstrumentation;
+import io.vertx.core.http.impl.Http1xServerConnection;
 import io.vertx.core.http.impl.HttpServerRequestImpl;
+import io.vertx.core.http.impl.HttpServerResponseImpl;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
-
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 
 /**
- * Instruments {@link io.vertx.core.http.impl.HttpServerRequestImpl#handleBegin()} to start transaction from.
+ * Instruments {@link Http1xServerConnection#responseComplete()} to finalize the transaction and remove request mapping.
  */
-@SuppressWarnings("JavadocReference")
-public class Http1StartTransactionInstrumentation extends WebInstrumentation {
+public class Http1EndTransactionInstrumentation extends WebInstrumentation {
+
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("io.vertx.core.http.impl.HttpServerRequestImpl");
+        return named("io.vertx.core.http.impl.Http1xServerConnection");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("handleBegin").and(takesNoArguments());
+        return named("responseComplete").and(takesNoArguments());
     }
 
-    public static class AdviceClass {
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.vertx.v3.web.http1.Http1EndTransactionInstrumentation$ResponseCompleteAdvice";
+    }
 
-        private static final Logger log = LoggerFactory.getLogger(AdviceClass.class);
+    public static class ResponseCompleteAdvice {
+
+        private static final Logger log = LoggerFactory.getLogger(ResponseCompleteAdvice.class);
 
         private static final WebHelper helper = WebHelper.getInstance();
 
-        @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object enter(@Advice.This HttpServerRequestImpl request) {
-            Transaction transaction = helper.startOrGetTransaction(request);
+        public static void exit(@Advice.FieldValue("responseInProgress") HttpServerRequestImpl responseInProgress) {
+            Transaction transaction = helper.removeTransactionMapping(responseInProgress);
             if (transaction != null) {
-                transaction.activate();
-            }
-            log.debug("VERTX-DEBUG: started Vert.x 3.x HTTP 1 transaction: {}", transaction);
-            return transaction;
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
-        public static void exit(@Advice.Enter Object transactionObj,
-                                @Advice.Thrown @Nullable Throwable thrown) {
-            if (transactionObj instanceof Transaction) {
-                Transaction transaction = (Transaction) transactionObj;
-                transaction.captureException(thrown).deactivate();
+                HttpServerResponseImpl response = responseInProgress.response();
+                if (response != null) {
+                    helper.finalizeTransaction(response, transaction);
+                    log.debug("VERTX-DEBUG: ended Vert.x HTTP 1 transaction {} with details from this response: {}", transaction, response);
+                } else {
+                    log.debug("VERTX-DEBUG: response is not yet set for the following Vert.x HTTP 1 request: {}", responseInProgress);
+                }
+            } else {
+                log.debug("VERTX-DEBUG: could not find a transaction for the following Vert.x HTTP 1 request: {}", responseInProgress);
             }
         }
     }
