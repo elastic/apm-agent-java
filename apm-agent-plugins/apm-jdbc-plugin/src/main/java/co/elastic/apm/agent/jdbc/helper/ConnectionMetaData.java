@@ -413,9 +413,19 @@ public class ConnectionMetaData {
             // //host/
             // //host:666/database?prop1=val1&prop2=val2
             // //host:666/database;prop1=val1;prop2=val2
-            int indexOfProperties = vendorUrl.indexOf(';');
+
+            int indexOfProperties = Math.max(vendorUrl.indexOf(';'), vendorUrl.indexOf('?'));
             if (indexOfProperties > 0) {
                 vendorUrl = vendorUrl.substring(0, indexOfProperties);
+            }
+
+            if(!vendorUrl.startsWith("/")) {
+                // assume only db name
+                builder.withInstance(vendorUrl);
+            } else {
+                // db name is after the last '/'
+                int dbNameStart = vendorUrl.lastIndexOf('/');
+                builder.withInstance(vendorUrl.substring(dbNameStart + 1));
             }
 
             return builder
@@ -717,7 +727,9 @@ public class ConnectionMetaData {
         }
 
         public Builder withInstance(@Nullable String instance) {
-            this.instance = instance;
+            if (instance != null && instance.length() > 0) {
+                this.instance = instance;
+            }
             return this;
         }
 

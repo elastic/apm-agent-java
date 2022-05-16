@@ -424,7 +424,7 @@ class ConnectionMetaDataTest {
         ConnectionMetaData metaData = ConnectionMetaData.parse("jdbc:unsupported:" + vendorUrl).build();
         assertThat(metaData.getHost()).isEqualTo(expectedHost);
         assertThat(metaData.getPort()).isEqualTo(expectedPort);
-//        assertThat(metaData.getInstance()).isEqualTo(expectedDatabase);
+        assertThat(metaData.getInstance()).isEqualTo(expectedDatabase);
     }
 
 }
