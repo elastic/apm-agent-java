@@ -466,4 +466,17 @@ public interface Span {
      */
     @Nonnull
     Span setDestinationService(@Nullable String resource);
+
+    /**
+     * Sets this span as non-discardable.
+     * In some cases, spans may be discarded, for example if {@code span_min_duration} config option is set and the span does not exceed
+     * the configured threshold. Use this method to make sure the current span is not discarded.
+     *
+     * NOTE: making a span non-discardable implicitly makes the entire stack of active spans non-discardable as well. Child spans can still
+     * be discarded.
+     *
+     * @return this span
+     */
+    @Nonnull
+    Span setNonDiscardable();
 }
