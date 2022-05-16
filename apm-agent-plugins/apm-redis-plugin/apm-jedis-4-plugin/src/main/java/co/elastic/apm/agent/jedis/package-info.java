@@ -16,29 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.websocket;
+@NonnullApi
+package co.elastic.apm.agent.jedis;
 
-import co.elastic.apm.agent.util.VersionUtils;
-import co.elastic.apm.agent.websocket.endpoint.JavaxServerEndpoint;
-
-class JavaxServerEndpointInstrumentationTest extends BaseServerEndpointInstrumentationTest {
-
-    JavaxServerEndpointInstrumentationTest() {
-        super(new JavaxServerEndpoint());
-    }
-
-    @Override
-    protected String getWebSocketServerEndpointClassName() {
-        return JavaxServerEndpoint.class.getSimpleName();
-    }
-
-    @Override
-    protected String getFrameworkName() {
-        return "Java WebSocket";
-    }
-
-    @Override
-    protected String getFrameworkVersion() {
-        return VersionUtils.getVersion(javax.websocket.server.ServerEndpoint.class, "javax.websocket", "javax.websocket-api");
-    }
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

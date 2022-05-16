@@ -42,7 +42,7 @@ public abstract class Http2ServerResponseImplEndInstrumentation extends WebInstr
     }
 
     /**
-     * Instruments {@link Http2ServerResponseImpl#write(ByteBuf, boolean)}to remove transaction mapping for this response.
+     * Instruments {@link Http2ServerResponseImpl#write(ByteBuf, boolean)} to remove transaction mapping for this response.
      */
     public static class WriteInstrumentation extends Http2ServerResponseImplEndInstrumentation {
         @Override
@@ -60,7 +60,7 @@ public abstract class Http2ServerResponseImplEndInstrumentation extends WebInstr
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void writeExit(@Advice.This Http2ServerResponseImpl response,
-                                    @Advice.Argument(1) boolean end) {
+                                         @Advice.Argument(1) boolean end) {
                 if (end) {
                     Transaction transaction = WebHelper.getInstance().removeTransactionMapping(response);
                     log.debug("VERTX-DEBUG: removing transaction {} mapping to response {}", transaction, response);
