@@ -801,6 +801,15 @@ Any value set through this method will take precedence over the automatically in
 Using `null` or empty resource string will result in the omission of this field from the span context.
 
 [float]
+[[api-span-set-non-discardable]]
+==== `Span setNonDiscardable()` added[1.32.0]
+Makes this span non-discardable. In some cases, spans may be discarded, for example if <<config-span-min-duration>> is set and the span
+does not exceed the configured threshold. Use this method to make sure the current span is not discarded.
+
+NOTE: making a span non-discardable implicitly makes the entire stack of active spans non-discardable as well. Child spans can still be
+discarded.
+
+[float]
 [[api-span-set-destination-address]]
 ==== `Span setDestinationAddress(String address, int port)` added[1.25.0]
 Provides a way to manually set the span's `destination.address` and `destination.port` fields.

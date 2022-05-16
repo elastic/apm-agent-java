@@ -468,7 +468,7 @@ public interface Span {
     Span setDestinationService(@Nullable String resource);
 
     /**
-     * Sets this span as non-discardable.
+     * Makes this span non-discardable.
      * In some cases, spans may be discarded, for example if {@code span_min_duration} config option is set and the span does not exceed
      * the configured threshold. Use this method to make sure the current span is not discarded.
      *
