@@ -568,10 +568,13 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
         JsonNode contextService = event.get("context").get("service");
         assertThat(contextService)
-            .withFailMessage("No service context available.")
+            .describedAs("No service context available.")
             .isNotNull();
         if (expectedServiceName != null) {
-            assertThat(contextService.get("name").textValue())
+            assertThat(contextService.get("name"))
+                .describedAs("Event has missing service name %s", event)
+                .isNotNull();
+            assertThat(contextService.get("name").asText())
                 .describedAs("Event has unexpected service name %s", event)
                 .isEqualTo(expectedServiceName);
         }
