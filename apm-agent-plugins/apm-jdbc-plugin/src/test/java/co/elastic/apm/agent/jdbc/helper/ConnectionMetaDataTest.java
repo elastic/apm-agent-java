@@ -23,6 +23,8 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import javax.annotation.Nullable;
 
@@ -355,7 +357,7 @@ class ConnectionMetaDataTest {
     void builderDefauts() {
         ConnectionMetaData metaData = ConnectionMetaData.parse("").build();
         assertThat(metaData.getDbVendor()).isEqualTo("unknown");
-        assertThat(metaData.getHost()).isNull();
+        assertThat(metaData.getHost()).isEqualTo("localhost");
         assertThat(metaData.getPort()).isLessThan(0);
         assertThat(metaData.getUser()).isNull();
     }
@@ -369,4 +371,60 @@ class ConnectionMetaDataTest {
         assertThat(metaData.getHost()).isEqualTo("localhost");
         assertThat(metaData.getPort()).isLessThan(0);
     }
+
+    @Test
+    void builderBaseUsage() {
+        ConnectionMetaData metaData = ConnectionMetaData.parse("")
+            .withVendor("vendor")
+            .withUser("user")
+            .withConnectionUser("connection-user") // ignored as already set
+            .withHost("host")
+            .withInstance("instance")
+            .withConnectionInstance("connection-instance") // ignored as already set
+            .withPort(42)
+            .build();
+
+        assertThat(metaData.getDbVendor()).isEqualTo("vendor");
+        assertThat(metaData.getUser()).isEqualTo("user");
+        assertThat(metaData.getHost()).isEqualTo("host");
+        assertThat(metaData.getInstance()).isEqualTo("instance");
+        assertThat(metaData.getPort()).isEqualTo(42);
+    }
+
+    @Test
+    void builderConnectionFallback() {
+        ConnectionMetaData metaData = ConnectionMetaData.parse("")
+            .withVendor("vendor")
+            .withConnectionUser("connection-user") // ignored as already set
+            .withHost("host")
+            .withConnectionInstance("connection-instance") // ignored as already set
+            .withPort(42)
+            .build();
+
+        assertThat(metaData.getDbVendor()).isEqualTo("vendor");
+        assertThat(metaData.getUser()).isEqualTo("connection-user");
+        assertThat(metaData.getHost()).isEqualTo("host");
+        assertThat(metaData.getInstance()).isEqualTo("connection-instance");
+        assertThat(metaData.getPort()).isEqualTo(42);
+    }
+
+    @ParameterizedTest
+    @CsvSource(nullValues = {"null"}, delimiter = '|', value = {
+        "database|localhost|-1|database",
+        "//|localhost|-1|null",
+        "///|localhost|-1|null",
+        "//host/|host|-1|null",
+        "//host/database|host|-1|database",
+        "//host:666/database|host|666|database",
+        "//host:666/database|host|666|database",
+        "//host:666/database?prop1=val1&prop2=val2=val|host|666|database",
+        "//host:666/database;prop1=val1;prop2=val2|host|666|database"
+    })
+    void defaultParse(String vendorUrl, String expectedHost, int expectedPort, String expectedDatabase) {
+        ConnectionMetaData metaData = ConnectionMetaData.parse("jdbc:unsupported:" + vendorUrl).build();
+        assertThat(metaData.getHost()).isEqualTo(expectedHost);
+        assertThat(metaData.getPort()).isEqualTo(expectedPort);
+//        assertThat(metaData.getInstance()).isEqualTo(expectedDatabase);
+    }
+
 }
