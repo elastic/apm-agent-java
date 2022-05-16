@@ -206,11 +206,13 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
         assertThat(destination.getAddress().toString()).isIn("localhost", "127.0.0.1");
         assertThat(destination.getPort()).isEqualTo(container.getMappedPort(PORT));
 
-        String dbInstance = span.getContext().getDb().getInstance();
+        assertThat(span.getContext().getDb().getInstance())
+            .isEqualTo("testdb");
 
         assertThat(span.getContext().getServiceTarget())
             .hasType("mongodb")
-            .hasName(dbInstance);
+            .hasName("testdb");
+
     }
 
     private static String getSpanName(String operation) {

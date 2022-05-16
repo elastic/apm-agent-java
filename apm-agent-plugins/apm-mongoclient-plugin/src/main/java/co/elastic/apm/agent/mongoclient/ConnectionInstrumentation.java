@@ -87,6 +87,9 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
                 .withType("mongodb")
                 .withName(namespace.getDatabaseName());
 
+            span.getContext().getDb()
+                .withInstance(namespace.getDatabaseName());
+
             ServerAddress serverAddress = thiz.getDescription().getServerAddress();
             span.getContext().getDestination()
                 .withAddress(serverAddress.getHost())
