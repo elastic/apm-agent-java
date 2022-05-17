@@ -37,7 +37,9 @@ public abstract class JakartaServletVersionInstrumentation {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
             public static void onEnter(@Advice.Argument(0) @Nullable ServletConfig servletConfig) {
-                logServletVersion(JakartaUtil.getInfoFromServletContext(servletConfig));
+                if (isLogEnabled()) {
+                    logServletVersion(JakartaUtil.getInfoFromServletContext(servletConfig));
+                }
             }
         }
 
@@ -53,7 +55,9 @@ public abstract class JakartaServletVersionInstrumentation {
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onEnter(@Advice.This Servlet servlet) {
-                logServletVersion(JakartaUtil.getInfoFromServletContext(servlet.getServletConfig()));
+                if (isLogEnabled()) {
+                    logServletVersion(JakartaUtil.getInfoFromServletContext(servlet.getServletConfig()));
+                }
             }
         }
     }
