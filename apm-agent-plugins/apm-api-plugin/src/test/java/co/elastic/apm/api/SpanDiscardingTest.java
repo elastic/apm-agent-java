@@ -36,8 +36,8 @@ public class SpanDiscardingTest extends AbstractApiTest {
         doReturn(TimeDuration.of("100ms")).when(config.getConfig(CoreConfiguration.class)).getSpanMinDuration();
         Transaction transaction = ElasticApm.startTransaction();
         try (Scope activate = transaction.activate()) {
-            parent(true);
-            parent(false);
+            parentSpan(true);
+            parentSpan(false);
         }
         List<co.elastic.apm.agent.impl.transaction.Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(2);
@@ -46,7 +46,7 @@ public class SpanDiscardingTest extends AbstractApiTest {
         transaction.end();
     }
 
-    private void parent(boolean discardChild) {
+    private void parentSpan(boolean discardChild) {
         Span span = ElasticApm.currentSpan().startSpan().setName("parent-" + discardChild);
         try (Scope activate = span.activate()) {
             if (discardChild) {
@@ -61,7 +61,7 @@ public class SpanDiscardingTest extends AbstractApiTest {
     private void discarded() {
         Span span = ElasticApm.currentSpan().startSpan().setName("discarded");
         try (Scope activate = span.activate()) {
-            child();
+            childSpan();
         }
         span.end();
     }
@@ -69,12 +69,12 @@ public class SpanDiscardingTest extends AbstractApiTest {
     private void notDiscarded() {
         Span span = ElasticApm.currentSpan().startSpan().setName("not-discarded").setNonDiscardable();
         try (Scope activate = span.activate()) {
-            child();
+            childSpan();
         }
         span.end();
     }
 
-    private void child() {
+    private void childSpan() {
         ElasticApm.currentSpan().startSpan().setName("child").end();
     }
 }

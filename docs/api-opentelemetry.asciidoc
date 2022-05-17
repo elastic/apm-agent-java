@@ -85,6 +85,37 @@ Span.current().setAttribute("foo", "bar");
 ----
 
 [float]
+[[otel-set-behavioral-attribute]]
+==== Customize span tracing
+
+We utilize the `setAttribute()` API not only to <<otel-set-attribute, add custom metadata>>, but also as a way to customize some
+special tracing features through corresponding custom attributes listed below. Such attributes are not added to span metadata. For example:
+
+[source,java]
+----
+Span.current().setAttribute("elastic.otel.nondiscardable", true);
+----
+
+The `co.elastic.apm.agent.opentelemetry.sdk.BehavioralAttributes` utility class provides supported attributes as keys. Using them is
+safer than using raw strings as attribute keys.
+
+[float]
+[[otel-config-set-non-discardable]]
+===== `elastic.otel.nondiscardable`
+
+Makes a span non-discardable. In some cases, spans may be discarded, for example if <<config-span-min-duration>> is set and the span
+does not exceed the configured threshold. Use this attribute to make sure the current span is not discarded.
+
+NOTE: making a span non-discardable implicitly makes the entire stack of active spans non-discardable as well. Child spans can still be
+discarded.
+
+[options="header"]
+|============
+| Key      | Value type   | Valid values
+| `elastic.otel.nondiscardable` | Any | Any
+|============
+
+[float]
 [[otel-create-transaction-span]]
 ==== Create a child of the active span
 
