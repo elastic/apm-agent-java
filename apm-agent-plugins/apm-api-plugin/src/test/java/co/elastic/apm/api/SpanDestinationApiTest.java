@@ -155,6 +155,20 @@ class SpanDestinationApiTest extends AbstractApiTest {
     }
 
     @Test
+    void testSetServiceResource() {
+
+        // test implementation detail: we have to discard service target state otherwise type is already set
+        ElasticApm.currentSpan().setDestinationService(null);
+
+        ElasticApm.currentSpan().setDestinationService("my-service");
+        assertThat(getSpan().getContext().getServiceTarget())
+            .isSetByUser()
+            .hasType("") // using an empty type for calls to the legacy API.
+            .hasName("my-service")
+            .hasDestinationResource("my-service");
+    }
+
+    @Test
     void testSetServiceTargetTypeAndName() {
         ElasticApm.currentSpan().setServiceTarget("my-type", "my-name");
         assertThat(getSpan().getContext().getServiceTarget())

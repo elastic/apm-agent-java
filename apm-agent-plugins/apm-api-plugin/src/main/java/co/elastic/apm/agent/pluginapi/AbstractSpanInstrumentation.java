@@ -470,7 +470,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
                     } else {
                         String currentType = serviceTarget.getType();
                         serviceTarget
-                            .withUserType(currentType != null ? currentType : "unknown")
+                            .withUserType(currentType != null ? currentType : "")
                             .withUserName(resource)
                             .withNameOnlyDestinationResource();
                     }
