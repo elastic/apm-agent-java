@@ -18,21 +18,36 @@
  */
 package co.elastic.apm.agent.servlet;
 
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletContext;
 
 import javax.annotation.Nullable;
 
+@SuppressWarnings("DuplicatedCode")
 public final class JakartaUtil {
+
+    private static final Logger logger = LoggerFactory.getLogger(JakartaUtil.class);
 
     private JakartaUtil() {}
 
     @Nullable
     public static Object[] getInfoFromServletContext(@Nullable ServletConfig servletConfig) {
         if (servletConfig != null) {
-            ServletContext servletContext = servletConfig.getServletContext();
-            if (null != servletContext) {
-                return new Object[]{servletContext.getMajorVersion(), servletContext.getMinorVersion(), servletContext.getServerInfo()};
+            try {
+                ServletContext servletContext = servletConfig.getServletContext();
+                if (null != servletContext) {
+                    return new Object[]{servletContext.getMajorVersion(), servletContext.getMinorVersion(), servletContext.getServerInfo()};
+                }
+            } catch (Exception e) {
+                String message = String.format("Failed obtain ServletContext from ServletConfig %s. Stack trace printed in debug level",
+                    servletConfig);
+                if (logger.isDebugEnabled()) {
+                    logger.debug(message, e);
+                } else {
+                    logger.info(message);
+                }
             }
         }
         return null;

@@ -6,7 +6,7 @@ endif::[]
 [[opentracing-bridge]]
 === OpenTracing bridge
 
-NOTE: OpenTracing is discontinued in favor of OpenTelemetry. Consider using the <<opentelementry-bridge>> instead. +
+NOTE: OpenTracing is discontinued in favor of OpenTelemetry. Consider using the <<opentelemetry-bridge>> instead. +
 Latest supported OpenTracing version: 0.33 (as of agent and OpenTracing-bridge version 1.9.0)
 
 The Elastic APM OpenTracing bridge allows creating Elastic APM `Transactions` and `Spans`,
