@@ -20,8 +20,20 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.31.1]]
+==== 1.31.1 - YYYY/MM/DD
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.31.0]]
-==== 1.31.0 - YYYY/MM/DD
+==== 1.31.0 - 2022/05/17
 
 [float]
 ===== Potentially breaking changes
@@ -57,9 +69,6 @@ to recycle. This allows for spans representing asynchronous handling of requests
 * Fix improper naming for `scheduled` transactions created by `java.util.TimerTask` instrumentation - {pull}2620[#2620]
 * Properly handle `java.lang.IllegalStateException` related to premature invocation of `ServletConfig#getServletContext()` in
 `Servlet#init()` instrumentations - {pull}2627[#2627]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.30.1]]
 ==== 1.30.1 - 2022/04/12
