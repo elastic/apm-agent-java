@@ -218,13 +218,4 @@ class ServiceTargetTest {
 
     }
 
-    @Test
-    void testEqualsHashCode() {
-        ServiceTarget st1 = new ServiceTarget();
-        ServiceTarget st2 = new ServiceTarget();
-        assertThat(st1)
-            .isEqualTo(st2)
-            .hasSameHashCodeAs(st2);
-    }
-
 }

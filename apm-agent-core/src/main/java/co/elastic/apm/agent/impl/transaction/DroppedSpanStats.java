@@ -59,7 +59,10 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
             // we have to use a copy as argument is mutable will be recycled
             this.serviceType = Objects.requireNonNull(serviceTarget.getType());
             this.serviceName.setLength(0);
-            this.serviceName.append(Objects.requireNonNull(serviceTarget.getName()));
+            CharSequence name = serviceTarget.getName();
+            if(name != null) {
+                this.serviceName.append(name);
+            }
             this.destinationResource.setLength(0);
             this.destinationResource.append(Objects.requireNonNull(serviceTarget.getDestinationResource()));
             this.outcome = outcome;
@@ -99,9 +102,8 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
 
             StatsKey statsKey = (StatsKey) o;
 
-            Objects.requireNonNull(serviceType);
-
-            if (!serviceType.equals(statsKey.serviceType)) return false;
+            if (serviceType != null ? !serviceType.equals(statsKey.serviceType) : statsKey.serviceType != null)
+                return false;
             if (!CharSequenceUtils.equals(serviceName, statsKey.serviceName)) return false;
             if (!CharSequenceUtils.equals(destinationResource, statsKey.destinationResource)) return false;
             return outcome == statsKey.outcome;
@@ -109,13 +111,13 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
 
         @Override
         public int hashCode() {
-            Objects.requireNonNull(serviceType);
-            int result = serviceType.hashCode();
+            int result = serviceType != null ? serviceType.hashCode() : 0;
             result = 31 * result + CharSequenceUtils.hashCode(serviceName);
             result = 31 * result + CharSequenceUtils.hashCode(destinationResource);
             result = 31 * result + outcome.hashCode();
             return result;
         }
+
     }
 
     public static class Stats implements Recyclable {
