@@ -33,6 +33,8 @@ updates:
       - dependency-name: "com.datastax.oss:java-driver-core"
       - dependency-name: "io.micrometer:*"
       - dependency-name: "jakarta.*:*"
+      - dependency-name: "org.elasticsearch.client:*"
+      - dependency-name: "co.elastic.clients:*"
     ignore:
       - dependency-name: "net.bytebuddy:byte-buddy-agent"
         # We deliberately want to keep this older version of Byte Buddy for our runtime attach test
