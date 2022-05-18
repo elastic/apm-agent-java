@@ -74,8 +74,9 @@ public class ServiceTargetAssert extends BaseAssert<ServiceTargetAssert, Service
         return this;
     }
 
-    public void isNotEmpty() {
+    public ServiceTargetAssert isNotEmpty() {
         isNotNull();
         checkTrue("Expected service target not empty", actual.hasContent());
+        return this;
     }
 }
