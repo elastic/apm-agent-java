@@ -106,14 +106,17 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         assertThat(cause).isInstanceOf(ElasticsearchException.class);
 
         ElasticsearchException ee = (ElasticsearchException) cause;
+        assertThat(ee).isNotNull();
         assertThat(ee.status()).isEqualTo(404);
 
         assertThat(cause).isNotNull();
 
-//        no errors captured, because in this case event come to ResponseListener#onSuccess
-//        assertThatErrorsExistWhenDeleteNonExistingIndex();
+        // todo: investigate this - no errors captured, because in this case ResponseListener#onSuccess is invoked instead of onFailure
+        // assertThatErrorsExistWhenDeleteNonExistingIndex();
 
-        assertThat(reporter.getFirstSpan().getOutcome()).isEqualTo(Outcome.FAILURE);
+        Span span = reporter.getFirstSpan();
+        assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
+        validateSpanContent(span, String.format("Elasticsearch: DELETE /%s", SECOND_INDEX), 404, "DELETE");
     }
 
     @Test
@@ -151,21 +154,16 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         UpdateResponse ur = doUpdate(updateRequest, Map.class);
         assertThat(ur).isNotNull();
         assertThat(ur.result().jsonValue()).isEqualTo("updated");
-
         SearchResponse<Map> sr = doSearch(new SearchRequest.Builder().index(INDEX).type(DOC_TYPE).build(), Map.class);
-
         assertThat(((Map) ((Hit) (sr.hits().hits().get(0))).source()).get(FOO)).isEqualTo(BAZ);
 
         spans = reporter.getSpans();
         assertThat(spans).hasSize(2);
-        boolean updateSpanFound = false;
-        for (Span span : spans) {
-            if (span.getNameAsString().contains("_update")) {
-                updateSpanFound = true;
-                break;
-            }
-        }
-        assertThat(updateSpanFound).isTrue();
+        Span updateSpan = spans.get(0);
+        validateSpanContent(updateSpan, String.format("Elasticsearch: POST /%s/%s/%s/_update", INDEX, DOC_TYPE, DOC_ID), 200, "POST");
+        searchSpan = spans.get(1);
+        validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/%s/_search", INDEX, DOC_TYPE), 200, "POST");
+        validateDbContextContent(searchSpan, "{}");
 
         // *** RESET ***
         reporter.reset();
@@ -188,7 +186,6 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
 
         try {
             CountResponse responses = doCount(countRequest);
-
             assertThat(responses.count()).isEqualTo(1L);
             List<Span> spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
@@ -210,9 +207,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
 
         try {
             doMultiSearchAndSpanValidate(multiSearchRequest, "Elasticsearch: POST /_msearch");
-
             reporter.reset();
-
             doMultiSearchAndSpanValidate(multiSearchRequestWithIndex, String.format("Elasticsearch: POST /%s/_msearch", INDEX));
         } finally {
             deleteDocument();
