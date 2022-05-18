@@ -39,4 +39,12 @@ public class CharSequenceUtils {
         }
         return true;
     }
+
+    public static int hashCode(CharSequence cs) {
+        int h = 0;
+        for (int i = 0; i < cs.length(); i++) {
+            h = 31 * h + cs.charAt(i);
+        }
+        return h;
+    }
 }

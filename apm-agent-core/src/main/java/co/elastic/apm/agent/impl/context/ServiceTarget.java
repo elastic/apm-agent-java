@@ -169,5 +169,4 @@ public class ServiceTarget implements Recyclable {
         this.nameSetByUser = other.nameSetByUser;
         this.onlyNameInResource = other.onlyNameInResource;
     }
-
 }

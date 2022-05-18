@@ -23,6 +23,7 @@ import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.util.CharSequenceUtils;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
 import javax.annotation.Nullable;
@@ -38,37 +39,44 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
 
     public static class StatsKey implements Recyclable {
 
-        private String destinationServiceResource;
-
+        // attribute is technically nullable, but not after 'init' method is called
+        @Nullable
         private String serviceType;
 
-        @Nullable
-        private String serviceName;
+        private final StringBuilder serviceName;
+
+        private final StringBuilder destinationResource;
 
         private Outcome outcome;
 
         public StatsKey() {
+            this.serviceName = new StringBuilder();
+            this.destinationResource = new StringBuilder();
+            this.outcome = Outcome.UNKNOWN;
         }
 
         public StatsKey init(ServiceTarget serviceTarget, Outcome outcome) {
+            // we have to use a copy as argument is mutable will be recycled
             this.serviceType = Objects.requireNonNull(serviceTarget.getType());
-            CharSequence name = serviceTarget.getName();
-            this.serviceName = name != null ? name.toString() : null;
+            this.serviceName.setLength(0);
+            this.serviceName.append(Objects.requireNonNull(serviceTarget.getName()));
+            this.destinationResource.setLength(0);
+            this.destinationResource.append(Objects.requireNonNull(serviceTarget.getDestinationResource()));
             this.outcome = outcome;
-            this.destinationServiceResource = Objects.requireNonNull(serviceTarget.getDestinationResource()).toString();
             return this;
         }
 
-        public String getDestinationServiceResource() {
-            return destinationServiceResource;
+        @Nullable
+        public CharSequence getDestinationServiceResource() {
+            return destinationResource;
         }
 
         public String getServiceType() {
-            return serviceType;
+            return Objects.requireNonNull(serviceType);
         }
 
         @Nullable
-        public String getServiceName() {
+        public CharSequence getServiceName() {
             return serviceName;
         }
 
@@ -78,23 +86,35 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
 
         @Override
         public void resetState() {
-            destinationServiceResource = null;
             serviceType = null;
-            serviceName = null;
-            outcome = null;
+            serviceName.setLength(0);
+            destinationResource.setLength(0);
+            outcome = Outcome.UNKNOWN;
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
+
             StatsKey statsKey = (StatsKey) o;
-            return serviceType.equals(statsKey.serviceType) && Objects.equals(serviceName, statsKey.serviceName) && outcome == statsKey.outcome;
+
+            Objects.requireNonNull(serviceType);
+
+            if (!serviceType.equals(statsKey.serviceType)) return false;
+            if (!CharSequenceUtils.equals(serviceName, statsKey.serviceName)) return false;
+            if (!CharSequenceUtils.equals(destinationResource, statsKey.destinationResource)) return false;
+            return outcome == statsKey.outcome;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(serviceType, serviceName, outcome);
+            Objects.requireNonNull(serviceType);
+            int result = serviceType.hashCode();
+            result = 31 * result + CharSequenceUtils.hashCode(serviceName);
+            result = 31 * result + CharSequenceUtils.hashCode(destinationResource);
+            result = 31 * result + outcome.hashCode();
+            return result;
         }
     }
 
@@ -124,7 +144,7 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
         }
     });
 
-    private static ObjectPool<Stats> statsObjectPool = QueueBasedObjectPool.<Stats>ofRecyclable(new MpmcAtomicArrayQueue<Stats>(512), false, new Allocator<Stats>() {
+    private static final ObjectPool<Stats> statsObjectPool = QueueBasedObjectPool.<Stats>ofRecyclable(new MpmcAtomicArrayQueue<Stats>(512), false, new Allocator<Stats>() {
         @Override
         public Stats createInstance() {
             return new Stats();
@@ -145,9 +165,6 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
         }
 
         Stats stats = getOrCreateStats(serviceTarget, span.getOutcome());
-        if (stats == null) {
-            return;
-        }
 
         if (span.isComposite()) {
             stats.count.addAndGet(span.getComposite().getCount());
