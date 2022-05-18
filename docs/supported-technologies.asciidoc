@@ -234,10 +234,10 @@ Other Servlet 3+ compliant servers will most likely work as well.
  Please update to db2jcc4.
 |1.0.0
 
-|Elasticsearch
+|Elasticsearch Java REST and API clients
 |5.0.2+
 |The agent automatically creates Elasticsearch spans for queries done through the official REST client.
-|1.0.0, async queries since 1.5.0
+|1.0.0, async since 1.5.0, API Client since 1.32.0
 
 |Hibernate Search
 |5.x (on by default), 6.x (off by default)
