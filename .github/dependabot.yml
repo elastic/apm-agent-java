@@ -33,6 +33,7 @@ updates:
       - dependency-name: "com.datastax.oss:java-driver-core"
       - dependency-name: "io.micrometer:*"
       - dependency-name: "jakarta.*:*"
+      - dependency-name: "redis.clients:*"
       - dependency-name: "org.elasticsearch.client:*"
       - dependency-name: "co.elastic.clients:*"
     ignore:

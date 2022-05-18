@@ -20,8 +20,21 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.31.1]]
+==== 1.31.1 - YYYY/MM/DD
+
+[float]
+===== Features
+* Struts action invocations via an action chain result start a new span - {pull}2513[#2513]
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.31.0]]
-==== 1.31.0 - YYYY/MM/DD
+==== 1.31.0 - 2022/05/17
 
 [float]
 ===== Potentially breaking changes
@@ -32,10 +45,11 @@ custom `service.name` field setting and either allow the agent to automatically 
 
 [float]
 ===== Refactorings
-* Vert.x 3.x instrumentation was refactored to remove constructor instrumentation as well as wrapping of response handler. In addition,
-Vert.x 3.x transactions are now ended when the request end event occurs, instead of the response end event. In HTTP 2 request handling,
-the transaction is still kept alive after request (and transaction) end, until response end, when it is then allowed to recycle. This
-allows for spans representing asynchronous handling of requests for which the corresponding transaction has ended - {pull}2564[#2564]
+* Vert.x 3.x instrumentation was refactored to remove constructor instrumentation as well as wrapping of response handler. In addition, in
+HTTP 2 request handling, transactions are ended when the request end event occurs and are kept alive until response end, when they are allowed
+to recycle. This allows for spans representing asynchronous handling of requests for which the corresponding transaction has ended -
+{pull}2564[#2564]
+* Jedis clients instrumentation was changed
 
 [float]
 ===== Features
@@ -43,7 +57,7 @@ allows for spans representing asynchronous handling of requests for which the co
 * Add ECS-reformatting support for `java.util.logging` - {pull}2591[#2591]
 * Added support for setting the service version on Log4j2's EcsLayout - {pull}2604[#2604]
 * Added support for AWS S3 and DynamoDB - {pull}2606[#2606]
-* Added tests for elasticsearch-java client - {pull}2211[#2211]
+* Added support for Jedis 4.x clients - {pull}2626[#2626]
 
 [float]
 ===== Bug fixes
@@ -53,9 +67,9 @@ allows for spans representing asynchronous handling of requests for which the co
 * Fix missing transactions when using Vert.x 3.x with HTTP 1 - {pull}2564[#2564]
 * Fix Vert.x `GET null` transactions to be named `GET unknown route`, according to spec - {pull}2564[#2564]
 * Fix OpenTelemetry bridge span end with explicit timestamp - {pull}2615[#2615]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Fix improper naming for `scheduled` transactions created by `java.util.TimerTask` instrumentation - {pull}2620[#2620]
+* Properly handle `java.lang.IllegalStateException` related to premature invocation of `ServletConfig#getServletContext()` in
+`Servlet#init()` instrumentations - {pull}2627[#2627]
 
 [[release-notes-1.30.1]]
 ==== 1.30.1 - 2022/04/12
@@ -960,7 +974,7 @@ for more details) - {pull}1009[#1009]
 <<config-service-node-name, `service_node_name`>>
 config option]
 * Add ability to ignore some exceptions to be reported as errors <<config-ignore-exceptions[ignore_exceptions]
-* Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the
+* Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the 
    polling method itself (ie from `receive` start to end), the agent will create a transaction attempting to capture
    the code executed during actual message handling.
    This logic is suitable for environments where polling APIs are invoked within dedicated polling threads.
