@@ -284,7 +284,7 @@ pipeline {
             // The opbeans-java pipeline will trigger a release for the main branch
             gitPush()
             // The opbeans-java pipeline will trigger a release for the release tag
-            gitCreateTag(tag: "${RELEASE_VERSION}")
+            gitCreateTag(tag: "${RELEASE_TAG}")
           }
         }
       }
