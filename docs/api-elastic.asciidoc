@@ -552,9 +552,9 @@ See <<api-span-activate, `span.activate()`>> on how to achieve that.
 
 Start and return a new exit span with a type, a subtype and an action, as a child of this transaction.
 
-Similar to <<api-transaction-start-span-with-type, `startSpan(String, String, String)`>>, but the created span will be used to create a node in the Service Map and a downstream service in the Dependencies Table.
-The provided subtype will be used as the downstream service name, unless the `destination.service.resource` field is explicitly set through
-<<api-span-set-destination-resource, `setDestinationService(String resource)`>>.
+Similar to <<api-span-start-span-with-type, `startSpan(String, String, String)`>>, but the created span will be used to create a node in the Service Map and a downstream service in the Dependencies Table.
+The provided subtype will be used as the downstream service name, unless the `service.target.type` and `service.target.name` fields are explicitly set through
+<<api-span-set-service-target, `setServiceTarget(String type, String name)`>>.
 
 [float]
 [[api-transaction-start-span]]
@@ -872,8 +872,8 @@ See <<api-span-activate, `span.activate()`>> on how to achieve that.
 Start and return a new exit span with a type, a subtype and an action, as a child of this span.
 
 Similar to <<api-span-start-span-with-type, `startSpan(String, String, String)`>>, but the created span will be used to create a node in the Service Map and a downstream service in the Dependencies Table.
-The provided subtype will be used as the downstream service name, unless the `destination.service.resource` field is explicitly set through
-<<api-span-set-destination-resource, `setDestinationService(String resource)`>>.
+The provided subtype will be used as the downstream service name, unless the `service.target.type` and `service.target.name` fields are explicitly set through
+<<api-span-set-service-target, `setServiceTarget(String type, String name)`>>.
 
 If invoked on a span which is already an exit span, this method will return a noop span.
 
