@@ -463,7 +463,10 @@ public interface Span {
      * @param resource the string representation of the downstream service. Will be used to override automatically
      *                 inferred value, even if {@code null}.
      * @return this span
+     *
+     * @deprecated use {@link #setServiceTarget(String, String)} instead
      */
+    @Deprecated
     @Nonnull
     Span setDestinationService(@Nullable String resource);
 
