@@ -35,15 +35,10 @@ public class ServiceTarget implements Recyclable {
     private boolean nameSetByUser;
     private final StringBuilder name;
 
-    // only used as a buffer to avoid re-writing
-    private final StringBuilder destinationResource;
-
     private boolean onlyNameInResource = false;
 
     public ServiceTarget() {
         this.name = new StringBuilder();
-        this.destinationResource = new StringBuilder();
-        resetState();
     }
 
     public ServiceTarget withType(@Nullable String type) {
@@ -51,14 +46,12 @@ public class ServiceTarget implements Recyclable {
             return this;
         }
         this.type = type;
-        invalidateCache();
         return this;
     }
 
     public ServiceTarget withUserType(@Nullable String type) {
         this.type = type;
         this.typeSetByUser = true;
-        invalidateCache();
         return this;
     }
 
@@ -74,7 +67,6 @@ public class ServiceTarget implements Recyclable {
 
         this.name.setLength(0);
         this.name.append(name);
-        invalidateCache();
         return this;
     }
 
@@ -84,7 +76,6 @@ public class ServiceTarget implements Recyclable {
             this.name.append(name);
         }
         this.nameSetByUser = true;
-        invalidateCache();
         return this;
     }
 
@@ -100,7 +91,6 @@ public class ServiceTarget implements Recyclable {
      */
     public ServiceTarget withNameOnlyDestinationResource() {
         onlyNameInResource = true;
-        invalidateCache();
         return this;
     }
 
@@ -112,7 +102,7 @@ public class ServiceTarget implements Recyclable {
      * @return this
      */
     public ServiceTarget withHostPortName(@Nullable CharSequence host, int port) {
-        if (host == null || host.length() == 0) {
+        if (host == null || host.length() == 0 || nameSetByUser) {
             return this;
         }
 
@@ -122,7 +112,6 @@ public class ServiceTarget implements Recyclable {
         if (port > 0) {
             name.append(":").append(port);
         }
-        invalidateCache();
         return this;
     }
 
@@ -132,7 +121,6 @@ public class ServiceTarget implements Recyclable {
         typeSetByUser = false;
         name.setLength(0);
         nameSetByUser = false;
-        invalidateCache();
         onlyNameInResource = false;
     }
 
@@ -154,13 +142,15 @@ public class ServiceTarget implements Recyclable {
             return name;
         }
 
-        if (destinationResource.length() == 0) {
-            if (type != null && type.length() > 0) {
-                destinationResource.append(type);
-                destinationResource.append("/");
-            }
-            destinationResource.append(name);
+        // will allocate a bit, but it's fine as it's only expected to be called once
+        // - when the span is dropped for dropped spans stats
+        // - when the span is serialized
+        StringBuilder destinationResource = new StringBuilder();
+        if (type != null && type.length() > 0) {
+            destinationResource.append(type);
+            destinationResource.append("/");
         }
+        destinationResource.append(name);
         return destinationResource;
 
     }
@@ -175,15 +165,9 @@ public class ServiceTarget implements Recyclable {
     public void copyFrom(ServiceTarget other) {
         this.withType(other.type);
         this.withName(other.name);
-        this.destinationResource.setLength(0);
-        this.destinationResource.append(other.destinationResource);
         this.typeSetByUser = other.typeSetByUser;
         this.nameSetByUser = other.nameSetByUser;
         this.onlyNameInResource = other.onlyNameInResource;
-    }
-
-    private void invalidateCache() {
-        this.destinationResource.setLength(0); // invalidate cached value
     }
 
 }

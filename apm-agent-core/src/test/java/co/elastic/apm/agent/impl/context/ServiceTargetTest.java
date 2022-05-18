@@ -67,10 +67,6 @@ class ServiceTargetTest {
         assertThat(serviceTarget)
             .hasDestinationResource("service-type/service-name");
 
-        assertThat(serviceTarget.getDestinationResource())
-            .describedAs("returned value should be cached without modifications")
-            .isSameAs(serviceTarget.getDestinationResource());
-
         assertThat(serviceTarget)
             .isNotSetByUser();
 
@@ -89,6 +85,14 @@ class ServiceTargetTest {
 
         assertThat(serviceTarget.withUserType("user-type")).hasType("user-type").isSetByUser();
         assertThat(serviceTarget.withUserName("user-name")).hasName("user-name").isSetByUser();
+
+        // once set by user, name should not be overridden unless with 'withUser___' methods
+        assertThat(serviceTarget.withName("other-name")).hasName("user-name");
+        assertThat(serviceTarget.withHostPortName("host", 80)).hasName("user-name");
+        assertThat(serviceTarget.withType("other-type")).hasType("user-type");
+
+        assertThat(serviceTarget.withUserName("another-user-name")).hasName("another-user-name");
+        assertThat(serviceTarget.withUserType("another-user-type")).hasType("another-user-type");
     }
 
     @Test

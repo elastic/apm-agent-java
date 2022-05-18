@@ -134,14 +134,18 @@ class SpanDestinationApiTest extends AbstractApiTest {
 
     @Test
     void testSetDestinationServiceWithNullServiceResource() {
-        reporter.disableCheckDestinationService();
+        // opt-out of service target check as internal plugins have to set it for exit spans
+        reporter.disableCheckServiceTarget();
+
         ElasticApm.currentSpan().setDestinationService(null);
         assertThat(getSpan().getContext().getServiceTarget()).isSetByUser().isEmpty();
     }
 
     @Test
     void testInternalSetServiceAfterApiNull() {
-        reporter.disableCheckDestinationService();
+        // opt-out of service target check as internal plugins have to set it for exit spans
+        reporter.disableCheckServiceTarget();
+
         ElasticApm.currentSpan().setDestinationService(null);
         setDestinationDetailsThroughInternalApi();
         assertThat(getSpan().getContext().getServiceTarget()).isSetByUser().isEmpty();
@@ -149,7 +153,9 @@ class SpanDestinationApiTest extends AbstractApiTest {
 
     @Test
     void testSetDestinationServiceWithEmptyServiceResource() {
-        reporter.disableCheckDestinationService();
+        // opt-out of service target check as internal plugins have to set it for exit spans
+        reporter.disableCheckServiceTarget();
+
         ElasticApm.currentSpan().setDestinationService("");
         assertThat(getSpan().getContext().getServiceTarget()).isSetByUser().isEmpty();
     }

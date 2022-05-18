@@ -75,8 +75,8 @@ public class MockReporter implements Reporter {
     private static final Map<String, Collection<String>> SPAN_ACTIONS_WITHOUT_ADDRESS;
     // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
     private boolean checkDestinationAddress = true;
-    // All external spans coming from internal plugins should have a valid 'destination.resource' field. However, custom spans may not have it
-    private boolean checkDestinationService = true;
+    // All exit spans coming from internal plugins should have a valid service target
+    private boolean checkServiceTarget = true;
     // Allows optional opt-out for unknown outcome
     private boolean checkUnknownOutcomes = true;
     // Allows optional opt-out from strict span type/sub-type checking
@@ -121,7 +121,7 @@ public class MockReporter implements Reporter {
      */
     public void resetChecks() {
         checkDestinationAddress = true;
-        checkDestinationService = true;
+        checkServiceTarget = true;
         checkUnknownOutcomes = true;
         checkStrictSpanType = true;
         gcWhenAssertingRecycling = false;
@@ -144,8 +144,8 @@ public class MockReporter implements Reporter {
     /**
      * Disables destination service check
      */
-    public void disableCheckDestinationService() {
-        checkDestinationService = false;
+    public void disableCheckServiceTarget() {
+        checkServiceTarget = false;
     }
 
     public boolean checkDestinationAddress() {
@@ -200,6 +200,7 @@ public class MockReporter implements Reporter {
             verifySpanSchema(span);
             verifySpanType(span);
             verifyDestinationFields(span);
+            verifyServiceTarget(span);
 
             if (checkUnknownOutcomes) {
                 assertThat(span.getOutcome())
@@ -264,11 +265,16 @@ public class MockReporter implements Reporter {
                 assertThat(destination.getPort()).describedAs("destination port is required").isGreaterThan(0);
             }
         }
-        if (checkDestinationService) {
-            assertThat(span.getContext().getServiceTarget())
-                .describedAs("service target is required")
-                .isNotEmpty();
+    }
+
+    private void verifyServiceTarget(Span span) {
+        if (!span.isExit() || !checkServiceTarget) {
+            return;
         }
+
+        assertThat(span.getContext().getServiceTarget())
+            .describedAs("service target is required")
+            .isNotEmpty();
     }
 
     /**
