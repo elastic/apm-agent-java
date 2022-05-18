@@ -20,6 +20,7 @@ package co.elastic.apm.agent.opentelemetry.sdk;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 import org.junit.Before;
@@ -115,7 +116,9 @@ public class OTelSpanDiscardingTest extends AbstractOpenTelemetryTest {
     }
 
     private void notDiscarded_Span_asAttribute() {
-        Span span = otelTracer.spanBuilder(NOT_DISCARDED_SPAN_NAME).startSpan().setAttribute(BehavioralAttributes.NON_DISCARDABLE, true);
+        Span span =
+            otelTracer.spanBuilder(NOT_DISCARDED_SPAN_NAME).startSpan().setAttribute(AttributeKey.booleanKey(BehavioralAttributes.NON_DISCARDABLE),
+            true);
         try (Scope activate = span.makeCurrent()) {
             childSpan();
         }
@@ -123,7 +126,7 @@ public class OTelSpanDiscardingTest extends AbstractOpenTelemetryTest {
     }
 
     private void notDiscarded_Span_asString() {
-        Span span = otelTracer.spanBuilder(NOT_DISCARDED_SPAN_NAME).startSpan().setAttribute(BehavioralAttributes.NON_DISCARDABLE.getKey(), true);
+        Span span = otelTracer.spanBuilder(NOT_DISCARDED_SPAN_NAME).startSpan().setAttribute(BehavioralAttributes.NON_DISCARDABLE, true);
         try (Scope activate = span.makeCurrent()) {
             childSpan();
         }
@@ -131,7 +134,8 @@ public class OTelSpanDiscardingTest extends AbstractOpenTelemetryTest {
     }
 
     private void notDiscarded_Builder_asAttribute() {
-        Span span = otelTracer.spanBuilder(NOT_DISCARDED_SPAN_NAME).setAttribute(BehavioralAttributes.NON_DISCARDABLE, true).startSpan();
+        Span span =
+            otelTracer.spanBuilder(NOT_DISCARDED_SPAN_NAME).setAttribute(AttributeKey.booleanKey(BehavioralAttributes.NON_DISCARDABLE), true).startSpan();
         try (Scope activate = span.makeCurrent()) {
             childSpan();
         }

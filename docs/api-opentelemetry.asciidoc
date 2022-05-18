@@ -96,9 +96,6 @@ special tracing features through corresponding custom attributes listed below. S
 Span.current().setAttribute("elastic.otel.nondiscardable", true);
 ----
 
-The `co.elastic.apm.agent.opentelemetry.sdk.BehavioralAttributes` utility class provides supported attributes as keys. Using them is
-safer than using raw strings as attribute keys.
-
 [float]
 [[otel-config-set-non-discardable]]
 ===== `elastic.otel.nondiscardable`

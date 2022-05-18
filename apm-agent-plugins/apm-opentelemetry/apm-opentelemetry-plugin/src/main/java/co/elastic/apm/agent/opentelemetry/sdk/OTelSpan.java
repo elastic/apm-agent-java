@@ -54,7 +54,7 @@ public class OTelSpan implements Span {
     @Override
     public <T> Span setAttribute(AttributeKey<T> key, @Nonnull T value) {
         boolean behavioralAttribute = false;
-        if (key.getKey().equals(BehavioralAttributes.NON_DISCARDABLE.getKey())) {
+        if (BehavioralAttributes.NON_DISCARDABLE.equals(key.getKey())) {
             span.setNonDiscardable();
             behavioralAttribute = true;
         }

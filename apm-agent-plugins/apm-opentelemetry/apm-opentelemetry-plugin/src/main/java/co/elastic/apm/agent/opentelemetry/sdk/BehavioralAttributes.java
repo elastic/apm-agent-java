@@ -18,8 +18,6 @@
  */
 package co.elastic.apm.agent.opentelemetry.sdk;
 
-import io.opentelemetry.api.common.AttributeKey;
-
 /**
  * An extension to the OTel API that allows us to provide special tracing settings.
  * Such settings may affect tracing behavior internally, but they are not added as data and not persisted as span attributes.
@@ -34,5 +32,5 @@ public class BehavioralAttributes {
      * NOTE: making a span non-discardable implicitly makes the entire stack of active spans non-discardable as well. Child spans can
      * still be discarded.
      */
-    public static final AttributeKey<Boolean> NON_DISCARDABLE = AttributeKey.booleanKey("elastic.otel.nondiscardable");
+    public static final String NON_DISCARDABLE = "elastic.otel.nondiscardable";
 }
