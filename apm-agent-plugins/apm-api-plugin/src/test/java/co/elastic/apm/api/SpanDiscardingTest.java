@@ -32,27 +32,80 @@ import static org.mockito.Mockito.doReturn;
 public class SpanDiscardingTest extends AbstractApiTest {
 
     @Test
-    void testSpanDiscarding() {
+    void testDiscarding() {
+        doTest(Scenario.DISCARD);
+    }
+
+    @Test
+    void testDiscarding_capturedAnnotation() {
+        doTest(Scenario.DISCARD_CAPTURE_ANNOTATION);
+    }
+
+    @Test
+    void testDiscarding_tracedAnnotation() {
+        doTest(Scenario.DISCARD_TRACED_ANNOTATION);
+    }
+
+    @Test
+    void testNonDiscarding() {
+        doTest(Scenario.NON_DISCARD);
+    }
+
+    @Test
+    void testNonDiscarding_captureAnnotation() {
+        doTest(Scenario.NON_DISCARD_CAPTURE_ANNOTATION);
+    }
+
+    @Test
+    void testNonDiscarding_tracedAnnotation() {
+        doTest(Scenario.NON_DISCARD_TRACED_ANNOTATION);
+    }
+
+    private void doTest(Scenario scenario) {
         doReturn(TimeDuration.of("100ms")).when(config.getConfig(CoreConfiguration.class)).getSpanMinDuration();
         Transaction transaction = ElasticApm.startTransaction();
         try (Scope activate = transaction.activate()) {
-            parentSpan(true);
-            parentSpan(false);
+            parentSpan(scenario);
         }
         List<co.elastic.apm.agent.impl.transaction.Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(2);
-        assertThat(spans).anyMatch(span -> span.getNameAsString().equals("parent-false"));
-        assertThat(spans).anyMatch(span -> span.getNameAsString().equals("not-discarded"));
+        switch (scenario) {
+            case DISCARD:
+            case DISCARD_TRACED_ANNOTATION:
+            case DISCARD_CAPTURE_ANNOTATION:
+                assertThat(spans).isEmpty();
+                break;
+            case NON_DISCARD:
+            case NON_DISCARD_TRACED_ANNOTATION:
+            case NON_DISCARD_CAPTURE_ANNOTATION:
+                assertThat(spans).hasSize(2);
+                assertThat(spans).anyMatch(span -> span.getNameAsString().equals("parent"));
+                assertThat(spans).anyMatch(span -> span.getNameAsString().equals("not-discarded"));
+        }
         transaction.end();
     }
 
-    private void parentSpan(boolean discardChild) {
-        Span span = ElasticApm.currentSpan().startSpan().setName("parent-" + discardChild);
+    private void parentSpan(Scenario scenario) {
+        Span span = ElasticApm.currentSpan().startSpan().setName("parent");
         try (Scope activate = span.activate()) {
-            if (discardChild) {
-                discarded();
-            } else {
-                notDiscarded();
+            switch (scenario) {
+                case DISCARD:
+                    discarded();
+                    break;
+                case DISCARD_CAPTURE_ANNOTATION:
+                    discarded_captureAnnotation();
+                    break;
+                case DISCARD_TRACED_ANNOTATION:
+                    discarded_tracedAnnotation();
+                    break;
+                case NON_DISCARD:
+                    notDiscarded();
+                    break;
+                case NON_DISCARD_CAPTURE_ANNOTATION:
+                    notDiscarded_captureAnnotation();
+                    break;
+                case NON_DISCARD_TRACED_ANNOTATION:
+                    notDiscarded_tracedAnnotation();
+                    break;
             }
         }
         span.end();
@@ -66,6 +119,16 @@ public class SpanDiscardingTest extends AbstractApiTest {
         span.end();
     }
 
+    @CaptureSpan("discarded")
+    private void discarded_captureAnnotation() {
+        childSpan();
+    }
+
+    @Traced("discarded")
+    private void discarded_tracedAnnotation() {
+        childSpan();
+    }
+
     private void notDiscarded() {
         Span span = ElasticApm.currentSpan().startSpan().setName("not-discarded").setNonDiscardable();
         try (Scope activate = span.activate()) {
@@ -74,7 +137,26 @@ public class SpanDiscardingTest extends AbstractApiTest {
         span.end();
     }
 
+    @CaptureSpan(value = "not-discarded", discardable = false)
+    private void notDiscarded_captureAnnotation() {
+        childSpan();
+    }
+
+    @Traced(value = "not-discarded", discardable = false)
+    private void notDiscarded_tracedAnnotation() {
+        childSpan();
+    }
+
     private void childSpan() {
         ElasticApm.currentSpan().startSpan().setName("child").end();
+    }
+
+    private enum Scenario {
+        DISCARD,
+        DISCARD_CAPTURE_ANNOTATION,
+        DISCARD_TRACED_ANNOTATION,
+        NON_DISCARD,
+        NON_DISCARD_TRACED_ANNOTATION,
+        NON_DISCARD_CAPTURE_ANNOTATION
     }
 }
