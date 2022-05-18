@@ -90,6 +90,7 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
 
             assertThat(span.getContext().getServiceTarget())
                 .hasType("redis")
+                .hasNoName()
                 .hasDestinationResource("redis");
         }
     }

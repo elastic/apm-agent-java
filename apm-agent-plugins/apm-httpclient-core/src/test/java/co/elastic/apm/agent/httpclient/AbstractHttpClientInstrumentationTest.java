@@ -190,7 +190,8 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(destination.getPort()).isEqualTo(port);
 
         assertThat(span.getContext().getServiceTarget())
-            .hasDestinationResource(String.format("%s:%d", host, port));
+            .hasName(String.format("%s:%d", host, port))
+            .hasNameOnlyDestinationResource();
 
         if (requestExecuted) {
             verifyTraceContextHeaders(span, path);

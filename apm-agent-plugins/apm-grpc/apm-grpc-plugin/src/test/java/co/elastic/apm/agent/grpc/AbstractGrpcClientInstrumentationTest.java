@@ -93,7 +93,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         assertThat(span.getContext().getServiceTarget())
             .hasType("grpc")
             .hasName(String.format("localhost:%d", app.getServer().getPort()))
-            .hasDestinationResource(String.format("localhost:%d", app.getServer().getPort()));
+            .hasNameOnlyDestinationResource();
     }
 
     @Test

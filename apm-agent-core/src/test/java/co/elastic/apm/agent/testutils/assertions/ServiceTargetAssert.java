@@ -79,4 +79,13 @@ public class ServiceTargetAssert extends BaseAssert<ServiceTargetAssert, Service
         checkTrue("Expected service target not empty", actual.hasContent());
         return this;
     }
+
+    /**
+     * Checks that the destination service resource only contains the service name
+     *
+     * @return this
+     */
+    public ServiceTargetAssert hasNameOnlyDestinationResource() {
+        return hasDestinationResource(normalizeToString(actual.getName()));
+    }
 }

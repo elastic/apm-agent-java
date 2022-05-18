@@ -52,7 +52,9 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
         Destination destination = httpSpan.getContext().getDestination();
         assertThat(httpSpan.getContext().getServiceTarget())
             .hasType("http")
-            .hasName("testing.local:1234");
+            .hasName("testing.local:1234")
+            .hasNameOnlyDestinationResource();
+
         assertThat(destination.getAddress().toString()).isEqualTo("testing.local");
         assertThat(destination.getPort()).isEqualTo(1234);
     }
@@ -66,7 +68,8 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
         Destination destination = httpSpan.getContext().getDestination();
         assertThat(httpSpan.getContext().getServiceTarget())
             .hasType("http")
-            .hasDestinationResource("www.elastic.co:443");
+            .hasName("www.elastic.co:443")
+            .hasNameOnlyDestinationResource();
         assertThat(destination.getAddress().toString()).isEqualTo("www.elastic.co");
         assertThat(destination.getPort()).isEqualTo(443);
     }
@@ -79,7 +82,8 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
         assertThat(httpSpan.getContext().getHttp().getUrl().toString()).isEqualTo("https://www.elastic.co/products/apm");
         assertThat(httpSpan.getContext().getServiceTarget())
             .hasType("http")
-            .hasDestinationResource("www.elastic.co:443");
+            .hasName("www.elastic.co:443")
+            .hasNameOnlyDestinationResource();
         Destination destination = httpSpan.getContext().getDestination();
         assertThat(destination.getAddress().toString()).isEqualTo("www.elastic.co");
         assertThat(destination.getPort()).isEqualTo(443);
@@ -93,7 +97,8 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
         assertThat(httpSpan.getContext().getHttp().getUrl().toString()).isEqualTo("https://151.101.114.217/index.html");
         assertThat(httpSpan.getContext().getServiceTarget())
             .hasType("http")
-            .hasDestinationResource("151.101.114.217:443");
+            .hasName("151.101.114.217:443")
+            .hasNameOnlyDestinationResource();
         Destination destination = httpSpan.getContext().getDestination();
         assertThat(destination.getAddress().toString()).isEqualTo("151.101.114.217");
         assertThat(destination.getPort()).isEqualTo(443);
@@ -110,7 +115,8 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
         assertThat(destination.getPort()).isEqualTo(80);
         assertThat(httpSpan.getContext().getServiceTarget())
             .hasType("http")
-            .hasDestinationResource("[2001:db8:a0b:12f0::1]:80");
+            .hasName("[2001:db8:a0b:12f0::1]:80")
+            .hasNameOnlyDestinationResource();
     }
 
     private void createSpanWithUrl(String s) throws URISyntaxException {

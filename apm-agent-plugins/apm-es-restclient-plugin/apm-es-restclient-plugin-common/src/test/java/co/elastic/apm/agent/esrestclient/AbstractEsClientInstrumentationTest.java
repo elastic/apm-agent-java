@@ -135,6 +135,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
         assertThat(span.getContext().getServiceTarget())
             .hasType(ELASTICSEARCH)
+            .hasNoName()
             .hasDestinationResource(ELASTICSEARCH);
     }
 

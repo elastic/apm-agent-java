@@ -318,6 +318,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
 
         assertThat(pollSpan.getContext().getServiceTarget())
             .hasType("kafka")
+            .hasNoName()
             .hasDestinationResource("kafka");
     }
 
