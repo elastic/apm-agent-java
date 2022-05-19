@@ -248,9 +248,9 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |1.9.0
 
 |Redis Jedis
-|1.4.0-3.x
+|1.4.0-4.x
 |The agent creates spans for interactions with the Jedis client.
-|1.10.0
+|1.10.0, 4.x since 1.31.0
 
 |Redis Lettuce
 |3.4+
