@@ -404,7 +404,8 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
         assertThat(context.getServiceTarget())
             .hasType("kafka")
-            .hasName(topicName);
+            .hasName(topicName)
+            .hasDestinationResource("kafka/" + topicName);
     }
 
     private void verifyKafkaTransactionContents(Transaction transaction, @Nullable Span parentSpan,

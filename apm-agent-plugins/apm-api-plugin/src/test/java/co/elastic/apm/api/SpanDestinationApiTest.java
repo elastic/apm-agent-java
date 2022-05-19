@@ -115,17 +115,19 @@ class SpanDestinationApiTest extends AbstractApiTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation") // testing deprecated API
     void testSetDestinationServiceWithNonEmptyValue() {
         ElasticApm.currentSpan().setDestinationService("service-resource");
 
         assertThat(getSpan().getContext().getServiceTarget())
             .isSetByUser()
-            .hasDestinationResource("service-resource")
             .hasType("internal-resource") // should reuse the already set value
-            .hasName("service-resource");
+            .hasName("service-resource")
+            .hasDestinationResource("service-resource");
     }
 
     @Test
+    @SuppressWarnings("deprecation") // testing deprecated API
     void testInternalSetServiceAfterApiValid() {
         ElasticApm.currentSpan().setDestinationService("service-resource");
         setDestinationDetailsThroughInternalApi();
@@ -133,6 +135,7 @@ class SpanDestinationApiTest extends AbstractApiTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation") // testing deprecated API
     void testSetDestinationServiceWithNullServiceResource() {
         // opt-out of service target check as internal plugins have to set it for exit spans
         reporter.disableCheckServiceTarget();
@@ -142,6 +145,7 @@ class SpanDestinationApiTest extends AbstractApiTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation") // testing deprecated API
     void testInternalSetServiceAfterApiNull() {
         // opt-out of service target check as internal plugins have to set it for exit spans
         reporter.disableCheckServiceTarget();
@@ -152,6 +156,7 @@ class SpanDestinationApiTest extends AbstractApiTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation") // testing deprecated API
     void testSetDestinationServiceWithEmptyServiceResource() {
         // opt-out of service target check as internal plugins have to set it for exit spans
         reporter.disableCheckServiceTarget();
@@ -161,6 +166,7 @@ class SpanDestinationApiTest extends AbstractApiTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation") // testing deprecated API
     void testSetServiceResource() {
 
         // test implementation detail: we have to discard service target state otherwise type is already set
@@ -185,6 +191,7 @@ class SpanDestinationApiTest extends AbstractApiTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation") // testing deprecated API
     void testSetServiceTargetTypeNameAndServiceResource() {
         ElasticApm.currentSpan().setServiceTarget("my-type", "my-name").setDestinationService("my-resource");
         assertThat(getSpan().getContext().getServiceTarget())
@@ -196,8 +203,7 @@ class SpanDestinationApiTest extends AbstractApiTest {
 
     private Span getSpan() {
         internalSpan.deactivate().end();
-        Span span = reporter.getFirstSpan();
-        return span;
+        return reporter.getFirstSpan();
     }
 
 }

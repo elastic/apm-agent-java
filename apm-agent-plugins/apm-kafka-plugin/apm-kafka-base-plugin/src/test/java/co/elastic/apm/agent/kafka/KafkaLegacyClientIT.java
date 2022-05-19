@@ -320,7 +320,8 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
         }
         assertThat(context.getServiceTarget())
             .hasType("kafka")
-            .hasName(REQUEST_TOPIC);
+            .hasName(REQUEST_TOPIC)
+            .hasDestinationResource("kafka/"+REQUEST_TOPIC);
     }
 
 

@@ -372,7 +372,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         Id currentTraceId = tracer.currentTransaction().getTraceContext().getTraceId();
         assertThat(sendSpan.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
         assertThat(sendSpan.getContext().getMessage().getQueueName()).isEqualTo(queue.getQueueName());
-        assertThat(sendSpan.getContext().getServiceTarget()).hasType("jms").hasName(queue.getQueueName());
+
+        assertThat(sendSpan.getContext().getServiceTarget())
+            .hasType("jms")
+            .hasName(queue.getQueueName())
+            .hasDestinationResource("jms/" + queue.getQueueName());
 
         Id receiveTraceId = receiveSpan.getTraceContext().getTraceId();
         List<Transaction> receiveTransactions = reporter.getTransactions().stream().filter(transaction -> transaction.getTraceContext().getTraceId().equals(receiveTraceId)).collect(Collectors.toList());
@@ -395,7 +399,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             assertThat(sendToNoopSpan.getTraceContext().getParentId()).isEqualTo(receiveTransaction.getTraceContext().getId());
             assertThat(sendToNoopSpan.getContext().getMessage().getQueueName()).isEqualTo("NOOP");
 
-            assertThat(sendToNoopSpan.getContext().getServiceTarget()).hasType("jms").hasName("NOOP");
+            assertThat(sendToNoopSpan.getContext().getServiceTarget())
+                .hasType("jms")
+                .hasName("NOOP")
+                .hasDestinationResource("jms/NOOP");
         }
     }
 
@@ -429,7 +436,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
         assertThat(sendSpan.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
         assertThat(sendSpan.getContext().getMessage().getAge()).isEqualTo(-1L);
-        assertThat(sendSpan.getContext().getServiceTarget()).hasType("jms").hasName(destinationName);
+        assertThat(sendSpan.getContext().getServiceTarget())
+            .hasType("jms")
+            .hasName(destinationName)
+            .hasDestinationResource("jms/" + destinationName);
 
         //noinspection ConstantConditions
         Id currentTraceId = tracer.currentTransaction().getTraceContext().getTraceId();
@@ -496,7 +506,12 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(spanName).endsWith(destinationName);
         assertThat(sendInitialMessageSpan.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
         assertThat(sendInitialMessageSpan.getContext().getMessage().getAge()).isEqualTo(-1L);
-        assertThat(sendInitialMessageSpan.getContext().getServiceTarget()).hasType("jms").hasName(destinationName);
+
+        assertThat(sendInitialMessageSpan.getContext()
+            .getServiceTarget())
+            .hasType("jms")
+            .hasName(destinationName)
+            .hasDestinationResource("jms/"+destinationName);
 
         //noinspection ConstantConditions
         Id currentTraceId = tracer.currentTransaction().getTraceContext().getTraceId();
@@ -533,7 +548,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             // If both polling and handling transactions are captured, handling transaction would come second
             assertThat(sendNoopSpan.getTraceContext().getParentId()).isEqualTo(transactionId);
             assertThat(sendNoopSpan.getContext().getMessage().getQueueName()).isEqualTo("NOOP");
-            assertThat(sendNoopSpan.getContext().getServiceTarget()).hasType("jms").hasName("NOOP");
+            assertThat(sendNoopSpan.getContext().getServiceTarget())
+                .hasType("jms")
+                .hasName("NOOP")
+                .hasDestinationResource("jms/NOOP");
         }
     }
 

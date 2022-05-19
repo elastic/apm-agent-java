@@ -314,9 +314,11 @@ public class OTelBridgeStepsDefinitions {
         assertThat(serviceTarget).hasType(type);
 
         if (name != null && !name.isEmpty()) {
-            assertThat(serviceTarget).hasName(name);
+            assertThat(serviceTarget)
+                .hasName(name);
         } else {
-            assertThat(serviceTarget).hasNoName();
+            assertThat(serviceTarget)
+                .hasNoName();
         }
     }
 

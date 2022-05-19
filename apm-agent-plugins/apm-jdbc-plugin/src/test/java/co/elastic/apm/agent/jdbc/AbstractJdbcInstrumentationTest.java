@@ -450,11 +450,13 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         if (expectedDbInstance == null) {
             assertThat(span.getContext().getServiceTarget())
                 .hasType(expectedDbVendor)
-                .hasNoName();
+                .hasNoName()
+                .hasDestinationResource(expectedDbVendor);
         } else {
             assertThat(span.getContext().getServiceTarget())
                 .hasType(expectedDbVendor)
-                .hasName(expectedDbInstance);
+                .hasName(expectedDbInstance)
+                .hasDestinationResource(String.format("%s/%s", expectedDbVendor, expectedDbInstance));
         }
 
         assertThat(span.getOutcome())

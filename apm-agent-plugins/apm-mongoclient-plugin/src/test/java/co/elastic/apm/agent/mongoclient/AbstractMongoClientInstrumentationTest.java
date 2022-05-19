@@ -203,7 +203,8 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
         // verify destination
         Destination destination = span.getContext().getDestination();
-        assertThat(destination.getAddress().toString()).isIn("localhost", "127.0.0.1");
+        String address = destination.getAddress().toString();
+        assertThat(address).isIn("localhost", "127.0.0.1");
         assertThat(destination.getPort()).isEqualTo(container.getMappedPort(PORT));
 
         assertThat(span.getContext().getDb().getInstance())
@@ -211,7 +212,8 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
         assertThat(span.getContext().getServiceTarget())
             .hasType("mongodb")
-            .hasName("testdb");
+            .hasName("testdb")
+            .hasDestinationResource("mongodb/testdb");
 
     }
 
