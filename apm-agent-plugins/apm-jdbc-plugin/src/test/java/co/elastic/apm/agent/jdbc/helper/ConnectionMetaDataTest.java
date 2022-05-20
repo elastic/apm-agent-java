@@ -74,8 +74,8 @@ class ConnectionMetaDataTest {
     @Test
     void testPostgresql() {
         // https://jdbc.postgresql.org/documentation/head/connect.html
-        testUrl("jdbc:postgresql://myhost:666/database", "postgresql", "myhost", 666, null);
-        testUrl("jdbc:postgresql://myhost/database", "postgresql", "myhost", 5432, null);
+        testUrl("jdbc:postgresql://myhost:666/database", "postgresql", "myhost", 666, "database");
+        testUrl("jdbc:postgresql://myhost/database", "postgresql", "myhost", 5432, "database");
         testUrl("jdbc:postgresql://myhost:666/", "postgresql", "myhost", 666, null);
         testUrl("jdbc:postgresql://myhost/", "postgresql", "myhost", 5432, null);
         testUrl("jdbc:postgresql://127.0.0.1/", "postgresql", "127.0.0.1", 5432, null);
@@ -83,7 +83,7 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:postgresql://[::1]/", "postgresql", "[::1]", 5432, null);
         testUrl("jdbc:postgresql://[::1]:666/", "postgresql", "[::1]", 666, null);
 
-        testUrl("jdbc:postgresql:database", "postgresql", "localhost", 5432, null);
+        testUrl("jdbc:postgresql:database", "postgresql", "localhost", 5432, "database");
         testUrl("jdbc:postgresql:/", "postgresql", "localhost", 5432, null);
     }
 

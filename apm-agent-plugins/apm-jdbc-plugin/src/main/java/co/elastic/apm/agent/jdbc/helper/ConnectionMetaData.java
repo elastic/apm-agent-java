@@ -526,8 +526,9 @@ public class ConnectionMetaData {
 
                     parseAuthority(authority, builder);
                 }
-            } else {
+            } else if (!vendorUrl.equals("/")) {
                 // no authority: assume only db name
+                // we need to ignore cases like 'jdbc:postgresql:/'
                 builder.withInstance(vendorUrl);
             }
 
