@@ -277,7 +277,7 @@ public class MockReporter implements Reporter {
             .isNotEmpty();
 
         assertThat(span.getContext().getServiceTarget().getDestinationResource())
-            .describedAs("legacy destination service resource is require")
+            .describedAs("legacy destination service resource is required")
             .isNotEmpty();
     }
 
