@@ -116,44 +116,68 @@ public class ConnectionMetaData {
                     }
                 }
 
-                HostPort hostPort;
                 if (vendorUrl.startsWith("(")) {
                     // (DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=host1)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=service_name)))
                     // (DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=host1)(PORT=1521))(ADDRESS=(PROTOCOL=TCP)(HOST=host2)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=service_name)))
                     try {
-                        builder.withHostPort(parseAddressList(vendorUrl));
+                        TreeNode parsedTree = buildOracleTree(vendorUrl);
+                        if (parsedTree == null) {
+                            logger.warn("Failed to parse Oracle DB address list from: {}", vendorUrl);
+                        } else {
+                            traverseOracleTree(vendorUrl, parsedTree, builder);
+                        }
                     } catch (Exception e) {
-                        logger.warn("Failed to parse address from this address list: {}", vendorUrl);
+                        logger.warn("Failed to parse oracle description {}", vendorUrl);
                         return builder.withParsingError();
                     }
-                } else {
-                    // try looking for a //host:port/instance pattern
-                    hostPort = parseHostPort(vendorUrl);
-                    if (hostPort.host != null) { // TODO : will have to allow testing if the host has been set builder.hasHostAndPort
-                        builder.withHostPort(hostPort);
-                    } else {
-                        // Thin driver host:port:sid syntax:
-                        // myhost:666:instance
-                        // myhost:instance
-                        // thin:myhost:port:instance
-                        if (vendorUrl.startsWith("thin:")) {
-                            vendorUrl = vendorUrl.substring("thin:".length());
-                        }
+                } else if (vendorUrl.startsWith("//")) {
 
-                        String[] parts = vendorUrl.split(":");
-                        if (parts.length > 0) {
-                            builder.withHost(parts[0]);
+                    // try looking for a //host:port/instance pattern
+                    String authority = vendorUrl.substring(2);
+
+                    int authorityEnd = authority.indexOf('/');
+                    if (authorityEnd >= 0) {
+                        authority = authority.substring(0, authorityEnd);
+                    }
+
+                    parseAuthority(authority, builder);
+                } else {
+
+                    // Thin driver host:port:sid syntax:
+                    // myhost:666:instance
+                    // myhost:instance
+                    // thin:myhost:port:instance
+                    if (vendorUrl.startsWith("thin:")) {
+                        vendorUrl = vendorUrl.substring("thin:".length());
+                    }
+
+                    String[] parts = vendorUrl.split(":");
+                    if (parts.length > 0) {
+                        builder.withHost(parts[0]);
+                    }
+                    if (parts.length > 1) {
+                        String portOrDb = parts[1];
+                        boolean isInt = true;
+                        for (char c : portOrDb.toCharArray()) {
+                            isInt = isInt && c >= '0' && c <= '9';
                         }
-                        if (parts.length > 1) {
-                            builder.withPort(toNumericPort(vendorUrl, parts[1]));
+                        if (isInt) {
+                            builder.withPort(toNumericPort(vendorUrl, portOrDb));
+                        } else {
+                            builder.withInstance(portOrDb);
                         }
                     }
+                    if (parts.length > 2) {
+                        // assume the last item is always the instance name if provided
+                        builder.withInstance(parts[2]);
+                    }
+
                 }
                 return builder;
             }
 
             @Nullable
-            private HostPort parseAddressList(String connectionUrl) {
+            private TreeNode buildOracleTree(String connectionUrl) {
                 TreeNode parsedTree = null;
                 Deque<TreeNode> stack = new ArrayDeque<>();
                 StringBuilder currentValueBuffer = null;
@@ -191,18 +215,10 @@ public class ConnectionMetaData {
                         }
                     }
                 }
-
-                HostPort ret = null;
-                if (parsedTree == null) {
-                    logger.warn("Failed to parse Oracle DB address list from: {}", connectionUrl);
-                } else {
-                    ret = findAddressInTree(connectionUrl, parsedTree);
-                }
-                return ret;
+                return parsedTree;
             }
 
-            @Nullable
-            HostPort findAddressInTree(String connectionUrl, TreeNode treeNode) {
+            private void traverseOracleTree(String connectionUrl, TreeNode treeNode, Builder builder) {
                 if (treeNode.name.toString().trim().equals("address")) {
                     String host = null;
                     int port = -1;
@@ -214,19 +230,14 @@ public class ConnectionMetaData {
                             port = toNumericPort(connectionUrl, childNode.value.toString().trim());
                         }
                     }
-                    if (host != null) {
-                        return new HostPort(host, port);
+                    if (host != null && !builder.hasHost()) { // first value wins
+                        builder.withHost(host).withPort(port);
                     }
                 }
 
-                HostPort ret = null;
                 for (TreeNode childNode : treeNode.childNodes) {
-                    ret = findAddressInTree(connectionUrl, childNode);
-                    if (ret != null) {
-                        break;
-                    }
+                    traverseOracleTree(connectionUrl, childNode, builder);
                 }
-                return ret;
             }
 
             class TreeNode {
@@ -327,35 +338,49 @@ public class ConnectionMetaData {
                     .withHostLocalhost()
                     .withPort(1433);
 
-                String host = null;
+                String authority = null;
+                String dbName = null;
 
                 int indexOfProperties = vendorUrl.indexOf(';');
-                if (indexOfProperties > 0) {
+                if (indexOfProperties < 0) {
+                    authority = vendorUrl.substring(2);
+                } else {
                     if (vendorUrl.length() > indexOfProperties + 1) {
                         String propertiesPart = vendorUrl.substring(indexOfProperties + 1);
                         String[] properties = propertiesPart.split(";");
                         for (String property : properties) {
                             String[] parts = property.split("=");
                             if (parts.length == 2 && parts[0].equals("serverName")) {
-                                host = parts[1];
+                                authority = parts[1];
                             }
                         }
                     }
-                    vendorUrl = vendorUrl.substring(0, indexOfProperties);
-                }
-                HostPort hostPort = parseHostPort(vendorUrl);
-                builder.withHostPort(hostPort);
-
-                host = host != null ? host : hostPort.host;
-
-                if (host != null) {
-                    // remove the instance part of the host
-                    int indexOfInstance = host.indexOf('\\');
-                    if (indexOfInstance > 0) {
-                        host = host.substring(0, indexOfInstance);
+                    if (authority == null) {
+                        authority = vendorUrl.substring(2, indexOfProperties);
                     }
-                    builder.withHost(host);
                 }
+
+                int backSlashIndex = authority.indexOf('\\');
+                if (backSlashIndex > 0) {
+                    // authority can be in multiple formats: 'host\db:777', 'host:777' or 'host\db'
+                    dbName = authority.substring(backSlashIndex + 1);
+                    int portSeparator = dbName.indexOf(':');
+                    String portSuffix = null;
+                    if (portSeparator > 0) {
+                        portSuffix = dbName.substring(portSeparator);
+                        dbName = dbName.substring(0, portSeparator);
+                    }
+
+                    authority = authority.substring(0, backSlashIndex);
+                    if (portSuffix != null) {
+                        authority += portSuffix;
+                    }
+                }
+
+                parseAuthority(authority, builder);
+
+                builder.withInstance(dbName);
+
                 return builder;
             }
         },
@@ -443,7 +468,7 @@ public class ConnectionMetaData {
             }
 
 
-            if(!vendorUrl.startsWith("/")) {
+            if (!vendorUrl.startsWith("/")) {
                 // assume only db name
                 builder.withInstance(vendorUrl);
             } else {
@@ -456,87 +481,13 @@ public class ConnectionMetaData {
         }
 
         /**
-         * Expects a URL structure, from which the authority component is extracted to get host and port.
-         *
-         * @param url expected structure: "[...//]host[:port][/[instance/database]]
-         * @return extracted host and port
-         */
-        static HostPort parseHostPort(String url) {
-            if (url.length() > 0) {
-                int indexOfDoubleSlash = url.indexOf("//");
-                if (indexOfDoubleSlash >= 0 && url.length() > indexOfDoubleSlash + 2) {
-                    url = url.substring(indexOfDoubleSlash + 2);
-                    if (url.length() == 1) {
-                        // for urls such as: jdbc:hsqldb:///
-                        return new HostPort("localhost", -1);
-                    }
-                    return parseAuthority(url);
-                }
-            }
-            return new HostPort(null, -1);
-        }
-
-        static HostPort parseAuthority(String url) {
-            // Examples:
-            // myhost:666/myinstance
-            // myhost:666/myinstance?arg1=val1&arg2=val2
-            // myhost/instance
-            // myhost/instance?arg1=val1&arg2=val2
-            // myhost:666
-            // myhost:666?arg1=val1&arg2=val2
-            // myhost
-            // myhost?arg1=val1&arg2=val2
-            int indexOrProperties = url.indexOf('?');
-            if (indexOrProperties > 0) {
-                url = url.substring(0, indexOrProperties);
-            }
-
-            String hostPort;
-            int indexOfSlash = url.indexOf('/');
-            if (indexOfSlash > 0) {
-                hostPort = url.substring(0, indexOfSlash);
-            } else {
-                hostPort = url;
-            }
-
-            String host;
-            int port = -1;
-            int indexOfColon = hostPort.indexOf(':');
-            if (indexOfColon > 0) {
-                // check if IPv6
-                int lastIndexOfColon = hostPort.lastIndexOf(':');
-                if (indexOfColon != lastIndexOfColon) {
-                    // IPv6 - [::1] or ::1 or [::1]:666
-                    int indexOfIpv6End = hostPort.indexOf(']');
-                    if (indexOfIpv6End > 0 && hostPort.length() > indexOfIpv6End + 1) {
-                        indexOfColon = indexOfIpv6End + 1;
-                    } else {
-                        // no port specified
-                        indexOfColon = -1;
-                    }
-                }
-            }
-
-            if (indexOfColon > 0) {
-                host = hostPort.substring(0, indexOfColon);
-                if (hostPort.length() > indexOfColon + 1) {
-                    port = toNumericPort(url, hostPort.substring(indexOfColon + 1));
-                }
-            } else {
-                host = hostPort;
-            }
-
-            return new HostPort(host, port);
-        }
-
-        /**
          * Parses the authority part of JDBC URL
          *
          * @param authority authority string in the 'host' or 'host:666' format
          * @param builder   builder
          */
         static void parseAuthority(String authority, Builder builder) {
-            if(authority.isEmpty()){
+            if (authority.isEmpty()) {
                 return;
             }
 
@@ -706,17 +657,6 @@ public class ConnectionMetaData {
             }
 
         }
-
-        static class HostPort {
-            @Nullable
-            String host;
-            int port;
-
-            public HostPort(@Nullable String host, int port) {
-                this.host = host;
-                this.port = port;
-            }
-        }
     }
 
     public static Builder parse(String url) {
@@ -833,15 +773,6 @@ public class ConnectionMetaData {
             return this;
         }
 
-        @Deprecated
-        public Builder withHostPort(@Nullable ConnectionUrlParser.HostPort hostPort) {
-            if (hostPort != null && hostPort.host != null) {
-                withHost(hostPort.host);
-                withPort(hostPort.port);
-            }
-            return this;
-        }
-
         public Builder withConnectionInstance(@Nullable String instance) {
             if (this.instance == null) {
                 this.instance = instance;
@@ -858,6 +789,13 @@ public class ConnectionMetaData {
             port = -1;
             instance = null;
             return this;
+        }
+
+        /**
+         * @return {@literal true if host is already set}
+         */
+        public boolean hasHost() {
+            return host != null;
         }
     }
 }
