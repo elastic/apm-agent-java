@@ -284,10 +284,32 @@ public class ConnectionMetaData {
         },
 
         H2("h2") {
-            // Actually behaves like the default, but better have it explicit
+            private final String MEM_SUBPROTOCOL = "mem:";
+            private final Set<String> LOCAL_SUBPROTOCOLS = new HashSet<>(Arrays.asList("file:", MEM_SUBPROTOCOL));
+
             @Override
             Builder parse(String vendorUrl, Builder builder) {
+                String localInstance = null;
+                for (String subprotocol : LOCAL_SUBPROTOCOLS) {
+                    if (vendorUrl.startsWith(subprotocol)) {
+                        localInstance = vendorUrl.substring(subprotocol.length());
+                    }
+                }
+                if (localInstance != null) {
+                    return builder
+                        .withLocalAccess()
+                        .withInstance(localInstance);
+                }
+
                 return defaultParse(vendorUrl, builder.withHostLocalhost());
+            }
+
+            @Override
+            protected String defaultParseInstance(String afterAuthority) {
+                if (afterAuthority.startsWith(MEM_SUBPROTOCOL)) {
+                    return afterAuthority.substring(MEM_SUBPROTOCOL.length());
+                }
+                return super.defaultParseInstance(afterAuthority);
             }
         },
 
@@ -299,13 +321,13 @@ public class ConnectionMetaData {
             Builder parse(String vendorUrl, Builder builder) {
                 boolean isLocal = !vendorUrl.contains(":");
                 String localInstance = null;
-                for (String subProtocol : LOCAL_SUBPROTOCOLS) {
+                for (String subProtocol : LOCAL_SUBPROTOCOLS) { // TODO : maybe move this behavior to common default
                     if(vendorUrl.startsWith(subProtocol)){
                         isLocal = true;
-                        // for local sub-protocols everything after sub-protocol is part of instance
+                        // for local sub-protocols everything after sub-protocol but before properties is part of instance
                         localInstance = vendorUrl.substring(subProtocol.length());
                         int propertiesStart = localInstance.indexOf(';');
-                        if(propertiesStart >0) {
+                        if (propertiesStart > 0) {
                             localInstance = localInstance.substring(0, propertiesStart);
                         }
                     }
@@ -313,10 +335,7 @@ public class ConnectionMetaData {
 
                 if (isLocal) {
                     builder.withLocalAccess();
-                    if (localInstance == null) {
-                        localInstance = vendorUrl;
-                    }
-                    builder.withInstance(localInstance);
+                    builder.withInstance(localInstance != null ? localInstance : vendorUrl);
                     return builder;
                 } else {
                     builder = builder.withPort(1527);
@@ -491,7 +510,7 @@ public class ConnectionMetaData {
             builder.withHostLocalhost();// default to localhost when not known
 
             int authorityStart = vendorUrl.indexOf("//");
-           String afterAuthority = null;
+            String afterAuthority = null;
             if (authorityStart >= 0) {
                 String authority = vendorUrl.substring(authorityStart + 2);
 
@@ -501,20 +520,20 @@ public class ConnectionMetaData {
                 } else {
                     int authorityEnd = authority.indexOf('/');
                     if (authorityEnd > 0) {
-                        afterAuthority = authority.substring(authorityEnd+1);
+                        afterAuthority = authority.substring(authorityEnd + 1);
                         authority = authority.substring(0, authorityEnd);
                     }
 
                     parseAuthority(authority, builder);
                 }
+            } else {
+                // no authority: assume only db name
+                builder.withInstance(vendorUrl);
             }
 
-            if (!vendorUrl.startsWith("/")) {
-                // assume only db name
-                builder.withInstance(vendorUrl);
-            } else if (afterAuthority != null) {
-                    builder.withInstance(defaultParseInstance(afterAuthority));
-                }
+            if (afterAuthority != null) {
+                builder.withInstance(defaultParseInstance(afterAuthority));
+            }
 
             return builder;
         }

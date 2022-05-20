@@ -272,13 +272,13 @@ class ConnectionMetaDataTest {
     @Test
     void testH2() {
         // http://www.h2database.com/html/features.html#database_url
-        testUrl("jdbc:h2:file:/data/sample", "h2", "localhost", -1, null);
+        testUrl("jdbc:h2:file:/data/sample", "h2", "localhost", -1, "/data/sample");
         testUrl("jdbc:h2:mem:", "h2", "localhost", -1, null);
-        testUrl("jdbc:h2:mem:test_mem", "h2", "localhost", -1, null);
-        testUrl("jdbc:h2:tcp://localhost/mem:test", "h2", "localhost", -1, null);
-        testUrl("jdbc:h2:tcp://dbserv:8084/~/sample", "h2", "dbserv", 8084, null);
-        testUrl("jdbc:h2:ssl://dbserv:8085/~/sample;", "h2", "dbserv", 8085, null);
-        testUrl("jdbc:h2:ssl://dbserv:8085/~/sample;prop1=val1;prop2=val2", "h2", "dbserv", 8085, null);
+        testUrl("jdbc:h2:mem:test_mem", "h2", "localhost", -1, "test_mem");
+        testUrl("jdbc:h2:tcp://server/mem:test", "h2", "server", -1, "test");
+        testUrl("jdbc:h2:tcp://dbserv:8084/~/sample", "h2", "dbserv", 8084, "sample");
+        testUrl("jdbc:h2:ssl://dbserv:8085/~/sample;", "h2", "dbserv", 8085, "sample");
+        testUrl("jdbc:h2:ssl://dbserv:8085/~/sample;prop1=val1;prop2=val2", "h2", "dbserv", 8085, "sample");
     }
 
     @Test
