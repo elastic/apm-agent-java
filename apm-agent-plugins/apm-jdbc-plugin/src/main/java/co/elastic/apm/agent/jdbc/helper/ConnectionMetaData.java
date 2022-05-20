@@ -250,7 +250,7 @@ public class ConnectionMetaData {
         POSTGRESQL("postgresql") {
             @Override
             Builder parse(String vendorUrl, Builder builder) {
-                return DEFAULT.parse(vendorUrl, builder.withHostLocalhost().withPort(5432));
+                return defaultParse(vendorUrl, builder.withHostLocalhost().withPort(5432));
             }
         },
 
@@ -267,7 +267,17 @@ public class ConnectionMetaData {
         DB2("db2") {
             @Override
             Builder parse(String vendorUrl, Builder builder) {
-                return DEFAULT.parse(vendorUrl, builder.withPort(50000));
+                return defaultParse(vendorUrl, builder.withPort(50000));
+            }
+
+            @Override
+            protected String defaultParseInstance(String afterAuthority) {
+                // jdbc:db2://myhost/mydb:user=dbadm;
+                int separator = afterAuthority.indexOf(':');
+                if (separator > 0) {
+                    return afterAuthority.substring(0, separator);
+                }
+                return super.defaultParseInstance(afterAuthority);
             }
         },
 
@@ -275,7 +285,7 @@ public class ConnectionMetaData {
             // Actually behaves like the default, but better have it explicit
             @Override
             Builder parse(String vendorUrl, Builder builder) {
-                return DEFAULT.parse(vendorUrl, builder.withHostLocalhost());
+                return defaultParse(vendorUrl, builder.withHostLocalhost());
             }
         },
 
@@ -288,7 +298,7 @@ public class ConnectionMetaData {
                     builder = builder.withPort(1527);
                 }
 
-                return DEFAULT.parse(vendorUrl, builder);
+                return defaultParse(vendorUrl, builder);
             }
         },
 
@@ -300,7 +310,7 @@ public class ConnectionMetaData {
                 } else {
                     builder = builder.withPort(9001);
                 }
-                return DEFAULT.parse(vendorUrl, builder);
+                return defaultParse(vendorUrl, builder);
             }
         },
 
@@ -431,7 +441,7 @@ public class ConnectionMetaData {
          */
         abstract ConnectionMetaData.Builder parse(String vendorUrl, ConnectionMetaData.Builder builder);
 
-        static ConnectionMetaData.Builder defaultParse(String vendorUrl, ConnectionMetaData.Builder builder) {
+        protected ConnectionMetaData.Builder defaultParse(String vendorUrl, ConnectionMetaData.Builder builder) {
             // Examples:
             // database
             // /
@@ -449,8 +459,8 @@ public class ConnectionMetaData {
 
             builder.withHostLocalhost();// default to localhost when not known
 
-
             int authorityStart = vendorUrl.indexOf("//");
+           String afterAuthority = null;
             if (authorityStart >= 0) {
                 String authority = vendorUrl.substring(authorityStart + 2);
 
@@ -459,7 +469,8 @@ public class ConnectionMetaData {
                     builder.withLocalAccess();
                 } else {
                     int authorityEnd = authority.indexOf('/');
-                    if (authorityEnd >= 0) {
+                    if (authorityEnd > 0) {
+                        afterAuthority = authority.substring(authorityEnd+1);
                         authority = authority.substring(0, authorityEnd);
                     }
 
@@ -467,17 +478,20 @@ public class ConnectionMetaData {
                 }
             }
 
-
             if (!vendorUrl.startsWith("/")) {
                 // assume only db name
                 builder.withInstance(vendorUrl);
-            } else {
-                // db name is after the last '/'
-                int dbNameStart = vendorUrl.lastIndexOf('/');
-                builder.withInstance(vendorUrl.substring(dbNameStart + 1));
-            }
+            } else if (afterAuthority != null) {
+                    builder.withInstance(defaultParseInstance(afterAuthority));
+                }
 
             return builder;
+        }
+
+        protected String defaultParseInstance(String afterAuthority) {
+            // db name is after the last '/' for the most common case, but could be vendor-specific
+            int dbNameStart = afterAuthority.lastIndexOf('/');
+            return afterAuthority.substring(dbNameStart + 1);
         }
 
         /**
