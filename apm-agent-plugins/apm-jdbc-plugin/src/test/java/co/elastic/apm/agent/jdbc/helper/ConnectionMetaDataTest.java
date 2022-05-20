@@ -283,10 +283,10 @@ class ConnectionMetaDataTest {
 
     @Test
     void testUnknown() {
-        testUrl("jdbc:arbitrary://myhost:666/mydb;user=dbadm;password=dbadm;", "arbitrary", "myhost", 666, null);
-        testUrl("jdbc:arbitrary://[::1]:666/mydb?user=dbadm&password=dbadm;", "arbitrary", "[::1]", 666, null);
-        testUrl("jdbc:arbitrary://127.0.0.1:666/mydb;user=dbadm;password=dbadm;", "arbitrary", "127.0.0.1", 666, null);
-        testUrl("jdbc:arbitrary://myhost/mydb;user=dbadm;password=dbadm;", "arbitrary", "myhost", -1, null);
+        testUrl("jdbc:arbitrary://myhost:666/mydb;user=dbadm;password=dbadm;", "arbitrary", "myhost", 666, "mydb");
+        testUrl("jdbc:arbitrary://[::1]:666/mydb?user=dbadm&password=dbadm;", "arbitrary", "[::1]", 666, "mydb");
+        testUrl("jdbc:arbitrary://127.0.0.1:666/mydb;user=dbadm;password=dbadm;", "arbitrary", "127.0.0.1", 666, "mydb");
+        testUrl("jdbc:arbitrary://myhost/mydb;user=dbadm;password=dbadm;", "arbitrary", "myhost", -1, "mydb");
         testUrl("jdbc:arbitrary://myhost;", "arbitrary", "myhost", -1, null);
         testUrl("jdbc:arbitrary://my.host;", "arbitrary", "my.host", -1, null);
         testUrl("jdbc:arbitrary://myhost", "arbitrary", "myhost", -1, null);

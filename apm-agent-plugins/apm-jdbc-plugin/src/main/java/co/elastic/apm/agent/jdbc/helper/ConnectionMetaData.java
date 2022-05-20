@@ -485,9 +485,21 @@ public class ConnectionMetaData {
             // //host:666/database?prop1=val1&prop2=val2
             // //host:666/database;prop1=val1;prop2=val2
 
-            int indexOfProperties = Math.max(vendorUrl.indexOf(';'), vendorUrl.indexOf('?'));
-            if (indexOfProperties > 0) {
-                vendorUrl = vendorUrl.substring(0, indexOfProperties);
+            int propertiesStart = -1;
+            for (char separator : getPropertiesSeparators()) {
+                int index = vendorUrl.indexOf(separator);
+                if (index > 0) {
+                    if (propertiesStart < 0) {
+                        propertiesStart = index;
+                    } else {
+                        // in case we have multiple of them, we take the first
+                        propertiesStart = Math.min(propertiesStart, index);
+                    }
+                }
+            }
+
+            if (propertiesStart > 0) {
+                vendorUrl = vendorUrl.substring(0, propertiesStart);
             }
 
             for (String localPrefix : getLocalSubProtocols()) {
@@ -533,6 +545,10 @@ public class ConnectionMetaData {
 
         protected Set<String> getLocalSubProtocols() {
             return Collections.emptySet();
+        }
+
+        protected char[] getPropertiesSeparators() {
+            return new char[]{';', '?'};
         }
 
         protected String defaultParseInstance(String afterAuthority) {
