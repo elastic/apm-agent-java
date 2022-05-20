@@ -90,9 +90,9 @@ class ConnectionMetaDataTest {
     @Test
     void testIngress() {
         // https://docs.actian.com/ingres/11.0/index.html#page/QuickStart_Win/5._Connecting_to_Ingres_Using_JDBC.htm
-        testUrl("jdbc:ingres://myhost:II7/testdb;UID=userid;PWD=password", "ingres", "myhost", -1, null);
-        testUrl("jdbc:ingres://localhost:II7/testdb;UID=userid;PWD=password", "ingres", "localhost", -1, null);
-        testUrl("jdbc:ingres://localhost:567/testdb;UID=userid;PWD=password", "ingres", "localhost", 567, null);
+        testUrl("jdbc:ingres://myhost:II7/testdb;UID=userid;PWD=password", "ingres", "myhost", -1, "testdb");
+        testUrl("jdbc:ingres://localhost:II7/testdb;UID=userid;PWD=password", "ingres", "localhost", -1, "testdb");
+        testUrl("jdbc:ingres://localhost:567/testdb;UID=userid;PWD=password", "ingres", "localhost", 567, "testdb");
     }
 
     @Test
@@ -309,13 +309,14 @@ class ConnectionMetaDataTest {
     @Test
     void testHsqldb() {
         // http://hsqldb.org/doc/2.0/guide/dbproperties-chapt.html
-        testUrl("jdbc:hsqldb:file:~/mydb", "hsqldb", "localhost", -1, null);
-        testUrl("jdbc:hsqldb:file:enrolments;user=aUserName;ifexists=true", "hsqldb", "localhost", -1, null);
-        testUrl("jdbc:hsqldb:hsql://localhost/enrolments;close_result=true", "hsqldb", "localhost", 9001, null);
-        testUrl("jdbc:hsqldb:hsql://my.host/enrolments;close_result=true", "hsqldb", "my.host", 9001, null);
+        testUrl("jdbc:hsqldb:file:~/mydb", "hsqldb", "localhost", -1, "~/mydb");
+        testUrl("jdbc:hsqldb:file:enrolments;user=aUserName;ifexists=true", "hsqldb", "localhost", -1, "enrolments");
+        testUrl("jdbc:hsqldb:hsql://localhost/enrolments;close_result=true", "hsqldb", "localhost", 9001, "enrolments");
+        testUrl("jdbc:hsqldb:hsql://my.host/enrolments;close_result=true", "hsqldb", "my.host", 9001, "enrolments");
         testUrl("jdbc:hsqldb:http://192.0.0.10:9500", "hsqldb", "192.0.0.10", 9500, null);
         testUrl("jdbc:hsqldb:http://dbserver.somedomain.com", "hsqldb", "dbserver.somedomain.com", 9001, null);
         testUrl("jdbc:hsqldb:mem:", "hsqldb", "localhost", -1, null);
+        testUrl("jdbc:hsqldb:res:/adirectory/dbname", "hsqldb", "localhost", -1, "/adirectory/dbname");
     }
 
     // @Test // TODO : not sure if it's relevant to keep, disabled for now

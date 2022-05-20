@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -275,10 +276,7 @@ public class ConnectionMetaData {
             @Override
             protected String defaultParseInstance(String afterAuthority) {
                 // jdbc:db2://myhost/mydb:user=dbadm;
-                int separator = afterAuthority.indexOf(':');
-                if (separator > 0) {
-                    return afterAuthority.substring(0, separator);
-                }
+                afterAuthority = trimAfter(afterAuthority, ':');
                 return super.defaultParseInstance(afterAuthority);
             }
         },
@@ -289,19 +287,12 @@ public class ConnectionMetaData {
 
             @Override
             Builder parse(String vendorUrl, Builder builder) {
-                String localInstance = null;
-                for (String subprotocol : LOCAL_SUBPROTOCOLS) {
-                    if (vendorUrl.startsWith(subprotocol)) {
-                        localInstance = vendorUrl.substring(subprotocol.length());
-                    }
-                }
-                if (localInstance != null) {
-                    return builder
-                        .withLocalAccess()
-                        .withInstance(localInstance);
-                }
+                return defaultParse(vendorUrl, builder);
+            }
 
-                return defaultParse(vendorUrl, builder.withHostLocalhost());
+            @Override
+            protected Set<String> getLocalSubProtocols() {
+                return LOCAL_SUBPROTOCOLS;
             }
 
             @Override
@@ -319,28 +310,18 @@ public class ConnectionMetaData {
 
             @Override
             Builder parse(String vendorUrl, Builder builder) {
-                boolean isLocal = !vendorUrl.contains(":");
-                String localInstance = null;
-                for (String subProtocol : LOCAL_SUBPROTOCOLS) { // TODO : maybe move this behavior to common default
-                    if(vendorUrl.startsWith(subProtocol)){
-                        isLocal = true;
-                        // for local sub-protocols everything after sub-protocol but before properties is part of instance
-                        localInstance = vendorUrl.substring(subProtocol.length());
-                        int propertiesStart = localInstance.indexOf(';');
-                        if (propertiesStart > 0) {
-                            localInstance = localInstance.substring(0, propertiesStart);
-                        }
-                    }
-                }
-
-                if (isLocal) {
-                    builder.withLocalAccess();
-                    builder.withInstance(localInstance != null ? localInstance : vendorUrl);
-                    return builder;
+                if(vendorUrl.contains("//")) {
+                    // if it has something that looks like an authority, default to remote port
+                    builder.withPort(1527);
                 } else {
-                    builder = builder.withPort(1527);
-                    return defaultParse(vendorUrl, builder);
+                    builder.withLocalAccess();
                 }
+                return defaultParse(vendorUrl, builder);
+            }
+
+            @Override
+            protected Set<String> getLocalSubProtocols(){
+                return LOCAL_SUBPROTOCOLS;
             }
 
             @Override
@@ -353,14 +334,16 @@ public class ConnectionMetaData {
         },
 
         HSQLDB("hsqldb") {
+
+            private final Set<String> LOCAL_SUBPROTOCOLS = new HashSet<>(Arrays.asList("file:","mem:","res:"));
             @Override
             Builder parse(String vendorUrl, Builder builder) {
-                if (vendorUrl.startsWith("file:") || vendorUrl.startsWith("mem:")) {
-                    builder = builder.withLocalAccess();
-                } else {
-                    builder = builder.withPort(9001);
-                }
-                return defaultParse(vendorUrl, builder);
+                return defaultParse(vendorUrl, builder.withPort(9001));
+            }
+
+            @Override
+            protected Set<String> getLocalSubProtocols() {
+                return LOCAL_SUBPROTOCOLS;
             }
         },
 
@@ -507,6 +490,15 @@ public class ConnectionMetaData {
                 vendorUrl = vendorUrl.substring(0, indexOfProperties);
             }
 
+            for (String localPrefix : getLocalSubProtocols()) {
+                if (vendorUrl.startsWith(localPrefix)) {
+                    // for known local prefixes the instance name is everything after the sub-protocol part
+                    return builder
+                        .withLocalAccess()
+                        .withInstance(vendorUrl.substring(localPrefix.length()));
+                }
+            }
+
             builder.withHostLocalhost();// default to localhost when not known
 
             int authorityStart = vendorUrl.indexOf("//");
@@ -528,7 +520,7 @@ public class ConnectionMetaData {
                 }
             } else if (!vendorUrl.equals("/")) {
                 // no authority: assume only db name
-                // we need to ignore cases like 'jdbc:postgresql:/'
+
                 builder.withInstance(vendorUrl);
             }
 
@@ -539,10 +531,19 @@ public class ConnectionMetaData {
             return builder;
         }
 
+        protected Set<String> getLocalSubProtocols() {
+            return Collections.emptySet();
+        }
+
         protected String defaultParseInstance(String afterAuthority) {
             // db name is after the last '/' for the most common case, but could be vendor-specific
             int dbNameStart = afterAuthority.lastIndexOf('/');
             return afterAuthority.substring(dbNameStart + 1);
+        }
+
+        protected String trimAfter(String s, char delimiter){
+            int end = s.indexOf(delimiter);
+            return end < 0 ? s : s.substring(0, end);
         }
 
         /**
