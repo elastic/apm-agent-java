@@ -28,8 +28,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -290,15 +292,44 @@ public class ConnectionMetaData {
         },
 
         DERBY("derby") {
+            private final String MEMORY_SUBPROTOCOL = "memory:";
+            private final Set<String> LOCAL_SUBPROTOCOLS = new HashSet<>(Arrays.asList(MEMORY_SUBPROTOCOL, "jar:", "classpath:","directory:"));
+
             @Override
             Builder parse(String vendorUrl, Builder builder) {
-                if (vendorUrl.startsWith("jar:") || vendorUrl.startsWith("memory:") || !vendorUrl.contains(":")) {
-                    builder = builder.withLocalAccess();
-                } else {
-                    builder = builder.withPort(1527);
+                boolean isLocal = !vendorUrl.contains(":");
+                String localInstance = null;
+                for (String subProtocol : LOCAL_SUBPROTOCOLS) {
+                    if(vendorUrl.startsWith(subProtocol)){
+                        isLocal = true;
+                        // for local sub-protocols everything after sub-protocol is part of instance
+                        localInstance = vendorUrl.substring(subProtocol.length());
+                        int propertiesStart = localInstance.indexOf(';');
+                        if(propertiesStart >0) {
+                            localInstance = localInstance.substring(0, propertiesStart);
+                        }
+                    }
                 }
 
-                return defaultParse(vendorUrl, builder);
+                if (isLocal) {
+                    builder.withLocalAccess();
+                    if (localInstance == null) {
+                        localInstance = vendorUrl;
+                    }
+                    builder.withInstance(localInstance);
+                    return builder;
+                } else {
+                    builder = builder.withPort(1527);
+                    return defaultParse(vendorUrl, builder);
+                }
+            }
+
+            @Override
+            protected String defaultParseInstance(String afterAuthority) {
+                if (afterAuthority.startsWith(MEMORY_SUBPROTOCOL)) {
+                    return afterAuthority.substring(MEMORY_SUBPROTOCOL.length());
+                }
+                return super.defaultParseInstance(afterAuthority);
             }
         },
 

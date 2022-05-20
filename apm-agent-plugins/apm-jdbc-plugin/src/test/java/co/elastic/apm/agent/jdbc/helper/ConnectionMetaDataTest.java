@@ -294,12 +294,16 @@ class ConnectionMetaDataTest {
 
     @Test
     void testDerby() {
-        testUrl("jdbc:derby://my.host/memory:mydb;prop1=val1;prop2=val2", "derby", "my.host", 1527, null);
-        testUrl("jdbc:derby://my.host/memory:mydb;prop1=val1;prop2=val2", "derby", "my.host", 1527, null);
-        testUrl("jdbc:derby://my.host:666/memory:mydb;prop1=val1;prop2=val2", "derby", "my.host", 666, null);
-        testUrl("jdbc:derby:jar:/mydb;prop1=val1;prop2=val2", "derby", "localhost", -1, null);
-        testUrl("jdbc:derby:memory:mydb", "derby", "localhost", -1, null);
-        testUrl("jdbc:derby:mydb", "derby", "localhost", -1, null);
+        // https://db.apache.org/derby/docs/10.5/devguide/rdevdvlp22102.html
+        testUrl("jdbc:derby://my.host/memory:mydb;prop1=val1;prop2=val2", "derby", "my.host", 1527, "mydb");
+        testUrl("jdbc:derby://my.host/memory:mydb;prop1=val1;prop2=val2", "derby", "my.host", 1527, "mydb");
+        testUrl("jdbc:derby://my.host:666/memory:mydb;prop1=val1;prop2=val2", "derby", "my.host", 666, "mydb");
+        testUrl("jdbc:derby:jar:/mydb;prop1=val1;prop2=val2", "derby", "localhost", -1, "/mydb");
+        testUrl("jdbc:derby:memory:mydb", "derby", "localhost", -1, "mydb");
+        testUrl("jdbc:derby:mydb", "derby", "localhost", -1, "mydb");
+        testUrl("jdbc:derby:classpath:/myDB", "derby", "localhost", -1, "/myDB");
+        testUrl("jdbc:derby:jar:(C:/dbs.jar)products/boiledfood", "derby", "localhost", -1, "(C:/dbs.jar)products/boiledfood");
+        testUrl("jdbc:derby:directory:myDB", "derby", "localhost", -1, "myDB");
     }
 
     @Test
