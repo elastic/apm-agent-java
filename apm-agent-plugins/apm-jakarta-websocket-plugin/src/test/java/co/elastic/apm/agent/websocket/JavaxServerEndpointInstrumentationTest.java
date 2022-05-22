@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.websocket;
 
+import co.elastic.apm.agent.util.VersionUtils;
 import co.elastic.apm.agent.websocket.endpoint.JavaxServerEndpoint;
 
 class JavaxServerEndpointInstrumentationTest extends BaseServerEndpointInstrumentationTest {
@@ -38,6 +39,6 @@ class JavaxServerEndpointInstrumentationTest extends BaseServerEndpointInstrumen
 
     @Override
     protected String getFrameworkVersion() {
-        return "1.1";
+        return VersionUtils.getVersion(javax.websocket.server.ServerEndpoint.class, "javax.websocket", "javax.websocket-api");
     }
 }

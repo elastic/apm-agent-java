@@ -19,9 +19,6 @@
 package co.elastic.apm.agent.jedis;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -29,44 +26,34 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static net.bytebuddy.matcher.ElementMatchers.isPublic;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-/**
- * Sets the Redis span name to the Redis protocol command.
- * Because of the way the instrumentation works for Jedis,
- * it would otherwise be set to the {@link redis.clients.jedis.Jedis} client method name.
- * This is good enough as a default but we want all Redis clients to produce the same span names.
- */
-public class JedisSpanNameInstrumentation extends TracerAwareInstrumentation {
+public class JedisConnectionInstrumentation extends TracerAwareInstrumentation {
 
-    public static class AdviceClass {
-        @Advice.OnMethodEnter(inline = false)
-        public static void setSpanNameToRedisProtocolCommand(@Advice.Argument(1) Object command) {
-            AbstractSpan<?> active = tracer.getActive();
-            if (active instanceof Span) {
-                Span activeSpan = (Span) active;
-                if ("redis".equals(activeSpan.getSubtype())) {
-                    activeSpan.withName(command.toString());
-                }
-            }
-        }
+    @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        // This makes sure we do not apply this instrumentation to Jedis 4 Connection, for which we have dedicated Advice
+        return not(isBootstrapClassLoader()).and(not(classLoaderCanLoadClass("redis.clients.jedis.CommandArguments")));
+    }
+
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.jedis.SendCommandAdvice";
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("redis.clients.jedis.Protocol");
+        return named("redis.clients.jedis.Connection");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("sendCommand")
-            .and(isPublic())
-            .and(takesArgument(0, nameEndsWith("RedisOutputStream")))
-            .and(takesArgument(1, nameEndsWith("Command")))
-            .and(takesArgument(2, byte[][].class));
+        return named("sendCommand").and(takesArgument(0, nameEndsWith("Command")));
     }
 
     @Override

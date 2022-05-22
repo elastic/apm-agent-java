@@ -26,6 +26,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 import org.apache.logging.log4j.ThreadContext;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.RandomAccessFileAppender;
 import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.junit.jupiter.api.AfterAll;
@@ -36,6 +38,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Objects;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Since the agent core uses log4j 2.12.4, and since both agent core and tests are loaded by the system class loader in unit tests,
@@ -92,7 +96,10 @@ public class Log4j2InstrumentationTest extends LoggingInstrumentationTest {
         @Override
         public void open() {
             log4j2Logger = LogManager.getLogger("Test-File-Logger");
-            ((org.apache.logging.log4j.core.Logger) log4j2Logger).getContext().setConfigLocation(configLocation);
+            assertThat(log4j2Logger).isInstanceOf(org.apache.logging.log4j.core.Logger.class);
+
+            LoggerContext loggerContext = ((org.apache.logging.log4j.core.Logger) log4j2Logger).getContext();
+            loggerContext.setConfigLocation(configLocation);
         }
 
         @Override
@@ -102,7 +109,15 @@ public class Log4j2InstrumentationTest extends LoggingInstrumentationTest {
 
         @Override
         public String getLogFilePath() {
-            return ((RandomAccessFileAppender) ((org.apache.logging.log4j.core.Logger) log4j2Logger).getAppenders().get("FILE")).getFileName();
+            assertThat(log4j2Logger)
+                .isInstanceOf(org.apache.logging.log4j.core.Logger.class);
+            org.apache.logging.log4j.core.Logger logger = (org.apache.logging.log4j.core.Logger) log4j2Logger;
+
+            assertThat(logger.getAppenders()).containsKey("FILE");
+            Appender fileAppender = logger.getAppenders().get("FILE");
+            assertThat(fileAppender).isInstanceOf(RandomAccessFileAppender.class);
+
+            return ((RandomAccessFileAppender) fileAppender).getFileName();
         }
 
         @Override

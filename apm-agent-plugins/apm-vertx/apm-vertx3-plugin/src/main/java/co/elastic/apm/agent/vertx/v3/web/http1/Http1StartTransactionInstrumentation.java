@@ -67,8 +67,7 @@ public class Http1StartTransactionInstrumentation extends WebInstrumentation {
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
-        public static void exit(@Advice.This HttpServerRequestImpl request,
-                                @Advice.Enter Object transactionObj,
+        public static void exit(@Advice.Enter Object transactionObj,
                                 @Advice.Thrown @Nullable Throwable thrown) {
             if (transactionObj instanceof Transaction) {
                 Transaction transaction = (Transaction) transactionObj;

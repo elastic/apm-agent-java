@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.servlet.servicename;
 
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.servlet.AbstractServletInstrumentation;
 import co.elastic.apm.agent.servlet.Constants;
 import co.elastic.apm.agent.servlet.ServletServiceNameHelper;
@@ -30,6 +32,9 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -58,6 +63,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public abstract class InitServiceNameInstrumentation extends AbstractServletInstrumentation {
 
     @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList(Constants.SERVLET_API, "servlet-service-name");
+    }
+
+    @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameContains("Filter").or(nameContains("Servlet")).or(nameContains("Listener"));
     }
@@ -81,6 +91,8 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
 
     public static class JavaxInitServiceNameInstrumentation extends InitServiceNameInstrumentation {
 
+        private static final Logger logger = LoggerFactory.getLogger(JavaxInitServiceNameInstrumentation.class);
+
         @Override
         public Constants.ServletImpl getImplConstants() {
             return Constants.ServletImpl.JAVAX;
@@ -92,22 +104,32 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onEnter(@Advice.Argument(0) @Nullable Object arg) {
-                javax.servlet.ServletContext servletContext;
-                if (arg instanceof javax.servlet.FilterConfig) {
-                    servletContext = adapter.getServletContextFromFilterConfig((javax.servlet.FilterConfig) arg);
-                } else if (arg instanceof javax.servlet.ServletConfig) {
-                    servletContext = adapter.getServletContextFromServletConfig((javax.servlet.ServletConfig) arg);
-                } else if (arg instanceof javax.servlet.ServletContextEvent) {
-                    servletContext = adapter.getServletContextFromServletContextEvent((javax.servlet.ServletContextEvent) arg);
-                } else {
-                    return;
+                javax.servlet.ServletContext servletContext = null;
+                try {
+                    if (arg instanceof javax.servlet.FilterConfig) {
+                        servletContext = adapter.getServletContextFromFilterConfig((javax.servlet.FilterConfig) arg);
+                    } else if (arg instanceof javax.servlet.ServletConfig) {
+                        servletContext = adapter.getServletContextFromServletConfig((javax.servlet.ServletConfig) arg);
+                    } else if (arg instanceof javax.servlet.ServletContextEvent) {
+                        servletContext = adapter.getServletContextFromServletContextEvent((javax.servlet.ServletContextEvent) arg);
+                    }
+                } catch (Exception e) {
+                    String message = String.format("Failed obtain ServletContext from config %s. Stack trace printed in debug level", arg);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug(message, e);
+                    } else {
+                        logger.info(message);
+                    }
                 }
+                // checks for null servletContext
                 ServletServiceNameHelper.determineServiceName(adapter, servletContext, tracer);
             }
         }
     }
 
     public static class JakartaInitServiceNameInstrumentation extends InitServiceNameInstrumentation {
+
+        private static final Logger logger = LoggerFactory.getLogger(JakartaInitServiceNameInstrumentation.class);
 
         @Override
         public Constants.ServletImpl getImplConstants() {
@@ -120,16 +142,24 @@ public abstract class InitServiceNameInstrumentation extends AbstractServletInst
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onEnter(@Advice.Argument(0) @Nullable Object arg) {
-                jakarta.servlet.ServletContext servletContext;
-                if (arg instanceof jakarta.servlet.FilterConfig) {
-                    servletContext = adapter.getServletContextFromFilterConfig((jakarta.servlet.FilterConfig) arg);
-                } else if (arg instanceof jakarta.servlet.ServletConfig) {
-                    servletContext = adapter.getServletContextFromServletConfig((jakarta.servlet.ServletConfig) arg);
-                } else if (arg instanceof jakarta.servlet.ServletContextEvent) {
-                    servletContext = adapter.getServletContextFromServletContextEvent((jakarta.servlet.ServletContextEvent) arg);
-                } else {
-                    return;
+                jakarta.servlet.ServletContext servletContext = null;
+                try {
+                    if (arg instanceof jakarta.servlet.FilterConfig) {
+                        servletContext = adapter.getServletContextFromFilterConfig((jakarta.servlet.FilterConfig) arg);
+                    } else if (arg instanceof jakarta.servlet.ServletConfig) {
+                        servletContext = adapter.getServletContextFromServletConfig((jakarta.servlet.ServletConfig) arg);
+                    } else if (arg instanceof jakarta.servlet.ServletContextEvent) {
+                        servletContext = adapter.getServletContextFromServletContextEvent((jakarta.servlet.ServletContextEvent) arg);
+                    }
+                } catch (Exception e) {
+                    String message = String.format("Failed obtain ServletContext from config %s. Stack trace printed in debug level", arg);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug(message, e);
+                    } else {
+                        logger.info(message);
+                    }
                 }
+                // checks for null servletContext
                 ServletServiceNameHelper.determineServiceName(adapter, servletContext, tracer);
             }
         }
