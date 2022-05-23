@@ -35,8 +35,8 @@ class ConnectionMetaDataTest {
     @Test
     void testOracle() {
         // https://docs.oracle.com/cd/B28359_01/java.111/b31224/urls.htm#BEIJFHHB
-        testUrl("jdbc:oracle:thin:scott/tiger@//myhost:666/myinstance", "oracle", "myhost", 666, null);
-        testUrl("jdbc:oracle:thin:scott/tiger@//myhost/myinstance", "oracle", "myhost", 1521, null);
+        testUrl("jdbc:oracle:thin:scott/tiger@//myhost:666/myinstance", "oracle", "myhost", 666, "myinstance");
+        testUrl("jdbc:oracle:thin:scott/tiger@//myhost/myinstance", "oracle", "myhost", 1521, "myinstance");
         testUrl("jdbc:oracle:thin:scott/tiger@//myhost:666", "oracle", "myhost", 666, null);
         testUrl("jdbc:oracle:thin:scott/tiger@//myhost", "oracle", "myhost", 1521, null);
         testUrl("jdbc:oracle:thin:scott/tiger@myhost:666:myinstance", "oracle", "myhost", 666, "myinstance");

@@ -140,7 +140,11 @@ public class ConnectionMetaData {
 
                     int authorityEnd = authority.indexOf('/');
                     if (authorityEnd >= 0) {
+                        if (authorityEnd + 1 < authority.length()) {
+                            builder.withInstance(authority.substring(authorityEnd + 1));
+                        }
                         authority = authority.substring(0, authorityEnd);
+
                     }
 
                     parseAuthority(authority, builder);
