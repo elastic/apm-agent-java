@@ -646,10 +646,16 @@ public class ConnectionMetaData {
             // jdbc:mysql://sandy:secret@[myhost1:1111,address=(host=myhost2)(port=2222)(key2=value2)]/db
 
             vendorUrl = vendorUrl.toLowerCase().trim();
-            final Pattern pattern = Pattern.compile("//([^/?]+)");
+            final Pattern pattern = Pattern.compile("//([^/?]+)(.*)$");
             Matcher matcher = pattern.matcher(vendorUrl);
             if (matcher.find()) {
                 String hostsPart = matcher.group(1);
+                String afterHost = matcher.group(2);
+                if (afterHost.startsWith("/")) {
+                    int propertiesStart = afterHost.indexOf('?');
+                    String db = afterHost.substring(1, propertiesStart < 0 ? afterHost.length() : propertiesStart);
+                    builder.withInstance(db);
+                }
 
                 // splitting to hosts, watching out from the "key-value" form: (host=myhost1,port=1111,key1=value1)
                 List<String> hosts = new ArrayList<>();
