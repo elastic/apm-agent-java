@@ -274,10 +274,22 @@ public class ConnectionMetaData {
             }
 
             @Override
-            protected String defaultParseInstance(String afterAuthority) {
-                // jdbc:db2://myhost/mydb:user=dbadm;
-                afterAuthority = trimAfter(afterAuthority, ':');
-                return super.defaultParseInstance(afterAuthority);
+            protected int getPropertiesStart(String vendorUrl) {
+                int start = 2; // ignore the leading '//' prefix
+                int hostEndSlash = vendorUrl.lastIndexOf('/');
+                if (hostEndSlash >= 2) {
+                    start = hostEndSlash;
+                }
+                int twoDots = vendorUrl.indexOf(':', start);
+                if (twoDots < 0) {
+                    twoDots = Integer.MAX_VALUE;
+                }
+                int semiColon = vendorUrl.indexOf(';', start);
+                if (semiColon < 0) {
+                    semiColon = Integer.MAX_VALUE;
+                }
+                int min = Math.min(twoDots, semiColon);
+                return min == Integer.MAX_VALUE ? -1 : min;
             }
         },
 
@@ -295,22 +307,15 @@ public class ConnectionMetaData {
                 return LOCAL_SUBPROTOCOLS;
             }
 
-            @Override
-            protected String defaultParseInstance(String afterAuthority) {
-                if (afterAuthority.startsWith(MEM_SUBPROTOCOL)) {
-                    return afterAuthority.substring(MEM_SUBPROTOCOL.length());
-                }
-                return super.defaultParseInstance(afterAuthority);
-            }
         },
 
         DERBY("derby") {
             private final String MEMORY_SUBPROTOCOL = "memory:";
-            private final Set<String> LOCAL_SUBPROTOCOLS = new HashSet<>(Arrays.asList(MEMORY_SUBPROTOCOL, "jar:", "classpath:","directory:"));
+            private final Set<String> LOCAL_SUBPROTOCOLS = new HashSet<>(Arrays.asList(MEMORY_SUBPROTOCOL, "jar:", "classpath:", "directory:"));
 
             @Override
             Builder parse(String vendorUrl, Builder builder) {
-                if(vendorUrl.contains("//")) {
+                if (vendorUrl.contains("//")) {
                     // if it has something that looks like an authority, default to remote port
                     builder.withPort(1527);
                 } else {
@@ -320,22 +325,16 @@ public class ConnectionMetaData {
             }
 
             @Override
-            protected Set<String> getLocalSubProtocols(){
+            protected Set<String> getLocalSubProtocols() {
                 return LOCAL_SUBPROTOCOLS;
             }
 
-            @Override
-            protected String defaultParseInstance(String afterAuthority) {
-                if (afterAuthority.startsWith(MEMORY_SUBPROTOCOL)) {
-                    return afterAuthority.substring(MEMORY_SUBPROTOCOL.length());
-                }
-                return super.defaultParseInstance(afterAuthority);
-            }
         },
 
         HSQLDB("hsqldb") {
 
-            private final Set<String> LOCAL_SUBPROTOCOLS = new HashSet<>(Arrays.asList("file:","mem:","res:"));
+            private final Set<String> LOCAL_SUBPROTOCOLS = new HashSet<>(Arrays.asList("file:", "mem:", "res:"));
+
             @Override
             Builder parse(String vendorUrl, Builder builder) {
                 return defaultParse(vendorUrl, builder.withPort(9001));
@@ -485,18 +484,7 @@ public class ConnectionMetaData {
             // //host:666/database?prop1=val1&prop2=val2
             // //host:666/database;prop1=val1;prop2=val2
 
-            int propertiesStart = -1;
-            for (char separator : getPropertiesSeparators()) {
-                int index = vendorUrl.indexOf(separator);
-                if (index > 0) {
-                    if (propertiesStart < 0) {
-                        propertiesStart = index;
-                    } else {
-                        // in case we have multiple of them, we take the first
-                        propertiesStart = Math.min(propertiesStart, index);
-                    }
-                }
-            }
+            int propertiesStart = getPropertiesStart(vendorUrl);
 
             if (propertiesStart > 0) {
                 vendorUrl = vendorUrl.substring(0, propertiesStart);
@@ -537,29 +525,41 @@ public class ConnectionMetaData {
             }
 
             if (afterAuthority != null) {
-                builder.withInstance(defaultParseInstance(afterAuthority));
+                // db name is after the last '/' for the most common case, but could be vendor-specific
+                int dbNameStart = afterAuthority.lastIndexOf('/');
+                String dbName = afterAuthority.substring(dbNameStart + 1);
+
+                // while usually only one sub-protocol is used for this, it's easier to try them all
+                for (String subProtocol : getLocalSubProtocols()) {
+                    if (dbName.startsWith(subProtocol)) {
+                        dbName = dbName.substring(subProtocol.length());
+                    }
+                }
+
+                builder.withInstance(dbName);
             }
 
             return builder;
         }
 
+        protected int getPropertiesStart(String vendorUrl){
+            int propertiesStart = -1;
+            for (char separator : new char[]{';', '?'}) {
+                int index = vendorUrl.indexOf(separator);
+                if (index > 0) {
+                    if (propertiesStart < 0) {
+                        propertiesStart = index;
+                    } else {
+                        // in case we have multiple of them, we take the first
+                        propertiesStart = Math.min(propertiesStart, index);
+                    }
+                }
+            }
+            return propertiesStart;
+        }
+
         protected Set<String> getLocalSubProtocols() {
             return Collections.emptySet();
-        }
-
-        protected char[] getPropertiesSeparators() {
-            return new char[]{';', '?'};
-        }
-
-        protected String defaultParseInstance(String afterAuthority) {
-            // db name is after the last '/' for the most common case, but could be vendor-specific
-            int dbNameStart = afterAuthority.lastIndexOf('/');
-            return afterAuthority.substring(dbNameStart + 1);
-        }
-
-        protected String trimAfter(String s, char delimiter){
-            int end = s.indexOf(delimiter);
-            return end < 0 ? s : s.substring(0, end);
         }
 
         /**
