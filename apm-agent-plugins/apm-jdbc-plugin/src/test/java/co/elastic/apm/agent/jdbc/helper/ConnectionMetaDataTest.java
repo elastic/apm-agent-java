@@ -50,25 +50,43 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:oracle:thin:myhost", "oracle", "myhost", 1521, null);
 
         // address list parsing
-        testUrl("jdbc:oracle:thin:@(DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=host1)(PORT=666))" +
-            "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "host1", 666, null);
-        testUrl("jdbc:oracle:thin:@(DESCRIPTION =(LOAD_BALANCE=on )( ADDRESS= (PROTOCOL=TCP) ( HOST= host1 ) (  PORT  = 666 ))" +
-            "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "host1", 666, null);
-        testUrl("jdbc:oracle:thin:@(DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=host1))" +
-            "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "host1", 1521, null);
-        testUrl("jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST= cluster_alias)(PORT=666))" +
-            "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "cluster_alias", 666, null);
-        testUrl("jdbc:oracle:thin:@(DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=host1))" +
-                "(ADDRESS=(PROTOCOL=TCP)(HOST=host2)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=service_name)))",
-            "oracle", "host1", 1521, null);
-        testUrl("jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=6203))(CONNECT_DATA=" +
-            "(SERVER=DEDICATED)(SERVICE_NAME=DB.FQDN.ORG.DE)))", "oracle", "localhost", 6203, null);
-        testUrl("jdbc:oracle:thin:@(description=(address=(protocol=tcp)(host=localhost)(port=6203))(connect_data=" +
-            "(server=dedicated)(service_name=db.fqdn.org.de)))", "oracle", "localhost", 6203, null);
+        testUrl("jdbc:oracle:thin:@(DESCRIPTION=(LOAD_BALANCE=on)" +
+            "(ADDRESS=(PROTOCOL=TCP)(HOST=host1)(PORT=666))" +
+            "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "host1", 666, "service_name");
+        testUrl("jdbc:oracle:thin:@(DESCRIPTION =(LOAD_BALANCE=on )" +
+            "( ADDRESS= (PROTOCOL=TCP) ( HOST= host1 ) (  PORT  = 666 ))" +
+            "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "host1", 666, "service_name");
+        testUrl("jdbc:oracle:thin:@(DESCRIPTION=(LOAD_BALANCE=on)" +
+            "(ADDRESS=(PROTOCOL=TCP)(HOST=host1))" +
+            "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "host1", 1521, "service_name");
+        testUrl("jdbc:oracle:thin:@(DESCRIPTION=" +
+            "(ADDRESS=(PROTOCOL=TCP)(HOST= cluster_alias)(PORT=666))" +
+            "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "cluster_alias", 666, "service_name");
+        testUrl("jdbc:oracle:thin:@(DESCRIPTION=(LOAD_BALANCE=on)" +
+                "(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=host1))(ADDRESS=(PROTOCOL=TCP)(HOST=host2)(PORT=1521)))" +
+                "(CONNECT_DATA=(SERVICE_NAME=service_name)))",
+            "oracle", "host1", 1521, "service_name");
+        testUrl("jdbc:oracle:thin:@(DESCRIPTION=" +
+            "(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=6203))" +
+            "(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=DB.FQDN.ORG.DE)))", "oracle", "localhost", 6203,  "db.fqdn.org.de");
+        testUrl("jdbc:oracle:thin:@(description=" +
+            "(address=(protocol=tcp)(host=localhost)(port=6203))" +
+            "(connect_data=(server=dedicated)(service_name=db.fqdn.org.de)))", "oracle", "localhost", 6203, "db.fqdn.org.de");
 
         // intentional parsing error with extra ')' before '(address='
         testUrl("jdbc:oracle:thin:@(description=)(address=(protocol=tcp)(host=localhost)(port=6203))(connect_data=" +
             "(server=dedicated)(service_name=db.fqdn.org.de)))", "oracle", null, -1, null);
+
+        // instance name
+
+        testUrl("jdbc:oracle:thin:@(description=" +
+            "(address_list=(address=(protocol=tcp)(port=1521)(host=oraHost)))" +
+            "(connect_data=(INSTANCE_NAME=instance_name)))", "oracle", "orahost", 1521, "instance_name");
+
+        // instance name + service name, not sure if actually relevant but instance should have higher priority
+        testUrl("jdbc:oracle:thin:@(description=" +
+            "(address_list=(address=(protocol=tcp)(port=1521)(host=oraHost)))" +
+            "(connect_data=(SERVICE_NAME=service_name)(INSTANCE_NAME=instance_name)))", "oracle", "orahost", 1521, "instance_name");
     }
 
     @Test

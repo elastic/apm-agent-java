@@ -226,20 +226,24 @@ public class ConnectionMetaData {
             }
 
             private void traverseOracleTree(String connectionUrl, TreeNode treeNode, Builder builder) {
-                if (treeNode.name.toString().trim().equals("address")) {
+                String nodeName = treeNode.name.toString().trim();
+                if (nodeName.equals("address")) {
                     String host = null;
                     int port = -1;
                     for (TreeNode childNode : treeNode.childNodes) {
-                        String name = childNode.name.toString().trim();
-                        if (name.equals("host")) {
-                            host = childNode.value.toString().trim();
-                        } else if (name.equals("port")) {
-                            port = toNumericPort(connectionUrl, childNode.value.toString().trim());
+                        String childName = childNode.name.toString().trim();
+                        String childValue = childNode.value.toString().trim();
+                        if (childName.equals("host")) {
+                            host = childValue;
+                        } else if (childName.equals("port")) {
+                            port = toNumericPort(connectionUrl, childValue);
                         }
                     }
                     if (host != null && !builder.hasHost()) { // first value wins
                         builder.withHost(host).withPort(port);
                     }
+                } else if (nodeName.equals("instance_name") || (nodeName.equals("service_name") && !builder.hasInstance())) {
+                    builder.withInstance(treeNode.value.toString().trim());
                 }
 
                 for (TreeNode childNode : treeNode.childNodes) {
@@ -884,10 +888,18 @@ public class ConnectionMetaData {
         }
 
         /**
-         * @return {@literal true if host is already set}
+         * @return {@literal true} if host is already set.
          */
         public boolean hasHost() {
             return host != null;
+        }
+
+        /**
+         *
+         * @return {@literal true} if instance is already set.
+         */
+        public boolean hasInstance() {
+            return instance != null;
         }
     }
 }
