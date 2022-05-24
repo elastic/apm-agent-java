@@ -133,10 +133,13 @@ public class ConnectionMetaData {
                         logger.warn("Failed to parse oracle description {}", vendorUrl);
                         return builder.withParsingError();
                     }
-                } else if (vendorUrl.startsWith("//")) {
+                } else if (vendorUrl.indexOf('/') >= 0) {
+                    // try looking for patterns: host:port/instance or //host:port/instance
 
-                    // try looking for a //host:port/instance pattern
-                    String authority = vendorUrl.substring(2);
+                    String authority = vendorUrl;
+                    if (authority.startsWith("//")) {
+                        authority = vendorUrl.substring(2);
+                    }
 
                     int authorityEnd = authority.indexOf('/');
                     if (authorityEnd >= 0) {
