@@ -125,4 +125,11 @@ class SpanImpl extends AbstractSpanImpl {
         doSetDestinationService(resource);
         return this;
     }
+
+    @Nonnull
+    @Override
+    public Span setNonDiscardable() {
+        doSetNonDiscardable();
+        return this;
+    }
 }

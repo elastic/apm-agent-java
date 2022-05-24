@@ -18,18 +18,14 @@
  */
 package co.elastic.apm.agent.opentelemetry.sdk;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
-import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.context.Scope;
@@ -42,8 +38,6 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAmount;
-import java.time.temporal.TemporalUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -51,23 +45,7 @@ import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
-
-    private OpenTelemetry openTelemetry;
-    private Tracer otelTracer;
-
-    @Before
-    public void setUp() {
-        this.openTelemetry = GlobalOpenTelemetry.get();
-        assertThat(openTelemetry).isSameAs(GlobalOpenTelemetry.get());
-        otelTracer = openTelemetry.getTracer(null);
-
-        // otel spans are not recycled for now
-        disableRecyclingValidation();
-
-        // otel spans should have unknown outcome by default unless explicitly set through API
-        reporter.disableCheckUnknownOutcome();
-    }
+public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
     @Before
     public void before() {
