@@ -68,7 +68,7 @@ class ConnectionMetaDataTest {
             "oracle", "host1", 1521, "service_name");
         testUrl("jdbc:oracle:thin:@(DESCRIPTION=" +
             "(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=6203))" +
-            "(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=DB.FQDN.ORG.DE)))", "oracle", "localhost", 6203,  "db.fqdn.org.de");
+            "(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=DB.FQDN.ORG.DE)))", "oracle", "localhost", 6203, "db.fqdn.org.de");
         testUrl("jdbc:oracle:thin:@(description=" +
             "(address=(protocol=tcp)(host=localhost)(port=6203))" +
             "(connect_data=(server=dedicated)(service_name=db.fqdn.org.de)))", "oracle", "localhost", 6203, "db.fqdn.org.de");
@@ -337,9 +337,10 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:hsqldb:res:/adirectory/dbname", "hsqldb", "localhost", -1, "/adirectory/dbname");
     }
 
-    // @Test // TODO : not sure if it's relevant to keep, disabled for now
+    @Test
     void testInvalid() {
-        testUrl("postgresql://myhost:666/database", "unknown", null, -1, null);
+        // invalid URL, just checking the defaults, assuming "localhost" and no port as if it would be an in-memory database
+        testUrl("", "unknown", "localhost", -1, null);
     }
 
     private static final MockTracer.MockInstrumentationSetup mockSetup = MockTracer.createMockInstrumentationSetup();

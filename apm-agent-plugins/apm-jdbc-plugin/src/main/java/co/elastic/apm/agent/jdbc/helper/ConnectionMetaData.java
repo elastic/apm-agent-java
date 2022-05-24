@@ -126,6 +126,7 @@ public class ConnectionMetaData {
                         TreeNode parsedTree = buildOracleTree(vendorUrl);
                         if (parsedTree == null) {
                             logger.warn("Failed to parse Oracle DB address list from: {}", vendorUrl);
+                            return builder.withParsingError();
                         } else {
                             traverseOracleTree(vendorUrl, parsedTree, builder);
                         }
@@ -133,6 +134,7 @@ public class ConnectionMetaData {
                         logger.warn("Failed to parse oracle description {}", vendorUrl);
                         return builder.withParsingError();
                     }
+
                 } else if (vendorUrl.indexOf('/') >= 0) {
                     // try looking for patterns: host:port/instance or //host:port/instance
 
@@ -553,7 +555,7 @@ public class ConnectionMetaData {
             return builder;
         }
 
-        protected int getPropertiesStart(String vendorUrl){
+        protected int getPropertiesStart(String vendorUrl) {
             int propertiesStart = -1;
             for (char separator : new char[]{';', '?'}) {
                 int index = vendorUrl.indexOf(separator);
@@ -731,6 +733,7 @@ public class ConnectionMetaData {
                     } else {
                         logger.warn("Failed to parse address from a connection URL: {}", vendorUrl);
                         builder.withParsingError();
+                        return;
                     }
                 }
 
@@ -793,6 +796,7 @@ public class ConnectionMetaData {
             builder = connectionUrlParser.parse(vendorUrl, builder);
         } catch (Exception e) {
             logger.error(String.format("Failed to parse connection URL: %s with parser %s", url, connectionUrlParser), e);
+            builder = builder.withParsingError();
         }
 
         return builder;
@@ -899,7 +903,6 @@ public class ConnectionMetaData {
         }
 
         /**
-         *
          * @return {@literal true} if instance is already set.
          */
         public boolean hasInstance() {
