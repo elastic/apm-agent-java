@@ -227,7 +227,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(testConnection.getUnsupportedThrownCount()).isEqualTo(1);
         assertThat(isResultSet).isFalse();
 
-        assertSpanRecorded(sql, false, -1, null);
+        assertSpanRecorded(sql, false, -1, "test");
 
         // try to execute statement again, should not throw again
         statement.execute(sql);

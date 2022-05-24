@@ -795,6 +795,7 @@ public class ConnectionMetaData {
         return builder;
     }
 
+    @GlobalState
     public static class Builder {
 
         private static final String LOCALHOST = "localhost";
