@@ -25,12 +25,12 @@ package co.elastic.apm.agent.opentelemetry.sdk;
 public class BehavioralAttributes {
 
     /**
-     * Can be used to make a span non-discardable,
-     * In some cases, spans may be discarded, for example if {@code span_min_duration} config option is set and the span does not exceed
-     * the configured threshold. Use this attribute to make sure the current span is not discarded.
+     * By default, spans may be discarded. For example if {@code span_min_duration} config option is set and the span does not exceed
+     * the configured threshold.
+     * Use this attribute to make the span non-discardable by setting it to {@code false}.
      *
      * NOTE: making a span non-discardable implicitly makes the entire stack of active spans non-discardable as well. Child spans can
      * still be discarded.
      */
-    public static final String NON_DISCARDABLE = "elastic.otel.nondiscardable";
+    public static final String DISCARDABLE = "co.elastic.discardable";
 }

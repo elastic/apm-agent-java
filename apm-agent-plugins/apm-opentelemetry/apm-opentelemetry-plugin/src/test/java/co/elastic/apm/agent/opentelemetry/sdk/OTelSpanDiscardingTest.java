@@ -28,7 +28,10 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static co.elastic.apm.agent.opentelemetry.sdk.BehavioralAttributes.DISCARDABLE;
+import static co.elastic.apm.agent.opentelemetry.sdk.OTelSpan.ILLEGAL_ATTRIBUTE_VALUE_TYPE_MESSAGE_FORMAT;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doReturn;
 
 @SuppressWarnings("unused")
@@ -42,8 +45,22 @@ public class OTelSpanDiscardingTest extends AbstractOpenTelemetryTest {
     }
 
     @Test
+    public void testWrongValueType() {
+        final Span transaction = otelTracer.spanBuilder("transaction").startSpan();
+        String attributeValue = "String value";
+        assertThatThrownBy(() -> transaction.setAttribute(DISCARDABLE, attributeValue))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage(String.format(ILLEGAL_ATTRIBUTE_VALUE_TYPE_MESSAGE_FORMAT, DISCARDABLE, attributeValue));
+    }
+
+    @Test
     public void testDiscarding() {
         runTest(Scenario.DISCARD);
+    }
+
+    @Test
+    public void testDiscarding_setExplicitly() {
+        runTest(Scenario.DISCARD_SET_EXPLICITLY);
     }
 
     @Test
@@ -74,12 +91,18 @@ public class OTelSpanDiscardingTest extends AbstractOpenTelemetryTest {
         transaction.end();
         assertThat(reporter.getTransactions()).hasSize(1);
         List<co.elastic.apm.agent.impl.transaction.Span> spans = reporter.getSpans();
-        if (scenario == Scenario.DISCARD) {
-            assertThat(spans).isEmpty();
-        } else {
-            assertThat(spans).hasSize(2);
-            assertThat(spans).anyMatch(span -> span.getNameAsString().equals("parent"));
-            assertThat(spans).anyMatch(span -> span.getNameAsString().equals(NOT_DISCARDED_SPAN_NAME));
+        switch (scenario) {
+            case DISCARD:
+            case DISCARD_SET_EXPLICITLY:
+                assertThat(spans).isEmpty();
+                break;
+            case NON_DISCARD_SPAN_AS_STRING:
+            case NON_DISCARD_BUILDER_AS_STRING:
+            case NON_DISCARD_SPAN_AS_ATTRIBUTE:
+            case NON_DISCARD_BUILDER_AS_ATTRIBUTE:
+                assertThat(spans).hasSize(2);
+                assertThat(spans).anyMatch(span -> span.getNameAsString().equals("parent"));
+                assertThat(spans).anyMatch(span -> span.getNameAsString().equals(NOT_DISCARDED_SPAN_NAME));
         }
     }
 
@@ -89,6 +112,9 @@ public class OTelSpanDiscardingTest extends AbstractOpenTelemetryTest {
             switch (scenario) {
                 case DISCARD:
                     discarded();
+                    break;
+                case DISCARD_SET_EXPLICITLY:
+                    discarded_setExplicitly();
                     break;
                 case NON_DISCARD_SPAN_AS_ATTRIBUTE:
                     notDiscarded_Span_asAttribute();
@@ -115,10 +141,16 @@ public class OTelSpanDiscardingTest extends AbstractOpenTelemetryTest {
         span.end();
     }
 
+    private void discarded_setExplicitly() {
+        Span span = otelTracer.spanBuilder("discarded").startSpan().setAttribute(AttributeKey.booleanKey(DISCARDABLE), true);
+        try (Scope activate = span.makeCurrent()) {
+            childSpan();
+        }
+        span.end();
+    }
+
     private void notDiscarded_Span_asAttribute() {
-        Span span =
-            otelTracer.spanBuilder(NOT_DISCARDED_SPAN_NAME).startSpan().setAttribute(AttributeKey.booleanKey(BehavioralAttributes.NON_DISCARDABLE),
-            true);
+        Span span = otelTracer.spanBuilder(NOT_DISCARDED_SPAN_NAME).startSpan().setAttribute(AttributeKey.booleanKey(DISCARDABLE), false);
         try (Scope activate = span.makeCurrent()) {
             childSpan();
         }
@@ -126,7 +158,7 @@ public class OTelSpanDiscardingTest extends AbstractOpenTelemetryTest {
     }
 
     private void notDiscarded_Span_asString() {
-        Span span = otelTracer.spanBuilder(NOT_DISCARDED_SPAN_NAME).startSpan().setAttribute(BehavioralAttributes.NON_DISCARDABLE, true);
+        Span span = otelTracer.spanBuilder(NOT_DISCARDED_SPAN_NAME).startSpan().setAttribute(DISCARDABLE, false);
         try (Scope activate = span.makeCurrent()) {
             childSpan();
         }
@@ -134,8 +166,7 @@ public class OTelSpanDiscardingTest extends AbstractOpenTelemetryTest {
     }
 
     private void notDiscarded_Builder_asAttribute() {
-        Span span =
-            otelTracer.spanBuilder(NOT_DISCARDED_SPAN_NAME).setAttribute(AttributeKey.booleanKey(BehavioralAttributes.NON_DISCARDABLE), true).startSpan();
+        Span span = otelTracer.spanBuilder(NOT_DISCARDED_SPAN_NAME).setAttribute(AttributeKey.booleanKey(DISCARDABLE), false).startSpan();
         try (Scope activate = span.makeCurrent()) {
             childSpan();
         }
@@ -143,7 +174,7 @@ public class OTelSpanDiscardingTest extends AbstractOpenTelemetryTest {
     }
 
     private void notDiscarded_Builder_asString() {
-        Span span = otelTracer.spanBuilder(NOT_DISCARDED_SPAN_NAME).setAttribute(BehavioralAttributes.NON_DISCARDABLE, true).startSpan();
+        Span span = otelTracer.spanBuilder(NOT_DISCARDED_SPAN_NAME).setAttribute(DISCARDABLE, false).startSpan();
         try (Scope activate = span.makeCurrent()) {
             childSpan();
         }
@@ -156,6 +187,7 @@ public class OTelSpanDiscardingTest extends AbstractOpenTelemetryTest {
 
     private enum Scenario {
         DISCARD,
+        DISCARD_SET_EXPLICITLY,
         NON_DISCARD_BUILDER_AS_ATTRIBUTE,
         NON_DISCARD_BUILDER_AS_STRING,
         NON_DISCARD_SPAN_AS_ATTRIBUTE,

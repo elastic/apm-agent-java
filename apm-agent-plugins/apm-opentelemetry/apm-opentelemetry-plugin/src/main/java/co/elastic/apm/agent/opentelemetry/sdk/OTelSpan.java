@@ -41,7 +41,11 @@ import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static co.elastic.apm.agent.opentelemetry.sdk.BehavioralAttributes.DISCARDABLE;
+
 public class OTelSpan implements Span {
+
+    static final String ILLEGAL_ATTRIBUTE_VALUE_TYPE_MESSAGE_FORMAT = "`%s` attribute's value type must be boolean, `%s` is illegal";
     private static final Logger eventLogger = LoggerUtils.logOnce(LoggerFactory.getLogger(OTelSpan.class));
 
     private final AbstractSpan<?> span;
@@ -54,8 +58,13 @@ public class OTelSpan implements Span {
     @Override
     public <T> Span setAttribute(AttributeKey<T> key, @Nonnull T value) {
         boolean behavioralAttribute = false;
-        if (BehavioralAttributes.NON_DISCARDABLE.equals(key.getKey())) {
-            span.setNonDiscardable();
+        if (DISCARDABLE.equals(key.getKey())) {
+            if (!(value instanceof Boolean)) {
+                throw new IllegalArgumentException(String.format(ILLEGAL_ATTRIBUTE_VALUE_TYPE_MESSAGE_FORMAT, DISCARDABLE, value));
+            }
+            if (!(Boolean) value) {
+                span.setNonDiscardable();
+            }
             behavioralAttribute = true;
         }
         if (!behavioralAttribute) {

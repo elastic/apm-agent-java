@@ -93,23 +93,23 @@ special tracing features through corresponding custom attributes listed below. S
 
 [source,java]
 ----
-Span.current().setAttribute("elastic.otel.nondiscardable", true);
+Span.current().setAttribute("co.elastic.discardable", false);
 ----
 
 [float]
-[[otel-config-set-non-discardable]]
-===== `elastic.otel.nondiscardable`
+[[otel-config-discardable]]
+===== `co.elastic.discardable`
 
-Makes a span non-discardable. In some cases, spans may be discarded, for example if <<config-span-min-duration>> is set and the span
-does not exceed the configured threshold. Use this attribute to make sure the current span is not discarded.
+By default, spans may be discarded, for example if <<config-span-min-duration>> is set and the span does not exceed the configured
+threshold. Use this attribute to make a span non-discardable by setting it to `false`.
 
 NOTE: making a span non-discardable implicitly makes the entire stack of active spans non-discardable as well. Child spans can still be
 discarded.
 
 [options="header"]
 |============
-| Key      | Value type   | Valid values
-| `elastic.otel.nondiscardable` | Any | Any
+| Key      | Value type   | Default
+| `co.elastic.discardable` | `boolean` | `true`
 |============
 
 [float]
