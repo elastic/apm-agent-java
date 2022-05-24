@@ -1,11 +1,9 @@
 package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.kafka.helper.KafkaRecordHeaderAccessor;
+import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 
 import javax.annotation.Nullable;
@@ -27,6 +25,9 @@ public class NewKafkaPollExitInstrumentation extends KafkaConsumerInstrumentatio
     }
 
     public static class KafkaPollExitAdvice {
+
+        private static final KafkaInstrumentationHeadersHelper helper = KafkaInstrumentationHeadersHelper.get();
+
         @SuppressWarnings("unused")
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
         public static void pollEnd(@Advice.Thrown final Throwable throwable,
@@ -37,15 +38,7 @@ public class NewKafkaPollExitInstrumentation extends KafkaConsumerInstrumentatio
                 span.getSubtype() != null && span.getSubtype().equals("kafka") &&
                 span.getAction() != null && span.getAction().equals("poll")
             ) {
-                if (records != null && !records.isEmpty()) {
-                    for (ConsumerRecord<?, ?> record : records) {
-                        span.addSpanLink(
-                            TraceContext.<ConsumerRecord>getFromTraceContextBinaryHeaders(),
-                            KafkaRecordHeaderAccessor.instance(),
-                            record
-                        );
-                    }
-                }
+                helper.addSpanLinks(records, span);
                 span.captureException(throwable);
                 span.deactivate().end();
             }

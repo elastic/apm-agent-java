@@ -20,13 +20,16 @@ package co.elastic.apm.agent.kafka.helper;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
 
@@ -34,6 +37,13 @@ public class KafkaInstrumentationHeadersHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaInstrumentationHeadersHelper.class);
     private static final KafkaInstrumentationHeadersHelper INSTANCE = new KafkaInstrumentationHeadersHelper(GlobalTracer.requireTracerImpl());
+
+    private static final ThreadLocal<Boolean> wrappingDisabled = new ThreadLocal<Boolean>() {
+        @Override
+        protected Boolean initialValue() {
+            return Boolean.FALSE;
+        }
+    };
 
     private final ElasticApmTracer tracer;
 
@@ -69,6 +79,44 @@ public class KafkaInstrumentationHeadersHelper {
         } catch (Throwable throwable) {
             logger.debug("Failed to wrap Kafka ConsumerRecords list", throwable);
             return consumerRecordList;
+        }
+    }
+
+    /**
+     * Checks whether the provided iterable should be wrapped.
+     * If there is an active span when this method is invoked, span links are added to it based non the provided {@link ConsumerRecords}
+     * and this method returns {@code false}.
+     * @param consumerRecords the {@link ConsumerRecords} object from which this method is invoked when trying to obtain an iterable
+     * @param iterable the original iterable object returned by the instrumented method
+     * @return {@code true} if the provided iterable object should be wrapped, {@code false} otherwise
+     */
+    public boolean shouldWrapIterable(ConsumerRecords<?, ?> consumerRecords, @Nullable Object iterable) {
+        if (wrappingDisabled.get() || !tracer.isRunning() || iterable == null) {
+            return false;
+        }
+        AbstractSpan<?> activeSpan = tracer.getActive();
+        if (activeSpan != null) {
+            addSpanLinks(consumerRecords, activeSpan);
+            return false;
+        }
+        return true;
+    }
+
+    public void addSpanLinks(@Nullable ConsumerRecords<?, ?> records, AbstractSpan<?> span) {
+        if (records != null && !records.isEmpty()) {
+            // Avoid stack overflow by trying to re-wrap and avoid adding span links for this iteration
+            wrappingDisabled.set(Boolean.TRUE);
+            try {
+                for (ConsumerRecord<?, ?> record : records) {
+                    span.addSpanLink(
+                        TraceContext.<ConsumerRecord>getFromTraceContextBinaryHeaders(),
+                        KafkaRecordHeaderAccessor.instance(),
+                        record
+                    );
+                }
+            } finally {
+                wrappingDisabled.set(false);
+            }
         }
     }
 
