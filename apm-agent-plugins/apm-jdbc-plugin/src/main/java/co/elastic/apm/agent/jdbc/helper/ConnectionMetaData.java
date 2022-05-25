@@ -92,8 +92,7 @@ public class ConnectionMetaData {
             '}';
     }
 
-    // package protected for testing
-    enum ConnectionUrlParser {
+    private enum ConnectionUrlParser {
         ORACLE("oracle") {
             @Override
             Builder parse(String vendorUrl, Builder builder) {
@@ -796,7 +795,7 @@ public class ConnectionMetaData {
             builder = connectionUrlParser.parse(vendorUrl, builder);
         } catch (Exception e) {
             logger.error(String.format("Failed to parse connection URL: %s with parser %s", url, connectionUrlParser), e);
-            builder = builder.withParsingError();
+            builder.withParsingError();
         }
 
         return builder;
@@ -811,19 +810,16 @@ public class ConnectionMetaData {
         private String user;
         @Nullable
         private String instance;
-
         private String vendor;
-
         @Nullable
         private String host;
-
         private int port = -1;
 
         private Builder(String vendor) {
             this.vendor = vendor;
         }
 
-        public Builder withVendor(String vendor) {
+        Builder withVendor(String vendor) {
             this.vendor = vendor;
             return this;
         }
@@ -867,7 +863,7 @@ public class ConnectionMetaData {
         }
 
         /**
-         * Sets the host and port for in-memory of filesystem access
+         * Sets the host to {@code localhost} and port to {@code -1} for in-memory or local filesystem access
          *
          * @return this
          */
