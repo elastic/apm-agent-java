@@ -31,7 +31,6 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -122,7 +121,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     // Span links handling
     public static final int MAX_ALLOWED_SPAN_LINKS = 1000;
-    private final List<TraceContext> spanLinks = new ArrayList<>();
+    private final List<TraceContext> spanLinks = new UniqueSpanLinkArrayList();
 
     @Nullable
     private OTelSpanKind otelKind = null;
@@ -397,9 +396,9 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         try {
             TraceContext childTraceContext = tracer.createSpanLink();
             if (childContextCreator.asChildOf(childTraceContext, carrier, headerGetter)) {
-                spanLinks.add(childTraceContext);
-                added = true;
-            } else {
+                added = spanLinks.add(childTraceContext);
+            }
+            if (!added) {
                 tracer.recycle(childTraceContext);
             }
         } catch (Exception e) {

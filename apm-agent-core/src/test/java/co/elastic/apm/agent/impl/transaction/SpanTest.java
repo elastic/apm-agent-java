@@ -163,4 +163,37 @@ class SpanTest {
         assertThat(objectPoolFactory.getSpanLinksPool().getObjectsInPool()).isEqualTo(2);
         assertThat(testSpan.getSpanLinks()).isEmpty();
     }
+
+    @Test
+    void testSpanLinksUniqueness() {
+        Transaction transaction = tracer.startRootTransaction(null);
+        Span testSpan = Objects.requireNonNull(transaction).createSpan();
+        assertThat(testSpan.getSpanLinks()).isEmpty();
+        Span parent1 = transaction.createSpan();
+        Map<String, String> textTraceContextCarrier = new HashMap<>();
+        parent1.propagateTraceContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE);
+        assertThat(testSpan.addSpanLink(
+            TraceContext.getFromTraceContextTextHeaders(),
+            TextHeaderMapAccessor.INSTANCE,
+            textTraceContextCarrier)
+        ).isTrue();
+        assertThat(testSpan.getSpanLinks()).hasSize(1);
+        assertThat(testSpan.addSpanLink(
+            TraceContext.getFromTraceContextTextHeaders(),
+            TextHeaderMapAccessor.INSTANCE,
+            textTraceContextCarrier)
+        ).isFalse();
+        assertThat(testSpan.getSpanLinks()).hasSize(1);
+
+        testSpan.getSpanLinks().clear();
+        assertThat(testSpan.getSpanLinks()).isEmpty();
+
+        // verifying that uniqueness cache is cleared properly as well
+        assertThat(testSpan.addSpanLink(
+            TraceContext.getFromTraceContextTextHeaders(),
+            TextHeaderMapAccessor.INSTANCE,
+            textTraceContextCarrier)
+        ).isTrue();
+        assertThat(testSpan.getSpanLinks()).hasSize(1);
+    }
 }
