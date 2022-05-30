@@ -81,12 +81,12 @@ class ConnectionMetaDataTest {
 
         testUrl("jdbc:oracle:thin:@(description=" +
             "(address_list=(address=(protocol=tcp)(port=1521)(host=oraHost)))" +
-            "(connect_data=(INSTANCE_NAME=instance_name)))", "oracle", "oraHost", 1521, "instance_name");
+            "(connect_data=(INSTANCE_NAME=instance_name)))", "oracle", "orahost", 1521, "instance_name");
 
         // instance name + service name, not sure if actually relevant but instance should have higher priority
         testUrl("jdbc:oracle:thin:@(description=" +
             "(address_list=(address=(protocol=tcp)(port=1521)(host=oraHost)))" +
-            "(connect_data=(SERVICE_NAME=service_name)(INSTANCE_NAME=instance_name)))", "oracle", "oraHost", 1521, "instance_name");
+            "(connect_data=(SERVICE_NAME=service_name)(INSTANCE_NAME=instance_name)))", "oracle", "orahost", 1521, "instance_name");
     }
 
     @Test
@@ -301,7 +301,7 @@ class ConnectionMetaDataTest {
 
     @Test
     void testGeneric() {
-        testUrl("jdbc:arbitrary://myhost:666/mydb;user=dbadm;password=dbadm;", "arbitrary", "myhost", 666, "mydb");
+        testUrl("jdbc:arbitrary://MYHOST.db:666/mydb;user=dbadm;password=dbadm;", "arbitrary", "myhost.db", 666, "mydb");
         testUrl("jdbc:arbitrary://[::1]:666/mydb?user=dbadm&password=dbadm;", "arbitrary", "::1", 666, "mydb");
         testUrl("jdbc:arbitrary://127.0.0.1:666/mydb;user=dbadm;password=dbadm;", "arbitrary", "127.0.0.1", 666, "mydb");
         testUrl("jdbc:arbitrary://myhost/mydb;user=dbadm;password=dbadm;", "arbitrary", "myhost", -1, "mydb");
@@ -432,14 +432,16 @@ class ConnectionMetaDataTest {
         ConnectionMetaData metaData = ConnectionMetaData.parse("")
             .withVendor("vendor")
             .withConnectionUser("connection-user") // ignored as already set
-            .withHost("host")
+            .withHost("HOST.db")
             .withConnectionInstance("connection-instance") // ignored as already set
             .withPort(42)
             .build();
 
         assertThat(metaData.getDbVendor()).isEqualTo("vendor");
         assertThat(metaData.getUser()).isEqualTo("connection-user");
-        assertThat(metaData.getHost()).isEqualTo("host");
+        assertThat(metaData.getHost())
+            .describedAs("host name should be normalized to lower-case")
+            .isEqualTo("host.db");
         assertThat(metaData.getInstance()).isEqualTo("connection-instance");
         assertThat(metaData.getPort()).isEqualTo(42);
     }

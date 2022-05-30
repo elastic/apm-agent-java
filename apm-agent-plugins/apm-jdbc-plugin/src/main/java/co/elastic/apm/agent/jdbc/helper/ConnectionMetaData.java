@@ -846,11 +846,12 @@ public class ConnectionMetaData {
 
         public Builder withHost(@Nullable String host) {
             if (host != null) {
+                // host name is not case-sensitive and should be normalized
+                host = host.toLowerCase(Locale.ROOT);
                 if (host.startsWith("[") && host.endsWith("]")) {
-                    this.host = host.substring(1, host.length() - 1);
-                } else {
-                    this.host = host;
+                    host = host.substring(1, host.length() - 1);
                 }
+                this.host = host;
             }
             return this;
         }
