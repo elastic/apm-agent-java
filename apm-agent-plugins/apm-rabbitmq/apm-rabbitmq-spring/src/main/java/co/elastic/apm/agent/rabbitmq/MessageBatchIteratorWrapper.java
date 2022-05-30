@@ -65,8 +65,7 @@ public class MessageBatchIteratorWrapper implements Iterator<Message> {
 
         Message message = delegate.next();
         try {
-            MessageProperties messageProperties = message.getMessageProperties();
-            transactionHelper.createTransaction(message, messageProperties, AmqpConstants.SPRING_AMQP_TRANSACTION_PREFIX);
+            transactionHelper.createTransaction(message, AmqpConstants.SPRING_AMQP_TRANSACTION_PREFIX);
         } catch (Throwable throwable) {
             logger.error("Error in transaction creation based on Spring AMQP batch message", throwable);
         }

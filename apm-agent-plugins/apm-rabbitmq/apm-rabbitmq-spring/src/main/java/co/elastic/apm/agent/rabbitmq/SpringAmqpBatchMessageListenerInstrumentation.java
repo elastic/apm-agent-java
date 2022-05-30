@@ -19,17 +19,27 @@
 package co.elastic.apm.agent.rabbitmq;
 
 
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.rabbitmq.header.SpringRabbitMQTextHeaderGetter;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.LoggerUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
+import static net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -47,21 +57,73 @@ public class SpringAmqpBatchMessageListenerInstrumentation extends SpringBaseIns
     }
 
     public static class MessageListenerContainerWrappingAdvice extends BaseAdvice {
-        protected static final MessageBatchHelper messageBatchHelper;
+        private static final Logger oneTimeTransactionCreationWarningLogger;
+        private static final MessageBatchHelper messageBatchHelper;
+        private static final MessagingConfiguration messagingConfiguration;
 
         static {
             ElasticApmTracer elasticApmTracer = GlobalTracer.requireTracerImpl();
             messageBatchHelper = new MessageBatchHelper(elasticApmTracer, transactionHelper);
+            messagingConfiguration = elasticApmTracer.getConfig(MessagingConfiguration.class);
+            oneTimeTransactionCreationWarningLogger = LoggerUtils.logOnce(LoggerFactory.getLogger("Spring-AMQP-Batch-Logger"));
         }
 
-        @Nullable
-        @Advice.AssignReturned.ToArguments(@ToArgument(0))
+        @Advice.AssignReturned.ToArguments(@ToArgument(index = 0, value = 0, typing = DYNAMIC))
         @Advice.OnMethodEnter(inline = false)
-        public static List<Message> beforeOnBatch(@Advice.Argument(0) @Nullable final List<Message> messageBatch) {
-            if (!tracer.isRunning() || tracer.currentTransaction() != null || messageBatch == null) {
-                return messageBatch;
+        public static Object[] beforeOnBatch(@Advice.This Object thiz,
+                                             @Advice.Argument(0) @Nullable final List<Message> messageBatch) {
+
+            List<Message> processedBatch = messageBatch;
+            Transaction batchTransaction = null;
+
+            if (tracer.isRunning() && messageBatch != null && !messageBatch.isEmpty()) {
+                AbstractSpan<?> active = tracer.getActive();
+                if (active == null && messagingConfiguration.getMessageBatchSpringTraStrategy() == MessagingConfiguration.SpringStrategy.BATCH_HANDLING) {
+                    batchTransaction = tracer.startRootTransaction(thiz.getClass().getClassLoader());
+                    if (batchTransaction == null) {
+                        oneTimeTransactionCreationWarningLogger.warn("Failed to start Spring AMQP transaction for batch processing");
+                    } else {
+                        batchTransaction.withType("messaging")
+                            .withName("Spring AMQP Message Batch Processing")
+                            .activate();
+                    }
+                } else {
+                    oneTimeTransactionCreationWarningLogger.warn("Unexpected active span during batch message processing start: {}",
+                        active);
+                }
+
+                active = tracer.getActive();
+                if (active != null) {
+                    for (Message message : messageBatch) {
+                        MessageProperties messageProperties = message.getMessageProperties();
+                        if (messageProperties != null) {
+                            active.addSpanLink(
+                                TraceContext.<MessageProperties>getFromTraceContextTextHeaders(),
+                                SpringRabbitMQTextHeaderGetter.INSTANCE,
+                                messageProperties
+                            );
+                        }
+                    }
+                } else {
+                    processedBatch = messageBatchHelper.wrapMessageBatchList(messageBatch);
+                }
             }
-            return messageBatchHelper.wrapMessageBatchList(messageBatch);
+            return new Object[]{processedBatch, batchTransaction};
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void afterOnBatch(@Advice.Enter @Nullable Object[] enter,
+                                        @Advice.Thrown @Nullable Throwable throwable) {
+            Transaction batchTransaction = enter != null ? (Transaction) enter[1] : null;
+            if (batchTransaction != null) {
+                try {
+                    batchTransaction
+                        .captureException(throwable)
+                        .end();
+                } finally {
+                    batchTransaction.deactivate();
+                }
+            }
         }
     }
 }

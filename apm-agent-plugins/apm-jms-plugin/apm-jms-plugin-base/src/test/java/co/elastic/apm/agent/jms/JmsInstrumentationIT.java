@@ -62,8 +62,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.BOTH;
-import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.POLLING;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.JmsStrategy.BOTH;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.JmsStrategy.POLLING;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_EXPIRATION_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_MESSAGE_ID_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TIMESTAMP_HEADER;
@@ -480,7 +480,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     }
 
     private void verifySendReceiveOnNonTracedThread(String destinationName, TextMessage message) throws JMSException {
-        MessagingConfiguration.Strategy strategy = config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy();
+        MessagingConfiguration.JmsStrategy strategy = config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy();
 
         List<Span> spans = reporter.getSpans();
         List<Transaction> receiveTransactions = reporter.getTransactions();

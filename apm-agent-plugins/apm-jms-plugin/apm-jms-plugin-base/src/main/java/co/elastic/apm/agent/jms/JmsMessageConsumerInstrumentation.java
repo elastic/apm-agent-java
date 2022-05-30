@@ -120,7 +120,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     }
                 }
 
-                createPollingTransaction &= messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.HANDLING;
+                createPollingTransaction &= messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.JmsStrategy.HANDLING;
                 createPollingTransaction |= "receiveNoWait".equals(methodName);
 
                 if (createPollingSpan) {
@@ -206,7 +206,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
                 if (!discard && tracer.currentTransaction() == null
                     && message != null
-                    && messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.POLLING
+                    && messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.JmsStrategy.POLLING
                     && !"receiveNoWait".equals(methodName)) {
 
                     Transaction messageHandlingTransaction = helper.startJmsTransaction(message, clazz);

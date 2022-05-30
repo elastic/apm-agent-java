@@ -410,7 +410,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     /**
      * Returns a list of links from this span to other spans in the format of child {@link TraceContext}s, of which parent is the linked
-     * span. For each entry in the returned list, the linked span {@code traceId} can be retrieved through
+     * span. For each entry in the returned list, the linked span's {@code traceId} can be retrieved through
      * {@link TraceContext#getTraceId()} and the {@code spanId} can be retrieved through {@link TraceContext#getParentId()}.
      *
      * @return a list of child {@link TraceContext}s of linked spans
