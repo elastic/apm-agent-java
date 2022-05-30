@@ -98,8 +98,8 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:postgresql://myhost/", "postgresql", "myhost", 5432, null);
         testUrl("jdbc:postgresql://127.0.0.1/", "postgresql", "127.0.0.1", 5432, null);
         testUrl("jdbc:postgresql://::1/", "postgresql", "::1", 5432, null);
-        testUrl("jdbc:postgresql://[::1]/", "postgresql", "[::1]", 5432, null);
-        testUrl("jdbc:postgresql://[::1]:666/", "postgresql", "[::1]", 666, null);
+        testUrl("jdbc:postgresql://[::1]/", "postgresql", "::1", 5432, null);
+        testUrl("jdbc:postgresql://[::1]:666/", "postgresql", "::1", 666, null);
 
         testUrl("jdbc:postgresql:database", "postgresql", "localhost", 5432, "database");
         testUrl("jdbc:postgresql:/", "postgresql", "localhost", 5432, null);
@@ -125,8 +125,8 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:mysql://myhost/", "mysql", "myhost", 3306, null);
         testUrl("jdbc:mysql://127.0.0.1/", "mysql", "127.0.0.1", 3306, null);
         testUrl("jdbc:mysql://::1/", "mysql", "::1", 3306, null);
-        testUrl("jdbc:mysql://[::1]/", "mysql", "[::1]", 3306, null);
-        testUrl("jdbc:mysql://[::1]:666/", "mysql", "[::1]", 666, null);
+        testUrl("jdbc:mysql://[::1]/", "mysql", "::1", 3306, null);
+        testUrl("jdbc:mysql://[::1]:666/", "mysql", "::1", 666, null);
         testUrl("jdbc:mysql://sandy:secret@myhost1:1111/db", "mysql", "myhost1", 1111, "db");
         testUrl("jdbc:mysql://myhost2:2222,sandy:secret@myhost1:1111/db", "mysql", "myhost2", 2222, "db");
         testUrl("jdbc:mysql://myhost", "mysql", "myhost", 3306, null);
@@ -138,7 +138,7 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:mysql://myhost1:1111,myhost2:2222/db?prop=val", "mysql", "myhost1", 1111, "db");
         testUrl("jdbc:mysql://myhost1:1111,myhost2:2222?prop=val", "mysql", "myhost1", 1111, null);
         testUrl("jdbc:mysql://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:1111,myhost2:2222/db",
-            "mysql", "[2001:0660:7401:0200:0000:0000:0edf:bdd7]", 1111, "db");
+            "mysql", "2001:0660:7401:0200:0000:0000:0edf:bdd7", 1111, "db");
         testUrl("jdbc:mysql://myhost1,myhost2:2222/db", "mysql", "myhost1", 3306, "db");
         testUrl("jdbc:mysql://sandy:secret@[myhost1:1111,myhost2:2222]/db", "mysql", "myhost1", 1111, "db");
         testUrl("jdbc:mysql://sandy:secret@[ myhost1:1111 ,myhost2:2222]/db", "mysql", "myhost1", 1111, "db");
@@ -164,7 +164,7 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:mysql://sandy:secret@[address=(host=myhost2)(port=2222)(key2=value2),myhost1:1111]/db", "mysql", "myhost2", 2222, "db");
         testUrl("jdbc:mysql://[address=(host=myhost2)(port=2222)(key2=value2),myhost1:1111]/db", "mysql", "myhost2", 2222, "db");
         testUrl("jdbc:mysql://[[2001:0660:7401:0200:0000:0000:0edf:bdd7]:666,myhost1:1111]/db",
-            "mysql", "[2001:0660:7401:0200:0000:0000:0edf:bdd7]", 666, "db");
+            "mysql", "2001:0660:7401:0200:0000:0000:0edf:bdd7", 666, "db");
         testUrl("jdbc:mysql://[(host=myhost1,port=1111,user=sandy,password=secret),(host=myhost2,port=2222,user=finn,password=secret)]/db",
             "mysql", "myhost1", 1111, "db");
         testUrl("jdbc:mysql://address=(host=myhost1)(port=1111)(user=sandy)(password=secret),address=(host=myhost2)(port=2222)(user=finn)(password=secret)/db",
@@ -188,8 +188,8 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:mariadb://myhost/", "mariadb", "myhost", 3306, null);
         testUrl("jdbc:mariadb://127.0.0.1/", "mariadb", "127.0.0.1", 3306, null);
         testUrl("jdbc:mariadb://::1/", "mariadb", "::1", 3306, null);
-        testUrl("jdbc:mariadb://[::1]/", "mariadb", "[::1]", 3306, null);
-        testUrl("jdbc:mariadb://[::1]:666/", "mariadb", "[::1]", 666, null);
+        testUrl("jdbc:mariadb://[::1]/", "mariadb", "::1", 3306, null);
+        testUrl("jdbc:mariadb://[::1]:666/", "mariadb", "::1", 666, null);
 
         testUrl("jdbc:mariadb://myhost", "mariadb", "myhost", 3306, null);
         testUrl("jdbc:mariadb://myhost:666/database?prop1=val1&prop2=val2", "mariadb", "myhost", 666, "database");
@@ -209,7 +209,7 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:mariadb://myhost1:1111,myhost2:2222/db?prop=val", "mariadb", "myhost1", 1111, "db");
         testUrl("jdbc:mariadb://myhost1:1111,myhost2:2222?prop=val", "mariadb", "myhost1", 1111, null);
         testUrl("jdbc:mariadb://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:1111,myhost2:2222/db",
-            "mariadb", "[2001:0660:7401:0200:0000:0000:0edf:bdd7]", 1111, "db");
+            "mariadb", "2001:0660:7401:0200:0000:0000:0edf:bdd7", 1111, "db");
         testUrl("jdbc:mariadb://myhost1,myhost2:2222/db", "mariadb", "myhost1", 3306, "db");
         testUrl("jdbc:mariadb://sandy:secret@[myhost1:1111,myhost2:2222]/db", "mariadb", "myhost1", 1111, "db");
         testUrl("jdbc:mariadb://sandy:secret@[ myhost1:1111 ,myhost2:2222]/db", "mariadb", "myhost1", 1111, "db");
@@ -235,7 +235,7 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:mariadb://sandy:secret@[address=(host=myhost2)(port=2222)(key2=value2),myhost1:1111]/db", "mariadb", "myhost2", 2222, "db");
         testUrl("jdbc:mariadb://[address=(host=myhost2)(port=2222)(key2=value2),myhost1:1111]/db", "mariadb", "myhost2", 2222, "db");
         testUrl("jdbc:mariadb://[[2001:0660:7401:0200:0000:0000:0edf:bdd7]:666,myhost1:1111]/db",
-            "mariadb", "[2001:0660:7401:0200:0000:0000:0edf:bdd7]", 666, "db");
+            "mariadb", "2001:0660:7401:0200:0000:0000:0edf:bdd7", 666, "db");
         testUrl("jdbc:mariadb://[(host=myhost1,port=1111,user=sandy,password=secret),(host=myhost2,port=2222,user=finn,password=secret)]/db",
             "mariadb", "myhost1", 1111, "db");
         testUrl("jdbc:mariadb://address=(host=myhost1)(port=1111)(user=sandy)(password=secret),address=(host=myhost2)(port=2222)(user=finn)(password=secret)/db",
@@ -279,7 +279,7 @@ class ConnectionMetaDataTest {
     void testDb2() {
         // https://www.ibm.com/support/knowledgecenter/SSEPGG_11.5.0/com.ibm.db2.luw.apdv.java.doc/src/tpc/imjcc_tjvjcccn.html
         testUrl("jdbc:db2://myhost:666/mydb:user=dbadm;password=dbadm;", "db2", "myhost", 666, "mydb");
-        testUrl("jdbc:db2://[::1]:666/mydb:user=dbadm;password=dbadm;", "db2", "[::1]", 666, "mydb");
+        testUrl("jdbc:db2://[::1]:666/mydb:user=dbadm;password=dbadm;", "db2", "::1", 666, "mydb");
         testUrl("jdbc:db2://127.0.0.1:666/mydb:user=dbadm;password=dbadm;", "db2", "127.0.0.1", 666, "mydb");
         testUrl("jdbc:db2://myhost/mydb:user=dbadm;password=dbadm;", "db2", "myhost", 50000, "mydb");
         testUrl("jdbc:db2://myhost;", "db2", "myhost", 50000, null);
@@ -300,9 +300,9 @@ class ConnectionMetaDataTest {
     }
 
     @Test
-    void testUnknown() {
+    void testGeneric() {
         testUrl("jdbc:arbitrary://myhost:666/mydb;user=dbadm;password=dbadm;", "arbitrary", "myhost", 666, "mydb");
-        testUrl("jdbc:arbitrary://[::1]:666/mydb?user=dbadm&password=dbadm;", "arbitrary", "[::1]", 666, "mydb");
+        testUrl("jdbc:arbitrary://[::1]:666/mydb?user=dbadm&password=dbadm;", "arbitrary", "::1", 666, "mydb");
         testUrl("jdbc:arbitrary://127.0.0.1:666/mydb;user=dbadm;password=dbadm;", "arbitrary", "127.0.0.1", 666, "mydb");
         testUrl("jdbc:arbitrary://myhost/mydb;user=dbadm;password=dbadm;", "arbitrary", "myhost", -1, "mydb");
         testUrl("jdbc:arbitrary://myhost;", "arbitrary", "myhost", -1, null);
@@ -412,7 +412,7 @@ class ConnectionMetaDataTest {
             .withVendor("vendor")
             .withUser("user")
             .withConnectionUser("connection-user") // ignored as already set
-            .withHost("host")
+            .withHost("[::1]")
             .withInstance("instance")
             .withConnectionInstance("connection-instance") // ignored as already set
             .withPort(42)
@@ -420,7 +420,9 @@ class ConnectionMetaDataTest {
 
         assertThat(metaData.getDbVendor()).isEqualTo("vendor");
         assertThat(metaData.getUser()).isEqualTo("user");
-        assertThat(metaData.getHost()).isEqualTo("host");
+        assertThat(metaData.getHost())
+            .describedAs("host name IPv6 is normalized")
+            .isEqualTo("::1");
         assertThat(metaData.getInstance()).isEqualTo("instance");
         assertThat(metaData.getPort()).isEqualTo(42);
     }

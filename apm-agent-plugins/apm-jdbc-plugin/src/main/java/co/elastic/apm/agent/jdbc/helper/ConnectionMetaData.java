@@ -846,7 +846,11 @@ public class ConnectionMetaData {
 
         public Builder withHost(@Nullable String host) {
             if (host != null) {
-                this.host = host;
+                if (host.startsWith("[") && host.endsWith("]")) {
+                    this.host = host.substring(1, host.length() - 1);
+                } else {
+                    this.host = host;
+                }
             }
             return this;
         }
