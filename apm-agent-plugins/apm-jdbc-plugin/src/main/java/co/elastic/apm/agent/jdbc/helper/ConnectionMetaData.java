@@ -31,6 +31,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -192,7 +193,7 @@ public class ConnectionMetaData {
                 TreeNode parsedTree = null;
                 Deque<TreeNode> stack = new ArrayDeque<>();
                 StringBuilder currentValueBuffer = null;
-                for (char c : connectionUrl.toLowerCase().toCharArray()) {
+                for (char c : connectionUrl.toCharArray()) {
                     switch (c) {
                         case '(': {
                             TreeNode treeNode = new TreeNode();
@@ -230,12 +231,12 @@ public class ConnectionMetaData {
             }
 
             private void traverseOracleTree(String connectionUrl, TreeNode treeNode, Builder builder) {
-                String nodeName = treeNode.name.toString().trim();
+                String nodeName = treeNode.name.toString().toLowerCase(Locale.ROOT).trim();
                 if (nodeName.equals("address")) {
                     String host = null;
                     int port = -1;
                     for (TreeNode childNode : treeNode.childNodes) {
-                        String childName = childNode.name.toString().trim();
+                        String childName = childNode.name.toString().toLowerCase(Locale.ROOT).trim();
                         String childValue = childNode.value.toString().trim();
                         if (childName.equals("host")) {
                             host = childValue;

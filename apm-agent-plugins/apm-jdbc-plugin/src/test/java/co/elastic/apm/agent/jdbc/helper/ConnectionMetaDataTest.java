@@ -52,7 +52,7 @@ class ConnectionMetaDataTest {
         // address list parsing
         testUrl("jdbc:oracle:thin:@(DESCRIPTION=(LOAD_BALANCE=on)" +
             "(ADDRESS=(PROTOCOL=TCP)(HOST=host1)(PORT=666))" +
-            "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "host1", 666, "service_name");
+            "(CONNECT_DATA=(SERVICE_NAME=Service_Name)))", "oracle", "host1", 666, "Service_Name");
         testUrl("jdbc:oracle:thin:@(DESCRIPTION =(LOAD_BALANCE=on )" +
             "( ADDRESS= (PROTOCOL=TCP) ( HOST= host1 ) (  PORT  = 666 ))" +
             "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "host1", 666, "service_name");
@@ -68,7 +68,7 @@ class ConnectionMetaDataTest {
             "oracle", "host1", 1521, "service_name");
         testUrl("jdbc:oracle:thin:@(DESCRIPTION=" +
             "(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=6203))" +
-            "(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=DB.FQDN.ORG.DE)))", "oracle", "localhost", 6203, "db.fqdn.org.de");
+            "(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=DB.FQDN.ORG.DE)))", "oracle", "localhost", 6203, "DB.FQDN.ORG.DE");
         testUrl("jdbc:oracle:thin:@(description=" +
             "(address=(protocol=tcp)(host=localhost)(port=6203))" +
             "(connect_data=(server=dedicated)(service_name=db.fqdn.org.de)))", "oracle", "localhost", 6203, "db.fqdn.org.de");
@@ -81,12 +81,12 @@ class ConnectionMetaDataTest {
 
         testUrl("jdbc:oracle:thin:@(description=" +
             "(address_list=(address=(protocol=tcp)(port=1521)(host=oraHost)))" +
-            "(connect_data=(INSTANCE_NAME=instance_name)))", "oracle", "orahost", 1521, "instance_name");
+            "(connect_data=(INSTANCE_NAME=instance_name)))", "oracle", "oraHost", 1521, "instance_name");
 
         // instance name + service name, not sure if actually relevant but instance should have higher priority
         testUrl("jdbc:oracle:thin:@(description=" +
             "(address_list=(address=(protocol=tcp)(port=1521)(host=oraHost)))" +
-            "(connect_data=(SERVICE_NAME=service_name)(INSTANCE_NAME=instance_name)))", "oracle", "orahost", 1521, "instance_name");
+            "(connect_data=(SERVICE_NAME=service_name)(INSTANCE_NAME=instance_name)))", "oracle", "oraHost", 1521, "instance_name");
     }
 
     @Test
