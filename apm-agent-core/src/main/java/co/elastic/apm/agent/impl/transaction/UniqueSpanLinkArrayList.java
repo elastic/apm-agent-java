@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
+ * A {@link TraceContext} list that enforces uniqueness for the purpose of span links storage.
  * We cannot naturally use {@link Set} implementations because {@link TraceContext#equals} is comparing own ID with other's ID. This is
  * inappropriate for span links, which we consider equal if their <b>parent IDs</b> are equal.
  * So instead, we use a limited subclass of {@link ArrayList} that maintains a parent ID cache for equality checks.
