@@ -247,5 +247,8 @@ enum NoopTransaction implements Transaction {
         return this;
     }
 
-
+    @Nonnull
+    public Span setNonDiscardable() {
+        return this;
+    }
 }

@@ -499,4 +499,20 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             }
         }
     }
+
+    public static class SetNonDiscardableInstrumentation extends AbstractSpanInstrumentation {
+
+        public SetNonDiscardableInstrumentation() {
+            super(named("doSetNonDiscardable"));
+        }
+
+        public static class AdviceClass {
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void setNonDiscardable(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context) {
+                if (context instanceof AbstractSpan<?>) {
+                    ((AbstractSpan<?>) context).setNonDiscardable();
+                }
+            }
+        }
+    }
 }

@@ -201,6 +201,7 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
         throw new UnsupportedOperationException();
     }
 
+
     /**
      * @deprecated - used only for {@link co.elastic.apm.api.Span}
      */
@@ -208,5 +209,12 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     @Override
     public Span setServiceTarget(@Nullable String type, @Nullable String name) {
         throw new UnsupportedOperationException();
+    }
+
+    @Nonnull
+    @Override
+    public Span setNonDiscardable() {
+        doSetNonDiscardable();
+        return this;
     }
 }
