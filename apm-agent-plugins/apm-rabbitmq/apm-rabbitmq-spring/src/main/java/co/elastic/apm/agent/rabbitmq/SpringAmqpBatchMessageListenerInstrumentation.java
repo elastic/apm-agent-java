@@ -78,7 +78,7 @@ public class SpringAmqpBatchMessageListenerInstrumentation extends SpringBaseIns
 
             if (tracer.isRunning() && messageBatch != null && !messageBatch.isEmpty()) {
                 AbstractSpan<?> active = tracer.getActive();
-                if (active == null && messagingConfiguration.getMessageBatchSpringTraStrategy() == MessagingConfiguration.SpringStrategy.BATCH_HANDLING) {
+                if (active == null && messagingConfiguration.getMessageBatchStrategy() == MessagingConfiguration.BatchStrategy.BATCH_HANDLING) {
                     batchTransaction = tracer.startRootTransaction(thiz.getClass().getClassLoader());
                     if (batchTransaction == null) {
                         oneTimeTransactionCreationWarningLogger.warn("Failed to start Spring AMQP transaction for batch processing");

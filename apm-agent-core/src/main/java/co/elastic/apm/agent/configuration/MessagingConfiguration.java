@@ -30,7 +30,7 @@ import java.util.List;
 public class MessagingConfiguration extends ConfigurationOptionProvider {
     private static final String MESSAGING_CATEGORY = "Messaging";
     private static final String MESSAGE_POLLING_TRANSACTION_STRATEGY = "message_polling_transaction_strategy";
-    private static final String MESSAGE_BATCH_SPRING_STRATEGY = "message_batch_spring_strategy";
+    private static final String MESSAGE_BATCH_STRATEGY = "message_batch_strategy";
 
     private ConfigurationOption<JmsStrategy> messagePollingTransactionStrategy = ConfigurationOption.enumOption(JmsStrategy.class)
         .key(MESSAGE_POLLING_TRANSACTION_STRATEGY)
@@ -44,8 +44,8 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(JmsStrategy.HANDLING);
 
-    private ConfigurationOption<SpringStrategy> messageBatchSpringStrategy = ConfigurationOption.enumOption(SpringStrategy.class)
-        .key(MESSAGE_BATCH_SPRING_STRATEGY)
+    private ConfigurationOption<BatchStrategy> messageBatchStrategy = ConfigurationOption.enumOption(BatchStrategy.class)
+        .key(MESSAGE_BATCH_STRATEGY)
         .configurationCategory(MESSAGING_CATEGORY)
         .tags("internal")
         .description("Determines whether Spring messaging system libraries should create a batch for the processing of the entire \n" +
@@ -54,7 +54,7 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "This option is case-insensitive and is only relevant for Spring messaging system libraries that support batch processing.")
         .dynamic(true)
-        .buildWithDefault(SpringStrategy.SINGLE_HANDLING);
+        .buildWithDefault(BatchStrategy.BATCH_HANDLING);
 
     private ConfigurationOption<Boolean> collectQueueAddress = ConfigurationOption.booleanOption()
         .key("collect_queue_address")
@@ -96,8 +96,8 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         return messagePollingTransactionStrategy.get();
     }
 
-    public SpringStrategy getMessageBatchSpringTraStrategy() {
-        return messageBatchSpringStrategy.get();
+    public BatchStrategy getMessageBatchStrategy() {
+        return messageBatchStrategy.get();
     }
 
     public List<WildcardMatcher> getIgnoreMessageQueues() {
@@ -133,7 +133,7 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
     /**
      * Only relevant for Spring wrappers around supported messaging clients, such as AMQP.
      */
-    public enum SpringStrategy {
+    public enum BatchStrategy {
         /**
          * Create a transaction for each received message/record, typically by wrapping the message batch data structure
          */

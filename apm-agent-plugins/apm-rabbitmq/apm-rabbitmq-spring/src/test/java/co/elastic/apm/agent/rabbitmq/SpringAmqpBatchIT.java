@@ -51,6 +51,8 @@ public class SpringAmqpBatchIT extends RabbitMqTestBase {
 
     @Test
     public void testTransactionPerMessage_noDistributedTracing() {
+        doReturn(MessagingConfiguration.BatchStrategy.SINGLE_HANDLING).when(config.getConfig(MessagingConfiguration.class)).getMessageBatchStrategy();
+
         batchingRabbitTemplate.convertAndSend(TestConstants.QUEUE_NAME, "hello");
         batchingRabbitTemplate.convertAndSend(TestConstants.QUEUE_NAME, "hello");
         batchingRabbitTemplate.convertAndSend(TestConstants.QUEUE_NAME, "hello");
@@ -75,6 +77,8 @@ public class SpringAmqpBatchIT extends RabbitMqTestBase {
 
     @Test
     public void testTransactionPerMessage_withDistributedTracing() {
+        doReturn(MessagingConfiguration.BatchStrategy.SINGLE_HANDLING).when(config.getConfig(MessagingConfiguration.class)).getMessageBatchStrategy();
+
         Transaction rootTraceTransaction = getTracer().startRootTransaction(null);
         Objects.requireNonNull(rootTraceTransaction).activate();
 
@@ -131,8 +135,6 @@ public class SpringAmqpBatchIT extends RabbitMqTestBase {
 
     @Test
     public void testTransactionPerBatch() {
-        doReturn(MessagingConfiguration.SpringStrategy.BATCH_HANDLING).when(config.getConfig(MessagingConfiguration.class)).getMessageBatchSpringTraStrategy();
-
         Transaction rootTraceTransaction = getTracer().startRootTransaction(null);
         Objects.requireNonNull(rootTraceTransaction).activate();
 
