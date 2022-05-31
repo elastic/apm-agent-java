@@ -195,9 +195,7 @@ Click on a key to get more information.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-circuit-breaker-enabled]]
-==== `circuit_breaker_enabled` (added[1.14.0] performance experimental)
-
-NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+==== `circuit_breaker_enabled` (added[1.14.0] performance)
 
 A boolean specifying whether the circuit breaker should be enabled or not. 
 When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
