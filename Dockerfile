@@ -4,4 +4,7 @@
 FROM alpine@sha256:115731bab0862031b44766733890091c17924f9b7781b79997f5f163be262178
 RUN mkdir /usr/agent
 ARG JAR_FILE
+ARG HANDLER_FILE
 COPY ${JAR_FILE} /usr/agent/elastic-apm-agent.jar
+COPY ${HANDLER_FILE} /usr/agent/elastic-apm-handler
+RUN chmod +x /usr/agent/elastic-apm-handler
