@@ -110,8 +110,8 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
 
                 Span span = tracer.getActiveSpan();
                 if (span != null &&
-                    span.getSubtype() != null && span.getSubtype().equals("kafka") &&
-                    span.getAction() != null && span.getAction().equals("poll")
+                    "kafka".equals(span.getSubtype()) &&
+                    "poll".equals(span.getAction())
                 ) {
                     span.captureException(throwable);
                     span.deactivate().end();
