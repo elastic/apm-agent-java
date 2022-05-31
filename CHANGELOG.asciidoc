@@ -20,12 +20,14 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.31.1]]
-==== 1.31.1 - YYYY/MM/DD
+[[release-notes-1.32.0]]
+==== 1.32.0 - YYYY/MM/DD
 
 [float]
 ===== Features
 * Struts action invocations via an action chain result start a new span - {pull}2513[#2513]
+* Added official support for Elasticsearch Java API client - {pull}2211[#2211]
+* Added the ability to make spans non-discardable through the public API and the OpenTelemetry bridge - {pull}2632[#2632]
 * Added support for setting the remote address of a transaction via the public api - {pull}2522[#2522]
 
 [float]
