@@ -165,7 +165,7 @@ rendering
 |com.sun.net.httpserver.HttpServer
 |1.7+
 |Captures incoming HTTP requests as transactions
-|1.25.0 (experimental)
+|1.25.0
 
 |Javalin
 |3.13.8+
