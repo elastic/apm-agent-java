@@ -57,8 +57,9 @@ public class NewKafkaPollExitInstrumentation extends KafkaConsumerInstrumentatio
                 span.getAction() != null && span.getAction().equals("poll")
             ) {
                 helper.addSpanLinks(records, span);
-                span.captureException(throwable);
-                span.deactivate().end();
+                span.captureException(throwable)
+                    .deactivate()
+                    .end();
             }
         }
     }
