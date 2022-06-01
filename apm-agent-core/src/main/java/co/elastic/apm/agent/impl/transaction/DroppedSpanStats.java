@@ -164,8 +164,10 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
     private final ConcurrentMap<StatsKey, Stats> statsMap = new ConcurrentHashMap<>();
 
     // only used during testing
-    Stats getStats(ServiceTarget serviceTarget, Outcome outcome) {
-        return statsMap.get(new StatsKey().init(serviceTarget, outcome));
+    @Nullable
+    Stats getStats(String serviceType, @Nullable String serviceName, Outcome outcome){
+        ServiceTarget st = new ServiceTarget().withType(serviceType).withName(serviceName);
+        return statsMap.get(new StatsKey().init(st, outcome));
     }
 
     public void captureDroppedSpan(Span span) {
@@ -184,8 +186,8 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
         stats.sum.addAndGet(span.getDuration());
     }
 
-    private Stats getOrCreateStats(ServiceTarget serviceTarget, Outcome oucome) {
-        StatsKey statsKey = statsKeyObjectPool.createInstance().init(serviceTarget, oucome);
+    private Stats getOrCreateStats(ServiceTarget serviceTarget, Outcome outcome) {
+        StatsKey statsKey = statsKeyObjectPool.createInstance().init(serviceTarget, outcome);
         Stats stats = statsMap.get(statsKey);
         if (stats != null || statsMap.size() > 127) {
             statsKeyObjectPool.recycle(statsKey);

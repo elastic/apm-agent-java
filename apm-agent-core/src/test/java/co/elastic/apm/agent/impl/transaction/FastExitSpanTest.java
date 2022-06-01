@@ -28,6 +28,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -59,7 +61,17 @@ class FastExitSpanTest {
     void testExitSpanBelowDuration() {
         Transaction transaction = startTransaction();
         try {
-            startExitSpan(transaction, 0L).end(49_999L);
+            // each combination of (outcome,service target type, service target name) should have its own bucket
+            for (Outcome outcome : Outcome.values()) {
+                // without service target name
+                startExitSpan(transaction, 0L).withOutcome(outcome).end(49_999L);
+
+                // with service target name
+                Span spanWithServiceTargetName = startExitSpan(transaction, 0L).withOutcome(outcome);
+                spanWithServiceTargetName.getContext().getDb().withInstance("db-name");
+                spanWithServiceTargetName.end(49_999L);
+            }
+
         } finally {
             transaction.end();
         }
@@ -68,14 +80,22 @@ class FastExitSpanTest {
 
         SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
         assertThat(spanCount.getReported().get()).isEqualTo(0);
-        assertThat(spanCount.getDropped().get()).isEqualTo(1);
+        assertThat(spanCount.getDropped().get()).isEqualTo(6);
 
         DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
 
-        ServiceTarget st = new ServiceTarget().withType("postgresql");
-        assertThat(droppedSpanStats.getStats(st, Outcome.SUCCESS).getCount()).isEqualTo(1);
-        assertThat(droppedSpanStats.getStats(st, Outcome.SUCCESS).getSum()).isEqualTo(49_999L);
+        for (Outcome outcome : Outcome.values()) {
+            Arrays.asList("db-name", null).forEach(v ->{
+                DroppedSpanStats.Stats stats = droppedSpanStats.getStats("postgresql", v, outcome);
+                assertThat(stats).isNotNull();
+                assertThat(stats.getCount()).isEqualTo(1);
+                assertThat(stats.getSum()).isEqualTo(49_999L);
+            });
+        }
+
     }
+
+
 
     @Test
     void testCompositeExitSpanBelowDurationAndMoreThanOneDroppedSpanStatsEntry() {
@@ -103,9 +123,8 @@ class FastExitSpanTest {
 
         DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
 
-        ServiceTarget st = new ServiceTarget().withType("postgresql");
-        assertThat(droppedSpanStats.getStats(st, Outcome.SUCCESS).getCount()).isEqualTo(3);
-        assertThat(droppedSpanStats.getStats(st, Outcome.SUCCESS).getSum()).isEqualTo(30_000L);
+        assertThat(droppedSpanStats.getStats("postgresql", null, Outcome.SUCCESS).getCount()).isEqualTo(3);
+        assertThat(droppedSpanStats.getStats("postgresql", null, Outcome.SUCCESS).getSum()).isEqualTo(30_000L);
     }
 
     @Test
@@ -124,8 +143,7 @@ class FastExitSpanTest {
         assertThat(spanCount.getDropped().get()).isEqualTo(0);
 
         DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
-        ServiceTarget st = new ServiceTarget().withType("postgresql");
-        assertThat(droppedSpanStats.getStats(st, Outcome.SUCCESS)).isNull();
+        assertThat(droppedSpanStats.getStats("postgresql", null, Outcome.SUCCESS)).isNull();
     }
 
     @Test
@@ -149,8 +167,7 @@ class FastExitSpanTest {
 
         DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
 
-        ServiceTarget st = new ServiceTarget().withType("postgresql");
-        assertThat(droppedSpanStats.getStats(st, Outcome.SUCCESS)).isNull();
+        assertThat(droppedSpanStats.getStats("postgresql", null, Outcome.SUCCESS)).isNull();
     }
 
     private Transaction startTransaction() {
@@ -158,8 +175,9 @@ class FastExitSpanTest {
     }
 
     protected Span startExitSpan(AbstractSpan<?> parent, long startTimestamp) {
-    return startExitSpan(parent, startTimestamp, "postgresql");
+        return startExitSpan(parent, startTimestamp, "postgresql");
     }
+
     protected Span startExitSpan(AbstractSpan<?> parent, long startTimestamp, String subtype) {
         Span span = parent.createExitSpan().withName("Some Name").withType("db").withSubtype(subtype);
         span.getContext().getDestination().withAddress("127.0.0.1").withPort(5432);
