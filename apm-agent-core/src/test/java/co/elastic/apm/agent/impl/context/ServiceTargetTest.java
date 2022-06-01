@@ -77,22 +77,39 @@ class ServiceTargetTest {
     }
 
     @Test
-    void userValuePriority() {
-
+    void userValuePriority_userValuesAfter() {
         ServiceTarget serviceTarget = new ServiceTarget();
+
         serviceTarget.withType("type").withName("name");
         assertThat(serviceTarget).hasType("type").hasName("name").isNotSetByUser();
 
         assertThat(serviceTarget.withUserType("user-type")).hasType("user-type").isSetByUser();
         assertThat(serviceTarget.withUserName("user-name")).hasName("user-name").isSetByUser();
+    }
 
+    @Test
+    void userValuePriority_userValuesBefore() {
+        ServiceTarget serviceTarget = new ServiceTarget();
+
+        assertThat(serviceTarget.withUserType("user-type")).hasType("user-type").isSetByUser();
+        assertThat(serviceTarget.withUserName("user-name")).hasName("user-name").isSetByUser();
+
+        // should be ignored
         // once set by user, name should not be overridden unless with 'withUser___' methods
-        assertThat(serviceTarget.withName("other-name")).hasName("user-name");
-        assertThat(serviceTarget.withHostPortName("host", 80)).hasName("user-name");
-        assertThat(serviceTarget.withType("other-type")).hasType("user-type");
+        serviceTarget.withType("type").withName("name").withHostPortName("localhost", 80);
 
-        assertThat(serviceTarget.withUserName("another-user-name")).hasName("another-user-name");
-        assertThat(serviceTarget.withUserType("another-user-type")).hasType("another-user-type");
+        assertThat(serviceTarget).hasType("user-type").hasName("user-name").isSetByUser();
+    }
+
+    @Test
+    void userValuePriority_userValuesStillModifiable() {
+        ServiceTarget serviceTarget = new ServiceTarget();
+
+        assertThat(serviceTarget.withUserType("user-type")).hasType("user-type").isSetByUser();
+        assertThat(serviceTarget.withUserName("user-name")).hasName("user-name").isSetByUser();
+
+        assertThat(serviceTarget.withUserName("another-user-name")).hasName("another-user-name").isSetByUser();
+        assertThat(serviceTarget.withUserType("another-user-type")).hasType("another-user-type").isSetByUser();
     }
 
     @Test
