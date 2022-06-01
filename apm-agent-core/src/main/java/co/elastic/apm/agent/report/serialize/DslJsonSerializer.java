@@ -47,6 +47,7 @@ import co.elastic.apm.agent.impl.metadata.RuntimeInfo;
 import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Composite;
 import co.elastic.apm.agent.impl.transaction.DroppedSpanStats;
 import co.elastic.apm.agent.impl.transaction.Faas;
@@ -671,6 +672,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (transaction.isSampled()) {
             serializeDroppedSpanStats(transaction.getDroppedSpanStats());
         }
+        serializeOTel(transaction);
         double sampleRate = traceContext.getSampleRate();
         if (!Double.isNaN(sampleRate)) {
             writeField("sample_rate", sampleRate);
@@ -724,7 +726,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_END);
     }
 
-    private void serializeOTel(Span span) {
+    private void serializeOTel(AbstractSpan<?> span) {
         OTelSpanKind kind = span.getOtelKind();
         Map<String, Object> attributes = span.getOtelAttributes();
         boolean hasAttributes = !attributes.isEmpty();
