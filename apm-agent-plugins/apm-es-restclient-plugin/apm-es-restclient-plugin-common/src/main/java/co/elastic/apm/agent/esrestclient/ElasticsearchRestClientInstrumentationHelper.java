@@ -116,7 +116,6 @@ public class ElasticsearchRestClientInstrumentationHelper {
                 }
             }
             span.getContext().getServiceTarget().withType(ELASTICSEARCH);
-            // TODO : capture cluster name as service target name + maybe as db.instance
         }
         return span;
     }
