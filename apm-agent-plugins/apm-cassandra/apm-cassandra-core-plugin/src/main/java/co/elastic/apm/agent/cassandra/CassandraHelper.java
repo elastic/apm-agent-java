@@ -51,7 +51,6 @@ public class CassandraHelper {
         span.withName(CASSANDRA, AbstractSpan.PRIO_DEFAULT - 1);
 
         span.getContext().getServiceTarget().withType(CASSANDRA);
-        // TODO : add keyspace to service target type + db instance
 
         return span;
     }

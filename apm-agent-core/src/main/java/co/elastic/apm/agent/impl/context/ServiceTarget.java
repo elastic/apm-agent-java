@@ -41,7 +41,7 @@ public class ServiceTarget implements Recyclable {
 
     public ServiceTarget() {
         this.name = new StringBuilder();
-        destinationResource = new StringBuilder();
+        this.destinationResource = new StringBuilder();
     }
 
     public ServiceTarget withType(@Nullable String type) {
