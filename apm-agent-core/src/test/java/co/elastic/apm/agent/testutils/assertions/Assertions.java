@@ -16,30 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.transaction;
+package co.elastic.apm.agent.testutils.assertions;
 
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
 
-class SameKindCompressionStrategyTest extends AbstractCompressionStrategyTest {
+public class Assertions extends org.assertj.core.api.Assertions {
 
-    private int spansCreated = 0;
-
-    SameKindCompressionStrategyTest() {
-        super("same_kind");
+    private Assertions() {
     }
 
-    @Override
-    protected String getSpanName() {
-        return "Some Name " + ++spansCreated;
+    public static ServiceTargetAssert assertThat(ServiceTarget serviceTarget) {
+        return new ServiceTargetAssert(serviceTarget);
     }
 
-    @Override
-    protected String getCompositeSpanName(Span span) {
-        StringBuilder name = new StringBuilder().append("Calls to ");
-        ServiceTarget serviceTarget = span.getContext().getServiceTarget();
-        name.append(serviceTarget.getType());
-        name.append("/");
-        name.append(serviceTarget.getName());
-        return name.toString();
+    public static DestinationAssert assertThat(Destination destination){
+        return new DestinationAssert(destination);
     }
 }
