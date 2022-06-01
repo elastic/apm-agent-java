@@ -444,9 +444,6 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(db.getStatement()).isEqualTo(rawSql);
         DatabaseMetaData metaData = connection.getMetaData();
 
-        assertThat(db.getInstance())
-            .isEqualToIgnoringCase(expectedDbName);
-
         assertThat(db.getUser()).isEqualToIgnoringCase(metaData.getUserName());
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 
@@ -463,11 +460,16 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         }
 
         if (expectedDbInstance == null) {
+            assertThat(db.getInstance()).isNull();
+
             assertThat(span.getContext().getServiceTarget())
                 .hasType(expectedDbVendor)
                 .hasNoName()
                 .hasDestinationResource(expectedDbVendor);
         } else {
+            assertThat(db.getInstance())
+                .isEqualTo(expectedDbName);
+
             assertThat(span.getContext().getServiceTarget())
                 .hasType(expectedDbVendor)
                 .hasName(expectedDbInstance)
