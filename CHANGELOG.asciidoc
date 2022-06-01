@@ -23,6 +23,11 @@ endif::[]
 [[release-notes-1.32.0]]
 ==== 1.32.0 - YYYY/MM/DD
 
+===== Potentially breaking changes
+* For relational databases, the agent now captures the database name and makes it part of service dependencies and service map.
+For example, with a `MySQL` database, previously a single `mysql` item was shown in the map and in service dependencies,
+the agent will now include the database name in the dependency, thus `mysql/my-db1`, `mysql/my-db2` will now be captured.
+
 [float]
 ===== Features
 * Struts action invocations via an action chain result start a new span - {pull}2513[#2513]
