@@ -45,6 +45,7 @@ import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -77,6 +78,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Future;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
@@ -1345,18 +1347,27 @@ class DslJsonSerializerTest {
 
     @Test
     void testOTelSpanSerialization() {
-        Span span = new Span(MockTracer.create()).withName("span name");
-        assertThat(span.getOtelKind())
+        Span span = new Span(MockTracer.create()).withName("otel span");
+        testOTelSpanSerialization(span, s -> readJsonString(serializer.toJsonString(s)));
+
+        Transaction transaction = new Transaction(MockTracer.create()).withName("otel span");
+        testOTelSpanSerialization(transaction, t -> readJsonString(serializer.toJsonString(t)));
+    }
+
+    private <T extends AbstractSpan<T>> void testOTelSpanSerialization(T context, Function<T, JsonNode> toJson) {
+
+        assertThat(context.getOtelKind())
             .describedAs("otel span kind should not be set by default")
             .isNull();
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
-        assertThat(spanJson.get("name").asText()).isEqualTo("span name");
+        JsonNode spanJson = toJson.apply(context );
+
+        assertThat(spanJson.get("name").asText()).isEqualTo("otel span");
         assertThat(spanJson.get("otel")).isNull();
 
         for (OTelSpanKind kind : OTelSpanKind.values()) {
-            span.withOtelKind(kind);
-            spanJson = readJsonString(serializer.toJsonString(span));
+            context.withOtelKind(kind);
+            spanJson = toJson.apply(context);
 
             JsonNode otelJson = spanJson.get("otel");
             assertThat(otelJson).isNotNull();
@@ -1364,11 +1375,11 @@ class DslJsonSerializerTest {
         }
 
         // with custom otel attributes
-        span.getOtelAttributes().put("attribute.string", "hello");
-        span.getOtelAttributes().put("attribute.long", 123L);
-        span.getOtelAttributes().put("attribute.boolean", false);
-        span.getOtelAttributes().put("attribute.float", 0.42f);
-        spanJson = readJsonString(serializer.toJsonString(span));
+        context.getOtelAttributes().put("attribute.string", "hello");
+        context.getOtelAttributes().put("attribute.long", 123L);
+        context.getOtelAttributes().put("attribute.boolean", false);
+        context.getOtelAttributes().put("attribute.float", 0.42f);
+        spanJson = toJson.apply(context);
         JsonNode otelJson = spanJson.get("otel");
         assertThat(otelJson).isNotNull();
         JsonNode otelAttributes = otelJson.get("attributes");
