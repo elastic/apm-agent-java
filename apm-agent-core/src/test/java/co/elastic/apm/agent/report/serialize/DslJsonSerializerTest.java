@@ -424,9 +424,12 @@ class DslJsonSerializerTest {
     @Test
     void testSpanDestinationContextSerialization() {
         Span span = new Span(MockTracer.create());
-        span.getContext().getDestination().withAddress("whatever.com").withPort(80)
-            .getService()
-            .withResource("whatever.com:80");
+        span.getContext().getDestination().withAddress("whatever.com").withPort(80);
+
+        span.getContext().getServiceTarget()
+            .withType("http")
+            .withHostPortName("whatever.com", 80)
+            .withNameOnlyDestinationResource();
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode context = spanJson.get("context");
@@ -436,9 +439,12 @@ class DslJsonSerializerTest {
         assertThat(80).isEqualTo(destination.get("port").intValue());
         JsonNode service = destination.get("service");
         assertThat(service).isNotNull();
-        assertThat("whatever.com:80").isEqualTo(service.get("resource").textValue());
-        assertThat(service.get("name").textValue()).isEqualTo("");
-        assertThat(service.get("type").textValue()).isEqualTo("");
+        assertThat(service.get("resource").textValue()).isEqualTo("whatever.com:80");
+        assertThat(service.get("name").textValue()).isEmpty();
+        assertThat(service.get("type").textValue()).isEmpty();
+        JsonNode serviceTarget = context.get("service").get("target");
+        assertThat(serviceTarget.get("type").asText()).isEqualTo("http");
+        assertThat(serviceTarget.get("name").asText()).isEqualTo("whatever.com:80");
     }
 
     @Test
@@ -462,20 +468,20 @@ class DslJsonSerializerTest {
     @Test
     void testSpanInvalidDestinationSerialization() {
         Span span = new Span(MockTracer.create());
-        span.getContext().getDestination().withAddress(null).withPort(-1)
-            .getService()
-            .withResource("");
+        span.getContext().getDestination().withAddress(null).withPort(-1);
+
+        span.getContext().getServiceTarget().withUserName("").withNameOnlyDestinationResource();
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
-        assertThat(spanJson.get("context").get("destination")).isNull();
+        JsonNode contextJson = spanJson.get("context");
+        assertThat(contextJson.get("destination")).isNull();
+        assertThat(contextJson.get("service")).isNull();
     }
 
     @Test
     void testSpanValidPortSerialization() {
         Span span = new Span(MockTracer.create());
-        span.getContext().getDestination().withAddress(null).withPort(8090)
-            .getService()
-            .withResource("");
+        span.getContext().getDestination().withAddress(null).withPort(8090);
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
@@ -488,9 +494,7 @@ class DslJsonSerializerTest {
     @Test
     void testSpanValidAddressAndPortSerialization() {
         Span span = new Span(MockTracer.create());
-        span.getContext().getDestination().withAddress("test").withPort(8090)
-            .getService()
-            .withResource("");
+        span.getContext().getDestination().withAddress("test").withPort(8090);
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
@@ -503,9 +507,7 @@ class DslJsonSerializerTest {
     @Test
     void testSpanValidAddressSerialization() {
         Span span = new Span(MockTracer.create());
-        span.getContext().getDestination().withAddress("test").withPort(0)
-            .getService()
-            .withResource("");
+        span.getContext().getDestination().withAddress("test").withPort(0);
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
@@ -518,34 +520,40 @@ class DslJsonSerializerTest {
     @Test
     void testSpanValidServiceResourceSerialization() {
         Span span = new Span(MockTracer.create());
-        span.getContext().getDestination().withAddress("").withPort(0)
-            .getService()
-            .withResource("test-resource");
+        span.getContext().getDestination().withAddress("").withPort(0);
+        span.getContext().getServiceTarget().withType("test").withName("resource");
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
         assertThat(destination).isNotNull();
-        assertThat(destination.get("port")).isNull();
-        assertThat(destination.get("address")).isNull();
         JsonNode service = destination.get("service");
-        assertThat(service.get("resource").textValue()).isEqualTo("test-resource");
+        assertThat(service.get("resource").textValue()).isEqualTo("test/resource");
         assertThat(service.get("name").textValue()).isEmpty();
         assertThat(service.get("type").textValue()).isEmpty();
+
+        JsonNode serviceTarget = spanJson.get("context").get("service").get("target");
+        assertThat(serviceTarget.get("type").textValue()).isEqualTo("test");
+        assertThat(serviceTarget.get("name").textValue()).isEqualTo("resource");
     }
 
     @Test
     void testSpanValidServiceAndAddressResourceSerialization() {
         Span span = new Span(MockTracer.create());
-        span.getContext().getDestination().withAddress("test-address").withPort(0)
-            .getService()
-            .withResource("test-resource");
+        span.getContext().getDestination().withAddress("test-address").withPort(0);
+
+        span.getContext().getServiceTarget().withType("test").withName("test-resource").withNameOnlyDestinationResource();
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
         assertThat(destination).isNotNull();
         assertThat(destination.get("port")).isNull();
         assertThat(destination.get("address").textValue()).isEqualTo("test-address");
+
         assertThat(destination.get("service").get("resource").textValue()).isEqualTo("test-resource");
+        JsonNode serviceTarget = spanJson.get("context").get("service").get("target");
+        assertThat(serviceTarget.get("type").textValue()).isEqualTo("test");
+        assertThat(serviceTarget.get("name").textValue()).isEqualTo("test-resource");
+
     }
 
     @Test

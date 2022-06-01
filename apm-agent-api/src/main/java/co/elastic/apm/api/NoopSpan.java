@@ -178,6 +178,12 @@ enum NoopSpan implements Span {
         return this;
     }
 
+    @Nonnull
+    @Override
+    public Span setServiceTarget(@Nullable String type, @Nullable String name) {
+        return this;
+    }
+
     @Override
     @Nonnull
     public Span setNonDiscardable() {

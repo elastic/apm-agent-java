@@ -83,7 +83,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 /**
@@ -720,8 +720,9 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         assertThat(destination.getAddress().toString()).isEqualTo(expectedHostAddress);
         assertThat(destination.getPort()).isEqualTo(expectedPort);
 
-        Destination.Service service = destination.getService();
+        assertThat(span.getContext().getServiceTarget())
+            .hasType("rabbitmq")
+            .hasDestinationResource(expectedResource);
 
-        assertThat(service.getResource().toString()).isEqualTo(expectedResource);
     }
 }

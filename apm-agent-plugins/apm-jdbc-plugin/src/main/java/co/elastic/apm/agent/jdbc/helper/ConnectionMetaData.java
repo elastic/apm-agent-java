@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
-import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 
 import javax.annotation.Nullable;
 import java.util.ArrayDeque;

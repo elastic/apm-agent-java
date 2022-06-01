@@ -128,6 +128,13 @@ class SpanImpl extends AbstractSpanImpl {
 
     @Nonnull
     @Override
+    public Span setServiceTarget(@Nullable String type, @Nullable String name) {
+        doSetServiceTarget(type, name);
+        return this;
+    }
+
+    @Nonnull
+    @Override
     public Span setNonDiscardable() {
         doSetNonDiscardable();
         return this;
