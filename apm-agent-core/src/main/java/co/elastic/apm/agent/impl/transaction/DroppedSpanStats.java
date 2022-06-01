@@ -49,21 +49,23 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
 
         private Outcome outcome;
 
+        private int cachedHashCode;
+
         public StatsKey() {
             this.serviceName = new StringBuilder();
             this.destinationResource = new StringBuilder();
             this.outcome = Outcome.UNKNOWN;
+            cachedHashCode = Integer.MIN_VALUE;
         }
 
         public StatsKey init(ServiceTarget serviceTarget, Outcome outcome) {
+            resetState();
             // we have to use a copy as argument is mutable will be recycled
             this.serviceType = Objects.requireNonNull(serviceTarget.getType());
-            this.serviceName.setLength(0);
             CharSequence name = serviceTarget.getName();
             if(name != null) {
                 this.serviceName.append(name);
             }
-            this.destinationResource.setLength(0);
             this.destinationResource.append(Objects.requireNonNull(serviceTarget.getDestinationResource()));
             this.outcome = outcome;
             return this;
@@ -93,6 +95,7 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
             serviceName.setLength(0);
             destinationResource.setLength(0);
             outcome = Outcome.UNKNOWN;
+            cachedHashCode = Integer.MIN_VALUE;
         }
 
         @Override
@@ -111,10 +114,15 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
 
         @Override
         public int hashCode() {
+            // caching hashcode as multiple calls are expected to this method and we can avoid expensive re-computation
+            if (cachedHashCode != Integer.MIN_VALUE) {
+                return cachedHashCode;
+            }
             int result = serviceType != null ? serviceType.hashCode() : 0;
             result = 31 * result + CharSequenceUtils.hashCode(serviceName);
             result = 31 * result + CharSequenceUtils.hashCode(destinationResource);
             result = 31 * result + outcome.hashCode();
+            cachedHashCode = result;
             return result;
         }
 

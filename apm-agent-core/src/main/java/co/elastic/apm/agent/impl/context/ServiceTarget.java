@@ -37,8 +37,11 @@ public class ServiceTarget implements Recyclable {
 
     private boolean onlyNameInResource = false;
 
+    private final StringBuilder destinationResource;
+
     public ServiceTarget() {
         this.name = new StringBuilder();
+        destinationResource = new StringBuilder();
     }
 
     public ServiceTarget withType(@Nullable String type) {
@@ -145,7 +148,7 @@ public class ServiceTarget implements Recyclable {
         // will allocate a bit, but it's fine as it's only expected to be called once
         // - when the span is dropped for dropped spans stats
         // - when the span is serialized
-        StringBuilder destinationResource = new StringBuilder();
+        destinationResource.setLength(0);
         if (type != null && type.length() > 0) {
             destinationResource.append(type);
             destinationResource.append("/");
