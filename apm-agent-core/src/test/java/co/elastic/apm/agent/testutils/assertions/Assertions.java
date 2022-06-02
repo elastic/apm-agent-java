@@ -16,14 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jdbc;
+package co.elastic.apm.agent.testutils.assertions;
 
-import java.sql.DriverManager;
+import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.context.ServiceTarget;
 
-public class JdbcInstrumentationTest extends AbstractJdbcInstrumentationTest {
+public class Assertions extends org.assertj.core.api.Assertions {
 
-    public JdbcInstrumentationTest() throws Exception {
-        super(DriverManager.getConnection("jdbc:h2:mem:test"), "h2", "test");
+    private Assertions() {
     }
 
+    public static ServiceTargetAssert assertThat(ServiceTarget serviceTarget) {
+        return new ServiceTargetAssert(serviceTarget);
+    }
+
+    public static DestinationAssert assertThat(Destination destination){
+        return new DestinationAssert(destination);
+    }
 }

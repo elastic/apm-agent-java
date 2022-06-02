@@ -141,17 +141,8 @@ public class Destination implements Recyclable {
         }
     }
 
-    /**
-     * Information about the service related to this destination.
-     */
-    private final Service service = new Service();
-
-    public Service getService() {
-        return service;
-    }
-
     public boolean hasContent() {
-        return address.length() > 0 || port > 0 || service.hasContent();
+        return address.length() > 0 || port > 0;
     }
 
     @Override
@@ -160,7 +151,6 @@ public class Destination implements Recyclable {
         addressSetByUser = false;
         port = 0;
         portSetByUser = false;
-        service.resetState();
     }
 
     public Destination withSocketAddress(SocketAddress socketAddress) {
@@ -186,101 +176,4 @@ public class Destination implements Recyclable {
         return this;
     }
 
-    /**
-     * Context information required for service maps.
-     */
-    public static class Service implements Recyclable {
-        /**
-         * Used for detecting unique destinations from each service.
-         * For HTTP, this is the address, with the port (even when it's the default port), without any scheme.
-         * For other types of connections, it's just the {@code span.subtype} (kafka, elasticsearch etc.).
-         * For messaging, we additionally add the queue name (eg jms/myQueue).
-         */
-        private final StringBuilder resource = new StringBuilder();
-
-        private boolean resourceSetByUser;
-
-        /**
-         * Used for detecting “sameness” of services and then the display name of a service in the Service Map.
-         * In other words, the {@link Service#resource} is used to query data for ALL destinations. However,
-         * some `resources` may be nodes of the same cluster, in which case we also want to be aware.
-         * Eventually, we may decide to actively fetch a cluster name or similar and we could use that to detect "sameness".
-         * For now, for HTTP we use scheme, host, and non-default port. For anything else, we use {@code span.subtype}
-         * (for example- postgresql, elasticsearch).
-         *
-         * @deprecated will be removed
-         */
-        private final StringBuilder name = new StringBuilder();
-
-        /**
-         * For displaying icons or similar. Currently, this should be equal to the {@code span.type}.
-         *
-         * @deprecated will be removed
-         */
-        @Nullable
-        private String type;
-
-        public Service withUserResource(@Nullable String resource) {
-            if (resource == null || resource.isEmpty()) {
-                this.resource.setLength(0);
-            } else {
-                setResourceValue(resource);
-            }
-            resourceSetByUser = true;
-            return this;
-        }
-
-        public Service withResource(String resource) {
-            if (!resourceSetByUser) {
-                setResourceValue(resource);
-            }
-            return this;
-        }
-
-        private void setResourceValue(String newValue) {
-            resource.setLength(0);
-            resource.append(newValue);
-        }
-
-        public boolean isResourceSetByUser() {
-            return resourceSetByUser;
-        }
-
-        public StringBuilder getResource() {
-            return resource;
-        }
-
-        @Deprecated
-        public Service withName(String name) {
-            return this;
-        }
-
-        @Deprecated
-        public StringBuilder getName() {
-            return name;
-        }
-
-        @Deprecated
-        public Service withType(@Nullable String type) {
-            return this;
-        }
-
-        @Nullable
-        @Deprecated
-        public String getType() {
-            return type;
-        }
-
-        public boolean hasContent() {
-            return resource.length() > 0;
-        }
-
-        @Override
-        public void resetState() {
-            resource.setLength(0);
-            resourceSetByUser = false;
-            name.setLength(0);
-            type = null;
-        }
-    }
 }
