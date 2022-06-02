@@ -28,10 +28,12 @@ endif::[]
 * Struts action invocations via an action chain result start a new span - {pull}2513[#2513]
 * Added official support for Elasticsearch Java API client - {pull}2211[#2211]
 * Added the ability to make spans non-discardable through the public API and the OpenTelemetry bridge - {pull}2632[#2632]
+* Added support for the new service target fields - {pull}2578[#2578]
 * Added support for setting the remote address of a transaction via the public api - {pull}2522[#2522]
 
 [float]
 ===== Bug fixes
+* Fix missing attributes in bridged OTel transactions {pull}2657[#2657]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

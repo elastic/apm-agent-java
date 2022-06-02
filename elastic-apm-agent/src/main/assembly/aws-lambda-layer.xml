@@ -14,8 +14,9 @@
     </fileSets>
     <files>
         <file>
-            <source> ${project.build.directory}/${project.artifactId}-${project.version}.jar</source>
+            <source>${project.build.directory}/${project.artifactId}-${project.version}.jar</source>
             <outputDirectory>/</outputDirectory>
+            <destName>elastic-apm-agent.jar</destName>
         </file>
         <file>
             <source>${project.build.directory}/aws-lambda/elastic-apm-handler</source>

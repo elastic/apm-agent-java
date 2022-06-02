@@ -60,6 +60,10 @@ public abstract class HelloServer<Req,Rep> {
     private Server server;
     private ExecutorService serverPool;
 
+    public int getPort() {
+        return port;
+    }
+
     protected static class Sync {
         public CyclicBarrier processingStart;
         public CyclicBarrier processingEnd;

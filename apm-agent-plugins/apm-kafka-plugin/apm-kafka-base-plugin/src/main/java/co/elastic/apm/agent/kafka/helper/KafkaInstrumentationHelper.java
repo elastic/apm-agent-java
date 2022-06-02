@@ -26,14 +26,14 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.PartitionInfo;
 import org.jctools.queues.atomic.AtomicQueueFactory;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -87,11 +87,18 @@ public class KafkaInstrumentationHelper {
             return null;
         }
 
-        span.withType("messaging").withSubtype("kafka").withAction("send");
-        span.withName("KafkaProducer#send to ").appendToName(topic);
-        span.getContext().getMessage().withQueue(topic);
-        span.getContext().getDestination().getService().withType("messaging").withName("kafka")
-            .getResource().append("kafka/").append(topic);
+        span.withType("messaging")
+            .withSubtype("kafka")
+            .withAction("send")
+            .withName("KafkaProducer#send to ").appendToName(topic);
+
+        span.getContext().getMessage()
+            .withQueue(topic);
+
+        span.getContext().getServiceTarget()
+            .withType("kafka")
+            .withName(topic);
+
         span.activate();
         return span;
     }

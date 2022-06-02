@@ -59,11 +59,10 @@ public abstract class AbstractS3InstrumentationHelper<R, C> {
         }
         span.withName("S3", AbstractSpan.PRIO_DEFAULT - 1);
 
-
-        span.getContext()
-            .getDestination()
-            .getService()
-            .withResource(bucketName != null ? bucketName : S3_TYPE);
+        span.getContext().getServiceTarget()
+            .withType(S3_TYPE)
+            .withName(bucketName)
+            .withNameOnlyDestinationResource();
 
         span.getContext().getDestination()
             .withAddress(httpURI.getHost())
