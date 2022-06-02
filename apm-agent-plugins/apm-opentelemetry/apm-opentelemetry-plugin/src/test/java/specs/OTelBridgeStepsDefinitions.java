@@ -308,7 +308,7 @@ public class OTelBridgeStepsDefinitions {
 
     }
 
-    @Then("Elastic bridged transaction result is null")
+    @Then("Elastic bridged transaction result is not set")
     public void bridgedTransactionResultNull() {
         assertThat(getBridgedTransaction().getResult()).isNull();
     }
