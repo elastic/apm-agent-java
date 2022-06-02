@@ -43,7 +43,7 @@ import java.util.regex.Pattern;
  */
 public class AgentDownloader {
 
-    private static final String VERSION_EXTRACTION_REGEX = "<a href.+>([0-9.]+)/</a>";
+    private static final String VERSION_EXTRACTION_REGEX = "<a href.+>([0-9]+.[0-9.]+.[0-9.]+)/</a>";
     private static final String AGENT_GROUP_ID = "co.elastic.apm";
     private static final String AGENT_ARTIFACT_ID = "elastic-apm-agent";
     private static final String CLI_JAR_VERSION;
@@ -220,10 +220,18 @@ public class AgentDownloader {
     }
 
     static String findLatestVersion() throws Exception {
-        TreeSet<Version> versions = new TreeSet<>();
         String agentArtifactMavenBaseUrl = getAgentArtifactMavenBaseUrl();
         HttpURLConnection httpURLConnection = openConnection(agentArtifactMavenBaseUrl);
-        BufferedReader versionsHtmlReader = new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()));
+        TreeSet<Version> versions = parseMavenArtifactHtml(httpURLConnection.getInputStream());
+        if (versions.isEmpty()) {
+            throw new IllegalStateException("Failed to parse agent versions from the contents of " + agentArtifactMavenBaseUrl);
+        }
+        return versions.last().toString();
+    }
+
+    static TreeSet<Version> parseMavenArtifactHtml(InputStream htmlInputStream) throws IOException {
+        TreeSet<Version> versions = new TreeSet<>();
+        BufferedReader versionsHtmlReader = new BufferedReader(new InputStreamReader(htmlInputStream));
         Pattern pattern = Pattern.compile(VERSION_EXTRACTION_REGEX);
         String line;
         while ((line = versionsHtmlReader.readLine()) != null) {
@@ -236,10 +244,7 @@ public class AgentDownloader {
                 // ignore, probably a regex false positive
             }
         }
-        if (versions.isEmpty()) {
-            throw new IllegalStateException("Failed to parse agent versions from the contents of " + agentArtifactMavenBaseUrl);
-        }
-        return versions.last().toString();
+        return versions;
     }
 
     /**

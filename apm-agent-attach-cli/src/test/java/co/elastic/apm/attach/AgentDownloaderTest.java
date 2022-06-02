@@ -18,13 +18,16 @@
  */
 package co.elastic.apm.attach;
 
+import co.elastic.apm.agent.util.Version;
 import co.elastic.apm.attach.bouncycastle.BouncyCastleVerifier;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
+import java.util.TreeSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -97,5 +100,14 @@ class AgentDownloaderTest {
         String latestVersion = AgentDownloader.findLatestVersion();
         System.out.println("latestVersion = " + latestVersion);
         assertThat(latestVersion).isNotEmpty();
+    }
+
+    @Test
+    void testAgentArtifactMavenPageParsing() throws IOException {
+        TreeSet<Version> versions = AgentDownloader.parseMavenArtifactHtml(AgentDownloaderTest.class.getResourceAsStream(
+            "/MavenCentral_agent_artifact.html"));
+        assertThat(versions).hasSize(50);
+        assertThat(versions.first().toString()).isEqualTo("0.5.1");
+        assertThat(versions.last().toString()).isEqualTo("1.31.0");
     }
 }
