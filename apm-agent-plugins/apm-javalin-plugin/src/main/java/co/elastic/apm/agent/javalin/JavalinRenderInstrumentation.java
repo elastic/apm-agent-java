@@ -77,10 +77,11 @@ public class JavalinRenderInstrumentation extends TracerAwareInstrumentation {
                 return null;
             }
 
-            Span span = parent.createSpan().activate();
-            span.withType("app").withSubtype("handler");
-            span.appendToName("render ").appendToName(template);
-            return span;
+            return parent.createSpan()
+                .activate()
+                .withType("app")
+                .withSubtype("internal")
+                .appendToName("render ").appendToName(template);
         }
 
 
