@@ -23,12 +23,18 @@ endif::[]
 [[release-notes-1.32.0]]
 ==== 1.32.0 - YYYY/MM/DD
 
+===== Potentially breaking changes
+* For relational databases, the agent now captures the database name and makes it part of service dependencies and service map.
+For example, with a `MySQL` database, previously a single `mysql` item was shown in the map and in service dependencies,
+the agent will now include the database name in the dependency, thus `mysql/my-db1`, `mysql/my-db2` will now be captured.
+
 [float]
 ===== Features
 * Struts action invocations via an action chain result start a new span - {pull}2513[#2513]
 * Added official support for Elasticsearch Java API client - {pull}2211[#2211]
 * Added the ability to make spans non-discardable through the public API and the OpenTelemetry bridge - {pull}2632[#2632]
 * Added support for the new service target fields - {pull}2578[#2578]
+* Capture the database name from JDBC connection string - {pull}2642[#2642]
 * Added support for setting the remote address of a transaction via the public api - {pull}2522[#2522]
 
 [float]
