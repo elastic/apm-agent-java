@@ -179,6 +179,8 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(getSpan).isNotNull();
         Span renderSpan = reporter.getSpanByName("render my-template.abc");
         assertThat(renderSpan).isNotNull();
+        assertThat(renderSpan.getType()).isEqualTo("app");
+        assertThat(renderSpan.getSubtype()).isEqualTo("internal");
     }
 
     public static class MyRenderer implements FileRenderer {
