@@ -308,6 +308,11 @@ public class OTelBridgeStepsDefinitions {
 
     }
 
+    @Then("Elastic bridged transaction result is not set")
+    public void bridgedTransactionResultNull() {
+        assertThat(getBridgedTransaction().getResult()).isNull();
+    }
+
     @Then("Elastic bridged span service target type is {string} and name is {string}")
     public void bridgedSpanTargetServiceType(String type, String name) {
         ServiceTarget serviceTarget = getBridgedSpan().getContext().getServiceTarget();
