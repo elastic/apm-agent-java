@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -203,9 +204,15 @@ public class GlobalTracer implements Tracer {
         return tracer.getState();
     }
 
+    @Nullable
     @Override
-    public void overrideServiceNameForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName) {
-        tracer.overrideServiceNameForClassLoader(classLoader, serviceName);
+    public ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader classLoader) {
+        return tracer.getServiceInfoForClassLoader(classLoader);
+    }
+
+    @Override
+    public void setServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo) {
+        tracer.setServiceInfoForClassLoader(classLoader, serviceInfo);
     }
 
     @Override

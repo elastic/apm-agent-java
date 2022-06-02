@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.28.5-SNAPSHOT</version>
+        <version>1.31.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
@@ -13,9 +13,6 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
-
-        <!-- default value that will be overloaded through commit-id plugin -->
-        <git.commit.id.abbrev>UNKNOWN</git.commit.id.abbrev>
     </properties>
 
     <dependencies>
@@ -25,6 +22,22 @@
             <version>${project.version}</version>
         </dependency>
     </dependencies>
+
+    <profiles>
+        <profile>
+            <id>git-worktree</id>
+            <activation>
+                <file>
+                    <!-- in a secondary worktree, '.git' is a file, not a folder -->
+                    <missing>.git/HEAD</missing>
+                </file>
+            </activation>
+            <properties>
+                <!-- when using git worktrees, native git client is required as JGit does not support this yet -->
+                <maven.gitcommitid.nativegit>true</maven.gitcommitid.nativegit>
+            </properties>
+        </profile>
+    </profiles>
 
     <build>
         <plugins>
@@ -134,6 +147,10 @@
                                     <fileset dir="${project.basedir}/target/classes/agent" includes="**/*.class" />
                                     <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz" />
                                 </move>
+                                <move todir="${project.basedir}/target/classes/META-INF/versions" overwrite="true">
+                                    <fileset dir="${project.basedir}/target/classes/agent/META-INF/versions" includes="**" />
+                                    <mapper type="regexp" from="^(\d+)/(.*)$$" to="\1/agent/\2" />
+                                </move>
                             </target>
 
                         </configuration>
@@ -169,15 +186,18 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>pl.project13.maven</groupId>
-                <artifactId>git-commit-id-plugin</artifactId>
-                <version>4.0.2</version>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <version>5.0.0</version>
                 <executions>
                     <execution>
                         <id>get-the-git-infos</id>
                         <goals>
                             <goal>revision</goal>
                         </goals>
+                        <configuration>
+                            <verbose>true</verbose>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -208,6 +228,7 @@
                                         <Can-Redefine-Classes>true</Can-Redefine-Classes>
                                         <Can-Retransform-Classes>true</Can-Retransform-Classes>
                                         <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
+                                        <Multi-Release>true</Multi-Release>
                                     </manifestEntries>
                                 </transformer>
                             </transformers>

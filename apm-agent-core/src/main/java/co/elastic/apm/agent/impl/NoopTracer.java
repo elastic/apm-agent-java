@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -129,8 +130,14 @@ class NoopTracer implements Tracer {
         return TracerState.UNINITIALIZED;
     }
 
+    @Nullable
     @Override
-    public void overrideServiceNameForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName) {
+    public ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader classLoader) {
+        return null;
+    }
+
+    @Override
+    public void setServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo) {
     }
 
     @Override

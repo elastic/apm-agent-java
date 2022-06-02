@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.objectpool.impl;
 
 import co.elastic.apm.agent.objectpool.ObjectPool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;

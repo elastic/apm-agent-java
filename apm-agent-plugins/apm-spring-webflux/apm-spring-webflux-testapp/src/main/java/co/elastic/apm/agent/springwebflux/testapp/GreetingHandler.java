@@ -21,6 +21,7 @@ package co.elastic.apm.agent.springwebflux.testapp;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -92,6 +93,11 @@ public class GreetingHandler {
     public Mono<String> duration(long durationMillis) {
         return helloMessage(String.format("duration=%d", durationMillis))
             .doOnNext(m -> fakeWork(durationMillis));
+    }
+
+    public Mono<String> getUsernameFromContext() {
+        return ReactiveSecurityContextHolder.getContext()
+            .flatMap(ctx -> Mono.just(ctx.getAuthentication().getName()));
     }
 
     private static void fakeWork(long durationMs) {

@@ -64,10 +64,9 @@ import com.rabbitmq.client.Envelope;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.testcontainers.containers.RabbitMQContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -84,7 +83,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 /**
@@ -107,7 +106,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
 
     @BeforeAll
     static void before() {
-        container.withLogConsumer(new Slf4jLogConsumer(logger))
+        container.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(RabbitMQIT.class))
             .withStartupTimeout(Duration.ofSeconds(120))
             .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048))
             .start();
@@ -721,8 +720,9 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         assertThat(destination.getAddress().toString()).isEqualTo(expectedHostAddress);
         assertThat(destination.getPort()).isEqualTo(expectedPort);
 
-        Destination.Service service = destination.getService();
+        assertThat(span.getContext().getServiceTarget())
+            .hasType("rabbitmq")
+            .hasDestinationResource(expectedResource);
 
-        assertThat(service.getResource().toString()).isEqualTo(expectedResource);
     }
 }

@@ -21,8 +21,8 @@ package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.common.util.ProcessExecutionUtil;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.net.InetAddress;
@@ -212,10 +212,22 @@ public class SystemInfo {
         return hostname;
     }
 
+    /**
+     * Returns the hostname from environment variables.
+     * <br/>
+     * Note for Windows: the Windows implementation relies on the COMPUTERNAME environment variable that does not
+     * 100% matches the computer name: the returned value is the "netbios name" in upper-case and limited to the first
+     * 15 characters of the complete computer name returned by {@code hostname} command.
+     *
+     * @param isWindows {@literal true} for Windows
+     * @return computer/host name from environment variables.
+     */
     @Nullable
     static String discoverHostnameThroughEnv(boolean isWindows) {
         String hostname;
         if (isWindows) {
+            // Windows implementation will always return an upper-case name
+            // limited to the 15 first characters of the actual computer name
             hostname = System.getenv("COMPUTERNAME");
         } else {
             hostname = System.getenv("HOSTNAME");

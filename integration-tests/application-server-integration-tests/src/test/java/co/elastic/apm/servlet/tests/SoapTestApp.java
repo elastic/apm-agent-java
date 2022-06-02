@@ -34,7 +34,8 @@ public class SoapTestApp extends TestApp {
             "soap-test.war",
             "soap-test",
             "status.html",
-            "soap-test");
+            "soap-test",
+            null);
     }
 
     @Override

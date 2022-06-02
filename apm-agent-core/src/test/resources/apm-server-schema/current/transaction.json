@@ -487,6 +487,13 @@
                 }
               }
             },
+            "id": {
+              "description": "ID holds a unique identifier for the service.",
+              "type": [
+                "null",
+                "string"
+              ]
+            },
             "language": {
               "description": "Language holds information about the programming language of the monitored service.",
               "type": [
@@ -593,11 +600,49 @@
                 }
               }
             },
-            "string": {
-              "description": "ID holds a unique identifier for the service.",
+            "target": {
+              "description": "Target holds information about the outgoing service in case of an outgoing event",
               "type": [
                 "null",
-                "string"
+                "object"
+              ],
+              "properties": {
+                "name": {
+                  "description": "Immutable name of the target service for the event",
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "type": {
+                  "description": "Immutable type of the target service for the event",
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                }
+              },
+              "anyOf": [
+                {
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                {
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ]
+                }
               ]
             },
             "version": {
@@ -733,6 +778,22 @@
               "unknown",
               null
             ]
+          },
+          "service_target_name": {
+            "description": "ServiceTargetName identifies the instance name of the target service being operated on",
+            "type": [
+              "null",
+              "string"
+            ],
+            "maxLength": 512
+          },
+          "service_target_type": {
+            "description": "ServiceTargetType identifies the type of the target service being operated on e.g. 'oracle', 'rabbitmq'",
+            "type": [
+              "null",
+              "string"
+            ],
+            "maxLength": 512
           }
         }
       },
@@ -826,6 +887,20 @@
             "string"
           ]
         },
+        "id": {
+          "description": "A unique identifier of the invoked serverless function.",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "name": {
+          "description": "The lambda function name.",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
         "trigger": {
           "description": "Trigger attributes.",
           "type": [
@@ -848,6 +923,13 @@
               ]
             }
           }
+        },
+        "version": {
+          "description": "The lambda function version.",
+          "type": [
+            "null",
+            "string"
+          ]
         }
       }
     },
@@ -855,6 +937,33 @@
       "description": "ID holds the hex encoded 64 random bits ID of the event.",
       "type": "string",
       "maxLength": 1024
+    },
+    "links": {
+      "description": "Links holds links to other spans, potentially in other traces.",
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "span_id": {
+            "description": "SpanID holds the ID of the linked span.",
+            "type": "string",
+            "maxLength": 1024
+          },
+          "trace_id": {
+            "description": "TraceID holds the ID of the linked span's trace.",
+            "type": "string",
+            "maxLength": 1024
+          }
+        },
+        "required": [
+          "span_id",
+          "trace_id"
+        ]
+      },
+      "minItems": 0
     },
     "marks": {
       "description": "Marks capture the timing of a significant event during the lifetime of a transaction. Marks are organized into groups and can be set by the user or the agent. Marks are only reported by RUM agents.",

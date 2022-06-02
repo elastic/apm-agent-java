@@ -27,7 +27,8 @@ public class CdiJakartaeeServletContainerTestApp extends TestApp {
             "cdi-jakartaee-app.war",
             "cdi-jakartaee-app",
             "status.html",
-            "CDI Jakarta App");
+            "CDI Jakarta App",
+            null);
     }
 
     @Override

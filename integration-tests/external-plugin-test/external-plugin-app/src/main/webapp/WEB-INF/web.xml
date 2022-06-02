@@ -6,11 +6,20 @@
          version="3.0">
 
     <servlet>
-        <servlet-name>ExternalPluginTestServlet</servlet-name>
-        <servlet-class>co.elastic.apm.external.plugin.servlet.ExternalPluginTestServlet</servlet-class>
+        <servlet-name>ExternalPluginTestSpanServlet</servlet-name>
+        <servlet-class>co.elastic.apm.external.plugin.servlet.ExternalPluginTestSpanServlet</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>ExternalPluginTestTransactionServlet</servlet-name>
+        <servlet-class>co.elastic.apm.external.plugin.servlet.ExternalPluginTestTransactionServlet</servlet-class>
+    </servlet>
+
     <servlet-mapping>
-        <servlet-name>ExternalPluginTestServlet</servlet-name>
-        <url-pattern>/test-external-plugin</url-pattern>
+        <servlet-name>ExternalPluginTestSpanServlet</servlet-name>
+        <url-pattern>/test-span-external-plugin</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ExternalPluginTestTransactionServlet</servlet-name>
+        <url-pattern>/test-transaction-external-plugin</url-pattern>
     </servlet-mapping>
 </web-app>

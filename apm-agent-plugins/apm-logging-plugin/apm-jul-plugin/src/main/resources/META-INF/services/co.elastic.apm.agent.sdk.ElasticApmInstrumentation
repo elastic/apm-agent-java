@@ -1,0 +1,6 @@
+# ECS re-formatting
+co.elastic.apm.agent.jul.reformatting.JulLogReformattingInstrumentation$FileReformattingInstrumentation
+co.elastic.apm.agent.jul.reformatting.JulLogReformattingInstrumentation$ConsoleReformattingInstrumentation
+co.elastic.apm.agent.jul.reformatting.JulLogReformattingInstrumentation$StopAppenderInstrumentation
+
+# Error creation

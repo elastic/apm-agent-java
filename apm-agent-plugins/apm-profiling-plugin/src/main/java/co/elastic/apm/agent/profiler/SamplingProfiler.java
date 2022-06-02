@@ -40,8 +40,8 @@ import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.SequenceBarrier;
 import com.lmax.disruptor.WaitStrategy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -777,6 +777,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         public static final int SERIALIZED_SIZE =
             Long.SIZE / Byte.SIZE + // timestamp
                 Short.SIZE / Byte.SIZE + // serviceName index
+                Short.SIZE / Byte.SIZE + // serviceVersion index
                 TraceContext.SERIALIZED_LENGTH + // traceContextBuffer
                 TraceContext.SERIALIZED_LENGTH + // previousContextBuffer
                 1 + // rootContext
@@ -786,9 +787,14 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         private static final Map<String, Short> serviceNameMap = new HashMap<>();
         private static final Map<Short, String> serviceNameBackMap = new HashMap<>();
 
+        private static final Map<String, Short> serviceVersionMap = new HashMap<>();
+        private static final Map<Short, String> serviceVersionBackMap = new HashMap<>();
+
         private long timestamp;
         @Nullable
         private String serviceName;
+        @Nullable
+        private String serviceVersion;
         private byte[] traceContextBuffer = new byte[TraceContext.SERIALIZED_LENGTH];
         private byte[] previousContextBuffer = new byte[TraceContext.SERIALIZED_LENGTH];
         private boolean rootContext;
@@ -808,6 +814,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             this.threadId = threadId;
             this.activation = activation;
             this.serviceName = traceContext.getServiceName();
+            this.serviceVersion = traceContext.getServiceVersion();
             if (previousContext != null) {
                 previousContext.serialize(previousContextBuffer);
                 rootContext = false;
@@ -845,7 +852,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         }
 
         private void startProfiling(SamplingProfiler samplingProfiler) {
-            CallTree.Root root = CallTree.createRoot(samplingProfiler.rootPool, traceContextBuffer, serviceName, timestamp);
+            CallTree.Root root = CallTree.createRoot(samplingProfiler.rootPool, traceContextBuffer, serviceName, serviceVersion, timestamp);
             if (logger.isDebugEnabled()) {
                 logger.debug("Create call tree ({}) for thread {}", deserialize(samplingProfiler, traceContextBuffer), threadId);
             }
@@ -860,7 +867,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         }
 
         private TraceContext deserialize(SamplingProfiler samplingProfiler, byte[] traceContextBuffer) {
-            samplingProfiler.contextForLogging.deserialize(traceContextBuffer, null);
+            samplingProfiler.contextForLogging.deserialize(traceContextBuffer, null, null);
             return samplingProfiler.contextForLogging;
         }
 
@@ -906,6 +913,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         public void serialize(ByteBuffer buf) {
             buf.putLong(timestamp);
             buf.putShort(getServiceNameIndex());
+            buf.putShort(getServiceVersionIndex());
             buf.put(traceContextBuffer);
             buf.put(previousContextBuffer);
             buf.put(rootContext ? (byte) 1 : (byte) 0);
@@ -916,6 +924,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         public void deserialize(ByteBuffer buf) {
             timestamp = buf.getLong();
             serviceName = serviceNameBackMap.get(buf.getShort());
+            serviceVersion = serviceVersionBackMap.get(buf.getShort());
             buf.get(traceContextBuffer);
             buf.get(previousContextBuffer);
             rootContext = buf.get() == 1;
@@ -929,6 +938,16 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                 index = (short) serviceNameMap.size();
                 serviceNameMap.put(serviceName, index);
                 serviceNameBackMap.put(index, serviceName);
+            }
+            return index;
+        }
+
+        private short getServiceVersionIndex() {
+            Short index = serviceVersionMap.get(serviceVersion);
+            if (index == null) {
+                index = (short) serviceVersionMap.size();
+                serviceVersionMap.put(serviceVersion, index);
+                serviceVersionBackMap.put(index, serviceVersion);
             }
             return index;
         }

@@ -22,6 +22,7 @@ import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -32,7 +33,6 @@ import org.apache.logging.log4j.core.impl.Log4jContextFactory;
 import org.apache.logging.log4j.core.selector.ContextSelector;
 import org.apache.logging.log4j.spi.LoggerContextFactory;
 import org.apache.logging.log4j.status.StatusLogger;
-import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
@@ -52,7 +52,7 @@ import java.util.Map;
  * <p>
  * This class is a bit special compared to other {@link ConfigurationOptionProvider}s,
  * because we have to make sure that wie initialize the logger before anyone calls
- * {@link org.slf4j.LoggerFactory#getLogger(Class)}.
+ * {@link LoggerFactory#getLogger(Class)}.
  * That's why we don't read the values from the {@link ConfigurationOption} fields but
  * iterate over the {@link ConfigurationSource}s manually to read the values
  * (see {@link Log4j2ConfigurationFactory#getValue}).
@@ -149,36 +149,19 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(DEFAULT_LOG_FILE);
 
-    private final ConfigurationOption<Boolean> logCorrelationEnabled = ConfigurationOption.booleanOption()
-        .key("enable_log_correlation")
-        .configurationCategory(LOGGING_CATEGORY)
-        .description("A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.\n" +
-            "If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.\n" +
-            "Since version 1.16.0, the agent also adds `error.id` of captured error to the MDC just before the error message is logged.\n" +
-            "See <<log-correlation>> for more details.\n" +
-            "\n" +
-            "NOTE: While it's allowed to enable this setting at runtime, you can't disable it without a restart.")
-        .dynamic(true)
-        .addValidator(new ConfigurationOption.Validator<Boolean>() {
-            @Override
-            public void assertValid(Boolean value) {
-                if (logCorrelationEnabled != null && logCorrelationEnabled.get() && Boolean.FALSE.equals(value)) {
-                    // the reason is that otherwise the MDC will not be cleared when disabling while a span is currently active
-                    throw new IllegalArgumentException("Disabling the log correlation at runtime is not possible.");
-                }
-            }
-        })
-        .buildWithDefault(false);
-
     private final ConfigurationOption<LogEcsReformatting> logEcsReformatting = ConfigurationOption.enumOption(LogEcsReformatting.class)
         .key("log_ecs_reformatting")
         .configurationCategory(LOGGING_CATEGORY)
         .tags("added[1.22.0]", "experimental")
         .description("Specifying whether and how the agent should automatically reformat application logs \n" +
-            "into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for \n" +
-            "further Log analysis. This functionality is available for log4j1, log4j2 and Logback. \n" +
-            "Once this option is enabled with any valid option, log correlation will be activated as well, " +
-            "regardless of the <<config-enable-log-correlation,`enable_log_correlation`>> configuration. \n" +
+            "into {ecs-logging-ref}/intro.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for \n" +
+            "further Log analysis. This functionality is available for log4j1, log4j2, Logback and `java.util.logging`. \n" +
+            "The ECS log lines will include active trace/transaction/error IDs, if there are such. \n" +
+            "\n" +
+            "This option only applies to pattern layouts/formatters by default.\n" +
+            "See also <<config-log-ecs-formatter-allow-list, `log_ecs_formatter_allow_list`>>." +
+            "\n" +
+            "To properly ingest and parse ECS JSON logs, follow the {ecs-logging-java-ref}/setup.html#setup-step-2[getting started guide].\n" +
             "\n" +
             "Available options:\n" +
             "\n" +
@@ -196,7 +179,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             " - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. \n" +
             "\n" +
             "NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option \n" +
-            "is also valid for other appenders, like System out and console")
+            "is also valid for other appenders, like System out and console.\n")
         .dynamic(true)
         .buildWithDefault(LogEcsReformatting.OFF);
 
@@ -227,7 +210,9 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(Arrays.asList(
             WildcardMatcher.valueOf("*PatternLayout*"),
             WildcardMatcher.valueOf("org.apache.log4j.SimpleLayout"),
-            WildcardMatcher.valueOf("ch.qos.logback.core.encoder.EchoEncoder")
+            WildcardMatcher.valueOf("ch.qos.logback.core.encoder.EchoEncoder"),
+            WildcardMatcher.valueOf("java.util.logging.SimpleFormatter"),
+            WildcardMatcher.valueOf("org.springframework.boot.logging.java.SimpleFormatter")
         ));
 
     private final ConfigurationOption<String> logEcsFormattingDestinationDir = ConfigurationOption.stringOption()
@@ -324,6 +309,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             // example through org.apache.logging.log4j.core.config.Configurator, means that loggers in non-initialized
             // contexts will either get the app-configuration for log4j, if such exists, or none.
             ConfigurationFactory.setConfigurationFactory(new Log4j2ConfigurationFactory(sources, ephemeralId));
+            LoggerFactory.initialize(new Log4jLoggerFactoryBridge());
         } catch (Throwable throwable) {
             System.err.println("[elastic-apm-agent] ERROR Failure during initialization of agent's log4j system: " + throwable.getMessage());
         } finally {
@@ -332,6 +318,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             restoreSystemProperty(DEFAULT_LISTENER_LEVEL, defaultListenerLevel);
             StatusLogger.getLogger().setLevel(Level.ERROR);
         }
+    }
+
+    public static void shutdown() {
+        Log4jLoggerFactoryBridge.shutdown();
     }
 
     private static void restoreSystemProperty(String key, @Nullable String originalValue) {
@@ -374,11 +364,6 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         Configurator.setLevel("com.networknt.schema", org.apache.logging.log4j.Level.WARN);
     }
 
-    public boolean isLogCorrelationEnabled() {
-        // Enabling automatic ECS-reformatting implicitly enables log correlation
-        return logCorrelationEnabled.get() || getLogEcsReformatting() != LogEcsReformatting.OFF;
-    }
-
     public LogEcsReformatting getLogEcsReformatting() {
         return logEcsReformatting.get();
     }
@@ -393,12 +378,16 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     @Nullable
     public String getLogEcsFormattingDestinationDir() {
-        String logShadingDestDir = logEcsFormattingDestinationDir.get().trim();
-        return (logShadingDestDir.isEmpty()) ? null : logShadingDestDir;
+        String logReformattingDestDir = logEcsFormattingDestinationDir.get().trim();
+        return (logReformattingDestDir.isEmpty()) ? null : logReformattingDestDir;
     }
 
     public long getLogFileSize() {
         return logFileSize.get().getBytes();
+    }
+
+    public long getDefaultLogFileSize() {
+        return logFileSize.getValueConverter().convert(logFileSize.getDefaultValueAsString()).getBytes();
     }
 
     public boolean isShipAgentLogs() {

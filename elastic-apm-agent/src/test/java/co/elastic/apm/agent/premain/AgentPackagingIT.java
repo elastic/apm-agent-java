@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.premain;
 
+import co.elastic.apm.agent.common.util.AgentInfo;
+import org.assertj.core.description.Description;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -31,10 +33,13 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -123,11 +128,44 @@ public class AgentPackagingIT {
 
                 classLocation.put(path, location);
             }
-
-
         });
-
-
     }
 
+    @Test
+    void validateDependencyPackages() throws IOException {
+
+        Set<String> agentDependencyPackages = AgentInfo.getAgentDependencyPackages();
+        Set<String> packagesAsPaths = agentDependencyPackages.stream()
+            .map(packageName -> packageName.replace('.', '/'))
+            .collect(Collectors.toSet());
+        packagesAsPaths.addAll(AgentInfo.getAgentRootPackages().stream()
+            .map(packageName -> packageName.replace('.', '/'))
+            .collect(Collectors.toSet()));
+
+        JarFile jarFile = new JarFile(agentJar.toFile());
+
+        String shadedClassesDir = "agent/";
+        jarFile.stream()
+            .map(ZipEntry::getName)
+            .filter(name -> name.startsWith(shadedClassesDir))
+            .filter(name -> name.endsWith(".esclazz"))
+            .map(name -> name.substring(shadedClassesDir.length()))
+            .filter(name -> name.lastIndexOf('/') > 0)
+            .forEach(name -> assertThat(packagesAsPaths.stream().anyMatch(name::startsWith))
+                .describedAs(new Description() {
+                    @Override
+                    public String value() {
+                        String packageName = name.substring(0, name.lastIndexOf('/')).replace('/', '.');
+                        return String.format("Package %s is used by the agent and not declared by co.elastic.apm.agent.premain.Utils.getAgentDependencyPackages", packageName);
+                    }
+                })
+                .isTrue());
+    }
+
+    @Test
+    void testMultiReleaseJar() throws Exception {
+        JarFile jarFile = new JarFile(agentJar.toFile(), false, ZipFile.OPEN_READ, Runtime.Version.parse("9"));
+        assertThat(jarFile.isMultiRelease()).isTrue();
+        assertThat(jarFile.getJarEntry("agent/org/apache/logging/log4j/util/StackLocator.esclazz").getRealName()).startsWith("META-INF/versions/9");
+    }
 }

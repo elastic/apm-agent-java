@@ -19,6 +19,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.servlet.tests.CdiJakartaeeServletContainerTestApp;
+import co.elastic.apm.servlet.tests.JakartaExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JakartaeeJsfServletContainerTestApp;
 import co.elastic.apm.servlet.tests.JakartaeeServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
@@ -40,8 +41,7 @@ public class JakartaeeTomcatIT extends AbstractTomcatIT {
             {"10.0.10-jdk8"},
             {"10.0.10-jdk11"},
             {"10.0.10-jdk8-adoptopenjdk-openj9"},
-            // TODO openj9 on JDK11 has an access problem from java.base
-            //{"10.0.10-jdk11-adoptopenjdk-openj9"},
+            {"10.0.10-jdk11-adoptopenjdk-openj9"},
             {"10.0.10-jdk8-adoptopenjdk-hotspot"},
             {"10.0.10-jdk11-adoptopenjdk-hotspot"},
         });
@@ -51,6 +51,7 @@ public class JakartaeeTomcatIT extends AbstractTomcatIT {
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
         return Arrays.asList(JakartaeeServletApiTestApp.class,
             JakartaeeJsfServletContainerTestApp.class,
+            JakartaExternalPluginTestApp.class,
             CdiJakartaeeServletContainerTestApp.class);
     }
 }

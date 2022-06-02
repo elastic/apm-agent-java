@@ -19,7 +19,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
-import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
+import co.elastic.apm.servlet.tests.JavaxExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.SoapTestApp;
@@ -27,8 +27,8 @@ import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.utility.MountableFile;
 
 import java.util.Arrays;
 import java.util.List;
@@ -38,8 +38,8 @@ import java.util.List;
 public class WebLogicIT extends AbstractServletContainerIntegrationTest {
 
     public WebLogicIT(final String webLogicVersion) {
-        super(new GenericContainer<>("store/oracle/weblogic:" + webLogicVersion)
-                .withClasspathResourceMapping("domain.properties", "/u01/oracle/properties/domain.properties", BindMode.READ_WRITE),
+        super(new GenericContainerWithTcpProxy<>("store/oracle/weblogic:" + webLogicVersion)
+                .withCopyFileToContainer(MountableFile.forClasspathResource("domain.properties"), "/u01/oracle/properties/domain.properties"),
             7001,
             5005,
             "weblogic-application",
@@ -66,7 +66,7 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
             JsfApplicationServerTestApp.class,
             SoapTestApp.class,
             CdiApplicationServerTestApp.class,
-            ExternalPluginTestApp.class
+            JavaxExternalPluginTestApp.class
         );
     }
 
@@ -75,13 +75,6 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
         // WebLogic can't handle the case when a exception is thrown in the runnable submitted to AsyncContext#start(Runnable)
         // it requires AsyncContext#complete() to be called, otherwise it throws a timeout
         return List.of("/index.jsp", "/servlet", "/async-dispatch-servlet");
-    }
-
-    @Override
-    protected boolean isDeployViaFileSystemBind() {
-        // WebLogic requires the files to be writable
-        // Even binding with BindMode.READ_WRITE does not work for some reason
-        return false;
     }
 
     @Override

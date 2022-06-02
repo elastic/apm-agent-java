@@ -26,7 +26,8 @@ public class JakartaeeJsfServletContainerTestApp extends TestApp {
             "jakartaee-jsf-http-get.war",
             "jakartaee-jsf-http-get",
             "status.html",
-            "jakartaee-jsf-http-get");
+            "jakartaee-jsf-http-get",
+            null);
     }
 
     @Override

@@ -1,5 +1,5 @@
 Elastic APM Java Agent
-Copyright 2018-2019 Elasticsearch B.V.
+Copyright 2018-2022 Elasticsearch B.V.
 
 ###############################################################################
 
@@ -14,6 +14,7 @@ following sources:
  - JCTools
  - https://github.com/jvm-profiling-tools/async-profiler
  - https://github.com/real-logic/agrona
+ - Apache Log4j 2 - https://logging.apache.org/log4j/2.x/license.html
 
 ------------------------------------------------------------------------------
 stagemonitor NOTICE
@@ -129,6 +130,27 @@ fields enclosed by brackets "[]" replaced with your own identifying
 information: Portions Copyright [yyyy] [name of copyright owner]
 
 CDDL HEADER END
+
+------------------------------------------------------------------------------
+Apache Log4j NOTICE
+
+Apache Log4j
+Copyright 1999-2021 Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+ResolverUtil.java
+Copyright 2005-2006 Tim Fennell
+
+Dumbster SMTP test server
+Copyright 2004 Jason Paul Kitchen
+
+TypeUtil.java
+Copyright 2002-2012 Ramnivas Laddad, Juergen Hoeller, Chris Beams
+
+picocli (http://picocli.info)
+Copyright 2017 Remko Popma
 
 ------------------------------------------------------------------------------
 
@@ -369,7 +391,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ###############################################################################
 
-This product includes code from slf4j, under MIT License
+This product includes code from slf4j, under MIT License.
+It also includes code that is based on some slf4j interfaces.
 
 Copyright (c) 2004-2011 QOS.ch
 All rights reserved.

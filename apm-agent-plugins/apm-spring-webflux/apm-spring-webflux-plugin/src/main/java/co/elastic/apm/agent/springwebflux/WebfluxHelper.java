@@ -1,4 +1,4 @@
-/*
+ /*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.httpserver.HttpServerHelper;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Request;
@@ -26,16 +27,18 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.RequestPath;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.MultiValueMap;
@@ -73,12 +76,15 @@ public class WebfluxHelper {
 
     private static final CoreConfiguration coreConfig;
     private static final WebConfiguration webConfig;
+    private static final HttpServerHelper serverHelper;
 
     private static final WeakMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakConcurrent.buildMap();
 
     static {
+
         coreConfig = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);
         webConfig = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);
+        serverHelper = new HttpServerHelper(webConfig);
     }
 
 
@@ -88,7 +94,9 @@ public class WebfluxHelper {
         Transaction transaction = WebfluxServletHelper.getServletTransaction(exchange);
         boolean fromServlet = transaction != null;
 
-        if (!fromServlet) {
+        String path = exchange.getRequest().getPath().value();
+        String userAgent = exchange.getRequest().getHeaders().getFirst("User-Agent");
+        if (!fromServlet && !serverHelper.isRequestExcluded(path, userAgent)) {
             transaction = tracer.startChildTransaction(exchange.getRequest().getHeaders(), HEADER_GETTER, ServerWebExchange.class.getClassLoader());
         }
 
@@ -113,7 +121,6 @@ public class WebfluxHelper {
     public static <T> Mono<T> wrapDispatcher(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
         return doWrap(mono, transaction, exchange, "webflux-dispatcher");
     }
-
 
     private static <T> Mono<T> doWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final String description) {
         //noinspection Convert2Lambda,rawtypes,Convert2Diamond

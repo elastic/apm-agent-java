@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.log.shipper;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;

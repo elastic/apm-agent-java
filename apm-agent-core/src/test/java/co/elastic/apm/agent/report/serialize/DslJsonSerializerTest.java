@@ -25,9 +25,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
-import co.elastic.apm.agent.impl.metadata.MetaData;
-import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Headers;
@@ -36,8 +33,11 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.Agent;
 import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
+import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
 import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.Language;
+import co.elastic.apm.agent.impl.metadata.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
 import co.elastic.apm.agent.impl.metadata.Service;
@@ -45,7 +45,9 @@ import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -76,6 +78,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Future;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
@@ -157,7 +160,7 @@ class DslJsonSerializerTest {
     void testErrorSerialization() {
         ElasticApmTracer tracer = MockTracer.create();
         Transaction transaction = new Transaction(tracer);
-        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true), null);
+        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true));
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
@@ -206,7 +209,7 @@ class DslJsonSerializerTest {
     void testErrorSerializationWithEmptyTraceId() {
         ElasticApmTracer tracer = MockTracer.create();
         Transaction transaction = new Transaction(tracer);
-        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true), null);
+        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true));
         transaction.getTraceContext().getTraceId().resetState();
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
 
@@ -421,9 +424,12 @@ class DslJsonSerializerTest {
     @Test
     void testSpanDestinationContextSerialization() {
         Span span = new Span(MockTracer.create());
-        span.getContext().getDestination().withAddress("whatever.com").withPort(80)
-            .getService()
-            .withResource("whatever.com:80");
+        span.getContext().getDestination().withAddress("whatever.com").withPort(80);
+
+        span.getContext().getServiceTarget()
+            .withType("http")
+            .withHostPortName("whatever.com", 80)
+            .withNameOnlyDestinationResource();
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode context = spanJson.get("context");
@@ -433,15 +439,18 @@ class DslJsonSerializerTest {
         assertThat(80).isEqualTo(destination.get("port").intValue());
         JsonNode service = destination.get("service");
         assertThat(service).isNotNull();
-        assertThat("whatever.com:80").isEqualTo(service.get("resource").textValue());
-        assertThat(service.get("name").textValue()).isEqualTo("");
-        assertThat(service.get("type").textValue()).isEqualTo("");
+        assertThat(service.get("resource").textValue()).isEqualTo("whatever.com:80");
+        assertThat(service.get("name").textValue()).isEmpty();
+        assertThat(service.get("type").textValue()).isEmpty();
+        JsonNode serviceTarget = context.get("service").get("target");
+        assertThat(serviceTarget.get("type").asText()).isEqualTo("http");
+        assertThat(serviceTarget.get("name").asText()).isEqualTo("whatever.com:80");
     }
 
     @Test
     void testTransactionNullFrameworkNameSerialization() {
         Transaction transaction = new Transaction(MockTracer.create());
-        transaction.getTraceContext().setServiceName("service-name");
+        transaction.getTraceContext().setServiceInfo("service-name", null);
         transaction.setUserFrameworkName(null);
         JsonNode transactionJson = readJsonString(serializer.toJsonString(transaction));
         assertThat(transactionJson.get("context").get("service").get("framework")).isNull();
@@ -450,7 +459,7 @@ class DslJsonSerializerTest {
     @Test
     void testTransactionEmptyFrameworkNameSerialization() {
         Transaction transaction = new Transaction(MockTracer.create());
-        transaction.getTraceContext().setServiceName("service-name");
+        transaction.getTraceContext().setServiceInfo("service-name", null);
         transaction.setUserFrameworkName("");
         JsonNode transactionJson = readJsonString(serializer.toJsonString(transaction));
         assertThat(transactionJson.get("context").get("service").get("framework")).isNull();
@@ -459,20 +468,20 @@ class DslJsonSerializerTest {
     @Test
     void testSpanInvalidDestinationSerialization() {
         Span span = new Span(MockTracer.create());
-        span.getContext().getDestination().withAddress(null).withPort(-1)
-            .getService()
-            .withResource("");
+        span.getContext().getDestination().withAddress(null).withPort(-1);
+
+        span.getContext().getServiceTarget().withUserName("").withNameOnlyDestinationResource();
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
-        assertThat(spanJson.get("context").get("destination")).isNull();
+        JsonNode contextJson = spanJson.get("context");
+        assertThat(contextJson.get("destination")).isNull();
+        assertThat(contextJson.get("service")).isNull();
     }
 
     @Test
     void testSpanValidPortSerialization() {
         Span span = new Span(MockTracer.create());
-        span.getContext().getDestination().withAddress(null).withPort(8090)
-            .getService()
-            .withResource("");
+        span.getContext().getDestination().withAddress(null).withPort(8090);
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
@@ -485,9 +494,7 @@ class DslJsonSerializerTest {
     @Test
     void testSpanValidAddressAndPortSerialization() {
         Span span = new Span(MockTracer.create());
-        span.getContext().getDestination().withAddress("test").withPort(8090)
-            .getService()
-            .withResource("");
+        span.getContext().getDestination().withAddress("test").withPort(8090);
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
@@ -500,9 +507,7 @@ class DslJsonSerializerTest {
     @Test
     void testSpanValidAddressSerialization() {
         Span span = new Span(MockTracer.create());
-        span.getContext().getDestination().withAddress("test").withPort(0)
-            .getService()
-            .withResource("");
+        span.getContext().getDestination().withAddress("test").withPort(0);
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
@@ -515,34 +520,40 @@ class DslJsonSerializerTest {
     @Test
     void testSpanValidServiceResourceSerialization() {
         Span span = new Span(MockTracer.create());
-        span.getContext().getDestination().withAddress("").withPort(0)
-            .getService()
-            .withResource("test-resource");
+        span.getContext().getDestination().withAddress("").withPort(0);
+        span.getContext().getServiceTarget().withType("test").withName("resource");
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
         assertThat(destination).isNotNull();
-        assertThat(destination.get("port")).isNull();
-        assertThat(destination.get("address")).isNull();
         JsonNode service = destination.get("service");
-        assertThat(service.get("resource").textValue()).isEqualTo("test-resource");
+        assertThat(service.get("resource").textValue()).isEqualTo("test/resource");
         assertThat(service.get("name").textValue()).isEmpty();
         assertThat(service.get("type").textValue()).isEmpty();
+
+        JsonNode serviceTarget = spanJson.get("context").get("service").get("target");
+        assertThat(serviceTarget.get("type").textValue()).isEqualTo("test");
+        assertThat(serviceTarget.get("name").textValue()).isEqualTo("resource");
     }
 
     @Test
     void testSpanValidServiceAndAddressResourceSerialization() {
         Span span = new Span(MockTracer.create());
-        span.getContext().getDestination().withAddress("test-address").withPort(0)
-            .getService()
-            .withResource("test-resource");
+        span.getContext().getDestination().withAddress("test-address").withPort(0);
+
+        span.getContext().getServiceTarget().withType("test").withName("test-resource").withNameOnlyDestinationResource();
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
         assertThat(destination).isNotNull();
         assertThat(destination.get("port")).isNull();
         assertThat(destination.get("address").textValue()).isEqualTo("test-address");
+
         assertThat(destination.get("service").get("resource").textValue()).isEqualTo("test-resource");
+        JsonNode serviceTarget = spanJson.get("context").get("service").get("target");
+        assertThat(serviceTarget.get("type").textValue()).isEqualTo("test");
+        assertThat(serviceTarget.get("name").textValue()).isEqualTo("test-resource");
+
     }
 
     @Test
@@ -686,7 +697,6 @@ class DslJsonSerializerTest {
         JsonNode serviceJson = metaDataJson.get("service");
         assertThat(service).isNotNull();
         assertThat(serviceJson.get("name").textValue()).isEqualTo("MyService");
-        assertThat(serviceJson.get("id").textValue()).isEqualTo("service-id");
         assertThat(serviceJson.get("version").textValue()).isEqualTo("1.0");
 
         JsonNode languageJson = serviceJson.get("language");
@@ -823,10 +833,11 @@ class DslJsonSerializerTest {
         TraceContext ctx = transaction.getTraceContext();
 
         String serviceName = RandomStringUtils.randomAlphabetic(5);
+        String serviceVersion = RandomStringUtils.randomAlphabetic(5);
         String frameworkName = RandomStringUtils.randomAlphanumeric(10);
         String frameworkVersion = RandomStringUtils.randomNumeric(3);
 
-        ctx.setServiceName(serviceName);
+        ctx.setServiceInfo(serviceName, serviceVersion);
 
         transaction.setFrameworkName(frameworkName);
         transaction.setFrameworkVersion(frameworkVersion);
@@ -839,6 +850,7 @@ class DslJsonSerializerTest {
         assertThat(jsonContext.get("user").get("email").asText()).isEqualTo("user@email.com");
         assertThat(jsonContext.get("user").get("username").asText()).isEqualTo("bob");
         assertThat(jsonContext.get("service").get("name").asText()).isEqualTo(serviceName);
+        assertThat(jsonContext.get("service").get("version").asText()).isEqualTo(serviceVersion);
         assertThat(jsonContext.get("service").get("framework").get("name").asText()).isEqualTo(frameworkName);
         assertThat(jsonContext.get("service").get("framework").get("version").asText()).isEqualTo(frameworkVersion);
 
@@ -1205,7 +1217,6 @@ class DslJsonSerializerTest {
     private FaaSMetaDataExtension createFaaSMetaDataExtension() {
         return new FaaSMetaDataExtension(
             new Framework("Lambda_Java", "1.2.3"),
-            "service-id",
             new NameAndIdField(null, "accountId"),
             "region"
         );
@@ -1213,7 +1224,7 @@ class DslJsonSerializerTest {
 
     private Transaction createRootTransaction(Sampler sampler) {
         Transaction t = new Transaction(MockTracer.create());
-        t.start(TraceContext.asRoot(), null, 0, sampler, getClass().getClassLoader());
+        t.start(TraceContext.asRoot(), null, 0, sampler);
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().withFull("http://localhost:8080/foo/bar");
@@ -1340,6 +1351,71 @@ class DslJsonSerializerTest {
         }
 
         assertThat(headersJson).isNotNull();
+    }
+
+    @Test
+    void testOTelSpanSerialization() {
+        Span span = new Span(MockTracer.create()).withName("otel span");
+        testOTelSpanSerialization(span, s -> readJsonString(serializer.toJsonString(s)));
+
+        Transaction transaction = new Transaction(MockTracer.create()).withName("otel span");
+        testOTelSpanSerialization(transaction, t -> readJsonString(serializer.toJsonString(t)));
+    }
+
+    private <T extends AbstractSpan<T>> void testOTelSpanSerialization(T context, Function<T, JsonNode> toJson) {
+
+        assertThat(context.getOtelKind())
+            .describedAs("otel span kind should not be set by default")
+            .isNull();
+
+        JsonNode spanJson = toJson.apply(context );
+
+        assertThat(spanJson.get("name").asText()).isEqualTo("otel span");
+        assertThat(spanJson.get("otel")).isNull();
+
+        for (OTelSpanKind kind : OTelSpanKind.values()) {
+            context.withOtelKind(kind);
+            spanJson = toJson.apply(context);
+
+            JsonNode otelJson = spanJson.get("otel");
+            assertThat(otelJson).isNotNull();
+            assertThat(otelJson.get("span_kind").asText()).isEqualTo(kind.name());
+        }
+
+        // with custom otel attributes
+        context.getOtelAttributes().put("attribute.string", "hello");
+        context.getOtelAttributes().put("attribute.long", 123L);
+        context.getOtelAttributes().put("attribute.boolean", false);
+        context.getOtelAttributes().put("attribute.float", 0.42f);
+        spanJson = toJson.apply(context);
+        JsonNode otelJson = spanJson.get("otel");
+        assertThat(otelJson).isNotNull();
+        JsonNode otelAttributes = otelJson.get("attributes");
+        assertThat(otelAttributes).isNotNull();
+        assertThat(otelAttributes.size()).isEqualTo(4);
+        assertThat(otelAttributes.get("attribute.string").asText()).isEqualTo("hello");
+        assertThat(otelAttributes.get("attribute.long").asLong()).isEqualTo(123L);
+        assertThat(otelAttributes.get("attribute.boolean").asBoolean()).isFalse();
+        assertThat(otelAttributes.get("attribute.float").asDouble()).isEqualTo(0.42d);
+    }
+
+    @Test
+    void testNonCompositeSpan() {
+        Span span = new Span(MockTracer.create());
+
+        JsonNode jsonSpan = readJsonString(serializer.toJsonString(span));
+        assertThat(jsonSpan.get("composite")).isNull();
+    }
+
+    @Test
+    void testCompositeSpan() {
+        Span span = new Span(MockTracer.create());
+        span.getComposite().init(1234, "exact_match");
+
+        JsonNode jsonSpan = readJsonString(serializer.toJsonString(span));
+        assertThat(jsonSpan.get("composite").get("count").asInt()).isEqualTo(1);
+        assertThat(jsonSpan.get("composite").get("sum").asDouble()).isEqualTo(1.234);
+        assertThat(jsonSpan.get("composite").get("compression_strategy").asText()).isEqualTo("exact_match");
     }
 
     private static void checkSingleValueHeader(JsonNode json, String fieldName, String value){

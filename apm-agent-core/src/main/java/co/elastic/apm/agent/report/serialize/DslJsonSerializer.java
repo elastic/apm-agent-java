@@ -29,17 +29,18 @@ import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.ServiceOrigin;
+import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.context.Socket;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.User;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.Agent;
 import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
 import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.Language;
+import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.metadata.Node;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
@@ -47,9 +48,13 @@ import co.elastic.apm.agent.impl.metadata.RuntimeInfo;
 import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Composite;
+import co.elastic.apm.agent.impl.transaction.DroppedSpanStats;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.FaasTrigger;
 import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.SpanCount;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
@@ -57,6 +62,8 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.HexUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
@@ -64,8 +71,6 @@ import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
 import com.dslplatform.json.StringConverter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -83,7 +88,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static co.elastic.apm.agent.util.ObjectUtils.defaultIfNull;
 import static com.dslplatform.json.JsonWriter.ARRAY_END;
 import static com.dslplatform.json.JsonWriter.ARRAY_START;
 import static com.dslplatform.json.JsonWriter.COMMA;
@@ -452,14 +456,56 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    private static void serializeServiceName(final CharSequence serviceName, final StringBuilder replaceBuilder, final JsonWriter jw) {
-        if (serviceName != null) {
-            writeFieldName("service", jw);
-            jw.writeByte(OBJECT_START);
-            writeLastField("name", serviceName, replaceBuilder, jw);
-            jw.writeByte(OBJECT_END);
-            jw.writeByte(COMMA);
+    private static void serializeService(@Nullable final CharSequence serviceName, @Nullable final CharSequence serviceVersion, @Nullable ServiceTarget serviceTarget, final StringBuilder replaceBuilder, final JsonWriter jw) {
+        boolean hasServiceTarget = (serviceTarget != null && serviceTarget.hasContent());
+        if (serviceName == null && !hasServiceTarget) {
+            return;
         }
+
+        writeFieldName("service", jw);
+        jw.writeByte(OBJECT_START);
+
+        if (serviceName != null) {
+            writeFieldName("name", jw);
+            writeStringValue(serviceName, replaceBuilder, jw);
+
+            if (serviceVersion != null) {
+                jw.writeByte(COMMA);
+                writeFieldName("version", jw);
+                writeStringValue(serviceVersion, replaceBuilder, jw);
+            }
+        }
+
+        if (hasServiceTarget) {
+            if (serviceName != null) {
+                jw.writeByte(COMMA);
+            }
+            writeFieldName("target", jw);
+            jw.writeByte(OBJECT_START);
+            CharSequence targetType = serviceTarget.getType();
+            CharSequence targetName = serviceTarget.getName();
+
+            if (targetType != null) {
+                writeFieldName("type", jw);
+                writeStringValue(targetType, replaceBuilder, jw);
+            }
+
+            if (targetName != null) {
+                if (targetType != null) {
+                    jw.writeByte(COMMA);
+                }
+                writeFieldName("name", jw);
+                writeStringValue(targetName, replaceBuilder, jw);
+            }
+
+            jw.writeByte(OBJECT_END);
+        }
+        jw.writeByte(OBJECT_END);
+        jw.writeByte(COMMA);
+    }
+
+    private static void serializeService(@Nullable String name, @Nullable String version, StringBuilder replaceBuilder, JsonWriter jw) {
+        serializeService(name, version, null, replaceBuilder, jw);
     }
 
     private static void serializeAgent(final Agent agent, final StringBuilder replaceBuilder, final JsonWriter jw) {
@@ -665,6 +711,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         serializeFaas(transaction.getFaas());
         serializeContext(transaction, transaction.getContext(), traceContext);
         serializeSpanCount(transaction.getSpanCount());
+        if (transaction.isSampled()) {
+            serializeDroppedSpanStats(transaction.getDroppedSpanStats());
+        }
+        serializeOTel(transaction);
         double sampleRate = traceContext.getSampleRate();
         if (!Double.isNaN(sampleRate)) {
             writeField("sample_rate", sampleRate);
@@ -693,7 +743,9 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_START);
         writeField("name", span.getNameForSerialization());
         writeTimestamp(span.getTimestamp());
-
+        if(!span.isSync()){
+            writeField("sync", span.isSync());
+        }
         writeField("outcome", span.getOutcome().toString());
         serializeTraceContext(traceContext, true);
         writeField("duration", span.getDurationMs());
@@ -708,14 +760,84 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (!Double.isNaN(sampleRate)) {
             writeField("sample_rate", sampleRate);
         }
+        serializeOTel(span);
+        if (span.isComposite()) {
+            serializeComposite(span.getComposite());
+        }
         serializeSpanType(span);
         jw.writeByte(OBJECT_END);
     }
 
+    private void serializeOTel(AbstractSpan<?> span) {
+        OTelSpanKind kind = span.getOtelKind();
+        Map<String, Object> attributes = span.getOtelAttributes();
+        boolean hasAttributes = !attributes.isEmpty();
+        boolean hasKind = kind != null;
+        if (hasKind || hasAttributes) {
+            writeFieldName("otel");
+            jw.writeByte(OBJECT_START);
+
+            if (hasKind) {
+                writeFieldName("span_kind");
+                writeStringValue(kind.name());
+            }
+
+            if (hasAttributes) {
+                if (hasKind) {
+                    jw.writeByte(COMMA);
+                }
+                writeFieldName("attributes");
+                jw.writeByte(OBJECT_START);
+                int index = 0;
+                for (Map.Entry<String, Object> entry : attributes.entrySet()) {
+                    if (index++ > 0) {
+                        jw.writeByte(COMMA);
+                    }
+                    writeFieldName(entry.getKey());
+                    Object o = entry.getValue();
+                    if (o instanceof Number) {
+                        serializeNumber((Number) o, jw);
+                    } else if (o instanceof String) {
+                        writeStringValue((String) o);
+                    } else if (o instanceof Boolean) {
+                        BoolConverter.serialize((Boolean) o, jw);
+                    }
+                }
+                jw.writeByte(OBJECT_END);
+            }
+
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeNumber(Number n, JsonWriter jw) {
+        if (n instanceof Integer) {
+            NumberConverter.serialize(n.intValue(), jw);
+        } else if (n instanceof Long) {
+            NumberConverter.serialize(n.longValue(), jw);
+        } else if (n instanceof Double) {
+            NumberConverter.serialize(n.doubleValue(), jw);
+        } else if (n instanceof Float) {
+            NumberConverter.serialize(n.floatValue(), jw);
+        }
+    }
+
+    private void serializeComposite(Composite composite) {
+        writeFieldName("composite", jw);
+        jw.writeByte(OBJECT_START);
+        writeField("count", composite.getCount());
+        writeField("sum", composite.getSumMs());
+        writeLastField("compression_strategy", composite.getCompressionStrategy());
+        jw.writeByte(OBJECT_END);
+        jw.writeByte(COMMA);
+    }
+
     private void serializeServiceNameWithFramework(@Nullable final Transaction transaction, final TraceContext traceContext, final ServiceOrigin serviceOrigin) {
         String serviceName = traceContext.getServiceName();
+        String serviceVersion = traceContext.getServiceVersion();
         boolean isFrameworkNameNotNull = transaction != null && transaction.getFrameworkName() != null;
-        if (serviceName != null || isFrameworkNameNotNull || serviceOrigin.hasContent()) {
+        if (serviceName != null || serviceVersion != null || isFrameworkNameNotNull || serviceOrigin.hasContent()) {
             writeFieldName("service");
             jw.writeByte(OBJECT_START);
             if (serviceOrigin.hasContent()) {
@@ -724,7 +846,8 @@ public class DslJsonSerializer implements PayloadSerializer {
             if (isFrameworkNameNotNull) {
                 serializeFramework(transaction.getFrameworkName(), transaction.getFrameworkVersion());
             }
-            writeLastField("name", serviceName);
+            writeField("name", serviceName);
+            writeLastField("version", serviceVersion);
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }
@@ -924,11 +1047,11 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
 
-        serializeServiceName(traceContext.getServiceName(), replaceBuilder, jw);
+        serializeService(traceContext.getServiceName(), traceContext.getServiceVersion(), context.getServiceTarget(), replaceBuilder, jw);
         serializeMessageContext(context.getMessage());
         serializeDbContext(context.getDb());
         serializeHttpContext(context.getHttp());
-        serializeDestination(context.getDestination());
+        serializeDestination(context.getDestination(), context.getServiceTarget().getDestinationResource());
 
         writeFieldName("tags");
         serializeLabels(context);
@@ -937,13 +1060,13 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
-    private void serializeDestination(Destination destination) {
-        if (destination.hasContent()) {
+    private void serializeDestination(Destination destination, @Nullable CharSequence resource) {
+        if (destination.hasContent() || resource != null) {
             writeFieldName("destination");
             jw.writeByte(OBJECT_START);
             boolean hasAddress = destination.getAddress().length() > 0;
             boolean hasPort = destination.getPort() > 0;
-            boolean hasServiceContent = destination.getService().hasContent();
+            boolean hasServiceContent = resource != null;
             if (hasAddress) {
                 if (hasPort || hasServiceContent) {
                     writeField("address", destination.getAddress());
@@ -958,19 +1081,19 @@ public class DslJsonSerializer implements PayloadSerializer {
                     writeLastField("port", destination.getPort());
                 }
             }
-            serializeService(hasServiceContent, destination.getService());
+            serializeService(resource);
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }
     }
 
-    private void serializeService(boolean isServiceHasContent, Destination.Service service) {
-        if (isServiceHasContent) {
+    private void serializeService( @Nullable CharSequence resource) {
+        if (resource != null) {
             writeFieldName("service");
             jw.writeByte(OBJECT_START);
             writeEmptyField("name");
             writeEmptyField("type");
-            writeLastField("resource", service.getResource());
+            writeLastField("resource", resource);
             jw.writeByte(OBJECT_END);
         }
     }
@@ -1028,6 +1151,9 @@ public class DslJsonSerializer implements PayloadSerializer {
             writeFieldName("faas");
             jw.writeByte(OBJECT_START);
             writeField("execution", faas.getExecution());
+            writeField("id", faas.getId());
+            writeField("name", faas.getName());
+            writeField("version", faas.getVersion());
             serializeFaasTrigger(faas.getTrigger());
             writeLastField("coldstart", faas.isColdStart());
             jw.writeByte(OBJECT_END);
@@ -1100,6 +1226,37 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
+    private void serializeDroppedSpanStats(final DroppedSpanStats droppedSpanStats) {
+        writeFieldName("dropped_spans_stats");
+        jw.writeByte(ARRAY_START);
+
+        int i = 0;
+        for (Map.Entry<DroppedSpanStats.StatsKey, DroppedSpanStats.Stats> stats : droppedSpanStats) {
+            if (i++ >= 128) {
+                break;
+            }
+            if (i > 1) {
+                jw.writeByte(COMMA);
+            }
+            jw.writeByte(OBJECT_START);
+            writeField("destination_service_resource", stats.getKey().getDestinationServiceResource());
+            writeField("service_target_type", stats.getKey().getServiceType());
+            writeField("service_target_name", stats.getKey().getServiceName());
+            writeField("outcome", stats.getKey().getOutcome().toString());
+            writeFieldName("duration");
+            jw.writeByte(OBJECT_START);
+            writeField("count", stats.getValue().getCount());
+            writeFieldName("sum");
+            jw.writeByte(OBJECT_START);
+            writeLastField("us", stats.getValue().getSum());
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(OBJECT_END);
+        }
+        jw.writeByte(ARRAY_END);
+        jw.writeByte(COMMA);
+    }
+
     private void serializeContext(@Nullable final Transaction transaction, final TransactionContext context, TraceContext traceContext) {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
@@ -1120,6 +1277,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (context.getCloudOrigin().hasContent()) {
             serializeCloudOrigin(context.getCloudOrigin());
         }
+
         writeFieldName("tags");
         serializeLabels(context);
         jw.writeByte(OBJECT_END);
@@ -1156,8 +1314,12 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_END);
     }
 
-    static void serializeLabels(Labels labels, final String serviceName, final StringBuilder replaceBuilder, final JsonWriter jw) {
-        serializeServiceName(defaultIfNull(labels.getServiceName(), serviceName), replaceBuilder, jw);
+    static void serializeLabels(Labels labels, final String serviceName, final String serviceVersion, final StringBuilder replaceBuilder, final JsonWriter jw) {
+        if (labels.getServiceName() != null) {
+            serializeService(labels.getServiceName(), labels.getServiceVersion(), replaceBuilder, jw);
+        } else {
+            serializeService(serviceName, serviceVersion, replaceBuilder, jw);
+        }
         if (!labels.isEmpty()) {
             if (labels.getTransactionName() != null || labels.getTransactionType() != null) {
                 writeFieldName("transaction", jw);
@@ -1334,7 +1496,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName(fieldName);
         jw.writeByte(OBJECT_START);
         int size = map.size();
-        if(supportsMultipleValues){
+        if (supportsMultipleValues) {
             serializePotentiallyMultiValuedEntry(map.getKey(0), map.getValue(0));
             for (int i = 1; i < size; i++) {
                 jw.writeByte(COMMA);
@@ -1505,6 +1667,11 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void writeLastField(final String fieldName, final int value) {
+        writeFieldName(fieldName);
+        NumberConverter.serialize(value, jw);
+    }
+
+    private void writeLastField(final String fieldName, final long value) {
         writeFieldName(fieldName);
         NumberConverter.serialize(value, jw);
     }

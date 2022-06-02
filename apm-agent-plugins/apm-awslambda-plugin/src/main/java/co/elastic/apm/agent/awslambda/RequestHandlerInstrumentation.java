@@ -18,22 +18,11 @@
  */
 package co.elastic.apm.agent.awslambda;
 
-import co.elastic.apm.agent.awslambda.helper.APIGatewayProxyV1TransactionHelper;
-import co.elastic.apm.agent.awslambda.helper.APIGatewayProxyV2TransactionHelper;
+import co.elastic.apm.agent.awslambda.helper.AWSEventsHelper;
 import co.elastic.apm.agent.awslambda.helper.PlainTransactionHelper;
-import co.elastic.apm.agent.awslambda.helper.S3TransactionHelper;
-import co.elastic.apm.agent.awslambda.helper.SNSTransactionHelper;
-import co.elastic.apm.agent.awslambda.helper.SQSTransactionHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
-import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
-import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
-import com.amazonaws.services.lambda.runtime.events.S3Event;
-import com.amazonaws.services.lambda.runtime.events.SNSEvent;
-import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -67,25 +56,14 @@ public class RequestHandlerInstrumentation extends AbstractAwsLambdaHandlerInstr
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object handlerEnter(@Advice.Argument(value = 0) Object input, @Advice.Argument(value = 1) Context lambdaContext) {
-            if (input instanceof APIGatewayV2HTTPEvent) {
-                // API Gateway V2 trigger
-                return APIGatewayProxyV2TransactionHelper.getInstance().startTransaction((APIGatewayV2HTTPEvent) input, lambdaContext);
-            } else if (input instanceof APIGatewayProxyRequestEvent) {
-                // API Gateway V1 trigger
-                return APIGatewayProxyV1TransactionHelper.getInstance().startTransaction((APIGatewayProxyRequestEvent) input, lambdaContext);
-            } else if (input instanceof SQSEvent) {
-                // SQS trigger
-                return SQSTransactionHelper.getInstance().startTransaction((SQSEvent) input, lambdaContext);
-            } else if (input instanceof SNSEvent) {
-                // SNS trigger
-                return SNSTransactionHelper.getInstance().startTransaction((SNSEvent) input, lambdaContext);
-            } else if (input instanceof S3Event) {
-                // S3 event trigger
-                return S3TransactionHelper.getInstance().startTransaction((S3Event) input, lambdaContext);
+        public static Object handlerEnter(@Nullable @Advice.Argument(value = 0) Object input, @Advice.Argument(value = 1) Context lambdaContext) {
+            if (input != null && input.getClass().getName().startsWith("com.amazonaws.services.lambda.runtime.events")) {
+                // handler uses aws events, it's safe to assume that the AWS events classes are available
+                return AWSEventsHelper.startTransaction(input, lambdaContext);
+            } else {
+                // Fallback instrumentation (AWS events classes might be not available)
+                return PlainTransactionHelper.getInstance().startTransaction(input, lambdaContext);
             }
-            // Fallback instrumentation
-            return PlainTransactionHelper.getInstance().startTransaction(input, lambdaContext);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
@@ -94,12 +72,12 @@ public class RequestHandlerInstrumentation extends AbstractAwsLambdaHandlerInstr
                                        @Nullable @Advice.Return Object output) {
             if (transactionObj instanceof Transaction) {
                 Transaction transaction = (Transaction) transactionObj;
-                if (output instanceof APIGatewayV2HTTPResponse) {
-                    APIGatewayProxyV2TransactionHelper.getInstance().finalizeTransaction(transaction, (APIGatewayV2HTTPResponse) output, thrown);
-                } else if (output instanceof APIGatewayProxyResponseEvent) {
-                    APIGatewayProxyV1TransactionHelper.getInstance().finalizeTransaction(transaction, (APIGatewayProxyResponseEvent) output, thrown);
+
+                if (output != null && output.getClass().getName().startsWith("com.amazonaws.services.lambda.runtime.events")) {
+                    // handler uses aws events, it's safe to assume that the AWS events classes are available
+                    AWSEventsHelper.finalizeTransaction(transaction, output, thrown);
                 } else {
-                    // use PlainTransactionHelper for all triggers that do not expect an output
+                    // Fallback instrumentation (AWS events classes might be not available)
                     PlainTransactionHelper.getInstance().finalizeTransaction(transaction, output, thrown);
                 }
             }

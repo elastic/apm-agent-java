@@ -33,7 +33,7 @@ import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.slf4j.Logger;
+import co.elastic.apm.agent.sdk.logging.Logger;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.net.URL;

@@ -21,6 +21,6 @@ package co.elastic.apm.servlet.tests;
 public class JakartaeeServletApiTestApp extends AbstractServletApiTestApp {
 
     public JakartaeeServletApiTestApp() {
-        super("../jakartaee-simple-webapp", "jakartaee-simple-webapp.war", "status.jsp", "Simple Web App", "jakartaee-simple-webapp", "JakartaTestApiServlet");
+        super("../jakartaee-simple-webapp", "jakartaee-simple-webapp.war", "status.jsp", "Simple Web App", "jakartaee-simple-webapp", "JakartaTestApiServlet", "4.2.0");
     }
 }

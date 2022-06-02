@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -152,17 +153,20 @@ public interface Tracer {
 
     TracerState getState();
 
+    @Nullable
+    ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader classLoader);
+
     /**
-     * Overrides the service name for all {@link Transaction}s,
+     * Sets the service name and version for all {@link Transaction}s,
      * {@link Span}s and {@link ErrorCapture}s which are created by the service which corresponds to the provided {@link ClassLoader}.
      * <p>
      * The main use case is being able to differentiate between multiple services deployed to the same application server.
      * </p>
      *
      * @param classLoader the class loader which corresponds to a particular service
-     * @param serviceName the service name for this class loader
+     * @param serviceInfo the service name and version for this class loader
      */
-    void overrideServiceNameForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName);
+    void setServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo);
 
     /**
      * Called when the container shuts down.

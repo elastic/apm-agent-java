@@ -26,7 +26,8 @@ public class JsfServletContainerTestApp extends TestApp {
             "jsf-http-get.war",
             "jsf-http-get",
             "status.html",
-            "jsf-http-get");
+            "jsf-http-get",
+            null);
     }
 
     @Override

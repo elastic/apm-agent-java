@@ -21,13 +21,18 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.TransactionUtils;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
+import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -87,5 +92,31 @@ class TransactionTest {
             .isEqualTo(Outcome.UNKNOWN);
 
     }
+
+    @ParameterizedTest
+    @MethodSource("typeTestArguments")
+    void normalizeType(String type, String expectedType) {
+        Transaction transaction = new Transaction(MockTracer.createRealTracer());
+
+        transaction.start(TraceContext.asRoot(), null, 0, ConstantSampler.of(true));
+        assertThat(transaction.getType())
+            .describedAs("transaction type should not be set by default")
+            .isNull();
+
+        transaction.withType(type);
+
+        transaction.end();
+
+        assertThat(transaction.getType()).isEqualTo(expectedType);
+    }
+
+    static Stream<Arguments> typeTestArguments() {
+        return Stream.of(
+            Arguments.of("", "custom"),
+            Arguments.of(null, "custom"),
+            Arguments.of("my-type", "my-type")
+        );
+    }
+
 
 }

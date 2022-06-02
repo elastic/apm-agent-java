@@ -19,7 +19,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
-import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
+import co.elastic.apm.servlet.tests.JavaxExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
@@ -35,12 +35,13 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
 
     public WebSphereIT(final String version) {
         super((ENABLE_DEBUGGING
-                ? new GenericContainer<>(new ImageFromDockerfile()
+                ? new GenericContainerWithTcpProxy<>(new ImageFromDockerfile()
                 .withDockerfileFromBuilder(builder -> builder
-                    .from("websphere-liberty:" + version).cmd("/opt/ibm/wlp/bin/server", "debug", "defaultServer")))
+                    .from("websphere-liberty:" + version)
+                    .cmd("/opt/ibm/wlp/bin/server", "debug", "defaultServer")),
+                7777)
                 : new GenericContainer<>("websphere-liberty:" + version)
-            )
-                .withEnv("JVM_ARGS", "-javaagent:/elastic-apm-agent.jar"),
+            ).withEnv("JVM_ARGS", "-javaagent:/elastic-apm-agent.jar"),
             9080,
             7777,
             "websphere-application",
@@ -74,7 +75,7 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
             ServletApiTestApp.class,
             JsfApplicationServerTestApp.class,
             CdiApplicationServerTestApp.class,
-            ExternalPluginTestApp.class
+            JavaxExternalPluginTestApp.class
         );
     }
 }

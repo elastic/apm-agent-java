@@ -43,7 +43,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Collections;
 import java.util.EnumSet;
 
 import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.FORWARD;

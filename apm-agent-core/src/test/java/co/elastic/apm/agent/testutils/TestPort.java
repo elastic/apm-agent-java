@@ -33,7 +33,7 @@ public class TestPort {
     /**
      * @return random available TCP port
      */
-    public static int getAvailableRandomPort() {
+    public static synchronized int getAvailableRandomPort() {
         int port;
         do {
             port = MIN_PORT + rand.nextInt(MAX_PORT - MIN_PORT + 1);
@@ -46,7 +46,7 @@ public class TestPort {
             ServerSocket serverSocket = ServerSocketFactory.getDefault().createServerSocket(port, 1, InetAddress.getByName("localhost"));
             serverSocket.close();
             return true;
-        } catch (Exception var3) {
+        } catch (Exception ignored) {
             return false;
         }
     }

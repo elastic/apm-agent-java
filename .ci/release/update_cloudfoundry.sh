@@ -4,7 +4,7 @@ set -euo pipefail
 source "$(dirname "${0}")/util.sh"
 
 REMOTE_NAME=origin
-BRANCH_NAME=master
+BRANCH_NAME=main
 BASE_URL=https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent
 CF_FILE=cloudfoundry/index.yml
 

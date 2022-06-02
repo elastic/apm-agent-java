@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient.helper;
 
-import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;

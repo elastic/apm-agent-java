@@ -35,4 +35,6 @@ public interface DubboTestApi {
     CompletableFuture<String> asyncByFuture(String arg1);
 
     String asyncByAsyncContext(String arg1);
+
+    String willInvokeAnotherApi(String arg);
 }

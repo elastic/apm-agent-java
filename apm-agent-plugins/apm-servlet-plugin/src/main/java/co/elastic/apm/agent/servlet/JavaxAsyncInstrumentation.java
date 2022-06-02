@@ -41,28 +41,13 @@ public class JavaxAsyncInstrumentation {
     public static class JavaxStartAsyncInstrumentation extends AsyncInstrumentation.StartAsyncInstrumentation {
 
         @Override
-        String servletRequestClassName() {
-            return "javax.servlet.ServletRequest";
-        }
-
-        @Override
-        String asyncContextClassName() {
-            return "javax.servlet.AsyncContext";
-        }
-
-        @Override
-        String servletResponseClassName() {
-            return "javax.servlet.ServletResponse";
+        public Constants.ServletImpl getImplConstants() {
+            return Constants.ServletImpl.JAVAX;
         }
 
         @Override
         public String getAdviceClassName() {
             return "co.elastic.apm.agent.servlet.JavaxAsyncInstrumentation$JavaxStartAsyncInstrumentation$StartAsyncAdvice";
-        }
-
-        @Override
-        public String rootClassNameThatClassloaderCanLoad() {
-            return "javax.servlet.AsyncContext";
         }
 
         public static class StartAsyncAdvice {
@@ -81,8 +66,8 @@ public class JavaxAsyncInstrumentation {
     public static class JavaxAsyncContextInstrumentation extends AsyncInstrumentation.AsyncContextInstrumentation {
 
         @Override
-        String asyncContextClassName() {
-            return "javax.servlet.AsyncContext";
+        public Constants.ServletImpl getImplConstants() {
+            return Constants.ServletImpl.JAVAX;
         }
 
         @Override
@@ -90,9 +75,5 @@ public class JavaxAsyncInstrumentation {
             return "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice";
         }
 
-        @Override
-        public String rootClassNameThatClassloaderCanLoad() {
-            return "javax.servlet.AsyncContext";
-        }
     }
 }

@@ -27,6 +27,7 @@ import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,7 @@ import static org.mockito.Mockito.when;
 
 // async-profiler doesn't work on Windows
 @DisabledOnOs(OS.WINDOWS)
+@DisabledOnAppleSilicon
 class SamplingProfilerTest {
 
     private MockReporter reporter;

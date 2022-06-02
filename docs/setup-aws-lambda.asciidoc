@@ -1,61 +1,64 @@
 [[aws-lambda]]
-=== Get started with Lambda (Experimental)
+=== Monitoring AWS Lambda Java Functions
+:layer-section-type: with-agent
 
-experimental::[]
-
-Getting Elastic APM set up for your lambda functions is easy,
-and there are various ways you can tweak it to fit your needs.
-
-NOTE: In order to get the full AWS Lambda tracing capabilities, use with APM Server 7.16 or higher. Using
-older versions provides most value, but some relevant metadata fields will not be indexed.
+The Java APM Agent can be used with AWS Lambda to monitor the execution of your AWS Lambda functions.
 
 [float]
-[[aws-lambda-installation]]
-==== Installation
+[[aws-lambda-java-quick-start]]
+=== Quick Start
 
-Setting up your Lambda function is a two-step process.
-
-1. <<aws-lambda-extension>>
-2. <<aws-lambda-instrumenting>>
+To get started with APM for your Java AWS Lambda functions, follow the steps below.
 
 [float]
-[[aws-lambda-extension]]
-==== Install the Elastic APM Lambda extension
+[[aws-lambda-java-prerequisites]]
+==== Prerequisites
 
-Elastic uses a Lambda extension to forward data to APM Server in a way that does not interfere with the
-execution of your Lambda function.
-
-See the https://www.elastic.co/guide/en/apm/guide/current/aws-lambda-extension.html[installation documentation] to get started.
-
-NOTE: Not all environment variables specified within https://www.elastic.co/guide/en/apm/guide/current/aws-lambda-extension.html#aws-lambda-variables[The Necessary Variables]
-section of the extension documentation need to be configured. The Java agent utilizes a https://docs.aws.amazon.com/lambda/latest/dg/runtimes-modify.html[wrapper script]
-to set some of these up, so follow the next section to see which are required.
+. You need an APM Server to send APM data to. Follow the {apm-guide-ref}/apm-quick-start.html[APM Quick start] if you have not set one up yet. For the best-possible performance, we recommend setting up APM on {ecloud} in the same AWS region as your AWS Lambda functions.
+. Make sure you are using one of the supported AWS Lambda Java runtimes:
++
+--
+include::supported-technologies.asciidoc[tag=aws-lambda-runtimes]
+--
 
 [float]
-[[aws-lambda-instrumenting]]
-==== Installing the Elastic APM Java Agent layer
+==== Step 1: Select the AWS Region and Architecture
 
-The Java Agent is installed as an AWS Layer as well. It is distributed as a ZIP archive containing two files:
+include::{apm-aws-lambda-root}/docs/lambda-selector/lambda-attributes-selector.asciidoc[]
 
-- The Java Agent jar file
-- A wrapper script that sets up the runtime to enable automatic attachment of the agent
+[float]
+==== Step 2: Add the APM Layers to your Lambda function
 
-Follow these steps to ensure proper Java Agent attachment to your Lambda function:
+include::{apm-aws-lambda-root}/docs/lambda-selector/extension-arn-replacement.asciidoc[]
+include::./lambda/java-arn-replacement.asciidoc[]
 
-1. Download the `elastic-apm-java-aws-lambda-layer-<VERSION>.zip` archive from our
-https://github.com/elastic/apm-agent-java/releases[GitHub Releases page].
-2. Publish the downloaded ZIP archive as an https://docs.aws.amazon.com/lambda/latest/dg/invocation-layers.html?icmpid=docs_lambda_help[AWS Lambda Layer].
-3. Configure your function to use the Java Agent layer.
-4. Within your Function configuration, configure the following environment variables:
-a. `AWS_LAMBDA_EXEC_WRAPPER` (required): set this variable's value to `/opt/elastic-apm-handler`, so that Lambda starts the runtime with this script.
-b. `ELASTIC_APM_LAMBDA_APM_SERVER` (required): this will tell the Elastic APM Extension where to send data to.
-c. <<config-secret-token, `ELASTIC_APM_SECRET_TOKEN`>> or <<config-api-key, `ELASTIC_APM_API_KEY`>> (required): one of these needs to be set
-as the authentication method that the extension uses when sending data to the URL configured via `ELASTIC_APM_LAMBDA_APM_SERVER`
-d. <<config-application-packages, `ELASTIC_APM_APPLICATION_PACKAGES`>> (recommended): setting this may improve cold start times.
-5. Fine-tune the Java agent with any of the available <<configuration, configuration options>>.
+Both the {apm-guide-ref}/aws-lambda-arch.html[APM Lambda Extension] and the Java APM Agent are added to your Lambda function as https://docs.aws.amazon.com/lambda/latest/dg/invocation-layers.html[AWS Lambda Layers]. Therefore, you need to add the corresponding Layer ARNs (identifiers) to your Lambda function.
 
-That's it, if you've done all of the above you are set to go!
+include::{apm-aws-lambda-root}/docs/add-extension/add-extension-layer-widget.asciidoc[]
+
+[float]
+==== Step 3: Configure APM on AWS Lambda
+
+The APM Lambda Extension and the APM Java agent are configured through environment variables on the AWS Lambda function.
+
+For the minimal configuration, you will need the _APM Server URL_ to set the destination for APM data and an _{apm-guide-ref}/secret-token.html[APM Secret Token]_.
+If you prefer to use an {apm-guide-ref}/api-key.html[APM API key] instead of the APM secret token, use the `ELASTIC_APM_API_KEY` environment variable instead of `ELASTIC_APM_SECRET_TOKEN` in the following configuration.
+
+include::./lambda/configure-lambda-widget.asciidoc[]
+
+You can optionally <<configuration, fine-tune the Java agent >> or the {apm-guide-ref}/aws-lambda-config-options.html[configuration of the APM Lambda Extension].
+
+That's it; After following the steps above, you're ready to go!
 Your Lambda function invocations should be traced from now on.
+
+Read on to learn more about the features and limitations of the Java APM Agent on AWS Lambda Functions.
+
+[float]
+[[aws-lambda-features-and-caveats]]
+=== Features and Caveats
+
+The AWS Lambda as a runtime behaves differently from conventional runtimes.
+While most APM and monitoring concepts apply to AWS Lambda, there are a few differences and limitations to be aware of.
 
 [float]
 [[aws-lambda-performance-monitoring]]
@@ -80,10 +83,18 @@ Errors related to traced spans will be sent as well.
 [float]
 [[aws-lambda-caveats]]
 ==== Caveats
-- System and custom metrics are not collected for Lambda functions. This is both because most of those are irrelevant
+* System and custom metrics are not collected for Lambda functions. This is both because most of those are irrelevant
 and because the interval-based event sending model is not suitable for FaaS environments.
-- Cold starts can be significantly slower when the agent is installed. The higher memory limit you would allow for your
-Function, the smaller this effect would be. This doesn't affect memory usage for subsequent Function invocations,
-it is only relevant for cold starts.
-- The <<method-sampling-based,Sampling Profiler>> feature would not work because it relies on profiling sessions and
+* Cold starts can be significantly slower when the agent is installed. If this is an issue, following are ways to deal with slow code
+starts:
+** If the only issue with slower cold starts is Lambda timing out, consider increasing the configured timeout.
+** The higher memory limit you would allow for your Function, the smaller this effect would be. This is irrelevant for
+subsequent Function invocations, it is only relevant for cold starts.
+** Much of the startup delay is related to the amount of enabled instrumentations. An enabled instrumentation will contribute to this
+overhead regardless of it being applicable for your specific Lambda function. You can considerably reduce the related overhead by
+specifying a limited list of enabled instrumentations through the <<config-enable-instrumentations, `enable_instrumentations`>> config.
+An automatic way to generate such list is by invoking your Lambda with the agent's default configurations and a <<config-log-level,
+`log_level`>> of `INFO` or lower. After the first lambda invocation, the agent would log a message with the following format: `Used
+instrumentation groups: [aws-lambda, executor, executor-collection, fork-join, ssl-context, urlconnection]`.
+* The <<method-sampling-based,Sampling Profiler>> feature would not work because it relies on profiling sessions and
 subsequent asynchronous processing of the collected data.

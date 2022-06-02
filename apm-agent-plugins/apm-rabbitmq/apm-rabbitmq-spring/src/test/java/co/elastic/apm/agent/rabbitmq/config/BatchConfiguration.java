@@ -20,8 +20,8 @@ package co.elastic.apm.agent.rabbitmq.config;
 
 
 import co.elastic.apm.agent.rabbitmq.TestConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;

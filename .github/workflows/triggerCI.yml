@@ -1,0 +1,28 @@
+name: "Trigger Tests"
+on:
+  pull_request_target:
+    types: [ready_for_review]
+
+jobs:
+  triggerCI:
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    steps:
+    - name: Check team membership for user
+      uses: elastic/get-user-teams-membership@v1.0.4
+      id: checkUserMember
+      with:
+        username: ${{ github.actor }}
+        team: 'apm'
+        usernamesToExclude: |
+          apmmachine
+          dependabot
+          dependabot[bot]
+        GITHUB_TOKEN: ${{ secrets.APM_TECH_USER_TOKEN }}
+    - name: Add comment to trigger tests
+      if: steps.checkUserMember.outputs.isTeamMember == 'true' && steps.checkUserMember.outputs.isExcluded != 'true'
+      uses: wow-actions/auto-comment@v1
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        pullRequestReadyForReview: /test
+

@@ -28,7 +28,7 @@ public abstract class AbstractJettyIT extends AbstractServletContainerIntegratio
     private String version;
 
     public AbstractJettyIT(final String version) {
-        super(new GenericContainer<>("jetty:" + version)
+        super(new GenericContainerWithTcpProxy<>("jetty:" + version)
                 .withExposedPorts(8080),
             "jetty-application",
             "/var/lib/jetty/webapps",

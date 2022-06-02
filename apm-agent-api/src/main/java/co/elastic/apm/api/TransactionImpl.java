@@ -57,6 +57,20 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     }
 
     @Nonnull
+    @Override
+    public Transaction setServiceInfo(String serviceName, String serviceVersion) {
+        // co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetServiceInfoInstrumentation
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction useServiceInfoForClassLoader(ClassLoader classLoader) {
+        // co.elastic.apm.agent.pluginapi.TransactionInstrumentation$UseServiceInfoForClassLoaderInstrumentation
+        return this;
+    }
+
+    @Nonnull
     @Deprecated
     @Override
     public Transaction addTag(String key, String value) {
@@ -185,5 +199,22 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     @Deprecated
     public Transaction setDestinationService(@Nullable String resource) {
         throw new UnsupportedOperationException();
+    }
+
+
+    /**
+     * @deprecated - used only for {@link co.elastic.apm.api.Span}
+     */
+    @Nonnull
+    @Override
+    public Span setServiceTarget(@Nullable String type, @Nullable String name) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Nonnull
+    @Override
+    public Span setNonDiscardable() {
+        doSetNonDiscardable();
+        return this;
     }
 }

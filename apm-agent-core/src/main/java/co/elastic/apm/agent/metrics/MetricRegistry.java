@@ -21,8 +21,8 @@ package co.elastic.apm.agent.metrics;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.HdrHistogram.WriterReaderPhaser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

@@ -19,8 +19,8 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
-import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JBossServletApiTestApp;
+import co.elastic.apm.servlet.tests.JavaxExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.SoapTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
@@ -34,7 +34,7 @@ import java.util.Arrays;
 public class JBossIT extends AbstractServletContainerIntegrationTest {
 
     public JBossIT(final String jbossVersion) {
-        super(new GenericContainer<>("registry.access.redhat.com/" + jbossVersion)
+        super(new GenericContainerWithTcpProxy<>("registry.access.redhat.com/" + jbossVersion)
                 // this overrides the defaults, so we have to manually re-add preferIPv4Stack
                 // the other defaults don't seem to be important
                 .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true " +
@@ -68,7 +68,7 @@ public class JBossIT extends AbstractServletContainerIntegrationTest {
             JsfApplicationServerTestApp.class,
             SoapTestApp.class,
             CdiApplicationServerTestApp.class,
-            ExternalPluginTestApp.class
+            JavaxExternalPluginTestApp.class
         );
     }
 }

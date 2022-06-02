@@ -25,7 +25,7 @@ Once you've set up the Agent, see the <<configuration,configuration guide>> on h
 [[ssl-setup]]
 === SSL/TLS communication with APM Server
 
-If {apm-server-ref-v}/ssl-setup.html[SSL/TLS communication] is enabled on the APM Server, make sure to check out the <<ssl-configuration, SSL setup guide>>.
+If {apm-guide-ref}/agent-tls.html[SSL/TLS communication] is enabled on the APM Server, make sure to check out the <<ssl-configuration, SSL setup guide>>.
 
 [float]
 [[aws-lambda-setup]]

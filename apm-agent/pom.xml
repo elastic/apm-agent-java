@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.28.5-SNAPSHOT</version>
+        <version>1.31.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent</artifactId>
@@ -24,11 +24,6 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jul-to-slf4j</artifactId>
-            <version>${version.slf4j}</version>
-        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>
@@ -69,11 +64,6 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-dubbo-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-error-logging-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -148,6 +138,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jedis-4-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-jms-plugin-base</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -178,11 +173,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-log-correlation-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>apm-log-shipper-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -198,7 +188,27 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-logback-plugin-impl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jboss-logging-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-slf4j-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jul-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -321,6 +331,26 @@
             <artifactId>apm-awslambda-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jakarta-websocket-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-ecs-logging-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-aws-sdk-1-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-aws-sdk-2-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- For auto-generating configuration docs -->
         <dependency>
@@ -410,13 +440,6 @@
                                     <artifact>${project.groupId}:apm-agent-cached-lookup-key</artifact>
                                     <excludes>
                                         <exclude>**/*</exclude>
-                                    </excludes>
-                                </filter>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>**/module-info.class</exclude>
-                                        <exclude>META-INF/versions/**</exclude>
                                     </excludes>
                                 </filter>
                                 <filter>

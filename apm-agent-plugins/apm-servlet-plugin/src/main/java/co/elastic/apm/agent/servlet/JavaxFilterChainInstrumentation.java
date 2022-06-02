@@ -19,19 +19,10 @@
 package co.elastic.apm.agent.servlet;
 
 public class JavaxFilterChainInstrumentation extends FilterChainInstrumentation {
-    @Override
-    String filterChainTypeMatcherClassName() {
-        return "javax.servlet.FilterChain";
-    }
 
     @Override
-    String doFilterFirstArgumentClassName() {
-        return "javax.servlet.ServletRequest";
-    }
-
-    @Override
-    String doFilterSecondArgumentClassName() {
-        return "javax.servlet.ServletResponse";
+    public Constants.ServletImpl getImplConstants() {
+        return Constants.ServletImpl.JAVAX;
     }
 
     @Override
@@ -39,8 +30,4 @@ public class JavaxFilterChainInstrumentation extends FilterChainInstrumentation 
         return "co.elastic.apm.agent.servlet.JavaxServletApiAdvice";
     }
 
-    @Override
-    public String rootClassNameThatClassloaderCanLoad() {
-        return "javax.servlet.AsyncContext";
-    }
 }

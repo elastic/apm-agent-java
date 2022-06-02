@@ -53,6 +53,12 @@ public class GreetingFunctional {
             // 'hello' and 'hello2' are identical, but entry point in builder is not
             .route(path("/functional/hello"),
                 request -> helloGreeting(greetingHandler, request.queryParam("name")))
+            .route(path("/functional/preauthorized"),
+                request -> helloGreeting(greetingHandler, Optional.of("elastic")))
+            .route(path("/functional/username"),
+                request -> getUsernameFromContext(greetingHandler))
+            .route(path("/functional/path-username"),
+                request -> getUsernameFromContext(greetingHandler))
             //
             .GET("/functional/hello2", accept(MediaType.TEXT_PLAIN),
                 request -> helloGreeting(greetingHandler, request.queryParam("name")))
@@ -118,6 +124,10 @@ public class GreetingFunctional {
 
     private Mono<ServerResponse> helloGreeting(GreetingHandler greetingHandler, Optional<String> name) {
         return response(greetingHandler.helloMessage(name.orElse(null)));
+    }
+
+    private Mono<ServerResponse> getUsernameFromContext(GreetingHandler greetingHandler) {
+        return response(greetingHandler.getUsernameFromContext());
     }
 
     private Mono<ServerResponse> response(Mono<String> value) {

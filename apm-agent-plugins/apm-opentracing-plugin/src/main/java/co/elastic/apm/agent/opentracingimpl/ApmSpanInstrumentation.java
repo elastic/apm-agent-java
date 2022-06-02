@@ -27,8 +27,8 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -125,7 +125,7 @@ public abstract class ApmSpanInstrumentation extends OpenTracingBridgeInstrument
                         final Object errorObject = fields.get("error.object");
                         if (errorObject instanceof Throwable) {
                             if (epochTimestampMicros > 0) {
-                                span.captureException(epochTimestampMicros, (Throwable) errorObject);
+                                span.captureExceptionAndGetErrorId(epochTimestampMicros, (Throwable) errorObject);
                             } else {
                                 span.captureException((Throwable) errorObject);
                             }

@@ -48,20 +48,26 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
     @Override
     protected Transaction doStartTransaction(APIGatewayProxyRequestEvent apiGatewayEvent, Context lambdaContext) {
         Transaction transaction = tracer.startChildTransaction(apiGatewayEvent.getHeaders(), MapTextHeaderGetter.INSTANCE, apiGatewayEvent.getClass().getClassLoader());
-        String host = null;
-        if (null != apiGatewayEvent.getHeaders()) {
-            host = apiGatewayEvent.getHeaders().get("host");
-            if(null == host){
-                host = apiGatewayEvent.getHeaders().get("Host");
-            }
-        }
+        String host = getHost(apiGatewayEvent);
 
         if (null != transaction) {
-            fillHttpRequestData(transaction, apiGatewayEvent.getHttpMethod(), apiGatewayEvent.getHeaders(), host,
-                    apiGatewayEvent.getPath(), getQueryString(apiGatewayEvent), apiGatewayEvent.getBody());
+            fillHttpRequestData(transaction, getHttpMethod(apiGatewayEvent), apiGatewayEvent.getHeaders(), host,
+                apiGatewayEvent.getRequestContext().getPath(), getQueryString(apiGatewayEvent), apiGatewayEvent.getBody());
         }
 
         return transaction;
+    }
+
+    @Nullable
+    private String getHost(APIGatewayProxyRequestEvent apiGatewayEvent) {
+        String host = null;
+        if (null != apiGatewayEvent.getHeaders()) {
+            host = apiGatewayEvent.getHeaders().get("host");
+            if (null == host) {
+                host = apiGatewayEvent.getHeaders().get("Host");
+            }
+        }
+        return host;
     }
 
     @Nullable
@@ -86,27 +92,51 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
 
     @Override
     public void captureOutputForTransaction(Transaction transaction, APIGatewayProxyResponseEvent responseEvent) {
-        fillHttpResponseData(transaction, responseEvent.getHeaders(), responseEvent.getStatusCode());
+        Integer statusCode = responseEvent.getStatusCode();
+        if (statusCode == null) {
+            statusCode = 0;
+        }
+        fillHttpResponseData(transaction, responseEvent.getHeaders(), statusCode);
     }
 
     @Override
     protected void setTransactionTriggerData(Transaction transaction, APIGatewayProxyRequestEvent apiGatewayRequest) {
-        super.setTransactionTriggerData(transaction,apiGatewayRequest);
+        super.setTransactionTriggerData(transaction, apiGatewayRequest);
         APIGatewayProxyRequestEvent.ProxyRequestContext rContext = apiGatewayRequest.getRequestContext();
 
         if (null != rContext) {
-            setApiGatewayContextData(transaction, rContext.getRequestId(), rContext.getApiId(), rContext.getHttpMethod(),
-                    rContext.getResourcePath(), rContext.getAccountId());
+            setApiGatewayContextData(transaction, rContext.getRequestId(), rContext.getApiId(),
+                getHost(apiGatewayRequest), rContext.getAccountId());
         }
-    }
-
-    @Override
-    protected String getHttpMethod(APIGatewayProxyRequestEvent event) {
-        return event.getHttpMethod();
     }
 
     @Override
     protected String getApiGatewayVersion() {
         return "1.0";
+    }
+
+    @Nullable
+    @Override
+    protected String getHttpMethod(APIGatewayProxyRequestEvent event) {
+        String httpMethod = event.getRequestContext().getHttpMethod();
+        return (httpMethod == null) ? "GET" : httpMethod;
+    }
+
+    @Nullable
+    @Override
+    protected String getRequestContextPath(APIGatewayProxyRequestEvent event) {
+        return event.getRequestContext().getPath();
+    }
+
+    @Nullable
+    @Override
+    protected String getStage(APIGatewayProxyRequestEvent event) {
+        return event.getRequestContext().getStage();
+    }
+
+    @Nullable
+    @Override
+    protected String getResourcePath(APIGatewayProxyRequestEvent event) {
+        return event.getRequestContext().getResourcePath();
     }
 }

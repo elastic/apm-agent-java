@@ -29,8 +29,8 @@ import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.common.ThreadUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;

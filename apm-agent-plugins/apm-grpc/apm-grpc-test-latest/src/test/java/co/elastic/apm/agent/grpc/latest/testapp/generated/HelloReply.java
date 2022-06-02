@@ -24,7 +24,7 @@ package co.elastic.apm.agent.grpc.latest.testapp.generated;
 /**
  * Protobuf type {@code helloworld.HelloReply}
  */
-public  final class HelloReply extends
+public final class HelloReply extends
     com.google.protobuf.GeneratedMessageV3 implements
     // @@protoc_insertion_point(message_implements:helloworld.HelloReply)
     HelloReplyOrBuilder {
@@ -111,6 +111,7 @@ private static final long serialVersionUID = 0L;
    * <code>string message = 1;</code>
    * @return The message.
    */
+  @java.lang.Override
   public java.lang.String getMessage() {
     java.lang.Object ref = message_;
     if (ref instanceof java.lang.String) {
@@ -127,6 +128,7 @@ private static final long serialVersionUID = 0L;
    * <code>string message = 1;</code>
    * @return The bytes for message.
    */
+  @java.lang.Override
   public com.google.protobuf.ByteString
       getMessageBytes() {
     java.lang.Object ref = message_;
@@ -155,7 +157,7 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!getMessageBytes().isEmpty()) {
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(message_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 1, message_);
     }
     unknownFields.writeTo(output);
@@ -167,7 +169,7 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!getMessageBytes().isEmpty()) {
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(message_)) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, message_);
     }
     size += unknownFields.getSerializedSize();

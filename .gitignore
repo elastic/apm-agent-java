@@ -13,3 +13,4 @@ docs/html/
 **/__pycache__/
 .m2/
 fetch.log
+.ci/.aws

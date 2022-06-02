@@ -34,8 +34,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * test of the plugin, where it is loaded from a plugin directory and loaded with the proper class loader.
  * When running this test, the META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation file is loaded
  * from the system classpath and the instrumentation class is loaded as an internal plugin. In order to fully test
- * the external plugin, see `integration-tests/external-plugin-app`, which creates a webapp that is tested on all
- * Servlet containers in `integration-tests/application-server-integration-tests`.
+ * the external plugin, see `integration-tests/external-plugin-app` and `integration-tests/external-plugin-jakarta-app`
+ * that create webapps that are tested on all Servlet containers in `integration-tests/application-server-integration-tests`.
  * <br/>
  * Implementation note: within this test, due to not testing a packaged external plugin, the
  * {@code co.elastic.apm.agent.} package prefix is required for the instrumentation class. When plugin is loaded
@@ -52,7 +52,7 @@ class PluginInstrumentationTest extends AbstractInstrumentationTest {
     void testTransactionCreation() {
         new TestClass().traceMe(false);
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("traceMe");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TestClass#traceMe");
         assertThat(reporter.getErrors()).isEmpty();
     }
 
@@ -86,7 +86,7 @@ class PluginInstrumentationTest extends AbstractInstrumentationTest {
         }
         assertThat(reporter.getTransactions()).hasSize(1);
         Transaction transaction = reporter.getFirstTransaction();
-        assertThat(transaction.getNameAsString()).isEqualTo("traceMe");
+        assertThat(transaction.getNameAsString()).isEqualTo("TestClass#traceMe");
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getTraceContext().getTransactionId()).isEqualTo(transaction.getTraceContext().getId());
     }

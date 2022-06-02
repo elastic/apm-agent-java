@@ -109,4 +109,13 @@ class ErrorCaptureTest {
             .describedAs("Body buffer should be null when copying from a transaction where capturing was not finished yet")
             .isNull();
     }
+
+    @Test
+    void testActiveError() {
+        assertThat(ErrorCapture.getActive()).isNull();
+        ErrorCapture errorCapture = new ErrorCapture(tracer).activate();
+        assertThat(ErrorCapture.getActive()).isNotNull();
+        errorCapture.deactivate().end();
+        assertThat(ErrorCapture.getActive()).isNull();
+    }
 }

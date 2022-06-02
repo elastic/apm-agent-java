@@ -28,20 +28,21 @@ public class RedisSpanUtils {
     @Nullable
     public static Span createRedisSpan(String command) {
         AbstractSpan<?> activeSpan = GlobalTracer.get().getActive();
-        if (activeSpan == null || activeSpan.isExit()) {
+        if (activeSpan == null) {
             return null;
         }
-        Span span = activeSpan.createSpan()
-            .withName(command)
+
+        Span span = activeSpan.createExitSpan();
+        if (span == null) {
+            return null;
+        }
+
+        span.withName(command)
             .withType("db")
             .withSubtype("redis")
             .withAction("query");
-        span.getContext().getDestination().getService()
-            .withName("redis")
-            .withResource("redis")
-            .withType("db");
-        return span
-            .asExit()
-            .activate();
+        span.getContext().getServiceTarget()
+            .withType("redis");
+        return span.activate();
     }
 }

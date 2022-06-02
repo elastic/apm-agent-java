@@ -32,8 +32,8 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -126,6 +126,6 @@ public class CaptureTransactionInstrumentation extends TracerAwareInstrumentatio
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(PUBLIC_API_INSTRUMENTATION_GROUP, "annotations");
+        return Arrays.asList(PUBLIC_API_INSTRUMENTATION_GROUP, "annotations", "annotations-capture-transaction");
     }
 }

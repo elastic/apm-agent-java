@@ -36,10 +36,10 @@ import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.ReporterFactory;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.ConfigurationSource;
@@ -51,7 +51,6 @@ import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -76,6 +75,9 @@ public class ElasticApmTracerBuilder {
     private final List<LifecycleListener> extraLifecycleListeners;
 
     private final List<ConfigurationSource> configSources;
+
+    @Nullable
+    private ApmServerClient apmServerClient;
 
     /**
      * Constructs a new builder instance with default configuration sources
@@ -119,6 +121,11 @@ public class ElasticApmTracerBuilder {
         return this;
     }
 
+    public ElasticApmTracerBuilder withApmServerClient(ApmServerClient apmServerClient) {
+        this.apmServerClient = apmServerClient;
+        return this;
+    }
+
     public ElasticApmTracer build() {
         return build(false);
     }
@@ -143,7 +150,10 @@ public class ElasticApmTracerBuilder {
             lifecycleListeners.add(scheduleReloadAtRate(configurationRegistry, 30, TimeUnit.SECONDS));
         }
 
-        ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class), configurationRegistry.getConfig(CoreConfiguration.class));
+        if (apmServerClient == null) {
+            apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class), configurationRegistry.getConfig(CoreConfiguration.class));
+        }
+
         MetaDataFuture metaDataFuture = MetaData.create(configurationRegistry, ephemeralId);
         if (addApmServerConfigSource) {
             // adding remote configuration source last will make it highest priority

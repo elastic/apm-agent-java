@@ -26,8 +26,8 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.jms.Destination;
@@ -125,12 +125,12 @@ public class JmsInstrumentationHelper {
 
         span.propagateTraceContext(message, JmsMessagePropertyAccessor.instance());
         if (span.isSampled()) {
-            span.getContext().getDestination().getService()
-                .withName("jms")
-                .withResource("jms")
-                .withType(MESSAGING_TYPE);
+
+            span.getContext().getServiceTarget()
+                .withType("jms")
+                .withName(destinationName);
+
             if (destinationName != null) {
-                span.getContext().getDestination().getService().getResource().append("/").append(destinationName);
                 span.withName("JMS SEND to ");
                 addDestinationDetails(destination, destinationName, span);
                 if (isDestinationNameComputed) {

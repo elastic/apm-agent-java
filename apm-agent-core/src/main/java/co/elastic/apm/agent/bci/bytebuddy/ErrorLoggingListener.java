@@ -20,8 +20,8 @@ package co.elastic.apm.agent.bci.bytebuddy;
 
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.utility.JavaModule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 public class ErrorLoggingListener extends AgentBuilder.Listener.Adapter {
 

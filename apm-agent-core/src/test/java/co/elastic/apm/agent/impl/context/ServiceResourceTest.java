@@ -19,8 +19,10 @@
 package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.testutils.assertions.ServiceTargetAssert;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -36,7 +38,7 @@ import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 public class ServiceResourceTest {
 
@@ -44,7 +46,8 @@ public class ServiceResourceTest {
 
     @BeforeAll
     static void startRootTransaction() {
-        root = Objects.requireNonNull(MockTracer.createRealTracer().startRootTransaction(null));
+        ElasticApmTracer tracer = MockTracer.createRealTracer();
+        root = Objects.requireNonNull(tracer.startRootTransaction(null));
     }
 
     @AfterAll
@@ -56,17 +59,40 @@ public class ServiceResourceTest {
     @MethodSource("getTestCases")
     void testServiceResourceInference(JsonNode testCase) {
         Span span = createSpan(testCase);
-        StringBuilder serviceResource = span.getContext().getDestination().getService().getResource();
+
+        // increment reference count to prevent recycling while test executes
+        span.incrementReferences();
+
         // auto-inference happens now
         span.end();
-        String expected = getTextValueOrNull(testCase, "expected_resource");
-        if (expected == null) {
-            expected = "";
+
+        JsonNode jsonServiceTarget = testCase.get("expected_service_target");
+
+        ServiceTarget serviceTarget = span.getContext().getServiceTarget();
+        ServiceTargetAssert testAssertion = assertThat(serviceTarget)
+            .describedAs(getTextValueOrNull(testCase, "failure_message"));
+
+        if (jsonServiceTarget == null || jsonServiceTarget.isNull()) {
+            testAssertion.isEmpty();
+        } else {
+
+            testAssertion.hasType(getTextValueOrNull(jsonServiceTarget, "type"));
+            String name = getTextValueOrNull(jsonServiceTarget, "name");
+            if (name != null) {
+                testAssertion.hasName(name);
+            } else {
+                testAssertion.hasNoName();
+            }
         }
-        String actual = serviceResource.toString();
-        assertThat(actual)
-            .withFailMessage(String.format("%s, expected: `%s`, actual: `%s`", getTextValueOrNull(testCase, "failure_message"), expected, actual))
-            .isEqualTo(expected);
+
+        JsonNode jsonResource = testCase.get("expected_resource");
+        if (jsonResource == null || jsonResource.isNull()) {
+            testAssertion.isEmpty();
+        } else {
+            testAssertion.hasDestinationResource(jsonResource.asText());
+        }
+
+        span.decrementReferences();
     }
 
     private Span createSpan(JsonNode testCase) {
@@ -110,16 +136,17 @@ public class ServiceResourceTest {
                     }
                 }
             }
-            JsonNode destinationJson = contextJson.get("destination");
-            if (destinationJson != null) {
-                JsonNode serviceJson = destinationJson.get("service");
-                if (serviceJson != null) {
-                    String resource = getTextValueOrNull(serviceJson, "resource");
-                    if (resource != null) {
-                        context.getDestination().getService().withResource(resource);
-                    }
+
+            JsonNode serviceJson = contextJson.get("service");
+            if (serviceJson != null) {
+                JsonNode targetServiceJson = serviceJson.get("target");
+                if (targetServiceJson != null) {
+                    context.getServiceTarget()
+                        .withType(getTextValueOrNull(targetServiceJson, "type"))
+                        .withName(getTextValueOrNull(targetServiceJson, "name"));
                 }
             }
+
         }
         return span;
     }

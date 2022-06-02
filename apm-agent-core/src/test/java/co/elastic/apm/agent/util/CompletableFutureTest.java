@@ -69,7 +69,7 @@ class CompletableFutureTest {
     void testCancelBeforeStart() {
         final CompletableFuture<Object> completableFuture = new CompletableFuture<>();
         for (int i = 0; i < NUM_THREADS; i++) {
-            scheduledExecutorService.schedule(new CompletableFutureTester(completableFuture, 5), 200, TimeUnit.MILLISECONDS);
+            scheduledExecutorService.schedule(new CompletableFutureTester(completableFuture, 5), 300, TimeUnit.MILLISECONDS);
         }
         assertThat(completableFuture.cancel(false)).isTrue();
         assertThat(completableFuture.cancel(false)).isFalse();

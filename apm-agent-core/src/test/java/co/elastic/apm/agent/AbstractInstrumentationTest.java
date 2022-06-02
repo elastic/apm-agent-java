@@ -20,6 +20,7 @@ package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
+import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
@@ -27,18 +28,22 @@ import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import co.elastic.apm.agent.report.ApmServerClient;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 public abstract class AbstractInstrumentationTest {
 
@@ -56,6 +61,7 @@ public abstract class AbstractInstrumentationTest {
     protected static MockReporter reporter;
     protected static ConfigurationRegistry config;
     protected static TestObjectPoolFactory objectPoolFactory;
+    protected static ApmServerClient apmServerClient;
     private boolean validateRecycling = true;
 
     @BeforeAll
@@ -71,9 +77,16 @@ public abstract class AbstractInstrumentationTest {
         config = mockInstrumentationSetup.getConfig();
         objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
         reporter = mockInstrumentationSetup.getReporter();
+        apmServerClient = mockInstrumentationSetup.getApmServerClient();
 
         assertThat(tracer.isRunning()).isTrue();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+    }
+
+    @Before
+    @BeforeEach
+    public void disableSpanCompression() {
+        when(config.getConfig(SpanConfiguration.class).isSpanCompressionEnabled()).thenReturn(false);
     }
 
     @AfterAll
@@ -118,7 +131,7 @@ public abstract class AbstractInstrumentationTest {
                 TracerInternalApiUtils.resumeTracer(tracer);
             }
         }
-        tracer.resetServiceNameOverrides();
+        tracer.resetServiceInfoOverrides();
 
         // reset reporter to default behaviour on all checks
         reporter.resetChecks();

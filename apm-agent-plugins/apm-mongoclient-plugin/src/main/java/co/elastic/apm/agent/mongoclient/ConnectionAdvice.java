@@ -27,8 +27,8 @@ import com.mongodb.connection.Connection;
 import net.bytebuddy.asm.Advice;
 import org.bson.BsonDocument;
 import org.bson.BsonValue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -62,9 +62,14 @@ public class ConnectionAdvice {
         }
 
         span.withType("db").withSubtype("mongodb")
-            .appendToName(database).getContext().getDb().withType("mongodb");
-        span.getContext().getDestination().getService()
-            .withName("mongodb").withResource("mongodb").withType("db");
+            .appendToName(database).getContext().getDb()
+            .withType("mongodb")
+            .withInstance(database);
+
+        span.getContext().getServiceTarget()
+            .withType("mongodb")
+            .withName(database);
+
         ServerAddress serverAddress = thiz.getDescription().getServerAddress();
         span.getContext().getDestination()
             .withAddress(serverAddress.getHost())

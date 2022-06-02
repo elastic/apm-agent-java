@@ -61,8 +61,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
@@ -325,35 +325,6 @@ public class KafkaIT extends AbstractInstrumentationTest {
         assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
-    @SuppressWarnings("ConstantConditions")
-    @Test
-    public void testSendTwoRecords_TransactionNotSampled() {
-        testScenario = TestScenario.NON_SAMPLED_TRANSACTION;
-
-        // End current transaction and start a non-sampled one
-        tracer.currentTransaction().deactivate().end();
-        reporter.reset();
-        startAndActivateTransaction(ConstantSampler.of(false));
-
-        consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
-        sendTwoRecordsAndConsumeReplies();
-
-        // We expect no spans and two transactions (not sampled)
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).isEmpty();
-        List<Transaction> transactions = reporter.getTransactions();
-        assertThat(transactions).hasSize(2);
-        transactions.forEach(transaction -> assertThat(transaction.isSampled()).isFalse());
-        transactions.forEach(transaction -> assertThat(
-            transaction.getTraceContext().getTraceId()).isEqualTo(tracer.currentTransaction().getTraceContext().getTraceId())
-        );
-        transactions.forEach(transaction -> assertThat(
-            transaction.getTraceContext().getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId())
-        );
-        transactions.forEach(transaction -> assertThat(transaction.getType()).isEqualTo("messaging"));
-        transactions.forEach(transaction -> assertThat(transaction.getNameAsString()).isEqualTo("Kafka record from " + REQUEST_TOPIC));
-    }
-
     private void sendTwoRecordsAndConsumeReplies() {
         final StringBuilder callback = new StringBuilder();
         ProducerRecord<String, String> record1 = new ProducerRecord<>(REQUEST_TOPIC, 0, REQUEST_KEY, FIRST_MESSAGE_VALUE);
@@ -408,8 +379,10 @@ public class KafkaIT extends AbstractInstrumentationTest {
         assertThat(pollSpan.getSubtype()).isEqualTo("kafka");
         assertThat(pollSpan.getAction()).isEqualTo("poll");
         assertThat(pollSpan.getNameAsString()).isEqualTo("KafkaConsumer#poll");
-        Destination.Service service = pollSpan.getContext().getDestination().getService();
-        assertThat(service.getResource().toString()).isEqualTo("kafka");
+
+        assertThat(pollSpan.getContext().getServiceTarget())
+            .hasType("kafka")
+            .hasNoName();
     }
 
     private void verifySendSpanContents(Span sendSpan, String topicName) {
@@ -428,8 +401,11 @@ public class KafkaIT extends AbstractInstrumentationTest {
             assertThat(destination.getPort()).isEqualTo(0);
             assertThat(destination.getAddress().toString()).isEmpty();
         }
-        Destination.Service service = destination.getService();
-        assertThat(service.getResource().toString()).isEqualTo("kafka/" + topicName);
+
+        assertThat(context.getServiceTarget())
+            .hasType("kafka")
+            .hasName(topicName)
+            .hasDestinationResource("kafka/" + topicName);
     }
 
     private void verifyKafkaTransactionContents(Transaction transaction, @Nullable Span parentSpan,

@@ -29,9 +29,10 @@
  *     </li>
  *     <li>
  *         load the {@code co.elastic.apm.agent.bci.ElasticApmAgent} class and execute the agent initialization process
- *         <b>through reflection</b>. This can be done synchronously, blocking the bootstrapping thread, or
- *         asynchronously on a different thread after some delay, that may be configured through the
- *         {@code elastic.apm.delay_agent_premain_ms} System property.
+ *         <b>through reflection</b>. This can be done synchronously, blocking the bootstrapping thread (default); or
+ *         asynchronously on a different thread with the {@code elastic.apm.start_async} System property (since 1.29.0);
+ *         or asynchronously on a different thread after some delay, by configuring the
+ *         {@code elastic.apm.delay_agent_premain_ms} System property with some positive value.
  *     </li>
  * </ul>
  */

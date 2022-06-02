@@ -1,0 +1,2 @@
+co.elastic.apm.agent.websocket.JakartaServerEndpointInstrumentation
+co.elastic.apm.agent.websocket.JavaxServerEndpointInstrumentation

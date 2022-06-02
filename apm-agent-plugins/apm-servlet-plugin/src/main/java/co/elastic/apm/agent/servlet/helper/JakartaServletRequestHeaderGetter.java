@@ -18,19 +18,21 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Enumeration;
 
-public class JakartaServletRequestHeaderGetter extends CommonServletRequestHeaderGetter<HttpServletRequest> {
+public class JakartaServletRequestHeaderGetter extends AbstractServletRequestHeaderGetter<HttpServletRequest> {
 
     private static final JakartaServletRequestHeaderGetter INSTANCE = new JakartaServletRequestHeaderGetter();
 
-    static CommonServletRequestHeaderGetter getInstance() {
+    public static TextHeaderGetter<HttpServletRequest> getInstance() {
         return INSTANCE;
     }
 
     @Override
-    String getHeader(String headerName, HttpServletRequest carrier) {
+    public String getFirstHeader(String headerName, HttpServletRequest carrier) {
         return carrier.getHeader(headerName);
     }
 

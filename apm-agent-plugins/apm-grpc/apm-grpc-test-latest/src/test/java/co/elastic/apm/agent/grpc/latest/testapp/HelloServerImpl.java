@@ -24,10 +24,6 @@ import co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest;
 import co.elastic.apm.agent.grpc.testapp.HelloClient;
 import co.elastic.apm.agent.grpc.testapp.HelloServer;
 import io.grpc.BindableService;
-import io.grpc.Metadata;
-import io.grpc.ServerCall;
-import io.grpc.ServerCallHandler;
-import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
 
 import java.util.concurrent.atomic.AtomicReference;

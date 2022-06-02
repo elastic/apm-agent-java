@@ -25,15 +25,11 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.session.Session;
-import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoader;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -47,12 +43,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(Cassandra4InstrumentationIT.class);
-
     @Container
     public static GenericContainer<?> cassandra = new GenericContainer<>("cassandra:4.0")
         .withExposedPorts(9042)
-        .withLogConsumer(new Slf4jLogConsumer(logger))
+        .withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(Cassandra4InstrumentationIT.class))
         .withStartupTimeout(Duration.ofSeconds(120))
         .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048))
         .withEnv("HEAP_NEWSIZE", "700m")

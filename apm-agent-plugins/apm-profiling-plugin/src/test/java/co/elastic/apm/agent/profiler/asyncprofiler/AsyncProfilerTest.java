@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
+import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -31,6 +32,7 @@ import static co.elastic.apm.agent.profiler.asyncprofiler.AsyncProfiler.SAFEMODE
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisabledOnOs(OS.WINDOWS)
+@DisabledOnAppleSilicon
 public class AsyncProfilerTest {
 
     @BeforeEach
