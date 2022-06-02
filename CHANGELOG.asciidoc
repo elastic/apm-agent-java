@@ -35,6 +35,7 @@ the agent will now include the database name in the dependency, thus `mysql/my-d
 * Added the ability to make spans non-discardable through the public API and the OpenTelemetry bridge - {pull}2632[#2632]
 * Added support for the new service target fields - {pull}2578[#2578]
 * Capture the database name from JDBC connection string - {pull}2642[#2642]
+* Added an additional span around Javalin template renderers - {pull}2381[#2381]
 
 [float]
 ===== Bug fixes
@@ -184,10 +185,6 @@ paths. The BCI warmup is on by default and may be disabled through the internal 
 
 [[release-notes-1.28.4]]
 ==== 1.28.4 - 2021/12/30
-
-[float]
-===== Features
-* Added an additional span around Javalin template renderers - {pull}2381[#2381]
 
 [float]
 ===== Bug fixes
