@@ -62,7 +62,9 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     private static final long PREPARED_STMT_TIMEOUT = 10000;
 
     private final String expectedDbVendor;
-    private Connection connection;
+    private final String expectedDbName;
+    private final boolean dbNameFromUrl;
+    private final Connection connection;
     @Nullable
     private PreparedStatement preparedStatement;
     @Nullable
@@ -70,15 +72,22 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     private final Transaction transaction;
     private final SignatureParser signatureParser;
 
-    AbstractJdbcInstrumentationTest(Connection connection, String expectedDbVendor) throws Exception {
+    AbstractJdbcInstrumentationTest(Connection connection, String expectedDbVendor, String expectedDbName) throws Exception {
+        this(connection, expectedDbVendor, expectedDbName, true);
+    }
+
+    AbstractJdbcInstrumentationTest(Connection connection, String expectedDbVendor, String expectedDbName, boolean dbNameFromUrl) throws Exception {
         this.connection = connection;
         this.expectedDbVendor = expectedDbVendor;
+        this.expectedDbName = expectedDbName;
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT NOT NULL, BAR VARCHAR(255))");
         connection.createStatement().execute("ALTER TABLE ELASTIC_APM ADD PRIMARY KEY (FOO)");
         when(config.getConfig(SpanConfiguration.class).isSpanCompressionEnabled()).thenReturn(false);
         transaction = startTestRootTransaction("jdbc-test");
         signatureParser = new SignatureParser();
+        this.dbNameFromUrl = dbNameFromUrl;
     }
+
 
     @Before
     public void setUp() throws Exception {
@@ -228,7 +237,10 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(testConnection.getUnsupportedThrownCount()).isEqualTo(1);
         assertThat(isResultSet).isFalse();
 
-        assertSpanRecorded(sql, false, -1, null);
+        // if the DB name is provided through URL, we still have it
+        // if we don't, then we can't use the connection catalog fallback
+        String dbName = dbNameFromUrl ? expectedDbName: null;
+        assertSpanRecorded(sql, false, -1, dbName);
 
         // try to execute statement again, should not throw again
         statement.execute(sql);
@@ -413,7 +425,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     }
 
     private Span assertSpanRecorded(String rawSql, boolean preparedStatement, long expectedAffectedRows) throws SQLException {
-        return assertSpanRecorded(rawSql, preparedStatement, expectedAffectedRows, connection.getCatalog());
+        return assertSpanRecorded(rawSql, preparedStatement, expectedAffectedRows, expectedDbName);
     }
 
     private Span assertSpanRecorded(String rawSql, boolean preparedStatement, long expectedAffectedRows, @Nullable String expectedDbInstance) throws SQLException {
@@ -431,7 +443,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         Db db = span.getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(rawSql);
         DatabaseMetaData metaData = connection.getMetaData();
-        assertThat(db.getInstance()).isEqualToIgnoringCase(expectedDbInstance);
+
         assertThat(db.getUser()).isEqualToIgnoringCase(metaData.getUserName());
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 
@@ -448,11 +460,16 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         }
 
         if (expectedDbInstance == null) {
+            assertThat(db.getInstance()).isNull();
+
             assertThat(span.getContext().getServiceTarget())
                 .hasType(expectedDbVendor)
                 .hasNoName()
                 .hasDestinationResource(expectedDbVendor);
         } else {
+            assertThat(db.getInstance())
+                .isEqualTo(expectedDbName);
+
             assertThat(span.getContext().getServiceTarget())
                 .hasType(expectedDbVendor)
                 .hasName(expectedDbInstance)
