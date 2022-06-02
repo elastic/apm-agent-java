@@ -38,7 +38,8 @@ the agent will now include the database name in the dependency, thus `mysql/my-d
 
 [float]
 ===== Bug fixes
-* Fix missing attributes in bridged OTel transactions {pull}2657[#2657]
+* Fix missing attributes in bridged OTel transactions - {pull}2657[#2657]
+* Fix `transaction.result` with bridged OTel transactions - {pull}2660[#2660]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
