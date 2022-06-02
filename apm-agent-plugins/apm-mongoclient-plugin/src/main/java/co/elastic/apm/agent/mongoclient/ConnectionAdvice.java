@@ -62,9 +62,14 @@ public class ConnectionAdvice {
         }
 
         span.withType("db").withSubtype("mongodb")
-            .appendToName(database).getContext().getDb().withType("mongodb");
-        span.getContext().getDestination().getService()
-            .withName("mongodb").withResource("mongodb").withType("db");
+            .appendToName(database).getContext().getDb()
+            .withType("mongodb")
+            .withInstance(database);
+
+        span.getContext().getServiceTarget()
+            .withType("mongodb")
+            .withName(database);
+
         ServerAddress serverAddress = thiz.getDescription().getServerAddress();
         span.getContext().getDestination()
             .withAddress(serverAddress.getHost())

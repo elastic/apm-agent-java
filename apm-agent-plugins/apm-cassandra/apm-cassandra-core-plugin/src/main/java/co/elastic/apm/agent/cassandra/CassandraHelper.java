@@ -50,12 +50,8 @@ public class CassandraHelper {
         }
         span.withName(CASSANDRA, AbstractSpan.PRIO_DEFAULT - 1);
 
-        span.getContext()
-            .getDestination()
-            .getService()
-            .withType("db")
-            .withResource(CASSANDRA)
-            .withName(CASSANDRA);
+        span.getContext().getServiceTarget().withType(CASSANDRA);
+
         return span;
     }
 }

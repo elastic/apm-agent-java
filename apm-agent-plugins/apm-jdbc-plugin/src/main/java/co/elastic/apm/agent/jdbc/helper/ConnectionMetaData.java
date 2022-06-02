@@ -18,18 +18,22 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
-import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 
 import javax.annotation.Nullable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,80 +42,16 @@ public class ConnectionMetaData {
 
     private static final Logger logger = LoggerFactory.getLogger(ConnectionMetaData.class);
 
-    private static final Map<String, ConnectionUrlParser> parsers = new HashMap<>();
-
-    static {
-        for (ConnectionUrlParser parser : ConnectionUrlParser.values()) {
-            parsers.put(parser.dbVendor, parser);
-        }
-    }
-
-    /**
-     * Creates a DB metadata based on the connection URL.
-     *
-     * @param connectionUrl the connection URL obtained from the JDBC connection
-     * @param instance      instance identifier from connection
-     * @param user          DB user
-     * @return metadata of a JDBC connection
-     */
-    public static ConnectionMetaData create(String connectionUrl, @Nullable String instance, String user) {
-        String dbVendor = "unknown";
-
-        // trimming a temp copy, keeping the original for logging purposes
-        String tmpUrl = connectionUrl;
-
-        // Connection URLs have a common prefix, starting with "jdbc:", followed by the vendor name and a colon.
-        // The rest is vendor specific.
-        //
-        // Examples:
-        // jdbc:postgresql://hostname/db?user=jdo&password=pass
-        // jdbc:sqlserver://localhost:32958;sslProtocol=TLS;jaasConfigurationName=SQLJDBCDriver
-        // jdbc:oracle:oci:root/secret@localhost:1521:testdb
-        // jdbc:derby:memory:testdb
-        // jdbc:h2:mem:test
-        int indexOfJdbc = tmpUrl.indexOf("jdbc:");
-
-        if (indexOfJdbc != -1) {
-            tmpUrl = tmpUrl.substring(indexOfJdbc + 5);
-            int indexOfNextColon = tmpUrl.indexOf(":");
-            if (indexOfNextColon != -1) {
-                dbVendor = tmpUrl.substring(0, indexOfNextColon);
-                tmpUrl = tmpUrl.substring(indexOfNextColon + 1);
-            }
-        }
-
-        // Further parsing needs to be vendor specific.
-        ConnectionMetaData ret = null;
-        ConnectionUrlParser connectionUrlParser = parsers.get(dbVendor);
-        if (connectionUrlParser != null) {
-            try {
-                ret = connectionUrlParser.parse(tmpUrl, instance, user);
-            } catch (Exception e) {
-                logger.error("Failed to parse connection URL: " + tmpUrl, e);
-            }
-        } else {
-            // Doesn't hurt to try...
-            ret = ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, -1, instance, user);
-        }
-
-        if (ret == null) {
-            ret = new ConnectionMetaData(dbVendor, null, -1, instance, user);
-        }
-        if (logger.isDebugEnabled()) {
-            logger.debug("Based on the connection URL {}, parsed metadata is: {}", connectionUrl, ret);
-        }
-        return ret;
-    }
-
     private final String dbVendor;
     @Nullable
     private final String host;
     private final int port;
     @Nullable
     private final String instance;
+    @Nullable
     private final String user;
 
-    private ConnectionMetaData(String dbVendor, @Nullable String host, int port, @Nullable String instance, String user) {
+    private ConnectionMetaData(String dbVendor, @Nullable String host, int port, @Nullable String instance, @Nullable String user) {
         this.dbVendor = dbVendor;
         this.host = host;
         this.port = port;
@@ -137,6 +77,7 @@ public class ConnectionMetaData {
         return instance;
     }
 
+    @Nullable
     public String getUser() {
         return user;
     }
@@ -152,13 +93,12 @@ public class ConnectionMetaData {
             '}';
     }
 
-    @SuppressWarnings("unused")
     private enum ConnectionUrlParser {
         ORACLE("oracle") {
-            public static final int DEFAULT_PORT = 1521;
-
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
+            Builder parse(String vendorUrl, Builder builder) {
+                builder.withPort(1521);
+
                 // Examples:
                 // jdbc:oracle:thin:scott/tiger@//myhost:1521/myinstance
                 // jdbc:oracle:thin:scott/tiger@127.0.0.1:666:myinstance
@@ -168,71 +108,92 @@ public class ConnectionMetaData {
                 // jdbc:oracle:thin:@(DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=host1)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=service_name)))
                 // jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=cluster_alias)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=service_name)))
                 // jdbc:oracle:thin:@(DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=host1)(PORT=1521))(ADDRESS=(PROTOCOL=TCP)(HOST=host2)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=service_name)))
-                int indexOfUserDetailsEnd = connectionUrl.indexOf('@');
+                int indexOfUserDetailsEnd = vendorUrl.indexOf('@');
                 if (indexOfUserDetailsEnd > 0) {
-                    if (connectionUrl.length() > indexOfUserDetailsEnd + 1) {
-                        connectionUrl = connectionUrl.substring(indexOfUserDetailsEnd + 1).trim();
+                    if (vendorUrl.length() > indexOfUserDetailsEnd + 1) {
+                        vendorUrl = vendorUrl.substring(indexOfUserDetailsEnd + 1).trim();
                     } else {
                         // jdbc:oracle:oci:scott/tiger/@
-                        return new ConnectionMetaData(dbVendor, null, DEFAULT_PORT, instance, user);
+                        // nothing left to parse
+                        return builder;
                     }
                 }
 
-                String host = null;
-                int port = DEFAULT_PORT;
-
-                HostPort hostPort;
-                if (connectionUrl.startsWith("(")) {
+                if (vendorUrl.startsWith("(")) {
                     // (DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=host1)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=service_name)))
                     // (DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=host1)(PORT=1521))(ADDRESS=(PROTOCOL=TCP)(HOST=host2)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=service_name)))
                     try {
-                        hostPort = parseAddressList(connectionUrl);
-                        if (hostPort != null) {
-                            host = hostPort.host;
-                            if (hostPort.port > 0) {
-                                port = hostPort.port;
-                            }
+                        TreeNode parsedTree = buildOracleTree(vendorUrl);
+                        if (parsedTree == null) {
+                            logger.warn("Failed to parse Oracle DB address list from: {}", vendorUrl);
+                            return builder.withParsingError();
+                        } else {
+                            traverseOracleTree(vendorUrl, parsedTree, builder);
                         }
                     } catch (Exception e) {
-                        logger.warn("Failed to parse address from this address list: {}", connectionUrl);
-                        port = -1;
+                        logger.warn("Failed to parse oracle description {}", vendorUrl);
+                        return builder.withParsingError();
                     }
+
+                } else if (vendorUrl.indexOf('/') >= 0) {
+                    // try looking for patterns: host:port/instance or //host:port/instance
+
+                    String authority = vendorUrl;
+                    if (authority.startsWith("//")) {
+                        authority = vendorUrl.substring(2);
+                    }
+
+                    int authorityEnd = authority.indexOf('/');
+                    if (authorityEnd >= 0) {
+                        if (authorityEnd + 1 < authority.length()) {
+                            builder.withInstance(authority.substring(authorityEnd + 1));
+                        }
+                        authority = authority.substring(0, authorityEnd);
+
+                    }
+
+                    parseAuthority(authority, builder);
                 } else {
-                    // try looking for a //host:port/instance pattern
-                    hostPort = parseHostPort(connectionUrl);
-                    if (hostPort.host != null) {
-                        host = hostPort.host;
-                        if (hostPort.port > 0) {
-                            port = hostPort.port;
-                        }
-                    } else {
-                        // Thin driver host:port:sid syntax:
-                        // myhost:666:instance
-                        // myhost:instance
-                        // thin:myhost:port:instance
-                        if (connectionUrl.startsWith("thin:")) {
-                            connectionUrl = connectionUrl.substring("thin:".length());
-                        }
 
-                        String[] parts = connectionUrl.split(":");
-                        if (parts.length > 0) {
-                            host = parts[0];
+                    // Thin driver host:port:sid syntax:
+                    // myhost:666:instance
+                    // myhost:instance
+                    // thin:myhost:port:instance
+                    if (vendorUrl.startsWith("thin:")) {
+                        vendorUrl = vendorUrl.substring("thin:".length());
+                    }
+
+                    String[] parts = vendorUrl.split(":");
+                    if (parts.length > 0) {
+                        builder.withHost(parts[0]);
+                    }
+                    if (parts.length > 1) {
+                        String portOrDb = parts[1];
+                        boolean isInt = true;
+                        for (char c : portOrDb.toCharArray()) {
+                            isInt = isInt && c >= '0' && c <= '9';
                         }
-                        if (parts.length > 1) {
-                            port = toNumericPort(connectionUrl, parts[1], DEFAULT_PORT);
+                        if (isInt) {
+                            builder.withPort(toNumericPort(vendorUrl, portOrDb));
+                        } else {
+                            builder.withInstance(portOrDb);
                         }
                     }
-                }
+                    if (parts.length > 2) {
+                        // assume the last item is always the instance name if provided
+                        builder.withInstance(parts[2]);
+                    }
 
-                return new ConnectionMetaData(dbVendor, host, port, instance, user);
+                }
+                return builder;
             }
 
             @Nullable
-            private HostPort parseAddressList(String connectionUrl) {
+            private TreeNode buildOracleTree(String connectionUrl) {
                 TreeNode parsedTree = null;
                 Deque<TreeNode> stack = new ArrayDeque<>();
                 StringBuilder currentValueBuffer = null;
-                for (char c : connectionUrl.toLowerCase().toCharArray()) {
+                for (char c : connectionUrl.toCharArray()) {
                     switch (c) {
                         case '(': {
                             TreeNode treeNode = new TreeNode();
@@ -266,100 +227,139 @@ public class ConnectionMetaData {
                         }
                     }
                 }
-
-                HostPort ret = null;
-                if (parsedTree == null) {
-                    logger.warn("Failed to parse Oracle DB address list from: {}", connectionUrl);
-                } else {
-                    ret = findAddressInTree(connectionUrl, parsedTree);
-                }
-                return ret;
+                return parsedTree;
             }
 
-            @Nullable
-            HostPort findAddressInTree(String connectionUrl, TreeNode treeNode) {
-                if (treeNode.name.toString().trim().equals("address")) {
+            private void traverseOracleTree(String connectionUrl, TreeNode treeNode, Builder builder) {
+                String nodeName = treeNode.name.toString().toLowerCase(Locale.ROOT).trim();
+                if (nodeName.equals("address")) {
                     String host = null;
                     int port = -1;
                     for (TreeNode childNode : treeNode.childNodes) {
-                        String name = childNode.name.toString().trim();
-                        if (name.equals("host")) {
-                            host = childNode.value.toString().trim();
-                        } else if (name.equals("port")) {
-                            port = toNumericPort(connectionUrl, childNode.value.toString().trim());
+                        String childName = childNode.name.toString().toLowerCase(Locale.ROOT).trim();
+                        String childValue = childNode.value.toString().trim();
+                        if (childName.equals("host")) {
+                            host = childValue;
+                        } else if (childName.equals("port")) {
+                            port = toNumericPort(connectionUrl, childValue);
                         }
                     }
-                    if (host != null) {
-                        return new HostPort(host, port);
+                    if (host != null && !builder.hasHost()) { // first value wins
+                        builder.withHost(host).withPort(port);
                     }
+                } else if (nodeName.equals("instance_name") || (nodeName.equals("service_name") && !builder.hasInstance())) {
+                    builder.withInstance(treeNode.value.toString().trim());
                 }
 
-                HostPort ret = null;
                 for (TreeNode childNode : treeNode.childNodes) {
-                    ret = findAddressInTree(connectionUrl, childNode);
-                    if (ret != null) {
-                        break;
-                    }
+                    traverseOracleTree(connectionUrl, childNode, builder);
                 }
-                return ret;
             }
 
             class TreeNode {
-                StringBuilder name = new StringBuilder();
-                StringBuilder value = new StringBuilder();
-                List<TreeNode> childNodes = new ArrayList<>();
+                final StringBuilder name = new StringBuilder();
+                final StringBuilder value = new StringBuilder();
+                final List<TreeNode> childNodes = new ArrayList<>();
             }
         },
 
         POSTGRESQL("postgresql") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
-                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 5432, instance, user);
+            Builder parse(String vendorUrl, Builder builder) {
+                return defaultParse(vendorUrl, builder.withHostLocalhost().withPort(5432));
             }
         },
 
         MYSQL("mysql") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
-                String host = "localhost";
-                int port = 3306;
-                HostPort hostPort = parseMySqlFlavor(connectionUrl);
-                if (hostPort != null) {
-                    host = hostPort.host;
-                    if (hostPort.port > 0) {
-                        port = hostPort.port;
-                    }
-                }
-                return new ConnectionMetaData(dbVendor, host, port, instance, user);
+            Builder parse(String vendorUrl, Builder builder) {
+                builder.withHostLocalhost()
+                    .withPort(3306);
+                parseMySqlFlavor(vendorUrl, builder);
+                return builder;
             }
         },
 
         DB2("db2") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
-                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 50000, instance, user);
+            Builder parse(String vendorUrl, Builder builder) {
+                return defaultParse(vendorUrl, builder.withPort(50000));
+            }
+
+            @Override
+            protected int getPropertiesStart(String vendorUrl) {
+                int start = 0;
+                if (vendorUrl.startsWith("//")) {
+                    // ignore the leading '//' prefix
+                    start = 2;
+                }
+                int hostEndSlash = vendorUrl.lastIndexOf('/');
+                if (hostEndSlash >= 2) {
+                    start = hostEndSlash;
+                }
+                int twoDots = vendorUrl.indexOf(':', start);
+                if (twoDots < 0) {
+                    twoDots = Integer.MAX_VALUE;
+                }
+                int semiColon = vendorUrl.indexOf(';', start);
+                if (semiColon < 0) {
+                    semiColon = Integer.MAX_VALUE;
+                }
+                int min = Math.min(twoDots, semiColon);
+                return min == Integer.MAX_VALUE ? -1 : min;
             }
         },
 
         H2("h2") {
-            // Actually behaves like the default, but better have it explicit
+            private final String MEM_SUBPROTOCOL = "mem:";
+            private final Set<String> LOCAL_SUBPROTOCOLS = new HashSet<>(Arrays.asList("file:", MEM_SUBPROTOCOL));
+
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
-                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, -1, instance, user);
+            Builder parse(String vendorUrl, Builder builder) {
+                return defaultParse(vendorUrl, builder);
             }
+
+            @Override
+            protected Set<String> getLocalSubProtocols() {
+                return LOCAL_SUBPROTOCOLS;
+            }
+
         },
 
         DERBY("derby") {
+            private final String MEMORY_SUBPROTOCOL = "memory:";
+            private final Set<String> LOCAL_SUBPROTOCOLS = new HashSet<>(Arrays.asList(MEMORY_SUBPROTOCOL, "jar:", "classpath:", "directory:"));
+
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
-                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 1527, instance, user);
+            Builder parse(String vendorUrl, Builder builder) {
+                if (vendorUrl.contains("//")) {
+                    // if it has something that looks like an authority, default to remote port
+                    builder.withPort(1527);
+                } else {
+                    builder.withLocalAccess();
+                }
+                return defaultParse(vendorUrl, builder);
             }
+
+            @Override
+            protected Set<String> getLocalSubProtocols() {
+                return LOCAL_SUBPROTOCOLS;
+            }
+
         },
 
         HSQLDB("hsqldb") {
+
+            private final Set<String> LOCAL_SUBPROTOCOLS = new HashSet<>(Arrays.asList("file:", "mem:", "res:"));
+
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
-                return ConnectionUrlParser.defaultParse(connectionUrl, dbVendor, 9001, instance, user);
+            Builder parse(String vendorUrl, Builder builder) {
+                return defaultParse(vendorUrl, builder.withPort(9001));
+            }
+
+            @Override
+            protected Set<String> getLocalSubProtocols() {
+                return LOCAL_SUBPROTOCOLS;
             }
         },
 
@@ -371,75 +371,109 @@ public class ConnectionMetaData {
             ));
 
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
-                // just like MySQL
-                String host = "localhost";
-                int port = 3306;
-                // seems to allow a non-proper URL format, like jdbc:mariadb:myhost:666 or jdbc:mariadb:sequential:host1,host2,host3/testdb
+            Builder parse(String vendorUrl, Builder builder) {
                 for (String protocol : SPECIALIZED_PROTOCOL_STRINGS) {
-                    int indexOfProtocol = connectionUrl.indexOf(protocol);
+                    int indexOfProtocol = vendorUrl.indexOf(protocol);
                     if (indexOfProtocol >= 0) {
-                        connectionUrl = connectionUrl.substring(indexOfProtocol + protocol.length());
+                        vendorUrl = vendorUrl.substring(indexOfProtocol + protocol.length());
                     }
                 }
-                if (!connectionUrl.contains("//")) {
-                    connectionUrl = "//" + connectionUrl;
+                if (!vendorUrl.contains("//")) {
+                    vendorUrl = "//" + vendorUrl;
                 }
-                HostPort hostPort = parseMySqlFlavor(connectionUrl);
-                if (hostPort != null) {
-                    host = hostPort.host;
-                    if (hostPort.port > 0) {
-                        port = hostPort.port;
-                    }
-                }
-                return new ConnectionMetaData(dbVendor, host, port, instance, user);
+
+                builder.withHostLocalhost()
+                    .withPort(3306);
+                parseMySqlFlavor(vendorUrl, builder);
+                return builder;
             }
+
         },
 
         SQLSERVER("sqlserver") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
-                // just like MySQL
-                String host = "localhost";
-                int port = 1433;
-                int indexOfProperties = connectionUrl.indexOf(';');
-                if (indexOfProperties > 0) {
-                    if (connectionUrl.length() > indexOfProperties + 1) {
-                        String propertiesPart = connectionUrl.substring(indexOfProperties + 1);
+            Builder parse(String vendorUrl, Builder builder) {
+                builder.withVendor("mssql")
+                    .withHostLocalhost()
+                    .withPort(1433);
+
+                String authority = null;
+                String dbName = null;
+
+                int indexOfProperties = vendorUrl.indexOf(';');
+                if (indexOfProperties < 0) {
+                    authority = vendorUrl.substring(2);
+                } else {
+                    if (vendorUrl.length() > indexOfProperties + 1) {
+                        String propertiesPart = vendorUrl.substring(indexOfProperties + 1);
                         String[] properties = propertiesPart.split(";");
                         for (String property : properties) {
                             String[] parts = property.split("=");
                             if (parts.length == 2 && parts[0].equals("serverName")) {
-                                host = parts[1];
+                                authority = parts[1];
                             }
                         }
                     }
-                    connectionUrl = connectionUrl.substring(0, indexOfProperties);
-                }
-                HostPort hostPort = parseHostPort(connectionUrl);
-
-                if (hostPort.host != null) {
-                    host = hostPort.host;
-                    if (hostPort.port > 0) {
-                        port = hostPort.port;
+                    if (authority == null) {
+                        authority = vendorUrl.substring(2, indexOfProperties);
                     }
                 }
 
-                // remove the instance part of the host
-                int indexOfInstance = host.indexOf('\\');
-                if (indexOfInstance > 0) {
-                    host = host.substring(0, indexOfInstance);
+                int backSlashIndex = authority.indexOf('\\');
+                if (backSlashIndex > 0) {
+                    // authority can be in multiple formats: 'host\db:777', 'host:777' or 'host\db'
+                    dbName = authority.substring(backSlashIndex + 1);
+                    int portSeparator = dbName.indexOf(':');
+                    String portSuffix = null;
+                    if (portSeparator > 0) {
+                        portSuffix = dbName.substring(portSeparator);
+                        dbName = dbName.substring(0, portSeparator);
+                    }
+
+                    authority = authority.substring(0, backSlashIndex);
+                    if (portSuffix != null) {
+                        authority += portSuffix;
+                    }
                 }
-                return new ConnectionMetaData("mssql", host, port, instance, user);
+
+                parseAuthority(authority, builder);
+
+                builder.withInstance(dbName);
+
+                return builder;
             }
         },
 
-        UNKNOWN("unknown") {
+        DEFAULT("default") {
             @Override
-            ConnectionMetaData parse(String connectionUrl, String instance, String user) {
-                return new ConnectionMetaData(dbVendor, null, -1, instance, user);
+            Builder parse(String vendorUrl, Builder builder) {
+                return defaultParse(vendorUrl, builder);
             }
         };
+
+        private static final Map<String, ConnectionUrlParser> parsers = new HashMap<>();
+
+        static {
+            for (ConnectionUrlParser parser : values()) {
+                if (parser != DEFAULT) {
+                    parsers.put(parser.dbVendor, parser);
+                }
+            }
+        }
+
+        /**
+         * Get JDBC URL parser
+         *
+         * @param vendor vendor identifier
+         * @return vendor-specific URL parser, or default one if no vendor-specific is available
+         */
+        static ConnectionUrlParser getParser(String vendor) {
+            ConnectionUrlParser parser = parsers.get(vendor);
+            if (parser == null) {
+                parser = DEFAULT;
+            }
+            return parser;
+        }
 
         ConnectionUrlParser(String dbVendor) {
             this.dbVendor = dbVendor;
@@ -447,9 +481,16 @@ public class ConnectionMetaData {
 
         final String dbVendor;
 
-        abstract ConnectionMetaData parse(String connectionUrl, String instance, String user);
+        /**
+         * Parses the connection metadata from URL
+         *
+         * @param vendorUrl vendor-specific part of the url, after the 'jdbc:vendor:' prefix
+         * @param builder   builder
+         * @return builder
+         */
+        abstract ConnectionMetaData.Builder parse(String vendorUrl, ConnectionMetaData.Builder builder);
 
-        static ConnectionMetaData defaultParse(String connectionUrl, String dbVendor, int defaultPort, @Nullable String instance, String user) {
+        protected ConnectionMetaData.Builder defaultParse(String vendorUrl, ConnectionMetaData.Builder builder) {
             // Examples:
             // database
             // /
@@ -460,80 +501,105 @@ public class ConnectionMetaData {
             // //host:666/database?prop1=val1&prop2=val2
             // //host:666/database;prop1=val1;prop2=val2
 
-            // try remove properties appended with semicolon
-            int indexOfProperties = connectionUrl.indexOf(';');
-            if (indexOfProperties > 0) {
-                connectionUrl = connectionUrl.substring(0, indexOfProperties);
+            int propertiesStart = getPropertiesStart(vendorUrl);
+
+            if (propertiesStart > 0) {
+                vendorUrl = vendorUrl.substring(0, propertiesStart);
             }
 
-            String host = "localhost";
-            int port = -1;
-            HostPort hostPort = parseHostPort(connectionUrl);
-            if (hostPort.host != null) {
-                host = hostPort.host;
-                if (hostPort.port > 0) {
-                    port = hostPort.port;
-                } else {
-                    port = defaultPort;
+            for (String localPrefix : getLocalSubProtocols()) {
+                if (vendorUrl.startsWith(localPrefix)) {
+                    // for known local prefixes the instance name is everything after the sub-protocol part
+                    return builder
+                        .withLocalAccess()
+                        .withInstance(vendorUrl.substring(localPrefix.length()));
                 }
             }
-            return new ConnectionMetaData(dbVendor, host, port, instance, user);
+
+            builder.withHostLocalhost();// default to localhost when not known
+
+            int authorityStart = vendorUrl.indexOf("//");
+            String afterAuthority = null;
+            if (authorityStart >= 0) {
+                String authority = vendorUrl.substring(authorityStart + 2);
+
+                if (authority.equals("/")) {
+                    // for urls such as: jdbc:hsqldb:///
+                    builder.withLocalAccess();
+                } else {
+                    int authorityEnd = authority.indexOf('/');
+                    if (authorityEnd > 0) {
+                        afterAuthority = authority.substring(authorityEnd + 1);
+                        authority = authority.substring(0, authorityEnd);
+                    }
+
+                    parseAuthority(authority, builder);
+                }
+            } else if (!vendorUrl.equals("/")) {
+                // no authority: assume only db name
+
+                builder.withInstance(vendorUrl);
+            }
+
+            if (afterAuthority != null) {
+                // db name is after the last '/' for the most common case, but could be vendor-specific
+                int dbNameStart = afterAuthority.lastIndexOf('/');
+                String dbName = afterAuthority.substring(dbNameStart + 1);
+
+                // while usually only one sub-protocol is used for this, it's easier to try them all
+                for (String subProtocol : getLocalSubProtocols()) {
+                    if (dbName.startsWith(subProtocol)) {
+                        dbName = dbName.substring(subProtocol.length());
+                    }
+                }
+
+                builder.withInstance(dbName);
+            }
+
+            return builder;
+        }
+
+        protected int getPropertiesStart(String vendorUrl) {
+            int propertiesStart = -1;
+            for (char separator : new char[]{';', '?'}) {
+                int index = vendorUrl.indexOf(separator);
+                if (index > 0) {
+                    if (propertiesStart < 0) {
+                        propertiesStart = index;
+                    } else {
+                        // in case we have multiple of them, we take the first
+                        propertiesStart = Math.min(propertiesStart, index);
+                    }
+                }
+            }
+            return propertiesStart;
+        }
+
+        protected Set<String> getLocalSubProtocols() {
+            return Collections.emptySet();
         }
 
         /**
-         * Expects a URL structure, from which the authority component is extracted to get host and port.
+         * Parses the authority part of JDBC URL
          *
-         * @param url expected structure: "[...//]host[:port][/[instance/database]]
-         * @return extracted host and port
+         * @param authority authority string in the 'host' or 'host:666' format
+         * @param builder   builder
          */
-        static HostPort parseHostPort(String url) {
-            if (url.length() > 0) {
-                int indexOfDoubleSlash = url.indexOf("//");
-                if (indexOfDoubleSlash >= 0 && url.length() > indexOfDoubleSlash + 2) {
-                    url = url.substring(indexOfDoubleSlash + 2);
-                    if (url.length() == 1) {
-                        // for urls such as: jdbc:hsqldb:///
-                        return new HostPort("localhost", -1);
-                    }
-                    return parseAuthority(url);
-                }
-            }
-            return new HostPort(null, -1);
-        }
-
-        static HostPort parseAuthority(String url) {
-            // Examples:
-            // myhost:666/myinstance
-            // myhost:666/myinstance?arg1=val1&arg2=val2
-            // myhost/instance
-            // myhost/instance?arg1=val1&arg2=val2
-            // myhost:666
-            // myhost:666?arg1=val1&arg2=val2
-            // myhost
-            // myhost?arg1=val1&arg2=val2
-            int indexOrProperties = url.indexOf('?');
-            if (indexOrProperties > 0) {
-                url = url.substring(0, indexOrProperties);
-            }
-
-            String hostPort;
-            int indexOfSlash = url.indexOf('/');
-            if (indexOfSlash > 0) {
-                hostPort = url.substring(0, indexOfSlash);
-            } else {
-                hostPort = url;
+        static void parseAuthority(String authority, Builder builder) {
+            if (authority.isEmpty()) {
+                return;
             }
 
             String host;
             int port = -1;
-            int indexOfColon = hostPort.indexOf(':');
+            int indexOfColon = authority.indexOf(':');
             if (indexOfColon > 0) {
                 // check if IPv6
-                int lastIndexOfColon = hostPort.lastIndexOf(':');
+                int lastIndexOfColon = authority.lastIndexOf(':');
                 if (indexOfColon != lastIndexOfColon) {
                     // IPv6 - [::1] or ::1 or [::1]:666
-                    int indexOfIpv6End = hostPort.indexOf(']');
-                    if (indexOfIpv6End > 0 && hostPort.length() > indexOfIpv6End + 1) {
+                    int indexOfIpv6End = authority.indexOf(']');
+                    if (indexOfIpv6End > 0 && authority.length() > indexOfIpv6End + 1) {
                         indexOfColon = indexOfIpv6End + 1;
                     } else {
                         // no port specified
@@ -543,23 +609,19 @@ public class ConnectionMetaData {
             }
 
             if (indexOfColon > 0) {
-                host = hostPort.substring(0, indexOfColon);
-                if (hostPort.length() > indexOfColon + 1) {
-                    port = toNumericPort(url, hostPort.substring(indexOfColon + 1));
+                host = authority.substring(0, indexOfColon);
+                if (authority.length() > indexOfColon + 1) {
+                    port = toNumericPort(authority, authority.substring(indexOfColon + 1));
                 }
             } else {
-                host = hostPort;
+                host = authority;
             }
 
-            return new HostPort(host, port);
+            builder.withHost(host).withPort(port);
         }
 
         static int toNumericPort(String url, String portString) {
-            return toNumericPort(url, portString, -1);
-        }
-
-        static int toNumericPort(String url, String portString, int defaultPort) {
-            int port = defaultPort;
+            int port = -1;
             try {
                 port = Integer.parseInt(portString);
             } catch (NumberFormatException e) {
@@ -568,7 +630,14 @@ public class ConnectionMetaData {
             return port;
         }
 
-        @Nullable static HostPort parseMySqlFlavor(String connectionUrl) {
+
+        /**
+         * Parses MySQL connection URL
+         *
+         * @param vendorUrl vendor URL, everything after the 'jdbc:mysql:' prefix.
+         * @param builder   builder
+         */
+        static void parseMySqlFlavor(String vendorUrl, Builder builder) {
             // https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-jdbc-url-format.html
             // General structure:
             // protocol//[hosts][/database][?properties]
@@ -589,12 +658,17 @@ public class ConnectionMetaData {
             // jdbc:mysql://sandy:secret@[address=(host=myhost1)(port=1111)(key1=value1),address=(host=myhost2)(port=2222)(key2=value2)]/db
             // jdbc:mysql://sandy:secret@[myhost1:1111,address=(host=myhost2)(port=2222)(key2=value2)]/db
 
-            HostPort ret = null;
-            connectionUrl = connectionUrl.toLowerCase().trim();
-            final Pattern pattern = Pattern.compile("//([^/?]+)");
-            Matcher matcher = pattern.matcher(connectionUrl);
+            vendorUrl = vendorUrl.toLowerCase().trim();
+            final Pattern pattern = Pattern.compile("//([^/?]+)(.*)$");
+            Matcher matcher = pattern.matcher(vendorUrl);
             if (matcher.find()) {
                 String hostsPart = matcher.group(1);
+                String afterHost = matcher.group(2);
+                if (afterHost.startsWith("/")) {
+                    int propertiesStart = afterHost.indexOf('?');
+                    String db = afterHost.substring(1, propertiesStart < 0 ? afterHost.length() : propertiesStart);
+                    builder.withInstance(db);
+                }
 
                 // splitting to hosts, watching out from the "key-value" form: (host=myhost1,port=1111,key1=value1)
                 List<String> hosts = new ArrayList<>();
@@ -630,12 +704,13 @@ public class ConnectionMetaData {
                         int port = -1;
                         Matcher portMatcher = Pattern.compile("\\s*port\\s*=\\s*([^)]+)\\s*").matcher(tmp);
                         if (portMatcher.find()) {
-                            port = toNumericPort(connectionUrl, portMatcher.group(1).trim());
+                            port = toNumericPort(vendorUrl, portMatcher.group(1).trim());
                         }
-                        return new HostPort(host, port);
+                        builder.withHost(host).withPort(port);
+                        return;
                     } else {
-                        logger.warn("Failed to parse address from a connection URL: {}", connectionUrl);
-                        return null;
+                        logger.warn("Failed to parse address from a connection URL: {}", vendorUrl);
+                        builder.withParsingError();
                     }
                 }
 
@@ -652,15 +727,17 @@ public class ConnectionMetaData {
                             if (keyValue[0].trim().equals("host")) {
                                 host = keyValue[1].trim();
                             } else if (keyValue[0].trim().equals("port")) {
-                                port = toNumericPort(connectionUrl, keyValue[1].trim());
+                                port = toNumericPort(vendorUrl, keyValue[1].trim());
                             }
                         }
                     }
                     if (host != null) {
-                        return new HostPort(host, port);
+                        builder.withHost(host).withPort(port);
+                        return;
                     } else {
-                        logger.warn("Failed to parse address from a connection URL: {}", connectionUrl);
-                        return null;
+                        logger.warn("Failed to parse address from a connection URL: {}", vendorUrl);
+                        builder.withParsingError();
+                        return;
                     }
                 }
 
@@ -678,24 +755,164 @@ public class ConnectionMetaData {
                     if (firstHost.length() > indexOfUserDetailsEnd + 1) {
                         firstHost = firstHost.substring(indexOfUserDetailsEnd + 1).trim();
                     } else {
-                        return null;
+                        return;
                     }
                 }
 
-                ret = parseAuthority(firstHost.trim());
+                parseAuthority(firstHost.trim(), builder);
             }
-            return ret;
+
+        }
+    }
+
+    public static Builder parse(String url) {
+
+        String vendor = "unknown";
+
+        // trimming a temp copy, keeping the original for logging purposes
+        String vendorUrl = url;
+
+        // Connection URLs have a common prefix, starting with "jdbc:", followed by the vendor name and a colon.
+        // The rest is vendor specific.
+        //
+        // Examples:
+        // jdbc:postgresql://hostname/db?user=jdo&password=pass
+        // jdbc:sqlserver://localhost:32958;sslProtocol=TLS;jaasConfigurationName=SQLJDBCDriver
+        // jdbc:oracle:oci:root/secret@localhost:1521:testdb
+        // jdbc:derby:memory:testdb
+        // jdbc:h2:mem:test
+        int indexOfJdbc = vendorUrl.indexOf("jdbc:");
+
+        if (indexOfJdbc != -1) {
+            vendorUrl = vendorUrl.substring(indexOfJdbc + 5);
+            int indexOfNextColon = vendorUrl.indexOf(":");
+            if (indexOfNextColon != -1) {
+                vendor = vendorUrl.substring(0, indexOfNextColon);
+                vendorUrl = vendorUrl.substring(indexOfNextColon + 1);
+            }
         }
 
-        static class HostPort {
-            @Nullable
-            String host;
-            int port;
+        // Further parsing needs to be vendor specific.
+        ConnectionUrlParser connectionUrlParser = ConnectionUrlParser.getParser(vendor);
 
-            public HostPort(@Nullable String host, int port) {
+        ConnectionMetaData.Builder builder = new Builder(vendor);
+        try {
+            builder = connectionUrlParser.parse(vendorUrl, builder);
+        } catch (Exception e) {
+            logger.error(String.format("Failed to parse connection URL: %s with parser %s", url, connectionUrlParser), e);
+            builder.withParsingError();
+        }
+
+        return builder;
+    }
+
+    @GlobalState
+    public static class Builder {
+
+        private static final String LOCALHOST = "localhost";
+
+        @Nullable
+        private String user;
+        @Nullable
+        private String instance;
+        private String vendor;
+        @Nullable
+        private String host;
+        private int port = -1;
+
+        private Builder(String vendor) {
+            this.vendor = vendor;
+        }
+
+        Builder withVendor(String vendor) {
+            this.vendor = vendor;
+            return this;
+        }
+
+        public Builder withConnectionUser(@Nullable String user) {
+            if (this.user == null) {
+                this.user = user;
+            }
+            return this;
+        }
+
+        public Builder withUser(@Nullable String user) {
+            this.user = user;
+            return this;
+        }
+
+        public Builder withInstance(@Nullable String instance) {
+            if (instance != null && instance.length() > 0) {
+                this.instance = instance;
+            }
+            return this;
+        }
+
+        public Builder withHost(@Nullable String host) {
+            if (host != null) {
+                // host name is not case-sensitive and should be normalized
+                host = host.toLowerCase(Locale.ROOT);
+                if (host.startsWith("[") && host.endsWith("]")) {
+                    host = host.substring(1, host.length() - 1);
+                }
                 this.host = host;
+            }
+            return this;
+        }
+
+        public Builder withHostLocalhost() {
+            this.host = LOCALHOST;
+            return this;
+        }
+
+        public Builder withPort(int port) {
+            if (port > 0) {
                 this.port = port;
             }
+            return this;
+        }
+
+        /**
+         * Sets the host to {@code localhost} and port to {@code -1} for in-memory or local filesystem access
+         *
+         * @return this
+         */
+        public Builder withLocalAccess() {
+            this.host = LOCALHOST;
+            this.port = -1;
+            return this;
+        }
+
+        public Builder withConnectionInstance(@Nullable String instance) {
+            if (this.instance == null) {
+                this.instance = instance;
+            }
+            return this;
+        }
+
+        public ConnectionMetaData build() {
+            return new ConnectionMetaData(vendor, host, port, instance, user);
+        }
+
+        public Builder withParsingError() {
+            host = null;
+            port = -1;
+            instance = null;
+            return this;
+        }
+
+        /**
+         * @return {@literal true} if host is already set.
+         */
+        public boolean hasHost() {
+            return host != null;
+        }
+
+        /**
+         * @return {@literal true} if instance is already set.
+         */
+        public boolean hasInstance() {
+            return instance != null;
         }
     }
 }
