@@ -39,21 +39,21 @@ class AgentDownloaderTest {
 
     @Test
     void testMavenUrl() throws Exception {
-        String mavenUrl = agentDownloader.getAgentMavenBaseUrl("1.24.0");
+        String mavenUrl = agentDownloader.getAgentMavenVersionBaseUrl("1.24.0");
         assertThat(mavenUrl).isNotNull();
         assertThat(mavenUrl).isEqualTo("https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.24.0");
     }
 
     @Test
     void testWrongVersion() {
-        assertThatThrownBy(() -> agentDownloader.getAgentMavenBaseUrl("1.24.1")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> agentDownloader.getAgentMavenBaseUrl("error")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> agentDownloader.getAgentMavenVersionBaseUrl("1.24.1")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> agentDownloader.getAgentMavenVersionBaseUrl("error")).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void testDownloadFile() throws Exception {
         String agentVersion = "1.25.0";
-        String mavenAgentBaseUrl = agentDownloader.getAgentMavenBaseUrl(agentVersion);
+        String mavenAgentBaseUrl = agentDownloader.getAgentMavenVersionBaseUrl(agentVersion);
         String agentPgpSignatureFileName = String.format(Locale.ROOT, "%s.asc", agentDownloader.computeAgentJarName(agentVersion));
         String mavenPgpSignatureUrl = agentDownloader.computeFileUrl(mavenAgentBaseUrl, agentPgpSignatureFileName);
         System.out.println("mavenPgpSignatureUrl = " + mavenPgpSignatureUrl);
@@ -68,7 +68,7 @@ class AgentDownloaderTest {
 
     @Test
     void testDownloadAndVerifyAgent() throws Exception {
-        String agentVersion = "1.25.0";
+        String agentVersion = AgentDownloader.findLatestVersion();
         Path targetDir = AgentDownloadUtils.of(agentVersion).getTargetAgentDir();
         final Path localAgentPath = targetDir.resolve(agentDownloader.computeAgentJarName(agentVersion));
         System.out.println("localAgentPath = " + localAgentPath);
@@ -90,5 +90,12 @@ class AgentDownloaderTest {
         assertThat(Files.exists(localAgentPath)).isFalse();
         assertThatThrownBy(() -> spyAgentDownloader.downloadAndVerifyAgent(agentVersion)).isInstanceOf(IllegalStateException.class);
         assertThat(Files.exists(localAgentPath)).isFalse();
+    }
+
+    @Test
+    void testLatestVersion() throws Exception {
+        String latestVersion = AgentDownloader.findLatestVersion();
+        System.out.println("latestVersion = " + latestVersion);
+        assertThat(latestVersion).isNotEmpty();
     }
 }
