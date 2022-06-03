@@ -240,4 +240,15 @@ enum NoopTransaction implements Transaction {
     public Span setDestinationService(@Nullable String resource) {
         return this;
     }
+
+    @Nonnull
+    @Override
+    public Span setServiceTarget(@Nullable String type, @Nullable String name) {
+        return this;
+    }
+
+    @Nonnull
+    public Span setNonDiscardable() {
+        return this;
+    }
 }

@@ -171,10 +171,11 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
                 return null;
             }
 
-            Span span = parent.createSpan().activate();
-            span.withType("app").withSubtype("handler");
-            span.appendToName(handlerType.name()).appendToName(" ").appendToName(ctx.matchedPath());
-            return span;
+            return parent.createSpan()
+                .activate()
+                .withType("app")
+                .withSubtype("internal")
+                .appendToName(handlerType.name()).appendToName(" ").appendToName(ctx.matchedPath());
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

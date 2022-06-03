@@ -25,6 +25,8 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.sdk.state.CallDepth;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -45,9 +47,11 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
+@GlobalState
 public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
 
-    private static final WeakMap<HttpURLConnection, Span> inFlightSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
+    public static final WeakMap<HttpURLConnection, Span> inFlightSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
+    public static final CallDepth callDepth = CallDepth.get(HttpUrlConnectionInstrumentation.class);
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -73,6 +77,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                                        @Advice.FieldValue("connected") boolean connected,
                                        @Advice.Origin String signature) {
 
+                boolean isNestedCall = callDepth.isNestedCallAndIncrement();
                 AbstractSpan<?> parent = tracer.getActive();
                 if (parent == null) {
                     return null;
@@ -89,10 +94,11 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                         }
                     }
                 }
-                if (span != null) {
+                if (!isNestedCall && span != null) {
                     span.activate();
+                    return span;
                 }
-                return span;
+                return null;
             }
 
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -102,29 +108,39 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                                     @Advice.Enter @Nullable Object spanObject,
                                     @Advice.Origin String signature) {
 
+                callDepth.decrement();
                 Span span = (Span) spanObject;
                 if (span == null) {
                     return;
                 }
-                span.deactivate();
-                if (responseCode != -1) {
-                    inFlightSpans.remove(thiz);
-                    // if the response code is set, the connection has been established via getOutputStream
-                    // if the response code is unset even after getOutputStream has been called, there will be an exception
-                    span.getContext().getHttp().withStatusCode(responseCode);
-                    span.captureException(t).end();
-                } else if (t != null) {
-                    inFlightSpans.remove(thiz);
+                try {
+                    if (responseCode != -1) {
+                        inFlightSpans.remove(thiz);
+                        // if the response code is set, the connection has been established via getOutputStream
+                        // if the response code is unset even after getOutputStream has been called, there will be an exception
+                        // checking if "finished" to avoid multiple endings on nested calls
+                        if (!span.isFinished()) {
+                            span.getContext().getHttp().withStatusCode(responseCode);
+                            span.captureException(t).end();
+                        }
+                    } else if (t != null) {
+                        inFlightSpans.remove(thiz);
 
-                    // an exception here is synonym of failure, for example with circular redirects
-                    span.captureException(t)
-                        .withOutcome(Outcome.FAILURE)
-                        .end();
-                } else {
-                    // if connect or getOutputStream has been called we can't end the span right away
-                    // we have to store associate it with thiz HttpURLConnection instance and end once getInputStream has been called
-                    // note that this could happen on another thread
-                    inFlightSpans.put(thiz, span);
+                        // an exception here is synonym of failure, for example with circular redirects
+                        // checking if "finished" to avoid multiple endings on nested calls
+                        if (!span.isFinished()) {
+                            span.captureException(t)
+                                .withOutcome(Outcome.FAILURE)
+                                .end();
+                        }
+                    } else {
+                        // if connect or getOutputStream has been called we can't end the span right away
+                        // we have to store associate it with thiz HttpURLConnection instance and end once getInputStream has been called
+                        // note that this could happen on another thread
+                        inFlightSpans.put(thiz, span);
+                    }
+                } finally {
+                    span.deactivate();
                 }
             }
         }

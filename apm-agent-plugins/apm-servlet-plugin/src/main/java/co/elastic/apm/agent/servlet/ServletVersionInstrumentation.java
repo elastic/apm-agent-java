@@ -28,6 +28,9 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -40,6 +43,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public abstract class ServletVersionInstrumentation extends AbstractServletInstrumentation {
 
     private static final Logger logger = LoggerUtils.logOnce(LoggerFactory.getLogger(ServletVersionInstrumentation.class));
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList(Constants.SERVLET_API, "servlet-version");
+    }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -78,14 +86,14 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
     }
 
     public static void logServletVersion(@Nullable Object[] infoFromServletContext) {
-        if (!logger.isInfoEnabled() && logger.isWarnEnabled()) {
+        if (infoFromServletContext == null || !logger.isWarnEnabled() || !logger.isInfoEnabled()) {
             return;
         }
 
         int majorVersion = -1;
         int minorVersion = -1;
         String serverInfo = null;
-        if (infoFromServletContext != null && infoFromServletContext.length > 2) {
+        if (infoFromServletContext.length > 2) {
             if (infoFromServletContext[0] != null) {
                 majorVersion = (int) infoFromServletContext[0];
             }
@@ -103,4 +111,7 @@ public abstract class ServletVersionInstrumentation extends AbstractServletInstr
         }
     }
 
+    public static boolean isLogEnabled() {
+        return logger.isInfoEnabled() || logger.isWarnEnabled();
+    }
 }

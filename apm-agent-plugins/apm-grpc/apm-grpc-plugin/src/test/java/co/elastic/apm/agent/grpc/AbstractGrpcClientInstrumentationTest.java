@@ -30,14 +30,15 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Future;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+
 
 public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -65,6 +66,9 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         }
 
         app.stop();
+
+        // as weak maps are used, proper object recycling required GC
+        reporter.enableGcWhenAssertingObjectRecycling();
     }
 
     @Test
@@ -86,7 +90,10 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("grpc");
         assertThat(span.getNameAsString()).isEqualTo("helloworld.Hello/SayHello");
-
+        assertThat(span.getContext().getServiceTarget())
+            .hasType("grpc")
+            .hasName(String.format("localhost:%d", app.getServer().getPort()))
+            .hasNameOnlyDestinationResource();
     }
 
     @Test
