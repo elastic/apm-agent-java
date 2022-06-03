@@ -20,7 +20,7 @@
         <version.spring-boot>2.2.4.RELEASE</version.spring-boot>
 
         <!-- spring version & reactor our instrumentation will rely on -->
-        <version.spring>5.2.3.RELEASE</version.spring>
+        <version.spring>5.3.2</version.spring>
         <version.reactor>3.3.2.RELEASE</version.reactor>
     </properties>
 

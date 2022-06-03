@@ -16,22 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.webflux.client;
+package co.elastic.apm.agent.webflux.client.jetty;
 
-import org.springframework.web.reactive.function.client.ClientResponse;
+import co.elastic.apm.agent.webflux.client.AbstractWebClientInstrumentationTest;
+import org.springframework.web.reactive.function.client.WebClient;
 
+public class JettyRetrieveInstrumentationTest extends AbstractWebClientInstrumentationTest {
 
-public class WebClientExchangeFunctionInstrumentationTest extends AbstractWebClientInstrumentationTest {
-
-    public WebClientExchangeFunctionInstrumentationTest() {
-        super();
+    @Override
+    protected WebClient createClient() {
+        return JettyClient.createClient();
     }
 
     @Override
-    protected void performGet(String path) throws Exception {
-        ClientResponse response = this.webClient.get()
-            .uri(path)
-            .exchange()
-            .block();
+    protected void performGet(String uri) throws Exception {
+        retrieveGet(uri);
     }
 }

@@ -16,21 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.webflux.client;
+package co.elastic.apm.agent.webflux.client.netty;
 
-public class WebClientRetrieveInstrumentationTest extends AbstractWebClientInstrumentationTest {
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
 
-    public WebClientRetrieveInstrumentationTest() {
-        super();
-    }
+abstract class NettyClient {
 
-    @Override
-    protected void performGet(String path) throws Exception {
-        this.webClient.get()
-            .uri(path)
-            .retrieve()
-            .bodyToMono(String.class)
-            .block();
+    public static WebClient createClient() {
+        HttpClient httpClient = HttpClient.create()
+            // followRedirect(boolean) only enables redirect for 30[1278], not 303
+            .followRedirect((req, res) -> res.status().code() == 303);
+
+        // crete netty reactor client
+        return WebClient.builder()
+            .clientConnector(new ReactorClientHttpConnector(httpClient))
+            .build();
     }
 
 }

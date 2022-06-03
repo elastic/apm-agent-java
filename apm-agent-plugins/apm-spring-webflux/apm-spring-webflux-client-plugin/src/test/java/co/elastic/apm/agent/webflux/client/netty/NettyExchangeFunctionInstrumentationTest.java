@@ -16,35 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.webflux.client;
+package co.elastic.apm.agent.webflux.client.netty;
 
-import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
-import org.springframework.web.reactive.function.client.ClientResponse;
+import co.elastic.apm.agent.webflux.client.AbstractWebClientInstrumentationTest;
 import org.springframework.web.reactive.function.client.WebClient;
 
-public abstract class AbstractWebClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
+public class NettyExchangeFunctionInstrumentationTest extends AbstractWebClientInstrumentationTest {
 
-    protected final WebClient webClient;
-
-    public AbstractWebClientInstrumentationTest() {
-        webClient = createClient();
+    @Override
+    protected WebClient createClient() {
+        return NettyClient.createClient();
     }
 
-    protected abstract WebClient createClient();
-
-    protected void exchangeFunctionGet(String uri) {
-        ClientResponse response = this.webClient.get()
-            .uri(uri)
-            .exchange()
-            .block();
+    @Override
+    public boolean isRequireCheckErrorWhenCircularRedirect() {
+        // circular redirect does not trigger an error to capture with netty
+        return false;
     }
 
-    protected void retrieveGet(String uri) throws Exception {
-        this.webClient.get()
-            .uri(uri)
-            .retrieve()
-            .bodyToMono(String.class)
-            .block();
+    @Override
+    public boolean isTestHttpCallWithUserInfoEnabled() {
+
+        return false;
     }
 
+    @Override
+    protected void performGet(String path) throws Exception {
+        exchangeFunctionGet(path);
+    }
 }
