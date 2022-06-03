@@ -23,13 +23,12 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.reactive.function.client.ClientRequest;
 
 import javax.annotation.Nullable;
@@ -37,13 +36,17 @@ import java.net.URI;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class WebClientExchangeFunctionInstrumentation extends AbstractWebClientInstrumentation {
 
-    private static final Logger logger = LoggerFactory.getLogger(WebClientExchangeFunctionInstrumentation.class);
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("ExchangeFunction");
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -83,7 +86,7 @@ public class WebClientExchangeFunctionInstrumentation extends AbstractWebClientI
 
         @Advice.AssignReturned.ToReturned(typing = Assigner.Typing.DYNAMIC)
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static Object afterExecute(@Advice.Return @Nullable Publisher returnValue,
+        public static Object afterExecute(@Advice.Return @Nullable Publisher<?> returnValue,
                                           @Advice.Enter @Nullable Object[] spanRequestObj,
                                           @Advice.Thrown @Nullable Throwable t) {
             if (spanRequestObj == null || spanRequestObj.length < 2) {
