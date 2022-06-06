@@ -44,7 +44,7 @@ public class KafkaClientVersionsIT {
             // dependency version, probably due to some static initializations done by the first one loaded.
             // We use this test runner framework only so it runs from a class loader that is not the app class loader,
             // in order to verify that we don't have class visibility problems.
-            {"2.4.0"}
+            {"3.1.0"}
         });
     }
 

@@ -39,6 +39,7 @@ the agent will now include the database name in the dependency, thus `mysql/my-d
 * Added support for downloading the latest agent version through the attach CLI by setting `--download-agent-version latest`. In
 addition, when using the `apm-agent-attach-cli-slim.jar`, which does not contain a bundled agent, the latest version will be downloaded
 from maven at runtime unless configured otherwise through  `--download-agent-version` - {pull}2659[#2659]
+* Added span-links to messaging systems instrumentation (supported by APM Server 8.3+ only) - {pull}2610[#2610]
 
 [float]
 ===== Bug fixes

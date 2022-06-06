@@ -20,6 +20,8 @@ package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderSetter;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
@@ -250,6 +252,13 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                 captureMessage(queue, envelope != null ? envelope.getRoutingKey() : null, getTimestamp(properties != null ? properties.getTimestamp() : null), span);
                 Connection connection = channel.getConnection();
                 RabbitMqHelper.captureDestination(exchange, connection.getAddress(), connection.getPort(), span);
+
+                if (properties != null) {
+                    span.addSpanLink(
+                        TraceContext.<AMQP.BasicProperties>getFromTraceContextTextHeaders(),
+                        RabbitMQTextHeaderGetter.INSTANCE,
+                        properties);
+                }
 
                 span.captureException(thrown)
                     .deactivate()
