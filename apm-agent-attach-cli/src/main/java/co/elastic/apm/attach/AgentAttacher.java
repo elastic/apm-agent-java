@@ -53,6 +53,7 @@ import java.util.Set;
  */
 public class AgentAttacher {
 
+    public static final String LATEST_VERSION = "latest";
     // intentionally not static so that we can initLogging first
     private final Logger logger = LogManager.getLogger(AgentAttacher.class);
     private final Arguments arguments;
@@ -121,6 +122,10 @@ public class AgentAttacher {
         Logger logger = initLogging(arguments);
 
         String downloadAgentVersion = arguments.getDownloadAgentVersion();
+        if (downloadAgentVersion == null && arguments.getAgentJar() == null) {
+            // If there is no bundled agent and a path for agent was not specified, default to download the latest
+            downloadAgentVersion = LATEST_VERSION;
+        }
         if (downloadAgentVersion != null) {
             try {
                 downloadAndVerifyAgent(arguments, downloadAgentVersion);
@@ -148,6 +153,9 @@ public class AgentAttacher {
     }
 
     private static void downloadAndVerifyAgent(Arguments arguments, String downloadAgentVersion) throws Exception {
+        if (downloadAgentVersion.equalsIgnoreCase(LATEST_VERSION)) {
+            downloadAgentVersion = AgentDownloader.findLatestVersion();
+        }
         PgpSignatureVerifier pgpSignatureVerifier;
         try {
             Path targetLibDir = AgentDownloadUtils.of(downloadAgentVersion).getTargetLibDir();
@@ -543,6 +551,7 @@ public class AgentAttacher {
             out.println();
             out.println("    --download-agent-version <agent-version>");
             out.println("        Instead of the bundled agent jar, download and attach the specified agent version from maven.");
+            out.println("        <agent-version> can be either the explicit version (for example: `1.15.0`) or `latest`.");
         }
 
         Map<String, String> getConfig() {

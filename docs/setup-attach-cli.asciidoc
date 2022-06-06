@@ -190,6 +190,7 @@ Instead of the bundled agent jar, attach the provided agent to the target JVMs.
 +
 --
 Instead of the bundled agent jar, download and attach the specified agent version from maven central.
+<agent-version> can be either the explicit version (for example: `1.15.0`) or `latest`.
 The agent is authenticated and validated based on the published PGP signature. This option requires internet access.
 --
 
