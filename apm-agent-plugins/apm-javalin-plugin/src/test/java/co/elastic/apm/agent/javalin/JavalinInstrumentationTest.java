@@ -21,7 +21,11 @@ package co.elastic.apm.agent.javalin;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import io.javalin.Javalin;
+import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
+import io.javalin.plugin.rendering.FileRenderer;
+import io.javalin.plugin.rendering.JavalinRenderer;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -32,6 +36,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -67,13 +72,13 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     public void testJavalinParametrizedInput() throws Exception {
-        app.post("/hello/:id", ctx -> ctx.status(200).result("hello " + ctx.pathParam("id")));
+        app.post("/hello/{id}", ctx -> ctx.status(200).result("hello " + ctx.pathParam("id")));
 
         HttpRequest request = HttpRequest.newBuilder().POST(BodyPublishers.noBody()).uri(URI.create("http://localhost:" + app.port() + "/hello/foo")).build();
         final HttpResponse<String> mainUrlResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertThat(mainUrlResponse.statusCode()).isEqualTo(200);
-        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("POST /hello/:id");
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("POST /hello/:id");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("POST /hello/{id}");
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("POST /hello/{id}");
     }
 
     @Test
@@ -146,7 +151,7 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
     @Test
     public void testFuturesGetInstrumented() throws Exception {
         final String endpoint = "/test-future-instrumentation";
-        app.get(endpoint, ctx -> ctx.result(CompletableFuture.runAsync(() -> ctx.status(404))));
+        app.get(endpoint, ctx -> ctx.future(CompletableFuture.runAsync(() -> ctx.status(404))));
 
         HttpRequest request = HttpRequest.newBuilder().uri(URI.create(baseUrl + endpoint)).build();
         final HttpResponse<String> mainUrlResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -154,5 +159,34 @@ public class JavalinInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction(500).getNameAsString()).isEqualTo("GET " + endpoint);
         final Span span = reporter.getFirstSpan(500);
         assertThat(span.getNameAsString()).isEqualTo("GET " + endpoint);
+    }
+
+    @Test
+    public void testRenderSpan() throws Exception {
+        JavalinRenderer.register(new MyRenderer(), ".abc");
+        final String endpoint = "/render-span";
+        app.get(endpoint, ctx -> ctx.status(200).render("my-template.abc"));
+        app.exception(Exception.class, (exception, ctx) -> exception.printStackTrace());
+
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(baseUrl + endpoint)).build();
+        final HttpResponse<String> mainUrlResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
+        assertThat(mainUrlResponse.statusCode()).isEqualTo(200);
+        assertThat(mainUrlResponse.body()).isEqualTo("rendered");
+
+        assertThat(reporter.getFirstTransaction(500).getNameAsString()).isEqualTo("GET " + endpoint);
+        assertThat(reporter.getSpans()).hasSize(2);
+        Span getSpan = reporter.getSpanByName("GET /render-span");
+        assertThat(getSpan).isNotNull();
+        Span renderSpan = reporter.getSpanByName("render my-template.abc");
+        assertThat(renderSpan).isNotNull();
+        assertThat(renderSpan.getType()).isEqualTo("app");
+        assertThat(renderSpan.getSubtype()).isEqualTo("internal");
+    }
+
+    public static class MyRenderer implements FileRenderer {
+        @Override
+        public String render(@NotNull String filePath, @NotNull Map<String, Object> model, Context context) throws Exception {
+            return "rendered";
+        }
     }
 }

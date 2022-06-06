@@ -243,6 +243,11 @@ enum NoopTransaction implements Transaction {
 
     @Nonnull
     @Override
+    public Span setServiceTarget(@Nullable String type, @Nullable String name) {
+        return this;
+    }
+
+    @Nonnull
     public Span setNonDiscardable() {
         return this;
     }

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.opentelemetry.sdk;
 
+import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
@@ -87,17 +88,6 @@ public class OTelSpan implements Span {
 
     @Override
     public Span setStatus(StatusCode statusCode, String description) {
-        if (span instanceof Transaction) {
-            Transaction t = (Transaction) span;
-            switch (statusCode) {
-                case OK:
-                    t.withResultIfUnset("OK");
-                    break;
-                case ERROR:
-                    t.withResultIfUnset("Error");
-                    break;
-            }
-        }
         switch (statusCode) {
             case ERROR:
                 span.withUserOutcome(Outcome.FAILURE);
@@ -161,7 +151,6 @@ public class OTelSpan implements Span {
 
         String type = null;
         String subType = null;
-        StringBuilder destinationResource = s.getContext().getDestination().getService().getResource();
 
         String netPeerIp = (String) attributes.get("net.peer.ip");
         String netPeerName = (String) attributes.get("net.peer.name");
@@ -178,11 +167,18 @@ public class OTelSpan implements Span {
         String dbSystem = (String) attributes.get("db.system");
         String messagingSystem = (String) attributes.get("messaging.system");
         String rpcSystem = (String) attributes.get("rpc.system");
+
         if (null != dbSystem) {
             type = "db";
             subType = dbSystem;
             String dbName = (String) attributes.get("db.name");
-            setSpanResource(destinationResource, netPeer, netPort, dbSystem, dbName);
+            s.getContext().getDb()
+                .withType(subType)
+                .withInstance(dbName);
+            s.getContext().getServiceTarget()
+                .withType(subType)
+                .withName(dbName);
+
         } else if (messagingSystem != null) {
             type = "messaging";
             subType = messagingSystem;
@@ -193,13 +189,22 @@ public class OTelSpan implements Span {
                 netPeer = messagingUri.getHost();
                 netPort = messagingUri.getPort();
             }
-            setSpanResource(destinationResource, netPeer, netPort, messagingSystem, messagingDestination);
+            s.getContext().getServiceTarget()
+                .withType(subType)
+                .withName(messagingDestination);
+
         } else if (rpcSystem != null) {
             type = "external";
             subType = rpcSystem;
             String service = (String) attributes.get("rpc.service");
 
-            setSpanResource(destinationResource, netPeer, netPort, rpcSystem, service);
+            s.getContext().getServiceTarget()
+                .withType(subType)
+                // default service name on rpc.service
+                .withName(service)
+                // host:port with higher priority
+                .withHostPortName(netPeer, netPort)
+                .withNameOnlyDestinationResource();
 
         } else if (httpUrl != null || httpScheme != null) {
             type = "external";
@@ -220,7 +225,10 @@ public class OTelSpan implements Span {
 
             netPort = Url.normalizePort(netPort, httpScheme);
 
-            setSpanResource(destinationResource, httpHost, netPort, null, null);
+            s.getContext().getServiceTarget()
+                .withType(subType)
+                .withHostPortName(httpHost, netPort)
+                .withNameOnlyDestinationResource();
         }
 
         if (type == null) {
@@ -230,6 +238,13 @@ public class OTelSpan implements Span {
                 subType = "internal";
             }
         }
+
+        if (netPeer != null && netPort > 0) {
+            s.getContext().getDestination()
+                .withAddress(netPeer)
+                .withPort(netPort);
+        }
+
 
         s.withType(type).withSubtype(subType);
     }
@@ -243,29 +258,6 @@ public class OTelSpan implements Span {
             return new URI(s);
         } catch (URISyntaxException e) {
             return null;
-        }
-    }
-
-    private static void setSpanResource(StringBuilder resource,
-                                        @Nullable String netPeer,
-                                        int netPort,
-                                        @Nullable String system,
-                                        @Nullable String suffix) {
-
-        boolean allowSuffix = false;
-        if (netPeer == null && system != null) {
-            resource.append(system);
-            allowSuffix = true;
-        } else if (netPeer != null) {
-            resource.append(netPeer);
-            allowSuffix = true;
-            if (netPort > 0) {
-                resource.append(':').append(netPort);
-            }
-        }
-
-        if (allowSuffix && suffix != null) {
-            resource.append('/').append(suffix);
         }
     }
 

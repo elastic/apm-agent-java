@@ -463,9 +463,23 @@ public interface Span {
      * @param resource the string representation of the downstream service. Will be used to override automatically
      *                 inferred value, even if {@code null}.
      * @return this span
+     *
+     * @deprecated use {@link #setServiceTarget(String, String)} instead
      */
+    @Deprecated
     @Nonnull
     Span setDestinationService(@Nullable String resource);
+
+    /**
+     * Provides a way to manually set the {@code service.target.type} and {@code service.target.name} fields that are used
+     * for service maps and the identification of downstream services. Those fields are ignored for apm-server before 8.3.
+     *
+     * @param type service target type, usually same value as {@code span.subtype}
+     * @param name service target name: value depends on backend type, for databases it's usually the database name
+     * @return this span
+     */
+    @Nonnull
+    Span setServiceTarget(@Nullable String type, @Nullable String name);
 
     /**
      * Makes this span non-discardable.
@@ -479,4 +493,5 @@ public interface Span {
      */
     @Nonnull
     Span setNonDiscardable();
+
 }

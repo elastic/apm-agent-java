@@ -68,8 +68,8 @@ import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
@@ -417,8 +417,9 @@ public class KafkaIT extends AbstractInstrumentationTest {
             assertThat(pollSpan.getSubtype()).isEqualTo("kafka");
             assertThat(pollSpan.getAction()).isEqualTo("poll");
             assertThat(pollSpan.getNameAsString()).isEqualTo("KafkaConsumer#poll");
-            Destination.Service service = pollSpan.getContext().getDestination().getService();
-            assertThat(service.getResource().toString()).isEqualTo("kafka");
+            assertThat(pollSpan.getContext().getServiceTarget())
+                .hasType("kafka")
+                .hasNoName();
             spanLinks.addAll(pollSpan.getSpanLinks());
         });
         verifySpanLinks(spanLinks, sendSpans);
@@ -447,8 +448,11 @@ public class KafkaIT extends AbstractInstrumentationTest {
             assertThat(destination.getPort()).isEqualTo(0);
             assertThat(destination.getAddress().toString()).isEmpty();
         }
-        Destination.Service service = destination.getService();
-        assertThat(service.getResource().toString()).isEqualTo("kafka/" + topicName);
+
+        assertThat(context.getServiceTarget())
+            .hasType("kafka")
+            .hasName(topicName)
+            .hasDestinationResource("kafka/" + topicName);
     }
 
     private void verifyKafkaTransactionContents(Transaction transaction, @Nullable Span parentSpan,
