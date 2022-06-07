@@ -104,8 +104,8 @@ class AgentDownloaderTest {
 
     @Test
     void testAgentArtifactMavenPageParsing() throws IOException {
-        TreeSet<Version> versions = AgentDownloader.parseMavenArtifactHtml(AgentDownloaderTest.class.getResourceAsStream(
-            "/MavenCentral_agent_artifact.html"));
+        TreeSet<Version> versions = AgentDownloader.parseMavenMetadataXml(AgentDownloaderTest.class.getResourceAsStream(
+            "/maven-metadata.xml"));
         assertThat(versions).hasSize(50);
         assertThat(versions.first().toString()).isEqualTo("0.5.1");
         assertThat(versions.last().toString()).isEqualTo("1.31.0");
