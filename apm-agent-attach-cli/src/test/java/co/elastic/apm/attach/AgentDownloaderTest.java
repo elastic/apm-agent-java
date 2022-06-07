@@ -109,5 +109,6 @@ class AgentDownloaderTest {
         assertThat(versions).hasSize(50);
         assertThat(versions.first().toString()).isEqualTo("0.5.1");
         assertThat(versions.last().toString()).isEqualTo("1.31.0");
+        assertThat(versions).doesNotContain(Version.of("1.0.0.RC1"));
     }
 }

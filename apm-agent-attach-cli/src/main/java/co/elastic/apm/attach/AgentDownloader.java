@@ -43,7 +43,7 @@ import java.util.regex.Pattern;
  */
 public class AgentDownloader {
 
-    private static final Pattern VERSION_EXTRACTION_REGEX = Pattern.compile("<version>([0-9]+.[0-9.]+.[0-9.]+)</version>");
+    private static final Pattern VERSION_EXTRACTION_REGEX = Pattern.compile("<version>(.+?)</version>");
     private static final String AGENT_GROUP_ID = "co.elastic.apm";
     private static final String AGENT_ARTIFACT_ID = "elastic-apm-agent";
     private static final String CLI_JAR_VERSION;
@@ -237,7 +237,10 @@ public class AgentDownloader {
             try {
                 Matcher matcher = VERSION_EXTRACTION_REGEX.matcher(line);
                 if (matcher.find()) {
-                    versions.add(Version.of(matcher.group(1)));
+                    Version version = Version.of(matcher.group(1));
+                    if (!version.hasSuffix()) {
+                        versions.add(version);
+                    }
                 }
             } catch (Exception e) {
                 // ignore, probably a regex false positive

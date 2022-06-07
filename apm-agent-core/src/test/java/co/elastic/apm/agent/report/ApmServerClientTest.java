@@ -114,7 +114,7 @@ public class ApmServerClientTest {
         // tests setting server_url to an empty string in configuration
         apmServerClient.start(Lists.emptyList());
         awaitUpToOneSecond().untilAsserted(
-            () -> assertThat(apmServerClient.getApmServerVersion(1, TimeUnit.SECONDS)).isEqualTo(Version.UNKNOWN_VERSION)
+            () -> assertThat(apmServerClient.getApmServerVersion(1, TimeUnit.SECONDS)).isEqualTo(ApmServerHealthChecker.UNKNOWN_VERSION)
         );
         assertThat(apmServerClient.getCurrentUrl()).isNull();
         assertThat(apmServerClient.appendPathToCurrentUrl("/path")).isNull();

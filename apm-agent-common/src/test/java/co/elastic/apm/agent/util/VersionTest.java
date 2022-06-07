@@ -19,31 +19,49 @@
 package co.elastic.apm.agent.util;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class VersionTest {
 
-    @Test
-    void testVersion() {
-        assertThat(Version.of("1.2.3")).isEqualByComparingTo(Version.of("1.2.3"));
-        assertThat(Version.of("1.2.3-SNAPSHOT")).isEqualByComparingTo(Version.of("1.2.3"));
-        assertThat(Version.of("4.5.13")).isEqualByComparingTo(Version.of("4.5.13"));
-        assertThat(Version.of("4.5.13.redhat-00001")).isEqualByComparingTo(Version.of("4.5.13"));
-        assertThat(Version.of("httpclient-4.5.13")).isEqualByComparingTo(Version.of("4.5.13"));
-        assertThat(Version.of("httpclient-4.5.13.redhat-00001")).isEqualByComparingTo(Version.of("4.5.13"));
-        assertThat(Version.of("httpclient.4.5.13.redhat-00001")).isEqualByComparingTo(Version.of("4.5.13"));
-        assertThat(Version.of("httpclient.4.5.13.redhat")).isEqualByComparingTo(Version.of("4.5.13"));
-        assertThat(Version.of("httpclient.4.5.13-redhat")).isEqualByComparingTo(Version.of("4.5.13"));
+    @ParameterizedTest
+    @CsvSource(value = {
+        "1.0.0,                          <, 1.0.1",
+        "1.2.3,                          =, 1.2.3",
+        "1.2.3-SNAPSHOT,                 <, 1.2.3",
+        "4.5.13,                         =, 4.5.13",
+        "4.5.13.redhat-00001,            <, 4.5.13",
+        "httpclient-4.5.13,              =, 4.5.13",
+        "httpclient-4.5.13.redhat-00001, <, 4.5.13",
+        "httpclient.4.5.13.redhat-00001, =, 4.5.13.redhat-00001",
+        "httpclient.4.5.13.redhat,       <, 4.5.13",
+        "httpclient.4.5.13-redhat,       =, 4.5.13-redhat",
+        "1,                              =, 1",
+        "1,                              <, 1.2",
+        "1.2,                            =, 1.2",
+        "1.2.3,                          =, 1.2.3",
+        "1.2.3.4,                        =, 1.2.3.4",
+        "ignore.1.2.3-pre1,              =, 1.2.3-pre1"
+    })
+    void testVersion(String version1, String operator, String version2) {
+        switch (operator) {
+            case "<":
+                assertThat(Version.of(version1)).isLessThan(Version.of(version2));
+                break;
+            case "=":
+                assertThat(Version.of(version1)).isEqualByComparingTo(Version.of(version2));
+                assertThat(Version.of(version1)).isEqualTo(Version.of(version2));
+                assertThat(Version.of(version1).toString()).isEqualTo(Version.of(version2).toString());
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid operator: " + operator);
+        }
     }
 
     @Test
-    void testToString() {
-        System.out.println(Version.of(""));
-        System.out.println(Version.of("1"));
-        System.out.println(Version.of("1.2"));
-        System.out.println(Version.of("1.2.3"));
-        System.out.println(Version.of("1.2.3.4"));
-        System.out.println(Version.of("1.2.3.ignore"));
+    void testEmptyVersion() {
+        assertThat(Version.of("").toString()).isEqualTo("");
     }
 }
