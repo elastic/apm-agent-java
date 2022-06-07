@@ -30,6 +30,13 @@ the agent will now include the database name in the dependency, thus `mysql/my-d
 
 [float]
 ===== Features
+* Promote mature agent features as Generaly Available (GA) - {pull}2632[#2632]
+** <<opentelemetry-bridge,OpenTelemetry bridge>> is now enabled by default
+** <<config-circuit-breaker,Circuit breaker>> marked as GA (still disabled by default)
+** <<setup-attach-api,API Attach>> and <<setup-attach-cli,CLI Attach>> marked as GA
+** <<config-use-path-as-transaction-name,`use_path_as_transaction_name`>> configuration option marked as GA
+** Dubbo instrumentation is now enabled by default
+** `com.sun.net.httpserver.HttpServer` instrumentation marked as GA
 * Struts action invocations via an action chain result start a new span - {pull}2513[#2513]
 * Added official support for Elasticsearch Java API client - {pull}2211[#2211]
 * Added the ability to make spans non-discardable through the public API and the OpenTelemetry bridge - {pull}2632[#2632]
@@ -40,7 +47,6 @@ the agent will now include the database name in the dependency, thus `mysql/my-d
 addition, when using the `apm-agent-attach-cli-slim.jar`, which does not contain a bundled agent, the latest version will be downloaded
 from maven at runtime unless configured otherwise through  `--download-agent-version` - {pull}2659[#2659]
 * Added span-links to messaging systems instrumentation (supported by APM Server 8.3+ only) - {pull}2610[#2610]
-* Dubbo and OpenTelemetry bridge instrumentation are not experimental anymore and thus enabled by default - {pull}2632[#2632]
 
 [float]
 ===== Bug fixes
