@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.webflux.client.asynchttpclient;
+package co.elastic.apm.agent.webflux.client.reactivehc5;
 
 import co.elastic.apm.agent.webflux.client.AbstractWebClientInstrumentationTest;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -27,7 +27,7 @@ public class AsyncHttpClientRetrieveInstrumentationTest extends AbstractWebClien
 
     @Override
     protected WebClient createClient() {
-        return AsyncHttpClient.createClient();
+        return ReactiveHttpClient5.createClient();
     }
 
     @Override

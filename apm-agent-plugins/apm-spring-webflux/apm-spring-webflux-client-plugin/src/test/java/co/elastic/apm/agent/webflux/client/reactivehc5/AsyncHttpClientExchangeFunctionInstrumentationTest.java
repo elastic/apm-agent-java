@@ -16,16 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.webflux.client.asynchttpclient;
+package co.elastic.apm.agent.webflux.client.reactivehc5;
 
-import org.springframework.http.client.reactive.HttpComponentsClientHttpConnector;
+import co.elastic.apm.agent.webflux.client.AbstractWebClientInstrumentationTest;
 import org.springframework.web.reactive.function.client.WebClient;
 
-abstract class AsyncHttpClient {
+public class AsyncHttpClientExchangeFunctionInstrumentationTest extends AbstractWebClientInstrumentationTest {
 
-    public static WebClient createClient() {
-        return WebClient.builder()
-            .clientConnector(new HttpComponentsClientHttpConnector())
-            .build();
+    @Override
+    protected WebClient createClient() {
+        return ReactiveHttpClient5.createClient();
+    }
+
+    @Override
+    protected void performGet(String uri) throws Exception {
+        exchangeFunctionGet(uri);
     }
 }
