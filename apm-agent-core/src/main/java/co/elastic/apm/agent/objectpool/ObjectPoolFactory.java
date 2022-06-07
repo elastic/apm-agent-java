@@ -21,6 +21,7 @@ package co.elastic.apm.agent.objectpool;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import org.jctools.queues.atomic.AtomicQueueFactory;
@@ -56,6 +57,15 @@ public class ObjectPoolFactory {
                 @Override
                 public ErrorCapture createInstance() {
                     return new ErrorCapture(tracer);
+                }
+            });
+    }
+
+    public ObjectPool<TraceContext> createSpanLinkPool(int maxCapacity, final ElasticApmTracer tracer) {
+        return createRecyclableObjectPool(maxCapacity, new Allocator<TraceContext>() {
+                @Override
+                public TraceContext createInstance() {
+                    return TraceContext.with64BitId(tracer);
                 }
             });
     }

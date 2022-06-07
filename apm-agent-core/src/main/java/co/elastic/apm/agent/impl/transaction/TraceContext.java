@@ -265,13 +265,13 @@ public class TraceContext implements Recyclable {
     }
 
     @SuppressWarnings("unchecked")
-    public static <C> ChildContextCreatorTwoArg<C, TextHeaderGetter<C>> getFromTraceContextTextHeaders() {
-        return (ChildContextCreatorTwoArg<C, TextHeaderGetter<C>>) FROM_TRACE_CONTEXT_TEXT_HEADERS;
+    public static <C> ChildContextCreatorTwoArg<C, HeaderGetter<String, C>> getFromTraceContextTextHeaders() {
+        return (ChildContextCreatorTwoArg<C, HeaderGetter<String, C>>) FROM_TRACE_CONTEXT_TEXT_HEADERS;
     }
 
     @SuppressWarnings("unchecked")
-    public static <C> ChildContextCreatorTwoArg<C, BinaryHeaderGetter<C>> getFromTraceContextBinaryHeaders() {
-        return (ChildContextCreatorTwoArg<C, BinaryHeaderGetter<C>>) FROM_TRACE_CONTEXT_BINARY_HEADERS;
+    public static <C> ChildContextCreatorTwoArg<C, HeaderGetter<byte[], C>> getFromTraceContextBinaryHeaders() {
+        return (ChildContextCreatorTwoArg<C, HeaderGetter<byte[], C>>) FROM_TRACE_CONTEXT_BINARY_HEADERS;
     }
 
     public static ChildContextCreator<Tracer> fromActive() {

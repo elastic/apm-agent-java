@@ -31,20 +31,21 @@ public class JdbcDbIT extends AbstractJdbcInstrumentationTest {
         System.setProperty("oracle.jdbc.timezoneAsRegion", "false");
     }
 
-    public JdbcDbIT(String url, String expectedDbVendor) throws Exception {
-        super(DriverManager.getConnection(url), expectedDbVendor);
+    public JdbcDbIT(String url, String expectedDbVendor, String expectedDbName, boolean dbNameFromUrl) throws Exception {
+        super(DriverManager.getConnection(url), expectedDbVendor, expectedDbName, dbNameFromUrl);
     }
 
     @Parameterized.Parameters(name = "{1} {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"jdbc:tc:mysql:5://hostname/databasename", "mysql"},
-            {"jdbc:tc:postgresql:9://hostname/databasename", "postgresql"},
-            {"jdbc:tc:postgresql:10://hostname/databasename", "postgresql"},
-            {"jdbc:tc:mariadb:10://hostname/databasename", "mariadb"},
-            {"jdbc:tc:sqlserver:2017-CU12://hostname/databasename", "mssql"},
-            {"jdbc:tc:db2:11.5.0.0a://hostname/databasename", "db2"},
-            {"jdbc:tc:oracle://hostname/databasename", "oracle"},
+            // we are using testcontainers JDBC url format, the actual driver URL is not the same
+            {"jdbc:tc:mysql:5://hostname/databasename", "mysql", "databasename", true},
+            {"jdbc:tc:postgresql:9://hostname/databasename", "postgresql", "databasename", true},
+            {"jdbc:tc:postgresql:10://hostname/databasename", "postgresql", "databasename", true},
+            {"jdbc:tc:mariadb:10://hostname/databasename", "mariadb", "databasename", true},
+            {"jdbc:tc:sqlserver:2017-CU12://hostname/databasename", "mssql", "master", false}, // for mssql the 'master' name comes from the runtime catalog fallback
+            {"jdbc:tc:db2:11.5.0.0a://hostname/databasename", "db2", "test", true},
+            {"jdbc:tc:oracle://hostname/databasename", "oracle", "xepdb1", true},
         });
     }
 

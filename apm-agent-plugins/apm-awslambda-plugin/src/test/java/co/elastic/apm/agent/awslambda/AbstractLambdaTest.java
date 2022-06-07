@@ -51,9 +51,12 @@ import static org.mockito.Mockito.when;
 public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumentationTest {
 
     // TraceContext
-    private static final String TRACE_ID_EXAMPLE = "0af7651916cd43dd8448eb211c80316c";
-    private static final String PARENT_ID_EXAMPLE = "b9c7c989f97918e6";
+    protected static final String TRACE_ID_EXAMPLE = "0af7651916cd43dd8448eb211c80316c";
+    protected static final String TRACE_ID_EXAMPLE_2 = "0af7651916cd43dd8448eb211c80316d";
+    protected static final String PARENT_ID_EXAMPLE = "b9c7c989f97918e6";
+    protected static final String PARENT_ID_EXAMPLE_2 = "b9c7c989f97918e7";
     protected static final String TRACEPARENT_EXAMPLE = String.format("00-%s-%s-01", TRACE_ID_EXAMPLE, PARENT_ID_EXAMPLE);
+    protected static final String TRACEPARENT_EXAMPLE_2 = String.format("00-%s-%s-01", TRACE_ID_EXAMPLE_2, PARENT_ID_EXAMPLE_2);
     protected static final String TRACESTATE_EXAMPLE = TraceState.getHeaderValue(0.77d);
 
     // API Gateway data
@@ -193,6 +196,10 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
         getFunction().handleRequest(input, context);
         Transaction transaction = reporter.getFirstTransaction();
         TraceContext traceContext = transaction.getTraceContext();
+        verifyDistributedTracing(traceContext);
+    }
+
+    protected void verifyDistributedTracing(TraceContext traceContext) {
         assertThat(traceContext.getTraceId().toString()).isEqualTo(TRACE_ID_EXAMPLE);
         assertThat(traceContext.getParentId().toString()).isEqualTo(PARENT_ID_EXAMPLE);
         assertThat(traceContext.getTraceState().getSampleRate()).isEqualTo(0.77d);

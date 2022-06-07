@@ -28,11 +28,16 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
-
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
+/**
+ * Instruments the public {@link org.apache.kafka.clients.consumer.KafkaConsumer#poll} methods.
+ * The entry advice is identical for new and old clients, however the exit advice is not - in non-legacy clients, which already support
+ * record headers, we want to add span links. Therefore, we have two exit advices.
+ */
 public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
 
     @Override
@@ -47,53 +52,73 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.kafka.KafkaConsumerInstrumentation$KafkaConsumerAdvice";
+        return "co.elastic.apm.agent.kafka.KafkaConsumerInstrumentation$KafkaPollEntryAdvice";
     }
 
-    public static class KafkaConsumerAdvice {
+    public static class KafkaPollEntryAdvice {
 
         private static final MessagingConfiguration messagingConfiguration = GlobalTracer.requireTracerImpl().getConfig(MessagingConfiguration.class);
 
         @SuppressWarnings("unused")
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        @Nullable
-        public static Object pollStart() {
+        public static void pollStart() {
 
             final AbstractSpan<?> activeSpan = tracer.getActive();
             if (activeSpan == null) {
-                return null;
+                return;
             }
 
             if (messagingConfiguration.shouldEndMessagingTransactionOnPoll() && activeSpan instanceof Transaction) {
                 Transaction transaction = (Transaction) activeSpan;
                 if ("messaging".equals(transaction.getType())) {
                     transaction.deactivate().end();
-                    return null;
+                    return;
                 }
             }
 
             Span span = activeSpan.createExitSpan();
             if (span == null) {
-                return null;
+                return;
             }
 
-            span.withType("messaging").withSubtype("kafka").withAction("poll")
+            span.withType("messaging")
+                .withSubtype("kafka")
+                .withAction("poll")
                 .withName("KafkaConsumer#poll", AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
-            span.getContext().getDestination().getService()
-                .withType("messaging").withName("kafka").withResource("kafka");
+
+            span.getContext().getServiceTarget().withType("kafka");
+
             span.activate();
-            return span;
+        }
+    }
+
+    /**
+     * An instrumentation for {@link org.apache.kafka.clients.consumer.KafkaConsumer#poll} exit on legacy clients
+     */
+    public static class LegacyKafkaPollExitInstrumentation extends KafkaConsumerInstrumentation {
+        @Override
+        public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+            return super.getClassLoaderMatcher().and(not(classLoaderCanLoadClass("org.apache.kafka.common.header.Headers")));
         }
 
-        @SuppressWarnings("unused")
-        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-        public static void pollEnd(@Advice.Enter @Nullable final Object spanObj,
-                                   @Advice.Thrown final Throwable throwable) {
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.kafka.KafkaConsumerInstrumentation$LegacyKafkaPollExitInstrumentation$KafkaPollExitAdvice";
+        }
 
-            Span span = (Span) spanObj;
-            if (span != null) {
-                span.captureException(throwable);
-                span.deactivate().end();
+        public static class KafkaPollExitAdvice {
+            @SuppressWarnings("unused")
+            @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
+            public static void pollEnd(@Advice.Thrown final Throwable throwable) {
+
+                Span span = tracer.getActiveSpan();
+                if (span != null &&
+                    "kafka".equals(span.getSubtype()) &&
+                    "poll".equals(span.getAction())
+                ) {
+                    span.captureException(throwable);
+                    span.deactivate().end();
+                }
             }
         }
     }

@@ -59,12 +59,13 @@ public class ConsumerRecordsRecordListInstrumentation extends KafkaConsumerRecor
         @Nullable
         @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-        public static List<ConsumerRecord<?, ?>> wrapRecordList(@Advice.Return @Nullable final List<ConsumerRecord<?, ?>> list) {
-            if (!tracer.isRunning() || tracer.currentTransaction() != null || list == null) {
+        public static List<ConsumerRecord<?, ?>> wrapRecordList(@Advice.This ConsumerRecords<?, ?> thiz,
+                                                                @Advice.Return @Nullable final List<ConsumerRecord<?, ?>> list) {
+            if (helper.shouldWrapIterable(thiz, list)) {
+                return helper.wrapConsumerRecordList(list);
+            } else {
                 return list;
             }
-
-            return helper.wrapConsumerRecordList(list);
         }
     }
 }
