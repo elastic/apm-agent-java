@@ -34,9 +34,10 @@ import javax.annotation.Nullable;
 public class WebfluxClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
     public static final Logger logger = LoggerFactory.getLogger(WebfluxClientSubscriber.class);
 
-    private final Tracer tracer;
-    private CoreSubscriber<? super T> subscriber;
     private static final WeakMap<WebfluxClientSubscriber<?>, Span> spanMap = WeakConcurrentProviderImpl.createWeakSpanMap();
+
+    private final Tracer tracer;
+    private final CoreSubscriber<? super T> subscriber;
     private Subscription subscription;
 
     public WebfluxClientSubscriber(CoreSubscriber<? super T> subscriber, Span span, Tracer tracer) {
@@ -73,7 +74,7 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T>, Subscripti
             if (t instanceof ClientResponse) {
                 ClientResponse clientResponse = (ClientResponse) t;
                 int statusCode = clientResponse.rawStatusCode();
-                if (400 <= statusCode && statusCode < 500 && span.getOutcome() == null){
+                if (400 <= statusCode && statusCode < 500 && span.getOutcome() == null) {
                     span.withOutcome(Outcome.FAILURE);
                 }
                 span.getContext().getHttp().withStatusCode(clientResponse.rawStatusCode());
@@ -173,7 +174,7 @@ public class WebfluxClientSubscriber<T> implements CoreSubscriber<T>, Subscripti
         if (!logger.isTraceEnabled()) {
             return;
         }
-        logger.trace("{} r2dbc {} {}", isEnter ? ">>" : "<<", method, span);
+        logger.trace("{} webclient {} {}", isEnter ? ">>" : "<<", method, span);
     }
 
     private void endSpan(@Nullable Throwable thrown, @Nullable Span span) {
