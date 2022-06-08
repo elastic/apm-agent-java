@@ -19,22 +19,19 @@
 package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.TracerInternalApiUtils;
-import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.context.Headers;
-import co.elastic.apm.agent.impl.context.Message;
-import co.elastic.apm.agent.impl.context.SpanContext;
-import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.impl.sampling.ConstantSampler;
-import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
+import net.bytebuddy.agent.ByteBuddyAgent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -52,38 +49,33 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 import org.testcontainers.utility.DockerImageName;
 
-import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
-import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.awaitility.Awaitility.await;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 /**
- * Each test sends a message to a request topic and waits on a reply message. This serves two purposes:
- * 1.  reduce waits to a minimum within tests
- * 2.  test both consumer instrumentation functionalities:
- * a.  the poll span creation (as part of the test, occurring within a traced transaction)- one per poll action
- * b.  the creation of consumer transaction- one per consumed record
+ * A duplicate of {@link KafkaIT}, only uses a real reporter and initializes instrumentations instead of extending
+ * {@link AbstractInstrumentationTest}.
+ * Useful for end-to-end testing with a real stack for showcasing multiple messaging system scenarios.
  */
 @SuppressWarnings("NotNullFieldNotInitialized")
 @Ignore
-public class KafkaIT extends AbstractInstrumentationTest {
+public class KafkaIT_RealReporter {
 
     static final String REQUEST_TOPIC = "Request-Topic";
     static final String REPLY_TOPIC = "Reply-Topic";
@@ -102,15 +94,13 @@ public class KafkaIT extends AbstractInstrumentationTest {
     private static KafkaConsumer<String, String> replyConsumer;
     private static KafkaProducer<String, String> producer;
 
-    private final CoreConfiguration coreConfiguration;
-    private final MessagingConfiguration messagingConfiguration;
+    private static CoreConfiguration coreConfiguration;
+    private static MessagingConfiguration messagingConfiguration;
 
-    private TestScenario testScenario;
-
-    public KafkaIT() {
-        this.coreConfiguration = config.getConfig(CoreConfiguration.class);
-        this.messagingConfiguration = config.getConfig(MessagingConfiguration.class);
-    }
+    private static TestScenario testScenario;
+    private static Reporter reporter;
+    private static ElasticApmTracer tracer;
+    private static ConfigurationRegistry config;
 
     @BeforeClass
     public static void setup() {
@@ -135,6 +125,19 @@ public class KafkaIT extends AbstractInstrumentationTest {
             new StringSerializer(),
             new StringSerializer()
         );
+
+        config = SpyConfiguration.createSpyConfig();
+        StacktraceConfiguration stacktraceConfiguration = config.getConfig(StacktraceConfiguration.class);
+        when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(30);
+        tracer = new ElasticApmTracerBuilder()
+            .configurationRegistry(config)
+            .buildAndStart();
+        reporter = tracer.getReporter();
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+        testScenario = TestScenario.NORMAL;
+
+        coreConfiguration = config.getConfig(CoreConfiguration.class);
+        messagingConfiguration = config.getConfig(MessagingConfiguration.class);
     }
 
     @AfterClass
@@ -148,17 +151,8 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
     @Before
     public void startTransaction() {
-        startAndActivateTransaction(null);
-        testScenario = TestScenario.NORMAL;
-    }
-
-    private void startAndActivateTransaction(@Nullable Sampler sampler) {
         Transaction transaction;
-        if (sampler == null) {
-            transaction = tracer.startRootTransaction(null);
-        } else {
-            transaction = tracer.startRootTransaction(sampler, -1, null);
-        }
+        transaction = tracer.startRootTransaction(null);
         if (transaction != null) {
             transaction.activate()
                 .withName("Kafka-Test Transaction")
@@ -169,60 +163,55 @@ public class KafkaIT extends AbstractInstrumentationTest {
     }
 
     @After
-    public void endTransaction() {
+    public void endAndReportTransaction() {
         Transaction currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
             currentTransaction.deactivate().end();
         }
+        reporter.flush(2000, MILLISECONDS, false);
+        SpyConfiguration.reset(config);
     }
 
     @Test
     public void testSendTwoRecords_IterableFor() {
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
     }
 
     @Test
     public void testSendTwoRecords_IterableForEach() {
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOREACH);
         sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
     }
 
     @Test
     public void testSendTwoRecords_IterableSpliterator() {
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_SPLITERATOR);
         sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
     }
 
     @Test
     public void testSendTwoRecords_RecordsIterable() {
         consumerThread.setIterationMode(RecordIterationMode.RECORDS_ITERABLE);
         sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
     }
 
     @Test
     public void testSendTwoRecords_RecordListIterableFor() {
         consumerThread.setIterationMode(RecordIterationMode.RECORD_LIST_ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
     }
 
     @Test
     public void testSendTwoRecords_RecordListIterableForEach() {
         consumerThread.setIterationMode(RecordIterationMode.RECORD_LIST_ITERABLE_FOREACH);
         sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
     }
 
     @Test
     public void testSendTwoRecords_RecordListSubList() {
         consumerThread.setIterationMode(RecordIterationMode.RECORD_LIST_SUB_LIST);
         sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
     }
 
     @Test
@@ -230,7 +219,6 @@ public class KafkaIT extends AbstractInstrumentationTest {
         // Here we test that the KafkaConsumer#poll instrumentation will end transactions that are left open
         consumerThread.setIterationMode(RecordIterationMode.PARTIALLY_ITERATE);
         sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
     }
 
     @Test
@@ -239,7 +227,6 @@ public class KafkaIT extends AbstractInstrumentationTest {
         testScenario = TestScenario.BODY_CAPTURE_ENABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
     }
 
     @Test
@@ -248,7 +235,6 @@ public class KafkaIT extends AbstractInstrumentationTest {
         testScenario = TestScenario.HEADERS_CAPTURE_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
     }
 
     @Test
@@ -256,7 +242,6 @@ public class KafkaIT extends AbstractInstrumentationTest {
         testScenario = TestScenario.SANITIZED_HEADER;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
     }
 
     @Test
@@ -264,11 +249,6 @@ public class KafkaIT extends AbstractInstrumentationTest {
         testScenario = TestScenario.BATCH_PROCESSING;
         consumerThread.setIterationMode(RecordIterationMode.ITERATE_WITHIN_TRANSACTION);
         sendTwoRecordsAndConsumeReplies();
-        List<Span> sendSpans =
-            reporter.getSpans().stream().filter(span -> span.getNameAsString().contains("send to " + REQUEST_TOPIC)).collect(Collectors.toList());
-        assertThat(sendSpans).hasSize(2);
-        Transaction batchProcessingTransaction = reporter.getFirstTransaction();
-        verifySpanLinks(batchProcessingTransaction.getSpanLinks(), sendSpans.toArray(new Span[2]));
     }
 
     @Test
@@ -276,9 +256,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
         testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
-        reporter.disableCheckDestinationAddress();
         sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
     }
 
     @Test
@@ -287,13 +265,6 @@ public class KafkaIT extends AbstractInstrumentationTest {
         testScenario = TestScenario.IGNORE_REQUEST_TOPIC;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
-
-        // we expect only one span for polling the reply topic
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans.size()).isGreaterThanOrEqualTo(1);
-        verifyPollSpanContents(spans);
-        List<Transaction> transactions = reporter.getTransactions();
-        assertThat(transactions).isEmpty();
     }
 
     @Test
@@ -302,46 +273,9 @@ public class KafkaIT extends AbstractInstrumentationTest {
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         //noinspection ConstantConditions
         tracer.currentTransaction().deactivate().end();
-        reporter.reset();
 
         // Send without context
         sendTwoRecordsAndConsumeReplies();
-
-        // We expect two transactions from records read from the request topic, each creating a send span as well.
-        // In addition, we expect two transactions from the main test thread, iterating over reply messages.
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(2);
-        Span sendSpan1 = spans.get(0);
-        verifySendSpanContents(sendSpan1, REPLY_TOPIC);
-        Span sendSpan2 = spans.get(1);
-        verifySendSpanContents(sendSpan2, REPLY_TOPIC);
-        List<Transaction> transactions = reporter.getTransactions();
-        assertThat(transactions).hasSize(4);
-        verifyKafkaTransactionContents(transactions.get(0), null, null, REQUEST_TOPIC);
-        verifyKafkaTransactionContents(transactions.get(1), null, null, REQUEST_TOPIC);
-        verifyKafkaTransactionContents(transactions.get(2), sendSpan1, null, REPLY_TOPIC);
-        verifyKafkaTransactionContents(transactions.get(3), sendSpan2, null, REPLY_TOPIC);
-    }
-
-    @Test
-    public void testAgentPaused() {
-        TracerInternalApiUtils.pauseTracer(tracer);
-        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
-        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
-
-        // End current transaction and start a non-sampled one
-        //noinspection ConstantConditions
-        tracer.currentTransaction().deactivate().end();
-        reporter.reset();
-
-        testScenario = TestScenario.AGENT_PAUSED;
-        startAndActivateTransaction(ConstantSampler.of(false));
-        sendTwoRecordsAndConsumeReplies();
-
-        assertThat(reporter.getTransactions()).isEmpty();
-        assertThat(reporter.getSpans()).isEmpty();
-        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
-        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
     private void sendTwoRecordsAndConsumeReplies() {
@@ -353,13 +287,6 @@ public class KafkaIT extends AbstractInstrumentationTest {
         record2.headers().add(headerKey, TEST_HEADER_VALUE.getBytes(StandardCharsets.UTF_8));
         producer.send(record1);
         producer.send(record2, (metadata, exception) -> callback.append("done"));
-        if (testScenario != TestScenario.IGNORE_REQUEST_TOPIC && testScenario != TestScenario.AGENT_PAUSED && testScenario != TestScenario.BATCH_PROCESSING) {
-            await().atMost(2000, MILLISECONDS).until(() -> reporter.getTransactions().size() == 2);
-            if (testScenario != TestScenario.NON_SAMPLED_TRANSACTION) {
-                int expectedSpans = (testScenario == TestScenario.NO_CONTEXT_PROPAGATION) ? 2 : 4;
-                await().atMost(500, MILLISECONDS).until(() -> reporter.getSpans().size() == expectedSpans);
-            }
-        }
         List<ConsumerRecord<String, String>> replies = awaitReplyRecords(5000, 2);
         assertThat(callback).isNotEmpty();
         Iterator<ConsumerRecord<String, String>> iterator = replies.iterator();
@@ -385,110 +312,6 @@ public class KafkaIT extends AbstractInstrumentationTest {
             }
         }
         throw new RuntimeException(String.format("Failed to read %s replies within %s ms", expectedRecords, timeoutMs));
-    }
-
-    private void verifyTracing() {
-        List<Span> spans = reporter.getSpans();
-        // we expect two send spans to request topic, two send spans to reply topic and at least one poll span from reply topic
-        assertThat(spans.size()).isGreaterThanOrEqualTo(5);
-        Span sendRequestSpan0 = spans.get(0);
-        verifySendSpanContents(sendRequestSpan0, REQUEST_TOPIC);
-        Span sendRequestSpan1 = spans.get(1);
-        verifySendSpanContents(sendRequestSpan1, REQUEST_TOPIC);
-        Span sendReplySpan0 = spans.get(2);
-        verifySendSpanContents(sendReplySpan0, REPLY_TOPIC);
-        Span sendReplySpan1 = spans.get(3);
-        verifySendSpanContents(sendReplySpan1, REPLY_TOPIC);
-
-        List<Transaction> transactions = reporter.getTransactions();
-        assertThat(transactions).hasSize(2);
-        verifyKafkaTransactionContents(transactions.get(0), sendRequestSpan0, FIRST_MESSAGE_VALUE, REQUEST_TOPIC);
-        verifyKafkaTransactionContents(transactions.get(1), sendRequestSpan1, SECOND_MESSAGE_VALUE, REQUEST_TOPIC);
-
-        List<Span> pollSpans = spans.stream().filter(span -> !span.getSpanLinks().isEmpty()).collect(Collectors.toList());
-        verifyPollSpanContents(pollSpans, sendReplySpan0, sendReplySpan1);
-    }
-
-    private void verifyPollSpanContents(List<Span> pollSpans, Span... sendSpans) {
-        List<TraceContext> spanLinks = new ArrayList<>();
-        // collecting Reply-Topic polling spans that returned with records
-        pollSpans.forEach(pollSpan -> {
-            assertThat(pollSpan.getType()).isEqualTo("messaging");
-            assertThat(pollSpan.getSubtype()).isEqualTo("kafka");
-            assertThat(pollSpan.getAction()).isEqualTo("poll");
-            assertThat(pollSpan.getNameAsString()).isEqualTo("KafkaConsumer#poll");
-            assertThat(pollSpan.getContext().getServiceTarget())
-                .hasType("kafka")
-                .hasNoName();
-            spanLinks.addAll(pollSpan.getSpanLinks());
-        });
-        verifySpanLinks(spanLinks, sendSpans);
-    }
-
-    private void verifySpanLinks(List<TraceContext> spanLinks, Span... sendSpans) {
-        assertThat(spanLinks).hasSize(sendSpans.length);
-        Arrays.stream(sendSpans).forEach(
-            sendSpan -> assertThat(spanLinks.stream()).anyMatch(link -> link.getParentId().equals(sendSpan.getTraceContext().getId()))
-        );
-    }
-
-    private void verifySendSpanContents(Span sendSpan, String topicName) {
-        assertThat(sendSpan.getType()).isEqualTo("messaging");
-        assertThat(sendSpan.getSubtype()).isEqualTo("kafka");
-        assertThat(sendSpan.getAction()).isEqualTo("send");
-        assertThat(sendSpan.getNameAsString()).isEqualTo("KafkaProducer#send to " + topicName);
-        SpanContext context = sendSpan.getContext();
-        Message message = context.getMessage();
-        assertThat(message.getQueueName()).isEqualTo(topicName);
-        Destination destination = context.getDestination();
-        if (testScenario != TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED) {
-            assertThat(destination.getPort()).isEqualTo(kafkaPort);
-            assertThat(destination.getAddress().toString()).isEqualTo(kafka.getContainerIpAddress());
-        } else {
-            assertThat(destination.getPort()).isEqualTo(0);
-            assertThat(destination.getAddress().toString()).isEmpty();
-        }
-
-        assertThat(context.getServiceTarget())
-            .hasType("kafka")
-            .hasName(topicName)
-            .hasDestinationResource("kafka/" + topicName);
-    }
-
-    private void verifyKafkaTransactionContents(Transaction transaction, @Nullable Span parentSpan,
-                                                @Nullable String messageValue, String topic) {
-        assertThat(transaction.getType()).isEqualTo("messaging");
-        assertThat(transaction.getNameAsString()).isEqualTo("Kafka record from " + topic);
-        assertThat(transaction.getFrameworkName()).isEqualTo("Kafka");
-
-        TraceContext traceContext = transaction.getTraceContext();
-        if (parentSpan != null) {
-            assertThat(traceContext.getTraceId()).isEqualTo(parentSpan.getTraceContext().getTraceId());
-            assertThat(traceContext.getParentId()).isEqualTo(parentSpan.getTraceContext().getId());
-        }
-        TransactionContext transactionContext = transaction.getContext();
-        Message message = transactionContext.getMessage();
-        assertThat(message.getAge()).isGreaterThanOrEqualTo(0);
-        assertThat(message.getQueueName()).isEqualTo(topic);
-        if (testScenario == TestScenario.BODY_CAPTURE_ENABLED && messageValue != null) {
-            String messageBody = "key=" + REQUEST_KEY + "; value=" + messageValue;
-            StringBuilder body = message.getBodyForRead();
-            assertThat(body).isNotNull();
-            assertThat(messageBody).isEqualTo(body.toString());
-        } else {
-            assertThat(message.getBodyForRead()).isNull();
-        }
-        Headers headers = message.getHeaders();
-        if (testScenario == TestScenario.HEADERS_CAPTURE_DISABLED || testScenario == TestScenario.SANITIZED_HEADER ||
-            topic.equals(REPLY_TOPIC)) {
-            assertThat(headers).isEmpty();
-        } else {
-            assertThat(headers.size()).isEqualTo(1);
-            Headers.Header testHeader = headers.iterator().next();
-            assertThat(testHeader.getKey()).isEqualTo(TEST_HEADER_KEY);
-            //noinspection ConstantConditions
-            assertThat(testHeader.getValue().toString()).isEqualTo(TEST_HEADER_VALUE);
-        }
     }
 
     static KafkaConsumer<String, String> createKafkaConsumer() {

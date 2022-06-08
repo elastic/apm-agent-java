@@ -36,6 +36,10 @@ the agent will now include the database name in the dependency, thus `mysql/my-d
 * Added support for the new service target fields - {pull}2578[#2578]
 * Capture the database name from JDBC connection string - {pull}2642[#2642]
 * Added an additional span around Javalin template renderers - {pull}2381[#2381]
+* Added support for downloading the latest agent version through the attach CLI by setting `--download-agent-version latest`. In
+addition, when using the `apm-agent-attach-cli-slim.jar`, which does not contain a bundled agent, the latest version will be downloaded
+from maven at runtime unless configured otherwise through  `--download-agent-version` - {pull}2659[#2659]
+* Added span-links to messaging systems instrumentation (supported by APM Server 8.3+ only) - {pull}2610[#2610]
 * Add support for Spring WebClient - {pull}2229[#2229]
 
 [float]

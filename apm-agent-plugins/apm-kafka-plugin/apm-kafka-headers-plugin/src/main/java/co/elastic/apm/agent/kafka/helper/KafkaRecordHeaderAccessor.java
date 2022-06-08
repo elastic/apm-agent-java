@@ -32,7 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @SuppressWarnings("rawtypes")
-class KafkaRecordHeaderAccessor implements BinaryHeaderGetter<ConsumerRecord>, BinaryHeaderSetter<ProducerRecord>,
+public class KafkaRecordHeaderAccessor implements BinaryHeaderGetter<ConsumerRecord>, BinaryHeaderSetter<ProducerRecord>,
     HeaderRemover<ProducerRecord> {
 
     public static final Logger logger = LoggerFactory.getLogger(KafkaRecordHeaderAccessor.class);

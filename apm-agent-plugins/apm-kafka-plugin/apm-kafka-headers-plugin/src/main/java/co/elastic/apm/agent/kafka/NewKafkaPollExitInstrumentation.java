@@ -18,52 +18,48 @@
  */
 package co.elastic.apm.agent.kafka;
 
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 
 import javax.annotation.Nullable;
-import java.util.Iterator;
 
-import static net.bytebuddy.matcher.ElementMatchers.isPublic;
-import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.returns;
-import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 
 /**
- * Instruments the {@link ConsumerRecords#iterator()} method
+ * An instrumentation for {@link org.apache.kafka.clients.consumer.KafkaConsumer#poll} exit on new clients
  */
-public class ConsumerRecordsIteratorInstrumentation extends KafkaConsumerRecordsInstrumentation {
-
+public class NewKafkaPollExitInstrumentation extends KafkaConsumerInstrumentation {
     @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("iterator")
-            .and(isPublic())
-            .and(takesArguments(0))
-            .and(returns(Iterator.class));
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return super.getClassLoaderMatcher().and(classLoaderCanLoadClass("org.apache.kafka.common.header.Headers"));
     }
 
     @Override
     public String getAdviceClassName() {
-        return getClass().getName() + "$ConsumerRecordsAdvice";
+        return "co.elastic.apm.agent.kafka.NewKafkaPollExitInstrumentation$KafkaPollExitAdvice";
     }
 
-    public static class ConsumerRecordsAdvice {
+    public static class KafkaPollExitAdvice {
 
         private static final KafkaInstrumentationHeadersHelper helper = KafkaInstrumentationHeadersHelper.get();
 
-        @Nullable
-        @Advice.AssignReturned.ToReturned
+        @SuppressWarnings("unused")
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-        public static Iterator<ConsumerRecord<?, ?>> wrapIterator(@Advice.This ConsumerRecords<?, ?> thiz,
-                                                                  @Advice.Return @Nullable final Iterator<ConsumerRecord<?, ?>> iterator) {
-            if (helper.shouldWrapIterable(thiz, iterator)) {
-                return helper.wrapConsumerRecordIterator(iterator);
-            } else {
-                return iterator;
+        public static void pollEnd(@Advice.Thrown final Throwable throwable,
+                                   @Advice.Return @Nullable ConsumerRecords<?, ?> records) {
+
+            Span span = tracer.getActiveSpan();
+            if (span != null &&
+                span.getSubtype() != null && span.getSubtype().equals("kafka") &&
+                span.getAction() != null && span.getAction().equals("poll")
+            ) {
+                helper.addSpanLinks(records, span);
+                span.captureException(throwable)
+                    .deactivate()
+                    .end();
             }
         }
     }
