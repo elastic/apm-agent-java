@@ -34,6 +34,7 @@ import com.github.tomakehurst.wiremock.http.HttpHeader;
 import com.github.tomakehurst.wiremock.http.HttpHeaders;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
+import org.assertj.core.data.Percentage;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assume;
@@ -62,6 +63,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 public abstract class AbstractHttpClientInstrumentationTest extends AbstractInstrumentationTest {
 
+    private static final int DELAY_MS = 50;
+
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort(), false);
 
@@ -79,6 +82,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         wireMockRule.stubFor(get(urlEqualTo("/circular-redirect"))
             .willReturn(seeOther("/circular-redirect")));
 
+        wireMockRule.stubFor(get(urlEqualTo("/delay"))
+            .willReturn(dummyResponse()
+                .withFixedDelay(DELAY_MS)));
+
         startTestRootTransaction("parent of http span");
     }
 
@@ -95,6 +102,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(transaction).isNotNull();
         transaction.deactivate().end();
         assertThat(reporter.getTransactions()).hasSize(1);
+
+        // reset reporter to avoid error state to propagate to the next test
+        reporter.reset();
     }
 
     @Test
@@ -190,6 +200,23 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         }
 
         verifyTraceContextHeaders(span, "/circular-redirect");
+    }
+
+    @Test
+    public void testApproximateSpanTiming() {
+
+        // warmup
+        performGetWithinTransaction("/delay");
+        reporter.reset();
+
+        performGetWithinTransaction("/delay");
+        Span span = reporter.getFirstSpan(500);
+        assertThat(span).isNotNull();
+
+        assertThat(span.getDurationMs())
+            // very rough accuracy because we have a short delay
+            .isCloseTo(DELAY_MS, Percentage.withPercentage(50));
+
     }
 
     // assumption
