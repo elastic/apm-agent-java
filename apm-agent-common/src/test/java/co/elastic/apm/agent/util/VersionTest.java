@@ -43,12 +43,14 @@ class VersionTest {
         "1.2,                            =, 1.2",
         "1.2.3,                          =, 1.2.3",
         "1.2.3.4,                        =, 1.2.3.4",
-        "ignore.1.2.3-pre1,              =, 1.2.3-pre1"
+        "ignore.1.2.3-pre1,              =, 1.2.3-pre1",
+        "1.2.3.rc1,                      <, 1.2.3.rc2"
     })
     void testVersion(String version1, String operator, String version2) {
         switch (operator) {
             case "<":
                 assertThat(Version.of(version1)).isLessThan(Version.of(version2));
+                assertThat(Version.of(version2)).isGreaterThan(Version.of(version1));
                 break;
             case "=":
                 assertThat(Version.of(version1)).isEqualByComparingTo(Version.of(version2));

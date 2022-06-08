@@ -64,6 +64,10 @@ public class Version implements Comparable<Version> {
         this.suffix = suffix;
     }
 
+    public boolean hasSuffix() {
+        return suffix.length() > 0;
+    }
+
     @Override
     public int compareTo(Version another) {
         final int maxLength = Math.max(numbers.length, another.numbers.length);
@@ -74,7 +78,13 @@ public class Version implements Comparable<Version> {
                 return left < right ? -1 : 1;
             }
         }
-        return another.suffix.compareTo(suffix);
+        if (suffix.isEmpty() || another.suffix.isEmpty()) {
+            // no suffix is greater than any suffix (1.0.0 > 1.0.0-SNAPSHOT)
+            return another.suffix.compareTo(suffix);
+        } else {
+            // if both have a suffix, sort in natural order (1.0.0-RC2 > 1.0.0-RC1)
+            return suffix.compareTo(another.suffix);
+        }
     }
 
     @Override
@@ -103,9 +113,5 @@ public class Version implements Comparable<Version> {
         int result = Objects.hash(suffix);
         result = 31 * result + Arrays.hashCode(numbers);
         return result;
-    }
-
-    public boolean hasSuffix() {
-        return suffix.length() > 0;
     }
 }

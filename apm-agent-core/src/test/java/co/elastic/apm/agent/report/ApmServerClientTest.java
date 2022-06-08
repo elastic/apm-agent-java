@@ -81,7 +81,7 @@ public class ApmServerClientTest {
         URL url1 = new URL("http", "localhost", apmServer1.port(), "/");
         URL url2 = new URL("http", "localhost", apmServer2.port(), "/proxy");
         // APM server 6.x style
-        apmServer1.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("ok", Map.of("version", "6.7.0-SNAPSHOT")))));
+        apmServer1.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("ok", Map.of("version", "6.7.1-SNAPSHOT")))));
         apmServer1.stubFor(get(urlEqualTo("/test")).willReturn(notFound()));
         apmServer1.stubFor(get(urlEqualTo("/not-found")).willReturn(notFound()));
         // APM server 7+ style
