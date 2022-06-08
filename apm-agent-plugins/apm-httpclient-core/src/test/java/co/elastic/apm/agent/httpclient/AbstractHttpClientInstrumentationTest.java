@@ -201,23 +201,6 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         verifyTraceContextHeaders(span, "/circular-redirect");
     }
 
-    @Test
-    public void testApproximateSpanTiming() {
-
-        // warmup
-        performGetWithinTransaction("/delay");
-        reporter.reset();
-
-        performGetWithinTransaction("/delay");
-        Span span = reporter.getFirstSpan(500);
-        assertThat(span).isNotNull();
-
-        // very approximate span duration check to prevent flakiness
-        assertThat(span.getDurationMs())
-            .isGreaterThan(DELAY_MS);
-
-    }
-
     // assumption
     protected boolean isIpv6Supported() {
         return true;
@@ -249,6 +232,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             e.printStackTrace();
         }
     }
+
     @SuppressWarnings("NullableProblems")
     protected abstract void performGet(String path) throws Exception;
 
