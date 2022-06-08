@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.springwebclient;
 
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -33,6 +34,8 @@ import org.springframework.web.reactive.function.client.ClientRequest;
 
 import javax.annotation.Nullable;
 import java.net.URI;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -41,7 +44,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class WebClientExchangeFunctionInstrumentation extends AbstractWebClientInstrumentation {
+public class WebClientExchangeFunctionInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -58,6 +61,11 @@ public class WebClientExchangeFunctionInstrumentation extends AbstractWebClientI
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("exchange")
             .and(takesArgument(0, named("org.springframework.web.reactive.function.client.ClientRequest")));
+    }
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList("http-client", "spring-webclient", "experimental");
     }
 
     public static class AdviceClass {
