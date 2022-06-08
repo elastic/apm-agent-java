@@ -62,8 +62,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 public abstract class AbstractHttpClientInstrumentationTest extends AbstractInstrumentationTest {
 
-    private static final int DELAY_MS = 50;
-
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort(), false);
 
@@ -80,10 +78,6 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             .willReturn(seeOther("/")));
         wireMockRule.stubFor(get(urlEqualTo("/circular-redirect"))
             .willReturn(seeOther("/circular-redirect")));
-
-        wireMockRule.stubFor(get(urlEqualTo("/delay"))
-            .willReturn(dummyResponse()
-                .withFixedDelay(DELAY_MS)));
 
         startTestRootTransaction("parent of http span");
     }
