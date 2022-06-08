@@ -28,34 +28,42 @@ class VersionTest {
 
     @ParameterizedTest
     @CsvSource(value = {
-        "1.0.0,                          <, 1.0.1",
-        "1.2.3,                          =, 1.2.3",
-        "1.2.3-SNAPSHOT,                 <, 1.2.3",
-        "4.5.13,                         =, 4.5.13",
-        "4.5.13.redhat-00001,            <, 4.5.13",
-        "httpclient-4.5.13,              =, 4.5.13",
-        "httpclient-4.5.13.redhat-00001, <, 4.5.13",
-        "httpclient.4.5.13.redhat-00001, =, 4.5.13.redhat-00001",
-        "httpclient.4.5.13.redhat,       <, 4.5.13",
-        "httpclient.4.5.13-redhat,       =, 4.5.13-redhat",
-        "1,                              =, 1",
-        "1,                              <, 1.2",
-        "1.2,                            =, 1.2",
-        "1.2.3,                          =, 1.2.3",
-        "1.2.3.4,                        =, 1.2.3.4",
-        "ignore.1.2.3-pre1,              =, 1.2.3-pre1",
-        "1.2.3.rc1,                      <, 1.2.3.rc2"
+        "1.0.0,                          <, 1.0.1,               false",
+        "1.2.3,                          =, 1.2.3,               false",
+        "1.2.3-pre1,                     <, 1.2.3,               false",
+        "1.2.3.rc1,                      <, 1.2.3.rc2,           false",
+        "1.2.3-SNAPSHOT,                 <, 1.2.3.RC1,           false",
+        "1.2.3-SNAPSHOT,                 <, 1.2.3,               false",
+        "4.5.13,                         =, 4.5.13,              false",
+        "4.5.13.redhat-00001,            <, 4.5.13,              false",
+        "httpclient-4.5.13,              =, 4.5.13,              false",
+        "httpclient-4.5.13.redhat-00001, =, 4.5.13,              true",
+        "httpclient.4.5.13.redhat-00001, =, 4.5.13.redhat-00001, true",
+        "httpclient.4.5.13.redhat,       =, 4.5.13,              true",
+        "httpclient.4.5.13-redhat,       =, 4.5.13-redhat,       true",
+        "1,                              =, 1,                   false",
+        "1,                              <, 1.2,                 false",
+        "1.2,                            =, 1.2,                 false",
+        "1.2.3,                          =, 1.2.3,               false",
+        "1.2.3.4,                        =, 1.2.3.4,             false",
+        "ignore.1.2.3-pre1,              =, 1.2.3-pre1,          false",
     })
-    void testVersion(String version1, String operator, String version2) {
+    void testVersion(String version1, String operator, String version2, boolean ignoreSuffix) {
+        Version v1 = Version.of(version1);
+        Version v2 = Version.of(version2);
+        if (ignoreSuffix) {
+            v1 = v1.withoutSuffix();
+            v2 = v2.withoutSuffix();
+        }
         switch (operator) {
             case "<":
-                assertThat(Version.of(version1)).isLessThan(Version.of(version2));
-                assertThat(Version.of(version2)).isGreaterThan(Version.of(version1));
+                assertThat(v1).isLessThan(v2);
+                assertThat(v2).isGreaterThan(v1);
                 break;
             case "=":
-                assertThat(Version.of(version1)).isEqualByComparingTo(Version.of(version2));
-                assertThat(Version.of(version1)).isEqualTo(Version.of(version2));
-                assertThat(Version.of(version1).toString()).isEqualTo(Version.of(version2).toString());
+                assertThat(v1).isEqualByComparingTo(v2);
+                assertThat(v1).isEqualTo(v2);
+                assertThat(v1.toString()).isEqualTo(v2.toString());
                 break;
             default:
                 throw new IllegalArgumentException("Invalid operator: " + operator);

@@ -68,6 +68,10 @@ public class Version implements Comparable<Version> {
         return suffix.length() > 0;
     }
 
+    public Version withoutSuffix() {
+        return new Version(numbers, "");
+    }
+
     @Override
     public int compareTo(Version another) {
         final int maxLength = Math.max(numbers.length, another.numbers.length);
