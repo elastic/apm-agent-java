@@ -39,15 +39,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>io.projectreactor.netty</groupId>
-            <artifactId>reactor-netty-http</artifactId>
-            <version>1.0.7</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
-            <version>3.4.11</version>
+            <version>${version.reactor}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -64,6 +58,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- default client implementation: netty -->
+        <dependency>
+            <groupId>io.projectreactor.netty</groupId>
+            <artifactId>reactor-netty-http</artifactId>
+            <version>1.0.7</version>
+            <scope>test</scope>
+        </dependency>
         <!-- alternative client implementation: jetty -->
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
