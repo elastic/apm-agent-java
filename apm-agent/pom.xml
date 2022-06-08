@@ -298,7 +298,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-spring-webflux-client-plugin</artifactId>
+            <artifactId>apm-spring-webclient-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

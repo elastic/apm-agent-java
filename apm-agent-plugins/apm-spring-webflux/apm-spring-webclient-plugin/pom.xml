@@ -8,7 +8,7 @@
         <version>1.31.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>apm-spring-webflux-client-plugin</artifactId>
+    <artifactId>apm-spring-webclient-plugin</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
     <properties>
         <!-- for licence header plugin -->

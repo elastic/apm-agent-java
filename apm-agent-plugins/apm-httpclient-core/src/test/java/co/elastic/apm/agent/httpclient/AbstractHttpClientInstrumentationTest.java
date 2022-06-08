@@ -213,9 +213,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         Span span = reporter.getFirstSpan(500);
         assertThat(span).isNotNull();
 
+        // very approximate span duration check to prevent flakiness
         assertThat(span.getDurationMs())
-            // very rough accuracy because we have a short delay
-            .isCloseTo(DELAY_MS, Percentage.withPercentage(50));
+            .isGreaterThan(DELAY_MS);
 
     }
 

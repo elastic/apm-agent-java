@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.webfluxclient;
+package co.elastic.apm.agent.springwebclient;
 
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import org.springframework.web.reactive.function.client.ClientRequest;
