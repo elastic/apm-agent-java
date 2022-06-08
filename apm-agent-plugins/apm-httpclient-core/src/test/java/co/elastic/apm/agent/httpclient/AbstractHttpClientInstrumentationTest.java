@@ -34,7 +34,6 @@ import com.github.tomakehurst.wiremock.http.HttpHeader;
 import com.github.tomakehurst.wiremock.http.HttpHeaders;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
-import org.assertj.core.data.Percentage;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assume;

@@ -344,7 +344,7 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |Spring Webclient
 |5.2.3+
 |
-|1.27.0 (experimental)
+|1.33.0 (experimental)
 
 |===
 
