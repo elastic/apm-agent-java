@@ -29,6 +29,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
 import org.springframework.web.reactive.socket.client.WebSocketClient;
+import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -41,6 +42,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class GreetingWebClient {
@@ -111,7 +113,7 @@ public class GreetingWebClient {
     }
 
     public Mono<String> withPathParameter(String param) {
-        return requestMono("GET", "/with-parameters/" + param, 200);
+        return requestMono("GET", uriBuilder -> uriBuilder.path("/with-parameters/{id}").build(param), 200);
     }
 
     // nested routes, only relevant for functional routing
@@ -120,12 +122,12 @@ public class GreetingWebClient {
     }
 
     public Mono<String> duration(long durationMillis) {
-        return requestMono("GET", "/duration?duration=" + durationMillis, 200);
+        return requestMono("GET", uriBuilder -> uriBuilder.path("/duration").queryParam("duration", durationMillis).build(), 200);
     }
 
     // returned as flux, but will only produce one element
     public Flux<String> childSpans(int count, long durationMillis, long delay) {
-        return requestFlux(String.format("/child-flux?duration=%d&count=%d&delay=%d", durationMillis, count, delay));
+        return requestFlux(uriBuilder -> uriBuilder.path("/child-flux").queryParam("duration", durationMillis).queryParam("count", count).queryParam("delay", delay).build());
     }
 
     public List<String> webSocketPingPong(int count) {
@@ -150,7 +152,7 @@ public class GreetingWebClient {
 
     // returned as a stream of elements
     public Flux<ServerSentEvent<String>> childSpansSSE(int count, long durationMillis, long delay) {
-        return requestFluxSSE(String.format("/child-flux/sse?duration=%d&count=%d&delay=%d", durationMillis, count, delay));
+        return requestFluxSSE(uriBuilder -> uriBuilder.path("/child-flux/sse").queryParam("duration", durationMillis).queryParam("count",count).queryParam("delay", delay).build());
     }
 
     // only relevant for annotated controller
@@ -158,8 +160,13 @@ public class GreetingWebClient {
         return requestMono("GET", "/custom-transaction-name", 200);
     }
 
+    @Deprecated
     public Mono<String> requestMono(String method, String path, int expectedStatus) {
-        Mono<String> request = request(method, path, expectedStatus)
+        return requestMono(method, uriBuilder -> uriBuilder.path(path).build(), expectedStatus);
+    }
+
+    public Mono<String> requestMono(String method, Function<UriBuilder, URI> uriFunction, int expectedStatus) {
+        Mono<String> request = request(method, uriFunction, expectedStatus)
             .bodyToMono(String.class)
             .doOnError((throwable) -> logger.error("Exception occurred during requesting with exception class [{}]", throwable.getClass().getCanonicalName()))
             .publishOn(clientScheduler);
@@ -188,30 +195,29 @@ public class GreetingWebClient {
         webSocketPingPong(5);
     }
 
-    private Flux<String> requestFlux(String path) {
-        Flux<String> request = request("GET", path, 200)
+    private Flux<String> requestFlux(Function<UriBuilder, URI> uriFunction) {
+        Flux<String> request = request("GET", uriFunction, 200)
             .bodyToFlux(String.class)
             .publishOn(clientScheduler);
         return logEnabled ? request.log(logger) : request;
     }
 
-    private Flux<ServerSentEvent<String>> requestFluxSSE(String path) {
+    private Flux<ServerSentEvent<String>> requestFluxSSE(Function<UriBuilder, URI> uriFunction) {
 
         // required to get proper return generic type
         ParameterizedTypeReference<ServerSentEvent<String>> type = new ParameterizedTypeReference<>() {
         };
 
-        Flux<ServerSentEvent<String>> request = request("GET", path, 200)
+        Flux<ServerSentEvent<String>> request = request("GET", uriFunction, 200)
             .bodyToFlux(type)
             .publishOn(clientScheduler);
 
         return logEnabled ? request.log(logger) : request;
     }
 
-
-    private WebClient.ResponseSpec request(String method, String path, int expectedStatus) {
+    private WebClient.ResponseSpec request(String method, Function<UriBuilder, URI> uriFunction, int expectedStatus) {
         return client.method(HttpMethod.valueOf(method))
-            .uri(path)
+            .uri(uriFunction)
             .accept(MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON)
             .headers(httpHeaders -> httpHeaders.addAll(headers))
             .cookies(httpCookies -> httpCookies.addAll(cookies))
