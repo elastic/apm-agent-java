@@ -20,8 +20,14 @@ package co.elastic.apm.agent.bci.bytebuddy;
 
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.description.type.TypeList;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+
+import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -39,45 +45,60 @@ public class MethodHierarchyMatcher extends ElementMatcher.Junction.AbstractBase
 
     private final ElementMatcher<? super MethodDescription> extraMethodMatcher;
     private final ElementMatcher<? super TypeDescription> superClassMatcher;
+    private final ElementMatcher<? super TypeDescription> hierarchyMatcher;
 
     MethodHierarchyMatcher(ElementMatcher<? super MethodDescription> extraMethodMatcher) {
-        this(extraMethodMatcher, not(is(TypeDescription.ForLoadedType.OBJECT)));
+        this(extraMethodMatcher, not(is(TypeDescription.ForLoadedType.OBJECT)), any());
     }
 
-    private MethodHierarchyMatcher(ElementMatcher<? super MethodDescription> extraMethodMatcher, ElementMatcher<? super TypeDescription> superClassMatcher) {
+    private MethodHierarchyMatcher(ElementMatcher<? super MethodDescription> extraMethodMatcher, ElementMatcher<? super TypeDescription> superClassMatcher, ElementMatcher<? super TypeDescription> hierachyMatcher) {
         this.extraMethodMatcher = extraMethodMatcher;
         this.superClassMatcher = superClassMatcher;
+        this.hierarchyMatcher = hierachyMatcher;
     }
 
-    public ElementMatcher<MethodDescription> onSuperClassesThat(ElementMatcher<? super TypeDescription> superClassMatcher) {
-        return new MethodHierarchyMatcher(extraMethodMatcher, superClassMatcher);
+    public MethodHierarchyMatcher onSuperClassesThat(ElementMatcher<? super TypeDescription> superClassMatcher) {
+        return new MethodHierarchyMatcher(extraMethodMatcher, superClassMatcher, hierarchyMatcher);
+    }
+
+    public MethodHierarchyMatcher whereHierarchyContains(ElementMatcher<? super TypeDescription> hierarchyMatcher) {
+        return new MethodHierarchyMatcher(extraMethodMatcher, superClassMatcher, hierarchyMatcher);
     }
 
     @Override
     public boolean matches(MethodDescription targetMethod) {
-        return declaresInHierarchy(targetMethod, targetMethod.getDeclaringType().asErasure());
+        return declaresInHierarchy(targetMethod, targetMethod.getDeclaringType().asErasure(), new ArrayDeque<>());
     }
 
-    private boolean declaresInHierarchy(MethodDescription targetMethod, TypeDescription type) {
-        if (declaresMethod(named(targetMethod.getName())
-            .and(returns(targetMethod.getReturnType().asErasure()))
-            .and(takesArguments(targetMethod.getParameters().asTypeList().asErasures()))
-            .and(extraMethodMatcher))
-            .matches(type)) {
-            return true;
-        }
-        for (TypeDescription interfaze : type.getInterfaces().asErasures()) {
-            if (superClassMatcher.matches(interfaze)) {
-                if (declaresInHierarchy(targetMethod, interfaze)) {
-                    return true;
+    private boolean declaresInHierarchy(MethodDescription targetMethod, TypeDescription type, Deque<TypeDescription> hierarchy) {
+        hierarchy.push(type);
+        try {
+            if (declaresMethod(named(targetMethod.getName())
+                .and(returns(targetMethod.getReturnType().asErasure()))
+                .and(takesArguments(targetMethod.getParameters().asTypeList().asErasures()))
+                .and(extraMethodMatcher))
+                .matches(type)
+             && !new TypeList.Explicit(new ArrayList<>(hierarchy))
+                .filter(hierarchyMatcher)
+                .isEmpty()
+            ) {
+                return true;
+            }
+            for (TypeDescription interfaze : type.getInterfaces().asErasures()) {
+                if (superClassMatcher.matches(interfaze)) {
+                    if (declaresInHierarchy(targetMethod, interfaze, hierarchy)) {
+                        return true;
+                    }
                 }
             }
+            final TypeDescription.Generic superClass = type.getSuperClass();
+            if (superClass != null && superClassMatcher.matches(superClass.asErasure())) {
+                return declaresInHierarchy(targetMethod, superClass.asErasure(), hierarchy);
+            }
+            return false;
+        } finally {
+            hierarchy.pop();
         }
-        final TypeDescription.Generic superClass = type.getSuperClass();
-        if (superClass != null && superClassMatcher.matches(superClass.asErasure())) {
-            return declaresInHierarchy(targetMethod, superClass.asErasure());
-        }
-        return false;
     }
 
 }
