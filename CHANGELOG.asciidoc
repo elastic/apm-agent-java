@@ -20,8 +20,23 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-x.x.x]]
+==== 1.32.1 - YYYY/MM/DD
+
+[float]
+===== Breaking changes
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.32.0]]
-==== 1.32.0 - YYYY/MM/DD
+==== 1.32.0 - 2022/06/13
 
 ===== Potentially breaking changes
 * For relational databases, the agent now captures the database name and makes it part of service dependencies and service map.
@@ -52,9 +67,6 @@ from maven at runtime unless configured otherwise through  `--download-agent-ver
 ===== Bug fixes
 * Fix missing attributes in bridged OTel transactions - {pull}2657[#2657]
 * Fix `transaction.result` with bridged OTel transactions - {pull}2660[#2660]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.31.0]]
 ==== 1.31.0 - 2022/05/17
