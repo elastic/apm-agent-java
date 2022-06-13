@@ -67,7 +67,7 @@ public class MethodHierarchyMatcher extends ElementMatcher.Junction.AbstractBase
 
     @Override
     public boolean matches(MethodDescription targetMethod) {
-        return declaresInHierarchy(targetMethod, targetMethod.getDeclaringType().asErasure(), new ArrayDeque<>());
+        return declaresInHierarchy(targetMethod, targetMethod.getDeclaringType().asErasure(), new ArrayDeque<TypeDescription>());
     }
 
     private boolean declaresInHierarchy(MethodDescription targetMethod, TypeDescription type, Deque<TypeDescription> hierarchy) {
