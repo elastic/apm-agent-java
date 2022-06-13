@@ -31,6 +31,7 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* Fix for JAX-WS (SOAP) transaction names. The agent now properly names transaction for web service methods that are not annotated with `@WebMethod`. - {pull}2667[#2667]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
@@ -67,7 +68,6 @@ from maven at runtime unless configured otherwise through  `--download-agent-ver
 ===== Bug fixes
 * Fix missing attributes in bridged OTel transactions - {pull}2657[#2657]
 * Fix `transaction.result` with bridged OTel transactions - {pull}2660[#2660]
-* Fix for JAX-WS (SOAP) transaction names. Now the agent also properly names transaction for web service methods that are not annotated with `@WebMethod`. - {pull}2667[#2667]
 
 [[release-notes-1.31.0]]
 ==== 1.31.0 - 2022/05/17
