@@ -52,6 +52,7 @@ from maven at runtime unless configured otherwise through  `--download-agent-ver
 ===== Bug fixes
 * Fix missing attributes in bridged OTel transactions - {pull}2657[#2657]
 * Fix `transaction.result` with bridged OTel transactions - {pull}2660[#2660]
+* Fix for JAX-WS (SOAP) transaction names. Now the agent also properly names transaction for web service methods that are not annotated with `@WebMethod`. - {pull}2667[#2667]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
@@ -997,7 +998,7 @@ for more details) - {pull}1009[#1009]
 <<config-service-node-name, `service_node_name`>>
 config option]
 * Add ability to ignore some exceptions to be reported as errors <<config-ignore-exceptions[ignore_exceptions]
-* Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the 
+* Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the
    polling method itself (ie from `receive` start to end), the agent will create a transaction attempting to capture
    the code executed during actual message handling.
    This logic is suitable for environments where polling APIs are invoked within dedicated polling threads.
