@@ -34,7 +34,7 @@ aws lambda update-function-configuration --function-name yourLambdaFunctionName 
 
 // tag::sam-with-agent[]
 
-In your SAM `template.yml` file add the Layer ARNs of the APM Extension and the APM Agent as follows:
+In your SAM `template.yml` file configure the following environment variables:
 
 [source,yml]
 ----
@@ -56,7 +56,7 @@ Resources:
 
 // tag::serverless-with-agent[]
 
-In your `serverless.yml` file add the Layer ARNs of the APM Extension and the APM Agent to your function as follows:
+In your `serverless.yml` file configure the following environment variables:
 
 [source,yml]
 ----
@@ -74,7 +74,7 @@ functions:
 // end::serverless-with-agent[]
 
 // tag::terraform-with-agent[]
-To add the APM Extension and the APM Agent to your function add the ARNs to the `layers` property in your Terraform file:
+In your Terraform file configure the following environment variables:
 
 [source,terraform]
 ----
@@ -93,3 +93,35 @@ resource "aws_lambda_function" "your_lambda_function" {
 ----
 
 // end::terraform-with-agent[]
+
+// tag::container-with-agent[]
+Environment variables configured for an AWS Lambda function are passed to the container running the lambda function.
+You can use one of the other options (through AWS Web Console, AWS CLI, etc.) to configure the environment variables
+or https://docs.docker.com/engine/reference/builder/#env[define them directly in your Dockerfile].
+
+We recommend to use an https://gallery.ecr.aws/lambda/java[official AWS Lambda base image] for your function's container image.
+In this case, you will only need to configure the following three environment variables:
+
+[source,bash]
+----
+AWS_LAMBDA_EXEC_WRAPPER       = "/opt/elastic-apm-handler"
+ELASTIC_APM_LAMBDA_APM_SERVER = <YOUR-APM-SERVER-URL>     # this is your APM Server URL
+ELASTIC_APM_SECRET_TOKEN      = <YOUR-APM-SECRET-TOKEN>   # this is your APM secret token
+----
+
+If your container image is based on a different base image (not including the AWS Lambda runtime utilities),
+the `AWS_LAMBDA_EXEC_WRAPPER` configuration option won't be supported. In this case, you will need to define an extended
+set of environment variables (which, in the above case, are set through the wrapper script):
+
+[source,bash]
+----
+JAVA_TOOL_OPTIONS              = "-javaagent:/opt/elastic-apm-agent.jar"
+ELASTIC_APM_AWS_LAMBDA_HANDLER = <HANDLER_CLASS_NAME> # the fully qualified class name of your Lambda handler
+ELASTIC_APM_METRICS_INTERVAL   = "0s"
+ELASTIC_APM_CENTRAL_CONFIG     = "false"
+ELASTIC_APM_CLOUD_PROVIDER     = "none"
+ELASTIC_APM_LAMBDA_APM_SERVER  = <YOUR-APM-SERVER-URL>     # this is your APM Server URL
+ELASTIC_APM_SECRET_TOKEN       = <YOUR-APM-SECRET-TOKEN>   # this is your APM secret token
+----
+
+// end::container-with-agent[]
