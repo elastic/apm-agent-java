@@ -38,13 +38,13 @@ https://www.elastic.co/blog/create-your-own-instrumentation-with-the-java-agent-
 provide a detailed example of adding custom instrumentation for an application to the agent. An overview is
 
 1. subclass `co.elastic.apm.agent.sdk.ElasticApmInstrumentation`
-1. specify matchers the define which classes and methods will be instrumented
-1. add an instrumentation advice implementation
-1. create a META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation file which lists the
+2. specify matchers the define which classes and methods will be instrumented
+3. add an instrumentation advice implementation
+4. create a META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation file which lists the
 fully qualified instrumentation class names, one class name per line
-1. create a plugin jar that includes the instrumentation classes, the `co.elastic.apm.agent.sdk.ElasticApmInstrumentation`
+5. create a plugin jar that includes the instrumentation classes, the `co.elastic.apm.agent.sdk.ElasticApmInstrumentation`
 file, and any dependencies (apart from the agent itself, though including the plugin API as shown above)
-1. start your application with the agent as normal, but additionally with the
+6. start your application with the agent as normal, but additionally with the
 https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-plugins-dir[plugins_dir configuration option]
 set to a directory which includes the created plugin jar (and which should only hold plugin jars, as the agent will attempt
 to load any jar in that directory).
