@@ -1,9 +1,12 @@
 [[setup-attach-cli]]
 === Automatic setup with `apm-agent-attach-cli.jar`
 
-The `apm-agent-attach-cli.jar` is an executable Java command line program which attaches the Elastic APM Java agent to a specific JVM or to all JVMs of the same host it runs on.
+The `apm-agent-attach-cli.jar` is an executable Java command line program which attaches the Elastic APM Java agent to a specific JVM or to all JVMs of the same host it runs on, it has the following properties:
 
-This installation method does not require you to alter the configuration of your application server and can be used to conveniently instrument all JVMs on a particular host.
+- No application code changes required.
+- Does not require to change JVM arguments nor application server configuration.
+- Allows to instrument all JVMs on given host, both running and by monitoring new JVMs as they start.
+- Requires to copy and execute the `apm-agent-attach-cli.jar` binary on the host.
 
 [float]
 [[setup-attach-cli-supported-environments]]
