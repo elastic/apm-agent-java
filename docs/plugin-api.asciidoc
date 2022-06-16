@@ -40,7 +40,7 @@ provide a detailed example of adding custom instrumentation for an application t
 1. subclass `co.elastic.apm.agent.sdk.ElasticApmInstrumentation`
 2. specify matchers the define which classes and methods will be instrumented
 3. add an instrumentation advice implementation
-4. create a META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation file which lists the
+4. create a `META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation` file which lists the
 fully qualified instrumentation class names, one class name per line
 5. create a plugin jar that includes the instrumentation classes, the `co.elastic.apm.agent.sdk.ElasticApmInstrumentation`
 file, and any dependencies (apart from the agent itself, though including the plugin API as shown above)
