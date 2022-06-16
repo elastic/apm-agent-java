@@ -5,9 +5,8 @@ The `apm-agent-attach` setup allows to attach the agent through code, it has the
 
 - A one-line code modification in the application is required to start the agent.
 - Does not require to change JVM options.
-- The `apm-agent-attach` dependency embeds a copy of the agent, which means the agent becomes part of the packaged application binary,
-any agent update will require to re-build and package the application.
-- Provides some extra control and flexibility on the agent startup and configuration.
+- The agent is managed as a maven or gradle dependency. This ensures that you have control over which agent version is used for each of your applications.
+- Allows programmatic configuration of the agent.
 
 [float]
 [[setup-attach-api-supported-environments]]

@@ -7,6 +7,7 @@ Using the `-javaagent` option is the most common way to set up java agents on a 
 - Requires to change JVM arguments, which implies a restart of the whole JVM.
 - For application servers, the JVM arguments modification requires changing application server configuration
 - Agent artifact is an extra binary to manage alongside the JVM or application server.
+- Ensures that that the application is fully instrumented before it starts.
 
 [float]
 [[setup-javaagent-download]]
