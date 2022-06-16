@@ -7,7 +7,7 @@ The `apm-agent-attach-cli.jar` is an executable Java command line program which 
 - Does not require to change JVM arguments nor application server configuration.
 - Allows to instrument all JVMs on given host, both running and by monitoring new JVMs as they start.
 - Requires to copy and execute the `apm-agent-attach-cli.jar` binary on the host.
-- Relies on the https://docs.oracle.com/javase/8/docs/jdk/api/attach/spec/com/sun/tools/attach/VirtualMachine.html#attach-java.lang.String-:[runtime attachment capabilities] for java agents of the JVM but doesn't require a full JDK or the `tools.jar`.
+- Relies on the https://docs.oracle.com/javase/8/docs/jdk/api/attach/spec/com/sun/tools/attach/VirtualMachine.html#attach-java.lang.String-[runtime attachment capabilities] for java agents of the JVM but doesn't require a full JDK or the `tools.jar`.
 - Events that happen while the application starts up may not be captured.
 - It is not possible to attach to JVMs that are running in containers or in Kubernetes pods.
 
