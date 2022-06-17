@@ -21,7 +21,7 @@
             </Filters>
         </Appender>
 
-        <Appender type="RandomAccessFile" name="FILE" fileName="target/log4j2.log" append="false" createOnDemand="true">
+        <Appender type="RandomAccessFile" name="FILE" fileName="${sys:java.io.tmpdir}/log4j2.log" append="false">
             <Layout type="PatternLayout">
                 <Pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z'} %thread %-5level %logger{36} %msg%n</Pattern>
             </Layout>
