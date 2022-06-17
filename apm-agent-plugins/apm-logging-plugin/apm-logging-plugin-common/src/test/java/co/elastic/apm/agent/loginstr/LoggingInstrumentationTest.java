@@ -115,6 +115,15 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
     @AfterEach
     public void closeLogger() {
+
+        // deleting the test log file to prevent unexpected test failures on Windows
+        Path logFile = Path.of(logger.getLogFilePath());
+        try {
+            Files.delete(logFile);
+        } catch (IOException e) {
+            // silently ignored
+        }
+
         childSpan.deactivate().end();
         transaction.deactivate().end();
         logger.close();
