@@ -131,6 +131,7 @@ Click on a key to get more information.
 ** <<config-span-min-duration>>
 ** <<config-cloud-provider>>
 ** <<config-enable-public-api-annotation-inheritance>>
+** <<config-transaction-name-groups>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
 ** <<config-transaction-ignore-urls>>
@@ -1369,6 +1370,39 @@ A boolean specifying if the agent should search the class hierarchy for public a
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.enable_public_api_annotation_inheritance` | `enable_public_api_annotation_inheritance` | `ELASTIC_APM_ENABLE_PUBLIC_API_ANNOTATION_INHERITANCE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-transaction-name-groups]]
+==== `transaction_name_groups` (added[1.33.0])
+
+With this option,
+you can group transaction names that contain dynamic parts with a wildcard expression.
+For example,
+the pattern `GET /user/*/cart` would consolidate transactions,
+such as `GET /users/42/cart` and `GET /users/73/cart` into a single transaction name `GET /users/*/cart`,
+hence reducing the transaction name cardinality.
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.transaction_name_groups` | `transaction_name_groups` | `ELASTIC_APM_TRANSACTION_NAME_GROUPS`
 |============
 
 [[config-http]]
@@ -3475,6 +3509,24 @@ Example: `5ms`.
 # Default value: false
 #
 # enable_public_api_annotation_inheritance=false
+
+# With this option,
+# you can group transaction names that contain dynamic parts with a wildcard expression.
+# For example,
+# the pattern `GET /user/*/cart` would consolidate transactions,
+# such as `GET /users/42/cart` and `GET /users/73/cart` into a single transaction name `GET /users/*/cart`,
+# hence reducing the transaction name cardinality.
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: comma separated list
+# Default value: 
+#
+# transaction_name_groups=
 
 ############################################
 # HTTP                                     #

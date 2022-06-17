@@ -21,13 +21,14 @@ endif::[]
 === Unreleased
 
 [[release-notes-x.x.x]]
-==== 1.32.1 - YYYY/MM/DD
+==== 1.33.0 - YYYY/MM/DD
 
 [float]
 ===== Breaking changes
 
 [float]
 ===== Features
+* Added <<config-transaction-name-groups, `transaction_name_groups`>> configuration option.
 
 [float]
 ===== Bug fixes

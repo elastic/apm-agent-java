@@ -714,6 +714,22 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(false);
 
+    private final ConfigurationOption<List<WildcardMatcher>> transactionNameGroups = ConfigurationOption
+        .builder(new org.stagemonitor.configuration.converter.ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("transaction_name_groups")
+        .tags("added[1.33.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("With this option,\n" +
+            "you can group transaction names that contain dynamic parts with a wildcard expression.\n" +
+            "For example,\n" +
+            "the pattern `GET /user/*/cart` would consolidate transactions,\n" +
+            "such as `GET /users/42/cart` and `GET /users/73/cart` into a single transaction name `GET /users/*/cart`,\n" +
+            "hence reducing the transaction name cardinality.\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION)
+        .dynamic(false)
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
+
     public boolean isEnabled() {
         return enabled.get();
     }
@@ -941,6 +957,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isEnablePublicApiAnnotationInheritance() {
         return enablePublicApiAnnotationInheritance.get();
+    }
+
+    public List<WildcardMatcher> getTransactionNameGroups() {
+        return transactionNameGroups.get();
     }
 
     public enum EventType {
