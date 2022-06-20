@@ -40,7 +40,9 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overrides
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
+import static net.bytebuddy.matcher.ElementMatchers.isDeclaredBy;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
@@ -59,7 +61,7 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
         public static void setTransactionName(@SimpleMethodSignature String signature) {
             final Transaction transaction = tracer.currentTransaction();
             if (transaction != null) {
-                transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK);
+                transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK, false);
                 transaction.setFrameworkName(FRAMEWORK_NAME);
             }
         }
@@ -90,9 +92,12 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return overridesOrImplementsMethodThat(
-            isAnnotatedWith(
-                namedOneOf("javax.jws.WebMethod", "jakarta.jws.WebMethod")))
-            .onSuperClassesThat(isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any()));
+            isPublic().and(isDeclaredBy(isInterface()))
+        ).whereHierarchyContains(
+            isInterface().and(isAnnotatedWith(namedOneOf("javax.jws.WebService", "jakarta.jws.WebService")))
+        ).onSuperClassesThat(
+            isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any())
+        );
     }
 
     @Override

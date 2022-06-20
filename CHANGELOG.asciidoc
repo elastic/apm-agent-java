@@ -20,8 +20,24 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-x.x.x]]
+==== 1.32.1 - YYYY/MM/DD
+
+[float]
+===== Breaking changes
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+* Fix for JAX-WS (SOAP) transaction names. The agent now properly names transaction for web service methods that are not annotated with `@WebMethod`. - {pull}2667[#2667]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.32.0]]
-==== 1.32.0 - YYYY/MM/DD
+==== 1.32.0 - 2022/06/13
 
 ===== Potentially breaking changes
 * For relational databases, the agent now captures the database name and makes it part of service dependencies and service map.
@@ -30,6 +46,13 @@ the agent will now include the database name in the dependency, thus `mysql/my-d
 
 [float]
 ===== Features
+* Promote mature agent features as Generaly Available (GA) - {pull}2632[#2632]
+** <<opentelemetry-bridge,OpenTelemetry bridge>> is now enabled by default
+** <<config-circuit-breaker,Circuit breaker>> marked as GA (still disabled by default)
+** <<setup-attach-api,API Attach>> and <<setup-attach-cli,CLI Attach>> marked as GA
+** <<config-use-path-as-transaction-name,`use_path_as_transaction_name`>> configuration option marked as GA
+** Dubbo instrumentation is now enabled by default
+** `com.sun.net.httpserver.HttpServer` instrumentation marked as GA
 * Struts action invocations via an action chain result start a new span - {pull}2513[#2513]
 * Added official support for Elasticsearch Java API client - {pull}2211[#2211]
 * Added the ability to make spans non-discardable through the public API and the OpenTelemetry bridge - {pull}2632[#2632]
@@ -45,9 +68,6 @@ from maven at runtime unless configured otherwise through  `--download-agent-ver
 ===== Bug fixes
 * Fix missing attributes in bridged OTel transactions - {pull}2657[#2657]
 * Fix `transaction.result` with bridged OTel transactions - {pull}2660[#2660]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.31.0]]
 ==== 1.31.0 - 2022/05/17
@@ -990,7 +1010,7 @@ for more details) - {pull}1009[#1009]
 <<config-service-node-name, `service_node_name`>>
 config option]
 * Add ability to ignore some exceptions to be reported as errors <<config-ignore-exceptions[ignore_exceptions]
-* Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the 
+* Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the
    polling method itself (ie from `receive` start to end), the agent will create a transaction attempting to capture
    the code executed during actual message handling.
    This logic is suitable for environments where polling APIs are invoked within dedicated polling threads.
