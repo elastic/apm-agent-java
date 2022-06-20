@@ -1511,7 +1511,7 @@ transaction names of unsupported or partially-supported frameworks will be in th
 WARNING: If your URLs contain path parameters like `/user/$userId`,
 you should be very careful when enabling this flag,
 as it can lead to an explosion of transaction groups.
-Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
+Take a look at the <<config-transaction-name-groups,`transaction_name_groups`>> option on how to mitigate this problem by grouping URLs together.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -1532,7 +1532,9 @@ Take a look at the `url_groups` option on how to mitigate this problem by groupi
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-url-groups]]
-==== `url_groups`
+==== `url_groups` (deprecated)
+
+Deprecated in favor of <<config-transaction-name-groups,`transaction_name_groups`>>.
 
 This option is only considered, when `use_path_as_transaction_name` is active.
 
@@ -3586,7 +3588,7 @@ Example: `5ms`.
 # WARNING: If your URLs contain path parameters like `/user/$userId`,
 # you should be very careful when enabling this flag,
 # as it can lead to an explosion of transaction groups.
-# Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
+# Take a look at the <<config-transaction-name-groups,`transaction_name_groups`>> option on how to mitigate this problem by grouping URLs together.
 #
 # This setting can be changed at runtime
 # Type: Boolean
@@ -3594,6 +3596,8 @@ Example: `5ms`.
 #
 # use_path_as_transaction_name=false
 
+# Deprecated in favor of <<config-transaction-name-groups,`transaction_name_groups`>>.
+# 
 # This option is only considered, when `use_path_as_transaction_name` is active.
 # 
 # With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.

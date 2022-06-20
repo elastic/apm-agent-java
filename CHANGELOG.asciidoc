@@ -29,6 +29,7 @@ endif::[]
 [float]
 ===== Features
 * Added <<config-transaction-name-groups, `transaction_name_groups`>> configuration option.
+** Deprecated <<config-url-groups, `url_groups`>> in favor of <<config-transaction-name-groups, `transaction_name_groups`>>.
 
 [float]
 ===== Bug fixes
