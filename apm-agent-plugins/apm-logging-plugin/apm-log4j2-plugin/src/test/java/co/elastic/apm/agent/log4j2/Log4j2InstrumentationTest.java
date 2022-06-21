@@ -97,10 +97,6 @@ public class Log4j2InstrumentationTest extends LoggingInstrumentationTest {
 
         @Override
         public void open() {
-            Path targetDirPath = Paths.get(System.getProperty("user.dir"), "target");
-            assertThat(targetDirPath).exists();
-            assertThat(targetDirPath).isWritable();
-
             log4j2Logger = LogManager.getLogger("Test-File-Logger");
             assertThat(log4j2Logger).isInstanceOf(org.apache.logging.log4j.core.Logger.class);
 
