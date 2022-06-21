@@ -36,6 +36,8 @@ import org.junit.jupiter.api.Disabled;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 
@@ -95,6 +97,10 @@ public class Log4j2InstrumentationTest extends LoggingInstrumentationTest {
 
         @Override
         public void open() {
+            Path targetDirPath = Paths.get(System.getProperty("user.dir"), "target");
+            assertThat(targetDirPath).exists();
+            assertThat(targetDirPath).isWritable();
+
             log4j2Logger = LogManager.getLogger("Test-File-Logger");
             assertThat(log4j2Logger).isInstanceOf(org.apache.logging.log4j.core.Logger.class);
 

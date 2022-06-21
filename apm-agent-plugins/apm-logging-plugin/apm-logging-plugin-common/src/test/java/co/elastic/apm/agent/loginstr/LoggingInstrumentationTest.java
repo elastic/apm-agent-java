@@ -115,34 +115,9 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
     @AfterEach
     public void closeLogger() {
-
-        // deleting the test log file to prevent unexpected test failures on Windows
-        Path logFile = Path.of(logger.getLogFilePath());
-
         childSpan.deactivate().end();
         transaction.deactivate().end();
         logger.close();
-
-        int retry = 5;
-        boolean exists;
-        do {
-            try {
-                Files.delete(logFile);
-            } catch (IOException e) {
-                // silently ignored
-            }
-            exists = Files.exists(logFile);
-            if (exists) {
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    // ignored
-                }
-            }
-        } while (retry-- > 0 && exists);
-        if (Files.exists(logFile)) {
-            throw new IllegalStateException("unable to delete file " + logFile);
-        }
     }
 
     protected abstract LoggerFacade createLoggerFacade();
