@@ -26,6 +26,7 @@
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
+            <!-- keep 5.x version for now to keep test app compatible with most app servers -->
             <version>5.0.0</version>
             <scope>provided</scope>
         </dependency>
