@@ -17,15 +17,19 @@
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
 
         <!-- spring boot version to use (for testing), needs to be kept in sync with spring version below -->
-        <version.spring-boot>2.2.4.RELEASE</version.spring-boot>
+        <version.spring-boot>2.5.3</version.spring-boot>
 
         <!-- spring version & reactor our instrumentation will rely on -->
-        <version.spring>5.2.3.RELEASE</version.spring>
-        <version.reactor>3.3.2.RELEASE</version.reactor>
+        <version.spring>5.3.10</version.spring>
+        <version.reactor>3.4.18</version.reactor>
+
+        <!-- Jackson version should match the version found spring-boot dependencies, only for tests -->
+        <version.jackson>2.12.4</version.jackson>
     </properties>
 
     <modules>
         <module>apm-spring-webflux-plugin</module>
+        <module>apm-spring-webclient-plugin</module>
         <module>apm-spring-webflux-testapp</module>
     </modules>
 </project>
