@@ -28,6 +28,7 @@ endif::[]
 
 [float]
 ===== Features
+* Add support for Spring WebClient - {pull}2229[#2229]
 
 [float]
 ===== Bug fixes
@@ -63,7 +64,6 @@ the agent will now include the database name in the dependency, thus `mysql/my-d
 addition, when using the `apm-agent-attach-cli-slim.jar`, which does not contain a bundled agent, the latest version will be downloaded
 from maven at runtime unless configured otherwise through  `--download-agent-version` - {pull}2659[#2659]
 * Added span-links to messaging systems instrumentation (supported by APM Server 8.3+ only) - {pull}2610[#2610]
-* Add support for Spring WebClient - {pull}2229[#2229]
 
 [float]
 ===== Bug fixes
