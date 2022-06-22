@@ -1,7 +1,12 @@
 [[setup-attach-api]]
 === Programmatic API setup to self-attach
 
-NOTE: This installation method is in beta.
+The `apm-agent-attach` setup allows to attach the agent through code, it has the following properties
+
+- A one-line code modification in the application is required to start the agent.
+- Does not require to change JVM options.
+- The agent is managed as a maven or gradle dependency. This ensures that you have control over which agent version is used for each of your applications.
+- Allows programmatic configuration of the agent.
 
 [float]
 [[setup-attach-api-supported-environments]]
@@ -13,9 +18,6 @@ Unix and Solaris operating systems on HotSpot-based JVMs (like OpenJDK and Oracl
 [float]
 [[setup-attach-api-caveats]]
 ==== Caveats
-
-The approach to mitigate `NoClassDefFoundError` s when used in OSGi containers (which includes most application servers) is experimental.
-Versions prior to 1.18.0 don't support OSGi containers.
 
 There can only be one agent instance with one configuration per JVM.
 So if you deploy multiple web applications to the same application server and call `ElasticApmAttacher.attach()` in each application,

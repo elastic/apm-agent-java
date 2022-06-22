@@ -43,7 +43,7 @@ import java.util.regex.Pattern;
  */
 public class AgentDownloader {
 
-    private static final String VERSION_EXTRACTION_REGEX = "<a href.+>([0-9]+.[0-9.]+.[0-9.]+)/</a>";
+    private static final Pattern VERSION_EXTRACTION_REGEX = Pattern.compile("<version>(.+?)</version>");
     private static final String AGENT_GROUP_ID = "co.elastic.apm";
     private static final String AGENT_ARTIFACT_ID = "elastic-apm-agent";
     private static final String CLI_JAR_VERSION;
@@ -220,25 +220,27 @@ public class AgentDownloader {
     }
 
     static String findLatestVersion() throws Exception {
-        String agentArtifactMavenBaseUrl = getAgentArtifactMavenBaseUrl();
-        HttpURLConnection httpURLConnection = openConnection(agentArtifactMavenBaseUrl);
-        TreeSet<Version> versions = parseMavenArtifactHtml(httpURLConnection.getInputStream());
+        String agentArtifactMavenMetadatUrl = getAgentArtifactMavenBaseUrl() + "/maven-metadata.xml";
+        HttpURLConnection httpURLConnection = openConnection(agentArtifactMavenMetadatUrl);
+        TreeSet<Version> versions = parseMavenMetadataXml(httpURLConnection.getInputStream());
         if (versions.isEmpty()) {
-            throw new IllegalStateException("Failed to parse agent versions from the contents of " + agentArtifactMavenBaseUrl);
+            throw new IllegalStateException("Failed to parse agent versions from the contents of " + agentArtifactMavenMetadatUrl);
         }
         return versions.last().toString();
     }
 
-    static TreeSet<Version> parseMavenArtifactHtml(InputStream htmlInputStream) throws IOException {
+    static TreeSet<Version> parseMavenMetadataXml(InputStream htmlInputStream) throws IOException {
         TreeSet<Version> versions = new TreeSet<>();
         BufferedReader versionsHtmlReader = new BufferedReader(new InputStreamReader(htmlInputStream));
-        Pattern pattern = Pattern.compile(VERSION_EXTRACTION_REGEX);
         String line;
         while ((line = versionsHtmlReader.readLine()) != null) {
             try {
-                Matcher matcher = pattern.matcher(line);
+                Matcher matcher = VERSION_EXTRACTION_REGEX.matcher(line);
                 if (matcher.find()) {
-                    versions.add(Version.of(matcher.group(1)));
+                    Version version = Version.of(matcher.group(1));
+                    if (!version.hasSuffix()) {
+                        versions.add(version);
+                    }
                 }
             } catch (Exception e) {
                 // ignore, probably a regex false positive

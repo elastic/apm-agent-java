@@ -25,8 +25,9 @@ you can vote for it by participating in our
 https://docs.google.com/forms/d/e/1FAIpQLScd0RYiwZGrEuxykYkv9z8Hl3exx_LKCtjsqEo1OWx8BkLrOQ/viewform?usp=sf_link[survey].
 We will use the results to add support for the most requested technologies.
 
-Another option is to add a dependency to the agent's <<public-api, public API>>
-in order to programmatically create custom transactions and spans.
+Other options are to add a dependency to the agent's <<public-api, public API>>
+in order to programmatically create custom transactions and spans, or to create
+your own <<plugin-api,plugin>> that will instrument the technology you want instrumented.
 
 If you want to extend the auto-instrumentation capabilities of the agent,
 the https://github.com/elastic/apm-agent-java/blob/main/CONTRIBUTING.md[contributing guide] should get you started.
@@ -41,15 +42,18 @@ the agent does not capture transactions.
 [[supported-java-versions]]
 === Java versions
 
+
+NOTE: As of version 1.33.0, Java 7 support is deprecated and will be removed in a future release
+
 |===
 |Vendor |Supported versions |Notes
 
 |Oracle JDK
-|7u60+, 8u40+, 9, 10, 11, 17
+|7u60+*, 8u40+, 9, 10, 11, 17
 |`--module-path` has not been tested yet
 
 |OpenJDK
-|7u60+, 8u40+, 9, 10, 11, 17
+|7u60+*, 8u40+, 9, 10, 11, 17
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
@@ -57,13 +61,15 @@ the agent does not capture transactions.
 |<<method-sampling-based,Sampling profiler>> is not supported
 
 |HP-UX JVM
-| 7.0.10+, 8.0.02+
+| 7.0.10+*, 8.0.02+
 |
 
 |SAP JVM
 | 8.1.065+
 |
 |===
+
+{empty}* Java 7 support is deprecated and will be removed in a future release
 
 **Early Java 8 and Java 7**
 
@@ -164,7 +170,7 @@ rendering
 |com.sun.net.httpserver.HttpServer
 |1.7+
 |Captures incoming HTTP requests as transactions
-|1.25.0 (experimental)
+|1.25.0
 
 |Javalin
 |3.13.8+
@@ -328,7 +334,7 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 
 |Apache Dubbo
 | 2.5+, except for 2.7.0, 2.7.1, and 2.7.2
-| This is an experimental plugin. Remove `experimental` from <<config-disable-instrumentations,`disable_instrumentations`>> to enable.
+|
 | 1.17.0
 
 |JDK 11 HttpClient

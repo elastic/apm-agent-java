@@ -40,6 +40,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class ApmServerHealthChecker implements Callable<Version> {
+
+    public static final Version UNKNOWN_VERSION = Version.of("1.0.0");
     private static final Logger logger = LoggerFactory.getLogger(ApmServerHealthChecker.class);
 
     private static final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
@@ -102,7 +104,7 @@ public class ApmServerHealthChecker implements Callable<Version> {
         if (!versions.isEmpty()) {
             return Collections.min(versions);
         }
-        return Version.UNKNOWN_VERSION;
+        return UNKNOWN_VERSION;
     }
 
     static Version parseVersion(String body) throws java.io.IOException {

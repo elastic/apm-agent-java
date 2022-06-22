@@ -17,6 +17,8 @@ There are three different ways enhance the out-of-the-box instrumentation of the
 . <<opentracing-bridge>> +
   A vendor neutral API that is discontinued in favor of OpenTelemetry.
 
+A further option is the <<plugin-api, plugin api>> which uses the OpenTelemetry API and allows you to add in custom instrumentation without modifying the application.
+
 [float]
 [[apis-operation-modes]]
 == Operation Modes
