@@ -31,9 +31,9 @@ import reactor.core.publisher.Operators;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class WebfluxClientHelper {
+public class WebClientHelper {
 
-    private static final Logger log = LoggerFactory.getLogger(WebfluxClientHelper.class);
+    private static final Logger log = LoggerFactory.getLogger(WebClientHelper.class);
 
     public static <T> Publisher<T> wrapSubscriber(Publisher<T> publisher, final Span span, final Tracer tracer) {
 
@@ -45,7 +45,7 @@ public class WebfluxClientHelper {
                     if (tracer.getActive() == null) {
                         return subscriber;
                     }
-                    return new WebfluxClientSubscriber<>(subscriber, span, tracer);
+                    return new WebClientSubscriber<>(subscriber, span, tracer);
                 }
             }
         );

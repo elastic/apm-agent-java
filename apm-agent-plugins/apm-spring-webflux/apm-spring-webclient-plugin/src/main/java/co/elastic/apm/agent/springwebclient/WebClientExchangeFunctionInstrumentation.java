@@ -109,7 +109,7 @@ public class WebClientExchangeFunctionInstrumentation extends TracerAwareInstrum
             if (t != null || returnValue == null) {
                 return returnValue;
             }
-            return WebfluxClientHelper.wrapSubscriber(returnValue, span, tracer);
+            return WebClientHelper.wrapSubscriber(returnValue, span, tracer);
         }
     }
 }

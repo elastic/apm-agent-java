@@ -31,16 +31,17 @@ import reactor.core.CoreSubscriber;
 
 import javax.annotation.Nullable;
 
-public class WebfluxClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
-    public static final Logger logger = LoggerFactory.getLogger(WebfluxClientSubscriber.class);
+public class WebClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
 
-    private static final WeakMap<WebfluxClientSubscriber<?>, Span> spanMap = WeakConcurrentProviderImpl.createWeakSpanMap();
+    private static final Logger logger = LoggerFactory.getLogger(WebClientSubscriber.class);
+
+    private static final WeakMap<WebClientSubscriber<?>, Span> spanMap = WeakConcurrentProviderImpl.createWeakSpanMap();
 
     private final Tracer tracer;
     private final CoreSubscriber<? super T> subscriber;
     private Subscription subscription;
 
-    public WebfluxClientSubscriber(CoreSubscriber<? super T> subscriber, Span span, Tracer tracer) {
+    public WebClientSubscriber(CoreSubscriber<? super T> subscriber, Span span, Tracer tracer) {
         this.subscriber = subscriber;
         this.tracer = tracer;
 

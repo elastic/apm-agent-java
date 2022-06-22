@@ -45,20 +45,19 @@ public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentat
     @Parameterized.Parameters(name = "client = {0}, request strategy = {2}")
     public static Object[][] testParams() {
         return new Object[][]{
-            {"jetty",  jettyClient(), RequestStrategy.EXCHANGE, false},
-            {"jetty",  jettyClient(), RequestStrategy.EXCHANGE_TO_FLUX, false},
-            {"jetty",  jettyClient(), RequestStrategy.EXCHANGE_TO_MONO, false},
-            {"jetty",  jettyClient(), RequestStrategy.RETRIEVE, false},
-            {"netty",  nettyClient(), RequestStrategy.EXCHANGE, true},
-            {"netty",  nettyClient(), RequestStrategy.EXCHANGE_TO_FLUX, true},
-            {"netty",  nettyClient(), RequestStrategy.EXCHANGE_TO_MONO, true},
-            {"netty",  nettyClient(), RequestStrategy.RETRIEVE, true},
-            {"hc5",  reactiveHttpClient5(), RequestStrategy.EXCHANGE, false},
-            {"hc5",  reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_FLUX, false},
-            {"hc5",  reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_MONO, false},
-            {"hc5",  reactiveHttpClient5(), RequestStrategy.RETRIEVE, false}
+            {"jetty", jettyClient(), RequestStrategy.EXCHANGE, false},
+            {"jetty", jettyClient(), RequestStrategy.EXCHANGE_TO_FLUX, false},
+            {"jetty", jettyClient(), RequestStrategy.EXCHANGE_TO_MONO, false},
+            {"jetty", jettyClient(), RequestStrategy.RETRIEVE, false},
+            {"netty", nettyClient(), RequestStrategy.EXCHANGE, true},
+            {"netty", nettyClient(), RequestStrategy.EXCHANGE_TO_FLUX, true},
+            {"netty", nettyClient(), RequestStrategy.EXCHANGE_TO_MONO, true},
+            {"netty", nettyClient(), RequestStrategy.RETRIEVE, true},
+            {"hc5", reactiveHttpClient5(), RequestStrategy.EXCHANGE, false},
+            {"hc5", reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_FLUX, false},
+            {"hc5", reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_MONO, false},
+            {"hc5", reactiveHttpClient5(), RequestStrategy.RETRIEVE, false}
         };
-
     }
 
     @Override
