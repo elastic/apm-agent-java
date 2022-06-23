@@ -727,7 +727,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "hence reducing the transaction name cardinality.\n" +
             "\n" +
             WildcardMatcher.DOCUMENTATION)
-        .dynamic(false)
+        .dynamic(true)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
     public boolean isEnabled() {
