@@ -137,12 +137,12 @@ public class SpanDiscardingTest extends AbstractApiTest {
         span.end();
     }
 
-    @CaptureSpan(value = "not-discarded", discardable = false)
+    @CaptureSpan(value = "not-discarded", discardable = "false")
     private void notDiscarded_captureAnnotation() {
         childSpan();
     }
 
-    @Traced(value = "not-discarded", discardable = false)
+    @Traced(value = "not-discarded", discardable = "false")
     private void notDiscarded_tracedAnnotation() {
         childSpan();
     }
