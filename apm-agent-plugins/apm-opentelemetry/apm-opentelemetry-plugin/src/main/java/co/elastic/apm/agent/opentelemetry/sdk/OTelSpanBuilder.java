@@ -20,9 +20,11 @@ package co.elastic.apm.agent.opentelemetry.sdk;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.MultiValueMapAccessor;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -41,9 +43,12 @@ import io.opentelemetry.context.Context;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 class OTelSpanBuilder implements SpanBuilder {
 
@@ -57,6 +62,7 @@ class OTelSpanBuilder implements SpanBuilder {
     private AbstractSpan<?> parent;
     @Nullable
     private Context remoteContext;
+    private List<byte[]> links = new ArrayList<>();
 
     @Nullable
     private SpanKind kind;
@@ -86,13 +92,15 @@ class OTelSpanBuilder implements SpanBuilder {
 
     @Override
     public SpanBuilder addLink(SpanContext spanContext) {
-        addLinkLogger.warn("The addLink API is not supported at the moment");
+        links.add(spanContext.getTraceIdBytes());
+        links.add(spanContext.getSpanIdBytes());
         return this;
     }
 
     @Override
-    public SpanBuilder addLink(SpanContext spanContext, Attributes attributes) {
-        addLinkLogger.warn("The addLink API is not supported at the moment");
+    public SpanBuilder addLink(SpanContext spanContext, Attributes attributes1) {
+        addLink(spanContext);
+        attributes1.forEach((AttributeKey<?> k, Object v) -> attributes.put((AttributeKey<? super Object>) k, (Object) v));
         return this;
     }
 
@@ -182,9 +190,47 @@ class OTelSpanBuilder implements SpanBuilder {
         // user outcome to provide higher priority and avoid inferring outcome from any reported exception
         span.withUserOutcome(Outcome.UNKNOWN);
 
+        // Add the links to the span
+        // Presumably you'd only start the span once, so no need to
+        // worry about too much byte[] garbage ... but maybe we should
+        // pool across builders? Or maybe the OtelSpanBuilder should be recyclable?
+        byte[] header = new byte[TraceContext.BINARY_FORMAT_EXPECTED_LENGTH];
+        for (int i = 0; i < links.size(); i+=2) {
+            byte[] traceID = links.get(i);
+            byte[] spanID = links.get(i+1);
+            TraceContext.filIdOutgoingTraceParentBinaryHeader(header, traceID, spanID);
+            span.addSpanLink(
+                TraceContext.getFromTraceContextBinaryHeaders(),
+                BinaryByteArrayAccessor.INSTANCE,
+                header);
+        }
+        links.clear();
+
         OTelSpan otelSpan = new OTelSpan(span);
         attributes.forEach((AttributeKey<?> k, Object v) -> otelSpan.setAttribute((AttributeKey<? super Object>) k, (Object) v));
         return otelSpan;
+    }
+
+    static class BinaryByteArrayAccessor implements BinaryHeaderGetter<byte[]> {
+
+        public static final BinaryByteArrayAccessor INSTANCE = new BinaryByteArrayAccessor();
+
+        private BinaryByteArrayAccessor() {
+        }
+
+        @Nullable
+        @Override
+        public byte[] getFirstHeader(String unused, byte[] header) {
+            return header;
+        }
+
+        @Override
+        public <S> void forEach(String headerName, byte[] carrier, S state, HeaderConsumer<byte[], S> consumer) {
+            if (carrier != null) {
+                consumer.accept(carrier, state);
+            }
+        }
+
     }
 
 }

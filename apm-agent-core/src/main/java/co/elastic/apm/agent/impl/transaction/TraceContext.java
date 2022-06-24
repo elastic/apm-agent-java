@@ -610,22 +610,37 @@ public class TraceContext implements Recyclable {
      * @return true if buffer was filled, false otherwise
      */
     private boolean fillOutgoingTraceParentBinaryHeader(byte[] buffer) {
+        return fillIdOutgoingTraceParentBinaryHeader(buffer, traceId, isSampled() ? id : transactionId, flags);
+    }
+    public static boolean filIdOutgoingTraceParentBinaryHeader(byte[] buffer, byte[] traceId, byte[] spanId) {
         if (buffer.length < BINARY_FORMAT_EXPECTED_LENGTH) {
             logger.warn("Given byte array does not have the minimal required length - {}", BINARY_FORMAT_EXPECTED_LENGTH);
             return false;
         }
+        fillNonIdOutgoingTraceParentBinaryHeader(buffer, (byte) 1);
+        System.arraycopy(traceId, 0, buffer, BINARY_FORMAT_TRACE_ID_OFFSET + 1, traceId.length);
+        System.arraycopy(spanId, 0, buffer, BINARY_FORMAT_PARENT_ID_OFFSET + 1, spanId.length);
+        return true;
+    }
+    private static boolean fillIdOutgoingTraceParentBinaryHeader(byte[] buffer, Id traceId, Id parentId, byte flags) {
+        if (buffer.length < BINARY_FORMAT_EXPECTED_LENGTH) {
+            logger.warn("Given byte array does not have the minimal required length - {}", BINARY_FORMAT_EXPECTED_LENGTH);
+            return false;
+        }
+        fillNonIdOutgoingTraceParentBinaryHeader(buffer, flags);
+        traceId.toBytes(buffer, BINARY_FORMAT_TRACE_ID_OFFSET + 1);
+        parentId.toBytes(buffer, BINARY_FORMAT_PARENT_ID_OFFSET + 1);
+        return true;
+    }
+    private static void fillNonIdOutgoingTraceParentBinaryHeader(byte[] buffer, byte flags) {
         buffer[0] = BINARY_FORMAT_CURRENT_VERSION;
         buffer[BINARY_FORMAT_TRACE_ID_OFFSET] = BINARY_FORMAT_TRACE_ID_FIELD_ID;
-        traceId.toBytes(buffer, BINARY_FORMAT_TRACE_ID_OFFSET + 1);
         buffer[BINARY_FORMAT_PARENT_ID_OFFSET] = BINARY_FORMAT_PARENT_ID_FIELD_ID;
         // for unsampled traces, propagate the ID of the transaction in calls to downstream services
         // such that the parentID of those transactions point to a transaction that exists
         // remember that we do report unsampled transactions
-        Id parentId = isSampled() ? id : transactionId;
-        parentId.toBytes(buffer, BINARY_FORMAT_PARENT_ID_OFFSET + 1);
         buffer[BINARY_FORMAT_FLAGS_OFFSET] = BINARY_FORMAT_FLAGS_FIELD_ID;
         buffer[BINARY_FORMAT_FLAGS_OFFSET + 1] = flags;
-        return true;
     }
 
     public boolean isChildOf(TraceContext other) {
