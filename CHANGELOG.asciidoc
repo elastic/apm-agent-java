@@ -29,11 +29,11 @@ endif::[]
 [float]
 ===== Features
 * Add support for Spring WebClient - {pull}2229[#2229]
+* Implemented span links in the OTel bridge. - {pull}2685[#2685]
 
 [float]
 ===== Bug fixes
 * Fix for JAX-WS (SOAP) transaction names. The agent now properly names transaction for web service methods that are not annotated with `@WebMethod`. - {pull}2667[#2667]
-* Implemented span links in the OTel bridge. - {pull}2685[#2685]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
