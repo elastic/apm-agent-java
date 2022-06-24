@@ -101,7 +101,7 @@ class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
 
         assertThat(reporter.getSpanByName("CREATE"))
             .hasDbStatement("CREATE TABLE users (id UUID PRIMARY KEY, name text)")
-                .hasDbInstance(KEYSPACE);
+            .hasDbInstance(KEYSPACE);
 
 
         assertThat(reporter.getSpanByName("INSERT INTO users"))

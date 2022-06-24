@@ -46,7 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 
 public class DynamoDbClientIT extends AbstractAwsClientIT {
@@ -54,7 +54,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     private AmazonDynamoDB dynamoDB;
     private AmazonDynamoDBAsync dynamoDBAsync;
 
-    private Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
+    private Consumer<Span> dbAssert = span -> assertThat(span).hasDbInstance(localstack.getRegion());
 
     @BeforeEach
     public void setupClient() {
@@ -97,7 +97,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
                 .withKeyConditionExpression(KEY_CONDITION_EXPRESSION)
                 .withExpressionAttributeValues(Map.of(":one", new AttributeValue("valueOne")))),
             dbAssert
-                .andThen(span -> assertThat(span.getContext().getDb().getStatement()).isEqualTo(KEY_CONDITION_EXPRESSION)));
+                .andThen(span -> assertThat(span).hasDbStatement(KEY_CONDITION_EXPRESSION)));
 
         executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDB.deleteTable(TABLE_NAME),
             dbAssert);
@@ -144,7 +144,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
                 .withKeyConditionExpression(KEY_CONDITION_EXPRESSION)
                 .withExpressionAttributeValues(Map.of(":one", new AttributeValue("valueOne")))),
             dbAssert
-                .andThen(span -> assertThat(span.getContext().getDb().getStatement()).isEqualTo(KEY_CONDITION_EXPRESSION)));
+                .andThen(span -> assertThat(span).hasDbStatement(KEY_CONDITION_EXPRESSION)));
 
         executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDBAsync.deleteTableAsync(TABLE_NAME),
             dbAssert);
