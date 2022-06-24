@@ -33,6 +33,7 @@ endif::[]
 [float]
 ===== Bug fixes
 * Fix for JAX-WS (SOAP) transaction names. The agent now properly names transaction for web service methods that are not annotated with `@WebMethod`. - {pull}2667[#2667]
+* Fix for inferred spans the parent id and the child id to the same value
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
