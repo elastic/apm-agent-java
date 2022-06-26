@@ -182,7 +182,7 @@ pipeline {
              * Build & Test on Windows environment
              */
             stage('Build & Test Windows') {
-              agent { label 'windows-2019-docker-immutable' }
+              agent { label 'windows-2022-immutable' }
               options { skipDefaultCheckout() }
               when {
                 beforeAgent true

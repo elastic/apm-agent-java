@@ -197,7 +197,6 @@
                         </goals>
                         <configuration>
                             <verbose>true</verbose>
-                            <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
                         </configuration>
                     </execution>
                 </executions>
