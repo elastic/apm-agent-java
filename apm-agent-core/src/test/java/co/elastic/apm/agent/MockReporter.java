@@ -98,6 +98,7 @@ public class MockReporter implements Reporter {
 
     private boolean closed;
 
+    // we have to use a longer timeout on Windows to help reduce flakyness
     private static final long DEFAULT_ASSERTION_TIMEOUT = OS.WINDOWS.isCurrentOs() ? 3000 : 1000;
 
     private static final JsonNode SPAN_TYPES_SPEC = TestJsonSpec.getJson("span_types.json");
