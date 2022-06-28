@@ -39,6 +39,7 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import org.awaitility.core.ThrowingRunnable;
+import org.junit.jupiter.api.condition.OS;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import specs.TestJsonSpec;
 
@@ -96,6 +97,8 @@ public class MockReporter implements Reporter {
     private final boolean verifyJsonSchema;
 
     private boolean closed;
+
+    private static final long DEFAULT_ASSERTION_TIMEOUT = OS.WINDOWS.isCurrentOs() ? 3000 : 1000;
 
     private static final JsonNode SPAN_TYPES_SPEC = TestJsonSpec.getJson("span_types.json");
 
@@ -588,12 +591,12 @@ public class MockReporter implements Reporter {
     }
 
     /**
-     * Uses a timeout of 1s
+     * Uses the default timeout (see {@link  #DEFAULT_ASSERTION_TIMEOUT})
      *
      * @see #awaitUntilAsserted(long, ThrowingRunnable)
      */
     public void awaitUntilAsserted(ThrowingRunnable runnable) {
-        awaitUntilAsserted(1000, runnable);
+        awaitUntilAsserted(DEFAULT_ASSERTION_TIMEOUT, runnable);
     }
 
     /**
