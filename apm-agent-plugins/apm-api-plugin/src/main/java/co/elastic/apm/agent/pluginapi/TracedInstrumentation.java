@@ -72,7 +72,11 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "type") String type,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "subtype") @Nullable String subtype,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "action") @Nullable String action,
-            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "discardable") boolean discardable) {
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(
+                annotationClassName = "co.elastic.apm.api.Traced",
+                method = "discardable",
+                defaultValueProvider = AnnotationValueOffsetMappingFactory.TrueDefaultValueProvider.class
+            ) boolean discardable) {
 
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {

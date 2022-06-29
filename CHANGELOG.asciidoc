@@ -21,10 +21,7 @@ endif::[]
 === Unreleased
 
 [[release-notes-x.x.x]]
-==== 1.32.1 - YYYY/MM/DD
-
-[float]
-===== Breaking changes
+==== 1.33.0 - YYYY/MM/DD
 
 [float]
 ===== Features
@@ -33,6 +30,8 @@ endif::[]
 [float]
 ===== Bug fixes
 * Fix for JAX-WS (SOAP) transaction names. The agent now properly names transaction for web service methods that are not annotated with `@WebMethod`. - {pull}2667[#2667]
+* Fix public API backward compatibility that was broken in 1.32.0. With this version you can use any version of the public API once
+again - {pull}2682[#2682]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
@@ -41,6 +40,9 @@ endif::[]
 ==== 1.32.0 - 2022/06/13
 
 ===== Potentially breaking changes
+* If using the public API of version < 1.32.0 and using the `@CaptureSpan` or `@Traced` annotations, upgrading the agent to 1.32.0
+without upgrading the API version may cause `VerifyError`. This was fixed in version 1.33.0, which can once again be used with any
+version of the public API.
 * For relational databases, the agent now captures the database name and makes it part of service dependencies and service map.
 For example, with a `MySQL` database, previously a single `mysql` item was shown in the map and in service dependencies,
 the agent will now include the database name in the dependency, thus `mysql/my-db1`, `mysql/my-db2` will now be captured.

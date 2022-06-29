@@ -266,7 +266,8 @@ or a unit of work within a transaction (a span).
 * `type`: The type of the span or transaction. Defaults to `request` for transactions and `app` for spans
 * `subtype`: The subtype of the span, e.g. `mysql` for DB span. Defaults to empty string. Has no effect when a transaction is created.
 * `action`: The action related to the span, e.g. `query` for DB spans. Defaults to empty string. Has no effect when a transaction is created.
-* `discardable`: By default, spans may be discarded in certain scenarios. Set this attribute to `false` to make a span non-discardable.
+* `discardable`: By default, spans may be discarded in certain scenarios. Set this attribute to `false` to make this span non-discardable.
+This attribute has no effect if the created event is a Transaction.
 
 NOTE: Using this annotation implicitly creates a span or transaction and activates it when entering the annotated
 method. It also implicitly ends it and deactivates it before exiting the annotated method.
