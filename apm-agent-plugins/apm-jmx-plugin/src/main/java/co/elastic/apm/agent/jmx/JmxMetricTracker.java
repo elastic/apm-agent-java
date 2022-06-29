@@ -72,7 +72,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
     @Override
     public void start(ElasticApmTracer tracer) {
-        ConfigurationOption.ChangeListener<List<JmxMetric>> initChangeListener = new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
+        ConfigurationOption.ChangeListener<List<JmxMetric>> captureJmxMetricsListener = new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<JmxMetric> oldValue, List<JmxMetric> newValue) {
                 if (oldValue.isEmpty() && !newValue.isEmpty()) {
@@ -80,13 +80,28 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                 }
             }
         };
-        // adding change listener before checking if option is not empty to avoid missing an update due to a race condition
-        jmxConfiguration.getCaptureJmxMetrics().addChangeListener(initChangeListener);
-        if (!jmxConfiguration.getCaptureJmxMetrics().get().isEmpty()) {
+
+        ConfigurationOption.ChangeListener<Boolean> autoJmxMetricsListener = new ConfigurationOption.ChangeListener<Boolean>() {
+            @Override
+            public void onChange(ConfigurationOption<?> configurationOption, Boolean oldValue, Boolean newValue) {
+                if(!oldValue && newValue){
+                    tryInit();
+                }
+            }
+        };
+
+        // adding change listener before checking if options are not empty to avoid missing an update due to a race condition
+        jmxConfiguration.getCaptureJmxMetrics().addChangeListener(captureJmxMetricsListener);
+        jmxConfiguration.getAutoJmxMetrics().addChangeListener(autoJmxMetricsListener);
+
+        if (!jmxConfiguration.getCaptureJmxMetrics().get().isEmpty() || jmxConfiguration.getAutoJmxMetrics().get()) {
             tryInit();
-            jmxConfiguration.getCaptureJmxMetrics().removeChangeListener(initChangeListener);
+            jmxConfiguration.getCaptureJmxMetrics().removeChangeListener(captureJmxMetricsListener);
+            jmxConfiguration.getAutoJmxMetrics().removeChangeListener(autoJmxMetricsListener);
         } else {
-            logger.debug("Deferring initialization of JMX metric tracking until capture_jmx_metrics is set.");
+            logger.debug("Deferring initialization of JMX metric tracking until {} or {} options are set.",
+                jmxConfiguration.getCaptureJmxMetrics().getKey(),
+                jmxConfiguration.getAutoJmxMetrics().getKey());
         }
     }
 
