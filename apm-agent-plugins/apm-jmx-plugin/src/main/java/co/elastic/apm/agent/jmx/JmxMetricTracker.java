@@ -54,7 +54,6 @@ import java.util.concurrent.TimeUnit;
 
 public class JmxMetricTracker extends AbstractLifecycleListener {
 
-    private static final String JMX_PREFIX = "jvm.jmx.";
     private static final Logger logger = LoggerFactory.getLogger(JmxMetricTracker.class);
     @Nullable
     private volatile Thread logManagerPropertyPoller;
@@ -322,7 +321,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                     value = server.getAttribute(objectName, attribute.getJmxAttributeName());
                     if (value instanceof Number) {
                         logger.debug("Found number attribute {}={}", attribute.getJmxAttributeName(), value);
-                        registrations.add(new JmxMetricRegistration(JMX_PREFIX + attribute.getMetricName(),
+                        registrations.add(new JmxMetricRegistration(attribute.getMetricName(),
                             Labels.Mutable.of(objectName.getKeyPropertyList()),
                             attribute.getJmxAttributeName(),
                             null,
@@ -332,7 +331,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                         for (final String key : compositeValue.getCompositeType().keySet()) {
                             if (compositeValue.get(key) instanceof Number) {
                                 logger.debug("Found composite number attribute {}.{}={}", attribute.getJmxAttributeName(), key, value);
-                                registrations.add(new JmxMetricRegistration(JMX_PREFIX + attribute.getMetricName() + "." + key,
+                                registrations.add(new JmxMetricRegistration(attribute.getMetricName() + "." + key,
                                     Labels.Mutable.of(objectName.getKeyPropertyList()),
                                     attribute.getJmxAttributeName(),
                                     key,
