@@ -39,7 +39,6 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import org.awaitility.core.ThrowingRunnable;
-import org.junit.jupiter.api.condition.OS;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import specs.TestJsonSpec;
 
@@ -98,7 +97,7 @@ public class MockReporter implements Reporter {
 
     private boolean closed;
 
-    private static final long DEFAULT_ASSERTION_TIMEOUT = OS.WINDOWS.isCurrentOs() ? 3000 : 1000;
+    private static final long DEFAULT_ASSERTION_TIMEOUT = System.getProperty("os.name").startsWith("Windows") ? 3000 : 1000;
 
     private static final JsonNode SPAN_TYPES_SPEC = TestJsonSpec.getJson("span_types.json");
 
