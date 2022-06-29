@@ -20,8 +20,26 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-x.x.x]]
+==== 1.32.1 - YYYY/MM/DD
+
+[float]
+===== Breaking changes
+
+[float]
+===== Features
+* Add support for Spring WebClient - {pull}2229[#2229]
+* Added support for setting the remote address of a transaction via the public api - {pull}2522[#2522]
+
+[float]
+===== Bug fixes
+* Fix for JAX-WS (SOAP) transaction names. The agent now properly names transaction for web service methods that are not annotated with `@WebMethod`. - {pull}2667[#2667]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.32.0]]
-==== 1.32.0 - YYYY/MM/DD
+==== 1.32.0 - 2022/06/13
 
 ===== Potentially breaking changes
 * For relational databases, the agent now captures the database name and makes it part of service dependencies and service map.
@@ -30,19 +48,28 @@ the agent will now include the database name in the dependency, thus `mysql/my-d
 
 [float]
 ===== Features
+* Promote mature agent features as Generaly Available (GA) - {pull}2632[#2632]
+** <<opentelemetry-bridge,OpenTelemetry bridge>> is now enabled by default
+** <<config-circuit-breaker,Circuit breaker>> marked as GA (still disabled by default)
+** <<setup-attach-api,API Attach>> and <<setup-attach-cli,CLI Attach>> marked as GA
+** <<config-use-path-as-transaction-name,`use_path_as_transaction_name`>> configuration option marked as GA
+** Dubbo instrumentation is now enabled by default
+** `com.sun.net.httpserver.HttpServer` instrumentation marked as GA
 * Struts action invocations via an action chain result start a new span - {pull}2513[#2513]
 * Added official support for Elasticsearch Java API client - {pull}2211[#2211]
 * Added the ability to make spans non-discardable through the public API and the OpenTelemetry bridge - {pull}2632[#2632]
 * Added support for the new service target fields - {pull}2578[#2578]
 * Capture the database name from JDBC connection string - {pull}2642[#2642]
-* Added support for setting the remote address of a transaction via the public api - {pull}2522[#2522]
+* Added an additional span around Javalin template renderers - {pull}2381[#2381]
+* Added support for downloading the latest agent version through the attach CLI by setting `--download-agent-version latest`. In
+addition, when using the `apm-agent-attach-cli-slim.jar`, which does not contain a bundled agent, the latest version will be downloaded
+from maven at runtime unless configured otherwise through  `--download-agent-version` - {pull}2659[#2659]
+* Added span-links to messaging systems instrumentation (supported by APM Server 8.3+ only) - {pull}2610[#2610]
 
 [float]
 ===== Bug fixes
-* Fix missing attributes in bridged OTel transactions {pull}2657[#2657]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Fix missing attributes in bridged OTel transactions - {pull}2657[#2657]
+* Fix `transaction.result` with bridged OTel transactions - {pull}2660[#2660]
 
 [[release-notes-1.31.0]]
 ==== 1.31.0 - 2022/05/17
@@ -985,7 +1012,7 @@ for more details) - {pull}1009[#1009]
 <<config-service-node-name, `service_node_name`>>
 config option]
 * Add ability to ignore some exceptions to be reported as errors <<config-ignore-exceptions[ignore_exceptions]
-* Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the 
+* Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the
    polling method itself (ie from `receive` start to end), the agent will create a transaction attempting to capture
    the code executed during actual message handling.
    This logic is suitable for environments where polling APIs are invoked within dedicated polling threads.

@@ -70,6 +70,7 @@ Feature: OpenTelemetry bridge
     And OTel span ends
     Then Elastic bridged object is a transaction
     Then Elastic bridged transaction outcome is "<outcome>"
+    Then Elastic bridged transaction result is not set
     Examples:
       | status | outcome |
       | unset  | unknown |

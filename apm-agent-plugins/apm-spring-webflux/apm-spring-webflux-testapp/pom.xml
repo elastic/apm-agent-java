@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-spring-webflux</artifactId>
-        <version>1.31.1-SNAPSHOT</version>
+        <version>1.32.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-spring-webflux-testapp</artifactId>
@@ -30,6 +30,13 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
                 <version>${version.spring-boot}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${version.jackson}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -69,7 +76,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${version.jackson}</version>
             <scope>compile</scope>
         </dependency>
 
@@ -104,6 +110,12 @@
             <artifactId>junit-platform-commons</artifactId>
             <version>1.7.0</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${version.slf4j}</version>
         </dependency>
 
     </dependencies>

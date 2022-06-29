@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.junit.After;
@@ -61,8 +62,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.BOTH;
-import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.POLLING;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.JmsStrategy.BOTH;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.JmsStrategy.POLLING;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_EXPIRATION_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_MESSAGE_ID_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TIMESTAMP_HEADER;
@@ -393,6 +394,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         } else {
             assertThat(receiveSpan.getContext().getMessage().getAge()).isGreaterThanOrEqualTo(0);
         }
+        List<TraceContext> spanLinks = receiveSpan.getSpanLinks();
+        assertThat(spanLinks).hasSize(1);
+        assertThat(spanLinks.get(0).getTraceId()).isEqualTo(sendSpan.getTraceContext().getTraceId());
+        assertThat(spanLinks.get(0).getParentId()).isEqualTo(sendSpan.getTraceContext().getId());
 
         if (sendToNoopSpan != null) {
             assertThat(sendToNoopSpan.getTraceContext().getTraceId()).isEqualTo(receiveTraceId);
@@ -482,7 +487,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     }
 
     private void verifySendReceiveOnNonTracedThread(String destinationName, TextMessage message) throws JMSException {
-        MessagingConfiguration.Strategy strategy = config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy();
+        MessagingConfiguration.JmsStrategy strategy = config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy();
 
         List<Span> spans = reporter.getSpans();
         List<Transaction> receiveTransactions = reporter.getTransactions();

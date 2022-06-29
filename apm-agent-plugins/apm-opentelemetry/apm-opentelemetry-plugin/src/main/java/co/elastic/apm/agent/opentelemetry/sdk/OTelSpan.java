@@ -88,17 +88,6 @@ public class OTelSpan implements Span {
 
     @Override
     public Span setStatus(StatusCode statusCode, String description) {
-        if (span instanceof Transaction) {
-            Transaction t = (Transaction) span;
-            switch (statusCode) {
-                case OK:
-                    t.withResultIfUnset("OK");
-                    break;
-                case ERROR:
-                    t.withResultIfUnset("Error");
-                    break;
-            }
-        }
         switch (statusCode) {
             case ERROR:
                 span.withUserOutcome(Outcome.FAILURE);

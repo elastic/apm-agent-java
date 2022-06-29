@@ -39,6 +39,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
@@ -62,6 +63,9 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     @BeforeAll
     static void startApp() {
         app = WebFluxApplication.run(-1, "netty", true);
+
+        // make reactor debugging easier
+        Hooks.onOperatorDebug();
     }
 
     @AfterAll

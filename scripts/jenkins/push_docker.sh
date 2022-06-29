@@ -55,7 +55,7 @@ readonly LATEST_TAG=$(git tag --list --sort=version:refname "v*" | grep -v RC | 
 
 if [ "$CUR_TAG" = "$LATEST_TAG" ]
 then
-  echo "INFO: Current version ($DOCKER_TAG) is the latest version. Tagging and pushing $DOCKER_PUSH_IMAGE_LATEST ..."
+  echo "INFO: Current version ($CUR_TAG) is the latest version. Tagging and pushing $DOCKER_PUSH_IMAGE_LATEST ..."
   docker tag $DOCKER_PUSH_IMAGE $DOCKER_PUSH_IMAGE_LATEST
 
   if [ ${WORKERS+x} ]  # We are on a CI worker

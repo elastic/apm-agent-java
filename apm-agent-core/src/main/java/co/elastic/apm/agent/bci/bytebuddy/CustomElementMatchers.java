@@ -164,8 +164,13 @@ public class CustomElementMatchers {
             public boolean matches(@Nullable ProtectionDomain protectionDomain) {
                 try {
                     Version pdVersion = readImplementationVersionFromManifest(protectionDomain);
-                    Version limitVersion = Version.of(version);
+                    Version limitVersion = Version.of(version).withoutSuffix();
                     if (pdVersion != null) {
+                        pdVersion = pdVersion
+                            // ignore suffixes to ensure that 4.5.13.redhat = 4.5.13
+                            // however, this implies that we'll match 4.5.13-SNAPSHOT = 4.5.13
+                            // which is not entirely correct as the snapshot may not have all the changes that are in the final version
+                            .withoutSuffix();
                         return matcher.match(pdVersion, limitVersion);
                     }
                 } catch (Exception e) {

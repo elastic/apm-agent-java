@@ -52,6 +52,7 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
@@ -61,6 +62,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -322,8 +324,13 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
 
-        Span pollingSpan = reporter.getFirstSpan();
-        checkPollSpan(pollingSpan, queueName, "<unknown>", false);
+        Span pollingSpan = findSpanByAction("poll");
+        checkPollSpan(pollingSpan, null, queueName, "<unknown>", false);
+    }
+
+    @NotNull
+    private Span findSpanByAction(String action) {
+        return reporter.getSpans().stream().filter(span -> Objects.requireNonNull(span.getAction()).equals(action)).findFirst().get();
     }
 
     @Test
@@ -336,10 +343,13 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         pollingTest(true, true, () -> declareAndBindQueue(queueName, exchange, channel), exchange);
 
         reporter.awaitTransactionCount(1);
-        reporter.awaitSpanCount(1);
+        reporter.awaitSpanCount(2);
 
-        Span pollingSpan = reporter.getFirstSpan();
-        checkPollSpan(pollingSpan, queueName, exchange, true);
+        Span sendSpan = findSpanByAction("send");
+        checkSendSpan(sendSpan, exchange);
+
+        Span pollingSpan = findSpanByAction("poll");
+        checkPollSpan(pollingSpan, sendSpan, queueName, exchange, true);
     }
 
 
@@ -397,15 +407,14 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
 
         String queue = createQueue.get();
 
-        if (withResult) {
-            channel.basicPublish(exchange, ROUTING_KEY, emptyProperties(), MSG);
-        }
-
         Transaction rootTransaction = null;
         if (withinTransaction) {
             rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
         }
 
+        if (withResult) {
+            channel.basicPublish(exchange, ROUTING_KEY, emptyProperties(), MSG);
+        }
         channel.basicGet(queue, true);
 
         if (withinTransaction) {
@@ -688,18 +697,27 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         checkSpanDestination(span, host, port, String.format("rabbitmq/%s", exchangeName));
     }
 
-    private static void checkPollSpan(Span span, String queue, String normalizedExchange, boolean withRoutingKeyCheck) {
-        checkSpanCommon(span,
+    private static void checkPollSpan(Span pollSpan, @Nullable Span sendSpan, String queue, String normalizedExchange, boolean withRoutingKeyCheck) {
+        checkSpanCommon(pollSpan,
             "poll",
             String.format("RabbitMQ POLL from %s", queue),
             queue,
             withRoutingKeyCheck);
 
-        checkSpanDestination(span,
+        checkSpanDestination(pollSpan,
             connection.getAddress().getHostAddress(),
             connection.getPort(),
             String.format("rabbitmq/%s", normalizedExchange)
         );
+
+        List<TraceContext> spanLinks = pollSpan.getSpanLinks();
+        if (sendSpan != null) {
+            assertThat(spanLinks).hasSize(1);
+            assertThat(spanLinks.get(0).getTraceId()).isEqualTo(sendSpan.getTraceContext().getTraceId());
+            assertThat(spanLinks.get(0).getParentId()).isEqualTo(sendSpan.getTraceContext().getId());
+        } else {
+            assertThat(spanLinks).isEmpty();
+        }
     }
 
     private static void checkSpanCommon(Span span, String expectedAction, String expectedName, String expectedQueueName, boolean withRoutingKeyCheck) {
