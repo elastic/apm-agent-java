@@ -54,7 +54,7 @@ public class JvmMemoryMetrics extends AbstractLifecycleListener {
                 return platformMXBean.getHeapMemoryUsage().getCommitted();
             }
         });
-        registry.add("jvm.memory.heap.max", Labels.EMPTY, new DoubleSupplier() {
+        registry.addUnlessNegative("jvm.memory.heap.max", Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 return platformMXBean.getHeapMemoryUsage().getMax();
@@ -72,7 +72,7 @@ public class JvmMemoryMetrics extends AbstractLifecycleListener {
                 return platformMXBean.getNonHeapMemoryUsage().getCommitted();
             }
         });
-        registry.add("jvm.memory.non_heap.max", Labels.EMPTY, new DoubleSupplier() {
+        registry.addUnlessNegative("jvm.memory.non_heap.max", Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 return platformMXBean.getNonHeapMemoryUsage().getMax();
@@ -82,24 +82,23 @@ public class JvmMemoryMetrics extends AbstractLifecycleListener {
         List<MemoryPoolMXBean> memoryPoolMXBeans = ManagementFactory.getMemoryPoolMXBeans();
 
         for (final MemoryPoolMXBean memoryPoolMXBean : memoryPoolMXBeans) {
-            if (memoryPoolMXBean.getType() != MemoryType.HEAP) {
-                continue;
-            }
-            final Labels memoryPoolTags = Labels.Mutable.of("name", memoryPoolMXBean.getName());
+            String type = memoryPoolMXBean.getType().toString().toLowerCase();
+
+            final Labels memoryPoolTags = Labels.Mutable.of("name", memoryPoolMXBean.getName()).add("type", type);
             try {
-                registry.add("jvm.memory.heap.pool.used", memoryPoolTags, new DoubleSupplier() {
+                registry.add(String.format("jvm.memory.%s.pool.used", type), memoryPoolTags, new DoubleSupplier() {
                     @Override
                     public double get() {
                         return memoryPoolMXBean.getUsage().getUsed();
                     }
                 });
-                registry.add("jvm.memory.heap.pool.committed", memoryPoolTags, new DoubleSupplier() {
+                registry.add(String.format("jvm.memory.%s.pool.committed", type), memoryPoolTags, new DoubleSupplier() {
                     @Override
                     public double get() {
                         return memoryPoolMXBean.getUsage().getCommitted();
                     }
                 });
-                registry.add("jvm.memory.heap.pool.max", memoryPoolTags, new DoubleSupplier() {
+                registry.addUnlessNegative(String.format("jvm.memory.%s.pool.max", type), memoryPoolTags, new DoubleSupplier() {
                     @Override
                     public double get() {
                         return memoryPoolMXBean.getUsage().getMax();
