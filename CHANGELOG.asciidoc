@@ -26,6 +26,7 @@ endif::[]
 [float]
 ===== Features
 * Add support for Spring WebClient - {pull}2229[#2229]
+* Added undocumented and unsupported configuration `metric_set_limit` to increase the metric set limit - {pull}2148[#2148]
 
 [float]
 ===== Bug fixes
