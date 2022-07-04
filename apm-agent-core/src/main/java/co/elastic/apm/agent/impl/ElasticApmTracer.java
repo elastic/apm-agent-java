@@ -20,6 +20,7 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
@@ -119,7 +120,7 @@ public class ElasticApmTracer implements Tracer {
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory,
                      ApmServerClient apmServerClient, final String ephemeralId, MetaDataFuture metaDataFuture) {
-        this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(CoreConfiguration.class), configurationRegistry.getConfig(ReporterConfiguration.class));
+        this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class), configurationRegistry.getConfig(MetricsConfiguration.class));
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);

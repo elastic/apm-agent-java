@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.metrics;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,14 +38,14 @@ import static org.mockito.Mockito.when;
 class MetricRegistryTest {
 
     private MetricRegistry metricRegistry;
-    private CoreConfiguration coreConfiguration;
     private ReporterConfiguration reporterConfiguration;
+    private MetricsConfiguration metricsConfiguration;
 
     @BeforeEach
     void setUp() {
-        coreConfiguration = spy(CoreConfiguration.class);
         reporterConfiguration = mock(ReporterConfiguration.class);
-        metricRegistry = new MetricRegistry(coreConfiguration, reporterConfiguration);
+        metricsConfiguration = spy(MetricsConfiguration.class);
+        metricRegistry = new MetricRegistry(reporterConfiguration, metricsConfiguration);
     }
 
     @Test
@@ -144,7 +144,8 @@ class MetricRegistryTest {
 
     @Test
     void testLimitTimersWithCustomValue() {
-        when(coreConfiguration.getMetricSetLimit()).thenReturn(2000);
+        when(metricsConfiguration.getMetricSetLimit()).thenReturn(2000);
+        metricRegistry = new MetricRegistry(reporterConfiguration, metricsConfiguration);
         IntStream.range(1, 505).forEach(i -> metricRegistry.updateTimer("timer" + i, Labels.Mutable.of("foo", Integer.toString(i)), 1));
         IntStream.range(1, 505).forEach(i -> metricRegistry.updateTimer("timer" + i, Labels.Mutable.of("bar", Integer.toString(i)), 1));
 

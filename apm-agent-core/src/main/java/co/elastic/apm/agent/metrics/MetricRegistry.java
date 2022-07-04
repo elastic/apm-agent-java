@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.metrics;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.HdrHistogram.WriterReaderPhaser;
@@ -42,8 +42,9 @@ public class MetricRegistry {
 
     private static final Logger logger = LoggerFactory.getLogger(MetricRegistry.class);
     private final WriterReaderPhaser phaser = new WriterReaderPhaser();
-    private final CoreConfiguration coreConfiguration;
     private final ReporterConfiguration reporterConfiguration;
+    private final int metricSetLimit;
+
     /**
      * Groups {@link MetricSet}s by their unique labels.
      */
@@ -55,9 +56,9 @@ public class MetricRegistry {
      */
     private final ConcurrentMap<Labels.Immutable, MetricSet> metricSets1 = activeMetricSets, metricSets2 = inactiveMetricSets;
 
-    public MetricRegistry(CoreConfiguration coreConfiguration, ReporterConfiguration reporterConfiguration) {
-        this.coreConfiguration = coreConfiguration;
+    public MetricRegistry(ReporterConfiguration reporterConfiguration, MetricsConfiguration metricsConfiguration) {
         this.reporterConfiguration = reporterConfiguration;
+        this.metricSetLimit = metricsConfiguration.getMetricSetLimit();
     }
 
     /**
@@ -210,7 +211,7 @@ public class MetricRegistry {
         if (metricSet != null) {
             return metricSet;
         }
-        if (activeMetricSets.size() < coreConfiguration.getMetricSetLimit()) {
+        if (activeMetricSets.size() < metricSetLimit) {
             return createMetricSet(labels.immutableCopy());
         }
         return null;
@@ -229,9 +230,10 @@ public class MetricRegistry {
         }
         // even if the map already contains this metric set, the gauges reference will be the same
         metricSets2.putIfAbsent(labelsCopy, new MetricSet(labelsCopy, metricSet.getGauges()));
-        if (metricSets1.size() >= coreConfiguration.getMetricSetLimit()) {
-            logger.warn("The limit of 1000 timers has been reached, no new timers will be created. " +
-                "Try to name your transactions so that there are less distinct transaction names.");
+        if (metricSets1.size() >= metricSetLimit) {
+            logger.warn("The limit of {} timers has been reached, no new timers will be created. " +
+                "Try to name your transactions so that there are less distinct transaction names." +
+                "You may use the unsupported configuration 'metric_set_limit' to increase the limit.", metricSetLimit);
         }
         return activeMetricSets.get(labelsCopy);
     }

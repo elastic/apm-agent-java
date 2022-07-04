@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -42,7 +42,7 @@ class JvmMemoryMetricsTest {
 
     @Test
     void testMetrics() {
-        final MetricRegistry registry = new MetricRegistry(spy(CoreConfiguration.class), mock(ReporterConfiguration.class));
+        final MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class), spy(MetricsConfiguration.class));
         jvmMemoryMetrics.bindTo(registry);
 
         Stream.of(

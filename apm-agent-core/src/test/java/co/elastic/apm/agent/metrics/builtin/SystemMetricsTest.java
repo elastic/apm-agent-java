@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -36,7 +36,7 @@ import static org.mockito.Mockito.spy;
 
 class SystemMetricsTest {
 
-    private MetricRegistry metricRegistry = new MetricRegistry(spy(CoreConfiguration.class), mock(ReporterConfiguration.class));
+    private MetricRegistry metricRegistry = new MetricRegistry(mock(ReporterConfiguration.class), spy(MetricsConfiguration.class));
     private SystemMetrics systemMetrics = new SystemMetrics();
 
     @Test

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -32,7 +32,7 @@ class ThreadMetricsTest {
 
     private static final double NUM_ADDED_THREADS = 12.0;
     private final ThreadMetrics threadMetrics = new ThreadMetrics();
-    private MetricRegistry registry = new MetricRegistry(spy(CoreConfiguration.class), mock(ReporterConfiguration.class));
+    private MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class), spy(MetricsConfiguration.class));
 
     @Test
     void testThreadCount() {

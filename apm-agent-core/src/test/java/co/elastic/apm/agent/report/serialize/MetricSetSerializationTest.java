@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.spy;
 class MetricSetSerializationTest {
 
     private ObjectMapper objectMapper = new ObjectMapper();
-    private MetricRegistry registry = new MetricRegistry(spy(CoreConfiguration.class), mock(ReporterConfiguration.class));
+    private MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class), spy(MetricsConfiguration.class));
     private MetricRegistrySerializer metricRegistrySerializer = new MetricRegistrySerializer();
 
     @Test
