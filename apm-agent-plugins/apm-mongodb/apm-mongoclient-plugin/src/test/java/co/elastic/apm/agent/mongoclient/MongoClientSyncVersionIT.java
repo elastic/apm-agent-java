@@ -25,6 +25,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
 
 @RunWith(Parameterized.class)
 public class MongoClientSyncVersionIT {
@@ -32,27 +35,42 @@ public class MongoClientSyncVersionIT {
     private final TestClassWithDependencyRunner runner;
 
     public MongoClientSyncVersionIT(String version) throws Exception {
-        runner = new TestClassWithDependencyRunner("org.mongodb", "mongo-java-driver", version,
-            MongoClientSyncInstrumentationIT.class, AbstractMongoClientInstrumentationTest.class);
+        List<String> dependencies;
+        Class<?> testClass;
+
+        if (version.startsWith("3.")) {
+            dependencies = Collections.singletonList("org.mongodb:mongo-java-driver:" + version);
+            testClass = MongoClientSyncInstrumentationIT.class;
+        } else {
+            dependencies = Arrays.asList(
+                "org.mongodb:mongodb-driver-sync:" + version,
+                "org.mongodb:mongodb-driver-legacy:" + version,
+                "org.mongodb:mongodb-driver-core:" + version);
+            testClass = MongoClientSyncInstrumentation2IT.class;
+        }
+
+        runner = new TestClassWithDependencyRunner(dependencies,
+            testClass, AbstractMongoClientInstrumentationTest.class);
     }
 
     @Parameterized.Parameters(name= "{0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
+            {"4.0.1"},
             {"3.12.11"},
-            {"3.11.1"},
-            {"3.10.2"},
-            {"3.9.0"},
-            {"3.9.0"},
-            {"3.8.2"},
-            {"3.7.1"},
-            {"3.6.4"},
-            {"3.5.0"},
-            {"3.4.3"},
-            {"3.3.0"},
-            {"3.2.2"},
-            {"3.1.1"},
-            {"3.0.4"}
+//            {"3.11.1"},
+//            {"3.10.2"},
+//            {"3.9.0"},
+//            {"3.9.0"},
+//            {"3.8.2"},
+//            {"3.7.1"},
+//            {"3.6.4"},
+//            {"3.5.0"},
+//            {"3.4.3"},
+//            {"3.3.0"},
+//            {"3.2.2"},
+//            {"3.1.1"},
+//            {"3.0.4"}
         });
     }
 

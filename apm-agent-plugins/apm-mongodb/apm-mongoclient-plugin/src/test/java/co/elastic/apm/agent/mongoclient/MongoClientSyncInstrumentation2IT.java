@@ -18,8 +18,7 @@
  */
 package co.elastic.apm.agent.mongoclient;
 
-import com.mongodb.MongoClient;
-import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
@@ -30,20 +29,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrumentationTest { // TODO : maybe rename this
+public class MongoClientSyncInstrumentation2IT extends AbstractMongoClientInstrumentationTest { // TODO : maybe rename this
 
     private static MongoClient mongo = null;
     private static MongoDatabase db = null;
 
     @BeforeClass
     public static void startMongoContainerAndClient() {
-        mongo = new MongoClient(new ServerAddress(container.getContainerIpAddress(), container.getMappedPort(27017)));
+        mongo = MongoClients.create(String.format("mongodb://%s:%d", container.getContainerIpAddress(), container.getMappedPort(27017)));
         db = mongo.getDatabase(DB_NAME);
     }
 
     @AfterClass
     public static void closeClient() {
-        mongo.close();
+        if(mongo != null) {
+            mongo.close();
+        }
         mongo = null;
         db = null;
     }

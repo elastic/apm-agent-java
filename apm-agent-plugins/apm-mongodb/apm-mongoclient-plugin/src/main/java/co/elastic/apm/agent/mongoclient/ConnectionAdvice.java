@@ -32,7 +32,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 
-public class ConnectionAdvice {
+public class ConnectionAdvice { // relies on Connection class which has been removed in 4.0
 
     public static final Logger logger = LoggerFactory.getLogger(ConnectionAdvice.class);
 

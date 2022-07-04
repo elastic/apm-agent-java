@@ -9,33 +9,38 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
-        <version.mongodb>[3.0.4,)</version.mongodb>
+        <version.mongodb>[4.0.0,)</version.mongodb>
     </properties>
 
-    <!-- TODO : maybe rename this to 3.x -->
-    <artifactId>apm-mongoclient-plugin</artifactId>
+    <!-- TODO : maybe rename this to 4.x -->
+    <artifactId>apm-mongodb-plugin</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <dependencies>
+
         <dependency>
             <groupId>co.elastic.apm</groupId>
             <artifactId>apm-mongodb-common</artifactId>
             <version>${project.version}</version>
         </dependency>
 
+        <!-- new synchronous API -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-sync</artifactId>
+            <version>${version.mongodb}</version>
+            <scope>provided</scope>
+        </dependency>
 
+        <!-- legacy synchronous API -->
         <dependency>
+            <!-- has a transitive dependency on driver-sync -->
             <groupId>org.mongodb</groupId>
-            <artifactId>mongo-java-driver</artifactId>
+            <artifactId>mongodb-driver-legacy</artifactId>
             <version>${version.mongodb}</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>mongodb-driver-async</artifactId>
-            <version>${version.mongodb}</version>
-            <scope>provided</scope>
-        </dependency>
+
     </dependencies>
 
 </project>

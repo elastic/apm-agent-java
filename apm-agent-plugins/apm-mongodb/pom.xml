@@ -19,6 +19,21 @@
 
     <modules>
         <module>apm-mongoclient-plugin</module>
+        <module>apm-mongodb-plugin</module>
+        <module>apm-mongodb-common</module>
     </modules>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.ivy</groupId>
+            <artifactId>ivy</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
 </project>
