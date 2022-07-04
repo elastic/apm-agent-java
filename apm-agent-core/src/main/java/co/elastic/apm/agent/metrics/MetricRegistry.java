@@ -232,7 +232,7 @@ public class MetricRegistry {
         metricSets2.putIfAbsent(labelsCopy, new MetricSet(labelsCopy, metricSet.getGauges()));
         if (metricSets1.size() >= metricSetLimit) {
             logger.warn("The limit of {} timers has been reached, no new timers will be created. " +
-                "Try to name your transactions so that there are less distinct transaction names." +
+                "Try to name your transactions so that there are less distinct transaction names. " +
                 "You may use the unsupported configuration 'metric_set_limit' to increase the limit.", metricSetLimit);
         }
         return activeMetricSets.get(labelsCopy);
