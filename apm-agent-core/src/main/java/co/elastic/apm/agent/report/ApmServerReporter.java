@@ -102,6 +102,18 @@ public class ApmServerReporter implements Reporter {
             event.unparkAfterProcessed(Thread.currentThread());
         }
     };
+    private static final EventTranslatorOneArg<ReportingEvent, String> STRING_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, String>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, String string) {
+            event.setString(string);
+        }
+    };
+    private static final EventTranslatorOneArg<ReportingEvent, byte[]> BYTES_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, byte[]>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, byte[] bytes) {
+            event.setBytes(bytes);
+        }
+    };
 
     private final Disruptor<ReportingEvent> disruptor;
     private final AtomicLong dropped = new AtomicLong();
@@ -257,6 +269,28 @@ public class ApmServerReporter implements Reporter {
             return;
         }
         tryAddEventToRingBuffer(jsonWriter, JSON_WRITER_EVENT_TRANSLATOR);
+        if (syncReport) {
+            flush();
+        }
+    }
+
+    @Override
+    public void shipLog(String string) {
+        if (string.isEmpty()) {
+            return;
+        }
+        tryAddEventToRingBuffer(string, STRING_EVENT_TRANSLATOR);
+        if (syncReport) {
+            flush();
+        }
+    }
+
+    @Override
+    public void shipLog(byte[] bytes) {
+        if (bytes.length == 0) {
+            return;
+        }
+        tryAddEventToRingBuffer(bytes, BYTES_EVENT_TRANSLATOR);
         if (syncReport) {
             flush();
         }

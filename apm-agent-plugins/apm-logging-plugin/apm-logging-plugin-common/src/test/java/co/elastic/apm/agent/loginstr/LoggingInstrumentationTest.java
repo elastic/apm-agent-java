@@ -226,8 +226,26 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         logger.error(ERROR_MESSAGE, new Throwable());
 
         ArrayList<JsonNode> overriddenLogEvents = TestUtils.readJsonFile(getOriginalLogFilePath().toString());
-        assertThat(overriddenLogEvents).hasSize(4);
         for (JsonNode ecsLogLineTree : overriddenLogEvents) {
+            verifyEcsLogLine(ecsLogLineTree);
+        }
+    }
+
+    @Test
+    public void testShipLog() {
+        doReturn(Boolean.TRUE).when(loggingConfig).isShipLogs();
+
+        logger.trace(TRACE_MESSAGE);
+        logger.debug(DEBUG_MESSAGE);
+        logger.warn(WARN_MESSAGE);
+        logger.error(ERROR_MESSAGE, new Throwable());
+
+        List<JsonNode> logs = reporter.getLogs()
+            .stream()
+            .filter(log -> log.get("event.dataset").textValue().equals("JUnitStarter.FILE"))
+            .collect(Collectors.toList());
+        assertThat(logs).hasSize(4);
+        for (JsonNode ecsLogLineTree : logs) {
             verifyEcsLogLine(ecsLogLineTree);
         }
     }

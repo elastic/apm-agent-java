@@ -38,6 +38,10 @@ public interface Reporter extends Closeable {
 
     void report(JsonWriter jsonWriter);
 
+    void shipLog(String log);
+
+    void shipLog(byte[] log);
+
     long getDropped();
 
     long getReported();

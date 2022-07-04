@@ -18,8 +18,10 @@
  */
 package co.elastic.apm.agent.jul.reformatting;
 
+import co.elastic.apm.agent.jul.shipper.JulLogShipperHandler;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
+import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
@@ -37,9 +39,11 @@ import java.util.Map;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
 import java.util.logging.StreamHandler;
 
-class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandler, Formatter> {
+class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandler, Handler, Formatter, LogRecord> {
 
     private static final Logger logger = LoggerFactory.getLogger(JulEcsReformattingHelper.class);
     private static final Logger oneTimeLogFileLimitWarningLogger = LoggerUtils.logOnce(logger);
@@ -85,7 +89,7 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
     @Override
     protected Formatter createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceVersion,
                                            @Nullable String serviceNodeName, @Nullable Map<String, String> additionalFields,
-                                           Formatter originalFormatter) {
+                                           @Nullable Formatter originalFormatter) {
         EcsFormatter ecsFormatter = new EcsFormatter();
         ecsFormatter.setServiceName(serviceName);
         ecsFormatter.setServiceVersion(serviceVersion);
@@ -158,4 +162,15 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
     protected void closeShadeAppender(StreamHandler shadeHandler) {
         shadeHandler.close();
     }
+
+    @Override
+    protected Handler createAndStartLogShipperAppender(Reporter reporter, Formatter formatter) {
+        return new JulLogShipperHandler(reporter, formatter);
+    }
+
+    @Override
+    protected void append(LogRecord logEvent, Handler appender) {
+        appender.publish(logEvent);
+    }
+
 }

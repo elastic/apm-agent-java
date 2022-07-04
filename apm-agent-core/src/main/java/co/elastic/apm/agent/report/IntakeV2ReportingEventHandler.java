@@ -20,9 +20,9 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
-import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.ExecutorUtils;
 
 import javax.annotation.Nullable;
 import java.net.HttpURLConnection;
@@ -161,6 +161,10 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             payloadSerializer.serializeErrorNdJson(event.getError());
         } else if (event.getJsonWriter() != null) {
             payloadSerializer.writeBytes(event.getJsonWriter().getByteBuffer(), event.getJsonWriter().size());
+        } else if (event.getBytesLog() != null) {
+            payloadSerializer.serializeLogNdJson(event.getBytesLog());
+        } else if (event.getStringLog() != null) {
+            payloadSerializer.serializeLogNdJson(event.getStringLog());
         }
     }
 

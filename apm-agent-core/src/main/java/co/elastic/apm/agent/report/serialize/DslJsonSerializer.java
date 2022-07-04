@@ -331,6 +331,24 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeAscii(bytes, len);
     }
 
+    @Override
+    public void serializeLogNdJson(String stringLog) {
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("log");
+        jw.writeAscii(stringLog);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(NEW_LINE);
+    }
+
+    @Override
+    public void serializeLogNdJson(byte[] bytesLog) {
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("log");
+        jw.writeAscii(bytesLog);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(NEW_LINE);
+    }
+
     private void serializeError(ErrorCapture errorCapture) {
         jw.writeByte(JsonWriter.OBJECT_START);
 

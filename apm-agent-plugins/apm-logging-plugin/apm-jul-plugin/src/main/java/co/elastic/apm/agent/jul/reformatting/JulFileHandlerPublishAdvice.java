@@ -24,7 +24,6 @@ import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import java.io.File;
 import java.util.logging.FileHandler;
 import java.util.logging.LogRecord;
-import java.util.logging.StreamHandler;
 
 public class JulFileHandlerPublishAdvice {
 
@@ -43,9 +42,6 @@ public class JulFileHandlerPublishAdvice {
     public static void reformatLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogRecord logRecord,
                                             @Advice.This(typing = Assigner.Typing.DYNAMIC) FileHandler thisHandler) {
 
-        StreamHandler shadeAppender = helper.onAppendExit(thisHandler);
-        if (shadeAppender != null) {
-            shadeAppender.publish(logRecord);
-        }
+        helper.onAppendExit(logRecord, thisHandler);
     }
 }

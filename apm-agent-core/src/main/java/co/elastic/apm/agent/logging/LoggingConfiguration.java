@@ -290,6 +290,21 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.17.0]")
         .buildWithDefault(LogFormat.PLAIN_TEXT);
 
+    private final ConfigurationOption<Boolean> shipLogs = ConfigurationOption.booleanOption()
+        .key("ship_logs")
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("Sends agent and application logs directly to APM Server.\n" +
+            "\n" +
+            "Note that logs can get lost if the agent can't keep up with the logs,\n" +
+            "if APM Server is not available,\n" +
+            "or if Elasticsearch can't index the logs fast enough.\n" +
+            "\n" +
+            "For better delivery guarantees, it's recommended to ship ECS JSON log files with Filebeat\n" +
+            "See also <<config-log-ecs-reformatting,`log_ecs_reformatting`>>.")
+        .dynamic(true)
+        .tags("added[not officially added yet]", "internal")
+        .buildWithDefault(false);
+
     public static void init(List<ConfigurationSource> sources, String ephemeralId) {
         // The initialization of log4j may produce errors if the traced application uses log4j settings (for
         // example - through file in the classpath or System properties) that configures specific properties for
@@ -397,4 +412,9 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     public LogFormat getLogFormatFile() {
         return logFormatFile.get();
     }
+
+    public boolean isShipLogs() {
+        return shipLogs.get();
+    }
+
 }

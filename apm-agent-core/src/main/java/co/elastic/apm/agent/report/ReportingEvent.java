@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.dslplatform.json.JsonWriter;
@@ -26,45 +27,41 @@ import com.dslplatform.json.JsonWriter;
 import javax.annotation.Nullable;
 import java.util.concurrent.locks.LockSupport;
 
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.BYTES_LOG;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.END_REQUEST;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.JSON_WRITER;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.MAKE_FLUSH_REQUEST;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SHUTDOWN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SPAN;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.STRING_LOG;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.TRANSACTION;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.WAKEUP;
 
 public class ReportingEvent {
     @Nullable
-    private Transaction transaction;
-    @Nullable
     private ReportingEventType type;
     @Nullable
-    private ErrorCapture error;
-    @Nullable
-    private Span span;
-    @Nullable
-    private JsonWriter jsonWriter;
+    private Object event;
     @Nullable
     private Thread unparkAfterProcessed;
 
     public void resetState() {
-        this.transaction = null;
-        this.type = null;
-        this.error = null;
-        this.span = null;
-        this.jsonWriter = null;
+        this.event = null;
         this.unparkAfterProcessed = null;
     }
 
     @Nullable
     public Transaction getTransaction() {
-        return transaction;
+        if (type == TRANSACTION) {
+            return (Transaction) event;
+        } else {
+            return null;
+        }
     }
 
     public void setTransaction(Transaction transaction) {
-        this.transaction = transaction;
+        this.event = transaction;
         this.type = TRANSACTION;
     }
 
@@ -83,24 +80,58 @@ public class ReportingEvent {
 
     @Nullable
     public ErrorCapture getError() {
-        return error;
+        if (type == ERROR) {
+            return (ErrorCapture) event;
+        } else {
+            return null;
+        }
     }
 
     @Nullable
     public Span getSpan() {
-        return span;
+        if (type == SPAN) {
+            return (Span) event;
+        } else {
+            return null;
+        }
     }
 
     public void setError(ErrorCapture error) {
-        this.error = error;
+        this.event = error;
         this.type = ERROR;
     }
 
     public void setSpan(Span span) {
-        this.span = span;
+        this.event = span;
         this.type = SPAN;
     }
 
+    public void setString(String string) {
+        this.event = string;
+        this.type = STRING_LOG;
+    }
+
+    @Nullable
+    public String getStringLog() {
+        if (type == STRING_LOG) {
+            return (String) event;
+        } else {
+            return null;
+        }
+    }
+    public void setBytes(byte[] bytes) {
+        this.event = bytes;
+        this.type = BYTES_LOG;
+    }
+
+    @Nullable
+    public byte[] getBytesLog() {
+        if (type == BYTES_LOG) {
+            return (byte[]) event;
+        } else {
+            return null;
+        }
+    }
     public void shutdownEvent() {
         this.type = SHUTDOWN;
     }
@@ -109,31 +140,30 @@ public class ReportingEvent {
     public String toString() {
         StringBuilder description = new StringBuilder();
         description.append("Type: ").append(type);
-        if (transaction != null) {
-            description.append(", ").append(transaction.toString());
-        } else if (span != null) {
-            description.append(", ").append(span.toString());
+        if (event instanceof AbstractSpan<?>) {
+            description.append(", ").append(event);
         }
         return description.toString();
     }
 
     @Nullable
     public JsonWriter getJsonWriter() {
-        return jsonWriter;
+        if (getType() == JSON_WRITER) {
+            return (JsonWriter) event;
+        } else {
+            return null;
+        }
     }
-
     public void setJsonWriter(@Nullable JsonWriter jsonWriter) {
-        this.jsonWriter = jsonWriter;
+        this.event = jsonWriter;
         this.type = JSON_WRITER;
     }
 
     public void end() {
-        if (transaction != null) {
-            transaction.decrementReferences();
-        } else if (span != null) {
-            span.decrementReferences();
-        } else if (error != null) {
-            error.recycle();
+        if (event instanceof AbstractSpan<?>) {
+            ((AbstractSpan<?>) event).decrementReferences();
+        } else if (event instanceof ErrorCapture) {
+            ((ErrorCapture) event).recycle();
         }
         if (unparkAfterProcessed != null) {
             LockSupport.unpark(unparkAfterProcessed);
@@ -148,7 +178,23 @@ public class ReportingEvent {
         type = WAKEUP;
     }
 
+    public Object getEvent() {
+        return event;
+    }
+
     enum ReportingEventType {
-        END_REQUEST, MAKE_FLUSH_REQUEST, TRANSACTION, SPAN, ERROR, SHUTDOWN, JSON_WRITER, WAKEUP
+        // control events
+        END_REQUEST,
+        MAKE_FLUSH_REQUEST,
+        SHUTDOWN,
+        WAKEUP,
+
+        // payload events
+        TRANSACTION,
+        SPAN,
+        ERROR,
+        JSON_WRITER,
+        STRING_LOG,
+        BYTES_LOG
     }
 }
