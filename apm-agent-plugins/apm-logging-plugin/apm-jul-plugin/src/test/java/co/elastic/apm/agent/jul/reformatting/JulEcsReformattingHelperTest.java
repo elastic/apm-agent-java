@@ -30,46 +30,50 @@ public class JulEcsReformattingHelperTest {
     @Test
     void testEcsFileHandlerPatternComputation() throws IOException {
 
-        assertThat(JulEcsReformattingHelper.computeEcsFileHandlerPattern(
-            "%t/test%g.log%u",
-            Path.of("/tmp/path/test0.log8"),
-            "reformat",
-            false)
-        ).isEqualTo("/tmp/path/reformat/test%g.ecs.json");
+        Path tempDir = Path.of(System.getProperty("java.io.tmpdir", ""));
+        Path rootDir = Path.of("root").toAbsolutePath();
 
         assertThat(JulEcsReformattingHelper.computeEcsFileHandlerPattern(
-            "/root/path/test%g.log%u",
-            Path.of("/root/path/test0.log8"),
+            "%t/test%g.log%u",
+            tempDir.resolve(Path.of("path","test0.log8")),
             "reformat",
             false)
-        ).isEqualTo("/root/path/reformat/test%g.ecs.json");
+        ).isEqualTo(tempDir.resolve(Path.of("path", "reformat", "test%g.ecs.json")).toString());
+
+        assertThat(JulEcsReformattingHelper.computeEcsFileHandlerPattern(
+            // path is always unix-like, equivalent to '/root/path/test%g.log%u' so we have to generate the same on Windows
+            rootDir.resolve(Path.of("path","test%g.log%u")).toString().replaceAll("\\\\","/"),
+            rootDir.resolve(Path.of("path","test0.log8")),
+            "reformat",
+            false)
+        ).isEqualTo(rootDir.resolve(Path.of("path", "reformat", "test%g.ecs.json")).toString());
 
         assertThat(JulEcsReformattingHelper.computeEcsFileHandlerPattern(
             "%t/test.log%u",
-            Path.of("/tmp/path/test.log8"),
+            tempDir.resolve(Path.of("path","test.log8")),
             "reformat",
             false)
-        ).isEqualTo("/tmp/path/reformat/test.ecs.json.%g");
+        ).isEqualTo(tempDir.resolve(Path.of("path", "reformat", "test.ecs.json.%g")).toString());
 
         assertThat(JulEcsReformattingHelper.computeEcsFileHandlerPattern(
             "test%g.log%u",
             Path.of("test0.log8"),
             "reformat",
             false)
-        ).isEqualTo("reformat/test%g.ecs.json");
+        ).isEqualTo(Path.of("reformat","test%g.ecs.json").toString());
 
         assertThat(JulEcsReformattingHelper.computeEcsFileHandlerPattern(
             "%t/test%g.%u.log",
-            Path.of("/tmp/path/test0.8.log"),
+            tempDir.resolve(Path.of("path", "test0.8.log")),
             null,
             false)
-        ).isEqualTo("/tmp/path/test%g.%u.ecs.json");
+        ).isEqualTo(tempDir.resolve(Path.of("path", "test%g.%u.ecs.json")).toString());
 
         assertThat(JulEcsReformattingHelper.computeEcsFileHandlerPattern(
             "%t/test%g.%u.log",
-            Path.of("/tmp/path/test0.8.log"),
+            tempDir.resolve(Path.of("path", "test0.8.log")),
             "",
             false)
-        ).isEqualTo("/tmp/path/test%g.%u.ecs.json");
+        ).isEqualTo(tempDir.resolve(Path.of("path", "test%g.%u.ecs.json")).toString());
     }
 }
