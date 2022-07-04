@@ -65,8 +65,8 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This Connection thiz,
-                                   @Advice.Argument(0) MongoNamespace namespace,
-                                   @Advice.Origin("#m") String methodName) {
+                                     @Advice.Argument(0) MongoNamespace namespace,
+                                     @Advice.Origin("#m") String methodName) {
             Span span = null;
             final AbstractSpan<?> activeSpan = tracer.getActive();
             if (activeSpan != null && !activeSpan.isExit()) {
@@ -76,8 +76,6 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
             if (span == null) {
                 return null;
             }
-
-
 
             span.withType("db")
                 .withSubtype("mongodb")

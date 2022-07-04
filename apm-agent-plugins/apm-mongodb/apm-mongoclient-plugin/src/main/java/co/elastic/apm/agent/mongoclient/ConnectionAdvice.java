@@ -39,8 +39,8 @@ public class ConnectionAdvice {
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnter(@Advice.This Connection thiz,
-                               @Advice.Argument(0) Object databaseOrMongoNamespace,
-                               @Advice.Argument(1) BsonDocument command) {
+                                 @Advice.Argument(0) Object databaseOrMongoNamespace,
+                                 @Advice.Argument(1) BsonDocument command) {
         Span span = null;
         final AbstractSpan<?> activeSpan = GlobalTracer.get().getActive();
         if (activeSpan != null && !activeSpan.isExit()) {

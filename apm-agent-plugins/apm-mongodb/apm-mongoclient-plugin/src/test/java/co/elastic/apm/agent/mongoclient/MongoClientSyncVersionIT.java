@@ -39,6 +39,7 @@ public class MongoClientSyncVersionIT {
     @Parameterized.Parameters(name= "{0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
+            {"3.12.11"},
             {"3.11.1"},
             {"3.10.2"},
             {"3.9.0"},
