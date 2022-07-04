@@ -200,4 +200,21 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     public Transaction setDestinationService(@Nullable String resource) {
         throw new UnsupportedOperationException();
     }
+
+
+    /**
+     * @deprecated - used only for {@link co.elastic.apm.api.Span}
+     */
+    @Nonnull
+    @Override
+    public Span setServiceTarget(@Nullable String type, @Nullable String name) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Nonnull
+    @Override
+    public Span setNonDiscardable() {
+        doSetNonDiscardable();
+        return this;
+    }
 }

@@ -28,12 +28,15 @@ import org.apache.logging.log4j.spi.LoggerContextFactory;
 import org.apache.logging.log4j.util.StackLocatorUtil;
 
 /**
- * Based on {@code org.apache.logging.slf4j.Log4jLoggerFactory}
+ * Based on {@code org.apache.logging.slf4j.Log4jLoggerFactory}.
+ * <p>
+ * This class does not implement {@link ILoggerFactory} directly but through the super class implementation that has
+ * a method matching {@link ILoggerFactory#getLogger(String)}. Given this method is caller-sensitive then we can't
+ * implement it directly without side effects.
  */
 public class Log4jLoggerFactoryBridge extends AbstractLoggerAdapter<Logger> implements ILoggerFactory {
 
-    private static final String FQCN = Log4jLoggerFactoryBridge.class.getName();
-    private static final String PACKAGE = "co.elastic.apm.agent.sdk.logging";
+    private static final String LOGGER_FACTORY = "co.elastic.apm.agent.sdk.logging.LoggerFactory";
 
     public static void shutdown() {
         LoggerContextFactory factory = LogManager.getFactory();
@@ -53,7 +56,12 @@ public class Log4jLoggerFactoryBridge extends AbstractLoggerAdapter<Logger> impl
 
     @Override
     protected LoggerContext getContext() {
-        final Class<?> anchor = StackLocatorUtil.getCallerClass(FQCN, PACKAGE);
-        return anchor == null ? LogManager.getContext() : getContext(StackLocatorUtil.getCallerClass(anchor));
+        // the logger context is defined by the class that calls LoggerFactory
+        final Class<?> factoryCaller = StackLocatorUtil.getCallerClass(LOGGER_FACTORY);
+        if (factoryCaller == null) {
+            return LogManager.getContext();
+        }
+        return getContext(factoryCaller);
     }
+
 }

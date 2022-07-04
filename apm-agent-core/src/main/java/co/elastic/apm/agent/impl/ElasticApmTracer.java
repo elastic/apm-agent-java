@@ -84,6 +84,7 @@ public class ElasticApmTracer implements Tracer {
     private final ObjectPool<Transaction> transactionPool;
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
+    private final ObjectPool<TraceContext> spanLinkPool;
     private final Reporter reporter;
     private final ObjectPoolFactory objectPoolFactory;
     // Maintains a stack of all the activated spans/contexts
@@ -144,6 +145,9 @@ public class ElasticApmTracer implements Tracer {
 
         // we are assuming that we don't need as many errors as spans or transactions
         errorPool = poolFactory.createErrorPool(maxPooledElements / 2, this);
+
+        // span links pool allows for 10X the maximum allowed span links per span
+        spanLinkPool = poolFactory.createSpanLinkPool(AbstractSpan.MAX_ALLOWED_SPAN_LINKS * 10, this);
 
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
         coreConfiguration.getSampleRate().addChangeListener(new ConfigurationOption.ChangeListener<Double>() {
@@ -383,6 +387,13 @@ public class ElasticApmTracer implements Tracer {
     }
 
     public void endSpan(Span span) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("endSpan {}", span);
+            if (logger.isTraceEnabled()) {
+                logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
+            }
+        }
+
         if (!span.isSampled()) {
             Transaction transaction = span.getTransaction();
             if (transaction != null) {
@@ -440,6 +451,10 @@ public class ElasticApmTracer implements Tracer {
         reporter.report(error);
     }
 
+    public TraceContext createSpanLink() {
+        return spanLinkPool.createInstance();
+    }
+
     public void recycle(Transaction transaction) {
         transactionPool.recycle(transaction);
     }
@@ -450,6 +465,10 @@ public class ElasticApmTracer implements Tracer {
 
     public void recycle(ErrorCapture error) {
         errorPool.recycle(error);
+    }
+
+    public void recycle(TraceContext traceContext) {
+        spanLinkPool.recycle(traceContext);
     }
 
     public synchronized void stop() {

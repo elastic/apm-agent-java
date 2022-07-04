@@ -23,10 +23,12 @@ import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -88,8 +90,11 @@ public class MockTracer {
 
         MockReporter reporter = new MockReporter();
 
+        ApmServerClient apmServerClient = mockApmServerClient();
+
         ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(configRegistry)
+            .withApmServerClient(apmServerClient)
             .reporter(reporter)
             // use testing bookkeeper implementation here so we will check that no forgotten recyclable object
             // is left behind
@@ -104,8 +109,22 @@ public class MockTracer {
             tracer,
             reporter,
             tracer.getConfigurationRegistry(),
-            objectPoolFactory
-        );
+            objectPoolFactory,
+            apmServerClient);
+    }
+
+    /**
+     * @return mock of apm server client to prevent random/asynchronous behavior
+     */
+    private static ApmServerClient mockApmServerClient() {
+        ApmServerClient client = mock(ApmServerClient.class);
+        doReturn(true).when(client).supportsNonStringLabels();
+        doReturn(true).when(client).supportsNumericUrlPort();
+        doReturn(true).when(client).supportsMultipleHeaderValues();
+        doReturn(true).when(client).supportsConfiguredAndDetectedHostname();
+        doReturn(true).when(client).supportsLogsEndpoint();
+        doReturn(false).when(client).supportsKeepingUnsampledTransaction();
+        return client;
     }
 
     /**
@@ -144,11 +163,14 @@ public class MockTracer {
         private final ConfigurationRegistry config;
         private final TestObjectPoolFactory objectPoolFactory;
 
-        public MockInstrumentationSetup(ElasticApmTracer tracer, MockReporter reporter, ConfigurationRegistry config, TestObjectPoolFactory objectPoolFactory) {
+        private final ApmServerClient apmServerClient;
+
+        public MockInstrumentationSetup(ElasticApmTracer tracer, MockReporter reporter, ConfigurationRegistry config, TestObjectPoolFactory objectPoolFactory, ApmServerClient apmServerClient) {
             this.tracer = tracer;
             this.reporter = reporter;
             this.config = config;
             this.objectPoolFactory = objectPoolFactory;
+            this.apmServerClient = apmServerClient;
         }
 
         public ElasticApmTracer getTracer() {
@@ -165,6 +187,10 @@ public class MockTracer {
 
         public TestObjectPoolFactory getObjectPoolFactory() {
             return objectPoolFactory;
+        }
+
+        public ApmServerClient getApmServerClient() {
+            return apmServerClient;
         }
     }
 }

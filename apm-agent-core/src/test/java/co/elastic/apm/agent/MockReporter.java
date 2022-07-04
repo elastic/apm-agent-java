@@ -59,7 +59,7 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -75,11 +75,11 @@ public class MockReporter implements Reporter {
     private static final Map<String, Collection<String>> SPAN_ACTIONS_WITHOUT_ADDRESS;
     // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
     private boolean checkDestinationAddress = true;
-    // All external spans coming from internal plugins should have a valid 'destination.resource' field. However, custom spans may not have it
-    private boolean checkDestinationService = true;
+    // All exit spans coming from internal plugins should have a valid service target
+    private boolean checkServiceTarget = true;
     // Allows optional opt-out for unknown outcome
     private boolean checkUnknownOutcomes = true;
-    // Allows optional opt-out from strick span type/sub-type checking
+    // Allows optional opt-out from strict span type/sub-type checking
     private boolean checkStrictSpanType = true;
 
     /**
@@ -121,7 +121,7 @@ public class MockReporter implements Reporter {
      */
     public void resetChecks() {
         checkDestinationAddress = true;
-        checkDestinationService = true;
+        checkServiceTarget = true;
         checkUnknownOutcomes = true;
         checkStrictSpanType = true;
         gcWhenAssertingRecycling = false;
@@ -144,8 +144,8 @@ public class MockReporter implements Reporter {
     /**
      * Disables destination service check
      */
-    public void disableCheckDestinationService() {
-        checkDestinationService = false;
+    public void disableCheckServiceTarget() {
+        checkServiceTarget = false;
     }
 
     public boolean checkDestinationAddress() {
@@ -200,6 +200,7 @@ public class MockReporter implements Reporter {
             verifySpanSchema(span);
             verifySpanType(span);
             verifyDestinationFields(span);
+            verifyServiceTarget(span);
 
             if (checkUnknownOutcomes) {
                 assertThat(span.getOutcome())
@@ -264,10 +265,20 @@ public class MockReporter implements Reporter {
                 assertThat(destination.getPort()).describedAs("destination port is required").isGreaterThan(0);
             }
         }
-        Destination.Service service = destination.getService();
-        if (checkDestinationService) {
-            assertThat(service.getResource()).describedAs("service resource is required").isNotEmpty();
+    }
+
+    private void verifyServiceTarget(Span span) {
+        if (!span.isExit() || !checkServiceTarget) {
+            return;
         }
+
+        assertThat(span.getContext().getServiceTarget())
+            .describedAs("service target is required")
+            .isNotEmpty();
+
+        assertThat(span.getContext().getServiceTarget().getDestinationResource())
+            .describedAs("legacy destination service resource is required")
+            .isNotEmpty();
     }
 
     /**
@@ -383,7 +394,7 @@ public class MockReporter implements Reporter {
     }
 
     public void assertNoTransaction(long timeoutMs) {
-        awaitUntilAsserted(timeoutMs, this::assertNoTransaction);
+        awaitUntilTimeout(timeoutMs, this::assertNoTransaction);
     }
 
     public Span getFirstSpan(long timeoutMs) {
@@ -403,9 +414,7 @@ public class MockReporter implements Reporter {
     }
 
     public void assertNoSpan(long timeoutMs) {
-        awaitUntilAsserted(timeoutMs, () -> assertThat(getSpans()).isEmpty());
-
-        assertNoSpan();
+        awaitUntilTimeout(timeoutMs, this::assertNoSpan);
     }
 
     public void awaitTransactionCount(int count) {
@@ -592,21 +601,34 @@ public class MockReporter implements Reporter {
      * This is an issue when testing instrumentations that instrument {@link java.util.concurrent.Executor}.
      *
      * @param timeoutMs the timeout of the condition
-     * @param runnable  a runnable that trows an exception if the condition is not met
+     * @param runnable  a runnable that throws an exception if the condition is not met
      */
     public void awaitUntilAsserted(long timeoutMs, ThrowingRunnable runnable) {
         Throwable thrown = null;
         for (int i = 0; i < timeoutMs; i += 5) {
             try {
                 runnable.run();
-                thrown = null;
+                return;
             } catch (Throwable e) {
                 thrown = e;
                 LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));
             }
         }
-        if (thrown != null) {
-            throw new RuntimeException(String.format("Condition not fulfilled within %d ms", timeoutMs), thrown);
+        throw new RuntimeException(String.format("Condition not fulfilled within %d ms", timeoutMs), thrown);
+    }
+
+    /**
+     * @param timeoutMs timeout of the condition
+     * @param runnable  a runnable that throws an exception when the condition is not met
+     */
+    public void awaitUntilTimeout(long timeoutMs, ThrowingRunnable runnable) {
+        for (int i = 0; i < timeoutMs; i += 5) {
+            try {
+                runnable.run();
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));
+            } catch (Throwable e) {
+                throw new RuntimeException(String.format("Condition not fulfilled within %d ms (timeout at %d ms)", i, timeoutMs), e);
+            }
         }
     }
 

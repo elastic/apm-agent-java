@@ -115,7 +115,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
                     }
                 }
             }
-            span.getContext().getDestination().getService().withName(ELASTICSEARCH).withResource(ELASTICSEARCH).withType(SPAN_TYPE);
+            span.getContext().getServiceTarget().withType(ELASTICSEARCH);
         }
         return span;
     }

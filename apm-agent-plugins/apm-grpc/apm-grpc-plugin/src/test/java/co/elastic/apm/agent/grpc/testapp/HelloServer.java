@@ -28,8 +28,8 @@ import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -59,6 +59,10 @@ public abstract class HelloServer<Req,Rep> {
     protected final AtomicReference<String> listenerExceptionMethod;
     private Server server;
     private ExecutorService serverPool;
+
+    public int getPort() {
+        return port;
+    }
 
     protected static class Sync {
         public CyclicBarrier processingStart;

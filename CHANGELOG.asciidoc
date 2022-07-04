@@ -20,17 +20,111 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.30.1]]
-==== 1.30.1 - YYYY/MM/DD
+[[release-notes-x.x.x]]
+==== 1.32.1 - YYYY/MM/DD
+
+[float]
+===== Breaking changes
+
+[float]
+===== Features
 
 [float]
 ===== Bug fixes
+* Fix for JAX-WS (SOAP) transaction names. The agent now properly names transaction for web service methods that are not annotated with `@WebMethod`. - {pull}2667[#2667]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
+[[release-notes-1.32.0]]
+==== 1.32.0 - 2022/06/13
+
+===== Potentially breaking changes
+* For relational databases, the agent now captures the database name and makes it part of service dependencies and service map.
+For example, with a `MySQL` database, previously a single `mysql` item was shown in the map and in service dependencies,
+the agent will now include the database name in the dependency, thus `mysql/my-db1`, `mysql/my-db2` will now be captured.
+
+[float]
+===== Features
+* Promote mature agent features as Generaly Available (GA) - {pull}2632[#2632]
+** <<opentelemetry-bridge,OpenTelemetry bridge>> is now enabled by default
+** <<config-circuit-breaker,Circuit breaker>> marked as GA (still disabled by default)
+** <<setup-attach-api,API Attach>> and <<setup-attach-cli,CLI Attach>> marked as GA
+** <<config-use-path-as-transaction-name,`use_path_as_transaction_name`>> configuration option marked as GA
+** Dubbo instrumentation is now enabled by default
+** `com.sun.net.httpserver.HttpServer` instrumentation marked as GA
+* Struts action invocations via an action chain result start a new span - {pull}2513[#2513]
+* Added official support for Elasticsearch Java API client - {pull}2211[#2211]
+* Added the ability to make spans non-discardable through the public API and the OpenTelemetry bridge - {pull}2632[#2632]
+* Added support for the new service target fields - {pull}2578[#2578]
+* Capture the database name from JDBC connection string - {pull}2642[#2642]
+* Added an additional span around Javalin template renderers - {pull}2381[#2381]
+* Added support for downloading the latest agent version through the attach CLI by setting `--download-agent-version latest`. In
+addition, when using the `apm-agent-attach-cli-slim.jar`, which does not contain a bundled agent, the latest version will be downloaded
+from maven at runtime unless configured otherwise through  `--download-agent-version` - {pull}2659[#2659]
+* Added span-links to messaging systems instrumentation (supported by APM Server 8.3+ only) - {pull}2610[#2610]
+
+[float]
+===== Bug fixes
+* Fix missing attributes in bridged OTel transactions - {pull}2657[#2657]
+* Fix `transaction.result` with bridged OTel transactions - {pull}2660[#2660]
+
+[[release-notes-1.31.0]]
+==== 1.31.0 - 2022/05/17
+
+[float]
+===== Potentially breaking changes
+* Starting this version, when using <<config-log-ecs-reformatting>>, the agent will automatically set the `service.version` field.
+If you are using ECS-logging and set the `service.version` through a custom field, the behaviour is not strictly defined. Remove the
+custom `service.name` field setting and either allow the agent to automatically discover and set it, or use the
+<<config-service-version>> config option to set it manually.
+
+[float]
+===== Refactorings
+* Vert.x 3.x instrumentation was refactored to remove constructor instrumentation as well as wrapping of response handler. In addition, in
+HTTP 2 request handling, transactions are ended when the request end event occurs and are kept alive until response end, when they are allowed
+to recycle. This allows for spans representing asynchronous handling of requests for which the corresponding transaction has ended -
+{pull}2564[#2564]
+* Jedis clients instrumentation was changed
+
+[float]
+===== Features
+* Set the service version when using the ECS reformatting of the application logs: {pull}2603[#2603]
+* Add ECS-reformatting support for `java.util.logging` - {pull}2591[#2591]
+* Added support for setting the service version on Log4j2's EcsLayout - {pull}2604[#2604]
+* Added support for AWS S3 and DynamoDB - {pull}2606[#2606]
+* Added support for Jedis 4.x clients - {pull}2626[#2626]
+
+[float]
+===== Bug fixes
+* Fixed multiple dropped stats types in a transaction producing invalid JSON: {pull}2589[#2589]
+* Fixed NoClassDefFoundError when using OTel bridge and span.*current() : {pull}2596[#2596]
+* Fallback to standard output when Security Manager prevents writing to log file - {pull}2581[#2581]
+* Fix missing transactions when using Vert.x 3.x with HTTP 1 - {pull}2564[#2564]
+* Fix Vert.x `GET null` transactions to be named `GET unknown route`, according to spec - {pull}2564[#2564]
+* Fix OpenTelemetry bridge span end with explicit timestamp - {pull}2615[#2615]
+* Fix improper naming for `scheduled` transactions created by `java.util.TimerTask` instrumentation - {pull}2620[#2620]
+* Properly handle `java.lang.IllegalStateException` related to premature invocation of `ServletConfig#getServletContext()` in
+`Servlet#init()` instrumentations - {pull}2627[#2627]
+
+[[release-notes-1.30.1]]
+==== 1.30.1 - 2022/04/12
+
+[float]
+===== Bug fixes
+* Fixed AWS Lambda instrumentation for AWS handler classes with input object types that are not AWS Events classes  - {pull}2551[#2551]
+* Fixed service name discovery based on MANIFEST.MF file through `ServletContainerInitializer#onStartup` on Jakarta Servlet containers -
+{pull}2546[#2546]
+* Fix shaded classloader package definition - {pull}2566[#2566]
+* Fix logging initialization with Security Manager - {pull}2568[#2568]
+* normalize empty `transaction.type` and `span.type` - {pull}2525[#2525]
+* Allowing square brackets within the <<config-capture-jmx-metrics>> config value - {pull}2547[#2547]
+* Fixed duplicated ending of `HttpUrlConnection` spans - {pull}2530[#2530]
+* Compressed span fixes - {pull}2576[#2576], {pull}2552[#2552], {pull}2558[#2558]
+
+
 [[release-notes-1.30.0]]
-==== 1.30.0 - 2020/03/22
+==== 1.30.0 - 2022/03/22
 
 [float]
 ===== Potentially breaking changes
@@ -916,7 +1010,7 @@ for more details) - {pull}1009[#1009]
 <<config-service-node-name, `service_node_name`>>
 config option]
 * Add ability to ignore some exceptions to be reported as errors <<config-ignore-exceptions[ignore_exceptions]
-* Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the 
+* Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the
    polling method itself (ie from `receive` start to end), the agent will create a transaction attempting to capture
    the code executed during actual message handling.
    This logic is suitable for environments where polling APIs are invoked within dedicated polling threads.
