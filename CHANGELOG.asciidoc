@@ -33,6 +33,7 @@ endif::[]
 * Fix for JAX-WS (SOAP) transaction names. The agent now properly names transaction for web service methods that are not annotated with `@WebMethod`. - {pull}2667[#2667]
 * Fix public API backward compatibility that was broken in 1.32.0. With this version you can use any version of the public API once
 again - {pull}2682[#2682]
+* Fix flaky transaction name with Webflux+Servlet - {pull}2695[#2695]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
