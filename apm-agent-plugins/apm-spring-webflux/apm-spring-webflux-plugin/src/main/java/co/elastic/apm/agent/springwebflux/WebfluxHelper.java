@@ -163,8 +163,28 @@ public class WebfluxHelper {
             return;
         }
 
+        transaction.captureException(thrown);
+
+        // Fill request/response details if they haven't been already by another HTTP plugin (servlet or other).
+        if (!transaction.getContext().getRequest().hasContent()) {
+            fillRequest(transaction, exchange);
+            fillResponse(transaction, exchange);
+        }
+
+        // In case transaction has been created by Servlet, we should not terminate it as the Servlet instrumentation
+        // will take care of this.
+        if (!WebfluxHelper.isServletTransaction(exchange)) {
+            transaction.end();
+        }
+    }
+
+    public static void setTransactionName(@Nullable Transaction transaction, ServerWebExchange exchange) {
+        if (transaction == null) {
+            return;
+        }
+
         int namePriority;
-        String path;
+        String path = null;
         PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
         if (pattern != null) {
             namePriority = PRIO_HIGH_LEVEL_FRAMEWORK;
@@ -173,30 +193,22 @@ public class WebfluxHelper {
             namePriority = PRIO_LOW_LEVEL_FRAMEWORK + 1;
             if (webConfig.isUsePathAsName()) {
                 path = exchange.getRequest().getPath().value();
-            } else {
-                path = "unknown route";
             }
         }
+        String method = exchange.getRequest().getMethodValue();
+        StringBuilder transactionName = transaction.getAndOverrideName(namePriority, false);
 
-        TransactionNameUtils.setNameFromHttpRequestPath(
-            exchange.getRequest().getMethodValue(),
-            path,
-            transaction.getAndOverrideName(namePriority, false),
-            webConfig.getUrlGroups()
-        );
-
-        // Fill request/response details if they haven't been already by another HTTP plugin (servlet or other).
-        if (!transaction.getContext().getRequest().hasContent()) {
-            fillRequest(transaction, exchange);
-            fillResponse(transaction, exchange);
-        }
-
-        transaction.captureException(thrown);
-
-        // In case transaction has been created by Servlet, we should not terminate it as the Servlet instrumentation
-        // will take care of this.
-        if (!WebfluxHelper.isServletTransaction(exchange)) {
-            transaction.end();
+        if (path != null) {
+            TransactionNameUtils.setNameFromHttpRequestPath(
+                method,
+                path,
+                transactionName,
+                webConfig.getUrlGroups()
+            );
+        } else {
+            TransactionNameUtils.setNameUnknownRoute(
+                method,
+                transactionName);
         }
     }
 
