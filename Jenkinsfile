@@ -289,7 +289,7 @@ pipeline {
              * The result JSON files are also archive into Jenkins.
              */
             stage('Benchmarks') {
-              agent { label 'metal' }
+              agent { label 'linux && metal' }
               options { skipDefaultCheckout() }
               environment {
                 NO_BUILD = "true"
