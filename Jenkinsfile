@@ -317,6 +317,9 @@ pipeline {
                 }
               }
               post {
+                cleanup {
+                  deleteDir()
+                }
                 always {
                   archiveArtifacts(allowEmptyArchive: true,
                     artifacts: "${BASE_DIR}/${RESULT_FILE}",
