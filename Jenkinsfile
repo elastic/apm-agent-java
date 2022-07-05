@@ -55,6 +55,7 @@ pipeline {
     booleanParam(name: 'end_to_end_tests_ci', defaultValue: false, description: 'Enable APM End-to-End tests')
 
     // disabled by default, not required for merge
+    // opt-in with 'ci:benchmarks' tag on PR
     booleanParam(name: 'bench_ci', defaultValue: false, description: 'Enable benchmarks')
 
     // disabled by default, not required for merge
@@ -300,6 +301,7 @@ pipeline {
                 anyOf {
                   branch 'main'
                   expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
+                  expression { matchesPrLabel(label: 'ci:benchmarks') }
                   expression { return params.bench_ci }
                 }
               }
