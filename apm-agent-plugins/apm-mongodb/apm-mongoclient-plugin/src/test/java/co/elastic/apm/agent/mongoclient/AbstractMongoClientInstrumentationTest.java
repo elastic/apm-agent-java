@@ -89,7 +89,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
         createCollection();
         dropCollection();
 
-        // trying to drop when it does not exits creates an error
+        // trying to drop when it does not exists creates an error
         dropCollection();
 
         List<Span> spans = reporter.getSpans();

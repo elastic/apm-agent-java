@@ -21,6 +21,7 @@ package co.elastic.apm.agent.mongoclient;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.mongodb.MongoHelper;
 import com.mongodb.MongoNamespace;
 import com.mongodb.ServerAddress;
 import com.mongodb.connection.Connection;
@@ -36,22 +37,20 @@ public class ConnectionAdvice { // relies on Connection class which has been rem
 
     public static final Logger logger = LoggerFactory.getLogger(ConnectionAdvice.class);
 
+    // TODO : instrument com.mongodb.internal.connection.InternalConnection.sendAndReceive seems a more portable option
+    // it is available both on 3.x and 4.x drivers
+    // TODO :need to check for 3.0.x drivers: this is not available on oldest 3.x drivers :-(
+
+    private static final MongoHelper helper = new MongoHelper(GlobalTracer.get());
+
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnter(@Advice.This Connection thiz,
                                  @Advice.Argument(0) Object databaseOrMongoNamespace,
                                  @Advice.Argument(1) BsonDocument command) {
-        Span span = null;
-        final AbstractSpan<?> activeSpan = GlobalTracer.get().getActive();
-        if (activeSpan != null && !activeSpan.isExit()) {
-            span = activeSpan.createExitSpan();
-        }
 
-        if (span == null) {
-            return null;
-        }
 
-        String database = "";
+        String database = null;
         String collection = null;
         if (databaseOrMongoNamespace instanceof String) {
             database = (String) databaseOrMongoNamespace;
@@ -61,21 +60,9 @@ public class ConnectionAdvice { // relies on Connection class which has been rem
             collection = namespace.getCollectionName();
         }
 
-        span.withType("db").withSubtype("mongodb")
-            .appendToName(database).getContext().getDb()
-            .withType("mongodb")
-            .withInstance(database);
-
-        span.getContext().getServiceTarget()
-            .withType("mongodb")
-            .withName(database);
-
-        ServerAddress serverAddress = thiz.getDescription().getServerAddress();
-        span.getContext().getDestination()
-            .withAddress(serverAddress.getHost())
-            .withPort(serverAddress.getPort());
+        String cmd = null;
         try {
-            String cmd =
+            cmd =
                 // try to determine main commands in a garbage free way
                 command.containsKey("find") ? "find" :
                 command.containsKey("insert") ? "insert" :
@@ -92,22 +79,20 @@ public class ConnectionAdvice { // relies on Connection class which has been rem
                 BsonValue collectionName = command.get(cmd);
                 if (collectionName != null && collectionName.isString()) {
                     collection = collectionName.asString().getValue();
-                    span.appendToName(".").appendToName(collection);
                 }
             }
             if (collection == null) {
                 BsonValue collectionName = command.get("collection");
                 if (collectionName != null && collectionName.isString()) {
                     collection = collectionName.asString().getValue();
-                    span.appendToName(".").appendToName(collection);
                 }
             }
-            span.appendToName(".").appendToName(cmd).withAction(cmd);
         } catch (RuntimeException e) {
             logger.error("Exception while determining MongoDB command and collection", e);
         }
-        span.activate();
-        return span;
+
+
+        return helper.startSpan(database, collection, cmd, thiz.getDescription().getServerAddress());
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

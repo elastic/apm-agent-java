@@ -20,6 +20,7 @@ package co.elastic.apm.agent.mongoclient;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.mongodb.MongoHelper;
 import com.mongodb.MongoNamespace;
 import com.mongodb.ServerAddress;
 import com.mongodb.connection.Connection;
@@ -62,51 +63,31 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
     }
 
     public static class AdviceClass {
+
+        private static final MongoHelper helper = new MongoHelper(tracer);
+
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This Connection thiz,
                                      @Advice.Argument(0) MongoNamespace namespace,
                                      @Advice.Origin("#m") String methodName) {
-            Span span = null;
-            final AbstractSpan<?> activeSpan = tracer.getActive();
-            if (activeSpan != null && !activeSpan.isExit()) {
-                span = activeSpan.createExitSpan();
-            }
-
-            if (span == null) {
-                return null;
-            }
-
-            span.withType("db")
-                .withSubtype("mongodb")
-                .getContext().getDb().withType("mongodb");
-
-            span.getContext().getServiceTarget()
-                .withType("mongodb")
-                .withName(namespace.getDatabaseName());
-
-            span.getContext().getDb()
-                .withInstance(namespace.getDatabaseName());
-
-            ServerAddress serverAddress = thiz.getDescription().getServerAddress();
-            span.getContext().getDestination()
-                .withAddress(serverAddress.getHost())
-                .withPort(serverAddress.getPort());
 
             String command = methodName;
             if (methodName.equals("query")) {
                 // if the method name is query, that corresponds to the find command
                 command = "find";
             }
-            span.withAction(command);
-            StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
-            if (spanName != null) {
-                int indexOfCommand = command.indexOf("Command");
-                spanName.append(namespace.getDatabaseName())
-                    .append(".").append(namespace.getCollectionName())
-                    .append(".").append(command, 0, indexOfCommand > 0 ? indexOfCommand : command.length());
+            int indexOfCommand = command.indexOf("Command");
+            if (indexOfCommand > 0) {
+                command = command.substring(0, indexOfCommand);
             }
-            span.activate();
+
+            Span span = helper.startSpan(
+                namespace.getDatabaseName(),
+                namespace.getCollectionName(),
+                command,
+                thiz.getDescription().getServerAddress());
+
             return span;
         }
 

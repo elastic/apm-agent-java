@@ -9,13 +9,19 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
+        <version.mongodb>[3.0.4,)</version.mongodb>
     </properties>
 
     <artifactId>apm-mongodb-common</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <dependencies>
-
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongo-java-driver</artifactId>
+            <version>${version.mongodb}</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
 </project>
