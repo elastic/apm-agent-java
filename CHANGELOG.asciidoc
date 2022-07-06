@@ -8,6 +8,9 @@ endif::[]
 ==== x.x.x - YYYY/MM/DD
 
 [float]
+===== Breaking changes
+
+[float]
 ===== Features
 * Cool new feature: {pull}2526[#2526]
 
@@ -19,9 +22,6 @@ endif::[]
 
 [[release-notes-x.x.x]]
 ==== 1.33.0 - YYYY/MM/DD
-
-[float]
-===== Breaking changes
 
 [float]
 ===== Features
