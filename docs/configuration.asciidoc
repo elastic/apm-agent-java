@@ -1389,13 +1389,13 @@ Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
 
-
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | List | false
+| `<none>` | List | true
 |============
 
 
@@ -3524,7 +3524,7 @@ Example: `5ms`.
 # Matching is case insensitive by default.
 # Prepending an element with `(?-i)` makes the matching case sensitive.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: comma separated list
 # Default value: 
 #
