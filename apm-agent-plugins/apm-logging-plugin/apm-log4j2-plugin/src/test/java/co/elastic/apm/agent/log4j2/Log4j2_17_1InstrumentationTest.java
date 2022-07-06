@@ -20,9 +20,12 @@ package co.elastic.apm.agent.log4j2;
 
 import co.elastic.apm.agent.TestClassWithDependencyRunner;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.util.List;
 
+@DisabledOnOs(OS.WINDOWS)
 public class Log4j2_17_1InstrumentationTest {
     private final TestClassWithDependencyRunner runner;
 

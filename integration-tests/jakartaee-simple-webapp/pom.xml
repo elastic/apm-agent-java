@@ -38,6 +38,7 @@
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
+            <!-- keep 5.x version to stay compatible with test runtimes defined in co.elastic.apm.servlet.JakartaeeTomcatIT -->
             <version>5.0.0</version>
             <scope>provided</scope>
         </dependency>

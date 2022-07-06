@@ -42,15 +42,18 @@ the agent does not capture transactions.
 [[supported-java-versions]]
 === Java versions
 
+
+NOTE: As of version 1.33.0, Java 7 support is deprecated and will be removed in a future release
+
 |===
 |Vendor |Supported versions |Notes
 
 |Oracle JDK
-|7u60+, 8u40+, 9, 10, 11, 17
+|7u60+*, 8u40+, 9, 10, 11, 17
 |`--module-path` has not been tested yet
 
 |OpenJDK
-|7u60+, 8u40+, 9, 10, 11, 17
+|7u60+*, 8u40+, 9, 10, 11, 17
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
@@ -58,13 +61,15 @@ the agent does not capture transactions.
 |<<method-sampling-based,Sampling profiler>> is not supported
 
 |HP-UX JVM
-| 7.0.10+, 8.0.02+
+| 7.0.10+*, 8.0.02+
 |
 
 |SAP JVM
 | 8.1.065+
 |
 |===
+
+{empty}* Java 7 support is deprecated and will be removed in a future release
 
 **Early Java 8 and Java 7**
 
@@ -107,7 +112,6 @@ the JVM arguments.
 |5.2.3+
 |Creates transactions for incoming HTTP requests, supports annotated and functional endpoints.
 |1.24.0 (experimental)
-
 
 |JavaServer Faces
 |2.2.x, 2.3.x, 3.0.x
@@ -342,6 +346,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 | 3.6+
 |
 | 1.25.0
+
+|Spring Webclient
+|5.2.3+
+|
+|1.33.0 (experimental)
 
 |===
 
