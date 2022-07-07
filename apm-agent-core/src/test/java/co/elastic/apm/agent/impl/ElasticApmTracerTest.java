@@ -32,13 +32,13 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
@@ -222,6 +222,28 @@ class ElasticApmTracerTest {
         tracerImpl.captureAndReportException(new DummyException1(), getClass().getClassLoader());
         tracerImpl.captureAndReportException(new DummyException2(), getClass().getClassLoader());
         assertThat(reporter.getErrors()).isEmpty();
+    }
+
+    @Test
+    void testTransactionNameGrouping() {
+        when(config.getConfig(CoreConfiguration.class).getTransactionNameGroups())
+            .thenReturn(List.of(WildcardMatcher.valueOf("GET /foo/*/bar")));
+
+        Transaction transaction = tracerImpl.startRootTransaction(null).appendToName("GET ").appendToName("/foo/42/bar");
+        try (Scope scope = transaction.activateInScope()) {
+            transaction.captureException(new RuntimeException("Test error capturing"));
+        }
+        transaction.end();
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("GET /foo/*/bar");
+        assertThat(reporter.getFirstError().getTransactionInfo().getName().toString()).isEqualTo("GET /foo/*/bar");
+        tracerImpl.getMetricRegistry().flipPhaseAndReport(metricSets -> {
+            assertThat(metricSets.get(Labels.Mutable.of()
+                .transactionName("GET /foo/*/bar")
+                .transactionType("custom")
+                .spanType("app")))
+                .isNotNull();
+        });
+
     }
 
     private static class DummyException1 extends Exception {

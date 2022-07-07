@@ -27,6 +27,8 @@ endif::[]
 ===== Features
 * Add support for Spring WebClient - {pull}2229[#2229]
 * Added undocumented and unsupported configuration `metric_set_limit` to increase the metric set limit - {pull}2148[#2148]
+* Added <<config-transaction-name-groups, `transaction_name_groups`>> configuration option.
+** Deprecated <<config-url-groups, `url_groups`>> in favor of <<config-transaction-name-groups, `transaction_name_groups`>>.
 
 [float]
 ===== Bug fixes

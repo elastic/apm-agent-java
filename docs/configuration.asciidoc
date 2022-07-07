@@ -131,6 +131,7 @@ Click on a key to get more information.
 ** <<config-span-min-duration>>
 ** <<config-cloud-provider>>
 ** <<config-enable-public-api-annotation-inheritance>>
+** <<config-transaction-name-groups>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
 ** <<config-transaction-ignore-urls>>
@@ -1371,6 +1372,39 @@ A boolean specifying if the agent should search the class hierarchy for public a
 | `elastic.apm.enable_public_api_annotation_inheritance` | `enable_public_api_annotation_inheritance` | `ELASTIC_APM_ENABLE_PUBLIC_API_ANNOTATION_INHERITANCE`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-transaction-name-groups]]
+==== `transaction_name_groups` (added[1.33.0])
+
+With this option,
+you can group transaction names that contain dynamic parts with a wildcard expression.
+For example,
+the pattern `GET /user/*/cart` would consolidate transactions,
+such as `GET /users/42/cart` and `GET /users/73/cart` into a single transaction name `GET /users/*/cart`,
+hence reducing the transaction name cardinality.
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.transaction_name_groups` | `transaction_name_groups` | `ELASTIC_APM_TRANSACTION_NAME_GROUPS`
+|============
+
 [[config-http]]
 === HTTP configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1477,7 +1511,7 @@ transaction names of unsupported or partially-supported frameworks will be in th
 WARNING: If your URLs contain path parameters like `/user/$userId`,
 you should be very careful when enabling this flag,
 as it can lead to an explosion of transaction groups.
-Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
+Take a look at the <<config-transaction-name-groups,`transaction_name_groups`>> option on how to mitigate this problem by grouping URLs together.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -1498,7 +1532,9 @@ Take a look at the `url_groups` option on how to mitigate this problem by groupi
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-url-groups]]
-==== `url_groups`
+==== `url_groups` (deprecated)
+
+Deprecated in favor of <<config-transaction-name-groups,`transaction_name_groups`>>.
 
 This option is only considered, when `use_path_as_transaction_name` is active.
 
@@ -3476,6 +3512,24 @@ Example: `5ms`.
 #
 # enable_public_api_annotation_inheritance=false
 
+# With this option,
+# you can group transaction names that contain dynamic parts with a wildcard expression.
+# For example,
+# the pattern `GET /user/*/cart` would consolidate transactions,
+# such as `GET /users/42/cart` and `GET /users/73/cart` into a single transaction name `GET /users/*/cart`,
+# hence reducing the transaction name cardinality.
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
+#
+# transaction_name_groups=
+
 ############################################
 # HTTP                                     #
 ############################################
@@ -3534,7 +3588,7 @@ Example: `5ms`.
 # WARNING: If your URLs contain path parameters like `/user/$userId`,
 # you should be very careful when enabling this flag,
 # as it can lead to an explosion of transaction groups.
-# Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
+# Take a look at the <<config-transaction-name-groups,`transaction_name_groups`>> option on how to mitigate this problem by grouping URLs together.
 #
 # This setting can be changed at runtime
 # Type: Boolean
@@ -3542,6 +3596,8 @@ Example: `5ms`.
 #
 # use_path_as_transaction_name=false
 
+# Deprecated in favor of <<config-transaction-name-groups,`transaction_name_groups`>>.
+# 
 # This option is only considered, when `use_path_as_transaction_name` is active.
 # 
 # With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.
