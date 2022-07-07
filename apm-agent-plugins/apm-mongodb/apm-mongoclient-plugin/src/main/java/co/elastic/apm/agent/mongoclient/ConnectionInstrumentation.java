@@ -18,11 +18,9 @@
  */
 package co.elastic.apm.agent.mongoclient;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.mongodb.MongoHelper;
 import com.mongodb.MongoNamespace;
-import com.mongodb.ServerAddress;
 import com.mongodb.connection.Connection;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -53,11 +51,14 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return nameStartsWith("insert")
-            .or(nameStartsWith("update"))
-            .or(nameStartsWith("delete"))
-            .or(nameStartsWith("query"))
-            .or(nameStartsWith("getMore"))
+        return named("insert")
+            .or(named("delete"))
+            .or(named("query"))
+            .or(named("update"))
+            .or(named("getMore"))
+            .or(named("insertCommand"))
+            .or(named("updateCommand"))
+            .or(named("deleteCommand"))
             .and(isPublic())
             .and(takesArgument(0, named("com.mongodb.MongoNamespace")));
     }
@@ -85,8 +86,11 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
             Span span = helper.startSpan(
                 namespace.getDatabaseName(),
                 namespace.getCollectionName(),
-                command,
-                thiz.getDescription().getServerAddress());
+                command);
+
+            if (span != null) {
+                helper.setServerAddress(span, thiz.getDescription().getServerAddress());
+            }
 
             return span;
         }

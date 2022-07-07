@@ -9,7 +9,7 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
-        <version.mongodb>[3.0.4,)</version.mongodb>
+        <version.mongodb>3.0.4</version.mongodb>
     </properties>
 
     <!-- TODO : maybe rename this to 3.x -->
@@ -23,6 +23,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-mongodb-common</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.mongodb</groupId>

@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.mongoclient;
 
+import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationTest;
 import com.mongodb.MongoClient;
 import com.mongodb.ServerAddress;
-import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 import org.junit.AfterClass;
@@ -43,7 +43,9 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
 
     @AfterClass
     public static void closeClient() {
-        mongo.close();
+        if (mongo != null) {
+            mongo.close();
+        }
         mongo = null;
         db = null;
     }
@@ -59,7 +61,7 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
     }
 
     @Override
-    public long count() {
+    public long collectionCount() {
         return db.getCollection(COLLECTION_NAME).count();
     }
 

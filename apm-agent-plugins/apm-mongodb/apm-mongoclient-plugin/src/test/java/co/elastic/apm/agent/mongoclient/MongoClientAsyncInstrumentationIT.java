@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.mongoclient;
 
+import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationTest;
 import com.mongodb.async.SingleResultCallback;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoClients;
@@ -96,7 +97,7 @@ public class MongoClientAsyncInstrumentationIT extends AbstractMongoClientInstru
     }
 
     @Override
-    protected long count() throws Exception {
+    protected long collectionCount() throws Exception {
         return MongoClientAsyncInstrumentationIT.<Long>executeAndGet(c -> db.getCollection(COLLECTION_NAME).count(c));
     }
 

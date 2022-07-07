@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.mongoclient;
+package co.elastic.apm.agent.mongodb;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Destination;
@@ -109,9 +109,17 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
     @Test
     public void testCountCollection() throws Exception {
-        assertThat(count()).isZero();
+        assertThat(collectionCount()).isZero();
 
-        checkReportedSpans("count");
+        checkReportedSpans(countOperationName());
+    }
+
+    protected boolean countWithAggregate() {
+        return false;
+    }
+
+    private String countOperationName() {
+        return countWithAggregate() ? "aggregate" : "count";
     }
 
     @Test
@@ -121,9 +129,9 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
         insert(document);
 
-        assertThat(count()).isOne();
+        assertThat(collectionCount()).isOne();
 
-        checkReportedSpans("insert", "count");
+        checkReportedSpans("insert", countOperationName());
     }
 
     @Test
@@ -160,11 +168,11 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
         long updatedDocCount = update(query, updatedObject);
 
-        long count = count();
+        long count = collectionCount();
         assertThat(updatedDocCount).isOne();
         assertThat(count).isOne();
 
-        checkReportedSpans("update", "count");
+        checkReportedSpans("update", countOperationName());
     }
 
     @Test
@@ -180,10 +188,10 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
         delete(searchQuery);
 
-        long count = count();
+        long count = collectionCount();
         assertThat(count).isZero();
 
-        checkReportedSpans("delete", "count");
+        checkReportedSpans("delete", countOperationName());
     }
 
     private void checkReportedSpans(String... operations) {
@@ -227,7 +235,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
     protected abstract void delete(Document searchQuery) throws Exception;
 
-    protected abstract long count() throws Exception;
+    protected abstract long collectionCount() throws Exception;
 
     protected abstract Collection<Document> find(Document query, int batchSize) throws Exception;
 
