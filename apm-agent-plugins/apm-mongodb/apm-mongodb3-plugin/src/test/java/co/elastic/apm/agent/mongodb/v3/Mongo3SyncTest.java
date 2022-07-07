@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.mongoclient;
+package co.elastic.apm.agent.mongodb.v3;
 
 import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationTest;
 import com.mongodb.MongoClient;
@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrumentationTest { // TODO : maybe rename this
+public class Mongo3SyncTest extends AbstractMongoClientInstrumentationTest {
 
     private static MongoClient mongo = null;
     private static MongoDatabase db = null;

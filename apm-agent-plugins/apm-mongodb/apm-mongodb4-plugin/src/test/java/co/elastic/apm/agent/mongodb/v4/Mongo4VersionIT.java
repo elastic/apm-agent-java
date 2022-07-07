@@ -16,27 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.mongoclient;
+package co.elastic.apm.agent.mongodb.v4;
 
 import co.elastic.apm.agent.TestClassWithDependencyRunner;
 import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationTest;
+import co.elastic.apm.agent.util.Version;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 @RunWith(Parameterized.class)
-public class MongoClientSyncVersionIT {
+public class Mongo4VersionIT {
 
     private final TestClassWithDependencyRunner runner;
 
-    public MongoClientSyncVersionIT(String version) throws Exception {
-        List<String> dependencies = Collections.singletonList("org.mongodb:mongo-java-driver:" + version);
-        Class<?> testClass = MongoClientSyncInstrumentationIT.class;
+    public Mongo4VersionIT(String version) throws Exception {
+
+        Version v = Version.of(version);
+
+        List<String> dependencies = new ArrayList<>(Arrays.asList(
+            "org.mongodb:mongodb-driver-sync:" + version,
+            "org.mongodb:mongodb-driver-legacy:" + version,
+            "org.mongodb:mongodb-driver-core:" + version,
+            "org.mongodb:bson:" + version));
+
+        if (v.compareTo(Version.of("4.6.0")) >= 0) {
+            dependencies.add("org.mongodb:bson-record-codec:" + version);
+        }
+
+        Class<?> testClass = Mongo4SyncTest.class;
 
         runner = new TestClassWithDependencyRunner(dependencies,
             testClass, AbstractMongoClientInstrumentationTest.class);
@@ -44,20 +57,17 @@ public class MongoClientSyncVersionIT {
 
     @Parameterized.Parameters(name= "{0}")
     public static Iterable<Object[]> data() {
+        // whenever adding new versions to this list, you have to make sure that all transitive dependencies of the
+        // driver are also explicitly included, over time the driver has moved to single monolithic jar to having more
+        // and more dependencies instead of embedding them.
         return Arrays.asList(new Object[][]{
-            {"3.12.11"},
-            {"3.11.1"},
-            {"3.10.2"},
-            {"3.9.0"},
-            {"3.8.2"},
-            {"3.7.1"},
-            {"3.6.4"},
-            {"3.5.0"},
-            {"3.4.3"},
-            {"3.3.0"},
-            {"3.2.2"},
-            {"3.1.1"},
-            {"3.0.4"}
+            {"4.6.0"},
+            {"4.5.0"},
+            {"4.4.0"},
+            {"4.3.0"},
+            {"4.2.0"},
+            {"4.1.0"},
+            {"4.0.0"},
         });
     }
 
@@ -68,7 +78,5 @@ public class MongoClientSyncVersionIT {
 
     @After
     public void tearDown() throws Exception {
-        // judging from heap dumps, DefaultServerConnection seems to keep the class loader alive
-        //runner.assertClassLoaderIsGCed();
     }
 }

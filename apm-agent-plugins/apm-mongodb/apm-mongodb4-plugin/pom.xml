@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>apm-mongodb</artifactId>
+        <groupId>co.elastic.apm</groupId>
+        <version>1.32.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>apm-mongodb4-plugin</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
+        <version.mongodb>4.0.0</version.mongodb>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-mongodb-common</artifactId>
+            <version>${project.version}</version>
+            <exclusions>
+                <!-- exclude the 3.x driver transitive dependency -->
+                <exclusion>
+                    <groupId>org.mongodb</groupId>
+                    <artifactId>mongo-java-driver</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-mongodb-common</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- new synchronous API -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-sync</artifactId>
+            <version>${version.mongodb}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- legacy synchronous API -->
+        <dependency>
+            <!-- has a transitive dependency on driver-sync -->
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-legacy</artifactId>
+            <version>${version.mongodb}</version>
+            <scope>provided</scope>
+        </dependency>
+
+    </dependencies>
+
+</project>

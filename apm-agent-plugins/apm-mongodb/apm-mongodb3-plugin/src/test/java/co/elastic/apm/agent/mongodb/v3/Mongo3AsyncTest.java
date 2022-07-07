@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.mongoclient;
+package co.elastic.apm.agent.mongodb.v3;
 
 import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationTest;
 import com.mongodb.async.SingleResultCallback;
@@ -39,7 +39,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 @Ignore("Async instrumentation is not implemented yet")
-public class MongoClientAsyncInstrumentationIT extends AbstractMongoClientInstrumentationTest {
+public class Mongo3AsyncTest extends AbstractMongoClientInstrumentationTest {
 
     private static MongoClient mongo = null;
     private static MongoDatabase db;
@@ -88,7 +88,7 @@ public class MongoClientAsyncInstrumentationIT extends AbstractMongoClientInstru
 
     @Override
     protected long update(Document query, Document updatedObject) throws Exception {
-        return MongoClientAsyncInstrumentationIT.<UpdateResult>executeAndGet(c -> db.getCollection(COLLECTION_NAME).updateOne(query, updatedObject, c)).getModifiedCount();
+        return Mongo3AsyncTest.<UpdateResult>executeAndGet(c -> db.getCollection(COLLECTION_NAME).updateOne(query, updatedObject, c)).getModifiedCount();
     }
 
     @Override
@@ -98,12 +98,12 @@ public class MongoClientAsyncInstrumentationIT extends AbstractMongoClientInstru
 
     @Override
     protected long collectionCount() throws Exception {
-        return MongoClientAsyncInstrumentationIT.<Long>executeAndGet(c -> db.getCollection(COLLECTION_NAME).count(c));
+        return Mongo3AsyncTest.<Long>executeAndGet(c -> db.getCollection(COLLECTION_NAME).count(c));
     }
 
     @Override
     public Collection<Document> find(Document query, int batchSize) throws Exception {
-        return MongoClientAsyncInstrumentationIT.<Collection<Document>>executeAndGet(c -> db.getCollection(COLLECTION_NAME).find(query).batchSize(batchSize).into(new ArrayList<>(), c));
+        return Mongo3AsyncTest.<Collection<Document>>executeAndGet(c -> db.getCollection(COLLECTION_NAME).find(query).batchSize(batchSize).into(new ArrayList<>(), c));
     }
 
     @Override
@@ -113,7 +113,7 @@ public class MongoClientAsyncInstrumentationIT extends AbstractMongoClientInstru
 
     @Override
     protected void listCollections() throws Exception {
-        MongoClientAsyncInstrumentationIT.<Document>executeAndGet(c -> db.listCollections().first(c));
+        Mongo3AsyncTest.<Document>executeAndGet(c -> db.listCollections().first(c));
     }
 
     @Override
