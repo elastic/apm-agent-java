@@ -567,24 +567,32 @@ public class MockReporter implements Reporter {
         if (gcWhenAssertingRecycling) {
             System.gc();
         }
-        awaitUntilAsserted(() -> {
-            spans.forEach(s -> {
-                assertThat(s.isReferenced())
-                    .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
-                    .isFalse();
-                assertThat(hasEmptyTraceContext(s))
-                    .describedAs("should have empty trace context : %s", s)
-                    .isTrue();
+
+        try {
+            awaitUntilAsserted(() -> {
+                spans.forEach(s -> {
+                    assertThat(s.isReferenced())
+                        .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
+                        .isFalse();
+                    assertThat(hasEmptyTraceContext(s))
+                        .describedAs("should have empty trace context : %s", s)
+                        .isTrue();
+                });
+                transactions.forEach(t -> {
+                    assertThat(t.isReferenced())
+                        .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
+                        .isFalse();
+                    assertThat(hasEmptyTraceContext(t))
+                        .describedAs("should have empty trace context : %s", t)
+                        .isTrue();
+                });
             });
-            transactions.forEach(t -> {
-                assertThat(t.isReferenced())
-                    .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
-                    .isFalse();
-                assertThat(hasEmptyTraceContext(t))
-                    .describedAs("should have empty trace context : %s", t)
-                    .isTrue();
-            });
-        });
+        } finally {
+            // clear collections in case they aren't empty to prevent a failing test to have side effects on others
+            this.transactions.clear();
+            this.spans.clear();
+        }
+
 
         // errors are recycled directly because they have no reference counter
         errors.forEach(ErrorCapture::recycle);
