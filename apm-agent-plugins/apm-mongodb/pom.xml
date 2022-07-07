@@ -18,7 +18,7 @@
     </properties>
 
     <modules>
-        <module>apm-mongoclient-plugin</module>
+        <module>apm-mongodb3-plugin</module>
         <module>apm-mongodb4-plugin</module>
         <module>apm-mongodb-common</module>
     </modules>

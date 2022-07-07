@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.mongoclient;
+package co.elastic.apm.agent.mongodb.v3;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.security.ProtectionDomain;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -50,7 +51,9 @@ public abstract class MongoClientInstrumentation extends TracerAwareInstrumentat
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("mongodb-client");
+        // has already been published with 'mongodb-client', thus keeping it as an alias in case it has been disabled
+        // on the java agent there is no ambiguity as mongodb will always be a mongodb client (server written in c++).
+        return Arrays.asList("mongodb-client", "mongodb");
     }
 
 }

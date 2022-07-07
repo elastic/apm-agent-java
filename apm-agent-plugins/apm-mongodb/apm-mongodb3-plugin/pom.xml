@@ -12,8 +12,7 @@
         <version.mongodb>3.0.4</version.mongodb>
     </properties>
 
-    <!-- TODO : maybe rename this to 3.x -->
-    <artifactId>apm-mongoclient-plugin</artifactId>
+    <artifactId>apm-mongodb3-plugin</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <dependencies>

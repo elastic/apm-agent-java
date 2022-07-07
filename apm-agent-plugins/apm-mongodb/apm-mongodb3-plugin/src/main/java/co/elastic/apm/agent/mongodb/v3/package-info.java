@@ -16,19 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.mongoclient;
+@NonnullApi
+package co.elastic.apm.agent.mongodb.v3;
 
-import co.elastic.apm.agent.bci.PluginClassLoaderRootPackageCustomizer;
-
-import java.util.Arrays;
-import java.util.Collection;
-
-public class MongoPluginClassLoaderRootPackageCustomizer extends PluginClassLoaderRootPackageCustomizer {
-
-    @Override
-    public Collection<String> pluginClassLoaderRootPackages() {
-        return Arrays.asList(getPluginPackage(), "co.elastic.apm.agent.mongodb");
-    }
-}
-
-
+import co.elastic.apm.agent.sdk.NonnullApi;

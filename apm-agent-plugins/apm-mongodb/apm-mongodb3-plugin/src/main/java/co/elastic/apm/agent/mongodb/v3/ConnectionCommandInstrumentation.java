@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.mongoclient;
+package co.elastic.apm.agent.mongodb.v3;
 
+import co.elastic.apm.agent.mongodb.v3.MongoClientInstrumentation;
 import com.mongodb.connection.Connection;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -42,6 +43,6 @@ public class ConnectionCommandInstrumentation extends MongoClientInstrumentation
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.mongoclient.ConnectionAdvice";
+        return "co.elastic.apm.agent.mongodb.v3.ConnectionAdvice";
     }
 }

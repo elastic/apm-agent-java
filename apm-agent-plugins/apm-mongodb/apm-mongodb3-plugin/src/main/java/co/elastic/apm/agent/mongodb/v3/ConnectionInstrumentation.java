@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.mongoclient;
+package co.elastic.apm.agent.mongodb.v3;
 
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.mongodb.MongoHelper;
+import co.elastic.apm.agent.mongodb.v3.MongoClientInstrumentation;
 import com.mongodb.MongoNamespace;
 import com.mongodb.connection.Connection;
 import net.bytebuddy.asm.Advice;
@@ -29,7 +30,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
