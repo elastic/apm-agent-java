@@ -290,7 +290,7 @@ pipeline {
              * The result JSON files are also archive into Jenkins.
              */
             stage('Benchmarks') {
-              agent { label 'linux && metal' }
+              agent { label 'microbenchmarks-pool' }
               options { skipDefaultCheckout() }
               environment {
                 NO_BUILD = "true"

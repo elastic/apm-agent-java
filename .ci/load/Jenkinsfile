@@ -164,7 +164,7 @@ pipeline {
         stage('execute test') {
             parallel {
                 stage('Load generation') {
-                    agent { label 'metal' }
+                    agent { label 'linux && metal' }
                     steps {
                         echo 'Preparing load generation..'
                         unstash('scripts')
