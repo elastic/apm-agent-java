@@ -18,10 +18,17 @@
  */
 package co.elastic.apm.agent.mongodb.v3;
 
-import co.elastic.apm.agent.mongodb.v3.MongoClientInstrumentation;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.mongodb.MongoHelper;
+import com.mongodb.MongoNamespace;
 import com.mongodb.connection.Connection;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.bson.BsonDocument;
+
+import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -31,7 +38,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 /**
  * {@link Connection#command}
  */
-public class ConnectionCommandInstrumentation extends MongoClientInstrumentation {
+public class ConnectionCommandInstrumentation extends Mongo3Instrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -41,8 +48,50 @@ public class ConnectionCommandInstrumentation extends MongoClientInstrumentation
             .and(takesArgument(1, named("org.bson.BsonDocument")));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return "co.elastic.apm.agent.mongodb.v3.ConnectionAdvice";
+    public static class AdviceClass {
+
+        private static final MongoHelper helper = new MongoHelper(GlobalTracer.get());
+
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.This Connection thiz,
+                                     @Advice.Argument(0) Object databaseOrMongoNamespace,
+                                     @Advice.Argument(1) BsonDocument command) {
+
+
+            String database = null;
+            String collection = null;
+            if (databaseOrMongoNamespace instanceof String) {
+                database = (String) databaseOrMongoNamespace;
+            } else if (databaseOrMongoNamespace instanceof MongoNamespace) {
+                MongoNamespace namespace = (MongoNamespace) databaseOrMongoNamespace;
+                database = namespace.getDatabaseName();
+                collection = namespace.getCollectionName();
+            }
+
+            String cmd = helper.getCommandFromBson(command);
+
+            if (collection == null) {
+                collection = helper.getCollectionFromBson(cmd, command);
+            }
+
+            Span span = helper.startSpan(database, collection, cmd);
+            if (span == null) {
+                return null;
+            }
+
+            helper.setServerAddress(span, thiz.getDescription().getServerAddress());
+            return span;
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Nullable @Advice.Enter Object spanObj, @Advice.Thrown Throwable thrown) {
+            if (spanObj instanceof Span) {
+                Span span = (Span) spanObj;
+                span.deactivate()
+                    .captureException(thrown)
+                    .end();
+            }
+        }
     }
 }

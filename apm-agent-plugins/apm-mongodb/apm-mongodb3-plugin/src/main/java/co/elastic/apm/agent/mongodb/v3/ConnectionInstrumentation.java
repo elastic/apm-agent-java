@@ -20,7 +20,6 @@ package co.elastic.apm.agent.mongodb.v3;
 
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.mongodb.MongoHelper;
-import co.elastic.apm.agent.mongodb.v3.MongoClientInstrumentation;
 import com.mongodb.MongoNamespace;
 import com.mongodb.connection.Connection;
 import net.bytebuddy.asm.Advice;
@@ -47,7 +46,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  *   <li>com.mongodb.connection.Connection#deleteCommand</li>
  * </ul>
  */
-public class ConnectionInstrumentation extends MongoClientInstrumentation {
+public class ConnectionInstrumentation extends Mongo3Instrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {

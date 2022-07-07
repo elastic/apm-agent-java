@@ -51,12 +51,7 @@ public class CommandMessageInstrumentation extends Mongo4Instrumentation {
             .and(takesArgument(1, named("org.bson.BsonDocument")));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return CommandMessageInstrumentation.class.getCanonicalName() + "$ConstructorAdvice";
-    }
-
-    public static class ConstructorAdvice {
+    public static class AdviceClass {
 
         private static final Tracer tracer = GlobalTracer.get();
         private static final MongoHelper helper = new MongoHelper(tracer);

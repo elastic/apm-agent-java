@@ -55,20 +55,13 @@ public class InternalConnectionInstrumentation extends Mongo4Instrumentation {
         return named("sendAndReceive").and(takesArgument(0, named("com.mongodb.internal.connection.CommandMessage")));
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return InternalConnectionInstrumentation.class.getCanonicalName() + "$SendAndReceiveAdvice";
-    }
-
-    public static class SendAndReceiveAdvice {
+    public static class AdviceClass {
 
         private static final MongoHelper helper = new MongoHelper(GlobalTracer.get());
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This InternalConnection thiz,
                                      @Advice.Argument(0) CommandMessage command) {
-
-            System.out.println("command start " + command.getId());
 
             Span span = Mongo4Storage.inFlightSpans.remove(command);
             if (span == null) {
@@ -91,8 +84,6 @@ public class InternalConnectionInstrumentation extends Mongo4Instrumentation {
                     .deactivate()
                     .end();
             }
-            System.out.println("command end" + command.getId());
-
         }
     }
 

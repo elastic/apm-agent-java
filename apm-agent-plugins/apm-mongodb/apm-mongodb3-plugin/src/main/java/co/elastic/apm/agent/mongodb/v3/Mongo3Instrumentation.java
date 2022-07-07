@@ -25,17 +25,15 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.security.ProtectionDomain;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionGte;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionLte;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 
-public abstract class MongoClientInstrumentation extends TracerAwareInstrumentation {
+public abstract class Mongo3Instrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {

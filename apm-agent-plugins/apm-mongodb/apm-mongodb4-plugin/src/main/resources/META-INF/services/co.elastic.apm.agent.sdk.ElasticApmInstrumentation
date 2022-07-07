@@ -1,4 +1,2 @@
 co.elastic.apm.agent.mongodb.v4.InternalConnectionInstrumentation
 co.elastic.apm.agent.mongodb.v4.CommandMessageInstrumentation
-
-co.elastic.apm.agent.mongodb.v4.OperationExecutorInstrumentation
