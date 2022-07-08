@@ -23,8 +23,6 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import com.mongodb.MongoNamespace;
-import com.mongodb.ServerAddress;
 import org.bson.BsonDocument;
 import org.bson.BsonValue;
 
@@ -40,7 +38,7 @@ public class MongoHelper {
         this.tracer = tracer;
     }
 
-    public Span startSpan(@Nullable String database, @Nullable String collection, @Nullable String command) {
+    public Span startSpan(@Nullable String database, @Nullable String collection, @Nullable String command, String host, int port) {
         Span span = null;
         final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan != null) {
@@ -70,22 +68,11 @@ public class MongoHelper {
             appendToName(name, command);
         }
 
-        return span.activate();
-    }
-
-    public void setServerAddress(Span span, ServerAddress address) {
         span.getContext().getDestination()
-            .withAddress(address.getHost())
-            .withPort(address.getPort());
-    }
+            .withAddress(host)
+            .withPort(port);
 
-    @Nullable
-    public String getCollectionName(MongoNamespace ns) {
-        String collection = ns.getCollectionName();
-        if (MongoNamespace.COMMAND_COLLECTION_NAME.equals(collection)) {
-            collection = null;
-        }
-        return collection;
+        return span.activate();
     }
 
     @Nullable

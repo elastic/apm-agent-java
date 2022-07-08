@@ -22,6 +22,7 @@ import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.mongodb.MongoHelper;
 import com.mongodb.MongoNamespace;
+import com.mongodb.ServerAddress;
 import com.mongodb.connection.Connection;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -73,14 +74,8 @@ public class ConnectionCommandInstrumentation extends Mongo3Instrumentation {
             if (collection == null) {
                 collection = helper.getCollectionFromBson(cmd, command);
             }
-
-            Span span = helper.startSpan(database, collection, cmd);
-            if (span == null) {
-                return null;
-            }
-
-            helper.setServerAddress(span, thiz.getDescription().getServerAddress());
-            return span;
+            ServerAddress address = thiz.getDescription().getServerAddress();
+            return helper.startSpan(database, collection, cmd, address.getHost(), address.getPort());
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

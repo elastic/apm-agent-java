@@ -21,68 +21,66 @@ package co.elastic.apm.agent.mongodb.v4;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.mongodb.MongoHelper;
-import com.mongodb.internal.connection.CommandMessage;
-import com.mongodb.internal.connection.InternalConnection;
+import com.mongodb.ServerAddress;
+import com.mongodb.internal.connection.Connection;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.bson.BsonDocument;
 
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.is;
+import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 /**
- * Instruments {@link com.mongodb.internal.connection.InternalConnection#sendAndReceive}
+ * {@link Connection#command}
  */
-public class InternalConnectionInstrumentation extends Mongo4Instrumentation {
+public class ConnectionCommandInstrumentation extends Mongo4Instrumentation {
 
-    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameStartsWith("com.mongodb.")
-            .and(hasSuperType(named("com.mongodb.internal.connection.InternalConnection")));
+        return nameStartsWith("com.mongodb.internal.connection")
+            .and(hasSuperType(named("com.mongodb.internal.connection.Connection")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("sendAndReceive").and(takesArgument(0, named("com.mongodb.internal.connection.CommandMessage")));
+        return named("command")
+            .and(isPublic())
+            .and(takesArgument(0, is(String.class)))
+            .and(takesArgument(1, named("org.bson.BsonDocument")));
     }
 
     public static class AdviceClass {
 
         private static final MongoHelper helper = new MongoHelper(GlobalTracer.get());
 
+        @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.This InternalConnection thiz,
-                                     @Advice.Argument(0) CommandMessage command) {
+        public static Object onEnter(@Advice.This Connection thiz,
+                                     @Advice.Argument(0) String database,
+                                     @Advice.Argument(1) BsonDocument command) {
 
-            Span span = Mongo4Storage.inFlightSpans.remove(command);
-            if (span == null) {
-                return null;
-            }
+            String cmd = helper.getCommandFromBson(command);
+            String collection = helper.getCollectionFromBson(cmd, command);
 
-            helper.setServerAddress(span, thiz.getDescription().getServerAddress());
-
-            return span.activate();
+            ServerAddress address = thiz.getDescription().getServerAddress();
+            return helper.startSpan(database, collection, cmd, address.getHost(), address.getPort());
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Advice.Argument(0) CommandMessage command,
-                                  @Advice.Enter @Nullable Object spanObj,
-                                  @Advice.Thrown @Nullable Throwable thrown) {
-
+        public static void onExit(@Nullable @Advice.Enter Object spanObj, @Advice.Thrown Throwable thrown) {
             if (spanObj instanceof Span) {
                 Span span = (Span) spanObj;
-                span.captureException(thrown)
-                    .deactivate()
+                span.deactivate()
+                    .captureException(thrown)
                     .end();
             }
         }
     }
-
-    // TODO sendAndReceiveAsync
-
 }

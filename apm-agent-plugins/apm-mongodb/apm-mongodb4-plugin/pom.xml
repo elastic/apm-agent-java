@@ -23,10 +23,10 @@
             <artifactId>apm-mongodb-common</artifactId>
             <version>${project.version}</version>
             <exclusions>
-                <!-- exclude the 3.x driver transitive dependency -->
+                <!-- exclude bson transitive dependency -->
                 <exclusion>
                     <groupId>org.mongodb</groupId>
-                    <artifactId>mongo-java-driver</artifactId>
+                    <artifactId>bson</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

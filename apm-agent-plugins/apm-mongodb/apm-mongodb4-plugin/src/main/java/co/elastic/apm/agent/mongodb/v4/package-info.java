@@ -16,17 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+@NonnullApi
 package co.elastic.apm.agent.mongodb.v4;
 
-import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
-
-public class Mongo4Storage {
-
-    /**
-     * transient storage of in-flight mongodb spans
-     */
-    public static final WeakMap<Object, Span> inFlightSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
-
-}
+import co.elastic.apm.agent.sdk.NonnullApi;
