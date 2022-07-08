@@ -55,7 +55,7 @@ public class Mongo4VersionIT {
             testClass, AbstractMongoClientInstrumentationTest.class);
     }
 
-    @Parameterized.Parameters(name= "{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static Iterable<Object[]> data() {
         // whenever adding new versions to this list, you have to make sure that all transitive dependencies of the
         // driver are also explicitly included, over time the driver has moved to single monolithic jar to having more

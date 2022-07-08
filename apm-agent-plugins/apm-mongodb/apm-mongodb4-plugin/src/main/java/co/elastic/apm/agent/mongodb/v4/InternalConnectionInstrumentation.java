@@ -36,11 +36,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 /**
- * Instruments
- * <ul>
- *     <li>{@link com.mongodb.internal.connection.InternalConnection#sendAndReceive}</li>
- *     <li>{@link com.mongodb.internal.connection.InternalConnection#sendAndReceiveAsync}</li> <!-- TODO -->
- * </ul>
+ * Instruments {@link com.mongodb.internal.connection.InternalConnection#sendAndReceive}
  */
 public class InternalConnectionInstrumentation extends Mongo4Instrumentation {
 
@@ -78,7 +74,7 @@ public class InternalConnectionInstrumentation extends Mongo4Instrumentation {
                                   @Advice.Enter @Nullable Object spanObj,
                                   @Advice.Thrown @Nullable Throwable thrown) {
 
-            if(spanObj instanceof Span){
+            if (spanObj instanceof Span) {
                 Span span = (Span) spanObj;
                 span.captureException(thrown)
                     .deactivate()

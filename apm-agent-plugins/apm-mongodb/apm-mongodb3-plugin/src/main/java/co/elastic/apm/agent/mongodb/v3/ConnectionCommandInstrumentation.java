@@ -58,7 +58,6 @@ public class ConnectionCommandInstrumentation extends Mongo3Instrumentation {
                                      @Advice.Argument(0) Object databaseOrMongoNamespace,
                                      @Advice.Argument(1) BsonDocument command) {
 
-
             String database = null;
             String collection = null;
             if (databaseOrMongoNamespace instanceof String) {

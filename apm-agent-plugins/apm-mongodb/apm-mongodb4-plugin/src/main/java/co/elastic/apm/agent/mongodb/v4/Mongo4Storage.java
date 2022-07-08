@@ -24,7 +24,9 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 public class Mongo4Storage {
 
-    // TODO : this could be moved to common module next to the helper
+    /**
+     * transient storage of in-flight mongodb spans
+     */
     public static final WeakMap<Object, Span> inFlightSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
 
 }

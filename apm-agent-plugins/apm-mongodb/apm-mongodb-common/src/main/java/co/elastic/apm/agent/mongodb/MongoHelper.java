@@ -18,13 +18,11 @@
  */
 package co.elastic.apm.agent.mongodb;
 
-import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import com.mongodb.MongoNamespace;
 import com.mongodb.ServerAddress;
 import org.bson.BsonDocument;
@@ -73,20 +71,6 @@ public class MongoHelper {
         }
 
         return span.activate();
-    }
-
-
-    @Deprecated
-    @Nullable
-    public Span startSpan(@Nullable String database, @Nullable String collection, @Nullable String command, ServerAddress serverAddress) {
-        Span span = startSpan(database, collection, command);
-        if (span == null) {
-            return null;
-        }
-
-        setServerAddress(span, serverAddress);
-
-        return span;
     }
 
     public void setServerAddress(Span span, ServerAddress address) {

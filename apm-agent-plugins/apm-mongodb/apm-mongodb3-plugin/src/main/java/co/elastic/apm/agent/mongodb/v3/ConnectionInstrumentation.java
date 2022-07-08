@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.mongodb.v3;
 
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.mongodb.MongoHelper;
 import com.mongodb.MongoNamespace;
@@ -34,7 +35,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 /**
  * Instruments methods which were available up until 3.5.0.
- * In more recent versions, everything is funneled through {@link com.mongodb.connection.Connection#command}.
+ * In more recent 3.x versions, everything is funneled through {@link com.mongodb.connection.Connection#command}.
  * <ul>
  *   <li>{@link com.mongodb.connection.Connection#insert}</li>
  *   <li>{@link com.mongodb.connection.Connection#update}</li>
@@ -48,12 +49,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public class ConnectionInstrumentation extends Mongo3Instrumentation {
 
-    @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("insert")
             .or(named("delete"))
-            .or(named("query"))
             .or(named("update"))
+            .or(named("query"))
             .or(named("getMore"))
             .or(named("insertCommand"))
             .or(named("updateCommand"))
@@ -64,7 +64,7 @@ public class ConnectionInstrumentation extends Mongo3Instrumentation {
 
     public static class AdviceClass {
 
-        private static final MongoHelper helper = new MongoHelper(tracer);
+        private static final MongoHelper helper = new MongoHelper(GlobalTracer.get());
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)

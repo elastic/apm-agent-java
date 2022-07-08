@@ -35,19 +35,16 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public abstract class Mongo3Instrumentation extends TracerAwareInstrumentation {
 
-    @Override
     public ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {
         // only use this instrumentation for 3.x
         return implementationVersionGte("3").and(not(implementationVersionGte("4")));
     }
 
-    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return nameStartsWith("com.mongodb.")
             .and(hasSuperType(named("com.mongodb.connection.Connection")));
     }
 
-    @Override
     public Collection<String> getInstrumentationGroupNames() {
         // has already been published with 'mongodb-client', thus keeping it as an alias in case it has been disabled
         // on the java agent there is no ambiguity as mongodb will always be a mongodb client (server written in c++).

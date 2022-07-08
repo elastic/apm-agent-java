@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.mongodb.v4;
 
-import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.security.ProtectionDomain;
@@ -28,7 +28,7 @@ import java.util.Collections;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionGte;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public abstract class Mongo4Instrumentation extends ElasticApmInstrumentation {
+public abstract class Mongo4Instrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {
@@ -40,6 +40,5 @@ public abstract class Mongo4Instrumentation extends ElasticApmInstrumentation {
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singleton("mongodb");
     }
-
 
 }

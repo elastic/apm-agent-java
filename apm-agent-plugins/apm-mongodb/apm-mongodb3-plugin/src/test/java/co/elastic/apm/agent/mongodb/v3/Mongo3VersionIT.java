@@ -42,7 +42,7 @@ public class Mongo3VersionIT {
             testClass, AbstractMongoClientInstrumentationTest.class);
     }
 
-    @Parameterized.Parameters(name= "{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
             {"3.12.11"},
