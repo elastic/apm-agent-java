@@ -21,24 +21,40 @@ endif::[]
 === Unreleased
 
 [[release-notes-x.x.x]]
-==== 1.33.0 - YYYY/MM/DD
+==== x.x.x - YYYY/MM/DD
+
+[float]
+===== Breaking changes
+
+[float]
+===== Features
+* Cool new feature: {pull}2526[#2526]
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.33.0]]
+==== 1.33.0 - 2022/07/08
+
+[float]
+===== Breaking changes
+As of version 1.33.0, Java 7 support is deprecated and will be removed in a future release (not expected to be removed before January 2024) - {pull}2677[#2677]
 
 [float]
 ===== Features
 * Add support for Spring WebClient - {pull}2229[#2229]
 * Added undocumented and unsupported configuration `metric_set_limit` to increase the metric set limit - {pull}2148[#2148]
-* Added <<config-transaction-name-groups, `transaction_name_groups`>> configuration option.
+* Added <<config-transaction-name-groups, `transaction_name_groups`>> configuration option  - {pull}2676[#2676]
 ** Deprecated <<config-url-groups, `url_groups`>> in favor of <<config-transaction-name-groups, `transaction_name_groups`>>.
 
 [float]
 ===== Bug fixes
 * Fix for JAX-WS (SOAP) transaction names. The agent now properly names transaction for web service methods that are not annotated with `@WebMethod`. - {pull}2667[#2667]
-* Fix public API backward compatibility that was broken in 1.32.0. With this version you can use any version of the public API once
-again - {pull}2682[#2682]
+* Fix public API backward compatibility that was broken in 1.32.0. With this version you can use any version of the public API once again - {pull}2682[#2682]
 * Fix flaky transaction name with Webflux+Servlet - {pull}2695[#2695]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.32.0]]
 ==== 1.32.0 - 2022/06/13
