@@ -20,6 +20,7 @@ package co.elastic.apm.agent.springwebclient;
 
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
@@ -72,13 +73,11 @@ public class WebClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
         boolean hasActivated = doEnter("onNext", span);
         Throwable thrown = null;
         try {
-            if (t instanceof ClientResponse) {
+            if (span != null && t instanceof ClientResponse) {
                 ClientResponse clientResponse = (ClientResponse) t;
                 int statusCode = clientResponse.rawStatusCode();
-                if (400 <= statusCode && statusCode < 500 && span.getOutcome() == null) {
-                    span.withOutcome(Outcome.FAILURE);
-                }
-                span.getContext().getHttp().withStatusCode(clientResponse.rawStatusCode());
+                span.withOutcome(ResultUtil.getOutcomeByHttpClientStatus(statusCode));
+                span.getContext().getHttp().withStatusCode(statusCode);
             }
             subscriber.onNext(t);
         } catch (Throwable e) {
@@ -96,7 +95,6 @@ public class WebClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
         boolean hasActivated = doEnter("onError", span);
         try {
             subscriber.onError(throwable);
-            span = span.withOutcome(Outcome.FAILURE);
         } finally {
             doExit(hasActivated, "onError", span);
             discardIf(true);
@@ -110,9 +108,6 @@ public class WebClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
         boolean hasActivated = doEnter("onComplete", span);
         try {
             subscriber.onComplete();
-            if (span.getOutcome() == null) {
-                span.withOutcome(Outcome.SUCCESS);
-            }
         } finally {
             doExit(hasActivated, "onComplete", span);
             discardIf(true);
@@ -190,12 +185,10 @@ public class WebClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
         Span span = getSpan();
         debugTrace(true, "cancelSpan", span);
         try {
-            if (span == null) {
-                return;
+            if (span != null) {
+                endSpan(null, span);
+                spanMap.remove(this);
             }
-            endSpan(null, span);
-
-            spanMap.remove(this);
         } finally {
             debugTrace(false, "cancelSpan", span);
         }

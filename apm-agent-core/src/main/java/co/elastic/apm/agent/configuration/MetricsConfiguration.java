@@ -23,9 +23,11 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 public class MetricsConfiguration extends ConfigurationOptionProvider {
 
+    private static final String METRICS_CATEGORY = "Metrics";
+
     private final ConfigurationOption<Boolean> dedotCustomMetrics = ConfigurationOption.booleanOption()
         .key("dedot_custom_metrics")
-        .configurationCategory("Metrics")
+        .configurationCategory(METRICS_CATEGORY)
         .description("Replaces dots with underscores in the metric names for custom metrics, such as Micrometer metrics.\n" +
             "\n" +
             "WARNING: Setting this to `false` can lead to mapping conflicts as dots indicate nesting in Elasticsearch.\n" +
@@ -35,7 +37,19 @@ public class MetricsConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.22.0]")
         .buildWithDefault(true);
 
+    private final ConfigurationOption<Integer> metricSetLimit = ConfigurationOption.integerOption()
+        .key("metric_set_limit")
+        .configurationCategory(METRICS_CATEGORY)
+        .description("Limits the number of active metric sets")
+        .tags("added[1.33.0]").tags("internal")
+        .dynamic(false)
+        .buildWithDefault(1000);
+
     public boolean isDedotCustomMetrics() {
         return dedotCustomMetrics.get();
+    }
+
+    public int getMetricSetLimit() {
+        return metricSetLimit.get();
     }
 }

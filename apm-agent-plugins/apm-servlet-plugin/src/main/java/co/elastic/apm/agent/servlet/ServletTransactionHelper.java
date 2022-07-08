@@ -190,10 +190,7 @@ public class ServletTransactionHelper {
             // should override ServletName#doGet
             TransactionNameUtils.setNameFromHttpRequestPath(method, servletPath, pathInfo, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1), webConfiguration.getUrlGroups());
         } else {
-            StringBuilder transactionName = transaction.getAndOverrideName(PRIO_DEFAULT);
-            if (transactionName != null) {
-                transactionName.append(method).append(" unknown route");
-            }
+            TransactionNameUtils.setNameUnknownRoute(method, transaction.getAndOverrideName(PRIO_DEFAULT));
         }
     }
 
