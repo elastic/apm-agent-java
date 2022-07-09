@@ -260,7 +260,6 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
                     return subscriber;
                 }
 
-                log.trace("wrapping subscriber {} publisher {} with active span/transaction {}", subscriber.toString(), publisher, active);
 
                 return new TracedSubscriber<>(subscriber, tracer, active);
             }
