@@ -247,7 +247,9 @@ public class ConnectionMetaData {
                     if (host != null && !builder.hasHost()) { // first value wins
                         builder.withHost(host).withPort(port);
                     }
-                } else if (nodeName.equals("instance_name") || (nodeName.equals("service_name") && !builder.hasInstance())) {
+                } else if (nodeName.equals("instance_name")
+                        || (nodeName.equals("service_name") && !builder.hasInstance())
+                        || (nodeName.equals("sid") && !builder.hasInstance())) {
                     builder.withInstance(treeNode.value.toString().trim());
                 }
 

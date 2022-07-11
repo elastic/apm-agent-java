@@ -72,6 +72,9 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:oracle:thin:@(description=" +
             "(address=(protocol=tcp)(host=localhost)(port=6203))" +
             "(connect_data=(server=dedicated)(service_name=db.fqdn.org.de)))", "oracle", "localhost", 6203, "db.fqdn.org.de");
+        testUrl("jdbc:oracle:thin:@(description=" +
+                "(address=(protocol=tcp)(host=localhost)(port=6203))" +
+                "(connect_data=(server=dedicated)(sid=db)))", "oracle", "localhost", 6203, "db");
 
         // intentional parsing error with extra ')' before '(address='
         testUrl("jdbc:oracle:thin:@(description=)(address=(protocol=tcp)(host=localhost)(port=6203))(connect_data=" +
