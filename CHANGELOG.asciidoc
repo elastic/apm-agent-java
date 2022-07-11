@@ -32,6 +32,7 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* Fix unexpected side-effects of `toString` calls within reactor instrumentation - {pull}2708[#2708]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
