@@ -21,27 +21,50 @@ endif::[]
 === Unreleased
 
 [[release-notes-x.x.x]]
-==== 1.32.1 - YYYY/MM/DD
+==== x.x.x - YYYY/MM/DD
 
 [float]
 ===== Breaking changes
 
 [float]
 ===== Features
-* Add support for Spring WebClient - {pull}2229[#2229]
+* Cool new feature: {pull}2526[#2526]
 * Added support for setting the remote address of a transaction via the public api - {pull}2522[#2522]
 
 [float]
 ===== Bug fixes
-* Fix for JAX-WS (SOAP) transaction names. The agent now properly names transaction for web service methods that are not annotated with `@WebMethod`. - {pull}2667[#2667]
+* Fix unexpected side-effects of `toString` calls within reactor instrumentation - {pull}2708[#2708]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
+
+[[release-notes-1.33.0]]
+==== 1.33.0 - 2022/07/08
+
+[float]
+===== Breaking changes
+As of version 1.33.0, Java 7 support is deprecated and will be removed in a future release (not expected to be removed before January 2024) - {pull}2677[#2677]
+
+[float]
+===== Features
+* Add support for Spring WebClient - {pull}2229[#2229]
+* Added undocumented and unsupported configuration `metric_set_limit` to increase the metric set limit - {pull}2148[#2148]
+* Added <<config-transaction-name-groups, `transaction_name_groups`>> configuration option  - {pull}2676[#2676]
+** Deprecated <<config-url-groups, `url_groups`>> in favor of <<config-transaction-name-groups, `transaction_name_groups`>>.
+
+[float]
+===== Bug fixes
+* Fix for JAX-WS (SOAP) transaction names. The agent now properly names transaction for web service methods that are not annotated with `@WebMethod`. - {pull}2667[#2667]
+* Fix public API backward compatibility that was broken in 1.32.0. With this version you can use any version of the public API once again - {pull}2682[#2682]
+* Fix flaky transaction name with Webflux+Servlet - {pull}2695[#2695]
 
 [[release-notes-1.32.0]]
 ==== 1.32.0 - 2022/06/13
 
 ===== Potentially breaking changes
+* If using the public API of version < 1.32.0 and using the `@CaptureSpan` or `@Traced` annotations, upgrading the agent to 1.32.0
+without upgrading the API version may cause `VerifyError`. This was fixed in version 1.33.0, which can once again be used with any
+version of the public API.
 * For relational databases, the agent now captures the database name and makes it part of service dependencies and service map.
 For example, with a `MySQL` database, previously a single `mysql` item was shown in the map and in service dependencies,
 the agent will now include the database name in the dependency, thus `mysql/my-db1`, `mysql/my-db2` will now be captured.

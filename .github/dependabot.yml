@@ -35,6 +35,7 @@ updates:
       - dependency-name: "redis.clients:*"
       - dependency-name: "org.elasticsearch.client:*"
       - dependency-name: "co.elastic.clients:*"
+      - dependency-name: "io.vertx:*"
     ignore:
       - dependency-name: "net.bytebuddy:byte-buddy-agent"
         # We deliberately want to keep this older version of Byte Buddy for our runtime attach test

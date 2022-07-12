@@ -103,15 +103,18 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             "WARNING: If your URLs contain path parameters like `/user/$userId`,\n" +
             "you should be very careful when enabling this flag,\n" +
             "as it can lead to an explosion of transaction groups.\n" +
-            "Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.")
+            "Take a look at the <<config-transaction-name-groups,`transaction_name_groups`>> option on how to mitigate this problem by grouping URLs together.")
         .dynamic(true)
         .buildWithDefault(false);
 
     private final ConfigurationOption<List<WildcardMatcher>> urlGroups = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("url_groups")
+        .tags("deprecated")
         .configurationCategory(HTTP_CATEGORY)
-        .description("This option is only considered, when `use_path_as_transaction_name` is active.\n" +
+        .description("Deprecated in favor of <<config-transaction-name-groups,`transaction_name_groups`>>.\n" +
+            "\n" +
+            "This option is only considered, when `use_path_as_transaction_name` is active.\n" +
             "\n" +
             "With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.\n" +
             "\n" +
