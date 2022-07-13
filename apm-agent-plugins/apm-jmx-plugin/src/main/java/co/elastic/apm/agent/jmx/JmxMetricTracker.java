@@ -63,6 +63,8 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
     private final MetricRegistry metricRegistry;
     @Nullable
     private volatile NotificationListener listener;
+    @Nullable
+    private JmxAutoMetrics autoMetrics;
 
     public JmxMetricTracker(ElasticApmTracer tracer) {
         jmxConfiguration = tracer.getConfig(JmxConfiguration.class);
@@ -71,7 +73,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
     @Override
     public void start(ElasticApmTracer tracer) {
-        ConfigurationOption.ChangeListener<List<JmxMetric>> captureJmxMetricsListener = new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
+        ConfigurationOption.ChangeListener<List<JmxMetric>> captureJmxListener = new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<JmxMetric> oldValue, List<JmxMetric> newValue) {
                 if (oldValue.isEmpty() && !newValue.isEmpty()) {
@@ -79,28 +81,28 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                 }
             }
         };
-
-        ConfigurationOption.ChangeListener<Boolean> autoJmxMetricsListener = new ConfigurationOption.ChangeListener<Boolean>() {
+        ConfigurationOption.ChangeListener<Boolean> autoJmxListener = new ConfigurationOption.ChangeListener<Boolean>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, Boolean oldValue, Boolean newValue) {
-                if(!oldValue && newValue){
+                if (!oldValue && newValue) {
                     tryInit();
                 }
             }
         };
 
-        // adding change listener before checking if options are not empty to avoid missing an update due to a race condition
-        jmxConfiguration.getCaptureJmxMetrics().addChangeListener(captureJmxMetricsListener);
-        jmxConfiguration.getAutoJmxMetrics().addChangeListener(autoJmxMetricsListener);
 
-        if (!jmxConfiguration.getCaptureJmxMetrics().get().isEmpty() || jmxConfiguration.getAutoJmxMetrics().get()) {
+        // adding change listener before checking if options are not empty to avoid missing an update due to a race condition
+        jmxConfiguration.getCaptureJmxMetrics().addChangeListener(captureJmxListener);
+        jmxConfiguration.getCaptureAutoJmxMetrics().addChangeListener(autoJmxListener);
+
+        if (!jmxConfiguration.getCaptureJmxMetrics().get().isEmpty() || jmxConfiguration.getCaptureAutoJmxMetrics().get()) {
             tryInit();
-            jmxConfiguration.getCaptureJmxMetrics().removeChangeListener(captureJmxMetricsListener);
-            jmxConfiguration.getAutoJmxMetrics().removeChangeListener(autoJmxMetricsListener);
+            jmxConfiguration.getCaptureJmxMetrics().removeChangeListener(captureJmxListener);
+            jmxConfiguration.getCaptureAutoJmxMetrics().removeChangeListener(autoJmxListener);
         } else {
             logger.debug("Deferring initialization of JMX metric tracking until {} or {} options are set.",
                 jmxConfiguration.getCaptureJmxMetrics().getKey(),
-                jmxConfiguration.getAutoJmxMetrics().getKey());
+                jmxConfiguration.getCaptureAutoJmxMetrics().getKey());
         }
     }
 
@@ -181,6 +183,22 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         this.server = platformMBeanServer;
         registerMBeanNotificationListener(platformMBeanServer);
 
+        final JmxAutoMetrics autoMetrics = new JmxAutoMetrics(metricRegistry, platformMBeanServer);
+        if(jmxConfiguration.getCaptureAutoJmxMetrics().get()){
+            autoMetrics.registerAll();
+        }
+
+        jmxConfiguration.getCaptureAutoJmxMetrics().addChangeListener(new ConfigurationOption.ChangeListener<Boolean>() {
+            @Override
+            public void onChange(ConfigurationOption<?> configurationOption, Boolean oldValue, Boolean newValue) {
+                if(newValue){
+                    autoMetrics.registerAll();
+                } else {
+//                    autoMetrics.unregisterAll(); // TODO
+                }
+            }
+        });
+
         jmxConfiguration.getCaptureJmxMetrics().addChangeListener(new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<JmxMetric> oldValue, List<JmxMetric> newValue) {
@@ -196,7 +214,6 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
             }
         });
-        register(jmxConfiguration.getCaptureJmxMetrics().get(), platformMBeanServer);
     }
 
     private void registerMBeanNotificationListener(final MBeanServer server) {
@@ -218,11 +235,15 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
             private void onMBeanAdded(ObjectName mBeanName) {
                 logger.trace("Receiving MBean registration notification for {}", mBeanName);
                 for (JmxMetric jmxMetric : jmxConfiguration.getCaptureJmxMetrics().get()) {
-                    ObjectName metricName = jmxMetric.getObjectName();
-                    if (metricName.apply(mBeanName) || matchesJbossStatisticsPool(mBeanName, metricName, server)) {
-                        logger.debug("MBean added at runtime: {}", jmxMetric.getObjectName());
-                        register(Collections.singletonList(jmxMetric), server);
-                    }
+                    addMBean(mBeanName, jmxMetric);
+                }
+            }
+
+            private void addMBean(ObjectName mBeanName, JmxMetric jmxMetric) {
+                ObjectName metricName = jmxMetric.getObjectName();
+                if (metricName.apply(mBeanName) || matchesJbossStatisticsPool(mBeanName, metricName, server)) {
+                    logger.debug("MBean added at runtime: {}", jmxMetric.getObjectName());
+                    register(Collections.singletonList(jmxMetric), server);
                 }
             }
 
@@ -322,7 +343,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                     if (value instanceof Number) {
                         logger.debug("Found number attribute {}={}", attribute.getJmxAttributeName(), value);
                         registrations.add(new JmxMetricRegistration(attribute.getMetricName(),
-                            Labels.Mutable.of(objectName.getKeyPropertyList()),
+                            attribute.getLabels(server, objectName),
                             attribute.getJmxAttributeName(),
                             null,
                             objectName));
@@ -331,8 +352,8 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                         for (final String key : compositeValue.getCompositeType().keySet()) {
                             if (compositeValue.get(key) instanceof Number) {
                                 logger.debug("Found composite number attribute {}.{}={}", attribute.getJmxAttributeName(), key, value);
-                                registrations.add(new JmxMetricRegistration(attribute.getMetricName() + "." + key,
-                                    Labels.Mutable.of(objectName.getKeyPropertyList()),
+                                registrations.add(new JmxMetricRegistration(attribute.getCompositeMetricName(key),
+                                    attribute.getLabels(server, objectName),
                                     attribute.getJmxAttributeName(),
                                     key,
                                     objectName));

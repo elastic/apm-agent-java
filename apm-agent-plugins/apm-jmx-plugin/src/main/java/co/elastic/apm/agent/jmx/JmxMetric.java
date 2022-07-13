@@ -18,10 +18,12 @@
  */
 package co.elastic.apm.agent.jmx;
 
+import co.elastic.apm.agent.metrics.Labels;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import java.util.ArrayList;
@@ -40,12 +42,11 @@ public class JmxMetric {
     private static final String OBJECT_NAME = "object_name";
     private static final String ATTRIBUTE = "attribute";
     private static final String METRIC_NAME = "metric_name";
-    private static final String METRIC_PREFIX = "metric_prefix";
-    private static final String METRIC_DEFAULT_PREFIX = "jvm.jmx.";
+    private static final String JMX_PREFIX = "jvm.jmx.";
     private final ObjectName objectName;
     private final List<Attribute> attributes;
 
-    private JmxMetric(ObjectName objectName, List<Attribute> attributes) {
+    protected JmxMetric(ObjectName objectName, List<Attribute> attributes) {
         this.objectName = objectName;
         this.attributes = attributes;
     }
@@ -149,7 +150,8 @@ public class JmxMetric {
         public static final String IGNORE = "ignore";
         private final String stringRepresentation;
         private final String jmxAttributeName;
-        private final String metricName;
+        @Nullable
+        protected final String metricName;
 
         public static Attribute valueOf(final String s) {
             try {
@@ -162,20 +164,20 @@ public class JmxMetric {
                     objectName = new ObjectName(s);
                 }
                 Set<String> unknownProperties = new HashSet<>(objectName.getKeyPropertyList().keySet());
-                unknownProperties.removeAll(Arrays.asList(IGNORE, METRIC_NAME, METRIC_PREFIX));
+                unknownProperties.removeAll(Arrays.asList(IGNORE, METRIC_NAME));
                 if (!unknownProperties.isEmpty()) {
                     throw new IllegalArgumentException("Unknown properties: " + unknownProperties);
                 }
-                return new Attribute(s, objectName.getDomain(), objectName.getKeyProperty(METRIC_NAME), objectName.getKeyProperty(METRIC_PREFIX));
+                return new Attribute(s, objectName.getDomain(), objectName.getKeyProperty(METRIC_NAME));
             } catch (MalformedObjectNameException e) {
                 throw new IllegalArgumentException("Invalid syntax for attribute[" + s + "] (" + e.getMessage() + ")", e);
             }
         }
 
-        private Attribute(String stringRepresentation, String jmxAttributeName, @Nullable String metricName, @Nullable String metricPrefix) {
+        protected Attribute(String stringRepresentation, String jmxAttributeName, @Nullable String metricName) {
             this.stringRepresentation = stringRepresentation;
             this.jmxAttributeName = jmxAttributeName;
-            this.metricName = (metricPrefix != null ? metricPrefix : METRIC_DEFAULT_PREFIX) + (metricName != null ? metricName : jmxAttributeName);
+            this.metricName = metricName;
         }
 
         public String getJmxAttributeName() {
@@ -183,7 +185,7 @@ public class JmxMetric {
         }
 
         public String getMetricName() {
-            return metricName;
+            return JMX_PREFIX + (metricName != null ? metricName : jmxAttributeName);
         }
 
         @Override
@@ -203,6 +205,22 @@ public class JmxMetric {
         @Override
         public int hashCode() {
             return Objects.hash(jmxAttributeName, metricName);
+        }
+
+        protected Labels getLabels(MBeanServer server, ObjectName objectName) {
+            return Labels.Mutable.of(objectName.getKeyPropertyList());
+        }
+
+        protected String getCompositeMetricName(String key) {
+            return getMetricName() + "." + key;
+        }
+    }
+
+    protected static ObjectName getObjectName(String s){
+        try {
+            return new ObjectName(s);
+        } catch (MalformedObjectNameException e) {
+            throw new IllegalArgumentException("Invalid syntax for ObjectName [" + s + "] (" + e.getMessage() + ")", e);
         }
     }
 }

@@ -32,11 +32,8 @@ class JmxMetricValueConverterTest {
         testMetricName("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount]",
             "jvm.jmx.CollectionCount", "CollectionCount");
 
-        testMetricName("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count]",
-            "jvm.jmx.collection_count", "CollectionCount");
-
-        testMetricName("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count,metric_prefix=my.prefix.]",
-            "my.prefix.collection_count", "CollectionCount");
+        testMetricName("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionTime:metric_name=collection_time]",
+            "jvm.jmx.collection_time", "CollectionTime");
     }
 
     private static void testMetricName(String s, String expectedMetricName, String expectedJmxAttributeName) {
