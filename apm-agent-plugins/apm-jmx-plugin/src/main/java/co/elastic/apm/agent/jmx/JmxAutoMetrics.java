@@ -34,7 +34,6 @@ import javax.management.Notification;
 import javax.management.NotificationListener;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
-import javax.management.openmbean.CompositeData;
 import javax.management.relation.MBeanServerNotificationFilter;
 import java.util.ArrayList;
 import java.util.List;
@@ -108,7 +107,7 @@ public class JmxAutoMetrics {
 
     }
 
-    private void tomcatBytesTransferred(final MetricRegistry registry, final MBeanServer mbs, final String attribute, final String metric){
+    private void tomcatBytesTransferred(final MetricRegistry registry, final MBeanServer mbs, final String attribute, final String metric) {
         register("Catalina:type=RequestProcessor,worker=*,name=*", attribute, new RegisterCallback() {
             @Override
             public void onRegister(ObjectName objectName, String attributeName) {
@@ -147,7 +146,7 @@ public class JmxAutoMetrics {
         });
     }
 
-    private void tomcatDatasource(final MetricRegistry registry, final MBeanServer mbs, final String attribute, final String metric){
+    private void tomcatDatasource(final MetricRegistry registry, final MBeanServer mbs, final String attribute, final String metric) {
         register("Catalina:type=DataSource,host=localhost,context=*,class=javax.sql.DataSource,name=*", attribute, new RegisterCallback() {
             @Override
             public void onRegister(ObjectName objectName, String attributeName) {
@@ -190,29 +189,8 @@ public class JmxAutoMetrics {
         };
     }
 
-    private static DoubleSupplier compositeAttributeSupplier(final MBeanServer mbs, final ObjectName objectName, final String attribute, final String compositeKey) {
-        return new DoubleSupplier() {
-            @Override
-            public double get() {
-                Object attr = getAttribute(mbs, objectName, attribute);
-                if (attr instanceof CompositeData) {
-                    Object value = ((CompositeData) attr).get(compositeKey);
-                    if (value instanceof Number) {
-                        return ((Number) value).doubleValue();
-                    }
-                }
-                throw new IllegalArgumentException(String.format("unexpected attribute type for %s %s %s", objectName, attribute, compositeKey));
-            }
-        };
-    }
-
-
     private interface RegisterCallback {
         void onRegister(ObjectName objectName, String attributeName);
-    }
-
-    private interface RegisterCompositeCallback {
-        void register(ObjectName objectName, String attributeName, String compositeKey);
     }
 
     private static abstract class Registration {
@@ -227,12 +205,12 @@ public class JmxAutoMetrics {
                 this.cb = cb;
             }
 
-            protected void executeCallback(ObjectName matchingObjectName){
+            protected void executeCallback(ObjectName matchingObjectName) {
                 cb.onRegister(matchingObjectName, attribute);
             }
         }
 
-        public static Registration forSimpleAttribute(ObjectName objectName, String attribute, RegisterCallback cb){
+        public static Registration forSimpleAttribute(ObjectName objectName, String attribute, RegisterCallback cb) {
             return new ForSimpleAttribute(objectName, attribute, cb);
         }
 
@@ -249,7 +227,7 @@ public class JmxAutoMetrics {
             }
         }
 
-        public void initialSearch(MBeanServer mbs){
+        public void initialSearch(MBeanServer mbs) {
             Set<ObjectInstance> instances = mbs.queryMBeans(objectName, null);
             for (ObjectInstance instance : instances) {
                 executeCallback(instance.getObjectName());
@@ -259,17 +237,6 @@ public class JmxAutoMetrics {
 
     private void register(String objectName, String attribute, RegisterCallback cb) {
         registrations.add(Registration.forSimpleAttribute(getObjectName(objectName), attribute, cb));
-    }
-
-    private void tryRegisterComposite(MBeanServer mbs, String objectName, String attribute, String compositeKey, RegisterCompositeCallback cb) {
-        ObjectName objName = getObjectName(objectName);
-        Object attr = getAttribute(mbs, objName, attribute);
-        if (attr instanceof CompositeData) {
-            Object compositeValue = ((CompositeData) attr).get(compositeKey);
-            if (compositeValue != null) {
-                cb.register(objName, attribute, compositeKey);
-            }
-        }
     }
 
     private static ObjectName getObjectName(String s) {
