@@ -40,8 +40,11 @@ public class MetricsConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Integer> metricSetLimit = ConfigurationOption.integerOption()
         .key("metric_set_limit")
         .configurationCategory(METRICS_CATEGORY)
-        .description("Limits the number of active metric sets")
-        .tags("added[1.33.0]").tags("internal")
+        .description("Limits the number of active metric sets.\nThe metrics sets are based on transaction names and are" +
+            " held internally in a collection which we limit in size to prevent leaking. If you hit the limit, you'll receive" +
+            "a warning in the agent log. The better option to workaround the limit is to try to name your transactions so" +
+            " that there are fewer distinct transaction names.\nBut if you must, you can use this option to increase the limit.")
+        .tags("added[1.33.0]")
         .dynamic(false)
         .buildWithDefault(1000);
 
