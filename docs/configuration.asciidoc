@@ -162,6 +162,7 @@ Click on a key to get more information.
 ** <<config-ignore-message-queues>>
 * <<config-metrics>>
 ** <<config-dedot-custom-metrics>>
+** <<config-metric-set-limit>>
 * <<config-profiling>>
 ** <<config-profiling-inferred-spans-enabled>>
 ** <<config-profiling-inferred-spans-sampling-interval>>
@@ -2182,6 +2183,32 @@ The first metric maps `foo` to a number and the second metric maps `foo` as an o
 | `elastic.apm.dedot_custom_metrics` | `dedot_custom_metrics` | `ELASTIC_APM_DEDOT_CUSTOM_METRICS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-metric-set-limit]]
+==== `metric_set_limit` (added[1.33.0])
+
+Limits the number of active metric sets.
+The metrics sets have associated labels, and the metrics sets are held internally in a map using the labels as keys. The map is limited in size by this option to prevent unbounded growth. If you hit the limit, you'll receive a warning in the agent log.
+The recommended option to workaround the limit is to try to limit the cardinality of the labels, eg naming your transactions so that there are fewer distinct transaction names.
+But if you must, you can use this option to increase the limit.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `1000` | Integer | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.metric_set_limit` | `metric_set_limit` | `ELASTIC_APM_METRIC_SET_LIMIT`
+|============
+
 [[config-profiling]]
 === Profiling configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -3970,6 +3997,17 @@ Example: `5ms`.
 # Default value: true
 #
 # dedot_custom_metrics=true
+
+# Limits the number of active metric sets.
+# The metrics sets have associated labels, and the metrics sets are held internally in a map using the labels as keys. The map is limited in size by this option to prevent unbounded growth. If you hit the limit, you'll receive a warning in the agent log.
+# The recommended option to workaround the limit is to try to limit the cardinality of the labels, eg naming your transactions so that there are fewer distinct transaction names.
+# But if you must, you can use this option to increase the limit.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Integer
+# Default value: 1000
+#
+# metric_set_limit=1000
 
 ############################################
 # Profiling                                #
