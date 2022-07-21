@@ -78,4 +78,17 @@ public @interface Traced {
      * </p>
      */
     String action() default "";
+
+    /**
+     * <p>
+     * By default, spans are discardable. This attribute is only relevant if the annotated method results with a span.
+     * In some cases, spans may be discarded, for example if {@code span_min_duration} config option is set and the span does not exceed
+     * the configured threshold. Set this attribute to {@code false} to make the current span non-discardable.
+     * </p>
+     * <p>
+     * NOTE: making a span non-discardable implicitly makes the entire stack of active spans non-discardable as well. Child spans can still
+     * be discarded.
+     * </p>
+     */
+    boolean discardable() default true;
 }

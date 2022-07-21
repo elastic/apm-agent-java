@@ -42,6 +42,7 @@ import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.Collection;
 import java.util.List;
+import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
@@ -164,8 +165,13 @@ public class CustomElementMatchers {
             public boolean matches(@Nullable ProtectionDomain protectionDomain) {
                 try {
                     Version pdVersion = readImplementationVersionFromManifest(protectionDomain);
-                    Version limitVersion = Version.of(version);
+                    Version limitVersion = Version.of(version).withoutSuffix();
                     if (pdVersion != null) {
+                        pdVersion = pdVersion
+                            // ignore suffixes to ensure that 4.5.13.redhat = 4.5.13
+                            // however, this implies that we'll match 4.5.13-SNAPSHOT = 4.5.13
+                            // which is not entirely correct as the snapshot may not have all the changes that are in the final version
+                            .withoutSuffix();
                         return matcher.match(pdVersion, limitVersion);
                     }
                 } catch (Exception e) {
@@ -218,10 +224,16 @@ public class CustomElementMatchers {
                         }
                         Manifest manifest = jarFile.getManifest();
                         if (manifest != null) {
-                            String implementationVersion = manifest.getMainAttributes().getValue("Implementation-Version");
-                            if (implementationVersion != null) {
-                                version = Version.of(implementationVersion);
+                            Attributes attributes = manifest.getMainAttributes();
+                            String manifestVersion = attributes.getValue("Implementation-Version");
+                            if (manifestVersion == null) {
+                                // fallback on OSGI bundle version when impl. version not available
+                                manifestVersion = attributes.getValue("Bundle-Version");
                             }
+                            if (manifestVersion != null) {
+                                version = Version.of(manifestVersion);
+                            }
+
                         }
                     }
                 }

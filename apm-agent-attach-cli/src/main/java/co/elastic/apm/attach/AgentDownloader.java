@@ -18,17 +18,23 @@
  */
 package co.elastic.apm.attach;
 
+import co.elastic.apm.agent.util.Version;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A utility for downloading any given version of the Elastic APM Java agent from maven central.
@@ -37,6 +43,7 @@ import java.util.Properties;
  */
 public class AgentDownloader {
 
+    private static final Pattern VERSION_EXTRACTION_REGEX = Pattern.compile("<version>(.+?)</version>");
     private static final String AGENT_GROUP_ID = "co.elastic.apm";
     private static final String AGENT_ARTIFACT_ID = "elastic-apm-agent";
     private static final String CLI_JAR_VERSION;
@@ -90,7 +97,7 @@ public class AgentDownloader {
      */
     Path downloadAndVerifyAgent(String agentVersion) throws Exception {
         logger.debug("Requested to download Elastic APM Java agent version {}", agentVersion);
-        final String mavenAgentBaseUrl = getAgentMavenBaseUrl(agentVersion);
+        final String mavenAgentBaseUrl = getAgentMavenVersionBaseUrl(agentVersion);
         Path targetDir = AgentDownloadUtils.of(agentVersion).getTargetAgentDir();
         String agentJarName = computeAgentJarName(agentVersion);
         String mavenAgentJarUrl = computeFileUrl(mavenAgentBaseUrl, agentJarName);
@@ -133,11 +140,22 @@ public class AgentDownloader {
     /**
      * Returns the url for an Elastic APM Agent jar in maven.
      */
-    String getAgentMavenBaseUrl(String agentVersion) throws Exception {
-        final String groupId = AGENT_GROUP_ID.replace(".", "/");
-        final String agentMavenUrl = String.format("https://repo1.maven.org/maven2/%s/%s/%s", groupId, AGENT_ARTIFACT_ID, agentVersion);
+    String getAgentMavenVersionBaseUrl(String agentVersion) throws Exception {
+        final String agentMavenUrl = String.format("%s/%s", getAgentArtifactMavenBaseUrl(), agentVersion);
         if (!verifyUrl(agentMavenUrl)) {
             throw new IllegalArgumentException(String.format("Cannot find maven URL for version %s, make sure provided version is valid", agentVersion));
+        }
+        return agentMavenUrl;
+    }
+
+    /**
+     * Returns the url for the Elastic APM Agent jar artifact in maven.
+     */
+    static String getAgentArtifactMavenBaseUrl() throws Exception {
+        final String groupId = AGENT_GROUP_ID.replace(".", "/");
+        final String agentMavenUrl = String.format("https://repo1.maven.org/maven2/%s/%s", groupId, AGENT_ARTIFACT_ID);
+        if (!verifyUrl(agentMavenUrl)) {
+            throw new IllegalArgumentException(String.format("Cannot find maven URL for agent artifact: %s:%s", groupId, AGENT_ARTIFACT_ID));
         }
         return agentMavenUrl;
     }
@@ -147,14 +165,14 @@ public class AgentDownloader {
      * <p>
      * The given url must be {@code https} and existing means a {@code HEAD} request returns 200.
      */
-    private boolean verifyUrl(String urlString) throws IOException {
+    private static boolean verifyUrl(String urlString) throws IOException {
         HttpURLConnection urlConnection = openConnection(urlString);
         urlConnection.setRequestMethod("HEAD");
         urlConnection.connect();
         return urlConnection.getResponseCode() == 200;
     }
 
-    private HttpURLConnection openConnection(String urlString) throws IOException {
+    private static HttpURLConnection openConnection(String urlString) throws IOException {
         URL url = new URL(urlString);
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
         urlConnection.addRequestProperty("User-Agent", USER_AGENT);
@@ -199,6 +217,36 @@ public class AgentDownloader {
             }
         }
         logger.info("Elastic APM Java Agent jar PGP signature successfully verified.");
+    }
+
+    static String findLatestVersion() throws Exception {
+        String agentArtifactMavenMetadatUrl = getAgentArtifactMavenBaseUrl() + "/maven-metadata.xml";
+        HttpURLConnection httpURLConnection = openConnection(agentArtifactMavenMetadatUrl);
+        TreeSet<Version> versions = parseMavenMetadataXml(httpURLConnection.getInputStream());
+        if (versions.isEmpty()) {
+            throw new IllegalStateException("Failed to parse agent versions from the contents of " + agentArtifactMavenMetadatUrl);
+        }
+        return versions.last().toString();
+    }
+
+    static TreeSet<Version> parseMavenMetadataXml(InputStream htmlInputStream) throws IOException {
+        TreeSet<Version> versions = new TreeSet<>();
+        BufferedReader versionsHtmlReader = new BufferedReader(new InputStreamReader(htmlInputStream));
+        String line;
+        while ((line = versionsHtmlReader.readLine()) != null) {
+            try {
+                Matcher matcher = VERSION_EXTRACTION_REGEX.matcher(line);
+                if (matcher.find()) {
+                    Version version = Version.of(matcher.group(1));
+                    if (!version.hasSuffix()) {
+                        versions.add(version);
+                    }
+                }
+            } catch (Exception e) {
+                // ignore, probably a regex false positive
+            }
+        }
+        return versions;
     }
 
     /**

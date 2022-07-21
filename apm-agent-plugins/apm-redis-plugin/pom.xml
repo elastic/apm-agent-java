@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.29.1-SNAPSHOT</version>
+        <version>1.33.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-redis-plugin</artifactId>
@@ -19,6 +19,7 @@
     <modules>
         <module>apm-jedis-2-tests</module>
         <module>apm-jedis-3-tests</module>
+        <module>apm-jedis-4-plugin</module>
         <module>apm-jedis-plugin</module>
         <module>apm-lettuce-3-tests</module>
         <module>apm-lettuce-plugin</module>

@@ -53,7 +53,7 @@ public final class InstrumentationStats {
         usedInstrumentations.put(instrumentation, Boolean.TRUE);
     }
 
-    Collection<String> getUsedInstrumentationGroups() {
+    public Collection<String> getUsedInstrumentationGroups() {
         Set<String> usedInstrumentationGroups = new TreeSet<>();
         for (ElasticApmInstrumentation instrumentation : usedInstrumentations.keySet()) {
             usedInstrumentationGroups.addAll(instrumentation.getInstrumentationGroupNames());

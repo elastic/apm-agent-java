@@ -1,0 +1,11 @@
+# ECS re-formatting
+co.elastic.apm.agent.log4j2.reformatting.Log4j2EcsReformattingInstrumentation$ShadingInstrumentation
+co.elastic.apm.agent.log4j2.reformatting.Log4j2EcsReformattingInstrumentation$StopAppenderInstrumentation
+co.elastic.apm.agent.log4j2.reformatting.Log4j2EcsReformattingInstrumentation$OverridingInstrumentation
+
+# Trace context correlation
+co.elastic.apm.agent.log4j2.correlation.Log4j2LogCorrelationInstrumentation$Log4J2_6LogCorrelationInstrumentation
+co.elastic.apm.agent.log4j2.correlation.Log4j2LogCorrelationInstrumentation$Log4J2_7PlusLogCorrelationInstrumentation
+
+# Error creation
+co.elastic.apm.agent.log4j2.error.Log4j2LoggerErrorCapturingInstrumentation

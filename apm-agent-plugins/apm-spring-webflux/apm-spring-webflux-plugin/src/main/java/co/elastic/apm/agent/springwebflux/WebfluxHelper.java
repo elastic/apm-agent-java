@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.httpserver.HttpServerHelper;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Request;
@@ -26,13 +27,13 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import org.reactivestreams.Publisher;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -73,12 +74,15 @@ public class WebfluxHelper {
 
     private static final CoreConfiguration coreConfig;
     private static final WebConfiguration webConfig;
+    private static final HttpServerHelper serverHelper;
 
     private static final WeakMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakConcurrent.buildMap();
 
     static {
+
         coreConfig = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);
         webConfig = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);
+        serverHelper = new HttpServerHelper(webConfig);
     }
 
 
@@ -88,7 +92,9 @@ public class WebfluxHelper {
         Transaction transaction = WebfluxServletHelper.getServletTransaction(exchange);
         boolean fromServlet = transaction != null;
 
-        if (!fromServlet) {
+        String path = exchange.getRequest().getPath().value();
+        String userAgent = exchange.getRequest().getHeaders().getFirst("User-Agent");
+        if (!fromServlet && !serverHelper.isRequestExcluded(path, userAgent)) {
             transaction = tracer.startChildTransaction(exchange.getRequest().getHeaders(), HEADER_GETTER, ServerWebExchange.class.getClassLoader());
         }
 
@@ -113,7 +119,6 @@ public class WebfluxHelper {
     public static <T> Mono<T> wrapDispatcher(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
         return doWrap(mono, transaction, exchange, "webflux-dispatcher");
     }
-
 
     private static <T> Mono<T> doWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final String description) {
         //noinspection Convert2Lambda,rawtypes,Convert2Diamond
@@ -158,8 +163,28 @@ public class WebfluxHelper {
             return;
         }
 
+        transaction.captureException(thrown);
+
+        // Fill request/response details if they haven't been already by another HTTP plugin (servlet or other).
+        if (!transaction.getContext().getRequest().hasContent()) {
+            fillRequest(transaction, exchange);
+            fillResponse(transaction, exchange);
+        }
+
+        // In case transaction has been created by Servlet, we should not terminate it as the Servlet instrumentation
+        // will take care of this.
+        if (!WebfluxHelper.isServletTransaction(exchange)) {
+            transaction.end();
+        }
+    }
+
+    public static void setTransactionName(@Nullable Transaction transaction, ServerWebExchange exchange) {
+        if (transaction == null) {
+            return;
+        }
+
         int namePriority;
-        String path;
+        String path = null;
         PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
         if (pattern != null) {
             namePriority = PRIO_HIGH_LEVEL_FRAMEWORK;
@@ -168,30 +193,22 @@ public class WebfluxHelper {
             namePriority = PRIO_LOW_LEVEL_FRAMEWORK + 1;
             if (webConfig.isUsePathAsName()) {
                 path = exchange.getRequest().getPath().value();
-            } else {
-                path = "unknown route";
             }
         }
+        String method = exchange.getRequest().getMethodValue();
+        StringBuilder transactionName = transaction.getAndOverrideName(namePriority, false);
 
-        TransactionNameUtils.setNameFromHttpRequestPath(
-            exchange.getRequest().getMethodValue(),
-            path,
-            transaction.getAndOverrideName(namePriority, false),
-            webConfig.getUrlGroups()
-        );
-
-        // Fill request/response details if they haven't been already by another HTTP plugin (servlet or other).
-        if (!transaction.getContext().getRequest().hasContent()) {
-            fillRequest(transaction, exchange);
-            fillResponse(transaction, exchange);
-        }
-
-        transaction.captureException(thrown);
-
-        // In case transaction has been created by Servlet, we should not terminate it as the Servlet instrumentation
-        // will take care of this.
-        if (!WebfluxHelper.isServletTransaction(exchange)) {
-            transaction.end();
+        if (path != null) {
+            TransactionNameUtils.setNameFromHttpRequestPath(
+                method,
+                path,
+                transactionName,
+                webConfig.getUrlGroups()
+            );
+        } else {
+            TransactionNameUtils.setNameUnknownRoute(
+                method,
+                transactionName);
         }
     }
 

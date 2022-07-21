@@ -25,6 +25,7 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
@@ -55,6 +56,7 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private final TransactionContext context = new TransactionContext();
     private final SpanCount spanCount = new SpanCount();
+    private final DroppedSpanStats droppedSpanStats = new DroppedSpanStats();
     /**
      * type: subtype: timer
      * <p>
@@ -66,6 +68,8 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private final KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> timerBySpanTypeAndSubtype = new KeyListConcurrentHashMap<>();
     private final WriterReaderPhaser phaser = new WriterReaderPhaser();
+    private final CoreConfiguration coreConfig;
+    private final SpanConfiguration spanConfig;
 
     /**
      * The result of the transaction. HTTP status code for HTTP-related
@@ -78,13 +82,6 @@ public class Transaction extends AbstractSpan<Transaction> {
      * Noop transactions won't be reported at all, in contrast to non-sampled transactions.
      */
     private boolean noop;
-
-    /**
-     * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
-     * (Required)
-     */
-    @Nullable
-    private volatile String type;
 
     private int maxSpans;
 
@@ -116,29 +113,27 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     public Transaction(ElasticApmTracer tracer) {
         super(tracer);
+        coreConfig = tracer.getConfig(CoreConfiguration.class);
+        spanConfig = tracer.getConfig(SpanConfiguration.class);
     }
 
-    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros,
-                                 Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
-        traceContext.setApplicationClassLoader(initiatingClassLoader);
+    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros, Sampler sampler) {
         boolean startedAsChild = parent != null && childContextCreator.asChildOf(traceContext, parent);
         onTransactionStart(startedAsChild, epochMicros, sampler);
         return this;
     }
 
-    public <T, A> Transaction start(TraceContext.ChildContextCreatorTwoArg<T, A> childContextCreator, @Nullable T parent, A arg,
-                                    long epochMicros, Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
-        traceContext.setApplicationClassLoader(initiatingClassLoader);
+    public <T, A> Transaction start(TraceContext.ChildContextCreatorTwoArg<T, A> childContextCreator, @Nullable T parent, A arg, long epochMicros, Sampler sampler) {
         boolean startedAsChild = childContextCreator.asChildOf(traceContext, parent, arg);
         onTransactionStart(startedAsChild, epochMicros, sampler);
         return this;
     }
 
     private void onTransactionStart(boolean startedAsChild, long epochMicros, Sampler sampler) {
-        maxSpans = tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans();
-        spanCompressionEnabled = tracer.getConfig(SpanConfiguration.class).isSpanCompressionEnabled();
-        spanCompressionExactMatchMaxDurationUs = tracer.getConfig(SpanConfiguration.class).getSpanCompressionExactMatchMaxDuration().getMicros();
-        spanCompressionSameKindMaxDurationUs = tracer.getConfig(SpanConfiguration.class).getSpanCompressionSameKindMaxDuration().getMicros();
+        maxSpans = coreConfig.getTransactionMaxSpans();
+        spanCompressionEnabled = spanConfig.isSpanCompressionEnabled();
+        spanCompressionExactMatchMaxDurationUs = spanConfig.getSpanCompressionExactMatchMaxDuration().getMicros();
+        spanCompressionSameKindMaxDurationUs = spanConfig.getSpanCompressionSameKindMaxDuration().getMicros();
         if (!startedAsChild) {
             traceContext.asRootSpan(sampler);
         }
@@ -177,14 +172,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         synchronized (this) {
             return context;
         }
-    }
-
-    /**
-     * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
-     */
-    public Transaction withType(@Nullable String type) {
-        this.type = type;
-        return this;
     }
 
     /**
@@ -229,9 +216,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (!isSampled()) {
             context.resetState();
         }
-        if (type == null) {
-            type = "custom";
-        }
 
         if (outcomeNotSet()) {
             // set outcome from HTTP status if not already set
@@ -263,6 +247,17 @@ public class Transaction extends AbstractSpan<Transaction> {
         return spanCount;
     }
 
+    public void captureDroppedSpan(Span span) {
+        if (span.isSampled()) {
+            spanCount.getDropped().incrementAndGet();
+        }
+        droppedSpanStats.captureDroppedSpan(span);
+    }
+
+    public DroppedSpanStats getDroppedSpanStats() {
+        return droppedSpanStats;
+    }
+
     boolean isSpanLimitReached() {
         return getSpanCount().isSpanLimitReached(maxSpans);
     }
@@ -277,7 +272,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         context.resetState();
         result = null;
         spanCount.resetState();
-        type = null;
+        droppedSpanStats.resetState();
         noop = false;
         maxSpans = 0;
         spanCompressionEnabled = false;
@@ -298,11 +293,6 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     public void ignoreTransaction() {
         noop = true;
-    }
-
-    @Nullable
-    public String getType() {
-        return type;
     }
 
     public void addCustomContext(String key, String value) {
@@ -387,6 +377,17 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     public long getSpanCompressionSameKindMaxDurationUs() {
         return spanCompressionSameKindMaxDurationUs;
+    }
+
+    @Override
+    public StringBuilder getNameForSerialization() {
+        StringBuilder name = this.name;
+        WildcardMatcher match = WildcardMatcher.anyMatch(coreConfig.getTransactionNameGroups(), name);
+        if (match != null) {
+            name.setLength(0);
+            name.append(match);
+        }
+        return name;
     }
 
     @Override

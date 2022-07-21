@@ -103,8 +103,7 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<HttpServletRequ
         // see Section 4.4 of the Servlet 3.0 specification
         try {
             return servletContext.getClassLoader();
-        } catch (UnsupportedOperationException ignore) {
-            // silently ignored
+        } catch (UnsupportedOperationException ignored) {
             return null;
         }
     }

@@ -98,7 +98,7 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
 
         Faas faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
-
+        assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(faas.getTrigger().getType()).isEqualTo("datasource");
         assertThat(faas.getTrigger().getRequestId()).isEqualTo(S3_REQUEST_ID);
     }

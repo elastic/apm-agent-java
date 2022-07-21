@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * A map (not implementing the java.util.Map interface) that only supports key-value pair additions and iterations.
  * The map doesn't allocate during addition or iteration.
- * This map does not support any form of concurrency. It can be either be in a write mode (through its {@link #add}
+ * This map does not support any form of concurrency. It can either be in a write mode (through its {@link #add}
  * method) or read mode (through the {@link #iterator()} API) at a given time.
  *
  * NOTE: this map does not guarantee visibility, therefore ensuring visibility when switching from read to write mode

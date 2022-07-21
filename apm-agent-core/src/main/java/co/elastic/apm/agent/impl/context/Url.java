@@ -89,8 +89,6 @@ public class Url implements Recyclable {
 
     /**
      * Updates full URL from current state of {@literal this}. Must be called after all other Url fields are set.
-     *
-     * @return url
      */
     private void updateFull() {
         // inspired by org.apache.catalina.connector.Request.getRequestURL
@@ -262,7 +260,7 @@ public class Url implements Recyclable {
         }
     }
 
-    private static int normalizePort(int port, @Nullable String protocol) {
+    public static int normalizePort(int port, @Nullable String protocol) {
         int portValue = port;
         if (portValue < 0 && protocol != null) {
             // Work around java.net.URL bug

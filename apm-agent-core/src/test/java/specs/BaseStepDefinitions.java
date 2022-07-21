@@ -18,6 +18,7 @@
  */
 package specs;
 
+import io.cucumber.java.ParameterType;
 import io.cucumber.java.en.Given;
 
 import java.util.Collections;
@@ -56,5 +57,10 @@ public class BaseStepDefinitions {
     @Given("the {} ends")
     public void endContext(String context) {
         scenarioState.getContext(context).end();
+    }
+
+    @ParameterType("transaction|span")
+    public String contextType(String contextType) {
+        return contextType;
     }
 }

@@ -9,6 +9,10 @@ endif::[]
 Log correlation allows you to navigate to all logs belonging to a particular trace and vice-versa:
 for a specific log, see in which context it has been logged and which parameters the user provided.
 
+NOTE: Starting in APM agent version 1.30.0, log correlation is enabled by default.
+In previous versions, log correlation must be explicitly enabled by setting
+the `enable_log_correlation` configuration variable to `true`.
+
 [float]
 [[log-correlation-ingest]]
 === Step 1: Ingest your application logs into Elasticsearch
@@ -32,19 +36,16 @@ If you’re using plain-text logs it's recommended to parse out specific parts o
 like the timestamp, the log level, and the message. One way to do this is by using an {ref}/ingest.html[ingest pipeline] with a {ref}/grok-processor.html[grok processor].
 
 [float]
-[[log-correlation-enable]]
-=== Step 2: Enable log correlation in the agent
+[[log-correlation-extract-ids]]
+=== Step 2: Extract the ID fields
 
 In order to correlate logs from your application with transactions captured by the Elastic APM Java Agent,
-the agent will inject the following IDs in your https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] when <<config-enable-log-correlation>> is enabled:
+the agent injects the following IDs into https://www.slf4j.org/api/org/slf4j/MDC.html[slf4j-MDC]-equivalents of
+<<supported-logging-frameworks, supported logging frameworks>>:
 
 * {ecs-ref}/ecs-tracing.html[`transaction.id`]
 * {ecs-ref}/ecs-tracing.html[`trace.id`]
 * {ecs-ref}/ecs-error.html[`error.id`]
-
-[float]
-[[log-correlation-extract-ids]]
-=== Step 3: Extract the ID fields
 
 If you are using https://github.com/elastic/java-ecs-logging[Java ECS logging], there's nothing to do in this step.
 The IDs in the MDC are automatically added to the right fields.

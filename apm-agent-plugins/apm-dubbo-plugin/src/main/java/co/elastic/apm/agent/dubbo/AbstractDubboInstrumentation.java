@@ -22,12 +22,13 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 public abstract class AbstractDubboInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("dubbo", "experimental");
+        return Collections.singleton("dubbo");
     }
 
 }

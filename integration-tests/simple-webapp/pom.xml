@@ -6,7 +6,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.29.1-SNAPSHOT</version>
+        <version>1.33.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>simple-webapp</artifactId>
@@ -54,7 +54,8 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-api</artifactId>
-            <version>${project.version}</version>
+            <!-- Fixating the public API version to verify backward compatibility is maintained -->
+            <version>1.30.0</version>
         </dependency>
     </dependencies>
 

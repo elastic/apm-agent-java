@@ -20,6 +20,7 @@ package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.objectpool.Recyclable;
 
+import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,6 +59,7 @@ public abstract class AbstractContext implements Recyclable {
         labels.put(key, value);
     }
 
+    @Nullable
     public Object getLabel(String key) {
         return labels.get(key);
     }

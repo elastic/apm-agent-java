@@ -22,6 +22,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.servlet.ServletServiceNameHelper;
 import co.elastic.apm.agent.servlet.adapter.JavaxServletApiAdapter;
+import co.elastic.apm.agent.servlet.adapter.ServletApiAdapter;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -67,6 +68,8 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
 
     public static class SpringServiceNameAdvice {
 
+        private static final JavaxServletApiAdapter adapter = JavaxServletApiAdapter.get();
+
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void afterInitPropertySources(@Advice.This WebApplicationContext applicationContext) {
             // avoid having two service names for a standalone jar
@@ -74,6 +77,7 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
             if (!ServiceInfo.autoDetected().isMultiServiceContainer()) {
                 return;
             }
+
             // This method will be called whenever the spring application context is refreshed which may be more than once
             //
             // For example, using Tomcat Servlet container, it's called twice with the first not having a ServletContext,
@@ -83,14 +87,10 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
             ServiceInfo fromServletContext = ServiceInfo.empty();
             ServletContext servletContext = applicationContext.getServletContext();
             if (servletContext != null) {
-                try {
-                    ClassLoader servletClassloader = servletContext.getClassLoader();
-                    if (servletClassloader != null) {
-                        classLoader = servletClassloader;
-                        fromServletContext = ServletServiceNameHelper.detectServiceInfo(JavaxServletApiAdapter.get(), servletContext, servletClassloader);
-                    }
-                } catch (UnsupportedOperationException e) {
-                    // silently ignored
+                ClassLoader servletClassloader = adapter.getClassLoader(servletContext);
+                if (servletClassloader != null) {
+                    classLoader = servletClassloader;
+                    fromServletContext = ServletServiceNameHelper.detectServiceInfo(adapter, servletContext, servletClassloader);
                 }
             }
 

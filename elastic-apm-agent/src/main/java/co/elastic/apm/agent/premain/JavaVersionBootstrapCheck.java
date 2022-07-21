@@ -38,6 +38,9 @@ public class JavaVersionBootstrapCheck implements BootstrapCheck {
     public void doBootstrapCheck(BootstrapCheckResult result) {
         if (!isJavaVersionSupported()) {
             result.addError(String.format("JVM version not supported: %s", runtimeInfo));
+        } else if (isJavaVersionDeprecated()) {
+            result.addWarn(String.format("Java %s support is deprecated and will be removed in a future version",
+                runtimeInfo.getMajorVersion()));
         }
     }
 
@@ -62,6 +65,10 @@ public class JavaVersionBootstrapCheck implements BootstrapCheck {
         }
         // innocent until proven guilty
         return true;
+    }
+
+    private boolean isJavaVersionDeprecated() {
+        return runtimeInfo.getMajorVersion() == 7;
     }
 
     private boolean isHotSpotVersionSupported() {

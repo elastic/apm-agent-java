@@ -73,6 +73,12 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         assertThat(reporter.getSpans().size()).isEqualTo(0);
     }
 
+    @Test
+    void testWithEmptyPath() throws Exception {
+        Response response = http().get("");
+        expectTransaction(response, "/", DEFAULT_RESPONSE_BODY, "GET /", 200);
+    }
+
     protected abstract int getMajorVersion();
 
     @Test
@@ -306,6 +312,7 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
     @Override
     protected void initRoutes(Router router) {
         router.get("/test").handler(getDefaultHandlerImpl());
+        router.get("/").handler(getDefaultHandlerImpl());
         router.post("/post").handler(BodyHandler.create().setHandleFileUploads(false)).handler(getDefaultHandlerImpl());
 
         router.get("/test/:param").handler(getDefaultHandlerImpl());

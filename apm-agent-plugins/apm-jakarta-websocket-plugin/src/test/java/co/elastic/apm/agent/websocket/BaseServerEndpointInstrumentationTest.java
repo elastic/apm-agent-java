@@ -96,6 +96,7 @@ abstract class BaseServerEndpointInstrumentationTest extends AbstractInstrumenta
 
     private void assertReportedTransactionNameAndFramework(String methodName) {
         Transaction transaction = reporter.getFirstTransaction();
+        assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getNameAsString()).isEqualTo(getWebSocketServerEndpointClassName() + '#' + methodName);
         assertThat(transaction.getFrameworkName()).isEqualTo(getFrameworkName());
         assertThat(transaction.getFrameworkVersion()).isEqualTo(getFrameworkVersion());
