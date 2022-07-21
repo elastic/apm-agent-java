@@ -19,9 +19,11 @@
 package co.elastic.apm.agent.mongodb.v4;
 
 import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationTest;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoDatabase;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
 import org.bson.Document;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -29,16 +31,21 @@ import org.junit.BeforeClass;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-public class Mongo4SyncTest extends AbstractMongoClientInstrumentationTest {
+@SuppressWarnings("deprecation")
+public class Mongo4LegacyTest extends AbstractMongoClientInstrumentationTest {
 
     private static MongoClient client;
-    private static MongoDatabase db;
+    private static DB db;
 
     @BeforeClass
     public static void before() {
-        client = MongoClients.create("mongodb://" + container.getContainerIpAddress() + ":" + container.getMappedPort(27017));
-        db = client.getDatabase(DB_NAME);
+        client = new MongoClient( container.getContainerIpAddress(), container.getMappedPort(27017));
+        db = client.getDB(DB_NAME);
     }
 
     @AfterClass
@@ -49,14 +56,8 @@ public class Mongo4SyncTest extends AbstractMongoClientInstrumentationTest {
     }
 
     @Override
-    protected boolean countWithAggregate() {
-        // starting with 4.0 counting is implemented through an aggregate operation
-        return true;
-    }
-
-    @Override
     protected long update(Document query, Document updatedObject) throws Exception {
-        return db.getCollection(COLLECTION_NAME).updateOne(query, updatedObject).getModifiedCount();
+        return db.getCollection(COLLECTION_NAME).update(new BasicDBObject(query), new BasicDBObject(updatedObject)).getN();
     }
 
     @Override
@@ -66,39 +67,48 @@ public class Mongo4SyncTest extends AbstractMongoClientInstrumentationTest {
 
     @Override
     protected void delete(Document searchQuery) throws Exception {
-        db.getCollection(COLLECTION_NAME).deleteOne(searchQuery);
+        db.getCollection(COLLECTION_NAME).remove(new BasicDBObject(searchQuery));
     }
 
     @Override
     protected long collectionCount() throws Exception {
-        return db.getCollection(COLLECTION_NAME).countDocuments();
+        return db.getCollection(COLLECTION_NAME).count();
     }
-
-    // error here the methods that we call do not appear to all exist inthe new driver
-    // another issue is the aggregate commands
 
     @Override
     protected Collection<Document> find(Document query, int batchSize) throws Exception {
-        return db.getCollection(COLLECTION_NAME).find(query).batchSize(batchSize).into(new ArrayList<>());
+        try (DBCursor cursor = db.getCollection(COLLECTION_NAME).find(new BasicDBObject(query)).batchSize(batchSize)) {
+            List<Document> result = new ArrayList<>();
+            for (DBObject dbObject : cursor) {
+                Map<String, Object> map = dbObject.toMap();
+                map.remove("_id"); // remove ID field as it's included in serialized form
+                result.add(new Document(map));
+            }
+            return result;
+        }
     }
 
     @Override
     protected void insert(Document document) throws Exception {
-        db.getCollection(COLLECTION_NAME).insertOne(document);
+        db.getCollection(COLLECTION_NAME).insert(new BasicDBObject(document));
     }
 
     @Override
     protected void insert(Document... document) throws Exception {
-        db.getCollection(COLLECTION_NAME).insertMany(Arrays.asList(document));
+        List<BasicDBObject> objects = Arrays.stream(document).map(BasicDBObject::new).collect(Collectors.toList());
+        db.getCollection(COLLECTION_NAME).insert(objects);
     }
 
     @Override
     protected void createCollection() throws Exception {
-        db.createCollection(COLLECTION_NAME);
+        db.createCollection(COLLECTION_NAME, new BasicDBObject());
     }
 
     @Override
     protected void listCollections() throws Exception {
-        db.listCollections().first();
+        Iterator<String> names = db.getCollectionNames().iterator();
+        if (names.hasNext()) {
+            names.next();
+        }
     }
 }

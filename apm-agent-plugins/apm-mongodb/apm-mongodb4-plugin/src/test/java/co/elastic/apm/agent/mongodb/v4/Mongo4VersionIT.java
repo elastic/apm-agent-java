@@ -35,40 +35,52 @@ public class Mongo4VersionIT {
 
     private final TestClassWithDependencyRunner runner;
 
-    public Mongo4VersionIT(String version) throws Exception {
+    public Mongo4VersionIT(String version, boolean legacyDriver) throws Exception {
 
         Version v = Version.of(version);
 
         List<String> dependencies = new ArrayList<>(Arrays.asList(
             "org.mongodb:mongodb-driver-sync:" + version,
-            "org.mongodb:mongodb-driver-legacy:" + version,
             "org.mongodb:mongodb-driver-core:" + version,
             "org.mongodb:bson:" + version));
+
+        if(legacyDriver){
+            dependencies.add("org.mongodb:mongodb-driver-legacy:" + version);
+        }
 
         if (v.compareTo(Version.of("4.6.0")) >= 0) {
             dependencies.add("org.mongodb:bson-record-codec:" + version);
         }
 
-        Class<?> testClass = Mongo4SyncTest.class;
-
         runner = new TestClassWithDependencyRunner(dependencies,
-            testClass, AbstractMongoClientInstrumentationTest.class);
+            legacyDriver ? Mongo4LegacyTest.class : Mongo4SyncTest.class,
+            AbstractMongoClientInstrumentationTest.class);
     }
 
-    @Parameterized.Parameters(name = "{0}")
+    @Parameterized.Parameters(name = "{0} legacy-driver = {1}")
     public static Iterable<Object[]> data() {
         // whenever adding new versions to this list, you have to make sure that all transitive dependencies of the
         // driver are also explicitly included, over time the driver has moved to single monolithic jar to having more
         // and more dependencies instead of embedding them.
-        return Arrays.asList(new Object[][]{
-            {"4.6.0"},
-            {"4.5.0"},
-            {"4.4.0"},
-            {"4.3.0"},
-            {"4.2.0"},
-            {"4.1.0"},
-            {"4.0.0"},
-        });
+        List<String> versions = Arrays.asList(
+            "4.6.0",
+            "4.5.0",
+            "4.4.0",
+            "4.3.0",
+            "4.2.0",
+            "4.1.0",
+            "4.0.0"
+        );
+        List<Object[]> parameters = new ArrayList<>();
+        for (int i = 0; i < versions.size(); i++) {
+            String v = versions.get(i);
+            parameters.add(new Object[]{v, false});
+            if (i == 0) {
+                // only test the legacy API once with the latest version to save some execution time
+                parameters.add(new Object[]{v, true});
+            }
+        }
+        return parameters;
     }
 
     @Test
