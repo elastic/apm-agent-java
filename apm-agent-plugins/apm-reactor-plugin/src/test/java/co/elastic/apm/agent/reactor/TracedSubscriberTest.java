@@ -67,7 +67,7 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
         checkHookRegistration(false, "unregister twice is no-op");
     }
 
-    private static void checkHookRegistration(boolean registered, String msg){
+    private static void checkHookRegistration(boolean registered, String msg) {
         assertThat(TracedSubscriber.isHookRegistered())
             .describedAs(msg)
             .isEqualTo(registered);
