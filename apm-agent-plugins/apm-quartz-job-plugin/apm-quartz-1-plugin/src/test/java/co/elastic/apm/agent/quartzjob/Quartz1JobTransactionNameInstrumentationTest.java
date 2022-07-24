@@ -21,12 +21,10 @@ package co.elastic.apm.agent.quartzjob;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.junit.jupiter.api.Test;
 import org.quartz.Job;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
-import org.quartz.SchedulerException;
 import org.quartz.SimpleTrigger;
 
 import javax.annotation.Nullable;
@@ -35,14 +33,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 class Quartz1JobTransactionNameInstrumentationTest extends AbstractJobTransactionNameInstrumentationTest {
-
-    @Test
-    void test100Times() throws SchedulerException {
-        for (int i = 0; i < 100; i++) {
-            super.testJobWithResult();
-            reporter.reset();
-        }
-    }
 
     @Override
     public Transaction verifyTransactionFromJobDetails(JobDetail job, Outcome expectedOutcome) {
