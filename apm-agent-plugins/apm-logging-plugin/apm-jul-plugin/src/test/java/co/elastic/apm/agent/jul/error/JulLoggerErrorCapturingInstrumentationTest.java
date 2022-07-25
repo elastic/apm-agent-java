@@ -23,10 +23,9 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
-// todo: add support and enable
-@Disabled
 public class JulLoggerErrorCapturingInstrumentationTest extends AbstractErrorLoggingInstrumentationTest {
 
     private static final Logger logger = Logger.getLogger(JulLoggerErrorCapturingInstrumentationTest.class.getName());
@@ -34,6 +33,14 @@ public class JulLoggerErrorCapturingInstrumentationTest extends AbstractErrorLog
     @Test
     void captureErrorExceptionWithStringMessage() {
         logger.log(Level.SEVERE, "exception captured", new RuntimeException("some business exception"));
+        verifyThatExceptionCaptured(1, "some business exception", RuntimeException.class);
+    }
+
+    @Test
+    void captureErrorExceptionWithLogRecord() {
+        LogRecord lr = new LogRecord(Level.WARNING, "exception captured");
+        lr.setThrown(new RuntimeException("some business exception"));
+        logger.log(lr);
         verifyThatExceptionCaptured(1, "some business exception", RuntimeException.class);
     }
 }

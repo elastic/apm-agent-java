@@ -46,28 +46,17 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Tracer
 
     public static class LoggingAdvice {
 
-        private static final CallDepth callDepth = CallDepth.get(LoggingAdvice.class);
+        private static final LoggerErrorHelper helper = new LoggerErrorHelper(LoggingAdvice.class, tracer);
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object logEnter(@Advice.Argument(1) Throwable exception, @Advice.Origin Class<?> clazz) {
-            if (!callDepth.isNestedCallAndIncrement()) {
-                ErrorCapture error = tracer.captureException(exception, tracer.getActive(), clazz.getClassLoader());
-                if (error != null) {
-                    error.activate();
-                }
-                return error;
-            }
-            return null;
+            return helper.enter(exception, clazz);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void logExit(@Advice.Enter @Nullable Object errorCaptureObj) {
-            callDepth.decrement();
-            if (errorCaptureObj instanceof ErrorCapture) {
-                ErrorCapture error = (ErrorCapture) errorCaptureObj;
-                error.deactivate().end();
-            }
+            helper.exit(errorCaptureObj);
         }
     }
 
