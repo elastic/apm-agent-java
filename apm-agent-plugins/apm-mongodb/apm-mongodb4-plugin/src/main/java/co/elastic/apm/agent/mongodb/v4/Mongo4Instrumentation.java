@@ -22,6 +22,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.security.ProtectionDomain;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -38,7 +39,9 @@ public abstract class Mongo4Instrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("mongodb");
+        // has already been published with 'mongodb-client' for 3.x, thus keeping it as an alias in case it has been disabled
+        // on the java agent there is no ambiguity as mongodb will always be a mongodb client (server written in c++).
+        return Arrays.asList("mongodb-client", "mongodb");
     }
 
 }

@@ -46,7 +46,7 @@ public abstract class Mongo3Instrumentation extends TracerAwareInstrumentation {
     }
 
     public Collection<String> getInstrumentationGroupNames() {
-        // has already been published with 'mongodb-client', thus keeping it as an alias in case it has been disabled
+        // has already been published with 'mongodb-client' for 3.x, thus keeping it as an alias in case it has been disabled
         // on the java agent there is no ambiguity as mongodb will always be a mongodb client (server written in c++).
         return Arrays.asList("mongodb-client", "mongodb");
     }
