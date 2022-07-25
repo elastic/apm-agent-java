@@ -588,9 +588,10 @@ public class MockReporter implements Reporter {
                 });
             });
         } catch (AssertionError e) {
-            // clear collections in case they aren't empty to prevent a failing test to have side effects on others
+            // clear collections when assertion fails to prevent a test failure to affect following tests
             this.transactions.clear();
             this.spans.clear();
+            throw e;
         }
 
 
