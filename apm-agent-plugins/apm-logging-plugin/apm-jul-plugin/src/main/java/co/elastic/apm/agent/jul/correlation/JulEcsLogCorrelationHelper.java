@@ -25,11 +25,11 @@ public class JulEcsLogCorrelationHelper extends AbstractLogCorrelationHelper.Def
 
     @Override
     protected void addToMdc(String key, String value) {
-        JulMdc.getInstance().put(key, value);
+        JulMdc.put(key, value);
     }
 
     @Override
     protected void removeFromMdc(String key) {
-        JulMdc.getInstance().remove(key);
+        JulMdc.remove(key);
     }
 }
