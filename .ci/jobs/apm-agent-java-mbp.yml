@@ -39,7 +39,8 @@
             recursive: true
             parent-credentials: true
             timeout: 100
-            reference-repo: /var/lib/jenkins/.git-references/apm-agent-java.git
+            ## reference-repo is *Nix based so it causes problems when running for Windows
+            ## reference-repo: /var/lib/jenkins/.git-references/apm-agent-java.git
             use-author: true
             wipe-workspace: true
     periodic-folder-trigger: 4h

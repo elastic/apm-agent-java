@@ -25,6 +25,7 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
@@ -67,6 +68,8 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private final KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> timerBySpanTypeAndSubtype = new KeyListConcurrentHashMap<>();
     private final WriterReaderPhaser phaser = new WriterReaderPhaser();
+    private final CoreConfiguration coreConfig;
+    private final SpanConfiguration spanConfig;
 
     /**
      * The result of the transaction. HTTP status code for HTTP-related
@@ -110,6 +113,8 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     public Transaction(ElasticApmTracer tracer) {
         super(tracer);
+        coreConfig = tracer.getConfig(CoreConfiguration.class);
+        spanConfig = tracer.getConfig(SpanConfiguration.class);
     }
 
     public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros, Sampler sampler) {
@@ -125,10 +130,10 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     private void onTransactionStart(boolean startedAsChild, long epochMicros, Sampler sampler) {
-        maxSpans = tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans();
-        spanCompressionEnabled = tracer.getConfig(SpanConfiguration.class).isSpanCompressionEnabled();
-        spanCompressionExactMatchMaxDurationUs = tracer.getConfig(SpanConfiguration.class).getSpanCompressionExactMatchMaxDuration().getMicros();
-        spanCompressionSameKindMaxDurationUs = tracer.getConfig(SpanConfiguration.class).getSpanCompressionSameKindMaxDuration().getMicros();
+        maxSpans = coreConfig.getTransactionMaxSpans();
+        spanCompressionEnabled = spanConfig.isSpanCompressionEnabled();
+        spanCompressionExactMatchMaxDurationUs = spanConfig.getSpanCompressionExactMatchMaxDuration().getMicros();
+        spanCompressionSameKindMaxDurationUs = spanConfig.getSpanCompressionSameKindMaxDuration().getMicros();
         if (!startedAsChild) {
             traceContext.asRootSpan(sampler);
         }
@@ -372,6 +377,17 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     public long getSpanCompressionSameKindMaxDurationUs() {
         return spanCompressionSameKindMaxDurationUs;
+    }
+
+    @Override
+    public StringBuilder getNameForSerialization() {
+        StringBuilder name = this.name;
+        WildcardMatcher match = WildcardMatcher.anyMatch(coreConfig.getTransactionNameGroups(), name);
+        if (match != null) {
+            name.setLength(0);
+            name.append(match);
+        }
+        return name;
     }
 
     @Override

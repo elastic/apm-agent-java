@@ -55,6 +55,7 @@ pipeline {
     booleanParam(name: 'end_to_end_tests_ci', defaultValue: false, description: 'Enable APM End-to-End tests')
 
     // disabled by default, not required for merge
+    // opt-in with 'ci:benchmarks' tag on PR
     booleanParam(name: 'bench_ci', defaultValue: false, description: 'Enable benchmarks')
 
     // disabled by default, not required for merge
@@ -71,8 +72,8 @@ pipeline {
       steps {
         pipelineManager([ cancelPreviousRunningBuilds: [ when: 'PR' ] ])
         deleteDir()
-        gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, shallow: false,
-                    reference: '/var/lib/jenkins/.git-references/apm-agent-java.git')
+        // reference repo causes issues while running on Windows with the git-commit-id-maven-plugin
+        gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, shallow: false)
         stash allowEmpty: true, name: 'source', useDefaultExcludes: false
         script {
           dir("${BASE_DIR}"){
@@ -289,7 +290,7 @@ pipeline {
              * The result JSON files are also archive into Jenkins.
              */
             stage('Benchmarks') {
-              agent { label 'metal' }
+              agent { label 'microbenchmarks-pool' }
               options { skipDefaultCheckout() }
               environment {
                 NO_BUILD = "true"
@@ -300,6 +301,7 @@ pipeline {
                 anyOf {
                   branch 'main'
                   expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
+                  expression { matchesPrLabel(label: 'ci:benchmarks') }
                   expression { return params.bench_ci }
                 }
               }
@@ -315,6 +317,9 @@ pipeline {
                 }
               }
               post {
+                cleanup {
+                  deleteDir()
+                }
                 always {
                   archiveArtifacts(allowEmptyArchive: true,
                     artifacts: "${BASE_DIR}/${RESULT_FILE}",

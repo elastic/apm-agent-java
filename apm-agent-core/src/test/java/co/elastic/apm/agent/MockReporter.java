@@ -97,6 +97,9 @@ public class MockReporter implements Reporter {
 
     private boolean closed;
 
+    // we have to use a longer timeout on Windows to help reduce flakyness
+    private static final long DEFAULT_ASSERTION_TIMEOUT = System.getProperty("os.name").startsWith("Windows") ? 3000 : 1000;
+
     private static final JsonNode SPAN_TYPES_SPEC = TestJsonSpec.getJson("span_types.json");
 
     static {
@@ -423,6 +426,12 @@ public class MockReporter implements Reporter {
             .isEqualTo(count));
     }
 
+    public void awaitTransactionCount(int count, long timeoutMs) {
+        awaitUntilAsserted(timeoutMs, () -> assertThat(getNumReportedTransactions())
+            .describedAs("expecting %d transactions, transactions = %s", count, transactions)
+            .isEqualTo(count));
+    }
+
     public void awaitSpanCount(int count) {
         awaitUntilAsserted(() -> assertThat(getNumReportedSpans())
             .describedAs("expecting %d spans", count)
@@ -588,12 +597,12 @@ public class MockReporter implements Reporter {
     }
 
     /**
-     * Uses a timeout of 1s
+     * Uses the default timeout (see {@link  #DEFAULT_ASSERTION_TIMEOUT})
      *
      * @see #awaitUntilAsserted(long, ThrowingRunnable)
      */
     public void awaitUntilAsserted(ThrowingRunnable runnable) {
-        awaitUntilAsserted(1000, runnable);
+        awaitUntilAsserted(DEFAULT_ASSERTION_TIMEOUT, runnable);
     }
 
     /**
