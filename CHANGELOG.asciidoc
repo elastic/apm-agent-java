@@ -28,7 +28,7 @@ endif::[]
 
 [float]
 ===== Features
-* Cool new feature: {pull}2526[#2526]
+* Capture keyspace in `db.instance` for Cassandra database - {pull}2684[#2684]
 
 [float]
 ===== Bug fixes
