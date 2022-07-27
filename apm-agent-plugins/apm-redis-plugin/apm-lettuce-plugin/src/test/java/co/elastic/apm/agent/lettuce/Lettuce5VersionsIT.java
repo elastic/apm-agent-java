@@ -41,7 +41,7 @@ public class Lettuce5VersionsIT {
         return Arrays.asList(new Object[][] {
             { List.of("io.lettuce:lettuce-core:5.2.1.RELEASE", "io.netty:netty-all:4.1.43.Final") },
             { List.of("io.lettuce:lettuce-core:5.1.8.RELEASE", "io.netty:netty-all:4.1.38.Final") },
-            { List.of("io.lettuce:lettuce-core:5.0.5.RELEASE", "io.netty:netty-all:4.1.28.Final") },
+            { List.of("io.lettuce:lettuce-core:5.0.5.RELEASE", "io.netty:netty-all:4.1.28.Final", "io.projectreactor:reactor-core:3.1.6.RELEASE") },
         });
     }
 
