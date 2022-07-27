@@ -28,7 +28,7 @@ endif::[]
 
 [float]
 ===== Features
-* Cool new feature: {pull}2526[#2526]
+* Capture Oracle SID in connection string - {pull}2709[#2709]
 
 [float]
 ===== Bug fixes
