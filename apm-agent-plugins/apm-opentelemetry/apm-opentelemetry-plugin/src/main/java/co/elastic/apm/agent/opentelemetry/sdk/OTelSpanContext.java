@@ -30,6 +30,8 @@ import java.util.List;
 public class OTelSpanContext implements SpanContext {
     private final TraceContext traceContext;
 
+    protected TraceContext getElasticTraceContext() {return traceContext;}
+
     public OTelSpanContext(TraceContext traceContext) {
         this.traceContext = traceContext;
     }

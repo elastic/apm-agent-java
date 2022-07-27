@@ -20,7 +20,6 @@ package co.elastic.apm.agent.opentelemetry.sdk;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.MultiValueMapAccessor;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Outcome;
@@ -48,7 +47,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 
 class OTelSpanBuilder implements SpanBuilder {
 
@@ -62,7 +60,8 @@ class OTelSpanBuilder implements SpanBuilder {
     private AbstractSpan<?> parent;
     @Nullable
     private Context remoteContext;
-    private List<byte[]> links = new ArrayList<>();
+
+    private List<TraceContext> links = new ArrayList<>();
 
     @Nullable
     private SpanKind kind;
@@ -92,8 +91,7 @@ class OTelSpanBuilder implements SpanBuilder {
 
     @Override
     public SpanBuilder addLink(SpanContext spanContext) {
-        links.add(spanContext.getTraceIdBytes());
-        links.add(spanContext.getSpanIdBytes());
+        links.add(((OTelSpanContext) spanContext).getElasticTraceContext());
         return this;
     }
 
@@ -195,42 +193,13 @@ class OTelSpanBuilder implements SpanBuilder {
         // worry about too much byte[] garbage ... but maybe we should
         // pool across builders? Or maybe the OtelSpanBuilder should be recyclable?
         byte[] header = new byte[TraceContext.BINARY_FORMAT_EXPECTED_LENGTH];
-        for (int i = 0; i < links.size(); i+=2) {
-            byte[] traceID = links.get(i);
-            byte[] spanID = links.get(i+1);
-            TraceContext.filIdOutgoingTraceParentBinaryHeader(header, traceID, spanID);
-            span.addSpanLink(
-                TraceContext.getFromTraceContextBinaryHeaders(),
-                BinaryByteArrayAccessor.INSTANCE,
-                header);
+        for (int i = 0; i < links.size(); i++) {
+            span.addSpanLink(TraceContext.fromParentContext(), links.get(i));
         }
-        links.clear();
 
         OTelSpan otelSpan = new OTelSpan(span);
         attributes.forEach((AttributeKey<?> k, Object v) -> otelSpan.setAttribute((AttributeKey<? super Object>) k, (Object) v));
         return otelSpan;
-    }
-
-    static class BinaryByteArrayAccessor implements BinaryHeaderGetter<byte[]> {
-
-        public static final BinaryByteArrayAccessor INSTANCE = new BinaryByteArrayAccessor();
-
-        private BinaryByteArrayAccessor() {
-        }
-
-        @Nullable
-        @Override
-        public byte[] getFirstHeader(String unused, byte[] header) {
-            return header;
-        }
-
-        @Override
-        public <S> void forEach(String headerName, byte[] carrier, S state, HeaderConsumer<byte[], S> consumer) {
-            if (carrier != null) {
-                consumer.accept(carrier, state);
-            }
-        }
-
     }
 
 }
