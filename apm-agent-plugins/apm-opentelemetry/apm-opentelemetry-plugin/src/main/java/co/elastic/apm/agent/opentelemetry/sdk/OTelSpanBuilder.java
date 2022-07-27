@@ -189,7 +189,6 @@ class OTelSpanBuilder implements SpanBuilder {
         span.withUserOutcome(Outcome.UNKNOWN);
 
         // Add the links to the span
-        byte[] header = new byte[TraceContext.BINARY_FORMAT_EXPECTED_LENGTH];
         for (int i = 0; i < links.size(); i++) {
             span.addSpanLink(TraceContext.fromParentContext(), links.get(i));
         }
