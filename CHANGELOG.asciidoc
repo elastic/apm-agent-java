@@ -28,7 +28,6 @@ endif::[]
 
 [float]
 ===== Features
-* Add support for Spring WebClient - {pull}2229[#2229]
 * Implemented span links in the OTel bridge. - {pull}2685[#2685]
 
 [float]
