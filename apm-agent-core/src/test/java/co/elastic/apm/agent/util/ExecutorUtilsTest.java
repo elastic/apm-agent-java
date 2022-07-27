@@ -34,8 +34,9 @@ class ExecutorUtilsTest {
     @Test
     void testSingleThreadSchedulingDaemonPool() throws ExecutionException, InterruptedException, TimeoutException {
         final String threadPurpose = "test-single-scheduling-pool";
-        ThreadPoolExecutor singleThreadDaemonPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool(threadPurpose);
-        executeTestOnThreadPool(singleThreadDaemonPool, threadPurpose, 1);
+        ThreadPoolExecutor singleThreadSchedulingDaemonPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool(threadPurpose);
+        executeTestOnThreadPool(singleThreadSchedulingDaemonPool, threadPurpose, 1);
+        assertThat(ExecutorUtils.isAgentExecutor(singleThreadSchedulingDaemonPool)).isTrue();
     }
 
     @Test
@@ -43,13 +44,15 @@ class ExecutorUtilsTest {
         final String threadPurpose = "test-single-pool";
         ThreadPoolExecutor singleThreadDaemonPool = ExecutorUtils.createSingleThreadDaemonPool(threadPurpose, 5);
         executeTestOnThreadPool(singleThreadDaemonPool, threadPurpose, 1);
+        assertThat(ExecutorUtils.isAgentExecutor(singleThreadDaemonPool)).isTrue();
     }
 
     @Test
     void testThreadDaemonPool() throws ExecutionException, InterruptedException, TimeoutException {
-        final String threadPurpose = "test-single-pool";
-        ThreadPoolExecutor singleThreadDaemonPool = ExecutorUtils.createThreadDaemonPool(threadPurpose, 3, 5);
-        executeTestOnThreadPool(singleThreadDaemonPool, threadPurpose, 3);
+        final String threadPurpose = "test-pool";
+        ThreadPoolExecutor threadDaemonPool = ExecutorUtils.createThreadDaemonPool(threadPurpose, 3, 5);
+        executeTestOnThreadPool(threadDaemonPool, threadPurpose, 3);
+        assertThat(ExecutorUtils.isAgentExecutor(threadDaemonPool)).isTrue();
     }
 
     private void executeTestOnThreadPool(ThreadPoolExecutor singleThreadDaemonPool, String threadPurpose, int maxPoolSize)
