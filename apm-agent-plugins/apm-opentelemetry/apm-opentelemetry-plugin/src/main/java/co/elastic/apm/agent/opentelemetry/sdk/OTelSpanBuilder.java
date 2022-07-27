@@ -189,9 +189,6 @@ class OTelSpanBuilder implements SpanBuilder {
         span.withUserOutcome(Outcome.UNKNOWN);
 
         // Add the links to the span
-        // Presumably you'd only start the span once, so no need to
-        // worry about too much byte[] garbage ... but maybe we should
-        // pool across builders? Or maybe the OtelSpanBuilder should be recyclable?
         byte[] header = new byte[TraceContext.BINARY_FORMAT_EXPECTED_LENGTH];
         for (int i = 0; i < links.size(); i++) {
             span.addSpanLink(TraceContext.fromParentContext(), links.get(i));
