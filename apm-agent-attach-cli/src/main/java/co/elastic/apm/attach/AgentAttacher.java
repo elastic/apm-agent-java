@@ -121,6 +121,10 @@ public class AgentAttacher {
         }
         Logger logger = initLogging(arguments);
 
+        if (logger.isDebugEnabled()) {
+            logger.debug("attach process started with:  user = '{}', current directory = {}", System.getProperty("user.name"), System.getProperty("user.dir"));
+        }
+
         String downloadAgentVersion = arguments.getDownloadAgentVersion();
         if (downloadAgentVersion == null && arguments.getAgentJar() == null) {
             // If there is no bundled agent and a path for agent was not specified, default to download the latest
