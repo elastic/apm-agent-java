@@ -30,6 +30,7 @@ endif::[]
 ===== Features
 * Capture Oracle SID in connection string - {pull}2709[#2709]
 * Implemented span links in the OTel bridge. - {pull}2685[#2685]
+* Added support for MongoDB's 4.x Sync Driver - {pull}2241{#2241}
 
 [float]
 ===== Bug fixes
@@ -217,7 +218,6 @@ option. If there's a need to disable the log correlation mechanism, this can be 
 * Added support for setting the service name on Log4j2's EcsLayout - {pull}2296[#2296]
 * Print the used instrumentation groups when the application stops - {pull}2448[#2448]
 * Add `elastic.apm.start_async` property that makes the agent start on a non-premain/main thread - {pull}2454[#2454]
-* Added support for MongoDB's 4.x Sync Driver - {pull}2241{#2241}
 
 [float]
 ===== Bug fixes
