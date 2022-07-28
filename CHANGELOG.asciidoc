@@ -29,6 +29,7 @@ endif::[]
 [float]
 ===== Features
 * Capture Oracle SID in connection string - {pull}2709[#2709]
+* Implemented span links in the OTel bridge. - {pull}2685[#2685]
 
 [float]
 ===== Bug fixes
