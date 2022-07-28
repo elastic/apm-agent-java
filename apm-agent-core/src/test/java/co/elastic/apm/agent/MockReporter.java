@@ -426,6 +426,12 @@ public class MockReporter implements Reporter {
             .isEqualTo(count));
     }
 
+    public void awaitTransactionCount(int count, long timeoutMs) {
+        awaitUntilAsserted(timeoutMs, () -> assertThat(getNumReportedTransactions())
+            .describedAs("expecting %d transactions, transactions = %s", count, transactions)
+            .isEqualTo(count));
+    }
+
     public void awaitSpanCount(int count) {
         awaitUntilAsserted(() -> assertThat(getNumReportedSpans())
             .describedAs("expecting %d spans", count)
