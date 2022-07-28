@@ -28,6 +28,7 @@ endif::[]
 
 [float]
 ===== Features
+* Capture Oracle SID in connection string - {pull}2709[#2709]
 * Capture keyspace in `db.instance` for Cassandra database - {pull}2684[#2684]
 
 [float]
