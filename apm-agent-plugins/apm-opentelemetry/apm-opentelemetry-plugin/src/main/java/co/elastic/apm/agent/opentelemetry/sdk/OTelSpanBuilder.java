@@ -61,7 +61,7 @@ class OTelSpanBuilder implements SpanBuilder {
     @Nullable
     private Context remoteContext;
 
-    private List<TraceContext> links = new ArrayList<>();
+    private List<SpanContext> links = new ArrayList<>();
 
     @Nullable
     private SpanKind kind;
@@ -91,7 +91,7 @@ class OTelSpanBuilder implements SpanBuilder {
 
     @Override
     public SpanBuilder addLink(SpanContext spanContext) {
-        links.add(((OTelSpanContext) spanContext).getElasticTraceContext());
+        links.add(spanContext);
         return this;
     }
 
@@ -190,7 +190,8 @@ class OTelSpanBuilder implements SpanBuilder {
 
         // Add the links to the span
         for (int i = 0; i < links.size(); i++) {
-            span.addSpanLink(TraceContext.fromParentContext(), links.get(i));
+            span.addSpanLink(TraceContext.fromParentContext(), ((OTelSpanContext) links.get(i)).getElasticTraceContext());
+
         }
 
         OTelSpan otelSpan = new OTelSpan(span);
