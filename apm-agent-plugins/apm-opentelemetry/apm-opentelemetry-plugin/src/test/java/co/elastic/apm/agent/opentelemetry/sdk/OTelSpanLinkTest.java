@@ -75,6 +75,8 @@ public class OTelSpanLinkTest {
             traceContext1.asRootSpan(ConstantSampler.of(false));
             SpanContext context1 = new OTelSpanContext(traceContext1);
             if (withAttributes) {
+                //The actual attribute addition to the links is not currently supported,
+                //but we still want to test that the method correctly adds links
                 spanbuilder.addLink(context1, builder.build());
             } else {
                 spanbuilder.addLink(context1);
@@ -89,10 +91,6 @@ public class OTelSpanLinkTest {
         for (int i = 0; i < linkCount; i++) {
             assertThat(links.get(i).getTraceId()).isEqualTo(contexts[i].getTraceId());
             assertThat(links.get(i).getParentId()).isEqualTo(contexts[i].getId());
-        }
-        if (withAttributes) {
-            assertThat(span.getInternalSpan().getOtelAttributes().get("key1")).isEqualTo(33L);
-            assertThat(span.getInternalSpan().getOtelAttributes().get("key2")).isEqualTo(true);
         }
     }
 }

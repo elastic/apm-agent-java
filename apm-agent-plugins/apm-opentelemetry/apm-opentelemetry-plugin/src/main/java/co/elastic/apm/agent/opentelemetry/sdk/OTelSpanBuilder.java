@@ -98,7 +98,9 @@ class OTelSpanBuilder implements SpanBuilder {
     @Override
     public SpanBuilder addLink(SpanContext spanContext, Attributes attributes1) {
         addLink(spanContext);
-        attributes1.forEach((AttributeKey<?> k, Object v) -> attributes.put((AttributeKey<? super Object>) k, (Object) v));
+        if (attributes1 != null && !attributes1.isEmpty()) {
+            addLinkLogger.warn("Adding attributes to links is currently unsupported - the links have been added but with no attributes, the following attributes have been ignored: %s",attributes1);
+        }
         return this;
     }
 
