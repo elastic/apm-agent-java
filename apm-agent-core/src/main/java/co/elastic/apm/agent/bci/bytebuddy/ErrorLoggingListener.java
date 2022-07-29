@@ -35,7 +35,7 @@ public class ErrorLoggingListener extends AgentBuilder.Listener.Adapter {
                 typeName,
                 ((MinimumClassFileVersionValidator.UnsupportedClassFileVersionException)throwable).getMinVersion());
         } else {
-            if (throwable != null && throwable.getMessage() != null && throwable.getMessage().contains("Cannot resolve type description")) {
+            if (throwable instanceof net.bytebuddy.pool.TypePool$Resolution$NoSuchTypeException) {
                 logger.info(typeName + " refers to a missing class.");
                 logger.debug("ByteBuddy type resolution stack trace: ", throwable);
             } else {
