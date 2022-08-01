@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.concurrent;
+package test;
 
 import java.util.concurrent.Executor;
 
