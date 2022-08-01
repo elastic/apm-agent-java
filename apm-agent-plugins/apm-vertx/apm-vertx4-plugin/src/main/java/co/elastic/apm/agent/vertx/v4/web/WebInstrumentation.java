@@ -55,7 +55,7 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
     }
 
     /**
-     * Instruments {@link io.vertx.core.impl.ContextImpl#tracer}} to return a noop tracer in case no tracer has been specified.
+     * Instruments {@code io.vertx.core.impl.ContextImpl#tracer}} to return a noop tracer in case no tracer has been specified.
      */
     public static class ContextImplTracerInstrumentation extends WebInstrumentation {
         @Override
