@@ -131,6 +131,7 @@ Click on a key to get more information.
 ** <<config-span-min-duration>>
 ** <<config-cloud-provider>>
 ** <<config-enable-public-api-annotation-inheritance>>
+** <<config-transaction-name-groups>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
 ** <<config-transaction-ignore-urls>>
@@ -161,6 +162,7 @@ Click on a key to get more information.
 ** <<config-ignore-message-queues>>
 * <<config-metrics>>
 ** <<config-dedot-custom-metrics>>
+** <<config-metric-set-limit>>
 * <<config-profiling>>
 ** <<config-profiling-inferred-spans-enabled>>
 ** <<config-profiling-inferred-spans-sampling-interval>>
@@ -759,7 +761,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `enable_instrumentations` (added[1.28.0])
 
 A list of instrumentations which should be selectively enabled.
-Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 
@@ -787,7 +789,7 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -1371,6 +1373,39 @@ A boolean specifying if the agent should search the class hierarchy for public a
 | `elastic.apm.enable_public_api_annotation_inheritance` | `enable_public_api_annotation_inheritance` | `ELASTIC_APM_ENABLE_PUBLIC_API_ANNOTATION_INHERITANCE`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-transaction-name-groups]]
+==== `transaction_name_groups` (added[1.33.0])
+
+With this option,
+you can group transaction names that contain dynamic parts with a wildcard expression.
+For example,
+the pattern `GET /user/*/cart` would consolidate transactions,
+such as `GET /users/42/cart` and `GET /users/73/cart` into a single transaction name `GET /users/*/cart`,
+hence reducing the transaction name cardinality.
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.transaction_name_groups` | `transaction_name_groups` | `ELASTIC_APM_TRANSACTION_NAME_GROUPS`
+|============
+
 [[config-http]]
 === HTTP configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1477,7 +1512,7 @@ transaction names of unsupported or partially-supported frameworks will be in th
 WARNING: If your URLs contain path parameters like `/user/$userId`,
 you should be very careful when enabling this flag,
 as it can lead to an explosion of transaction groups.
-Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
+Take a look at the <<config-transaction-name-groups,`transaction_name_groups`>> option on how to mitigate this problem by grouping URLs together.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -1498,7 +1533,9 @@ Take a look at the `url_groups` option on how to mitigate this problem by groupi
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-url-groups]]
-==== `url_groups`
+==== `url_groups` (deprecated)
+
+Deprecated in favor of <<config-transaction-name-groups,`transaction_name_groups`>>.
 
 This option is only considered, when `use_path_as_transaction_name` is active.
 
@@ -2144,6 +2181,32 @@ The first metric maps `foo` to a number and the second metric maps `foo` as an o
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.dedot_custom_metrics` | `dedot_custom_metrics` | `ELASTIC_APM_DEDOT_CUSTOM_METRICS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-metric-set-limit]]
+==== `metric_set_limit` (added[1.33.0])
+
+Limits the number of active metric sets.
+The metrics sets have associated labels, and the metrics sets are held internally in a map using the labels as keys. The map is limited in size by this option to prevent unbounded growth. If you hit the limit, you'll receive a warning in the agent log.
+The recommended option to workaround the limit is to try to limit the cardinality of the labels, eg naming your transactions so that there are fewer distinct transaction names.
+But if you must, you can use this option to increase the limit.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `1000` | Integer | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.metric_set_limit` | `metric_set_limit` | `ELASTIC_APM_METRIC_SET_LIMIT`
 |============
 
 [[config-profiling]]
@@ -3148,7 +3211,7 @@ Example: `5ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,*auth*,set-cookie
 
 # A list of instrumentations which should be selectively enabled.
-# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 # When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 # When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 # 
@@ -3161,7 +3224,7 @@ Example: `5ms`.
 # enable_instrumentations=
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 # For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -3476,6 +3539,24 @@ Example: `5ms`.
 #
 # enable_public_api_annotation_inheritance=false
 
+# With this option,
+# you can group transaction names that contain dynamic parts with a wildcard expression.
+# For example,
+# the pattern `GET /user/*/cart` would consolidate transactions,
+# such as `GET /users/42/cart` and `GET /users/73/cart` into a single transaction name `GET /users/*/cart`,
+# hence reducing the transaction name cardinality.
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
+#
+# transaction_name_groups=
+
 ############################################
 # HTTP                                     #
 ############################################
@@ -3534,7 +3615,7 @@ Example: `5ms`.
 # WARNING: If your URLs contain path parameters like `/user/$userId`,
 # you should be very careful when enabling this flag,
 # as it can lead to an explosion of transaction groups.
-# Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
+# Take a look at the <<config-transaction-name-groups,`transaction_name_groups`>> option on how to mitigate this problem by grouping URLs together.
 #
 # This setting can be changed at runtime
 # Type: Boolean
@@ -3542,6 +3623,8 @@ Example: `5ms`.
 #
 # use_path_as_transaction_name=false
 
+# Deprecated in favor of <<config-transaction-name-groups,`transaction_name_groups`>>.
+# 
 # This option is only considered, when `use_path_as_transaction_name` is active.
 # 
 # With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.
@@ -3914,6 +3997,17 @@ Example: `5ms`.
 # Default value: true
 #
 # dedot_custom_metrics=true
+
+# Limits the number of active metric sets.
+# The metrics sets have associated labels, and the metrics sets are held internally in a map using the labels as keys. The map is limited in size by this option to prevent unbounded growth. If you hit the limit, you'll receive a warning in the agent log.
+# The recommended option to workaround the limit is to try to limit the cardinality of the labels, eg naming your transactions so that there are fewer distinct transaction names.
+# But if you must, you can use this option to increase the limit.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Integer
+# Default value: 1000
+#
+# metric_set_limit=1000
 
 ############################################
 # Profiling                                #

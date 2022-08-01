@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.32.1-SNAPSHOT</version>
+        <version>1.33.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent</artifactId>
@@ -218,7 +218,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-mongoclient-plugin</artifactId>
+            <artifactId>apm-mongodb3-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-mongodb4-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

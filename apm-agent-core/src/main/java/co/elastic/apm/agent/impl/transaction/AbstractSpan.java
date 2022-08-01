@@ -306,7 +306,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * @return name
      */
     public String getNameAsString() {
-        return name.toString();
+        return getNameForSerialization().toString();
     }
 
     /**
@@ -375,6 +375,15 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return traceContext;
     }
 
+    private boolean canAddSpanLink() {
+        if (spanLinks.size() == MAX_ALLOWED_SPAN_LINKS) {
+            oneTimeMaxSpanLinksLogger.warn("Span links for {} has reached the allowed maximum ({}). No more spans will be linked.",
+                this, MAX_ALLOWED_SPAN_LINKS);
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Adds a span link based on the tracecontext header retrieved from the provided {@code carrier} through the provided {@code
      * headerGetter}.
@@ -387,9 +396,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      */
     public <H, C> boolean addSpanLink(TraceContext.ChildContextCreatorTwoArg<C, HeaderGetter<H, C>> childContextCreator,
                                     HeaderGetter<H, C> headerGetter, @Nullable C carrier) {
-        if (spanLinks.size() == MAX_ALLOWED_SPAN_LINKS) {
-            oneTimeMaxSpanLinksLogger.warn("Span links for {} has reached the allowed maximum ({}). No more spans will be linked.",
-                this, MAX_ALLOWED_SPAN_LINKS);
+        if (!canAddSpanLink()) {
             return false;
         }
         boolean added = false;
@@ -404,6 +411,32 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         } catch (Exception e) {
             logger.error(String.format("Failed to add span link to %s from header carrier %s and %s", this, carrier,
                 headerGetter.getClass().getName()), e);
+        }
+        return added;
+    }
+
+    /**
+     * Adds a span link based on the tracecontext header retrieved from the provided parent.
+     * @param childContextCreator the proper tracecontext inference implementation, which retrieves the header
+     * @param parent the object from which the tracecontext header is to be retrieved
+     * @param <T> the parent type - AbstractSpan, TraceContext or Tracer
+     * @return {@code true} if added, {@code false} otherwise
+     */
+    public <T> boolean addSpanLink(TraceContext.ChildContextCreator<T> childContextCreator, T parent) {
+        if (!canAddSpanLink()) {
+            return false;
+        }
+        boolean added = false;
+        try {
+            TraceContext childTraceContext = tracer.createSpanLink();
+            if (childContextCreator.asChildOf(childTraceContext, parent)) {
+                added = spanLinks.add(childTraceContext);
+            }
+            if (!added) {
+                tracer.recycle(childTraceContext);
+            }
+        } catch (Exception e) {
+            logger.error(String.format("Failed to add span link to %s from parent %s", this, parent, e));
         }
         return added;
     }

@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.32.1-SNAPSHOT</version>
+        <version>1.33.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-plugins</artifactId>
@@ -46,7 +46,7 @@
         <module>apm-redis-plugin</module>
         <module>apm-scala-concurrent-plugin</module>
         <module>apm-jmx-plugin</module>
-        <module>apm-mongoclient-plugin</module>
+        <module>apm-mongodb</module>
         <module>apm-process-plugin</module>
         <module>apm-kafka-plugin</module>
         <module>apm-profiling-plugin</module>
