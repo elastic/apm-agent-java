@@ -26,6 +26,8 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
@@ -64,6 +66,12 @@ public class ShadedClassLoader extends URLClassLoader {
     private final String customPrefix;
     private final Manifest manifest;
     private final URL jarUrl;
+    private final ThreadLocal<Set<String>> locallyNonAvailableResources = new ThreadLocal<Set<String>>() {
+        @Override
+        protected Set<String> initialValue() {
+            return new HashSet<>();
+        }
+    };
 
     public ShadedClassLoader(File jar, ClassLoader parent, String customPrefix) throws IOException {
         super(new URL[]{jar.toURI().toURL()}, parent);
@@ -197,6 +205,9 @@ public class ShadedClassLoader extends URLClassLoader {
      */
     @Override
     public URL findResource(String name) {
+        if (locallyNonAvailableResources.get().contains(name)) {
+            return null;
+        }
         return super.findResource(getShadedResourceName(name));
     }
 
@@ -209,6 +220,9 @@ public class ShadedClassLoader extends URLClassLoader {
      */
     @Override
     public Enumeration<URL> findResources(String name) throws IOException {
+        if (locallyNonAvailableResources.get().contains(name)) {
+            return null;
+        }
         return super.findResources(getShadedResourceName(name));
     }
 
@@ -225,11 +239,19 @@ public class ShadedClassLoader extends URLClassLoader {
      */
     @Override
     public URL getResource(String name) {
+        // look locally first
         URL shadedResource = findResource(name);
         if (shadedResource != null) {
             return shadedResource;
         }
-        return super.getResource(name);
+        // if not found locally, calling super's lookup, which does parent first and then local, so marking as not required for local lookup
+        Set<String> locallyNonAvailableResources = this.locallyNonAvailableResources.get();
+        try {
+            locallyNonAvailableResources.add(name);
+            return super.getResource(name);
+        } finally {
+            locallyNonAvailableResources.remove(name);
+        }
     }
 
     /**
@@ -245,12 +267,20 @@ public class ShadedClassLoader extends URLClassLoader {
      */
     @Override
     public Enumeration<URL> getResources(String name) throws IOException {
+        // look locally first
         Enumeration<URL> shadedResources = findResources(name);
         if (shadedResources.hasMoreElements()) {
             // no need to compound results with parent lookup, we only want to return the shaded form if there is such
             return shadedResources;
         }
-        return super.getResources(name);
+        // if not found locally, calling super's lookup, which does parent first and then local, so marking as not required for local lookup
+        Set<String> locallyNonAvailableResources = this.locallyNonAvailableResources.get();
+        try {
+            locallyNonAvailableResources.add(name);
+            return super.getResources(name);
+        } finally {
+            locallyNonAvailableResources.remove(name);
+        }
     }
 
     private String getShadedResourceName(String name) {
