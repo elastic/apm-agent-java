@@ -76,14 +76,14 @@ public abstract class EventLoopInstrumentation extends Vertx4Instrumentation {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return hasSuperClass(named("io.vertx.core.impl.ContextImpl"))
+            return hasSuperClass(named("io.vertx.core.impl.ContextImpl") // vertx 4.0 until 4.3.2
+                    .or(named("io.vertx.core.impl.ContextBase"))) // vertx 4.3.2 and later
                 .and(not(isInterface()));
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("runOnContext")
-                .and(takesArgument(0, named("io.vertx.core.impl.AbstractContext")))
                 .and(takesArgument(1, named("io.vertx.core.Handler")));
         }
 
@@ -102,7 +102,8 @@ public abstract class EventLoopInstrumentation extends Vertx4Instrumentation {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return named("io.vertx.core.impl.ContextImpl");
+            return named("io.vertx.core.impl.ContextImpl") // vertx 4.0 until 4.3.2
+                .or(named("io.vertx.core.impl.ContextBase")); // vertx 4.3.2 and later
         }
 
         @Override
