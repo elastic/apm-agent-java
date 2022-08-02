@@ -26,11 +26,15 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
 /**
  * A class loader that loads shaded class files form a jar file.
+ * Only shaded classes can be loaded by this class loader. Other resources will be looked up even both in the shading directory and
+ * in the root directory
  * <p>
  * Shaded classes are hidden from normal class loaders.
  * A regular class is packaged like this in a jar: {@code org/example/MyClass.class}
@@ -45,6 +49,10 @@ import java.util.jar.Manifest;
  * Another benefit is that if all instrumentations are reverted and all references to the agent are removed,
  * the agent class loader, along with its loaded classes, can be unloaded.
  * </p>
+ * <p>
+ * This class loader is working as a child-first, meaning it would first lookup classes locally in their shaded form and only if not found,
+ * will delegate lookup to parent in the normal form.
+ * </p>
  */
 public class ShadedClassLoader extends URLClassLoader {
 
@@ -58,6 +66,12 @@ public class ShadedClassLoader extends URLClassLoader {
     private final String customPrefix;
     private final Manifest manifest;
     private final URL jarUrl;
+    private final ThreadLocal<Set<String>> locallyNonAvailableResources = new ThreadLocal<Set<String>>() {
+        @Override
+        protected Set<String> initialValue() {
+            return new HashSet<>();
+        }
+    };
 
     public ShadedClassLoader(File jar, ClassLoader parent, String customPrefix) throws IOException {
         super(new URL[]{jar.toURI().toURL()}, parent);
@@ -68,9 +82,58 @@ public class ShadedClassLoader extends URLClassLoader {
         }
     }
 
+    /**
+     * A child-first implementation for class loading by searching for classes in the following order:
+     *
+     * <ol>
+     *   <li><p> Invoke {@link #findLoadedClass(String)} to check if the class
+     *   has already been loaded.  </p></li>
+     *
+     *   <li><p> Invoke {@link #findClass(String)} to find the
+     *   class locally. The way to guarantee only local lookup is by searching only for the
+     *   shaded form. </p></li>
+     *
+     *   <li><p> If not found so far, invoke the {@link ClassLoader#loadClass(String) loadClass}
+     *   method. This will start a parent-first lookup, eventually looking locally through
+     *   {@link ClassLoader#findClass(String)}, which will only do the normal {@link URLClassLoader#ucp}
+     *   lookup, which can only find a limited number of classes used for the agent very early initialization.
+     *   Note that this would also cause a redundant additional {@link ClassLoader#getResource(String)}
+     *   lookup, but we guard from that through a {@link ThreadLocal}. </p></li>
+     * </ol>
+     *
+     * @param  name
+     *         The <a href="#binary-name">binary name</a> of the class
+     *
+     * @param  resolve
+     *         If {@code true} then resolve the class
+     *
+     * @return  The resulting {@code Class} object
+     *
+     * @throws  ClassNotFoundException
+     *          If the class could not be found
+     */
+    @Override
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        synchronized (getClassLoadingLock(name)) {
+            try {
+                // First, check if the class has already been loaded
+                Class<?> c = findLoadedClass(name);
+                if (c == null) {
+                    c = findClass(name);
+                    if (resolve) {
+                        resolveClass(c);
+                    }
+                }
+                return c;
+            } catch (ClassNotFoundException e) {
+                return super.loadClass(name, resolve);
+            }
+        }
+    }
+
     @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
-        byte[] classBytes = getClassBytes(name);
+        byte[] classBytes = getShadedClassBytes(name);
         if (classBytes != null) {
             return defineClass(name, classBytes);
         } else {
@@ -116,8 +179,8 @@ public class ShadedClassLoader extends URLClassLoader {
         return null;
     }
 
-    private byte[] getClassBytes(String name) throws ClassNotFoundException {
-        try (InputStream is = getResourceAsStream(name.replace('.', '/') + CLASS_EXTENSION)) {
+    private byte[] getShadedClassBytes(String name) throws ClassNotFoundException {
+        try (InputStream is = getResourceAsStream(customPrefix + name.replace('.', '/') + SHADED_CLASS_EXTENSION)) {
             if (is != null) {
                 ByteArrayOutputStream buffer = new ByteArrayOutputStream();
                 int n;
@@ -133,20 +196,98 @@ public class ShadedClassLoader extends URLClassLoader {
         return null;
     }
 
+    /**
+     * This class loader should only see classes and resources that start with the custom prefix.
+     * It still allows for classes and resources of the parent to be resolved via the getResource methods
+     * @param name the name of the resource
+     * @return a {@code URL} for the resource, or {@code null}
+     * if the resource could not be found, or if the loader is closed.
+     */
     @Override
     public URL findResource(String name) {
-        // this class loader should only see classes and resources that start with the custom prefix
-        // it still allows for classes and resources of the parent to be resolved via the getResource methods
+        if (locallyNonAvailableResources.get().contains(name)) {
+            return null;
+        }
         return super.findResource(getShadedResourceName(name));
     }
 
+    /**
+     * This class loader should only see classes and resources that start with the custom prefix.
+     * It still allows for classes and resources of the parent to be resolved via the getResource methods
+     * @param name the name of the resource
+     * @return a {@code URL} for the resource, or {@code null}
+     * if the resource could not be found, or if the loader is closed.
+     */
     @Override
     public Enumeration<URL> findResources(String name) throws IOException {
+        if (locallyNonAvailableResources.get().contains(name)) {
+            return null;
+        }
         return super.findResources(getShadedResourceName(name));
     }
 
+    /**
+     * Implements a child-first resource lookup in the following order:
+     *
+     * <ol>
+     *   <li><p> Look locally, which can only be done in the shaded form (see {@link #findResource(String)}). </p></li>
+     *   <li><p> If not found, invoke the super's {@link URLClassLoader#getResource(String) getResource()}
+     *   using the original form in a parent-first manner. This causes a duplicated lookup, but it's preferable over trying to
+     *   deal with invoking lookup on the parent, where the parent may be {@code null} and not easily
+     *   accessible from here. </p></li>
+     * </ol>
+     */
+    @Override
+    public URL getResource(String name) {
+        // look locally first
+        URL shadedResource = findResource(name);
+        if (shadedResource != null) {
+            return shadedResource;
+        }
+        // if not found locally, calling super's lookup, which does parent first and then local, so marking as not required for local lookup
+        Set<String> locallyNonAvailableResources = this.locallyNonAvailableResources.get();
+        try {
+            locallyNonAvailableResources.add(name);
+            return super.getResource(name);
+        } finally {
+            locallyNonAvailableResources.remove(name);
+        }
+    }
+
+    /**
+     * Implements a child-first resources lookup in the following order:
+     *
+     * <ol>
+     *   <li><p> Look locally, which can only be done in the shaded form (see {@link #findResource(String)}). </p></li>
+     *   <li><p> If not found, invoke the super's {@link URLClassLoader#getResources(String) getResources()}
+     *   using the original form in a parent-first manner. This causes a duplicated lookup, but it's preferable over trying to
+     *   deal with invoking lookup on the parent, where the parent may be {@code null} and not easily
+     *   accessible from here. </p></li>
+     * </ol>
+     */
+    @Override
+    public Enumeration<URL> getResources(String name) throws IOException {
+        // look locally first
+        Enumeration<URL> shadedResources = findResources(name);
+        if (shadedResources.hasMoreElements()) {
+            // no need to compound results with parent lookup, we only want to return the shaded form if there is such
+            return shadedResources;
+        }
+        // if not found locally, calling super's lookup, which does parent first and then local, so marking as not required for local lookup
+        Set<String> locallyNonAvailableResources = this.locallyNonAvailableResources.get();
+        try {
+            locallyNonAvailableResources.add(name);
+            return super.getResources(name);
+        } finally {
+            locallyNonAvailableResources.remove(name);
+        }
+    }
+
     private String getShadedResourceName(String name) {
-        if (name.endsWith(CLASS_EXTENSION)) {
+        if (name.startsWith(customPrefix)) {
+            // already a lookup of the shaded form
+            return name;
+        } else if (name.endsWith(CLASS_EXTENSION)) {
             return customPrefix + name.substring(0, name.length() - CLASS_EXTENSION.length()) + SHADED_CLASS_EXTENSION;
         } else {
             return customPrefix + name;

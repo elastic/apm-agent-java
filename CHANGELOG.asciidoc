@@ -24,7 +24,9 @@ endif::[]
 ==== x.x.x - YYYY/MM/DD
 
 [float]
-===== Breaking changes
+===== Refactorings
+* Changed the main agent class loader to work in a child-first delegation model, thus making it more isolated by preferring self packaged
+version of classes that are available also in the parent (bootstrap) class loader - {pull}2728[#2728]
 
 [float]
 ===== Features
