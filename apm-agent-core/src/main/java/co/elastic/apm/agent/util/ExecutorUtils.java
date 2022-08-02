@@ -21,8 +21,6 @@ package co.elastic.apm.agent.util;
 import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.CancellationException;
@@ -40,11 +38,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class ExecutorUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(ExecutorUtils.class);
-
-    /**
-     * Keeping track of Executors created by this utility
-     */
-    private static final WeakSet<Executor> executorWeakSet = WeakConcurrent.buildSet();
 
     private ExecutorUtils() {
         // don't instantiate
@@ -65,27 +58,22 @@ public final class ExecutorUtils {
             }
         };
         executor.setMaximumPoolSize(1);
-        executorWeakSet.add(executor);
         return executor;
     }
 
     public static ThreadPoolExecutor createSingleThreadDaemonPool(final String threadPurpose, int queueCapacity) {
         String threadName = ThreadUtils.addElasticApmThreadPrefix(threadPurpose);
         final ThreadFactory daemonThreadFactory = new SingleNamedThreadFactory(threadName);
-        SingleNamedDaemonThreadPoolExecutor executor = new SingleNamedDaemonThreadPoolExecutor(queueCapacity, daemonThreadFactory, threadName);
-        executorWeakSet.add(executor);
-        return executor;
+        return new SingleNamedDaemonThreadPoolExecutor(queueCapacity, daemonThreadFactory, threadName);
     }
 
     public static ThreadPoolExecutor createThreadDaemonPool(final String threadPurpose, int poolSize, int queueCapacity) {
         final ThreadFactory daemonThreadFactory = new NamedThreadFactory(threadPurpose);
-        NamedDaemonThreadPoolExecutor executor = new NamedDaemonThreadPoolExecutor(poolSize, queueCapacity, daemonThreadFactory, threadPurpose);
-        executorWeakSet.add(executor);
-        return executor;
+        return new NamedDaemonThreadPoolExecutor(poolSize, queueCapacity, daemonThreadFactory, threadPurpose);
     }
 
     public static boolean isAgentExecutor(Executor executor) {
-        return executorWeakSet.contains(executor);
+        return executor.getClass().getName().startsWith("co.elastic.apm");
     }
 
     public static class SingleNamedThreadFactory implements ThreadFactory {
@@ -230,6 +218,5 @@ public final class ExecutorUtils {
             // Preserve interrupt status
             Thread.currentThread().interrupt();
         }
-        executorWeakSet.remove(executor);
     }
 }

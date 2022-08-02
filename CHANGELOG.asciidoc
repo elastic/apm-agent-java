@@ -30,6 +30,7 @@ endif::[]
 ===== Features
 * Capture Oracle SID in connection string - {pull}2709[#2709]
 * Implemented span links in the OTel bridge. - {pull}2685[#2685]
+* Added support for MongoDB's 4.x Sync Driver - {pull}2241{#2241}
 
 [float]
 ===== Bug fixes
