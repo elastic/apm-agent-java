@@ -34,6 +34,13 @@ public class LoggerErrorHelper {
         this.tracer = tracer;
     }
 
+    /**
+     * Start error capture and make error active
+     *
+     * @param exception   exception to capture
+     * @param originClass origin class
+     * @return error capture, if any, {@literal null} for nested calls and when no exception provided.
+     */
     @Nullable
     public Object enter(@Nullable Throwable exception, Class<?> originClass){
         if (!callDepth.isNestedCallAndIncrement()) {
@@ -48,7 +55,12 @@ public class LoggerErrorHelper {
         return null;
     }
 
-    public void exit(@Nullable Object errorCapture){
+    /**
+     * End error capture and de-activate error
+     *
+     * @param errorCapture value returned by {@link #enter(Throwable, Class)}
+     */
+    public void exit(@Nullable Object errorCapture) {
         callDepth.decrement();
         if (errorCapture instanceof ErrorCapture) {
             ErrorCapture error = (ErrorCapture) errorCapture;
