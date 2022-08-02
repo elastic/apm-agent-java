@@ -35,7 +35,7 @@ public class LoggerErrorHelper {
     }
 
     /**
-     * Start error capture and make error active
+     * Start error capture and make error active. Must be called even if `exception` is null for proper nested calls detection.
      *
      * @param exception   exception to capture
      * @param originClass origin class
@@ -56,7 +56,7 @@ public class LoggerErrorHelper {
     }
 
     /**
-     * End error capture and de-activate error
+     * End error capture and de-activate error. Must be called even if `exception` is null for proper nested calls detection
      *
      * @param errorCapture value returned by {@link #enter(Throwable, Class)}
      */

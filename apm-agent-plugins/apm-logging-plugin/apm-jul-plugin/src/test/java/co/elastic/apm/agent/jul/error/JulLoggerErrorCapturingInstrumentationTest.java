@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.jul.error;
 
 import co.elastic.apm.agent.loginstr.error.AbstractErrorLoggingInstrumentationTest;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.logging.Level;
@@ -32,15 +31,35 @@ public class JulLoggerErrorCapturingInstrumentationTest extends AbstractErrorLog
 
     @Test
     void captureErrorExceptionWithStringMessage() {
-        logger.log(Level.SEVERE, "exception captured", new RuntimeException("some business exception"));
-        verifyThatExceptionCaptured(1, "some business exception", RuntimeException.class);
+        logWithMessage(Level.SEVERE);
+        verifyExceptionCaptured("some business exception", RuntimeException.class);
+    }
+
+    @Test
+    void ignoreWarningWithStringMessage() {
+        logWithMessage(Level.WARNING);
+        verifyNoExceptionCaptured();
+    }
+
+    private static void logWithMessage(Level level) {
+        logger.log(level, "exception captured", new RuntimeException("some business exception"));
     }
 
     @Test
     void captureErrorExceptionWithLogRecord() {
-        LogRecord lr = new LogRecord(Level.WARNING, "exception captured");
+        logWithLogRecord(Level.SEVERE);
+        verifyExceptionCaptured("some business exception", RuntimeException.class);
+    }
+
+    @Test
+    void ignoreWarningWithLogRecord() {
+        logWithLogRecord(Level.WARNING);
+        verifyNoExceptionCaptured();
+    }
+
+    private static void logWithLogRecord(Level warning) {
+        LogRecord lr = new LogRecord(warning, "exception captured");
         lr.setThrown(new RuntimeException("some business exception"));
         logger.log(lr);
-        verifyThatExceptionCaptured(1, "some business exception", RuntimeException.class);
     }
 }

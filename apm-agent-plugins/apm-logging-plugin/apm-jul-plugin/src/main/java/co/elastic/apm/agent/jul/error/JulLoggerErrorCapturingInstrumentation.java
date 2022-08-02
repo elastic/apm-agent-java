@@ -64,7 +64,14 @@ public class JulLoggerErrorCapturingInstrumentation extends AbstractLoggerErrorC
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.Argument(0) LogRecord record, @Advice.Origin Class<?> clazz) {
-            return helper.enter(record.getThrown(), clazz);
+            Throwable thrown = record.getThrown();
+
+            // ignore levels < SEVERE
+            if (record.getLevel().intValue() < 1000) {
+                thrown = null;
+            }
+
+            return helper.enter(thrown, clazz);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
