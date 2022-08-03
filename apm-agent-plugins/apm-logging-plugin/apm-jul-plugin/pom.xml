@@ -27,6 +27,11 @@
             <version>${version.ecs.logging}</version>
         </dependency>
         <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-ecs-logging-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-logging-plugin-common</artifactId>
             <version>${project.version}</version>

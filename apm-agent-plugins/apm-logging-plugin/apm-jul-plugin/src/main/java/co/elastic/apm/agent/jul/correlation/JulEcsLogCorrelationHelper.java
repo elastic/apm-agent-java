@@ -20,16 +20,25 @@ package co.elastic.apm.agent.jul.correlation;
 
 import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
 import co.elastic.logging.jul.JulMdc;
+import co.elastic.apm.agent.logging.JulMdcAccessor;
 
 public class JulEcsLogCorrelationHelper extends AbstractLogCorrelationHelper.DefaultLogCorrelationHelper {
 
+    private boolean isRegistered;
+
     @Override
     protected void addToMdc(String key, String value) {
-        JulMdc.put(key, value);
+        if (!isRegistered) {
+            // will register the JulMdc class packaged with the agent
+            JulMdcAccessor.register(JulMdc.class);
+            isRegistered = true;
+        }
+
+        JulMdcAccessor.putAll(key, value);
     }
 
     @Override
     protected void removeFromMdc(String key) {
-        JulMdc.remove(key);
+        JulMdcAccessor.removeAll(key);
     }
 }
