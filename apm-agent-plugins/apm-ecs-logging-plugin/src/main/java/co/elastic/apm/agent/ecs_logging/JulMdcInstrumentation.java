@@ -19,24 +19,21 @@
 package co.elastic.apm.agent.ecs_logging;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.logging.jul.JulMdc;
-import co.elastic.apm.agent.logging.JulMdcAccessor;
+import co.elastic.apm.agent.logging.AgentMDC;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-/**
- * Instruments access to {@link JulMdc} to make the JulMdc loaded within the application classloader registered to receive
- * updates from the agent.
- */
 @SuppressWarnings("JavadocReference")
-public class JulMdcInstrumentation extends TracerAwareInstrumentation {
+public abstract class JulMdcInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -48,23 +45,70 @@ public class JulMdcInstrumentation extends TracerAwareInstrumentation {
         return named("co.elastic.logging.jul.JulMdc");
     }
 
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        // init on first read or write access
-        return named("getEntries").or(named("put"));
+    /**
+     * Instruments {@link co.elastic.logging.jul.JulMdc#put(String, String)} to delegate to {@link AgentMDC#put(String, String)}.
+     */
+    public static class Put extends JulMdcInstrumentation {
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("put");
+        }
+
+        public static class AdviceClass {
+
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false, skipOn = Advice.OnNonDefaultValue.class)
+            public static boolean onEnter(@Advice.Argument(0) @Nullable String key,
+                                          @Advice.Argument(1) @Nullable String value) {
+                AgentMDC.put(key, value);
+                return true;
+            }
+
+        }
     }
 
-    public static class AdviceClass {
+    /**
+     * Instruments {@link co.elastic.logging.jul.JulMdc#remove(String)} ()} to delegate to {@link AgentMDC#remove(String)}.
+     */
+    public static class Remove extends JulMdcInstrumentation {
 
-        private static boolean isRegistered;
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("remove");
+        }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void onEnter(@Advice.Origin Class<?> mdcClass) {
-            if (!isRegistered) {
-                // will register the JulMdc that is packaged with the application
-                JulMdcAccessor.register(mdcClass);
-                isRegistered = true;
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false, skipOn = Advice.OnNonDefaultValue.class)
+            public static boolean onEnter(@Advice.Argument(0) @Nullable String key) {
+                AgentMDC.remove(key);
+                return true;
             }
+        }
+    }
+
+    /**
+     * Instruments {@link co.elastic.logging.jul.JulMdc#getEntries()} to delegate to {@link AgentMDC#getEntries()}.
+     */
+    public static class GetEntries extends JulMdcInstrumentation {
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("getEntries");
+        }
+
+        public static class AdviceClass {
+
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false, skipOn = Advice.OnNonDefaultValue.class)
+            public static boolean onEnter() {
+                return true;
+            }
+
+            @Advice.AssignReturned.ToReturned
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static Map<String, String> onExit() {
+                return AgentMDC.getEntries();
+            }
+
         }
     }
 

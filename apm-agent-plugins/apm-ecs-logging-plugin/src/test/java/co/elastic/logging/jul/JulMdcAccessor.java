@@ -16,22 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jul.correlation;
+package co.elastic.logging.jul;
 
-import co.elastic.apm.agent.logging.AgentMDC;
-import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
+import java.util.Map;
 
-public class JulEcsLogCorrelationHelper extends AbstractLogCorrelationHelper.DefaultLogCorrelationHelper {
+/**
+ * Test-only accessor for {@link JulMdc#getEntries()}
+ */
+public class JulMdcAccessor {
 
-    @Override
-    protected void addToMdc(String key, String value) {
-        // using agent internal MDC implementation, original in ECS logging will be instrumented to read it.
-        AgentMDC.put(key, value);
-    }
-
-    @Override
-    protected void removeFromMdc(String key) {
-        // using agent internal MDC implementation, original in ECS logging will be instrumented to read it.
-        AgentMDC.remove(key);
+    public static Map<String, String> getEntries(){
+        return JulMdc.getEntries();
     }
 }

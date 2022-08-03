@@ -19,13 +19,11 @@
 package co.elastic.apm.agent.ecs_logging;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.logging.AgentMDC;
 import co.elastic.logging.jul.JulMdc;
-import co.elastic.apm.agent.logging.JulMdcAccessor;
+import co.elastic.logging.jul.JulMdcAccessor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,35 +31,30 @@ public class JulMdcInstrumentationTest extends AbstractInstrumentationTest {
 
     @AfterEach
     public void cleanup() {
-        JulMdcAccessor.getEntries(JulMdc.class).clear();
+        AgentMDC.getEntries().clear();
+        JulMdcAccessor.getEntries().clear();
     }
 
     @Test
-    void accessorAccessLocalMdcClass() {
-        // mostly testing a getEntries test-only method but required for other test validity
+    void julMdcShouldDelegateToAgentMdc() {
 
-        assertThat(JulMdcAccessor.getEntries(JulMdc.class)).isEmpty();
+        assertThat(JulMdcAccessor.getEntries())
+            .isSameAs(AgentMDC.getEntries())
+            .isEmpty();
 
-        JulMdc.put("key", "value");
-        assertThat(JulMdcAccessor.getEntries(JulMdc.class)).containsEntry("key", "value").hasSize(1);
+        JulMdc.put("key1","value1");
+        AgentMDC.put("key2", "value2");
 
-        JulMdc.remove("key");
-        assertThat(JulMdcAccessor.getEntries(JulMdc.class)).isEmpty();
-    }
+        assertThat(JulMdcAccessor.getEntries())
+            .isSameAs(AgentMDC.getEntries())
+            .containsEntry("key1","value1")
+            .containsEntry("key2","value2");
 
-    @Test
-    void accessorPutRemoveAll() {
-        // JulMdc class should be registered through instrumentation
-        Logger logger = Logger.getLogger("test");
-        logger.log(Level.INFO, "log something to trigger JulMdc registration");
+        JulMdc.remove("key1");
+        AgentMDC.remove("key2");
 
-        assertThat(JulMdcAccessor.getEntries(JulMdc.class)).isEmpty();
-
-        JulMdcAccessor.putAll("key", "value");
-        assertThat(JulMdcAccessor.getEntries(JulMdc.class)).containsEntry("key", "value").hasSize(1);
-
-        JulMdcAccessor.removeAll("key");
-        assertThat(JulMdcAccessor.getEntries(JulMdc.class)).isEmpty();
-
+        assertThat(JulMdcAccessor.getEntries())
+            .isSameAs(AgentMDC.getEntries())
+            .isEmpty();
     }
 }
