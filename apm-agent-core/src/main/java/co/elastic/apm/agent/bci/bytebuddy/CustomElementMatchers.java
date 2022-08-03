@@ -85,7 +85,6 @@ public class CustomElementMatchers {
         };
     }
 
-
     /**
      * Matches only class loaders which can load a certain class.
      * <p>

@@ -20,6 +20,8 @@ package co.elastic.apm.agent.bci.bytebuddy;
 
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
+
 public class ClassLoaderNameMatcher extends ElementMatcher.Junction.AbstractBase<ClassLoader> {
 
     private final String name;
@@ -37,8 +39,8 @@ public class ClassLoaderNameMatcher extends ElementMatcher.Junction.AbstractBase
             .or(classLoaderWithName("jdk.internal.reflect.DelegatingClassLoader"));
     }
 
-	  @Override
-	  public boolean matches(ClassLoader target) {
-	      return target != null && name.equals(target.getClass().getName());
-	  }
+    @Override
+    public boolean matches(@Nullable ClassLoader target) {
+        return target != null && name.equals(target.getClass().getName());
+    }
 }
