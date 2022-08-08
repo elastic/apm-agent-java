@@ -39,6 +39,7 @@ version of classes that are available also in the parent (bootstrap) class loade
 [float]
 ===== Bug fixes
 * Fix unexpected side-effects of `toString` calls within reactor instrumentation - {pull}2708[#2708]
+* Fix Vert.x instrumentation for 4.3.2 - {pull}2700[#2700]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
