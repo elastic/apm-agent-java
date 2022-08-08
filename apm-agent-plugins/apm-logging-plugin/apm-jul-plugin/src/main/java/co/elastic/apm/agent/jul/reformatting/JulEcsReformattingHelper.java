@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.jul.reformatting;
 
-import co.elastic.apm.agent.logging.AgentMDC;
+import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -87,12 +87,7 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
     protected Formatter createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceVersion,
                                            @Nullable String serviceNodeName, @Nullable Map<String, String> additionalFields,
                                            Formatter originalFormatter) {
-        EcsFormatter ecsFormatter = new EcsFormatter(){
-            @Override
-            protected Map<String, String> getMdcEntries() {
-                return AgentMDC.getEntries();
-            }
-        };
+        EcsFormatter ecsFormatter = new EcsFormatter();
         ecsFormatter.setServiceName(serviceName);
         ecsFormatter.setServiceVersion(serviceVersion);
         ecsFormatter.setServiceNodeName(serviceNodeName);

@@ -16,22 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jul.correlation;
+package co.elastic.apm.agent.ecs_logging;
 
-import co.elastic.apm.agent.logging.AgentMDC;
-import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
+import co.elastic.apm.agent.loginstr.LoggingPluginClassLoaderRootPackageCustomizer;
 
-public class JulEcsLogCorrelationHelper extends AbstractLogCorrelationHelper.DefaultLogCorrelationHelper {
-
-    @Override
-    protected void addToMdc(String key, String value) {
-        // using agent internal MDC implementation, original in ECS logging will be instrumented to read it.
-        AgentMDC.put(key, value);
-    }
-
-    @Override
-    protected void removeFromMdc(String key) {
-        // using agent internal MDC implementation, original in ECS logging will be instrumented to read it.
-        AgentMDC.remove(key);
-    }
-}
+public class EcsLoggingPluginClassLoaderRootPackageCustomizer extends LoggingPluginClassLoaderRootPackageCustomizer {}

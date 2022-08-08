@@ -16,42 +16,59 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jul.correlation;
+package co.elastic.apm.agent.ecs_logging;
 
-import co.elastic.apm.agent.jul.JulInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
+import co.elastic.logging.jul.EcsFormatter;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import static net.bytebuddy.matcher.ElementMatchers.isPublic;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class JulEcsLogCorrelationInstrumentation extends JulInstrumentation {
+/**
+ * Instruments {@link EcsFormatter#getMdcEntries()} to provide correlation IDs at runtime.
+ * Application(s) copies of ecs-logging and the one in the agent will be instrumented, hence providing log correlation
+ * for all of them.
+ */
+@SuppressWarnings("JavadocReference")
+public class JulEcsFormatterInstrumentation extends TracerAwareInstrumentation {
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList("logging", "jul-ecs");
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("java.util.logging.FileHandler")
-            .or(named("java.util.logging.ConsoleHandler"));
+        return named("co.elastic.logging.jul.EcsFormatter");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isPublic().and(named("publish"));
+        return named("getMdcEntries");
     }
 
     public static class AdviceClass {
-        private static final JulEcsLogCorrelationHelper helper = new JulEcsLogCorrelationHelper();
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static boolean addToThreadContext() {
-            return helper.beforeLoggingEvent();
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false, skipOn = Advice.OnNonDefaultValue.class)
+        public static boolean onEnter() {
+            return true;
         }
 
+        @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void removeFromThreadContext(@Advice.Enter boolean addedToMdc) {
-            helper.afterLoggingEvent(addedToMdc);
+        public static Map<String, String> onExit() {
+            return CorrelationIdMapAdapter.get();
         }
+
     }
+
 
 }

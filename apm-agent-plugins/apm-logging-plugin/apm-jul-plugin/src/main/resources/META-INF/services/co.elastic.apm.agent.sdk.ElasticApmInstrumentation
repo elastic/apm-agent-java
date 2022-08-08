@@ -4,7 +4,7 @@ co.elastic.apm.agent.jul.reformatting.JulLogReformattingInstrumentation$ConsoleR
 co.elastic.apm.agent.jul.reformatting.JulLogReformattingInstrumentation$StopAppenderInstrumentation
 
 # Trace context correlation
-co.elastic.apm.agent.jul.correlation.JulEcsLogCorrelationInstrumentation
+# Provided through ECS logging instrumentation as there is no dedicated MDC for JUL.
 
 # Error creation
 co.elastic.apm.agent.jul.error.JulLoggerErrorCapturingInstrumentation
