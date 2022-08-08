@@ -78,7 +78,7 @@ public class OTelContextStorage implements ContextStorage {
         }
 
         if (!(current instanceof AbstractSpan)) {
-            throw new IllegalStateException("unexpected context type to upgrade: " + current.getClass().getName());
+            throw new IllegalStateException(String.format("unexpected context type to upgrade: %s ( classloader: %s )", current.getClass().getName(), current.getClass().getClassLoader()));
         }
 
         // At this stage, the currently active span is a "regular elastic span", we need to upgrade and replace it with
