@@ -24,13 +24,17 @@ endif::[]
 ==== x.x.x - YYYY/MM/DD
 
 [float]
-===== Breaking changes
+===== Refactorings
+* Changed the main agent class loader to work in a child-first delegation model, thus making it more isolated by preferring self packaged
+version of classes that are available also in the parent (bootstrap) class loader - {pull}2728[#2728]
 
 [float]
 ===== Features
 * Capture Oracle SID in connection string - {pull}2709[#2709]
 * Implemented span links in the OTel bridge. - {pull}2685[#2685]
 * Added support for MongoDB's 4.x Sync Driver - {pull}2241{#2241}
+* Capture keyspace in `db.instance` for Cassandra database - {pull}2684[#2684]
+
 
 [float]
 ===== Bug fixes

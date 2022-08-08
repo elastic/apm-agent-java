@@ -22,7 +22,7 @@ import co.elastic.apm.agent.impl.context.Destination;
 
 public class DestinationAssert extends BaseAssert<DestinationAssert, Destination> {
 
-    public DestinationAssert(Destination actual) {
+    DestinationAssert(Destination actual) {
         super(actual, DestinationAssert.class);
     }
 

@@ -51,7 +51,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 
 public class DynamoDbClientIT extends AbstractAwsClientIT {
@@ -59,7 +59,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     private DynamoDbClient dynamoDB;
     private DynamoDbAsyncClient dynamoDBAsync;
 
-    private Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
+    private Consumer<Span> dbAssert = span -> assertThat(span).hasDbInstance(localstack.getRegion());
 
     private static final Map<String, AttributeValue> ITEM = Stream.of(
         new AbstractMap.SimpleEntry<>("attributeOne", AttributeValue.builder().s("valueOne").build()),
@@ -116,7 +116,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
                 .build()),
             dbAssert);
         Span span = reporter.getSpanByName("DynamoDB Query " + TABLE_NAME);
-        assertThat(span.getContext().getDb().getStatement()).isEqualTo(KEY_CONDITION_EXPRESSION);
+        assertThat(span).hasDbStatement(KEY_CONDITION_EXPRESSION);
 
         executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDB.deleteTable(DeleteTableRequest.builder().tableName(TABLE_NAME).build()), dbAssert);
 
@@ -168,7 +168,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
                 .build()),
             dbAssert);
         Span span = reporter.getSpanByName("DynamoDB Query " + TABLE_NAME);
-        assertThat(span.getContext().getDb().getStatement()).isEqualTo(KEY_CONDITION_EXPRESSION);
+        assertThat(span).hasDbStatement(KEY_CONDITION_EXPRESSION);
 
         executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDBAsync.deleteTable(DeleteTableRequest.builder().tableName(TABLE_NAME).build()),
             dbAssert);
