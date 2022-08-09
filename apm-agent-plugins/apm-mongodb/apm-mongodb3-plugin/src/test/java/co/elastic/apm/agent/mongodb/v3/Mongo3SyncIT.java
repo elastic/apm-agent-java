@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.mongodb.v3;
 
-import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationTest;
+import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationIT;
 import com.mongodb.MongoClient;
 import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoDatabase;
@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-public class Mongo3SyncTest extends AbstractMongoClientInstrumentationTest {
+public class Mongo3SyncIT extends AbstractMongoClientInstrumentationIT {
 
     private static MongoClient mongo = null;
     private static MongoDatabase db = null;

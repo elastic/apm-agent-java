@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.mongodb.v3;
 
 import co.elastic.apm.agent.TestClassWithDependencyRunner;
-import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationTest;
+import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationIT;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,10 +36,10 @@ public class Mongo3VersionIT {
 
     public Mongo3VersionIT(String version) throws Exception {
         List<String> dependencies = Collections.singletonList("org.mongodb:mongo-java-driver:" + version);
-        Class<?> testClass = Mongo3SyncTest.class;
+        Class<?> testClass = Mongo3SyncIT.class;
 
         runner = new TestClassWithDependencyRunner(dependencies,
-            testClass, AbstractMongoClientInstrumentationTest.class);
+            testClass, AbstractMongoClientInstrumentationIT.class);
     }
 
     @Parameterized.Parameters(name = "{0}")
