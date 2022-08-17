@@ -169,7 +169,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
 
     private void addSpanLink(Span span, MessageT sqsMessage, TextHeaderGetter<MessageT> headerGetter) {
         span.addSpanLink(
-            TraceContext.getFromTraceContextTextHeaders(),
+            TraceContext.<MessageT>getFromTraceContextTextHeaders(),
             headerGetter,
             sqsMessage
         );
