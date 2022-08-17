@@ -93,8 +93,6 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
         Message sqsMessage = delegate.next();
         if (currentTransaction == null) {
             sqsInstrumentationHelper.startTransactionOnMessage(sqsMessage, queueName, textHeaderGetter);
-        } else {
-            sqsInstrumentationHelper.startMessageHandlingSpan(sqsMessage, queueName, textHeaderGetter);
         }
         return sqsMessage;
     }

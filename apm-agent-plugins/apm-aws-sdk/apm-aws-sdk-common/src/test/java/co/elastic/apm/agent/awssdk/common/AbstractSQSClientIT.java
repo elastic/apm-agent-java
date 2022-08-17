@@ -55,7 +55,7 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
         transaction.deactivate().end();
 
         assertThat(reporter.getNumReportedTransactions()).isEqualTo(2);
-        assertThat(reporter.getNumReportedSpans()).isEqualTo(4);
+        assertThat(reporter.getNumReportedSpans()).isEqualTo(3);
 
         Optional<Transaction> optTransaction = reporter.getTransactions().stream().filter(t -> t.getNameAsString().equals("sqs-test")).findFirst();
         assertThat(optTransaction.isPresent()).isTrue();
@@ -67,13 +67,10 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
         assertThat(receivingSpan.getContext().getMessage().getBodyForRead()).isNotNull();
         assertThat(receivingSpan.getContext().getMessage().getBodyForRead().toString()).isEqualTo(MESSAGE_BODY);
         assertThat(receivingSpan.getParent()).isSameAs(sqsTransaction);
+        assertThat(receivingSpan.getSpanLinks()).isNotNull();
+        assertThat(receivingSpan.getSpanLinks()).hasSize(1);
 
-        Span processingSpan = reporter.getSpanByName(SQS_MESSAGE_PROCESSING_SPAN_NAME);
-        assertThat(processingSpan.getType()).isEqualTo(SQS_MESSAGING_TYPE);
-        assertThat(processingSpan.getSubtype()).isEqualTo(SQS_TYPE);
-        assertThat(processingSpan.getAction()).isEqualTo(SQS_MESSAGE_PROCESSING_ACTION);
-
-        assertThat(reporter.getSpanByName("custom-child-span").isChildOf(processingSpan)).isTrue();
+        assertThat(reporter.getSpanByName("custom-child-span").isChildOf(sqsTransaction)).isTrue();
     }
 
     @ParameterizedTest
@@ -106,6 +103,7 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
         Optional<Transaction> optTransaction = reporter.getTransactions().stream().filter(t -> t.getNameAsString().startsWith("SQS RECEIVE from")).findFirst();
         assertThat(optTransaction.isPresent()).isTrue();
         Transaction sqsTransaction = optTransaction.get();
+        assertThat(sqsTransaction.getSpanLinks()).isEmpty();
 
         Span childSpan = reporter.getSpanByName("custom-child-span");
         assertThat(childSpan.isChildOf(sqsTransaction)).isTrue();
@@ -148,14 +146,17 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
         assertThat(reporter.getNumReportedTransactions()).isEqualTo(4);
         assertThat(reporter.getNumReportedSpans()).isEqualTo(6);
 
+
         long numReceiveTransactions = reporter.getTransactions().stream().filter(t -> t.getNameAsString().startsWith("SQS RECEIVE from")).count();
         long numCustomSpans = reporter.getSpans().stream().filter(t -> t.getNameAsString().startsWith("custom")).count();
         long numSendSpans = reporter.getSpans().stream().filter(t -> t.getNameAsString().startsWith("SQS SEND")).count();
 
         assertThat(numSendSpans).isEqualTo(3);
-
         assertThat(numReceiveTransactions).isEqualTo(3);
         assertThat(numCustomSpans).isEqualTo(3);
+
+        reporter.getTransactions().stream().filter(t -> t.getNameAsString().startsWith("SQS RECEIVE from"))
+            .forEach(t -> assertThat(t.getSpanLinks()).isEmpty());
     }
 
     @ParameterizedTest
@@ -189,15 +190,15 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
         transaction.deactivate().end();
 
         assertThat(reporter.getNumReportedTransactions()).isEqualTo(2);
-        assertThat(reporter.getNumReportedSpans()).isEqualTo(10);
-
-        long numReceiveSpans = reporter.getSpans().stream().filter(t -> t.getNameAsString().startsWith("Process SQS message")).count();
+        assertThat(reporter.getNumReportedSpans()).isEqualTo(7);
+        Span receivingSpan = reporter.getSpanByName("SQS POLL from some-test-sqs-queue");
+        assertThat(receivingSpan.getSpanLinks()).isNotNull();
+        assertThat(receivingSpan.getSpanLinks()).hasSize(3);
         long numCustomSpans = reporter.getSpans().stream().filter(t -> t.getNameAsString().startsWith("custom")).count();
         long numSendSpans = reporter.getSpans().stream().filter(t -> t.getNameAsString().startsWith("SQS SEND")).count();
-        reporter.getSpanByName("SQS POLL from some-test-sqs-queue");
+
 
         assertThat(numSendSpans).isEqualTo(3);
-        assertThat(numReceiveSpans).isEqualTo(3);
         assertThat(numCustomSpans).isEqualTo(3);
     }
 

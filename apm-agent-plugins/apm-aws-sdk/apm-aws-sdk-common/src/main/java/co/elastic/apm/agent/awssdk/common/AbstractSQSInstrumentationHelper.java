@@ -167,25 +167,12 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
         }
     }
 
-    public void startMessageHandlingSpan(MessageT sqsMessage, String queueName, TextHeaderGetter<MessageT> headerGetter) {
-        if (WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), queueName)) {
-            return;
-        }
-        AbstractSpan<?> parent = tracer.getActive();
-        if (parent == null) {
-            return;
-        }
-        Span span = parent.createSpan();
-        span.withName("Process SQS message from " + queueName)
-            .withType(MESSAGING_TYPE)
-            .withSubtype(SQS_TYPE)
-            .withAction(MESSAGE_PROCESSING_ACTION)
-            .activate();
-        addSpanLink(span, sqsMessage, headerGetter);
-    }
-
     private void addSpanLink(Span span, MessageT sqsMessage, TextHeaderGetter<MessageT> headerGetter) {
-        // TODO: add span links
+        span.addSpanLink(
+            TraceContext.getFromTraceContextTextHeaders(),
+            headerGetter,
+            sqsMessage
+        );
     }
 
     protected void setMessageContext(@Nullable MessageT sqsMessage, @Nullable String queueName, Message message) {
