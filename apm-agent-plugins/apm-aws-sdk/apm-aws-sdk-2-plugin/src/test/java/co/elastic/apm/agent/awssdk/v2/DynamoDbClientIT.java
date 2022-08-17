@@ -59,7 +59,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     private DynamoDbClient dynamoDB;
     private DynamoDbAsyncClient dynamoDBAsync;
 
-    private Consumer<Span> dbAssert = span -> assertThat(span).hasDbInstance(localstack.getRegion());
+    private final Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
 
     private static final Map<String, AttributeValue> ITEM = Stream.of(
         new AbstractMap.SimpleEntry<>("attributeOne", AttributeValue.builder().s("valueOne").build()),

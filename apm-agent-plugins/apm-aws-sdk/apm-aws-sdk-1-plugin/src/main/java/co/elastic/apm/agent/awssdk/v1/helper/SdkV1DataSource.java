@@ -19,6 +19,9 @@
 package co.elastic.apm.agent.awssdk.v1.helper;
 
 import co.elastic.apm.agent.awssdk.common.IAwsSdkDataSource;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.Request;
 import com.amazonaws.handlers.HandlerContextKey;
 import com.amazonaws.http.ExecutionContext;
@@ -26,16 +29,15 @@ import com.amazonaws.services.dynamodbv2.model.QueryRequest;
 
 import javax.annotation.Nullable;
 
-public class SdkV1DataSource implements IAwsSdkDataSource<Request<?>, ExecutionContext> {
+public class SdkV1DataSource extends IAwsSdkDataSource<Request<?>, ExecutionContext> {
     @Nullable
-    private static SdkV1DataSource INSTANCE;
+    private static final SdkV1DataSource INSTANCE = new SdkV1DataSource();
 
     public static SdkV1DataSource getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new SdkV1DataSource();
-        }
         return INSTANCE;
     }
+
+    private final WeakMap<Object, String> requestLookupMap = WeakConcurrent.buildMap();
 
     @Override
     @Nullable
@@ -51,26 +53,27 @@ public class SdkV1DataSource implements IAwsSdkDataSource<Request<?>, ExecutionC
 
     @Override
     @Nullable
-    public String getFieldValue(String fieldName, Request<?> request, ExecutionContext context) {
-        if (IAwsSdkDataSource.BUCKET_NAME_FIELD.equals(fieldName)) {
-            String resourcePath = request.getResourcePath();
-
-            if (resourcePath == null || resourcePath.isEmpty()) {
-                return null;
-            }
-
-            if (resourcePath.startsWith("/")) {
-                resourcePath = resourcePath.substring(1);
-            }
-            int idx = resourcePath.indexOf('/');
-            return idx < 0 ? resourcePath : resourcePath.substring(0, idx);
-        } else if (IAwsSdkDataSource.TABLE_NAME_FIELD.equals(fieldName)) {
-            return DynamoDbHelper.getInstance().getTableName(request.getOriginalRequest());
+    public String getFieldValue(String fieldName, Request<?> request) {
+        AmazonWebServiceRequest amazonWebServiceRequest = request.getOriginalRequest();
+        if (IAwsSdkDataSource.BUCKET_NAME_FIELD.equals(fieldName) ||
+            IAwsSdkDataSource.TABLE_NAME_FIELD.equals(fieldName) ||
+            IAwsSdkDataSource.QUEUE_NAME_FIELD.equals(fieldName)) {
+            return requestLookupMap.get(amazonWebServiceRequest);
         } else if (IAwsSdkDataSource.KEY_CONDITION_EXPRESSION_FIELD.equals(fieldName)
-            && request.getOriginalRequest() instanceof QueryRequest) {
-            return ((QueryRequest) request.getOriginalRequest()).getKeyConditionExpression();
+            && amazonWebServiceRequest instanceof QueryRequest) {
+            return ((QueryRequest) amazonWebServiceRequest).getKeyConditionExpression();
         }
 
         return null;
+    }
+
+    public void putLookupValue(Object key, @Nullable String stringValue) {
+        if (stringValue != null && !requestLookupMap.containsKey(key)) {
+            requestLookupMap.put(key, stringValue);
+        }
+    }
+
+    public void removeLookupValue(Object key) {
+        requestLookupMap.remove(key);
     }
 }

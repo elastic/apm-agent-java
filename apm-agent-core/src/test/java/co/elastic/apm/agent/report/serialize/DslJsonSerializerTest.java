@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
@@ -66,6 +67,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -129,8 +131,8 @@ class DslJsonSerializerTest {
         when(apmServerClient.supportsNonStringLabels()).thenReturn(numericLabels);
 
         Map<String, Object> expectedMap;
-        if(numericLabels){
-             expectedMap= Map.of("foo", true);
+        if (numericLabels) {
+            expectedMap = Map.of("foo", true);
         } else {
             expectedMap = Collections.singletonMap("foo", null);
         }
@@ -423,30 +425,80 @@ class DslJsonSerializerTest {
         assertThat(http.get("status_code").intValue()).isEqualTo(523);
     }
 
-    @Test
-    void testSpanDestinationContextSerialization() {
-        Span span = new Span(tracer);
-        span.getContext().getDestination().withAddress("whatever.com").withPort(80);
+    public static boolean[][] getContentCombinations() {
+        return new boolean[][]{
+            {true, true, true, true},
+            {true, false, true, true},
+            {false, true, true, true},
+            {false, true, false, true},
+            {false, false, true, true},
+            {false, false, true, false},
+            {false, false, false, true},
+            {false, false, false, false}
+        };
+    }
 
-        span.getContext().getServiceTarget()
-            .withType("http")
-            .withHostPortName("whatever.com", 80)
-            .withNameOnlyDestinationResource();
+    @ParameterizedTest
+    @MethodSource(value = "getContentCombinations")
+    void testSpanDestinationContextSerializationWithCombinations(boolean[] contentCombination) {
+        boolean hasAddress = contentCombination[0];
+        boolean hasPort = contentCombination[1];
+        boolean hasServiceTargetContent = contentCombination[2];
+        boolean hasCloudContent = contentCombination[3];
+        Span span = new Span(MockTracer.create());
+        Destination dest = span.getContext().getDestination();
+        if (hasAddress) {
+            dest.withAddress("whatever.com");
+        }
+        if (hasPort) {
+            dest.withPort(80);
+        }
+        if (hasServiceTargetContent) {
+            span.getContext().getServiceTarget()
+                .withType("http")
+                .withHostPortName("whatever.com", 80)
+                .withNameOnlyDestinationResource();
+        }
+        if (hasCloudContent) {
+            dest.getCloud().withRegion("us-east-1");
+        }
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode context = spanJson.get("context");
         JsonNode destination = context.get("destination");
-        assertThat(destination).isNotNull();
-        assertThat("whatever.com").isEqualTo(destination.get("address").textValue());
-        assertThat(80).isEqualTo(destination.get("port").intValue());
-        JsonNode service = destination.get("service");
-        assertThat(service).isNotNull();
-        assertThat(service.get("resource").textValue()).isEqualTo("whatever.com:80");
-        assertThat(service.get("name").textValue()).isEmpty();
-        assertThat(service.get("type").textValue()).isEmpty();
-        JsonNode serviceTarget = context.get("service").get("target");
-        assertThat(serviceTarget.get("type").asText()).isEqualTo("http");
-        assertThat(serviceTarget.get("name").asText()).isEqualTo("whatever.com:80");
+
+
+        if(hasAddress || hasPort || hasServiceTargetContent || hasCloudContent){
+            assertThat(destination).isNotNull();
+            if (hasAddress) {
+                assertThat("whatever.com").isEqualTo(destination.get("address").textValue());
+            } else {
+                assertThat(destination.get("address")).isNull();
+            }
+
+            if (hasServiceTargetContent) {
+                JsonNode service = destination.get("service");
+                assertThat(service).isNotNull();
+                assertThat("whatever.com:80").isEqualTo(service.get("resource").textValue());
+                assertThat(service.get("name").textValue()).isEqualTo("");
+                assertThat(service.get("type").textValue()).isEqualTo("");
+                JsonNode serviceTarget = context.get("service").get("target");
+                assertThat(serviceTarget.get("type").asText()).isEqualTo("http");
+                assertThat(serviceTarget.get("name").asText()).isEqualTo("whatever.com:80");
+            } else {
+                assertThat(destination.get("service")).isNull();
+            }
+
+            if (hasCloudContent) {
+                JsonNode cloud = destination.get("cloud");
+                assertThat(cloud).isNotNull();
+                assertThat(cloud.get("region").textValue()).isEqualTo("us-east-1");
+            } else {
+                assertThat(destination.get("cloud")).isNull();
+            }
+        } else {
+            assertThat(destination).isNull();
+        }
     }
 
     @Test
@@ -1309,7 +1361,7 @@ class DslJsonSerializerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true,false})
+    @ValueSource(booleans = {true, false})
     void multiValueHeaders(boolean supportsMulti) {
         // older versions of APM server do not support multi-value headers
         // thus we should make sure to not break those
@@ -1328,7 +1380,7 @@ class DslJsonSerializerTest {
             .addHeader("content-type", "content-type1")
             .addHeader("content-type", "content-type2");
 
-        if(supportsMulti){
+        if (supportsMulti) {
             when(apmServerClient.supportsMultipleHeaderValues())
                 .thenReturn(supportsMulti);
         }
@@ -1445,13 +1497,13 @@ class DslJsonSerializerTest {
         assertThat(parent2link.get("span_id").textValue()).isEqualTo(parent2.getTraceContext().getId().toString());
     }
 
-    private static void checkSingleValueHeader(JsonNode json, String fieldName, String value){
+    private static void checkSingleValueHeader(JsonNode json, String fieldName, String value) {
         JsonNode fieldValue = json.get(fieldName);
         assertThat(fieldValue.isTextual()).isTrue();
         assertThat(fieldValue.asText()).isEqualTo(value);
     }
 
-    private static void checkMultiValueHeader(JsonNode json, String fieldName, String value1, String value2){
+    private static void checkMultiValueHeader(JsonNode json, String fieldName, String value1, String value2) {
         JsonNode fieldValue = json.get(fieldName);
         assertThat(fieldValue.isArray()).isTrue();
         assertThat(fieldValue.size()).isEqualTo(2);
@@ -1502,7 +1554,8 @@ class DslJsonSerializerTest {
     }
 
     private String serializeTags(Map<String, Object> tags) {
-        final AbstractContext context = new AbstractContext() {};
+        final AbstractContext context = new AbstractContext() {
+        };
         for (Map.Entry<String, Object> entry : tags.entrySet()) {
             if (entry.getValue() instanceof String) {
                 context.addLabel(entry.getKey(), (String) entry.getValue());

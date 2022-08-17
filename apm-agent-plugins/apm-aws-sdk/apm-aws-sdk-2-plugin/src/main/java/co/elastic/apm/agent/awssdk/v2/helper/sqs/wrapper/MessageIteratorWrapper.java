@@ -16,26 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.awssdk.v2.helper;
+package co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper;
 
-import co.elastic.apm.agent.awssdk.common.AbstractS3InstrumentationHelper;
+import co.elastic.apm.agent.awssdk.common.AbstractMessageIteratorWrapper;
+import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import software.amazon.awssdk.core.SdkRequest;
-import software.amazon.awssdk.core.http.ExecutionContext;
+import software.amazon.awssdk.services.sqs.model.Message;
 
-import javax.annotation.Nullable;
+import java.util.Iterator;
 
-public class S3Helper extends AbstractS3InstrumentationHelper<SdkRequest, ExecutionContext> {
-
-    @Nullable
-    private static final S3Helper INSTANCE = new S3Helper(GlobalTracer.requireTracerImpl());
-
-    public static S3Helper getInstance() {
-        return INSTANCE;
-    }
-
-    public S3Helper(ElasticApmTracer tracer) {
-        super(tracer, SdkV2DataSource.getInstance());
+class MessageIteratorWrapper extends AbstractMessageIteratorWrapper<Message> {
+    public MessageIteratorWrapper(Iterator<Message> delegate, ElasticApmTracer tracer, String queueName) {
+        super(delegate, tracer, queueName, SQSHelper.getInstance(), SQSHelper.getInstance());
     }
 }

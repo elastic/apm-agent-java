@@ -16,26 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.awssdk.v2.helper;
+package co.elastic.apm.agent.awssdk.v1.helper;
 
-import co.elastic.apm.agent.awssdk.common.AbstractS3InstrumentationHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import software.amazon.awssdk.core.SdkRequest;
-import software.amazon.awssdk.core.http.ExecutionContext;
+import com.amazonaws.handlers.HandlerContextKey;
 
-import javax.annotation.Nullable;
-
-public class S3Helper extends AbstractS3InstrumentationHelper<SdkRequest, ExecutionContext> {
-
-    @Nullable
-    private static final S3Helper INSTANCE = new S3Helper(GlobalTracer.requireTracerImpl());
-
-    public static S3Helper getInstance() {
-        return INSTANCE;
-    }
-
-    public S3Helper(ElasticApmTracer tracer) {
-        super(tracer, SdkV2DataSource.getInstance());
-    }
+public final class Constants {
+    public static final HandlerContextKey<Boolean> ASYNC_HANDLER_CONTEXT = new HandlerContextKey<>(SQSHelper.class.getName() + ".asyncHandlerContext");
 }
