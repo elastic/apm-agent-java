@@ -239,11 +239,14 @@ public abstract class ServletApiAdvice {
                     }
                 }
 
-                String contextPath = adapter.getContextPath(adapter.getServletContext(httpServletRequest));
+                ServletContext servletContext = adapter.getServletContext(httpServletRequest);
+                String servletPath = adapter.getServletPath(httpServletRequest);
                 String pathInfo = adapter.getPathInfo(httpServletRequest);
-                String requestURI = adapter.getRequestURI(httpServletRequest);
-
-                String normalizedServletPath = servletTransactionHelper.normalizeServletPath(requestURI, contextPath, adapter.getServletPath(httpServletRequest), pathInfo);
+                if (servletPath == null || servletPath.length() == 0 && servletContext != null) {
+                    String contextPath = adapter.getContextPath(servletContext);
+                    String requestURI = adapter.getRequestURI(httpServletRequest);
+                    servletPath = servletTransactionHelper.normalizeServletPath(requestURI, contextPath, servletPath, pathInfo);
+                }
 
                 servletTransactionHelper.onAfter(
                     transaction, t == null ? t2 : t,
@@ -252,7 +255,7 @@ public abstract class ServletApiAdvice {
                     overrideStatusCodeOnThrowable,
                     adapter.getMethod(httpServletRequest),
                     parameterMap,
-                    normalizedServletPath,
+                    servletPath,
                     pathInfo,
                     contentTypeHeader,
                     true);
