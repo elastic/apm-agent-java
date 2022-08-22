@@ -87,7 +87,13 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
     protected Formatter createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceVersion,
                                            @Nullable String serviceNodeName, @Nullable Map<String, String> additionalFields,
                                            Formatter originalFormatter) {
-        EcsFormatter ecsFormatter = new EcsFormatter();
+        EcsFormatter ecsFormatter = new EcsFormatter() {
+            @Override
+            protected Map<String, String> getMdcEntries() {
+                // using internal tracer state as ECS formatter is not instrumented within the agent
+                return CorrelationIdMapAdapter.get();
+            }
+        };
         ecsFormatter.setServiceName(serviceName);
         ecsFormatter.setServiceVersion(serviceVersion);
         ecsFormatter.setServiceNodeName(serviceNodeName);
