@@ -239,10 +239,23 @@ public abstract class ServletApiAdvice {
                     }
                 }
 
-                servletTransactionHelper.onAfter(transaction, t == null ? t2 : t, adapter.isCommitted(httpServletResponse), adapter.getStatus(httpServletResponse),
-                    overrideStatusCodeOnThrowable, adapter.getMethod(httpServletRequest), parameterMap, adapter.getServletPath(httpServletRequest),
-                    adapter.getPathInfo(httpServletRequest), contentTypeHeader, true
-                );
+                String contextPath = adapter.getContextPath(adapter.getServletContext(httpServletRequest));
+                String pathInfo = adapter.getPathInfo(httpServletRequest);
+                String requestURI = adapter.getRequestURI(httpServletRequest);
+
+                String normalizedServletPath = servletTransactionHelper.normalizeServletPath(requestURI, contextPath, adapter.getServletPath(httpServletRequest), pathInfo);
+
+                servletTransactionHelper.onAfter(
+                    transaction, t == null ? t2 : t,
+                    adapter.isCommitted(httpServletResponse),
+                    adapter.getStatus(httpServletResponse),
+                    overrideStatusCodeOnThrowable,
+                    adapter.getMethod(httpServletRequest),
+                    parameterMap,
+                    normalizedServletPath,
+                    pathInfo,
+                    contentTypeHeader,
+                    true);
             }
         }
         if (span != null) {
