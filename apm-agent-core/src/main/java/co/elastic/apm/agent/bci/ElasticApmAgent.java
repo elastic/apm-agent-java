@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
+import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.InstallationListenerImpl;
@@ -684,6 +685,7 @@ public class ElasticApmAgent {
                 ? new LruTypePoolCache(TypePool.Default.ReaderMode.FAST).scheduleEntryEviction()
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
+            .ignore(any(), CustomElementMatchers.isPluginClassLoader()) // ignore classes loaded by plugin for instrumentation
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
             .or(nameStartsWith("org.aspectj."))
             .or(nameStartsWith("org.groovy."))

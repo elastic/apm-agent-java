@@ -18,6 +18,9 @@
  */
 package co.elastic.apm.agent.util;
 
+import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
+import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
+
 import javax.annotation.Nullable;
 
 public class ClassLoaderUtils {
@@ -51,5 +54,15 @@ public class ClassLoaderUtils {
 
     public static boolean isBootstrapClassLoader(@Nullable ClassLoader classLoader) {
         return classLoader == null;
+    }
+
+    public static boolean isPluginClassLoader(@Nullable ClassLoader classLoader) {
+        if(classLoader == null){
+            return false;
+        }
+        String clName = classLoader.getClass().getName();
+        return (IndyPluginClassLoader.class.getName().equals(clName)
+            || ExternalPluginClassLoader.class.getName().equals(clName));
+
     }
 }

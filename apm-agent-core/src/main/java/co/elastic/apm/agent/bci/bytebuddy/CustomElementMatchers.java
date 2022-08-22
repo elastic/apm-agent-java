@@ -52,10 +52,18 @@ import static net.bytebuddy.matcher.ElementMatchers.none;
 public class CustomElementMatchers {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomElementMatchers.class);
+
     private static final ElementMatcher.Junction.AbstractBase<ClassLoader> AGENT_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
         @Override
         public boolean matches(@Nullable ClassLoader classLoader) {
             return ClassLoaderUtils.isAgentClassLoader(classLoader);
+        }
+    };
+
+    private static final ElementMatcher.Junction.AbstractBase<ClassLoader> PLUGIN_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
+        @Override
+        public boolean matches(@Nullable ClassLoader classLoader) {
+            return ClassLoaderUtils.isPluginClassLoader(classLoader);
         }
     };
 
@@ -182,8 +190,13 @@ public class CustomElementMatchers {
         };
     }
 
+
     public static ElementMatcher.Junction<ClassLoader> isAgentClassLoader() {
         return AGENT_CLASS_LOADER_MATCHER;
+    }
+
+    public static ElementMatcher.Junction<ClassLoader> isPluginClassLoader() {
+        return PLUGIN_CLASS_LOADER_MATCHER;
     }
 
     private enum Matcher {
