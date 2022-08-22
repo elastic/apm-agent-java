@@ -90,7 +90,7 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
         EcsFormatter ecsFormatter = new EcsFormatter() {
             @Override
             protected Map<String, String> getMdcEntries() {
-                // using internal tracer state as ECS formatter is not instrumented within the agent
+                // using internal tracer state as ECS formatter is not instrumented within the agent plugin
                 return CorrelationIdMapAdapter.get();
             }
         };
