@@ -57,11 +57,6 @@ public class JulEcsFormatterInstrumentation extends TracerAwareInstrumentation {
 
     public static class AdviceClass {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false, skipOn = Advice.OnNonDefaultValue.class)
-        public static boolean onEnter() {
-            return true;
-        }
-
         @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static Map<String, String> onExit() {
