@@ -28,7 +28,6 @@ import javax.annotation.Nullable;
 
 public class SdkV2DataSource extends IAwsSdkDataSource<SdkRequest, ExecutionContext> {
 
-    @Nullable
     private static final SdkV2DataSource INSTANCE = new SdkV2DataSource();
 
     public static SdkV2DataSource getInstance() {

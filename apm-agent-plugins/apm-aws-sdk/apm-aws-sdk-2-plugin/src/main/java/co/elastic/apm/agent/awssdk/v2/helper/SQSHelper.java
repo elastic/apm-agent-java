@@ -44,8 +44,7 @@ import java.util.Map;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, ExecutionContext, Message> implements TextHeaderSetter<Map<String, MessageAttributeValue>> {
-
-    @Nullable
+    
     private static final SQSHelper INSTANCE = new SQSHelper(GlobalTracer.requireTracerImpl());
 
     public static SQSHelper getInstance() {
@@ -82,19 +81,18 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, Exec
         return sqsMessage.body();
     }
 
-    @Nullable
-    protected Long getMessageAge(Message message) {
+    protected long getMessageAge(Message message) {
         String value = message.attributesAsStrings().get(ATTRIBUTE_NAME_SENT_TIMESTAMP);
         if (value != null) {
             try {
                 long sentTimestampMs = Long.parseLong(value);
                 return System.currentTimeMillis() - sentTimestampMs;
             } catch (Throwable t) {
-                return null;
+                return Long.MIN_VALUE;
             }
         }
 
-        return null;
+        return Long.MIN_VALUE;
     }
 
     @Override

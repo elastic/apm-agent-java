@@ -31,7 +31,6 @@ import java.net.URI;
 
 public class DynamoDbHelper extends AbstractDynamoDBInstrumentationHelper<Request<?>, ExecutionContext> {
 
-    @Nullable
     private static final DynamoDbHelper INSTANCE = new DynamoDbHelper(GlobalTracer.requireTracerImpl());
 
     public static DynamoDbHelper getInstance() {

@@ -30,7 +30,7 @@ import com.amazonaws.services.dynamodbv2.model.QueryRequest;
 import javax.annotation.Nullable;
 
 public class SdkV1DataSource extends IAwsSdkDataSource<Request<?>, ExecutionContext> {
-    @Nullable
+
     private static final SdkV1DataSource INSTANCE = new SdkV1DataSource();
 
     public static SdkV1DataSource getInstance() {

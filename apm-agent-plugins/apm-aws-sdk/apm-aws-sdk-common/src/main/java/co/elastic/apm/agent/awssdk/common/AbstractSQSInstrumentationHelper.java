@@ -63,8 +63,11 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
 
     protected abstract String getMessageBody(MessageT sqsMessage);
 
-    @Nullable
-    protected abstract Long getMessageAge(MessageT sqsMessage);
+    /**
+     * Returns the message age in milliseconds if available.
+     * Otherwise returns a negative long value.
+     */
+    protected abstract long getMessageAge(MessageT sqsMessage);
 
     protected abstract Collection<String> getMessageAttributeKeys(MessageT sqsMessage);
 
@@ -181,8 +184,8 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
         }
 
         if (sqsMessage != null) {
-            Long messageAge = getMessageAge(sqsMessage);
-            if (messageAge != null) {
+            long messageAge = getMessageAge(sqsMessage);
+            if (messageAge >= 0) {
                 message.withAge(messageAge);
             }
 
