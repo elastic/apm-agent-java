@@ -63,7 +63,7 @@ public class CustomElementMatchers {
     private static final ElementMatcher.Junction.AbstractBase<ClassLoader> PLUGIN_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
         @Override
         public boolean matches(@Nullable ClassLoader classLoader) {
-            return ClassLoaderUtils.isPluginClassLoader(classLoader);
+            return ClassLoaderUtils.isInternalPluginClassLoader(classLoader);
         }
     };
 

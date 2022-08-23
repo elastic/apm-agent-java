@@ -35,13 +35,11 @@ public class ClassLoaderUtils {
         return classLoader == null;
     }
 
-    public static boolean isPluginClassLoader(@Nullable ClassLoader classLoader) {
-        if(classLoader == null){
+    public static boolean isInternalPluginClassLoader(@Nullable ClassLoader classLoader) {
+        if (classLoader == null) {
             return false;
         }
-        String clName = classLoader.getClass().getName();
-        return (IndyPluginClassLoader.class.getName().equals(clName)
-            || ExternalPluginClassLoader.class.getName().equals(clName));
+        return IndyPluginClassLoader.class.getName().equals(classLoader.getClass().getName());
 
     }
 }
