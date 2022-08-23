@@ -61,10 +61,12 @@ public class CustomElementMatchers {
         }
     };
 
-    private static final ElementMatcher.Junction.AbstractBase<ClassLoader> PLUGIN_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
+    private static final ElementMatcher.Junction.AbstractBase<ClassLoader> INTERNAL_PLUGIN_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
         @Override
         public boolean matches(@Nullable ClassLoader classLoader) {
-            return ClassLoaderUtils.isInternalPluginClassLoader(classLoader);
+
+            boolean result = ClassLoaderUtils.isInternalPluginClassLoader(classLoader);
+            return result;
         }
     };
 
@@ -196,8 +198,8 @@ public class CustomElementMatchers {
         return AGENT_CLASS_LOADER_MATCHER;
     }
 
-    public static ElementMatcher.Junction<ClassLoader> isPluginClassLoader() {
-        return PLUGIN_CLASS_LOADER_MATCHER;
+    public static ElementMatcher.Junction<ClassLoader> isInternalPluginClassLoader() {
+        return INTERNAL_PLUGIN_CLASS_LOADER_MATCHER;
     }
 
     private enum Matcher {
