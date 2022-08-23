@@ -414,7 +414,7 @@ public class ElasticApmAgent {
             .transform(new AgentBuilder.Transformer() {
                 @Override
                 public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription,
-                                                        ClassLoader classLoader, JavaModule module) {
+                                                        ClassLoader classLoader, JavaModule module, ProtectionDomain protectionDomain) {
                     return builder.visit(MinimumClassFileVersionValidator.V1_4)
                         // As long as we allow 1.4 bytecode, we need to add this constant pool adjustment as well
                         .visit(TypeConstantAdjustment.INSTANCE);

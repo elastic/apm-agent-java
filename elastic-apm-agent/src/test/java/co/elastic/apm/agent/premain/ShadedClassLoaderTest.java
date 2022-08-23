@@ -47,12 +47,13 @@ class ShadedClassLoaderTest {
     }
 
     @Test
-    void testLoadClassFromParent(@TempDir File tmp) throws Exception {
+    void testLoadClassFromChildFirst(@TempDir File tmp) throws Exception {
         File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "agent/", SHADED_CLASS_EXTENSION);
         ClassLoader cl = new ShadedClassLoader(jar, ShadedClassLoaderTest.class.getClassLoader(), "agent/");
         Class<?> clazz = cl.loadClass(ShadedClassLoaderTest.class.getName());
         assertThat(clazz).isNotNull();
-        assertThat(clazz).isSameAs(ShadedClassLoaderTest.class);
+        assertThat(clazz).isNotSameAs(ShadedClassLoaderTest.class);
+        assertThat(clazz.getClassLoader()).isEqualTo(cl);
     }
 
     @Test

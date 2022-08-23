@@ -1,0 +1,2 @@
+co.elastic.apm.agent.mongodb.v3.ConnectionCommandInstrumentation
+co.elastic.apm.agent.mongodb.v3.ConnectionInstrumentation

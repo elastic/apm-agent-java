@@ -67,6 +67,10 @@ public class AmazonHttpClientInstrumentation extends TracerAwareInstrumentation 
         public static Object enterInvoke(@Advice.Argument(value = 0) Request<?> request,
                                          @Advice.Argument(value = 3) ExecutionContext executionContext) {
             String awsService = request.getHandlerContext(HandlerContextKey.SERVICE_ID);
+            if (awsService == null) {
+                return null;
+            }
+
             Span span = null;
             if (awsService.startsWith("S3")) {
                 span = S3Helper.getInstance().startSpan(request, request.getEndpoint(), executionContext);

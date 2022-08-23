@@ -42,6 +42,7 @@ import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.Collection;
 import java.util.List;
+import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
@@ -235,10 +236,16 @@ public class CustomElementMatchers {
                         }
                         Manifest manifest = jarFile.getManifest();
                         if (manifest != null) {
-                            String implementationVersion = manifest.getMainAttributes().getValue("Implementation-Version");
-                            if (implementationVersion != null) {
-                                version = Version.of(implementationVersion);
+                            Attributes attributes = manifest.getMainAttributes();
+                            String manifestVersion = attributes.getValue("Implementation-Version");
+                            if (manifestVersion == null) {
+                                // fallback on OSGI bundle version when impl. version not available
+                                manifestVersion = attributes.getValue("Bundle-Version");
                             }
+                            if (manifestVersion != null) {
+                                version = Version.of(manifestVersion);
+                            }
+
                         }
                     }
                 }

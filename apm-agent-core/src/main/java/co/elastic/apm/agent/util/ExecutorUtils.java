@@ -25,6 +25,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -69,6 +70,10 @@ public final class ExecutorUtils {
     public static ThreadPoolExecutor createThreadDaemonPool(final String threadPurpose, int poolSize, int queueCapacity) {
         final ThreadFactory daemonThreadFactory = new NamedThreadFactory(threadPurpose);
         return new NamedDaemonThreadPoolExecutor(poolSize, queueCapacity, daemonThreadFactory, threadPurpose);
+    }
+
+    public static boolean isAgentExecutor(Executor executor) {
+        return executor.getClass().getName().startsWith("co.elastic.apm");
     }
 
     public static class SingleNamedThreadFactory implements ThreadFactory {

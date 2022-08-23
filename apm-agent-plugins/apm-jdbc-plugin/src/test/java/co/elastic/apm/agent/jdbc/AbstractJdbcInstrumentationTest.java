@@ -23,7 +23,6 @@ import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.db.signature.SignatureParser;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -411,8 +410,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         statement.execute(insert);
 
         assertThat(reporter.getSpans()).hasSize(1);
-        Db db = reporter.getFirstSpan().getContext().getDb();
-        assertThat(db.getStatement()).isEqualTo(insert);
+        assertThat(reporter.getFirstSpan()).hasDbStatement(insert);
     }
 
     private void assertQuerySucceededAndSpanRecorded(ResultSet resultSet, String rawSql, boolean preparedStatement) throws SQLException {

@@ -103,9 +103,9 @@
         <version.error_prone>2.2.0</version.error_prone>
         <version.h2>1.4.196</version.h2>
         <version.jackson>[2.10.0,)</version.jackson>
-        <version.junit-jupiter>5.8.2</version.junit-jupiter>
+        <version.junit-jupiter>5.9.0</version.junit-jupiter>
         <version.junit.vintage>4.13.2</version.junit.vintage>
-        <version.junit-vintage-engine>5.8.2</version.junit-vintage-engine>
+        <version.junit-vintage-engine>5.9.0</version.junit-vintage-engine>
         <version.logback>1.2.3</version.logback>
         <version.okhttp>4.9.1</version.okhttp>
         <version.slf4j>1.7.36</version.slf4j>
@@ -117,9 +117,9 @@
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.spring-boot>2.2.2.RELEASE</version.spring-boot>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.0.71</version.json-schema-validator>
+        <version.json-schema-validator>1.0.72</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.12.12</version.byte-buddy>
+        <version.byte-buddy>1.12.13</version.byte-buddy>
         <version.asm>9.3</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
@@ -662,7 +662,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>4.6.1</version>
+            <version>4.7.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
