@@ -1,2 +1,10 @@
 co.elastic.apm.agent.awssdk.v1.AmazonHttpClientInstrumentation
-co.elastic.apm.agent.awssdk.v1.DynamoDBGetTableNameInstrumentation
+co.elastic.apm.agent.awssdk.v1.AsyncClientInstrumentation
+co.elastic.apm.agent.awssdk.v1.EntityLookupInstrumentation$DynamoDBGetTableNameInstrumentation
+co.elastic.apm.agent.awssdk.v1.EntityLookupInstrumentation$SQSGetQueueNameInstrumentation
+co.elastic.apm.agent.awssdk.v1.EntityLookupInstrumentation$SQSGetQueueUrlInstrumentation
+co.elastic.apm.agent.awssdk.v1.EntityLookupInstrumentation$S3GetBucketNameInstrumentation
+co.elastic.apm.agent.awssdk.v1.EntityLookupInstrumentation$S3GetDestinationBucketNameInstrumentation
+co.elastic.apm.agent.awssdk.v1.SQSMessageDispatchingInstrumentation$SendMessageInstrumentation
+co.elastic.apm.agent.awssdk.v1.SQSMessageDispatchingInstrumentation$SQSReceiveMessageInstrumentation
+co.elastic.apm.agent.awssdk.v1.SQSMessageDispatchingInstrumentation$AmazonSQSMessagingClientWrapperInstrumentation

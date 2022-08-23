@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.awssdk.v1;
 
 import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -54,7 +55,8 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     private AmazonDynamoDB dynamoDB;
     private AmazonDynamoDBAsync dynamoDBAsync;
 
-    private Consumer<Span> dbAssert = span -> assertThat(span).hasDbInstance(localstack.getRegion());
+    private final Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
+
 
     @BeforeEach
     public void setupClient() {
@@ -149,17 +151,11 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
         executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDBAsync.deleteTableAsync(TABLE_NAME),
             dbAssert);
 
-        executeTestWithException(ResourceNotFoundException.class, "PutItem", "query", TABLE_NAME + "-exception", () -> dynamoDBAsync.putItem(
-            new PutItemRequest(TABLE_NAME + "-exception",
-                Map.of("attributeOne", new AttributeValue("valueOne"), "attributeTwo", new AttributeValue().withN("10")))),
-            dbAssert);
-
-        assertThat(reporter.getSpans().size()).isEqualTo(6);
+        assertThat(reporter.getSpans().size()).isEqualTo(5);
 
         transaction.deactivate().end();
 
-        assertThat(reporter.getNumReportedErrors()).isEqualTo(1);
-        assertThat(reporter.getFirstError().getException()).isInstanceOf(ResourceNotFoundException.class);
+        assertThat(reporter.getSpans()).noneMatch(AbstractSpan::isSync);
     }
 
     @Override

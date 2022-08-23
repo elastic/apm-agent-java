@@ -16,25 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.awssdk.v1.helper;
+package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.awssdk.common.AbstractS3InstrumentationHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import com.amazonaws.Request;
-import com.amazonaws.http.ExecutionContext;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import net.bytebuddy.description.NamedElement;
+import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.Collections;
 
-public class S3Helper extends AbstractS3InstrumentationHelper<Request<?>, ExecutionContext> {
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 
-    private static final S3Helper INSTANCE = new S3Helper(GlobalTracer.requireTracerImpl());
+public abstract class AbstractAwsSdkInstrumentation extends TracerAwareInstrumentation {
 
-    public static S3Helper getInstance() {
-        return INSTANCE;
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singleton("aws-sdk");
     }
 
-    public S3Helper(ElasticApmTracer tracer) {
-        super(tracer, SdkV1DataSource.getInstance());
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameStartsWith("software.amazon.awssdk.")
+            .or(nameStartsWith("com.amazonaws."))
+            .or(nameStartsWith("com.amazon.sqs.javamessaging"));
     }
 }

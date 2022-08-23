@@ -18,23 +18,8 @@
  */
 package co.elastic.apm.agent.awssdk.v1.helper;
 
-import co.elastic.apm.agent.awssdk.common.AbstractS3InstrumentationHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import com.amazonaws.Request;
-import com.amazonaws.http.ExecutionContext;
+import com.amazonaws.handlers.HandlerContextKey;
 
-import javax.annotation.Nullable;
-
-public class S3Helper extends AbstractS3InstrumentationHelper<Request<?>, ExecutionContext> {
-
-    private static final S3Helper INSTANCE = new S3Helper(GlobalTracer.requireTracerImpl());
-
-    public static S3Helper getInstance() {
-        return INSTANCE;
-    }
-
-    public S3Helper(ElasticApmTracer tracer) {
-        super(tracer, SdkV1DataSource.getInstance());
-    }
+public final class Constants {
+    public static final HandlerContextKey<Boolean> ASYNC_HANDLER_CONTEXT = new HandlerContextKey<>(SQSHelper.class.getName() + ".asyncHandlerContext");
 }
