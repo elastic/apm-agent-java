@@ -59,16 +59,16 @@ public class PackageScanner {
         List<String> list;
         try {
             list = doGetClassNames(basePackage, classLoader);
-        } catch (ClosedByInterruptException e){
+        } catch (ClosedByInterruptException e) {
             // clears the 'interrupted' status, expected to return true as exception was thrown
-            if(Thread.interrupted()){
+            if (Thread.interrupted()) {
 
                 list = doGetClassNames(basePackage, classLoader);
 
                 // restore the 'interrupted' status
                 Thread.currentThread().interrupt();
             } else {
-                throw new IllegalStateException("unexpected thread state",e);
+                throw new IllegalStateException("unexpected thread state", e);
             }
 
         }

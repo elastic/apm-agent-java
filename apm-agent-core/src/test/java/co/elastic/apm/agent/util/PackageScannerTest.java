@@ -74,6 +74,10 @@ class PackageScannerTest {
                         throw new RuntimeException(e);
                     }
 
+                    assertThat(Thread.interrupted())
+                        .describedAs("thread interrupted status should be preserved after getClassNames invocation")
+                        .isTrue();
+
                     end.countDown();
                 }
             };
