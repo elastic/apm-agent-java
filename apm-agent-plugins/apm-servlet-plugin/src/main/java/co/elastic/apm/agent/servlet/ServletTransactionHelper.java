@@ -150,7 +150,9 @@ public class ServletTransactionHelper {
             return path;
         }
 
-        logger.debug("Empty servlet path fallback applied. requestURI = {}, contextPath = {}, servletPath = {}, pathInfo = {}", requestURI, contextPath, servletPath, pathInfo);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Empty servlet path fallback applied. requestURI = {}, contextPath = {}, servletPath = {}, pathInfo = {}", requestURI, contextPath, servletPath, pathInfo);
+        }
 
         int start = 0;
         int end = requestURI.length();
