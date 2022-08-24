@@ -146,29 +146,34 @@ public class ServletTransactionHelper {
 
     public String normalizeServletPath(String requestURI, @Nullable String contextPath, @Nullable String servletPath, @Nullable String pathInfo) {
         String path = servletPath;
-        if (path == null || path.isEmpty()) {
-            logger.debug("Weblogic fallback applied. requestURI = {}, contextPath = {}, servletPath = {}, pathInfo = {}", requestURI, contextPath, servletPath, pathInfo);
-
-            int start = 0;
-            int end = requestURI.length();
-            if (contextPath != null && contextPath.length() > 0) {
-                if (!contextPath.equals("/")) {
-                    start = contextPath.length();
-                }
-            }
-            if (pathInfo != null) {
-                end -= pathInfo.length();
-            }
-
-            if (start == end) {
-                // use complete request URI instead of an empty string as fallback
-                path = requestURI;
-            } else {
-                path = requestURI.substring(start, end);
-            }
-
-            logger.debug("servlet path normalized to {}", path);
+        if (path != null && !path.isEmpty()) {
+            return path;
         }
+
+        logger.debug("Empty servlet path fallback applied. requestURI = {}, contextPath = {}, servletPath = {}, pathInfo = {}", requestURI, contextPath, servletPath, pathInfo);
+
+        int start = 0;
+        int end = requestURI.length();
+        boolean hasPathInfo = false;
+
+        if (pathInfo != null && pathInfo.length() > 0) {
+            end -= pathInfo.length();
+            hasPathInfo = true;
+        }
+
+        if (contextPath != null && contextPath.length() > 0) {
+            if (!contextPath.equals("/")) {
+                start = contextPath.length();
+            }
+        }
+
+        if (hasPathInfo || end != start) {
+            path = requestURI.substring(start, end);
+        } else {
+            path = requestURI;
+        }
+
+        logger.debug("servlet path normalized to {}", path);
 
         return path;
     }
