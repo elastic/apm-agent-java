@@ -103,7 +103,6 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
             servletPath -> {
                 // reconstruct servlet path from URI
                 assertThat(servletTransactionHelper.normalizeServletPath("/context/servlet", "/context", servletPath, null)).isEqualTo("/servlet");
-                assertThat(servletTransactionHelper.normalizeServletPath("/context/servlet", "/context", servletPath, null)).isEqualTo("/servlet");
 
                 // reconstruct servlet path from URI with empty/null/root context path
                 assertThat(servletTransactionHelper.normalizeServletPath("/servlet", "", servletPath, null)).isEqualTo("/servlet");
@@ -114,6 +113,10 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
                 assertThat(servletTransactionHelper.normalizeServletPath("/context/servlet/info", "/context", servletPath, "/info")).isEqualTo("/servlet");
                 assertThat(servletTransactionHelper.normalizeServletPath("/servlet/info", "/", servletPath, "/info")).isEqualTo("/servlet");
                 assertThat(servletTransactionHelper.normalizeServletPath("/servlet/info", null, servletPath, "/info")).isEqualTo("/servlet");
+
+                // limit case where the complete requestURI equals the context path
+                assertThat(servletTransactionHelper.normalizeServletPath("/context/servlet", "/context/servlet", servletPath, null)).isEqualTo("/context/servlet");
+
             }
         );
 

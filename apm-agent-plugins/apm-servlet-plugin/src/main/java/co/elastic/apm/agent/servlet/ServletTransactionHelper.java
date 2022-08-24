@@ -159,7 +159,14 @@ public class ServletTransactionHelper {
             if (pathInfo != null) {
                 end -= pathInfo.length();
             }
-            path = requestURI.substring(start, end);
+
+            if (start == end) {
+                // use complete request URI instead of an empty string as fallback
+                path = requestURI;
+            } else {
+                path = requestURI.substring(start, end);
+            }
+
             logger.debug("servlet path normalized to {}", path);
         }
 
