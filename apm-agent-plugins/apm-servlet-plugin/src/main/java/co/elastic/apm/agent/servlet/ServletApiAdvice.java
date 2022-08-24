@@ -242,7 +242,7 @@ public abstract class ServletApiAdvice {
                 ServletContext servletContext = adapter.getServletContext(httpServletRequest);
                 String servletPath = adapter.getServletPath(httpServletRequest);
                 String pathInfo = adapter.getPathInfo(httpServletRequest);
-                if (servletPath == null || servletPath.length() == 0 && servletContext != null) {
+                if ((servletPath == null || servletPath.isEmpty()) && servletContext != null) {
                     String contextPath = adapter.getContextPath(servletContext);
                     String requestURI = adapter.getRequestURI(httpServletRequest);
                     servletPath = servletTransactionHelper.normalizeServletPath(requestURI, contextPath, servletPath, pathInfo);
