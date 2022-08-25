@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.ecs_logging;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
 import co.elastic.logging.jul.EcsFormatter;
 import net.bytebuddy.asm.Advice;
@@ -31,6 +32,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
  * Instruments {@link EcsFormatter#getMdcEntries()} to provide correlation IDs at runtime.
@@ -39,6 +41,12 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  */
 @SuppressWarnings("JavadocReference")
 public class JulEcsFormatterInstrumentation extends TracerAwareInstrumentation {
+
+    @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        // ECS formatter that is loaded within the agent should not be instrumented
+        return not(CustomElementMatchers.isInternalPluginClassLoader());
+    }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

@@ -683,7 +683,6 @@ public class ElasticApmAgent {
                 ? new LruTypePoolCache(TypePool.Default.ReaderMode.FAST).scheduleEntryEviction()
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
-//            .ignore(any(), CustomElementMatchers.isInternalPluginClassLoader()) // ignore classes loaded by plugin for instrumentation
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
             .or(nameStartsWith("org.aspectj."))
             .or(nameStartsWith("org.groovy."))
