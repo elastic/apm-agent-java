@@ -20,13 +20,13 @@ package co.elastic.apm.agent.httpserver;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 public abstract class JdkHttpServerInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("jdk-httpserver");
+        return Collections.singleton("jdk-httpserver");
     }
 }

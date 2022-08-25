@@ -58,12 +58,13 @@ public class ConsumerRecordsIteratorInstrumentation extends KafkaConsumerRecords
         @Nullable
         @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-        public static Iterator<ConsumerRecord<?, ?>> wrapIterator(@Advice.Return @Nullable final Iterator<ConsumerRecord<?, ?>> iterator) {
-            if (!tracer.isRunning() || tracer.currentTransaction() != null || iterator == null) {
+        public static Iterator<ConsumerRecord<?, ?>> wrapIterator(@Advice.This ConsumerRecords<?, ?> thiz,
+                                                                  @Advice.Return @Nullable final Iterator<ConsumerRecord<?, ?>> iterator) {
+            if (helper.shouldWrapIterable(thiz, iterator)) {
+                return helper.wrapConsumerRecordIterator(iterator);
+            } else {
                 return iterator;
             }
-
-            return helper.wrapConsumerRecordIterator(iterator);
         }
     }
 }

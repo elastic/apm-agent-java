@@ -1,11 +1,15 @@
 [[setup-attach-cli]]
 === Automatic setup with `apm-agent-attach-cli.jar`
 
-NOTE: This installation method is in beta.
+The `apm-agent-attach-cli.jar` is an executable Java command line program which attaches the Elastic APM Java agent to a specific JVM or to all JVMs of the same host it runs on, it has the following properties:
 
-The `apm-agent-attach-cli.jar` is an executable Java command line program which attaches the Elastic APM Java agent to a specific JVM or to all JVMs of the same host it runs on.
-
-This installation method does not require you to alter the configuration of your application server and can be used to conveniently instrument all JVMs on a particular host.
+- No application code changes required.
+- Does not require to change JVM arguments nor application server configuration.
+- Allows to instrument all JVMs on given host, both running and by monitoring new JVMs as they start.
+- Requires to copy and execute the `apm-agent-attach-cli.jar` binary on the host.
+- Relies on the https://docs.oracle.com/javase/8/docs/jdk/api/attach/spec/com/sun/tools/attach/VirtualMachine.html#attach-java.lang.String-[runtime attachment capabilities] for java agents of the JVM but doesn't require a full JDK or the `tools.jar`.
+- Events that happen while the application starts up may not be captured.
+- It is not possible to attach to JVMs that are running in containers or in Kubernetes pods.
 
 [float]
 [[setup-attach-cli-supported-environments]]
@@ -21,13 +25,6 @@ The target VM does not have to be the same as the one that starts the attacher.
 That means it is possible to run the attacher with Java 7 and attach the agent to an application that runs under Java 11.
 However, the type of the VM has to be the same:
 It's not possible to attach to a J9 VM from a HotSpot-based VM and vice-versa.
-
-[float]
-[[setup-attach-cli-caveats]]
-==== Caveats
-
-The approach to mitigate `NoClassDefFoundError` s when used in OSGi containers (which includes most application servers) is experimental.
-Versions prior to 1.18.0 don't support OSGi containers.
 
 [float]
 [[setup-attach-cli-download]]
@@ -70,7 +67,7 @@ java -jar apm-agent-attach-cli.jar \
 ----
 
 [float]
-[[setup-attach-cli-usage-list]] // avoids dead links in old branches
+[[setup-attach-cli-usage-list]]
 [[setup-attach-cli-usage-options]]
 ==== Options
 
@@ -190,6 +187,7 @@ Instead of the bundled agent jar, attach the provided agent to the target JVMs.
 +
 --
 Instead of the bundled agent jar, download and attach the specified agent version from maven central.
+<agent-version> can be either the explicit version (for example: `1.15.0`) or `latest`.
 The agent is authenticated and validated based on the published PGP signature. This option requires internet access.
 --
 

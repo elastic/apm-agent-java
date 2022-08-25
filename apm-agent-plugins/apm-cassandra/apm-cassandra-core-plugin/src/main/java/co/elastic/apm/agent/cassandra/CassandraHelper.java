@@ -35,7 +35,7 @@ public class CassandraHelper {
     }
 
     @Nullable
-    public Span startCassandraSpan(@Nullable String query, boolean preparedStatement) {
+    public Span startCassandraSpan(@Nullable String query, boolean preparedStatement, @Nullable String keyspace) {
         Span span = tracer.createExitChildSpan();
         if (span == null) {
             return null;
@@ -43,19 +43,21 @@ public class CassandraHelper {
         span.activate()
             .withType("db")
             .withSubtype(CASSANDRA);
-        span.getContext().getDb().withStatement(query);
+
+        span.getContext().getDb()
+            .withStatement(query)
+            .withInstance(keyspace);
+
         StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
         if (query != null && name != null) {
             signatureParser.querySignature(query, name, preparedStatement);
         }
         span.withName(CASSANDRA, AbstractSpan.PRIO_DEFAULT - 1);
 
-        span.getContext()
-            .getDestination()
-            .getService()
-            .withType("db")
-            .withResource(CASSANDRA)
-            .withName(CASSANDRA);
+        span.getContext().getServiceTarget()
+            .withType(CASSANDRA)
+            .withName(keyspace);
+
         return span;
     }
 }

@@ -21,13 +21,14 @@ package co.elastic.apm.agent.reactor;
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import reactor.core.CoreSubscriber;
 import reactor.core.Fuseable;
 import reactor.core.publisher.Hooks;
@@ -243,7 +244,9 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
             public CoreSubscriber<? super X> apply(Publisher publisher, CoreSubscriber<? super X> subscriber) {
                 // don't wrap known #error #just #empty as they have instantaneous execution
                 if (publisher instanceof Fuseable.ScalarCallable) {
-                    log.trace("skip wrapping {}", subscriber.toString());
+                    if (log.isTraceEnabled()) {
+                        log.trace("skip wrapping {}", safeToString(subscriber));
+                    }
                     return subscriber;
                 }
 
@@ -260,10 +263,34 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
                     return subscriber;
                 }
 
-                log.trace("wrapping subscriber {} publisher {} with active span/transaction {}", subscriber.toString(), publisher, active);
+                if(log.isTraceEnabled()) {
+                    log.trace("wrapping subscriber {} publisher {} with active span/transaction {}", safeToString(subscriber), publisher, active);
+                }
 
                 return new TracedSubscriber<>(subscriber, tracer, active);
             }
         });
+    }
+
+    private static final WeakMap<Class<?>, Boolean> toStringSupported = WeakConcurrent.buildMap();
+
+    private static String safeToString(CoreSubscriber<?> subscriber) {
+        Class<?> type = subscriber.getClass();
+        Boolean supported = toStringSupported.get(type);
+        String value = "???";
+        if (supported == Boolean.FALSE) {
+            return value;
+        }
+        try {
+            // some subscriber implementations indirectly throw exceptions on toString invocation. thus we sandbox it.
+            value = subscriber.toString();
+            if (supported == null) {
+                toStringSupported.put(type, Boolean.TRUE);
+            }
+        } catch (Exception e) {
+            // silently ignore the exception
+            toStringSupported.put(type, Boolean.FALSE);
+        }
+        return value;
     }
 }

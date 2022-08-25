@@ -22,6 +22,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.cassandra.CassandraHelper;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.ExecutionInfo;
@@ -87,11 +88,19 @@ public class Cassandra4Instrumentation extends TracerAwareInstrumentation {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.Argument(0) Request request) {
+        public static Object onEnter(@Advice.This Session thiz,
+                                     @Advice.Argument(0) Request request) {
             if (!(request instanceof Statement)) {
                 return null;
             }
-            return cassandraHelper.startCassandraSpan(getQuery(request), request instanceof BoundStatement);
+
+            // use statement keyspace (if any), then fallback to current session KS
+            CqlIdentifier ks = request.getKeyspace();
+            String keyspace = ks != null ? ks.toString() : null;
+            if (ks == null) {
+                keyspace = thiz.getKeyspace().map(CqlIdentifier::toString).orElse(null);
+            }
+            return cassandraHelper.startCassandraSpan(getQuery(request), request instanceof BoundStatement, keyspace);
         }
 
         @Nullable

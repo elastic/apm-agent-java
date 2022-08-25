@@ -25,8 +25,9 @@ you can vote for it by participating in our
 https://docs.google.com/forms/d/e/1FAIpQLScd0RYiwZGrEuxykYkv9z8Hl3exx_LKCtjsqEo1OWx8BkLrOQ/viewform?usp=sf_link[survey].
 We will use the results to add support for the most requested technologies.
 
-Another option is to add a dependency to the agent's <<public-api, public API>>
-in order to programmatically create custom transactions and spans.
+Other options are to add a dependency to the agent's <<public-api, public API>>
+in order to programmatically create custom transactions and spans, or to create
+your own <<plugin-api,plugin>> that will instrument the technology you want instrumented.
 
 If you want to extend the auto-instrumentation capabilities of the agent,
 the https://github.com/elastic/apm-agent-java/blob/main/CONTRIBUTING.md[contributing guide] should get you started.
@@ -41,15 +42,18 @@ the agent does not capture transactions.
 [[supported-java-versions]]
 === Java versions
 
+
+NOTE: As of version 1.33.0, Java 7 support is deprecated and will be removed in a future release
+
 |===
 |Vendor |Supported versions |Notes
 
 |Oracle JDK
-|7u60+, 8u40+, 9, 10, 11, 17
+|7u60+*, 8u40+, 9, 10, 11, 17
 |`--module-path` has not been tested yet
 
 |OpenJDK
-|7u60+, 8u40+, 9, 10, 11, 17
+|7u60+*, 8u40+, 9, 10, 11, 17
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
@@ -57,13 +61,15 @@ the agent does not capture transactions.
 |<<method-sampling-based,Sampling profiler>> is not supported
 
 |HP-UX JVM
-| 7.0.10+, 8.0.02+
+| 7.0.10+*, 8.0.02+
 |
 
 |SAP JVM
 | 8.1.065+
 |
 |===
+
+{empty}* Java 7 support is deprecated and will be removed in a future release
 
 **Early Java 8 and Java 7**
 
@@ -106,7 +112,6 @@ the JVM arguments.
 |5.2.3+
 |Creates transactions for incoming HTTP requests, supports annotated and functional endpoints.
 |1.24.0 (experimental)
-
 
 |JavaServer Faces
 |2.2.x, 2.3.x, 3.0.x
@@ -165,7 +170,7 @@ rendering
 |com.sun.net.httpserver.HttpServer
 |1.7+
 |Captures incoming HTTP requests as transactions
-|1.25.0 (experimental)
+|1.25.0
 
 |Javalin
 |3.13.8+
@@ -234,10 +239,10 @@ Other Servlet 3+ compliant servers will most likely work as well.
  Please update to db2jcc4.
 |1.0.0
 
-|Elasticsearch
+|Elasticsearch Java REST and API clients
 |5.0.2+
 |The agent automatically creates Elasticsearch spans for queries done through the official REST client.
-|1.0.0, async queries since 1.5.0
+|1.0.0, async since 1.5.0, API Client since 1.32.0
 
 |Hibernate Search
 |5.x (on by default), 6.x (off by default)
@@ -248,9 +253,9 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |1.9.0
 
 |Redis Jedis
-|1.4.0-3.x
+|1.4.0-4.x
 |The agent creates spans for interactions with the Jedis client.
-|1.10.0
+|1.10.0, 4.x since 1.31.0
 
 |Redis Lettuce
 |3.4+
@@ -272,10 +277,26 @@ Other Servlet 3+ compliant servers will most likely work as well.
  The actual query will not be recorded.
 |1.12.0
 
+|MongoDB Sync Driver
+|4.x
+|The agent creates spans for interactions with the MongoDB 4.x sync driver.
+This provides support for `org.mongodb:mongodb-driver-sync`
+|1.28.5
+
 |Cassandra
 |2.x+
 |
 |1.23.0
+
+|AWS DynamoDB
+|1.x, 2.x
+|The agent creates spans for interactions with the AWS DynamoDb service through the AWS Java SDK.
+|1.31.0
+
+|AWS S3
+|1.x, 2.x
+|The agent creates spans for interactions with the AWS S3 service through the AWS Java SDK.
+|1.31.0
 
 |===
 
@@ -329,7 +350,7 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 
 |Apache Dubbo
 | 2.5+, except for 2.7.0, 2.7.1, and 2.7.2
-| This is an experimental plugin. Remove `experimental` from <<config-disable-instrumentations,`disable_instrumentations`>> to enable.
+|
 | 1.17.0
 
 |JDK 11 HttpClient
@@ -341,6 +362,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 | 3.6+
 |
 | 1.25.0
+
+|Spring Webclient
+|5.2.3+
+|
+|1.33.0 (experimental)
 
 |===
 
@@ -399,36 +425,65 @@ same trace.
 
 |JMS
 |1.1, 2.0
-|The agent captures JMS sends and receives as spans/transactions. In addition, it propagates the context when using
-`javax.jms.MessageProducer#send` and `javax.jms.JMSProducer#send` methods through a `Message` property. On receiver
-side, the agent reads the context from the Message property through `javax.jms.MessageConsumer#receive`,
-`javax.jms.MessageConsumer#receiveNoWait`, `javax.jms.JMSConsumer#receive`, `javax.jms.JMSConsumer#receiveNoWait` or
-`javax.jms.MessageListener#onMessage` and uses it for enabling distributed tracing.
-|Enabled by default since 1.13.0, added as an experimental plugin in 1.7.0, `jakarta.jms` since 1.28.0
+|The agent captures JMS sends and receives as spans/transactions
+|`javax.jms` since 1.13.0, `jakarta.jms` since 1.28.0
 
 |Kafka
 | <0.11.0 - without distributed tracing; 0.11.0+ - full support
-|The agent captures Kafka record sends and polls. If `org.apache.kafka.clients.consumer.Consumer#poll` is invoked from
-within a traced transaction, a span will be created. Otherwise, the agent attempts to create a transaction for each
-record read from the returned batch *as the consumer iterates over returned records.* This requires some heuristics on
-the agent part, so in some cases kafka-transactions may seem missing or out of order.
-If both producer and consumer are traced, then distributed tracing is supported, meaning the transaction on the consumer
-side will be a part of the same trace containing the producer side as well. Kafka streams are not traced.
+|The agent captures Kafka record sends and polls. Kafka streams are not traced.
 |1.13.0
 
 |RabbitMQ
 |3.x - 5.x
-|The agent captures RabbitMQ Message sends, consumption and polling.
-When the producer sends a message within a traced transaction, a send span will be created and the transaction resulting
-from the message consumption will be correlated to the same trace.
-When a message is consumed, a transaction is created, regardless if the send action is traced.
-When a message is polled, a span is created for the polling operation and optionally have message fields if a message
-has been returned.
+|The agent captures RabbitMQ Message sends, consumption and polling
 |1.20.0
+
+|AWS SQS
+|1.x, 2.x
+|The agent captures SQS Message sends and polling as well as SQS message sends and consumption through JMS.
+|1.34.0
 
 |===
 
-For RabbitMQ:
+[float]
+==== Distributed Tracing
+
+The Java agent instrumentation for messaging system clients includes both senders and receivers.
+When an instrumented client sends a message within a traced transaction, a `send` span is created. In addition, if the messaging system
+supports message/record headers/annotations, the agent would add the `tracecontext` headers to enable distributed tracing.
+
+On the receiver side, instrumented clients will attempt to create the proper distributed trace linkage in one of several ways, depending
+on how messages are received:
+
+* _Passive message handling:_ when the message handling logic is applied by implementing a passive message listener API (like
+`javax.jms.MessageListener#onMessage` for example), creating the receiver transaction is mostly straightforward as the instrumented API
+method invocation encapsulates message handling. Still, there are two use cases to consider:
+** _Single message handling:_ when the message listener API accepts a single message, the agent would create a `messaging` typed
+transaction per each received message, as a child transaction of the `send` span that corresponds the received message and with the same
+trace ID
+** _Batch message handling:_ when the message listener API accepts a batch of messages (like
+`org.springframework.amqp.core.MessageListener.onMessageBatch` for example), the agent will create a single root transaction (i.e.
+different trace ID from any of the `send` spans) by default to encapsulate the entire batch handling. The batch processing transaction
+would be of `messaging` type, containing links__*__ to all `send` spans that correspond the messages in the batch. This can be changed
+through the (non-documented) `message_batch_strategy` config option, which accepts either `BATCH_HANDLING` (default) or `SINGLE_HANDLING`
+to enable the creation of a single child transaction per message.
+* _Active message polling:_ in some cases, message are consumed from the broker through active polling.
+Whenever the polling action occurs while there is already an active span, the agent will create a `poll` span and add span links__*__ to
+it for each message returned by the poll action that contains `tracecontext` headers.
+Since such polling APIs don't provide any indication as to when message handling actually occurs, the agent needs to apply some
+heuristics in order to trace message handling. There are two use cases to consider in this type of message receiving as well:
+** _Polling returns a single message:_ in such cases, the agent may apply assumptions with regard to the threads that execute the message
+handling logic in order to determine when handling starts and ends. Based on that, it would create a transaction per consumed message. If
+the consumed message contains the `tracecontext` headers, the `receive` transaction will be a child of the corresponding `send` span.
+** _Polling returns a message batch:_ typically, in such cases the agent will wrap the message collection and rely on the actual
+iteration to create a transaction per message as the child of the corresponding `send` span and as part of the same trace. If iteration
+occurs while there is already an active span, then the agent will add a link__*__ for each message `send` span to the active (parent)
+span instead of creating transaction/span per message.
+
+_*_ Span links are supported by APM Server and Kibana since version 8.3 and by the Java agent since version 1.32.0
+
+[float]
+==== RabbitMQ Specifics
 
 - `context.message.queue.name` field will contain queue name when using polling, exchange name otherwise.
 - `context.message.destination.resource` field will contain `rabbitmq/XXX` where `XXX` is exchange name.
@@ -547,6 +602,12 @@ entries for `trace.id`, `transaction.id` and `error.id`.
 |1.23.0
 
 JBoss LogManager - 1.30.0
+
+|JUL - `java.util.logging`
+|All supported Java versions
+|When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+ECS-compatible format
+|1.31.0
 
 |===
 

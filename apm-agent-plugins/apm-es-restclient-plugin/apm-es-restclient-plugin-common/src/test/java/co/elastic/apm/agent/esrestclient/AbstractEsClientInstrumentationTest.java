@@ -33,12 +33,13 @@ import org.junit.runners.Parameterized;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.ELASTICSEARCH;
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.SPAN_ACTION;
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.SPAN_TYPE;
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 public abstract class AbstractEsClientInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -122,27 +123,34 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected void validateDbContextContent(Span span, String statement) {
+        validateDbContextContent(span, Collections.singletonList(statement));
+    }
+
+    protected void validateDbContextContent(Span span, List<String> possibleContents) {
         Db db = span.getContext().getDb();
         assertThat(db.getType()).isEqualTo(ELASTICSEARCH);
         assertThat((CharSequence) db.getStatementBuffer()).isNotNull();
-        assertThat(db.getStatementBuffer().toString()).isEqualTo(statement);
+
+        assertThat(db.getStatementBuffer().toString()).isIn(possibleContents);
     }
 
     protected void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
         validateSpanContentWithoutContext(span, expectedName, statusCode, method);
         validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
         validateDestinationContextContent(span.getContext().getDestination());
+
+        assertThat(span.getContext().getServiceTarget())
+            .hasType(ELASTICSEARCH)
+            .hasNoName()
+            .hasDestinationResource(ELASTICSEARCH);
     }
 
     private void validateDestinationContextContent(Destination destination) {
         assertThat(destination).isNotNull();
-
         if (reporter.checkDestinationAddress()) {
             assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
             assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
         }
-
-        assertThat(destination.getService().getResource().toString()).isEqualTo(ELASTICSEARCH);
     }
 
     private void validateHttpContextContent(Http http, int statusCode, String method) {

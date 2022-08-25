@@ -21,16 +21,14 @@ package co.elastic.apm.agent.awslambda.helper;
 import co.elastic.apm.agent.awslambda.SQSMessageAttributesGetter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 
 public class SQSTransactionHelper extends AbstractMessageBasedTransactionHelper<SQSEvent, Void, SQSEvent.SQSMessage> {
-
-    private static final String AWS_MESSAGE_SENT_TIMESTAMP_KEY = "SentTimestamp";
 
     @Nullable
     private static SQSTransactionHelper INSTANCE;
@@ -49,11 +47,6 @@ public class SQSTransactionHelper extends AbstractMessageBasedTransactionHelper<
     }
 
     @Override
-    protected TextHeaderGetter<SQSEvent.SQSMessage> getTextHeaderGetter() {
-        return SQSMessageAttributesGetter.INSTANCE;
-    }
-
-    @Override
     protected String getAWSService() {
         return "sqs";
     }
@@ -65,47 +58,8 @@ public class SQSTransactionHelper extends AbstractMessageBasedTransactionHelper<
     }
 
     @Override
-    protected long getMessageTimestampMs(SQSEvent.SQSMessage record) {
-        if (null != record.getMessageAttributes() && record.getMessageAttributes().containsKey(AWS_MESSAGE_SENT_TIMESTAMP_KEY)) {
-            try {
-                String strValue = getHeaderValue(record, AWS_MESSAGE_SENT_TIMESTAMP_KEY);
-                return strValue != null ? Long.parseLong(strValue) : -1L;
-            } catch (Exception e) {
-                return -1L;
-            }
-        }
-        return -1L;
-    }
-
-    @Override
-    protected String getBody(SQSEvent.SQSMessage record) {
-        return record.getBody();
-    }
-
-    @Override
-    protected String getMessageId(SQSEvent.SQSMessage record) {
-        return record.getMessageId();
-    }
-
-    @Override
     protected String getRegion(SQSEvent.SQSMessage record) {
         return record.getAwsRegion();
-    }
-
-    @Override
-    protected Collection<String> getHeaderNames(SQSEvent.SQSMessage record) {
-        if (null != record.getMessageAttributes()) {
-            return record.getMessageAttributes().keySet();
-        }
-        return Collections.emptySet();
-    }
-
-    @Override
-    protected String getHeaderValue(SQSEvent.SQSMessage record, String key) {
-        if (null != record.getMessageAttributes() && record.getMessageAttributes().containsKey(key)) {
-            return record.getMessageAttributes().get(key).getStringValue();
-        }
-        return null;
     }
 
     @Override
@@ -114,12 +68,25 @@ public class SQSTransactionHelper extends AbstractMessageBasedTransactionHelper<
     }
 
     @Override
-    protected SQSEvent.SQSMessage getRecord(SQSEvent event) {
+    protected SQSEvent.SQSMessage getFirstRecord(SQSEvent event) {
         SQSEvent.SQSMessage record = null;
-        if (null != event.getRecords() && event.getRecords().size() == 1) {
+        if (null != event.getRecords() && !event.getRecords().isEmpty()) {
             record = event.getRecords().get(0);
         }
-
         return record != null ? record : placeholderMessage;
+    }
+
+    @Override
+    protected void addSpanLinks(Transaction transaction, SQSEvent event) {
+        List<SQSEvent.SQSMessage> records = event.getRecords();
+        if (records != null && !records.isEmpty()) {
+            for (SQSEvent.SQSMessage record : records) {
+                transaction.addSpanLink(
+                    TraceContext.<SQSEvent.SQSMessage>getFromTraceContextTextHeaders(),
+                    SQSMessageAttributesGetter.INSTANCE,
+                    record
+                );
+            }
+        }
     }
 }

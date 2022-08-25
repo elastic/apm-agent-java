@@ -28,6 +28,7 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.Statement;
 import com.google.common.util.concurrent.FutureCallback;
@@ -61,6 +62,7 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
     /**
      * {@link com.datastax.driver.core.SessionManager#executeAsync(Statement)}
      */
+    @SuppressWarnings("JavadocReference")
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("executeAsync")
@@ -84,8 +86,15 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.Argument(0) Statement statement) {
-            return cassandraHelper.startCassandraSpan(getQuery(statement), statement instanceof BoundStatement);
+        public static Object onEnter(@Advice.This Session thiz,
+                                     @Advice.Argument(0) Statement statement) {
+
+            // use statement keyspace (if any), then fallback to current session KS
+            String ks = statement.getKeyspace();
+            if (ks == null) {
+                ks = thiz.getLoggedKeyspace();
+            }
+            return cassandraHelper.startCassandraSpan(getQuery(statement), statement instanceof BoundStatement, ks);
         }
 
         @Nullable

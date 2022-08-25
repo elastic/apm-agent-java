@@ -35,11 +35,13 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+
 
 @Testcontainers
 class Cassandra3InstrumentationIT extends AbstractInstrumentationTest {
 
+    public static final String KEYSPACE = "test";
     @Container
     public static GenericContainer<?> cassandra = new GenericContainer<>("cassandra:3.11")
         .withExposedPorts(9042)
@@ -69,7 +71,7 @@ class Cassandra3InstrumentationIT extends AbstractInstrumentationTest {
             s.execute("CREATE KEYSPACE IF NOT EXISTS test WITH replication = {'class':'SimpleStrategy','replication_factor':'1'};");
         }
         transaction = tracer.startRootTransaction(null).withName("transaction").activate();
-        session = cluster.connect("test");
+        session = cluster.connect(KEYSPACE);
     }
 
     @AfterEach
@@ -87,14 +89,17 @@ class Cassandra3InstrumentationIT extends AbstractInstrumentationTest {
 
         reporter.awaitSpanCount(3);
 
-        assertThat(reporter.getSpanByName("CREATE").getContext().getDb().getStatement())
-            .isEqualTo("CREATE TABLE users (id UUID, name text, PRIMARY KEY(name, id))");
+        assertThat(reporter.getSpanByName("CREATE"))
+            .hasDbStatement("CREATE TABLE users (id UUID, name text, PRIMARY KEY(name, id))")
+            .hasDbInstance(KEYSPACE);
 
-        assertThat(reporter.getSpanByName("INSERT INTO users").getContext().getDb().getStatement())
-            .isEqualTo("INSERT INTO users (id, name) values (?, ?)");
+        assertThat(reporter.getSpanByName("INSERT INTO users"))
+            .hasDbStatement("INSERT INTO users (id, name) values (?, ?)")
+            .hasDbInstance(KEYSPACE);
 
-        assertThat(reporter.getSpanByName("SELECT FROM users").getContext().getDb().getStatement())
-            .isEqualTo("SELECT * FROM users where name = 'alice' ALLOW FILTERING");
+        assertThat(reporter.getSpanByName("SELECT FROM users"))
+            .hasDbStatement("SELECT * FROM users where name = 'alice' ALLOW FILTERING")
+            .hasDbInstance(KEYSPACE);
     }
 
 }

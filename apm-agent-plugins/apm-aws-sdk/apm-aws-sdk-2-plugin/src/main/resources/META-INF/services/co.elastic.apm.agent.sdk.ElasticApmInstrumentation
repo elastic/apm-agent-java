@@ -1,0 +1,4 @@
+co.elastic.apm.agent.awssdk.v2.BaseSyncClientHandlerInstrumentation
+co.elastic.apm.agent.awssdk.v2.BaseAsyncClientHandlerInstrumentation
+co.elastic.apm.agent.awssdk.v2.GetMessagesInstrumentation
+co.elastic.apm.agent.awssdk.v2.AmazonSQSMessagingClientWrapperInstrumentation

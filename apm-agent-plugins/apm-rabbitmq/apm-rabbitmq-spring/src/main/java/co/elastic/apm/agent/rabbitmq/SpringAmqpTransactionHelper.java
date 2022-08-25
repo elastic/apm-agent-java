@@ -24,7 +24,6 @@ import co.elastic.apm.agent.rabbitmq.header.SpringRabbitMQTextHeaderGetter;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class SpringAmqpTransactionHelper {
@@ -36,8 +35,9 @@ public class SpringAmqpTransactionHelper {
     }
 
     @Nullable
-    public Transaction createTransaction(@Nonnull Message message, @Nullable MessageProperties messageProperties, @Nonnull String transactionNamePrefix) {
+    public Transaction createTransaction(Message message, String transactionNamePrefix) {
         String exchange = null;
+        MessageProperties messageProperties = message.getMessageProperties();
         if (messageProperties != null) {
             exchange = messageProperties.getReceivedExchange();
         }

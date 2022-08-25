@@ -8,7 +8,8 @@ endif::[]
 
 The Elastic APM Java Agent automatically measures the performance of your application and tracks errors.
 It has built-in support for popular frameworks and technologies,
-as well as a simple <<public-api,API>> which allows you to instrument any application.
+as well as a simple <<public-api,API>> which allows you to instrument any application, and
+a <<plugin-api,Plugin API>> that allows you to add custom instrumentation.
 
 NOTE: The minimum required version of the APM Server is 6.5.0
 

@@ -9,11 +9,14 @@ endif::[]
 There are three different ways to set up the Elastic APM Java Agent:
 
 . <<setup-javaagent>> +
-  Manually set up and configure the agent with the `-javaagent` JVM flag.
+  Manually set up and configure the agent with the `-javaagent` JVM option. No application code change required, requires
+application restart.
 . <<setup-attach-cli>> +
-  Automatically set up the agent without needing to alter the configuration of your application server.
+  Automatically set up the agent without needing to alter the configuration of your JVM or application server. No application code
+  nor JVM options changes required, allows attaching to a running JVM.
 . <<setup-attach-api>> +
-  Use the `apm-agent-attach` artifact and the `attach` API to set up the agent.
+  Set up the agent with a one-line code change and an extra `apm-agent-attach` dependency. No modification of JVM options,
+  the agent artifact is embedded within the packaged application binary.
 
 [float]
 [[get-started-configuration]]
