@@ -614,6 +614,8 @@ not provide any MDC implementation.
 
 ECS Reformatting - 1.31.0
 
+Error capturing - 1.31.0
+
 |===
 
 [float]
