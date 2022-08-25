@@ -744,7 +744,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_START);
         writeField("name", span.getNameForSerialization());
         writeTimestamp(span.getTimestamp());
-        if(!span.isSync()){
+        if (!span.isSync()) {
             writeField("sync", span.isSync());
         }
         writeField("outcome", span.getOutcome().toString());
@@ -1087,34 +1087,52 @@ public class DslJsonSerializer implements PayloadSerializer {
             jw.writeByte(OBJECT_START);
             boolean hasAddress = destination.getAddress().length() > 0;
             boolean hasPort = destination.getPort() > 0;
+
             boolean hasServiceContent = resource != null;
+            boolean hasCloudContent = destination.getCloud().hasContent();
+
             if (hasAddress) {
-                if (hasPort || hasServiceContent) {
+                if (hasPort || hasServiceContent || hasCloudContent) {
                     writeField("address", destination.getAddress());
                 } else {
                     writeLastField("address", destination.getAddress());
                 }
             }
             if (hasPort) {
-                if (hasServiceContent) {
+                if (hasServiceContent || hasCloudContent) {
                     writeField("port", destination.getPort());
                 } else {
                     writeLastField("port", destination.getPort());
                 }
             }
-            serializeService(resource);
+
+            if (hasServiceContent) {
+                serializeService(hasCloudContent, resource);
+            }
+            serializeDestinationCloud(hasCloudContent, destination.getCloud());
+
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }
     }
 
-    private void serializeService( @Nullable CharSequence resource) {
-        if (resource != null) {
-            writeFieldName("service");
+    private void serializeService(boolean hasCloudContent, CharSequence resource) {
+        writeFieldName("service");
+        jw.writeByte(OBJECT_START);
+        writeEmptyField("name");
+        writeEmptyField("type");
+        writeLastField("resource", resource);
+        jw.writeByte(OBJECT_END);
+        if (hasCloudContent) {
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeDestinationCloud(boolean isCloudHasContent, Destination.Cloud cloud) {
+        if (isCloudHasContent) {
+            writeFieldName("cloud");
             jw.writeByte(OBJECT_START);
-            writeEmptyField("name");
-            writeEmptyField("type");
-            writeLastField("resource", resource);
+            writeLastField("region", cloud.getRegion());
             jw.writeByte(OBJECT_END);
         }
     }

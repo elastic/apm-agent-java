@@ -28,13 +28,9 @@ import javax.annotation.Nullable;
 
 public class S3Helper extends AbstractS3InstrumentationHelper<SdkRequest, ExecutionContext> {
 
-    @Nullable
-    private static S3Helper INSTANCE;
+    private static final S3Helper INSTANCE = new S3Helper(GlobalTracer.requireTracerImpl());
 
     public static S3Helper getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new S3Helper(GlobalTracer.requireTracerImpl());
-        }
         return INSTANCE;
     }
 
