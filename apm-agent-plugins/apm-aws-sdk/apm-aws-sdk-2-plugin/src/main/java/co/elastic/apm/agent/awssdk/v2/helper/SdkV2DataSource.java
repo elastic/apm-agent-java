@@ -26,15 +26,11 @@ import software.amazon.awssdk.regions.Region;
 
 import javax.annotation.Nullable;
 
-public class SdkV2DataSource implements IAwsSdkDataSource<SdkRequest, ExecutionContext> {
+public class SdkV2DataSource extends IAwsSdkDataSource<SdkRequest, ExecutionContext> {
 
-    @Nullable
-    private static SdkV2DataSource INSTANCE;
+    private static final SdkV2DataSource INSTANCE = new SdkV2DataSource();
 
     public static SdkV2DataSource getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new SdkV2DataSource();
-        }
         return INSTANCE;
     }
 
@@ -51,13 +47,16 @@ public class SdkV2DataSource implements IAwsSdkDataSource<SdkRequest, ExecutionC
         if (region != null) {
             return region.id();
         }
-
         return null;
     }
 
     @Override
     @Nullable
-    public String getFieldValue(String fieldName, SdkRequest sdkRequest, ExecutionContext context) {
-        return sdkRequest.getValueForField(fieldName, String.class).orElse(null);
+    public String getFieldValue(String fieldName, SdkRequest sdkRequest) {
+        String value = sdkRequest.getValueForField(fieldName, String.class).orElse(null);
+        if (QUEUE_NAME_FIELD.equals(fieldName) && value == null) {
+            value = getQueueNameFromQueueUrl(getFieldValue(QUEUE_NAME_URL_FIELD, sdkRequest));
+        }
+        return value;
     }
 }

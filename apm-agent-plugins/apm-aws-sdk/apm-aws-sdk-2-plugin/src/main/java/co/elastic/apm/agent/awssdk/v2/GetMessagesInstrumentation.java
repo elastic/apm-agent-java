@@ -16,36 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.awssdk.v1;
+package co.elastic.apm.agent.awssdk.v2;
 
-import co.elastic.apm.agent.awssdk.v1.helper.DynamoDbHelper;
+import co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper.MessageListWrapper;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.state.CallDepth;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
-import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
-import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
+import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 
-public class DynamoDBGetTableNameInstrumentation extends TracerAwareInstrumentation {
+public class GetMessagesInstrumentation extends TracerAwareInstrumentation {
+
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameStartsWith("com.amazonaws.services.dynamodbv2.model.")
-            .and(nameEndsWith("Request"))
-            .and(declaresMethod(named("getTableName")));
+        return named("software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("getTableName");
+        return nameStartsWith("messages")
+            .and(returns(named("java.util.List")))
+            .and(takesNoArguments());
     }
 
     @Override
@@ -53,13 +57,24 @@ public class DynamoDBGetTableNameInstrumentation extends TracerAwareInstrumentat
         return Collections.singleton("aws-sdk");
     }
 
-
     public static class AdviceClass {
+        private static final CallDepth callDepth = CallDepth.get(GetMessagesInstrumentation.AdviceClass.class);
+
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
-        public static void exitGetTableName(@Advice.This Object requestObject, @Nullable @Advice.Return String tableName) {
-            if (tableName != null && !DynamoDbHelper.getInstance().hasTableNameForKey(requestObject)) {
-                DynamoDbHelper.getInstance().putTableName(requestObject, tableName);
+        @Advice.AssignReturned.ToReturned
+        public static List<Message> onExit(@Advice.This ReceiveMessageResponse response,
+                                           @Advice.Return List<Message> messagesList) {
+            List<Message> returnedList = messagesList;
+            if (!callDepth.isNestedCallAndIncrement()) {
+                if (!messagesList.isEmpty()) {
+                    List<Message> wrappedList = MessageListWrapper.getMessagesList(response);
+                    if (wrappedList != null) {
+                        returnedList = wrappedList;
+                    }
+                }
             }
+            callDepth.decrement();
+            return returnedList;
         }
     }
 }

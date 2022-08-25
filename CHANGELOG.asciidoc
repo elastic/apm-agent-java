@@ -34,13 +34,15 @@ version of classes that are available also in the parent (bootstrap) class loade
 * Implemented span links in the OTel bridge. - {pull}2685[#2685]
 * Added support for MongoDB's 4.x Sync Driver - {pull}2241{#2241}
 * Capture keyspace in `db.instance` for Cassandra database - {pull}2684[#2684]
-
+* Added support for AWS SQS - {pull}2637[#2637]
 
 [float]
 ===== Bug fixes
 * Fix unexpected side-effects of `toString` calls within reactor instrumentation - {pull}2708[#2708]
 * Fix Vert.x instrumentation for 4.3.2 - {pull}2700[#2700]
 * Fix `NullPointerException` in `AmazonHttpClientInstrumentation` - {pull}2740[#2740]
+* Fix stack frame exclusion patterns - {pull}2758[#2758]
+* Fix `NullPointerException` with compressed spans - {pull}2755[#2755]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
