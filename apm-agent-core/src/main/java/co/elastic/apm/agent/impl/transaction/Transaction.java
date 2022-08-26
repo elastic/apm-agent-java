@@ -35,6 +35,9 @@ import org.HdrHistogram.WriterReaderPhaser;
 import javax.annotation.Nullable;
 import java.util.List;
 
+import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinuationStrategy.RESTART;
+import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinuationStrategy.RESTART_EXTERNAL;
+
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
@@ -134,8 +137,26 @@ public class Transaction extends AbstractSpan<Transaction> {
         spanCompressionEnabled = spanConfig.isSpanCompressionEnabled();
         spanCompressionExactMatchMaxDurationUs = spanConfig.getSpanCompressionExactMatchMaxDuration().getMicros();
         spanCompressionSameKindMaxDurationUs = spanConfig.getSpanCompressionSameKindMaxDuration().getMicros();
+
         if (!startedAsChild) {
             traceContext.asRootSpan(sampler);
+        } else {
+            CoreConfiguration.TraceContinuationStrategy traceContinuationStrategy =
+                tracer.getConfig(CoreConfiguration.class).getTraceContinuationStrategy();
+
+            if (traceContinuationStrategy.equals(RESTART) ||
+                (
+                    traceContinuationStrategy.equals(RESTART_EXTERNAL) &&
+                        !traceContext.getTraceState().includesVendor()
+                )
+            ) {
+                //Add a span link to the parent
+                addSpanLink(TraceContext.fromParentContext(), traceContext.copy().setIdToParentId());
+                //Need to reset the state before making it root because root is expecting no samplerate nor parent ID
+                traceContext.resetState();
+                traceContext.asRootSpan(sampler);
+            }
+
         }
         if (epochMicros >= 0) {
             setStartTimestamp(epochMicros);

@@ -304,4 +304,13 @@ public class TraceState implements Recyclable {
             return buffer;
         }
     }
+
+    public boolean includesVendor(){
+        for (String tracestate: getTracestate()) {
+            if (tracestate.startsWith(VENDOR_PREFIX)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

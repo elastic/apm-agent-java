@@ -132,6 +132,7 @@ Click on a key to get more information.
 ** <<config-cloud-provider>>
 ** <<config-enable-public-api-annotation-inheritance>>
 ** <<config-transaction-name-groups>>
+** <<config-trace-continuation-strategy>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
 ** <<config-transaction-ignore-urls>>
@@ -1404,6 +1405,32 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.transaction_name_groups` | `transaction_name_groups` | `ELASTIC_APM_TRANSACTION_NAME_GROUPS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-trace-continuation-strategy]]
+==== `trace_continuation_strategy` (added[1.34.0])
+
+This config value allows you to specify which cloud provider should be assumed 
+for metadata collection. By default, the agent will attempt to detect the cloud 
+provider or, if that fails, will use trial and error to collect the metadata.
+
+
+
+Valid options: `continue`, `restart`, `restart_external`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `CONTINUE` | TraceContinuationStrategy | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.trace_continuation_strategy` | `trace_continuation_strategy` | `ELASTIC_APM_TRACE_CONTINUATION_STRATEGY`
 |============
 
 [[config-http]]
@@ -3556,6 +3583,17 @@ Example: `5ms`.
 # Default value: 
 #
 # transaction_name_groups=
+
+# This config value allows you to specify which cloud provider should be assumed 
+# for metadata collection. By default, the agent will attempt to detect the cloud 
+# provider or, if that fails, will use trial and error to collect the metadata.
+#
+# Valid options: continue, restart, restart_external
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: TraceContinuationStrategy
+# Default value: CONTINUE
+#
+# trace_continuation_strategy=CONTINUE
 
 ############################################
 # HTTP                                     #
