@@ -38,7 +38,7 @@ import java.util.List;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 
-public abstract class AbstractMongoClientInstrumentationTest extends AbstractInstrumentationTest {
+public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstrumentationTest {
 
     protected static GenericContainer<?> container;
     protected static final String DB_NAME = "testdb";

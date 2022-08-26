@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.mongodb.v4;
 
-import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationTest;
+import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationIT;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCursor;
@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("deprecation")
-public class Mongo4LegacyTest extends AbstractMongoClientInstrumentationTest {
+public class Mongo4LegacyIT extends AbstractMongoClientInstrumentationIT {
 
     private static MongoClient client;
     private static DB db;
