@@ -89,20 +89,12 @@ public class OTelContextStorage implements ContextStorage {
             return null;
         }
 
-        // Ensure that root context is being accessed at least once to capture the original root
-        // OTel 1.0 directly calls ArrayBasedContext.root() which is not publicly accessible, later versions delegate
-        // to ContextStorage.root() which we can't call from here either.
-        Context.root();
-
         // There is an active span, but it does not have the required wrapper, thus we need to wrap + store it for later
         // lookup.
         //
         // note that this will also happen when more than one OTel version (or external plugin) is being used as while
         // being in the same plugin they aren't loaded in the same classloader
 
-        OTelBridgeContext context = OTelBridgeContext.wrapElasticActiveSpan(tracer, currentSpan);
-        currentSpan.storeWrapper(context);
-
-        return context;
+        return OTelBridgeContext.wrapElasticActiveSpan(tracer, currentSpan);
     }
 }

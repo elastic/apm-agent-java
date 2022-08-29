@@ -84,13 +84,22 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
      * Bridges an active elastic span to an active OTel span context
      *
      * @param tracer tracer
-     * @param span   elastic span
-     * @return bridged context
+     * @param span   elastic (currently active) span
+     * @return bridged context with span as active
      */
     public static OTelBridgeContext wrapElasticActiveSpan(ElasticApmTracer tracer, AbstractSpan<?> span) {
-        OTelSpan otelSpan = new OTelSpan(span);
+        if (root == null) {
+            // Ensure that root context is being accessed at least once to capture the original root
+            // OTel 1.0 directly calls ArrayBasedContext.root() which is not publicly accessible, later versions delegate
+            // to ContextStorage.root() which we can't call from here either.
+            Context.root();
+        }
         Objects.requireNonNull(originalRootContext, "OTel original context must be set through bridgeRootContext first");
-        return new OTelBridgeContext(tracer, originalRootContext.with(otelSpan));
+
+        OTelSpan otelSpan = new OTelSpan(span);
+        OTelBridgeContext context = new OTelBridgeContext(tracer, originalRootContext.with(otelSpan));
+        span.storeWrapper(context);
+        return context;
     }
 
     @Override
