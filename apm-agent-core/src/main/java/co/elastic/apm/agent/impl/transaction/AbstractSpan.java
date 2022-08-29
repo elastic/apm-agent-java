@@ -474,6 +474,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         recycleSpanLinks();
         otelKind = null;
         otelAttributes.clear();
+        contextWrappers.clear();
     }
 
     private void recycleSpanLinks() {
@@ -839,6 +840,33 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
             return "custom";
         }
         return type;
+    }
+
+    private final Map<Class<?>, ElasticContext<?>> contextWrappers = new HashMap<>();
+
+    /**
+     * Returns stored reference to an alternate context, if any
+     *
+     * @param wrapperType context type
+     * @param <C>         returned context type
+     * @return alternative context object or {@literal null} if no such alternative context is registered
+     */
+    @Nullable
+    @Override
+    public <C extends ElasticContext<C>> C getWrapper(Class<C> wrapperType) {
+        return (C) contextWrappers.get(wrapperType);
+    }
+
+
+    /**
+     * Stores alternate context reference for later lookup with {@link #getWrapper(Class)}.
+     *
+     * @param contexWrapper     context object
+     * @param <C>         context type
+     */
+    @Override
+    public <C extends ElasticContext<C>> void storeWrapper(C contexWrapper){
+        contextWrappers.put(contexWrapper.getClass(), contexWrapper);
     }
 
 }

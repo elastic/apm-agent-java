@@ -134,6 +134,18 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
         return span != null ? span.getTransaction() : null;
     }
 
+    @Nullable
+    @Override
+    public <C extends ElasticContext<C>> C getWrapper(Class<C> wrapperType) {
+        // currently not supported
+        return null;
+    }
+
+    @Override
+    public <C extends ElasticContext<C>> void storeWrapper(C context) {
+        // currently not supported
+    }
+
     // OTel context implementation
 
     @Nullable

@@ -73,31 +73,36 @@ public class OTelContextStorage implements ContextStorage {
         }
 
         if (current instanceof OTelBridgeContext) {
-            // current context is already OTel compliant, no need to upgrade it
+            // current context has been created with OTel, no need to wrap it
             return (Context) current;
         }
 
-        if (!(current instanceof AbstractSpan)) {
-            throw new IllegalStateException(String.format("unexpected context type to upgrade: %s ( classloader: %s )", current.getClass().getName(), current.getClass().getClassLoader()));
+        OTelBridgeContext wrappedContext = current.getWrapper(OTelBridgeContext.class);
+        if (wrappedContext != null) {
+            // context hasn't been created with (this) OTel, but we already have an alternate representation for it
+            return wrappedContext;
         }
 
-        // At this stage, the currently active span is a "regular elastic span", we need to upgrade and replace it with
-        // a bridged implementation that allows to make "regular elastic span" visible in the OTel context.
-
-        logger.debug("upgrading active context {} to a bridged context", current);
-
-        tracer.deactivate(current);
+        AbstractSpan<?> currentSpan = current.getSpan();
+        if (currentSpan == null) {
+            // OTel context without an active span is not supported yet
+            return null;
+        }
 
         // Ensure that root context is being accessed at least once to capture the original root
         // OTel 1.0 directly calls ArrayBasedContext.root() which is not publicly accessible, later versions delegate
         // to ContextStorage.root() which we can't call from here either.
         Context.root();
 
-        OTelBridgeContext upgradedContext = OTelBridgeContext.wrapElasticActiveSpan(tracer, (AbstractSpan<?>) current);
-        tracer.activate(upgradedContext);
+        // There is an active span, but it does not have the required wrapper, thus we need to wrap + store it for later
+        // lookup.
+        //
+        // note that this will also happen when more than one OTel version (or external plugin) is being used as while
+        // being in the same plugin they aren't loaded in the same classloader
 
-        logger.debug("active context upgraded to {}", upgradedContext);
+        OTelBridgeContext context = OTelBridgeContext.wrapElasticActiveSpan(tracer, currentSpan);
+        currentSpan.storeWrapper(context);
 
-        return upgradedContext;
+        return context;
     }
 }

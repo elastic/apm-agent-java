@@ -65,4 +65,26 @@ public interface ElasticContext<T extends ElasticContext<T>> {
      */
     @Nullable
     Transaction getTransaction();
+
+    /**
+     * Returns stored reference to a wrapper of this context previously set with {@link #storeWrapper(ElasticContext)},
+     * {@literal null} if there is none. The context type argument is used for a strict type lookup and will only return
+     * a non-null value if the argument is the implementation type of the wrapper, class inheritance does not apply.
+     *
+     * @param wrapperType context wrapper implementation type
+     * @param <C>         returned context type
+     * @return wrapped context object or {@literal null} if no such exists.
+     */
+    @Nullable
+    <C extends ElasticContext<C>> C getWrapper(Class<C> wrapperType);
+
+    /**
+     * Stores context wrapper reference for later lookup with {@link #getWrapper(Class)}, the actual type of argument
+     * will be used as key for storage and should thus be used for lookup.
+     *
+     * @param context context object
+     * @param <C>     context type
+     */
+    <C extends ElasticContext<C>> void storeWrapper(C context);
+
 }
