@@ -237,8 +237,7 @@ and <<api-transaction-end, `transaction.end()`>>
 Annotating a method with `@CaptureSpan` creates a span as the child of the currently active span or transaction
 (<<api-current-span>>).
 
-When there is no current span,
-no span will be created.
+When there is no current span or transaction, no span will be created.
 
 * `value`: The name of the span. Defaults to `ClassName#methodName`
 * `type`: The type of the span, e.g. `db` for DB span. Defaults to `app`
@@ -256,8 +255,7 @@ See <<api-span-start-span, `startSpan()`>>, <<api-span-start-span-with-type, `st
 ==== `@Traced`  added[1.11.0]
 Annotating a method with `@Traced` creates a span as the child of the currently active span or transaction.
 
-When there is no current span,
-a transaction will be created instead.
+When there is no current span, a transaction will be created instead.
 
 Use this annotation over <<api-capture-span>> or <<api-capture-transaction>> if a method can both be an entry point (a transaction)
 or a unit of work within a transaction (a span).

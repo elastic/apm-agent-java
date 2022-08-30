@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -91,6 +92,39 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
         Transaction transaction = new Transaction(MockTracer.create());
         servletTransactionHelper.applyDefaultTransactionName(method, path, null, transaction);
         return transaction.getNameAsString();
+    }
+
+    @Test
+    void testServletPathNormalization() {
+        // use servlet path when provided and not empty
+        assertThat(servletTransactionHelper.normalizeServletPath("/ignored/ignored-servlet", "/ignored", "/servlet", null)).isEqualTo("/servlet");
+
+        Stream.of("", null).forEach(
+            servletPath -> {
+                // reconstruct servlet path from URI
+                assertThat(servletTransactionHelper.normalizeServletPath("/context/servlet", "/context", servletPath, null)).isEqualTo("/servlet");
+
+                // reconstruct servlet path from URI with empty/null/root context path
+                assertThat(servletTransactionHelper.normalizeServletPath("/servlet", "", servletPath, null)).isEqualTo("/servlet");
+                assertThat(servletTransactionHelper.normalizeServletPath("/servlet", "/", servletPath, null)).isEqualTo("/servlet");
+                assertThat(servletTransactionHelper.normalizeServletPath("/servlet", null, servletPath, null)).isEqualTo("/servlet");
+
+                // reconstruct servlet path from URI with empty/null/root context path + path info
+                assertThat(servletTransactionHelper.normalizeServletPath("/context/servlet/info", "/context", servletPath, "/info")).isEqualTo("/servlet");
+                assertThat(servletTransactionHelper.normalizeServletPath("/servlet/info", "/", servletPath, "/info")).isEqualTo("/servlet");
+                assertThat(servletTransactionHelper.normalizeServletPath("/servlet/info", null, servletPath, "/info")).isEqualTo("/servlet");
+
+                // limit case where the complete requestURI equals the context path
+                assertThat(servletTransactionHelper.normalizeServletPath("/context/servlet", "/context/servlet", servletPath, null)).isEqualTo("/context/servlet");
+                assertThat(servletTransactionHelper.normalizeServletPath("/context/servlet", "/context/servlet", servletPath, "")).isEqualTo("/context/servlet");
+
+                // limit case where the pathInfo contains the request path, the servlet path should be empty
+                assertThat(servletTransactionHelper.normalizeServletPath("/request/uri", null, servletPath, "/request/uri")).isEqualTo("");
+                assertThat(servletTransactionHelper.normalizeServletPath("/request/uri", "", servletPath, "/request/uri")).isEqualTo("");
+
+            }
+        );
+
     }
 
 }

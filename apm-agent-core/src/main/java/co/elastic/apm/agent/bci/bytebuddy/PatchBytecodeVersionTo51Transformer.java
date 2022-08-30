@@ -35,6 +35,8 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 
+import java.security.ProtectionDomain;
+
 import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 
 /**
@@ -49,7 +51,11 @@ public class PatchBytecodeVersionTo51Transformer implements AgentBuilder.Transfo
     }
 
     @Override
-    public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule) {
+    public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder,
+                                            TypeDescription typeDescription,
+                                            ClassLoader classLoader,
+                                            JavaModule javaModule,
+                                            ProtectionDomain protectionDomain) {
         if (isAtLeastJava7(typeDescription)) {
             // we can avoid the expensive (and somewhat dangerous) stack frame re-computation if stack frames are already
             // present in the bytecode, which also allows eagerly loading types that might be present in the method

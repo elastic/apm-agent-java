@@ -42,7 +42,7 @@ public class S3ClientIT extends AbstractAwsClientIT {
 
     private AmazonS3 s3;
 
-    private Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
+    private final Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
 
     @BeforeEach
     public void setupClient() {

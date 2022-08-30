@@ -51,13 +51,13 @@ abstract class AbstractJobTransactionNameInstrumentationTest extends AbstractIns
     private Scheduler scheduler;
 
     @BeforeEach
-    private void prepare() throws SchedulerException {
+    void prepare() throws SchedulerException {
         scheduler = new StdSchedulerFactory().getScheduler();
         scheduler.start();
     }
 
     @AfterEach
-    private void cleanup() throws SchedulerException {
+    void cleanup() throws SchedulerException {
         scheduler.shutdown();
     }
 

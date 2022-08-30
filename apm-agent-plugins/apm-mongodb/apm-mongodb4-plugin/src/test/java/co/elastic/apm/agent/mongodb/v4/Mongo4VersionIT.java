@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.mongodb.v4;
 
 import co.elastic.apm.agent.TestClassWithDependencyRunner;
-import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationTest;
+import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationIT;
 import co.elastic.apm.agent.util.Version;
 import org.junit.After;
 import org.junit.Test;
@@ -53,8 +53,8 @@ public class Mongo4VersionIT {
         }
 
         runner = new TestClassWithDependencyRunner(dependencies,
-            legacyDriver ? Mongo4LegacyTest.class : Mongo4SyncTest.class,
-            AbstractMongoClientInstrumentationTest.class);
+            legacyDriver ? Mongo4LegacyIT.class : Mongo4SyncIT.class,
+            AbstractMongoClientInstrumentationIT.class);
     }
 
     @Parameterized.Parameters(name = "{0} legacy-driver = {1}")
