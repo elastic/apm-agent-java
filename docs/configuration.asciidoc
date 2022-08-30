@@ -1426,14 +1426,14 @@ Starting with Elastic Observability 8.2, span links are visible in trace views.
 
 This option is case-insensitive.
 
-
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 Valid options: `continue`, `restart`, `restart_external`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `CONTINUE` | TraceContinuationStrategy | false
+| `CONTINUE` | TraceContinuationStrategy | true
 |============
 
 
@@ -3609,7 +3609,7 @@ Example: `5ms`.
 # This option is case-insensitive.
 #
 # Valid options: continue, restart, restart_external
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: TraceContinuationStrategy
 # Default value: CONTINUE
 #
