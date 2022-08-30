@@ -747,6 +747,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "internal and will be handled as described for 'continue' above. Otherwise, any `traceparent` is considered external and will be handled as described for 'restart' above.\n\n" +
             "Starting with Elastic Observability 8.2, span links are visible in trace views.\n\n" +
             "This option is case-insensitive.")
+        .dynamic(true)
         .buildWithDefault(TraceContinuationStrategy.CONTINUE);
 
     public boolean isEnabled() {
