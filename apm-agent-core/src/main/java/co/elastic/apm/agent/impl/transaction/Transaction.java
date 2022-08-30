@@ -141,8 +141,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (!startedAsChild) {
             traceContext.asRootSpan(sampler);
         } else {
-            CoreConfiguration.TraceContinuationStrategy traceContinuationStrategy =
-                tracer.getConfig(CoreConfiguration.class).getTraceContinuationStrategy();
+            CoreConfiguration.TraceContinuationStrategy traceContinuationStrategy =                 coreConfig.getTraceContinuationStrategy();
 
             if (traceContinuationStrategy.equals(RESTART) ||
                 (
