@@ -146,7 +146,7 @@ public class Transaction extends AbstractSpan<Transaction> {
             if (traceContinuationStrategy.equals(RESTART) ||
                 (
                     traceContinuationStrategy.equals(RESTART_EXTERNAL) &&
-                        !traceContext.getTraceState().includesVendor()
+                        !traceContext.getTraceState().includesElasticVendor()
                 )
             ) {
                 //Add a span link to the parent

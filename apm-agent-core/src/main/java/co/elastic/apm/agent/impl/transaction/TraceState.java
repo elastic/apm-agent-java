@@ -305,7 +305,7 @@ public class TraceState implements Recyclable {
         }
     }
 
-    public boolean includesVendor(){
+    public boolean includesElasticVendor(){
         for (String tracestate: getTracestate()) {
             if (tracestate.startsWith(VENDOR_PREFIX)) {
                 return true;
