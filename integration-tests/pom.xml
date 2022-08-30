@@ -23,6 +23,7 @@
         <module>cdi-app</module>
         <module>cdi-jakartaee-app</module>
         <module>external-plugin-test</module>
+        <module>external-plugin-otel-test</module>
         <module>runtime-attach</module>
         <module>jakartaee-jsf-app</module>
         <module>main-app-test</module>
