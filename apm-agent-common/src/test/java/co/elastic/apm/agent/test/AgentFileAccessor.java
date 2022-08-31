@@ -24,6 +24,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 
 /**
  * Provides access to packaged agent artifacts
@@ -52,24 +53,24 @@ public class AgentFileAccessor {
     }
 
     static Path getProjectRoot() {
-        URL location = AgentFileAccessor.class.getProtectionDomain().getCodeSource().getLocation();
 
-        Path path;
-        try {
-            // get path through URI is required on Windows because raw path starts with drive letter '/C:/'
-            path = Paths.get(location.toURI());
-        } catch (URISyntaxException e) {
-            throw new IllegalStateException(e);
+        // We have to rely on the current directory, which means this method will only work when called from within
+        // code that is run from within a project subfolder. As this common code will be packaged in a jar, we can't
+        // resolve using the actual jar location using 'getProtectionDomain().getCodeSource().getLocation()' as it will
+        // be the maven repository when run from command line, unlike the IDE that will resolve it to the built artifact
+        // in the 'target' folder
+        Path current = Paths.get(".").toAbsolutePath();
+        boolean found = false;
+        while (!found && current != null) {
+            found = Files.exists(current.resolve("pom.xml"))
+                && Files.isDirectory(current.resolve("docs"));
+            if (!found) {
+                current = current.getParent();
+            }
         }
 
-        switch (location.getProtocol()) {
-            // direct file access when this class is not packaged in a jar
-            case "file":
-                return path.getParent().getParent().getParent();
-            default:
-                throw new IllegalStateException("unknown location protocol");
-        }
-
+        Objects.requireNonNull(current);
+        return current;
     }
 
     public static Path getArtifactPath(Path modulePath, String artifactSuffix, String extension) {
