@@ -75,6 +75,7 @@ public interface ServletRequestAdapter<HttpServletRequest, ServletContext> {
     @Nullable
     String getServletPath(HttpServletRequest servletRequest);
 
+    @Nullable
     String getPathInfo(HttpServletRequest servletRequest);
 
     Object getIncludeServletPathAttribute(HttpServletRequest servletRequest);
