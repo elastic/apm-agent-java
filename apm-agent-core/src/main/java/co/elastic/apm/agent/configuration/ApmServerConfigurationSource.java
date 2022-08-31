@@ -36,14 +36,21 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ApmServerConfigurationSource extends AbstractConfigurationSource implements LifecycleListener {
+
+    // log correlation is enabled by default in Java agent, thus removing it from warnings
+    private static final Set<String> IGNORED_REMOTE_KEYS = Collections.singleton("enable_log_correlation");
+
     private static final int SC_OK = 200;
     private static final int SC_NOT_MODIFIED = 304;
     private static final int SC_FORBIDDEN = 403;
@@ -194,7 +201,9 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
                 logger.info("Received new configuration from APM Server: {}", config);
                 for (Map.Entry<String, String> entry : config.entrySet()) {
                     ConfigurationOption<?> conf = configurationRegistry.getConfigurationOptionByKey(entry.getKey());
-                    if (conf == null) {
+                    if (IGNORED_REMOTE_KEYS.contains(entry.getKey())) {
+                        logger.debug("Received ignored remote configuration key {}", entry.getKey());
+                    } else if (conf == null) {
                         logger.warn("Received unknown remote configuration key {}", entry.getKey());
                     } else if (!conf.isDynamic()) {
                         logger.warn("Can't apply remote configuration {} as this option is not dynamic (aka. reloadable)", entry.getKey());
