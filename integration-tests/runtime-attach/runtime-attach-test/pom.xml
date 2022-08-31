@@ -33,6 +33,14 @@
             <artifactId>awaitility</artifactId>
             <version>4.2.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-agent-common</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+        </dependency>
+
     </dependencies>
 
 </project>

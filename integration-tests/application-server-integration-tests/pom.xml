@@ -162,7 +162,12 @@
             <version>1.12.1</version>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-agent-common</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+        </dependency>
 
         <!--
         uncomment to debug payara 5.182 sources
