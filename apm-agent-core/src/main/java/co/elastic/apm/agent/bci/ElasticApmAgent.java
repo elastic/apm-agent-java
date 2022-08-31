@@ -694,6 +694,7 @@ public class ElasticApmAgent {
             .or(nameStartsWith("com.dynatrace."))
             // AppDynamics
             .or(nameStartsWith("com.singularity."))
+            .or(nameStartsWith("com.appdynamics."))
             .or(nameStartsWith("com.instana."))
             .or(nameStartsWith("datadog."))
             .or(nameStartsWith("org.glowroot."))
