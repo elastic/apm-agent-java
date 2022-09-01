@@ -74,7 +74,6 @@ import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.nio.file.Paths;
-import java.security.AllPermission;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -89,6 +88,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
+import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithNamePrefix;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.anyMatch;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
@@ -208,7 +208,6 @@ public class ElasticApmAgent {
         }
         return result;
     }
-
 
 
     public static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
@@ -535,7 +534,7 @@ public class ElasticApmAgent {
         }
     }
 
-    private static void checkInline(MethodDescription.InDefinedShape advice, String adviceClassName, boolean isInline){
+    private static void checkInline(MethodDescription.InDefinedShape advice, String adviceClassName, boolean isInline) {
         if (isInline) {
             throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, advice.getName()));
         } else if (!Modifier.isPublic(advice.getModifiers())) {
@@ -690,12 +689,16 @@ public class ElasticApmAgent {
             .or(nameStartsWith("com.p6spy."))
             .or(nameStartsWith("net.bytebuddy."))
             .or(nameStartsWith("org.stagemonitor."))
+            .or(any(), classLoaderWithNamePrefix("com.newrelic."))
             .or(nameStartsWith("com.newrelic."))
             .or(nameStartsWith("com.dynatrace."))
             // AppDynamics
+            .or(any(), classLoaderWithNamePrefix("com.singularity"))
             .or(nameStartsWith("com.singularity."))
+            .or(any(), classLoaderWithNamePrefix("com.appdynamics."))
             .or(nameStartsWith("com.appdynamics."))
             .or(nameStartsWith("com.instana."))
+            .or(any(), classLoaderWithNamePrefix("datadog."))
             .or(nameStartsWith("datadog."))
             .or(nameStartsWith("org.glowroot."))
             .or(nameStartsWith("com.compuware."))
@@ -737,7 +740,7 @@ public class ElasticApmAgent {
      * that is specific to the provided class to instrument.
      * </p>
      *
-     * @param classToInstrument the class which should be instrumented
+     * @param classToInstrument      the class which should be instrumented
      * @param instrumentationClasses the instrumentation which should be applied to the class to instrument.
      */
     public static void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses) {
@@ -870,6 +873,7 @@ public class ElasticApmAgent {
     /**
      * Returns the class loader that loaded the instrumentation class corresponding the given advice class.
      * We expect to be able to find the advice class file through this class loader.
+     *
      * @param adviceClass name of the advice class
      * @return class loader that can be used for the advice class file lookup
      */
