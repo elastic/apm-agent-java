@@ -46,6 +46,7 @@ version of classes that are available also in the parent (bootstrap) class loade
 * Fix empty servlet path with proper fallback - {pull}2748[#2748]
 * Fix 'ClosedByInterruptException` during indy bootstrap method resolution - {pull}2752[#2752]
 * Enhance exclusion of other APM agents - {pull}2766[#2766]
+* Avoid warning when log correlation option is provided in remote config - {pull}2765[#2765]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
