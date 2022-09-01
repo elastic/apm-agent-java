@@ -44,6 +44,7 @@ version of classes that are available also in the parent (bootstrap) class loade
 * Fix stack frame exclusion patterns - {pull}2758[#2758]
 * Fix `NullPointerException` with compressed spans - {pull}2755[#2755]
 * Fix empty servlet path with proper fallback - {pull}2748[#2748]
+* Avoid warning when log correlation option is provided in remote config - {pull}2765[#2765]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
