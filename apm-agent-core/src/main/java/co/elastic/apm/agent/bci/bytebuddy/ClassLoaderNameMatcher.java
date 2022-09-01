@@ -18,27 +18,40 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.matcher.NameMatcher;
+import net.bytebuddy.matcher.StringMatcher;
 
-public class ClassLoaderNameMatcher extends ElementMatcher.Junction.AbstractBase<ClassLoader> {
+import javax.annotation.Nullable;
 
-    private final String name;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 
-    private ClassLoaderNameMatcher(String name) {
-        this.name = name;
+public abstract class ClassLoaderNameMatcher {
+
+    public static ElementMatcher.Junction<ClassLoader> classLoaderWithName(final String name) {
+        return new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
+            @Override
+            public boolean matches(ClassLoader target) {
+                return target != null && target.getClass().getName().equals(name);
+            }
+        };
     }
 
-    public static ElementMatcher.Junction<ClassLoader> classLoaderWithName(String name) {
-        return new ClassLoaderNameMatcher(name);
+    public static ElementMatcher.Junction<ClassLoader> classLoaderWithNamePrefix(final String name) {
+        return new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
+            @Override
+            public boolean matches(ClassLoader target) {
+                return target != null && target.getClass().getName().startsWith(name);
+            }
+        };
     }
+
+
 
     public static ElementMatcher.Junction<ClassLoader> isReflectionClassLoader() {
         return classLoaderWithName("sun.reflect.DelegatingClassLoader")
             .or(classLoaderWithName("jdk.internal.reflect.DelegatingClassLoader"));
     }
 
-	  @Override
-	  public boolean matches(ClassLoader target) {
-	      return target != null && name.equals(target.getClass().getName());
-	  }
 }
