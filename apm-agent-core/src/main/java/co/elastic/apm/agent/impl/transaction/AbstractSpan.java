@@ -28,6 +28,8 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.LoggerUtils;
 
 import javax.annotation.Nullable;
@@ -128,8 +130,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     private final Map<String, Object> otelAttributes = new HashMap<>();
 
-    // TODO properly size to limit allocation
-    private final Map<Class<?>, ElasticContext<?>> contextWrappers = new HashMap<>();
+    private final WeakMap<Class<?>, ElasticContext<?>> contextWrappers;
 
     public int getReferenceCount() {
         return references.get();
@@ -214,12 +215,27 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         }
     }
 
+    private static int approximateContextSize = -1;
+
     public AbstractSpan(ElasticApmTracer tracer) {
         this.tracer = tracer;
         traceContext = TraceContext.with64BitId(this.tracer);
         boolean selfTimeCollectionEnabled = !WildcardMatcher.isAnyMatch(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics(), "span.self_time");
-        boolean breakdownMetricsEnabled = tracer.getConfig(CoreConfiguration.class).isBreakdownMetricsEnabled();
+        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
+        boolean breakdownMetricsEnabled = coreConfig.isBreakdownMetricsEnabled();
         collectBreakdownMetrics = selfTimeCollectionEnabled && breakdownMetricsEnabled;
+
+        if (approximateContextSize < 0) {
+            // will list files, thus try to call it only once
+            // we estimate the number of wrappers to be equal to the number of copies of OTel APIs that are loaded
+            // in distinct classloaders, thus roughly equal to 1 for the internal bridge + 1 per external plugin
+            approximateContextSize = coreConfig.getExternalPluginsCount() + 1;
+        }
+
+        contextWrappers = WeakConcurrent.<Class<?>, ElasticContext<?>>weakMapBuilder()
+            .withInitialCapacity(approximateContextSize)
+            .build();
+
     }
 
     public boolean isReferenced() {
