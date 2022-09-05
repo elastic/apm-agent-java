@@ -43,6 +43,8 @@ class ShadedClassLoaderTest {
 
     @AfterEach
     void cleanup() throws IOException {
+        // If classloader isn't properly closed it will make tests fail on Windows as the temporary folder
+        // can't be deleted, unlike on Linux/MacOS where files can be deleted from filesystem even if they are in use.
         if (cl != null) {
             cl.close();
         }
