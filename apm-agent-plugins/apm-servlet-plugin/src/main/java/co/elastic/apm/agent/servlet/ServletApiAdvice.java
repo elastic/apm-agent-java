@@ -37,6 +37,7 @@ import co.elastic.apm.agent.util.TransactionNameUtils;
 import javax.annotation.Nullable;
 import java.security.Principal;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
@@ -192,8 +193,11 @@ public abstract class ServletApiAdvice {
             Transaction currentTransaction = tracer.currentTransaction();
             if (currentTransaction != null) {
                 TransactionNameUtils.setTransactionNameByServletClass(adapter.getMethod(httpServletRequest), thiz.getClass(), currentTransaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));
-                final Principal userPrincipal = adapter.getUserPrincipal(httpServletRequest);
-                ServletTransactionHelper.setUsernameIfUnset(userPrincipal != null ? userPrincipal.getName() : null, currentTransaction.getContext());
+
+                String userName = getUserFromPrincipal(adapter.getUserPrincipal(httpServletRequest));
+                if(userName != null){
+                    ServletTransactionHelper.setUsernameIfUnset(userName, currentTransaction.getContext());
+                }
             }
         }
         if (transaction != null &&
@@ -277,5 +281,48 @@ public abstract class ServletApiAdvice {
         } else {
             return !first.equals(second);
         }
+    }
+
+    @Nullable
+    private static String getUserFromPrincipal(@Nullable Principal principal){
+        if (principal == null) {
+            return null;
+        }
+
+        String userName = principal.getName();
+        if (userName != null) {
+            return userName;
+        }
+
+        if (principal instanceof Map) {
+            // Microsoft/Azure SSO fallback
+            // https://docs.microsoft.com/en-us/azure/active-directory/develop/access-tokens
+
+            Map<?, ?> map = ((Map<?, ?>) principal);
+
+            userName = getMsEntry(map, "preferred_username");
+            if (userName == null) {
+                userName = getMsEntry(map, "name");
+            }
+        }
+
+        return userName;
+    }
+
+    @Nullable
+    private static String getMsEntry(Map<?,?> map, String key){
+        Object entry = map.get(key);
+        if (entry instanceof Collection) {
+            for (Object v : (Collection<?>) entry) {
+                if (v instanceof String) {
+                    return (String) v;
+                }
+            }
+        }
+
+        if (entry instanceof String) {
+            return ((String) entry);
+        }
+        return null;
     }
 }
