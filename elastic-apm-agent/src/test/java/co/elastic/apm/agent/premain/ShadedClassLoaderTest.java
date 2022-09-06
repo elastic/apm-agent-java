@@ -18,14 +18,17 @@
  */
 package co.elastic.apm.agent.premain;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URLClassLoader;
 import java.util.List;
+import java.util.Objects;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
@@ -36,20 +39,30 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ShadedClassLoaderTest {
 
+    @Nullable
+    private ShadedClassLoader cl = null;
+
+    @AfterEach
+    void cleanup() throws IOException {
+        // If classloader isn't properly closed it will make tests fail on Windows as the temporary folder
+        // can't be deleted, unlike on Linux/MacOS where files can be deleted from filesystem even if they are in use.
+        Objects.requireNonNull(cl, "something is wrong classloader should be set");
+        cl.close();
+    }
+
     @Test
     void testLoadShadedClass(@TempDir File tmp) throws Exception {
         File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "agent/", SHADED_CLASS_EXTENSION);
-        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/");
+        cl = new ShadedClassLoader(jar, null, "agent/");
         Class<?> clazz = cl.loadClass(ShadedClassLoaderTest.class.getName());
         assertThat(clazz).isNotNull();
         assertThat(clazz).isNotSameAs(ShadedClassLoaderTest.class);
-        ((URLClassLoader) cl).close();
     }
 
     @Test
     void testLoadClassFromChildFirst(@TempDir File tmp) throws Exception {
         File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "agent/", SHADED_CLASS_EXTENSION);
-        ClassLoader cl = new ShadedClassLoader(jar, ShadedClassLoaderTest.class.getClassLoader(), "agent/");
+        cl = new ShadedClassLoader(jar, ShadedClassLoaderTest.class.getClassLoader(), "agent/");
         Class<?> clazz = cl.loadClass(ShadedClassLoaderTest.class.getName());
         assertThat(clazz).isNotNull();
         assertThat(clazz).isNotSameAs(ShadedClassLoaderTest.class);
@@ -59,16 +72,15 @@ class ShadedClassLoaderTest {
     @Test
     void testCannotLoadNonShadedClass(@TempDir File tmp) throws Exception {
         File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "", ".class");
-        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/");
+        cl = new ShadedClassLoader(jar, null, "agent/");
         assertThatThrownBy(() -> cl.loadClass(ShadedClassLoaderTest.class.getName()))
             .isInstanceOf(ClassNotFoundException.class);
-        ((URLClassLoader) cl).close();
     }
 
     @Test
     void testGetShadedResource(@TempDir File tmp) throws Exception {
         File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "agent/", ".resource");
-        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/");
+        cl = new ShadedClassLoader(jar, null, "agent/");
         byte[] expected = ClassLoader.getSystemClassLoader().getResourceAsStream(ShadedClassLoaderTest.class.getName().replace('.', '/') + ".class").readAllBytes();
         String resourceName = ShadedClassLoaderTest.class.getName().replace('.', '/') + ".resource";
 
@@ -77,23 +89,21 @@ class ShadedClassLoaderTest {
         assertThat(cl.getResource(resourceName).openStream().readAllBytes()).isEqualTo(expected);
         assertThat(cl.getResources(resourceName).hasMoreElements()).isTrue();
         assertThat(cl.getResources(resourceName).nextElement().openStream().readAllBytes()).isEqualTo(expected);
-        ((URLClassLoader) cl).close();
     }
 
     @Test
     void testCannotGetNonShadedResource(@TempDir File tmp) throws Exception {
         File jar = createJar(tmp, List.of(ShadedClassLoaderTest.class), "", ".resource");
-        ClassLoader cl = new ShadedClassLoader(jar, null, "agent/");
+        cl = new ShadedClassLoader(jar, null, "agent/");
         String resourceName = ShadedClassLoaderTest.class.getName().replace('.', '/') + ".resource";
 
         assertThat(cl.getResourceAsStream(resourceName)).isNull();
-        ((URLClassLoader) cl).close();
     }
 
     @Test
     void testGetParentResource(@TempDir File tmp) throws Exception {
         File jar = createEmptyJar(tmp);
-        ClassLoader cl = new ShadedClassLoader(jar, ShadedClassLoaderTest.class.getClassLoader(), "agent/");
+        cl = new ShadedClassLoader(jar, ShadedClassLoaderTest.class.getClassLoader(), "agent/");
         String resourceName = ShadedClassLoaderTest.class.getName().replace('.', '/') + ".class";
         byte[] expected = ShadedClassLoaderTest.class.getClassLoader().getResourceAsStream(resourceName).readAllBytes();
 
