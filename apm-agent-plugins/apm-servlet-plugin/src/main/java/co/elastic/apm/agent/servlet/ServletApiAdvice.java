@@ -310,20 +310,18 @@ public abstract class ServletApiAdvice {
     }
 
     @Nullable
-    private static String getFirstClaim(Map<?,?> map, String key){
+    private static String getFirstClaim(Map<?, ?> map, String key) {
         // entries are stored in nested collection, even when there is a single entry
         // https://docs.microsoft.com/en-us/azure/app-service/configure-language-java?pivots=platform-linux#tomcat-1
         Object entry = map.get(key);
         if (entry instanceof Collection) {
             for (Object v : (Collection<?>) entry) {
-                if (v instanceof String) {
-                    return (String) v;
+                if (v != null) {
+                    return v.toString();
                 }
             }
-        }
-
-        if (entry instanceof String) {
-            return ((String) entry);
+        } else if (entry != null) {
+            return entry.toString();
         }
         return null;
     }
