@@ -28,6 +28,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URLClassLoader;
 import java.util.List;
+import java.util.Objects;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
@@ -45,9 +46,8 @@ class ShadedClassLoaderTest {
     void cleanup() throws IOException {
         // If classloader isn't properly closed it will make tests fail on Windows as the temporary folder
         // can't be deleted, unlike on Linux/MacOS where files can be deleted from filesystem even if they are in use.
-        if (cl != null) {
-            cl.close();
-        }
+        Objects.requireNonNull(cl, "something is wrong classloader should be set");
+        cl.close();
     }
 
     @Test
