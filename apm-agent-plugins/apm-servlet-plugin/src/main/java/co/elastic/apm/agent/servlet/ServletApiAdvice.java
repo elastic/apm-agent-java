@@ -37,7 +37,6 @@ import co.elastic.apm.agent.util.TransactionNameUtils;
 import javax.annotation.Nullable;
 import java.security.Principal;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
@@ -195,7 +194,7 @@ public abstract class ServletApiAdvice {
                 TransactionNameUtils.setTransactionNameByServletClass(adapter.getMethod(httpServletRequest), thiz.getClass(), currentTransaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));
 
                 String userName = getUserFromPrincipal(adapter.getUserPrincipal(httpServletRequest));
-                if(userName != null){
+                if (userName != null) {
                     ServletTransactionHelper.setUsernameIfUnset(userName, currentTransaction.getContext());
                 }
             }
@@ -284,16 +283,12 @@ public abstract class ServletApiAdvice {
     }
 
     @Nullable
-    private static String getUserFromPrincipal(@Nullable Principal principal){
+    private static String getUserFromPrincipal(@Nullable Principal principal) {
         if (principal == null) {
             return null;
         }
 
-        String userName = principal.getName();
-        if (userName != null) {
-            return userName;
-        }
-
+        String userName;
         if (principal instanceof Map) {
             // Microsoft/Azure SSO fallback
             // https://docs.microsoft.com/en-us/azure/active-directory/develop/access-tokens
@@ -304,6 +299,8 @@ public abstract class ServletApiAdvice {
             if (userName == null) {
                 userName = getFirstClaim(map, "name");
             }
+        } else {
+            userName = principal.getName();
         }
 
         return userName;
@@ -314,14 +311,11 @@ public abstract class ServletApiAdvice {
         // entries are stored in nested collection, even when there is a single entry
         // https://docs.microsoft.com/en-us/azure/app-service/configure-language-java?pivots=platform-linux#tomcat-1
         Object entry = map.get(key);
-        if (entry instanceof Collection) {
-            for (Object v : (Collection<?>) entry) {
-                if (v != null) {
-                    return v.toString();
-                }
+        if (entry instanceof List) {
+            Object first = ((List<?>) entry).get(0);
+            if (first instanceof String) {
+                return (String) first;
             }
-        } else if (entry != null) {
-            return entry.toString();
         }
         return null;
     }
