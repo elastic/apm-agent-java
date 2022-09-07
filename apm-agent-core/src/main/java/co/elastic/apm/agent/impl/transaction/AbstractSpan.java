@@ -390,15 +390,19 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     /**
      * Adds a span link based on the tracecontext header retrieved from the provided {@code carrier} through the provided {@code
      * headerGetter}.
+     *
      * @param childContextCreator the proper tracecontext inference implementation, corresponding on the header and types
-     * @param headerGetter the proper header extractor, corresponding the header and carrier types
-     * @param carrier the object from which the tracecontext header is to be retrieved
-     * @param <H> the tracecontext header type - either binary ({@code byte[]}) or textual ({@code String})
-     * @param <C> the tracecontext header carrier type, e.g. Kafka record or JMS message
+     * @param headerGetter        the proper header extractor, corresponding the header and carrier types
+     * @param carrier             the object from which the tracecontext header is to be retrieved
+     * @param <H>                 the tracecontext header type - either binary ({@code byte[]}) or textual ({@code String})
+     * @param <C>                 the tracecontext header carrier type, e.g. Kafka record or JMS message
      * @return {@code true} if added, {@code false} otherwise
      */
-    public <H, C> boolean addSpanLink(TraceContext.ChildContextCreatorTwoArg<C, HeaderGetter<H, C>> childContextCreator,
-                                    HeaderGetter<H, C> headerGetter, @Nullable C carrier) {
+    public <H, C> boolean addSpanLink(
+        TraceContext.HeaderChildContextCreator<H, C> childContextCreator,
+        HeaderGetter<H, C> headerGetter,
+        @Nullable C carrier
+    ) {
         if (!canAddSpanLink()) {
             return false;
         }

@@ -35,8 +35,10 @@ import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 
 import javax.annotation.Nullable;
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -135,6 +137,47 @@ public class ServletTransactionHelper {
                 }
             }
         }
+    }
+
+    @Nullable
+    public static String getUserFromPrincipal(@Nullable Principal principal) {
+        if (principal == null) {
+            return null;
+        }
+
+        String userName;
+        if (principal instanceof Map) {
+            // Microsoft/Azure SSO fallback
+            // https://docs.microsoft.com/en-us/azure/active-directory/develop/access-tokens
+
+            Map<?, ?> map = ((Map<?, ?>) principal);
+
+            userName = getFirstClaim(map, "preferred_username");
+            if (userName == null) {
+                userName = getFirstClaim(map, "name");
+            }
+        } else {
+            userName = principal.getName();
+        }
+
+        return userName;
+    }
+
+    @Nullable
+    private static String getFirstClaim(Map<?, ?> map, String key) {
+        // entries are stored in nested collection, even when there is a single entry
+        // https://docs.microsoft.com/en-us/azure/app-service/configure-language-java?pivots=platform-linux#tomcat-1
+        Object entry = map.get(key);
+        if (entry instanceof List) {
+            List<?> list = (List<?>) entry;
+            if (!list.isEmpty()) {
+                Object first = ((List<?>) entry).get(0);
+                if (first != null) {
+                    return first.toString();
+                }
+            }
+        }
+        return null;
     }
 
     public static void setUsernameIfUnset(@Nullable String userName, TransactionContext context) {
