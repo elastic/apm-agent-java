@@ -100,7 +100,7 @@ class SpanTest {
     void normalizeType(String type, String expectedType) {
 
         Transaction transaction = new Transaction(tracer);
-        transaction.start(TraceContext.asRoot(), null, 0, ConstantSampler.of(true));
+        transaction.startRoot(0, ConstantSampler.of(true));
         try {
             Span span = new Span(tracer);
             span.start(TraceContext.fromParent(), transaction, -1L);

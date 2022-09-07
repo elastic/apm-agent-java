@@ -182,7 +182,7 @@ public class ElasticApmTracer implements Tracer {
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;
         if (isRunning()) {
-            transaction = createTransaction().start(TraceContext.asRoot(), null, epochMicros, sampler);
+            transaction = createTransaction().startRoot(epochMicros, sampler);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
         return transaction;
