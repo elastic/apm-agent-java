@@ -40,6 +40,7 @@ import java.util.stream.Stream;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -141,21 +142,44 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
 
         Principal noNamePrincipal = mock(Principal.class);
         assertThat(ServletTransactionHelper.getUserFromPrincipal(noNamePrincipal)).isNull();
+
+        Principal principalWithName = mock(Principal.class);
+        doReturn("bob").when(principalWithName).getName();
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(principalWithName)).isEqualTo("bob");
     }
 
     @Test
     void testGetUserFromPrincipal_azureSSO() {
-        assertThat(ServletTransactionHelper.getUserFromPrincipal(new AzurePrincipal(Collections.emptyMap()))).isNull();
 
+        AzurePrincipal principal = new AzurePrincipal();
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(principal)).isNull();
+
+        principal = new AzurePrincipal();
+        principal.put("name", Collections.singletonList("bob"));
         assertThat(ServletTransactionHelper.getUserFromPrincipal(
-            new AzurePrincipal(Map.of("name","bob"))))
+            principal))
             .isEqualTo("bob");
 
-        assertThat(ServletTransactionHelper.getUserFromPrincipal(new AzurePrincipal(Map.of("preferred_username","joe"))))
+        principal = new AzurePrincipal();
+        principal.put("preferred_username", Collections.singletonList("joe"));
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(principal))
             .isEqualTo("joe");
 
-        assertThat(ServletTransactionHelper.getUserFromPrincipal(new AzurePrincipal(Map.of("preferred_username","joe", "name", "bob"))))
+        principal = new AzurePrincipal();
+        principal.put("preferred_username", Collections.singletonList("joe"));
+        principal.put("name", Collections.singletonList("bob"));
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(principal))
+            .describedAs("preferred_username has priority over name")
             .isEqualTo("joe");
+
+
+        // defensively guard against empty claim collection
+        principal = new AzurePrincipal();
+        principal.put("name", Collections.singletonList("joe"));
+        principal.put("preferred_username", Collections.emptyList());
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(principal))
+            .isEqualTo("joe");
+
     }
 
     /**
@@ -163,21 +187,11 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
      */
     private static final class AzurePrincipal extends HashMap<String, Collection<String>> implements Principal {
 
-        AzurePrincipal(Map<String, String> claims) {
-            for (Entry<String, String> entry : claims.entrySet()) {
-                put(entry.getKey(), Collections.singletonList(entry.getValue()));
-            }
-        }
-
         @Override
         public String getName() {
             return "";
         }
 
-        @Override
-        public boolean implies(Subject subject) {
-            return Principal.super.implies(subject);
-        }
     }
 
 }

@@ -169,9 +169,12 @@ public class ServletTransactionHelper {
         // https://docs.microsoft.com/en-us/azure/app-service/configure-language-java?pivots=platform-linux#tomcat-1
         Object entry = map.get(key);
         if (entry instanceof List) {
-            Object first = ((List<?>) entry).get(0);
-            if (first instanceof String) {
-                return (String) first;
+            List<?> list = (List<?>) entry;
+            if (!list.isEmpty()) {
+                Object first = ((List<?>) entry).get(0);
+                if (first != null) {
+                    return first.toString();
+                }
             }
         }
         return null;
