@@ -28,11 +28,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
+import javax.security.auth.Subject;
+import java.security.Principal;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ServletTransactionHelperTest extends AbstractInstrumentationTest {
@@ -124,6 +133,64 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
 
             }
         );
+
+    }
+
+    @Test
+    void testGetUserFromPrincipal() {
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(null)).isNull();
+
+        Principal noNamePrincipal = mock(Principal.class);
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(noNamePrincipal)).isNull();
+
+        Principal principalWithName = mock(Principal.class);
+        doReturn("bob").when(principalWithName).getName();
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(principalWithName)).isEqualTo("bob");
+    }
+
+    @Test
+    void testGetUserFromPrincipal_azureSSO() {
+
+        AzurePrincipal principal = new AzurePrincipal();
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(principal)).isNull();
+
+        principal = new AzurePrincipal();
+        principal.put("name", Collections.singletonList("bob"));
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(
+            principal))
+            .isEqualTo("bob");
+
+        principal = new AzurePrincipal();
+        principal.put("preferred_username", Collections.singletonList("joe"));
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(principal))
+            .isEqualTo("joe");
+
+        principal = new AzurePrincipal();
+        principal.put("preferred_username", Collections.singletonList("joe"));
+        principal.put("name", Collections.singletonList("bob"));
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(principal))
+            .describedAs("preferred_username has priority over name")
+            .isEqualTo("joe");
+
+
+        // defensively guard against empty claim collection
+        principal = new AzurePrincipal();
+        principal.put("name", Collections.singletonList("joe"));
+        principal.put("preferred_username", Collections.emptyList());
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(principal))
+            .isEqualTo("joe");
+
+    }
+
+    /**
+     * Mockup of Azure SSO principal which is also a Map and does return an empty name
+     */
+    private static final class AzurePrincipal extends HashMap<String, Collection<String>> implements Principal {
+
+        @Override
+        public String getName() {
+            return "";
+        }
 
     }
 
