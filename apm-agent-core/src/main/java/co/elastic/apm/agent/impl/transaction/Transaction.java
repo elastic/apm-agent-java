@@ -30,6 +30,7 @@ import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
 import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
+import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.HdrHistogram.WriterReaderPhaser;
 
 import javax.annotation.Nullable;
@@ -120,43 +121,42 @@ public class Transaction extends AbstractSpan<Transaction> {
         spanConfig = tracer.getConfig(SpanConfiguration.class);
     }
 
-    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros, Sampler sampler) {
-        boolean startedAsChild = parent != null && childContextCreator.asChildOf(traceContext, parent);
-        onTransactionStart(startedAsChild, epochMicros, sampler);
+    public <T> Transaction startRoot(long epochMicros, Sampler sampler) {
+        traceContext.asRootSpan(sampler);
+        onTransactionStart(epochMicros, sampler);
         return this;
     }
 
     public <T, A> Transaction start(TraceContext.ChildContextCreatorTwoArg<T, A> childContextCreator, @Nullable T parent, A arg, long epochMicros, Sampler sampler) {
-        boolean startedAsChild = childContextCreator.asChildOf(traceContext, parent, arg);
-        onTransactionStart(startedAsChild, epochMicros, sampler);
+        CoreConfiguration.TraceContinuationStrategy traceContinuationStrategy = coreConfig.getTraceContinuationStrategy();
+        boolean startAsRoot = traceContinuationStrategy.equals(RESTART);
+        if (!startAsRoot) {
+            if (traceContinuationStrategy.equals(RESTART_EXTERNAL) && arg instanceof TextHeaderGetter) {
+                startAsRoot = !TraceState.includesElasticVendor((TextHeaderGetter) arg, parent);
+            }
+        }
+        if (startAsRoot && arg instanceof HeaderGetter) {
+            //need to add a span link
+            TraceContext.ChildContextCreatorTwoArg<T, HeaderGetter<A, T>> creator =
+                (TraceContext.ChildContextCreatorTwoArg<T, HeaderGetter<A, T>>) childContextCreator;
+            addSpanLink(creator, (HeaderGetter) arg, parent);
+        } else {
+            startAsRoot = !childContextCreator.asChildOf(traceContext, parent, arg);
+        }
+
+        if (startAsRoot) {
+            traceContext.asRootSpan(sampler);
+        }
+        onTransactionStart(epochMicros, sampler);
         return this;
     }
 
-    private void onTransactionStart(boolean startedAsChild, long epochMicros, Sampler sampler) {
+    private void onTransactionStart(long epochMicros, Sampler sampler) {
         maxSpans = coreConfig.getTransactionMaxSpans();
         spanCompressionEnabled = spanConfig.isSpanCompressionEnabled();
         spanCompressionExactMatchMaxDurationUs = spanConfig.getSpanCompressionExactMatchMaxDuration().getMicros();
         spanCompressionSameKindMaxDurationUs = spanConfig.getSpanCompressionSameKindMaxDuration().getMicros();
 
-        if (!startedAsChild) {
-            traceContext.asRootSpan(sampler);
-        } else {
-            CoreConfiguration.TraceContinuationStrategy traceContinuationStrategy =                 coreConfig.getTraceContinuationStrategy();
-
-            if (traceContinuationStrategy.equals(RESTART) ||
-                (
-                    traceContinuationStrategy.equals(RESTART_EXTERNAL) &&
-                        !traceContext.getTraceState().includesElasticVendor()
-                )
-            ) {
-                //Add a span link to the parent
-                addSpanLink(TraceContext.fromParentContext(), traceContext.copy().setIdToParentId());
-                //Need to reset the state before making it root because root is expecting no samplerate nor parent ID
-                traceContext.resetState();
-                traceContext.asRootSpan(sampler);
-            }
-
-        }
         if (epochMicros >= 0) {
             setStartTimestamp(epochMicros);
         } else {

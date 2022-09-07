@@ -305,12 +305,19 @@ public class TraceState implements Recyclable {
         }
     }
 
-    public boolean includesElasticVendor(){
-        for (String tracestate: getTracestate()) {
-            if (tracestate.startsWith(VENDOR_PREFIX)) {
-                return true;
+    public static <C> boolean includesElasticVendor(TextHeaderGetter headers, C parent){
+        boolean[] tracestateIncludesElasticVendor = new boolean[1];
+        headers.forEach(TraceContext.TRACESTATE_HEADER_NAME, parent, tracestateIncludesElasticVendor, TraceState.ELASTIC_TRACESTATE_HEADER_CHECKER);
+        return tracestateIncludesElasticVendor[0];
+    }
+
+    private static final HeaderGetter.HeaderConsumer ELASTIC_TRACESTATE_HEADER_CHECKER = new HeaderGetter.HeaderConsumer<String, boolean[]>() {
+        @Override
+        public void accept(@Nullable String tracestateHeaderValue, boolean[] state) {
+            if (tracestateHeaderValue != null && tracestateHeaderValue.startsWith(VENDOR_PREFIX)) {
+                state[0] = true;
             }
         }
-        return false;
-    }
+    };
+
 }

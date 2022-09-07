@@ -165,7 +165,7 @@ class DslJsonSerializerTest {
     @Test
     void testErrorSerialization() {
         Transaction transaction = new Transaction(tracer);
-        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true));
+        transaction.startRoot(-1, ConstantSampler.of(true));
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
@@ -213,7 +213,7 @@ class DslJsonSerializerTest {
     @Test
     void testErrorSerializationWithEmptyTraceId() {
         Transaction transaction = new Transaction(tracer);
-        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true));
+        transaction.startRoot(-1, ConstantSampler.of(true));
         transaction.getTraceContext().getTraceId().resetState();
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
 
@@ -1277,7 +1277,7 @@ class DslJsonSerializerTest {
 
     private Transaction createRootTransaction(Sampler sampler) {
         Transaction t = new Transaction(tracer);
-        t.start(TraceContext.asRoot(), null, 0, sampler);
+        t.startRoot(0, sampler);
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().withFull("http://localhost:8080/foo/bar");
