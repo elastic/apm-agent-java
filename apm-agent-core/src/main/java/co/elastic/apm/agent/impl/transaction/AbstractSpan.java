@@ -28,8 +28,6 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.LoggerUtils;
 
 import javax.annotation.Nullable;
@@ -130,8 +128,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     private final Map<String, Object> otelAttributes = new HashMap<>();
 
-    private final WeakMap<Class<?>, ElasticContext<?>> contextWrappers;
-
     public int getReferenceCount() {
         return references.get();
     }
@@ -224,18 +220,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
         boolean breakdownMetricsEnabled = coreConfig.isBreakdownMetricsEnabled();
         collectBreakdownMetrics = selfTimeCollectionEnabled && breakdownMetricsEnabled;
-
-        if (approximateContextSize < 0) {
-            // will list files, thus try to call it only once
-            // we estimate the number of wrappers to be equal to the number of copies of OTel APIs that are loaded
-            // in distinct classloaders, thus roughly equal to 1 for the internal bridge + 1 per external plugin
-            approximateContextSize = coreConfig.getExternalPluginsCount() + 1;
-        }
-
-        contextWrappers = WeakConcurrent.<Class<?>, ElasticContext<?>>weakMapBuilder()
-            .withInitialCapacity(approximateContextSize)
-            .build();
-
     }
 
     public boolean isReferenced() {
@@ -493,7 +477,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         recycleSpanLinks();
         otelKind = null;
         otelAttributes.clear();
-        contextWrappers.clear();
     }
 
     private void recycleSpanLinks() {
@@ -861,16 +844,5 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return type;
     }
 
-    @Nullable
-    @Override
-    public <C extends ElasticContext<C>> C getWrapper(Class<C> wrapperType) {
-        return (C) contextWrappers.get(wrapperType);
-    }
-
-
-    @Override
-    public <C extends ElasticContext<C>> void storeWrapper(C contexWrapper){
-        contextWrappers.put(contexWrapper.getClass(), contexWrapper);
-    }
 
 }

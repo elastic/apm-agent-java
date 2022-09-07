@@ -97,9 +97,7 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
         Objects.requireNonNull(originalRootContext, "OTel original context must be set through bridgeRootContext first");
 
         OTelSpan otelSpan = new OTelSpan(span);
-        OTelBridgeContext context = new OTelBridgeContext(tracer, originalRootContext.with(otelSpan));
-        span.storeWrapper(context);
-        return context;
+        return new OTelBridgeContext(tracer, originalRootContext.with(otelSpan));
     }
 
     @Override
@@ -141,18 +139,6 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
     public Transaction getTransaction() {
         AbstractSpan<?> span = getSpan();
         return span != null ? span.getTransaction() : null;
-    }
-
-    @Nullable
-    @Override
-    public <C extends ElasticContext<C>> C getWrapper(Class<C> wrapperType) {
-        // currently not supported
-        return null;
-    }
-
-    @Override
-    public <C extends ElasticContext<C>> void storeWrapper(C context) {
-        // currently not supported
     }
 
     // OTel context implementation

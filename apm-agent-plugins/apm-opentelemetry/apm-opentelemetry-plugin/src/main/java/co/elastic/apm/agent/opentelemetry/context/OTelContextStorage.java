@@ -77,24 +77,15 @@ public class OTelContextStorage implements ContextStorage {
             return (Context) current;
         }
 
-        OTelBridgeContext wrappedContext = current.getWrapper(OTelBridgeContext.class);
-        if (wrappedContext != null) {
-            // context hasn't been created with (this) OTel, but we already have an alternate representation for it
-            return wrappedContext;
-        }
-
         AbstractSpan<?> currentSpan = current.getSpan();
         if (currentSpan == null) {
             // OTel context without an active span is not supported yet
             return null;
         }
 
-        // There is an active span, but it does not have the required wrapper, thus we need to wrap + store it for later
-        // lookup.
-        //
-        // note that this will also happen when more than one OTel version (or external plugin) is being used as while
-        // being in the same plugin they aren't loaded in the same classloader
-
-        return OTelBridgeContext.wrapElasticActiveSpan(tracer, currentSpan);
+        // Current context hasn't been created with this OTel instance, but with another OTel plugin instance
+        // (one per external plugin) or is an Elastic context (span or transaction), thus needs wrapping to make it visible
+        // to this OTel context.
+        return tracer.wrapActiveContextIfRequired(OTelBridgeContext.class, () -> OTelBridgeContext.wrapElasticActiveSpan(tracer, currentSpan));
     }
 }
