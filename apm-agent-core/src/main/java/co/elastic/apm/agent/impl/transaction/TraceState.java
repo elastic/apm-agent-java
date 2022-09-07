@@ -305,16 +305,17 @@ public class TraceState implements Recyclable {
         }
     }
 
-    public static <C> boolean includesElasticVendor(TextHeaderGetter headers, C parent){
+    public static <C> boolean includesElasticVendor(HeaderGetter<?, C> headers, C parent){
         boolean[] tracestateIncludesElasticVendor = new boolean[1];
-        headers.forEach(TraceContext.TRACESTATE_HEADER_NAME, parent, tracestateIncludesElasticVendor, TraceState.ELASTIC_TRACESTATE_HEADER_CHECKER);
+        HeaderGetter.HeaderConsumer rawHeaderConsumer = TraceState.ELASTIC_TRACESTATE_HEADER_CHECKER;
+        headers.forEach(TraceContext.TRACESTATE_HEADER_NAME, parent, tracestateIncludesElasticVendor, rawHeaderConsumer);
         return tracestateIncludesElasticVendor[0];
     }
 
-    private static final HeaderGetter.HeaderConsumer ELASTIC_TRACESTATE_HEADER_CHECKER = new HeaderGetter.HeaderConsumer<String, boolean[]>() {
+    private static final HeaderGetter.HeaderConsumer<?, boolean[]> ELASTIC_TRACESTATE_HEADER_CHECKER = new HeaderGetter.HeaderConsumer<Object, boolean[]>() {
         @Override
-        public void accept(@Nullable String tracestateHeaderValue, boolean[] state) {
-            if (tracestateHeaderValue != null && tracestateHeaderValue.startsWith(VENDOR_PREFIX)) {
+        public void accept(@Nullable Object tracestateHeaderValue, boolean[] state) {
+            if (tracestateHeaderValue instanceof String && ((String) tracestateHeaderValue).startsWith(VENDOR_PREFIX)) {
                 state[0] = true;
             }
         }
