@@ -126,7 +126,13 @@ public class Transaction extends AbstractSpan<Transaction> {
         return this;
     }
 
-    public <T, A extends HeaderGetter<?, T>> Transaction start(TraceContext.ChildContextCreatorTwoArg<T, A> childContextCreator, @Nullable T parent, A arg, long epochMicros, Sampler sampler) {
+    public <H, C> Transaction start(
+        TraceContext.HeaderChildContextCreator<H, C> childContextCreator,
+        @Nullable C parent,
+        HeaderGetter<H, C> headerGetter,
+        long epochMicros,
+        Sampler sampler
+    ) {
         if (parent == null) {
             return startRoot(epochMicros, sampler);
         }
@@ -135,14 +141,14 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (traceContinuationStrategy.equals(RESTART)) {
             restartTrace = true;
         } else if (traceContinuationStrategy.equals(RESTART_EXTERNAL)) {
-            restartTrace = !TraceState.includesElasticVendor(arg, parent);
+            restartTrace = !TraceState.includesElasticVendor(headerGetter, parent);
         }
         if (restartTrace) {
             // need to add a span link
-            addSpanLink(childContextCreator, arg, parent);
+            addSpanLink(childContextCreator, headerGetter, parent);
             traceContext.asRootSpan(sampler);
         } else {
-            boolean valid = childContextCreator.asChildOf(traceContext, parent, arg);
+            boolean valid = childContextCreator.asChildOf(traceContext, parent, headerGetter);
             if (!valid) {
                 traceContext.asRootSpan(sampler);
             }
