@@ -396,7 +396,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * @return {@code true} if added, {@code false} otherwise
      */
     public <H, C> boolean addSpanLink(
-        TraceContext.ChildContextCreatorTwoArg<C, HeaderGetter<H, C>> childContextCreator,
+        TraceContext.HeaderChildContextCreator<H, C> childContextCreator,
         HeaderGetter<H, C> headerGetter,
         @Nullable C carrier
     ) {
