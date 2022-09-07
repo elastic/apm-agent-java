@@ -193,7 +193,7 @@ public abstract class ServletApiAdvice {
             if (currentTransaction != null) {
                 TransactionNameUtils.setTransactionNameByServletClass(adapter.getMethod(httpServletRequest), thiz.getClass(), currentTransaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));
 
-                String userName = getUserFromPrincipal(adapter.getUserPrincipal(httpServletRequest));
+                String userName = ServletTransactionHelper.getUserFromPrincipal(adapter.getUserPrincipal(httpServletRequest));
                 if (userName != null) {
                     ServletTransactionHelper.setUsernameIfUnset(userName, currentTransaction.getContext());
                 }
@@ -282,41 +282,4 @@ public abstract class ServletApiAdvice {
         }
     }
 
-    @Nullable
-    private static String getUserFromPrincipal(@Nullable Principal principal) {
-        if (principal == null) {
-            return null;
-        }
-
-        String userName;
-        if (principal instanceof Map) {
-            // Microsoft/Azure SSO fallback
-            // https://docs.microsoft.com/en-us/azure/active-directory/develop/access-tokens
-
-            Map<?, ?> map = ((Map<?, ?>) principal);
-
-            userName = getFirstClaim(map, "preferred_username");
-            if (userName == null) {
-                userName = getFirstClaim(map, "name");
-            }
-        } else {
-            userName = principal.getName();
-        }
-
-        return userName;
-    }
-
-    @Nullable
-    private static String getFirstClaim(Map<?, ?> map, String key) {
-        // entries are stored in nested collection, even when there is a single entry
-        // https://docs.microsoft.com/en-us/azure/app-service/configure-language-java?pivots=platform-linux#tomcat-1
-        Object entry = map.get(key);
-        if (entry instanceof List) {
-            Object first = ((List<?>) entry).get(0);
-            if (first instanceof String) {
-                return (String) first;
-            }
-        }
-        return null;
-    }
 }

@@ -28,11 +28,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
+import javax.security.auth.Subject;
+import java.security.Principal;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ServletTransactionHelperTest extends AbstractInstrumentationTest {
@@ -125,6 +133,51 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
             }
         );
 
+    }
+
+    @Test
+    void testGetUserFromPrincipal() {
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(null)).isNull();
+
+        Principal noNamePrincipal = mock(Principal.class);
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(noNamePrincipal)).isNull();
+    }
+
+    @Test
+    void testGetUserFromPrincipal_azureSSO() {
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(new AzurePrincipal(Collections.emptyMap()))).isNull();
+
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(
+            new AzurePrincipal(Map.of("name","bob"))))
+            .isEqualTo("bob");
+
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(new AzurePrincipal(Map.of("preferred_username","joe"))))
+            .isEqualTo("joe");
+
+        assertThat(ServletTransactionHelper.getUserFromPrincipal(new AzurePrincipal(Map.of("preferred_username","joe", "name", "bob"))))
+            .isEqualTo("joe");
+    }
+
+    /**
+     * Mockup of Azure SSO principal which is also a Map and does return an empty name
+     */
+    private static final class AzurePrincipal extends HashMap<String, Collection<String>> implements Principal {
+
+        AzurePrincipal(Map<String, String> claims) {
+            for (Entry<String, String> entry : claims.entrySet()) {
+                put(entry.getKey(), Collections.singletonList(entry.getValue()));
+            }
+        }
+
+        @Override
+        public String getName() {
+            return "";
+        }
+
+        @Override
+        public boolean implies(Subject subject) {
+            return Principal.super.implies(subject);
+        }
     }
 
 }
