@@ -126,7 +126,13 @@ public class Transaction extends AbstractSpan<Transaction> {
         return this;
     }
 
-    public <T, A extends HeaderGetter<?, T>> Transaction start(TraceContext.ChildContextCreatorTwoArg<T, A> childContextCreator, @Nullable T parent, A arg, long epochMicros, Sampler sampler) {
+    public <H, C> Transaction start(
+        TraceContext.ChildContextCreatorTwoArg<C, HeaderGetter<H, C>> childContextCreator,
+        @Nullable C parent,
+        HeaderGetter<H, C> arg,
+        long epochMicros,
+        Sampler sampler
+    ) {
         if (parent == null) {
             return startRoot(epochMicros, sampler);
         }

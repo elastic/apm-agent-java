@@ -388,29 +388,33 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * Adds a span link based on the tracecontext header retrieved from the provided {@code carrier} through the provided {@code
      * headerGetter}.
      *
-     * @param <A>                 the tracecontext header type - either binary ({@code byte[]}) or textual ({@code String})
-     * @param <P>                 the tracecontext header carrier type, e.g. Kafka record or JMS message
      * @param childContextCreator the proper tracecontext inference implementation, corresponding on the header and types
-     * @param arg                 the proper header extractor, corresponding the header and carrier types
-     * @param parent              the object from which the tracecontext header is to be retrieved
+     * @param headerGetter        the proper header extractor, corresponding the header and carrier types
+     * @param carrier             the object from which the tracecontext header is to be retrieved
+     * @param <H>                 the tracecontext header type - either binary ({@code byte[]}) or textual ({@code String})
+     * @param <C>                 the tracecontext header carrier type, e.g. Kafka record or JMS message
      * @return {@code true} if added, {@code false} otherwise
      */
-    public <P, A> boolean addSpanLink(TraceContext.ChildContextCreatorTwoArg<P, A> childContextCreator, A arg, @Nullable P parent) {
+    public <H, C> boolean addSpanLink(
+        TraceContext.ChildContextCreatorTwoArg<C, HeaderGetter<H, C>> childContextCreator,
+        HeaderGetter<H, C> headerGetter,
+        @Nullable C carrier
+    ) {
         if (!canAddSpanLink()) {
             return false;
         }
         boolean added = false;
         try {
             TraceContext childTraceContext = tracer.createSpanLink();
-            if (childContextCreator.asChildOf(childTraceContext, parent, arg)) {
+            if (childContextCreator.asChildOf(childTraceContext, carrier, headerGetter)) {
                 added = spanLinks.add(childTraceContext);
             }
             if (!added) {
                 tracer.recycle(childTraceContext);
             }
         } catch (Exception e) {
-            logger.error(String.format("Failed to add span link to %s from header carrier %s and %s", this, parent,
-                arg.getClass().getName()), e);
+            logger.error(String.format("Failed to add span link to %s from header carrier %s and %s", this, carrier,
+                headerGetter.getClass().getName()), e);
         }
         return added;
     }
