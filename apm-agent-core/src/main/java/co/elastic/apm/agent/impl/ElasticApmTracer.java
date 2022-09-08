@@ -165,9 +165,10 @@ public class ElasticApmTracer implements Tracer {
         this.activationListeners = DependencyInjectingServiceLoader.load(ActivationListener.class, this);
         sharedPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("shared");
 
-        // we estimate the number of wrappers to be equal to the number of copies of OTel APIs that are loaded
-        // in distinct classloaders, thus roughly equal to 1 for the internal bridge + 1 per external plugin
-        approximateContextSize = coreConfiguration.getExternalPluginsCount() + 1;
+        // The estimated number of wrappers is linear to the number of the number of external/OTel plugins
+        // - for an internal agent context, there will be at most one wrapper per external/OTel plugin.
+        // - for a context created by an external/OTel, there will be at most one wrapper per other ext/OTel plugin.
+        approximateContextSize = coreConfiguration.getExternalPluginsCount();
 
         // sets the assertionsEnabled flag to true if indeed enabled
         //noinspection AssertWithSideEffects

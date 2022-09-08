@@ -26,13 +26,24 @@ import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 
+/**
+ * Implementation of {@link ElasticContext} that allows to wrap an existing {@link ElasticContext} object, for example
+ * an active span, as another {@link ElasticContext} implementation. This is required for example when two external plugins
+ * have to make their spans/transactions visible to each other as their respective implementation classes are loaded
+ * in distinct classloaders.
+ *
+ * @param <T>
+ */
 public class ElasticContextWrapper<T extends ElasticContext<T>> implements ElasticContext<T> {
 
-    // original context we need to wrap
-    // all activation will be delegated to it
+    /**
+     * Original wrapped context
+     */
     private final ElasticContext<T> context;
 
-    // contains wrappers
+    /**
+     * Contains other stored wrappers, one entry per type
+     */
     private final WeakMap<Class<?>, ElasticContext<?>> contextWrappers;
 
     public ElasticContextWrapper(int initialSize, ElasticContext<T> context) {
@@ -42,6 +53,14 @@ public class ElasticContextWrapper<T extends ElasticContext<T>> implements Elast
         this.context = context;
     }
 
+    /**
+     * Wraps and stores wrapper into this elastic context or returns the existing wrapper.
+     *
+     * @param wrapperType  wrapper type
+     * @param wrapFunction wrapper function that will create wrapper if required
+     * @param <C>          type of context wrapper
+     * @return newly or previously created wrapper
+     */
     public <C extends ElasticContext<C>> C wrapIfRequired(Class<C> wrapperType, Callable<C> wrapFunction) {
         ElasticContext<?> wrapped = contextWrappers.get(wrapperType);
         if (wrapped == null) {
@@ -65,22 +84,27 @@ public class ElasticContextWrapper<T extends ElasticContext<T>> implements Elast
 
     @Override
     public T activate() {
-        return context.activate();
+        throw activationNotSupported();
     }
 
     @Override
     public T deactivate() {
-        return context.deactivate();
+        throw activationNotSupported();
     }
 
     @Override
     public Scope activateInScope() {
-        return context.activateInScope();
+        throw activationNotSupported();
     }
 
     @Override
     public ElasticContext<T> withActiveSpan(AbstractSpan<?> span) {
-        return context.withActiveSpan(span);
+        throw activationNotSupported();
+    }
+
+    private static UnsupportedOperationException activationNotSupported() {
+        // activation is not expected to happen on this wrapper but only on the wrapped context
+        return new UnsupportedOperationException("activation not expected on context wrapper");
     }
 
     @Override
