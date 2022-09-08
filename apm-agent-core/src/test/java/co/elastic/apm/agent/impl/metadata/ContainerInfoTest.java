@@ -62,6 +62,23 @@ public class ContainerInfoTest extends CustomEnvVariables {
     }
 
     @Test
+    void testFargateContainerIdParsing() {
+        // 1:name=systemd:/ecs/03752a671e744971a862edcee6195646/03752a671e744971a862edcee6195646-4015103728
+        String validId = "03752a671e744971a862edcee6195646-4015103728";
+        String validLinePrefix = "1:name=systemd:/ecs/03752a671e744971a862edcee6195646/";
+        assertContainerId(validLinePrefix + validId, validId);
+        assertContainerInfoIsNull(validLinePrefix.substring(2) + validId);
+        assertContainerInfoIsNull(validLinePrefix + validId.replace('a', 'g'));
+        // the Fargate regex allows only digits in the second part (after the dash) and hexadecimal chars in the first part
+        assertContainerInfoIsNull(validLinePrefix + validId.replace('2', 'a'));
+        String idWithSecondPartOnlyDigits = validId.replace('6', 'a');
+        assertContainerId(validLinePrefix + idWithSecondPartOnlyDigits, idWithSecondPartOnlyDigits);
+        assertContainerInfoIsNull(validLinePrefix.substring(0, validLinePrefix.length() - 1) + validId);
+        assertContainerInfoIsNull(validLinePrefix + validId.substring(0, validId.length() - 1));
+        assertContainerInfoIsNull(validLinePrefix + validId.concat("/"));
+    }
+
+    @Test
     void testEcsFormat() {
         String id = "7e9139716d9e5d762d22f9f877b87d1be8b1449ac912c025a984750c5dbff157";
         assertContainerId("3:cpuacct:/ecs/eb9d3d0c-8936-42d7-80d8-f82b2f1a629e/" + id, id);
