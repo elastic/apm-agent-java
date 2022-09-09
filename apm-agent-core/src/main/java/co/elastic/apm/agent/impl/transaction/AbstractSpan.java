@@ -215,8 +215,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         this.tracer = tracer;
         traceContext = TraceContext.with64BitId(this.tracer);
         boolean selfTimeCollectionEnabled = !WildcardMatcher.isAnyMatch(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics(), "span.self_time");
-        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
-        boolean breakdownMetricsEnabled = coreConfig.isBreakdownMetricsEnabled();
+        boolean breakdownMetricsEnabled = tracer.getConfig(CoreConfiguration.class).isBreakdownMetricsEnabled();
         collectBreakdownMetrics = selfTimeCollectionEnabled && breakdownMetricsEnabled;
     }
 
