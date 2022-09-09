@@ -89,6 +89,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
+import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithNamePrefix;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.anyMatch;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
@@ -689,11 +690,20 @@ public class ElasticApmAgent {
             .or(nameStartsWith("com.p6spy."))
             .or(nameStartsWith("net.bytebuddy."))
             .or(nameStartsWith("org.stagemonitor."))
+            .or(any(), classLoaderWithNamePrefix("com.newrelic."))
             .or(nameStartsWith("com.newrelic."))
+            .or(any(), classLoaderWithNamePrefix("com.nr.agent."))
+            .or(nameStartsWith("com.nr.agent."))
+            .or(any(), classLoaderWithNamePrefix("com.dynatrace."))
             .or(nameStartsWith("com.dynatrace."))
             // AppDynamics
+            .or(any(), classLoaderWithNamePrefix("com.singularity"))
             .or(nameStartsWith("com.singularity."))
+            .or(any(), classLoaderWithNamePrefix("com.appdynamics."))
+            .or(nameStartsWith("com.appdynamics."))
+            .or(any(), classLoaderWithNamePrefix("com.instana."))
             .or(nameStartsWith("com.instana."))
+            .or(any(), classLoaderWithNamePrefix("datadog."))
             .or(nameStartsWith("datadog."))
             .or(nameStartsWith("org.glowroot."))
             .or(nameStartsWith("com.compuware."))

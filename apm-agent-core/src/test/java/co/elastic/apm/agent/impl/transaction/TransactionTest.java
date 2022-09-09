@@ -98,7 +98,7 @@ class TransactionTest {
     void normalizeType(String type, String expectedType) {
         Transaction transaction = new Transaction(MockTracer.createRealTracer());
 
-        transaction.start(TraceContext.asRoot(), null, 0, ConstantSampler.of(true));
+        transaction.startRoot(0, ConstantSampler.of(true));
         assertThat(transaction.getType())
             .describedAs("transaction type should not be set by default")
             .isNull();
