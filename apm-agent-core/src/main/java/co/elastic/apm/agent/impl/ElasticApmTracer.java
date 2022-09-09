@@ -818,7 +818,7 @@ public class ElasticApmTracer implements Tracer {
         AbstractSpan<?> span = context.getSpan();
 
         if (activeContext != context && activeContext instanceof ElasticContextWrapper) {
-            // when context has been upgraded, we need to deactivate the original span
+            // when context has been wrapped, we need to get the underlying context
             activeContext = ((ElasticContextWrapper<?>) activeContext).getWrappedContext();
         }
 
