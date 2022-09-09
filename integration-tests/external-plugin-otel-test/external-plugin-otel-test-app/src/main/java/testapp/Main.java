@@ -18,7 +18,8 @@
  */
 package testapp;
 
-import java.util.Arrays;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
 
 public class Main {
 
@@ -28,29 +29,31 @@ public class Main {
             transaction();
         } finally {
             System.out.println("app end");
-
-            if (Arrays.asList(args).contains("--wait")) {
-                while (true) {
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        // ignored
-                    }
-                }
-            }
         }
     }
 
     private static void transaction() {
         System.out.println("start transaction");
+        checkCurrentSpanVisibleThroughOTel();
         span();
+        checkCurrentSpanVisibleThroughOTel();
         System.out.println("end transaction");
 
     }
 
     private static void span() {
         System.out.println("start span");
+        checkCurrentSpanVisibleThroughOTel();
         System.out.println("end span");
+    }
+
+    private static void checkCurrentSpanVisibleThroughOTel() {
+        SpanContext spanContext = Span.current().getSpanContext();
+        if (!spanContext.isValid()) {
+            System.out.println("no active OTel Span");
+        } else {
+            System.out.printf("active span ID = %s, trace ID = %s%n", spanContext.getSpanId(), spanContext.getTraceId());
+        }
     }
 
 }

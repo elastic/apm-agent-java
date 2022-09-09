@@ -18,6 +18,7 @@
  */
 
 import org.junit.jupiter.api.Test;
+import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
@@ -29,6 +30,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,34 +43,91 @@ public class ExternalPluginOTelIT {
     @Test
     void runAppWithTwoExternalPlugins() {
 
+        // remote debug port for container, IDE should be listening to this port
+        int debugPort = 5005;
+        debugPort = 0;
+
+        if (debugPort > 0) {
+            Testcontainers.exposeHostPorts(debugPort);
+        }
+
+
+        String agentJar = "/tmp/agent.jar";
+        String appJar = "/tmp/app.jar";
+
+        String cmd = new StringBuilder()
+            .append("java ")
+            .append(debugPort <= 0 ? "" : String.format("-agentlib:jdwp=transport=dt_socket,server=n,address=%s:%d,suspend=y ", "host.testcontainers.internal", debugPort))
+            .append(String.format("-javaagent:%s %s ", agentJar, getAgentArgs()))
+            .append(String.format("-jar %s ", appJar))
+            .append("--wait")
+            .toString();
+
         GenericContainer<?> app = new GenericContainer<>(DockerImageName.parse(DOCKER_IMAGE))
-            .withCopyFileToContainer(MountableFile.forHostPath(getAgentJar()), "/tmp/agent.jar")
-            .withCopyFileToContainer(MountableFile.forHostPath("target/external-plugin-otel-test-app.jar"), "/tmp/app.jar")
+            .withCopyFileToContainer(MountableFile.forHostPath(getAgentJar()), agentJar)
+            .withCopyFileToContainer(MountableFile.forHostPath("target/external-plugin-otel-test-app.jar"), appJar)
             .withCopyFileToContainer(MountableFile.forHostPath("../external-plugin-otel-test-plugin1/target/external-plugin-otel-test-plugin1.jar"), "/tmp/plugins/plugin1.jar")
             .withCopyFileToContainer(MountableFile.forHostPath("../external-plugin-otel-test-plugin2/target/external-plugin-otel-test-plugin2.jar"), "/tmp/plugins/plugin2.jar")
-            .withCommand(String.format("java -javaagent:/tmp/agent.jar %s -jar /tmp/app.jar --wait", getAgentArgs()))
-            .waitingFor(Wait.forLogMessage(".*app end.*", 1));
+            .withCommand(cmd)
+            .waitingFor(Wait.forLogMessage(".*app start.*", 1));
 
         try {
             app.start();
 
+            while (app.isRunning()) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+
             List<String> logLines = Arrays.asList(app.getLogs().split("\n"));
             assertThat(logLines).isNotEmpty();
+
+            String transactionId = null;
+            String spanId = null;
+            String traceId = null;
+            List<String> otelApiLines = logLines.stream().filter(l -> l.startsWith("active span ID =")).collect(Collectors.toList());
+            assertThat(otelApiLines).hasSize(3);
+            // first and last should be within transaction thus equal
+            assertThat(otelApiLines.get(0)).isEqualTo(otelApiLines.get(2));
+
+            Pattern idPattern = Pattern.compile("active span ID = ([a-z0-9]+), trace ID = ([a-z0-9]+)");
+            Matcher matcher = idPattern.matcher(otelApiLines.get(0));
+            assertThat(matcher.matches()).isTrue();
+            assertThat(matcher.groupCount()).isEqualTo(2);
+            transactionId = matcher.group(1);
+            traceId = matcher.group(2);
+            matcher = idPattern.matcher(otelApiLines.get(1));
+            assertThat(matcher.matches()).isTrue();
+            assertThat(matcher.groupCount()).isEqualTo(2);
+            spanId = matcher.group(1);
 
             assertThat(logLines).containsExactly(
                 "app start",
                 ">> transaction enter", // added by plugin1
                 "start transaction",
+                String.format("active span ID = %s, trace ID = %s", transactionId, traceId), // app OTel API
                 ">> span enter", // added by plugin2
                 "start span",
+                String.format("active span ID = %s, trace ID = %s", spanId, traceId), // app OTel API
                 "end span",
                 "<< span exit", // added by plugin2
+                String.format("active span ID = %s, trace ID = %s", transactionId, traceId), // app OTel API
                 "end transaction",
                 "<< transaction exit", // added by plugin1
                 "app end");
 
         } finally {
-            app.stop();
+
+            if (debugPort > 0) {
+                app.copyFileFromContainer("/tmp/agent.log", "/tmp/agent.log");
+            }
+
+            if (app.isRunning()) {
+                app.stop();
+            }
         }
     }
 
@@ -98,4 +158,5 @@ public class ExternalPluginOTelIT {
             .map(File::getAbsolutePath)
             .orElseThrow(() -> new IllegalStateException("Agent jar not found. Execute mvn package to build the agent jar."));
     }
+
 }

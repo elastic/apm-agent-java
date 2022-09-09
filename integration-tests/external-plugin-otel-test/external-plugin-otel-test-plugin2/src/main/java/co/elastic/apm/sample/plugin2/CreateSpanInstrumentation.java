@@ -75,7 +75,7 @@ public class CreateSpanInstrumentation extends ElasticApmInstrumentation {
                 } finally {
                     span.end();
                 }
-            } finally{
+            } finally {
                 Scope scope = (Scope) scopeObject;
                 scope.close();
             }

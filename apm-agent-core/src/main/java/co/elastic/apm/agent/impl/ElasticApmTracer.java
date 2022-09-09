@@ -167,8 +167,8 @@ public class ElasticApmTracer implements Tracer {
 
         // The estimated number of wrappers is linear to the number of the number of external/OTel plugins
         // - for an internal agent context, there will be at most one wrapper per external/OTel plugin.
-        // - for a context created by an external/OTel, there will be at most one wrapper per other ext/OTel plugin.
-        approximateContextSize = coreConfiguration.getExternalPluginsCount();
+        // - for a context created by an external/OTel, we have one less wrapper required
+        approximateContextSize = coreConfiguration.getExternalPluginsCount() + 1; // +1 extra is for the OTel API plugin
 
         // sets the assertionsEnabled flag to true if indeed enabled
         //noinspection AssertWithSideEffects
@@ -780,23 +780,13 @@ public class ElasticApmTracer implements Tracer {
             logger.debug("Activating {} on thread {}", context, Thread.currentThread().getId());
         }
 
-        ElasticContext<?> currentContext = currentContext();
-        ElasticContext<?> newContext = context;
-
         AbstractSpan<?> span = context.getSpan();
         if (span != null) {
             span.incrementReferences();
             triggerActivationListeners(span, true);
-        } else if(currentContext != null) {
-            // when there is no span attached to the context we are attaching to but there is one in the current
-            // context, we just propagate to the context that will be activated.
-            span = currentContext.getSpan();
-            if (span != null) {
-                newContext = context.withActiveSpan(span);
-            }
         }
 
-        activeStack.get().push(newContext);
+        activeStack.get().push(context);
     }
 
     public Scope activateInScope(final ElasticContext<?> context) {
@@ -822,12 +812,14 @@ public class ElasticApmTracer implements Tracer {
         if (logger.isDebugEnabled()) {
             logger.debug("Deactivating {} on thread {}", context, Thread.currentThread().getId());
         }
-        ElasticContext<?> activeContext = activeStack.get().poll();
+        ElasticContext<?> activeContext = getActiveContext();
+        activeStack.get().remove();
+
         AbstractSpan<?> span = context.getSpan();
 
-        if (activeContext != context && context == span) {
+        if (activeContext != context && activeContext instanceof ElasticContextWrapper) {
             // when context has been upgraded, we need to deactivate the original span
-            activeContext = context;
+            activeContext = ((ElasticContextWrapper<?>) activeContext).getWrappedContext();
         }
 
         try {

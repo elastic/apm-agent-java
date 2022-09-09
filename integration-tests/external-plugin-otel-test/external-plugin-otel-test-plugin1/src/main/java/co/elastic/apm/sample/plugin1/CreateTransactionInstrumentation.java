@@ -25,7 +25,6 @@ import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.context.Scope;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -78,7 +77,7 @@ public class CreateTransactionInstrumentation extends ElasticApmInstrumentation 
                 } finally {
                     span.end();
                 }
-            } finally{
+            } finally {
                 Scope scope = (Scope) scopeObject;
                 scope.close();
             }

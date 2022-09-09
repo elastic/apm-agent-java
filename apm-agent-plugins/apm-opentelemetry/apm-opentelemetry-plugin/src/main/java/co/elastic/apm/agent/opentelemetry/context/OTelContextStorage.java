@@ -73,7 +73,7 @@ public class OTelContextStorage implements ContextStorage {
         }
 
         if (current instanceof OTelBridgeContext) {
-            // current context has been created with OTel, no need to wrap it
+            // current context has been created with this OTel, no need to wrap it
             return (Context) current;
         }
 
@@ -82,6 +82,11 @@ public class OTelContextStorage implements ContextStorage {
             // OTel context without an active span is not supported yet
             return null;
         }
+
+        // Ensure that root context is being accessed at least once to capture the original root
+        // OTel 1.0 directly calls ArrayBasedContext.root() which is not publicly accessible, later versions delegate
+        // to ContextStorage.root() which we can't call from here either.
+        Context.root();
 
         // Current context hasn't been created with this OTel instance, but with another OTel plugin instance
         // (one per external plugin) or is an Elastic context (span or transaction), thus needs wrapping to make it visible
