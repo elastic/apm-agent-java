@@ -53,7 +53,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Disabled
 public class AsyncProfilerUpgrader {
 
-    static final String TARGET_VERSION = "1.8.7";
+    static final String TARGET_VERSION = "1.8.8";
     static final String TAR_GZ_FILE_EXTENSION = ".tar.gz";
     static final String COMMON_BINARY_FILE_NAME = "libasyncProfiler.so";
 
