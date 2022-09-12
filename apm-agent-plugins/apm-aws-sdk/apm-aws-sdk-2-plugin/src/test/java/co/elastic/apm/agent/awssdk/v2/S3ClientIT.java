@@ -45,11 +45,12 @@ import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+
 public class S3ClientIT extends AbstractAwsClientIT {
     private S3Client s3;
     private S3AsyncClient s3Async;
 
-    private Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
+    private final Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
 
     @BeforeEach
     public void setupClient() {
@@ -93,15 +94,15 @@ public class S3ClientIT extends AbstractAwsClientIT {
         executeTest("CreateBucket", NEW_BUCKET_NAME, () -> s3Async.createBucket(CreateBucketRequest.builder().bucket(NEW_BUCKET_NAME).build()), dbAssert);
         executeTest("ListBuckets", null, () -> s3Async.listBuckets(), dbAssert);
         executeTest("PutObject", BUCKET_NAME, () -> s3Async.putObject(PutObjectRequest.builder().bucket(BUCKET_NAME)
-            .key(OBJECT_KEY).build(),
+                .key(OBJECT_KEY).build(),
             AsyncRequestBody.fromString("This is some Object content")),
             dbAssert);
         executeTest("ListObjects", BUCKET_NAME, () -> s3Async.listObjects(ListObjectsRequest.builder().bucket(BUCKET_NAME).build()), dbAssert);
         executeTest("GetObject", BUCKET_NAME, () -> s3Async.getObject(GetObjectRequest.builder().bucket(BUCKET_NAME).key(OBJECT_KEY).build(), AsyncResponseTransformer.toBytes()), dbAssert);
         executeTest("CopyObject", NEW_BUCKET_NAME, () -> s3Async.copyObject(CopyObjectRequest.builder()
-            .copySource(BUCKET_NAME + "/" + OBJECT_KEY)
-            .destinationBucket(NEW_BUCKET_NAME)
-            .destinationKey("new-key").build()),
+                .copySource(BUCKET_NAME + "/" + OBJECT_KEY)
+                .destinationBucket(NEW_BUCKET_NAME)
+                .destinationKey("new-key").build()),
             dbAssert);
         executeTest("DeleteObject", BUCKET_NAME, () -> s3Async.deleteObject(DeleteObjectRequest.builder().bucket(BUCKET_NAME).key(OBJECT_KEY).build()), dbAssert);
         executeTest("DeleteBucket", BUCKET_NAME, () -> s3Async.deleteBucket(DeleteBucketRequest.builder().bucket(BUCKET_NAME).build()), dbAssert);
