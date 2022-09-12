@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
@@ -27,10 +28,21 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 
 /**
- * Implementation of {@link ElasticContext} that allows to wrap an existing {@link ElasticContext} object, for example
- * an active span, as another {@link ElasticContext} implementation. This is required for example when two external plugins
- * have to make their spans/transactions visible to each other as their respective implementation classes are loaded
- * in distinct classloaders.
+ * Implementation of {@link ElasticContext} that allows to wrap an existing {@link ElasticContext} object in order to
+ * integrate it with an alternate Tracing API. This is required in the following cases:
+ * <ul>
+ *     <li>an active Elastic span/transaction is accessed from OpenTelemetry API</li>
+ *     <li>an active OpenTelemetry span created by one external plugin is accessed from another external plugin</li>
+ * </ul>
+ * <p>
+ *     When such cases occur, the currently active {@link ElasticContext} in {@link co.elastic.apm.agent.impl.ElasticApmTracer}
+ *     is replaced with an instance of this class in order to store references to the wrapper objects that allow to expose
+ *     the active span to the alternate Tracing API.
+ * </p>
+ * <p>
+ *       This replacement is transparent to the creator of the original active {@link ElasticContext}. Calling (and
+ *       optionally register) the wrapper is done through {@link ElasticApmTracer#wrapActiveContextIfRequired(Class, Callable)}
+ * </p>
  *
  * @param <T>
  */
