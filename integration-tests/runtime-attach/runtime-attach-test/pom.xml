@@ -32,6 +32,7 @@
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
             <version>4.2.0</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -39,6 +40,7 @@
             <artifactId>apm-agent-common</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>
