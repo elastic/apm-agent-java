@@ -49,6 +49,7 @@ version of classes that are available also in the parent (bootstrap) class loade
 * Fix 'ClosedByInterruptException` during indy bootstrap method resolution - {pull}2752[#2752]
 * Enhance exclusion of other APM agents - {pull}2766[#2766]
 * Avoid warning when log correlation option is provided in remote config - {pull}2765[#2765]
+* Fix container ID discovery for containers managed through AWS Fargate - {pull}2772[#2772]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
