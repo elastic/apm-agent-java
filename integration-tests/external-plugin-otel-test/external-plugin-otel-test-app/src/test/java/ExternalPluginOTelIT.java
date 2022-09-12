@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import co.elastic.apm.agent.test.AgentFileAccessor;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
@@ -64,7 +65,7 @@ public class ExternalPluginOTelIT {
             .toString();
 
         GenericContainer<?> app = new GenericContainer<>(DockerImageName.parse(DOCKER_IMAGE))
-            .withCopyFileToContainer(MountableFile.forHostPath(getAgentJar()), agentJar)
+            .withCopyFileToContainer(MountableFile.forHostPath(AgentFileAccessor.getPathToJavaagent()), agentJar)
             .withCopyFileToContainer(MountableFile.forHostPath("target/external-plugin-otel-test-app.jar"), appJar)
             .withCopyFileToContainer(MountableFile.forHostPath("../external-plugin-otel-test-plugin1/target/external-plugin-otel-test-plugin1.jar"), "/tmp/plugins/plugin1.jar")
             .withCopyFileToContainer(MountableFile.forHostPath("../external-plugin-otel-test-plugin2/target/external-plugin-otel-test-plugin2.jar"), "/tmp/plugins/plugin2.jar")
@@ -147,16 +148,6 @@ public class ExternalPluginOTelIT {
         return agentConfig.entrySet().stream()
             .map(e -> String.format("-Delastic.apm.%s=%s", e.getKey(), e.getValue()))
             .collect(Collectors.joining(" "));
-    }
-
-    private static String getAgentJar() {
-        // TODO : remove this duplication of getAgentJar method
-        File buildDir = new File("../../../elastic-apm-agent/target/");
-        FileFilter fileFilter = file -> file.getName().matches("elastic-apm-agent-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?.jar");
-        return Arrays.stream(buildDir.listFiles(fileFilter))
-            .findFirst()
-            .map(File::getAbsolutePath)
-            .orElseThrow(() -> new IllegalStateException("Agent jar not found. Execute mvn package to build the agent jar."));
     }
 
 }
