@@ -20,10 +20,10 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 
@@ -56,12 +56,10 @@ public class ElasticContextWrapper<T extends ElasticContext<T>> implements Elast
     /**
      * Contains other stored wrappers, one entry per type
      */
-    private final WeakMap<Class<?>, ElasticContext<?>> contextWrappers;
+    private final Map<Class<?>, ElasticContext<?>> contextWrappers;
 
     public ElasticContextWrapper(int initialSize, ElasticContext<T> context) {
-        this.contextWrappers = WeakConcurrent.<Class<?>, ElasticContext<?>>weakMapBuilder()
-            .withInitialCapacity(initialSize)
-            .build();
+        this.contextWrappers = new HashMap<>(initialSize, 1.0f);
         this.context = context;
     }
 

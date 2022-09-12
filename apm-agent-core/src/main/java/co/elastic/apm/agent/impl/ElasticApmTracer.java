@@ -525,21 +525,8 @@ public class ElasticApmTracer implements Tracer {
     @Override
     @Nullable
     public AbstractSpan<?> getActive() {
-        ElasticContext<?> active = getActiveContext();
+        ElasticContext<?> active = currentContext();
         return active != null ? active.getSpan() : null;
-    }
-
-    @Nullable
-    public ElasticContext<?> getActiveContext() {
-        ElasticContext<?> current = activeStack.get().peek();
-
-        // When the active context is wrapped, the wrapper should be transparent to the caller, thus we always return
-        // the underlying wrapped context.
-        if (current instanceof ElasticContextWrapper) {
-            return (((ElasticContextWrapper<?>) current).getWrappedContext());
-        }
-
-        return current;
     }
 
     @Nullable
@@ -743,15 +730,30 @@ public class ElasticApmTracer implements Tracer {
         return null;
     }
 
+    /**
+     * @return the currently active context, {@literal null} if there is none.
+     */
     @Nullable
     public ElasticContext<?> currentContext() {
         ElasticContext<?> current = activeStack.get().peek();
+
+        // When the active context is wrapped, the wrapper should be transparent to the caller, thus we always return
+        // the underlying wrapped context.
         if (current instanceof ElasticContextWrapper) {
             return ((ElasticContextWrapper<?>) current).getWrappedContext();
         }
         return current;
     }
 
+    /**
+     * Lazily wraps the currently active context if required, wrapper instance is cached with wrapperClass as key.
+     * Wrapping is transparently handled by {@link #currentContext()}.
+     *
+     * @param wrapperClass wrapper type
+     * @param wrapFunction wrapper creation function
+     * @param <T>          wrapper type
+     * @return newly (or previously) created wrapper
+     */
     public <T extends ElasticContext<T>> T wrapActiveContextIfRequired(Class<T> wrapperClass, Callable<T> wrapFunction) {
 
         // the current context might be either a "regular" one or a "wrapped" one if it has already been wrapped
@@ -791,7 +793,7 @@ public class ElasticApmTracer implements Tracer {
 
     public Scope activateInScope(final ElasticContext<?> context) {
         // already in scope
-        if (getActiveContext() == context) {
+        if (currentContext() == context) {
             return Scope.NoopScope.INSTANCE;
         }
         context.activate();
@@ -812,7 +814,7 @@ public class ElasticApmTracer implements Tracer {
         if (logger.isDebugEnabled()) {
             logger.debug("Deactivating {} on thread {}", context, Thread.currentThread().getId());
         }
-        ElasticContext<?> activeContext = getActiveContext();
+        ElasticContext<?> activeContext = currentContext();
         activeStack.get().remove();
 
         AbstractSpan<?> span = context.getSpan();

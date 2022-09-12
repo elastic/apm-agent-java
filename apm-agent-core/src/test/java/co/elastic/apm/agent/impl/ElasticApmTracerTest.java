@@ -628,7 +628,7 @@ class ElasticApmTracerTest {
         Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
 
-            assertThat(tracerImpl.getActiveContext())
+            assertThat(tracerImpl.currentContext())
                 .describedAs("native span/transaction is not wrapped")
                 .isSameAs(transaction);
 
@@ -638,7 +638,7 @@ class ElasticApmTracerTest {
                 .describedAs("wrap should only happen once and if required")
                 .isSameAs(testContext);
 
-            assertThat(tracerImpl.getActiveContext())
+            assertThat(tracerImpl.currentContext())
                 .describedAs("after wrapping the active context remains the same")
                 .isSameAs(transaction);
 
