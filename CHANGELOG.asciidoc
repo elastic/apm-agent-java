@@ -34,13 +34,23 @@ version of classes that are available also in the parent (bootstrap) class loade
 * Implemented span links in the OTel bridge. - {pull}2685[#2685]
 * Added support for MongoDB's 4.x Sync Driver - {pull}2241{#2241}
 * Capture keyspace in `db.instance` for Cassandra database - {pull}2684[#2684]
-
+* Added support for AWS SQS - {pull}2637[#2637]
+* Add <<config-trace-continuation-strategy, `trace_continuation_strategy`>> configuration option - {pull}2760[#2760]
+* Capture user from Azure SSO with Servlet-based app containers - {pull}2767[#2767]
 
 [float]
 ===== Bug fixes
 * Fix unexpected side-effects of `toString` calls within reactor instrumentation - {pull}2708[#2708]
 * Fix Vert.x instrumentation for 4.3.2 - {pull}2700[#2700]
 * Fix `NullPointerException` in `AmazonHttpClientInstrumentation` - {pull}2740[#2740]
+* Fix stack frame exclusion patterns - {pull}2758[#2758]
+* Fix `NullPointerException` with compressed spans - {pull}2755[#2755]
+* Fix empty servlet path with proper fallback - {pull}2748[#2748]
+* Fix 'ClosedByInterruptException` during indy bootstrap method resolution - {pull}2752[#2752]
+* Enhance exclusion of other APM agents - {pull}2766[#2766]
+* Avoid warning when log correlation option is provided in remote config - {pull}2765[#2765]
+* Update `async-profiler` to 1.8.8 to avoid missing symbol spam - {pull}2775[#2775]
+* Fix container ID discovery for containers managed through AWS Fargate - {pull}2772[#2772]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

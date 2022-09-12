@@ -192,8 +192,11 @@ public abstract class ServletApiAdvice {
             Transaction currentTransaction = tracer.currentTransaction();
             if (currentTransaction != null) {
                 TransactionNameUtils.setTransactionNameByServletClass(adapter.getMethod(httpServletRequest), thiz.getClass(), currentTransaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));
-                final Principal userPrincipal = adapter.getUserPrincipal(httpServletRequest);
-                ServletTransactionHelper.setUsernameIfUnset(userPrincipal != null ? userPrincipal.getName() : null, currentTransaction.getContext());
+
+                String userName = ServletTransactionHelper.getUserFromPrincipal(adapter.getUserPrincipal(httpServletRequest));
+                if (userName != null) {
+                    ServletTransactionHelper.setUsernameIfUnset(userName, currentTransaction.getContext());
+                }
             }
         }
         if (transaction != null &&
@@ -239,10 +242,26 @@ public abstract class ServletApiAdvice {
                     }
                 }
 
-                servletTransactionHelper.onAfter(transaction, t == null ? t2 : t, adapter.isCommitted(httpServletResponse), adapter.getStatus(httpServletResponse),
-                    overrideStatusCodeOnThrowable, adapter.getMethod(httpServletRequest), parameterMap, adapter.getServletPath(httpServletRequest),
-                    adapter.getPathInfo(httpServletRequest), contentTypeHeader, true
-                );
+                ServletContext servletContext = adapter.getServletContext(httpServletRequest);
+                String servletPath = adapter.getServletPath(httpServletRequest);
+                String pathInfo = adapter.getPathInfo(httpServletRequest);
+                if ((servletPath == null || servletPath.isEmpty()) && servletContext != null) {
+                    String contextPath = adapter.getContextPath(servletContext);
+                    String requestURI = adapter.getRequestURI(httpServletRequest);
+                    servletPath = servletTransactionHelper.normalizeServletPath(requestURI, contextPath, servletPath, pathInfo);
+                }
+
+                servletTransactionHelper.onAfter(
+                    transaction, t == null ? t2 : t,
+                    adapter.isCommitted(httpServletResponse),
+                    adapter.getStatus(httpServletResponse),
+                    overrideStatusCodeOnThrowable,
+                    adapter.getMethod(httpServletRequest),
+                    parameterMap,
+                    servletPath,
+                    pathInfo,
+                    contentTypeHeader,
+                    true);
             }
         }
         if (span != null) {
@@ -262,4 +281,5 @@ public abstract class ServletApiAdvice {
             return !first.equals(second);
         }
     }
+
 }
