@@ -77,8 +77,11 @@ pipeline {
         stash allowEmpty: true, name: 'source', useDefaultExcludes: false
         script {
           dir("${BASE_DIR}"){
+            // Compare with the previous git commit if possible, otherwise the target branch or the git base commit.
+            def from = env.GIT_PREVIOUS_COMMIT?.trim() ? "${env.GIT_PREVIOUS_COMMIT}"
+                                                       : "${env.CHANGE_TARGET?.trim() ? 'origin/${env.CHANGE_TARGET}' : env.GIT_BASE_COMMIT}"
             // Skip all the stages except docs for PR's with asciidoc and md changes only
-            env.ONLY_DOCS = isGitRegionMatch(patterns: [ '.*\\.(asciidoc|md)' ], shouldMatchAll: true)
+            env.ONLY_DOCS = isGitRegionMatch(patterns: [ '.*\\.(asciidoc|md)' ], shouldMatchAll: true, from: from)
             // Prepare the env variables for the benchmark results
             env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
             env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
