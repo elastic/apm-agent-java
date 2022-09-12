@@ -45,9 +45,7 @@ pipeline {
                 credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
                 shallow: false
             )
-            dir("${BASE_DIR}") {
-              setupAPMGitEmail()
-            }
+            setupAPMGitEmail(global: true)
             dir("${BASE_DIR}") {
               withEnv(["BRANCH_NAME=${BRANCH_SPECIFIER}"]){
                 withGitRelease() { // sets up the git release setup (remote branches, current workspace state, ...)
