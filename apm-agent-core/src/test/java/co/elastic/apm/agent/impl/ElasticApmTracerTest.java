@@ -27,6 +27,7 @@ import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -622,4 +623,63 @@ class ElasticApmTracerTest {
         assertThat(error.getTransactionInfo().getName().toString()).isEqualTo("My Transaction");
     }
 
+    @Test
+    void testContextWrapping() {
+        Transaction transaction = startTestRootTransaction();
+        try (Scope scope = transaction.activateInScope()) {
+
+            assertThat(tracerImpl.currentContext())
+                .describedAs("native span/transaction is not wrapped")
+                .isSameAs(transaction);
+
+            TestContext testContext = tracerImpl.wrapActiveContextIfRequired(TestContext.class, () -> new TestContext());
+
+            assertThat(tracerImpl.wrapActiveContextIfRequired(TestContext.class, () -> new TestContext()))
+                .describedAs("wrap should only happen once and if required")
+                .isSameAs(testContext);
+
+            assertThat(tracerImpl.currentContext())
+                .describedAs("after wrapping the active context remains the same")
+                .isSameAs(transaction);
+
+            transaction.end();
+        }
+
+    }
+
+    private static final class TestContext implements ElasticContext<TestContext> {
+
+        @Override
+        public TestContext activate() {
+            return null;
+        }
+
+        @Override
+        public TestContext deactivate() {
+            return null;
+        }
+
+        @Override
+        public Scope activateInScope() {
+            return null;
+        }
+
+        @Override
+        public ElasticContext<TestContext> withActiveSpan(AbstractSpan<?> span) {
+            return null;
+        }
+
+        @org.jetbrains.annotations.Nullable
+        @Override
+        public AbstractSpan<?> getSpan() {
+            return null;
+        }
+
+        @org.jetbrains.annotations.Nullable
+        @Override
+        public Transaction getTransaction() {
+            return null;
+        }
+
+    }
 }

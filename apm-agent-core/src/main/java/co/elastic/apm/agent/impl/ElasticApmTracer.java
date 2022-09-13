@@ -33,6 +33,7 @@ import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.impl.transaction.ElasticContextWrapper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -62,6 +63,8 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -98,11 +101,13 @@ public class ElasticApmTracer implements Tracer {
         }
     };
 
+
     private final CoreConfiguration coreConfiguration;
     private final SpanConfiguration spanConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
     private final ScheduledThreadPoolExecutor sharedPool;
+    private final int approximateContextSize;
     private Sampler sampler;
     boolean assertionsEnabled = false;
 
@@ -159,6 +164,11 @@ public class ElasticApmTracer implements Tracer {
         });
         this.activationListeners = DependencyInjectingServiceLoader.load(ActivationListener.class, this);
         sharedPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("shared");
+
+        // The estimated number of wrappers is linear to the number of the number of external/OTel plugins
+        // - for an internal agent context, there will be at most one wrapper per external/OTel plugin.
+        // - for a context created by an external/OTel, we have one less wrapper required
+        approximateContextSize = coreConfiguration.getExternalPluginsCount() + 1; // +1 extra is for the OTel API plugin
 
         // sets the assertionsEnabled flag to true if indeed enabled
         //noinspection AssertWithSideEffects
@@ -515,13 +525,8 @@ public class ElasticApmTracer implements Tracer {
     @Override
     @Nullable
     public AbstractSpan<?> getActive() {
-        ElasticContext<?> active = activeStack.get().peek();
+        ElasticContext<?> active = currentContext();
         return active != null ? active.getSpan() : null;
-    }
-
-    @Nullable
-    public ElasticContext<?> getActiveContext() {
-        return activeStack.get().peek();
     }
 
     @Nullable
@@ -725,9 +730,51 @@ public class ElasticApmTracer implements Tracer {
         return null;
     }
 
+    /**
+     * @return the currently active context, {@literal null} if there is none.
+     */
     @Nullable
     public ElasticContext<?> currentContext() {
-        return activeStack.get().peek();
+        ElasticContext<?> current = activeStack.get().peek();
+
+        // When the active context is wrapped, the wrapper should be transparent to the caller, thus we always return
+        // the underlying wrapped context.
+        if (current instanceof ElasticContextWrapper) {
+            return ((ElasticContextWrapper<?>) current).getWrappedContext();
+        }
+        return current;
+    }
+
+    /**
+     * Lazily wraps the currently active context if required, wrapper instance is cached with wrapperClass as key.
+     * Wrapping is transparently handled by {@link #currentContext()}.
+     *
+     * @param wrapperClass wrapper type
+     * @param wrapFunction wrapper creation function
+     * @param <T>          wrapper type
+     * @return newly (or previously) created wrapper
+     */
+    public <T extends ElasticContext<T>> T wrapActiveContextIfRequired(Class<T> wrapperClass, Callable<T> wrapFunction) {
+
+        // the current context might be either a "regular" one or a "wrapped" one if it has already been wrapped
+        ElasticContext<?> current = activeStack.get().peek();
+
+        Objects.requireNonNull(current, "active context required for wrapping");
+        ElasticContextWrapper<?> wrapper;
+        if (current instanceof ElasticContextWrapper) {
+            wrapper = (ElasticContextWrapper<?>) current;
+        } else {
+            wrapper = new ElasticContextWrapper<>(approximateContextSize, current);
+        }
+        T wrapped = wrapper.wrapIfRequired(wrapperClass, wrapFunction);
+
+        // replace the currently active on the stack, however currentContext() will make sure to return the original
+        // context in order to keep wrapping transparent.
+
+        activeStack.get().remove();
+        activeStack.get().push(wrapper);
+
+        return wrapped;
     }
 
     public void activate(ElasticContext<?> context) {
@@ -735,28 +782,18 @@ public class ElasticApmTracer implements Tracer {
             logger.debug("Activating {} on thread {}", context, Thread.currentThread().getId());
         }
 
-        ElasticContext<?> currentContext = currentContext();
-        ElasticContext<?> newContext = context;
-
         AbstractSpan<?> span = context.getSpan();
         if (span != null) {
             span.incrementReferences();
             triggerActivationListeners(span, true);
-        } else if(currentContext != null) {
-            // when there is no span attached to the context we are attaching to but there is one in the current
-            // context, we just propagate to the context that will be activated.
-            span = currentContext.getSpan();
-            if (span != null) {
-                newContext = context.withActiveSpan(span);
-            }
         }
 
-        activeStack.get().push(newContext);
+        activeStack.get().push(context);
     }
 
     public Scope activateInScope(final ElasticContext<?> context) {
         // already in scope
-        if (getActiveContext() == context) {
+        if (currentContext() == context) {
             return Scope.NoopScope.INSTANCE;
         }
         context.activate();
@@ -777,12 +814,14 @@ public class ElasticApmTracer implements Tracer {
         if (logger.isDebugEnabled()) {
             logger.debug("Deactivating {} on thread {}", context, Thread.currentThread().getId());
         }
-        ElasticContext<?> activeContext = activeStack.get().poll();
+        ElasticContext<?> activeContext = currentContext();
+        activeStack.get().remove();
+
         AbstractSpan<?> span = context.getSpan();
 
-        if (activeContext != context && context == span) {
-            // when context has been upgraded, we need to deactivate the original span
-            activeContext = context;
+        if (activeContext != context && activeContext instanceof ElasticContextWrapper) {
+            // when context has been wrapped, we need to get the underlying context
+            activeContext = ((ElasticContextWrapper<?>) activeContext).getWrappedContext();
         }
 
         try {

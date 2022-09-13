@@ -65,4 +65,5 @@ public interface ElasticContext<T extends ElasticContext<T>> {
      */
     @Nullable
     Transaction getTransaction();
+
 }
