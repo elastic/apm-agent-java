@@ -52,6 +52,7 @@ version of classes that are available also in the parent (bootstrap) class loade
 * Update `async-profiler` to 1.8.8 to avoid missing symbol spam - {pull}2775[#2775]
 * Fix container ID discovery for containers managed through AWS Fargate - {pull}2772[#2772]
 * Make `traceparent` header computation thread-safe - {pull}2747[#2747]
+* Fix OTel bridge with multiple OTel APIs or external plugins - {pull}2735[#2735]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

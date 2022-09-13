@@ -421,9 +421,10 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     /**
      * Adds a span link based on the tracecontext header retrieved from the provided parent.
+     *
      * @param childContextCreator the proper tracecontext inference implementation, which retrieves the header
-     * @param parent the object from which the tracecontext header is to be retrieved
-     * @param <T> the parent type - AbstractSpan, TraceContext or Tracer
+     * @param parent              the object from which the tracecontext header is to be retrieved
+     * @param <T>                 the parent type - AbstractSpan, TraceContext or Tracer
      * @return {@code true} if added, {@code false} otherwise
      */
     public <T> boolean addSpanLink(TraceContext.ChildContextCreator<T> childContextCreator, T parent) {
