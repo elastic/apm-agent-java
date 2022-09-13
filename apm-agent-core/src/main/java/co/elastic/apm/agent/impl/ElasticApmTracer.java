@@ -98,6 +98,13 @@ public class ElasticApmTracer implements Tracer {
         }
     };
 
+    private final ThreadLocal<StackOverflowCounter> activeStackOverflowCounter = new ThreadLocal<StackOverflowCounter>() {
+        @Override
+        protected StackOverflowCounter initialValue() {
+            return new StackOverflowCounter();
+        }
+    };
+
     private final CoreConfiguration coreConfiguration;
     private final SpanConfiguration spanConfiguration;
     private final List<ActivationListener> activationListeners;
@@ -735,6 +742,18 @@ public class ElasticApmTracer implements Tracer {
             logger.debug("Activating {} on thread {}", context, Thread.currentThread().getId());
         }
 
+        if (activeStack.get().size() == coreConfiguration.getTransactionMaxSpans()) {
+            StackOverflowCounter stackOverflowCounter = activeStackOverflowCounter.get();
+            if (stackOverflowCounter.getOverflowCount() == 0) {
+                logger.error(String.format("Activation stack depth reached its maximum - %s. This is likely related to activation" +
+                    " leak. Current transaction: %s", coreConfiguration.getTransactionMaxSpans(), currentTransaction()),
+                    new Throwable("Stack of threshold-crossing activation: ")
+                );
+            }
+            stackOverflowCounter.incrementOverflowCount();
+            return;
+        }
+
         ElasticContext<?> currentContext = currentContext();
         ElasticContext<?> newContext = context;
 
@@ -777,6 +796,13 @@ public class ElasticApmTracer implements Tracer {
         if (logger.isDebugEnabled()) {
             logger.debug("Deactivating {} on thread {}", context, Thread.currentThread().getId());
         }
+
+        StackOverflowCounter stackOverflowCounter = activeStackOverflowCounter.get();
+        if (stackOverflowCounter.getOverflowCount() > 0) {
+            stackOverflowCounter.decrementOverflowCount();
+            return;
+        }
+
         ElasticContext<?> activeContext = activeStack.get().poll();
         AbstractSpan<?> span = context.getSpan();
 
@@ -888,5 +914,21 @@ public class ElasticApmTracer implements Tracer {
 
     public void addShutdownHook(Closeable closeable) {
         lifecycleListeners.add(ClosableLifecycleListenerAdapter.of(closeable));
+    }
+
+    private static class StackOverflowCounter {
+        private long overflowCounter = 0;
+
+        public long getOverflowCount() {
+            return overflowCounter;
+        }
+
+        public void incrementOverflowCount() {
+            this.overflowCounter++;
+        }
+
+        public void decrementOverflowCount() {
+            this.overflowCounter--;
+        }
     }
 }
