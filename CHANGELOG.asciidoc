@@ -37,6 +37,7 @@ version of classes that are available also in the parent (bootstrap) class loade
 * Added support for AWS SQS - {pull}2637[#2637]
 * Add <<config-trace-continuation-strategy, `trace_continuation_strategy`>> configuration option - {pull}2760[#2760]
 * Capture user from Azure SSO with Servlet-based app containers - {pull}2767[#2767]
+* Promote Webflux & Reactor to GA and enable it by default - {pull}2782[#2782]
 
 [float]
 ===== Bug fixes
