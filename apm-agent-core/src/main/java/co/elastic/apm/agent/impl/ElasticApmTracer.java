@@ -831,20 +831,4 @@ public class ElasticApmTracer implements Tracer {
     public void addShutdownHook(Closeable closeable) {
         lifecycleListeners.add(ClosableLifecycleListenerAdapter.of(closeable));
     }
-
-    private static class StackOverflowCounter {
-        private long overflowCounter = 0;
-
-        public long getOverflowCount() {
-            return overflowCounter;
-        }
-
-        public void incrementOverflowCount() {
-            this.overflowCounter++;
-        }
-
-        public void decrementOverflowCount() {
-            this.overflowCounter--;
-        }
-    }
 }
