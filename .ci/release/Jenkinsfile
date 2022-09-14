@@ -266,6 +266,9 @@ pipeline {
           }
         }
         stage('Update Cloudfoundry') {
+        when {
+          expression { return false }
+        }
           steps {
             dir("${BASE_DIR}"){
               sh(script: ".ci/release/update_cloudfoundry.sh ${RELEASE_VERSION}")
@@ -274,6 +277,9 @@ pipeline {
           }
         }
         stage('Build and push Docker images') {
+        when {
+          expression { return false }
+        }
           steps {
             dir("${BASE_DIR}"){
               // fetch agent artifact from remote repository
@@ -287,6 +293,9 @@ pipeline {
           }
         }
         stage('Publish release on GitHub') {
+        when {
+          expression { return false }
+        }
           steps {
             dir("${BASE_DIR}"){
               waitUntil(initialRecurrencePeriod: 60000) {
