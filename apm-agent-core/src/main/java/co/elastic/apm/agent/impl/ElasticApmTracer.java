@@ -33,7 +33,6 @@ import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.impl.transaction.ElasticContextWrapper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -58,12 +57,9 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.io.Closeable;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -91,20 +87,11 @@ public class ElasticApmTracer implements Tracer {
     private final ObjectPool<TraceContext> spanLinkPool;
     private final Reporter reporter;
     private final ObjectPoolFactory objectPoolFactory;
-    // Maintains a stack of all the activated spans/contexts
-    // This way its easy to retrieve the bottom of the stack (the transaction)
-    // Also, the caller does not have to keep a reference to the previously active span, as that is maintained by the stack
-    private final ThreadLocal<Deque<ElasticContext<?>>> activeStack = new ThreadLocal<Deque<ElasticContext<?>>>() {
-        @Override
-        protected Deque<ElasticContext<?>> initialValue() {
-            return new ArrayDeque<ElasticContext<?>>();
-        }
-    };
 
-    private final ThreadLocal<StackOverflowCounter> activeStackOverflowCounter = new ThreadLocal<StackOverflowCounter>() {
+    private final ThreadLocal<ActiveStack> activeStack = new ThreadLocal<ActiveStack>() {
         @Override
-        protected StackOverflowCounter initialValue() {
-            return new StackOverflowCounter();
+        protected ActiveStack initialValue() {
+            return new ActiveStack(coreConfiguration.getTransactionMaxSpans());
         }
     };
 
@@ -278,8 +265,7 @@ public class ElasticApmTracer implements Tracer {
     @Override
     @Nullable
     public Transaction currentTransaction() {
-        final ElasticContext<?> bottomOfStack = activeStack.get().peekLast();
-        return bottomOfStack != null ? bottomOfStack.getTransaction() : null;
+        return activeStack.get().currentTransaction();
     }
 
     /**
@@ -741,14 +727,7 @@ public class ElasticApmTracer implements Tracer {
      */
     @Nullable
     public ElasticContext<?> currentContext() {
-        ElasticContext<?> current = activeStack.get().peek();
-
-        // When the active context is wrapped, the wrapper should be transparent to the caller, thus we always return
-        // the underlying wrapped context.
-        if (current instanceof ElasticContextWrapper) {
-            return ((ElasticContextWrapper<?>) current).getWrappedContext();
-        }
-        return current;
+        return activeStack.get().currentContext();
     }
 
     /**
@@ -761,52 +740,11 @@ public class ElasticApmTracer implements Tracer {
      * @return newly (or previously) created wrapper
      */
     public <T extends ElasticContext<T>> T wrapActiveContextIfRequired(Class<T> wrapperClass, Callable<T> wrapFunction) {
-
-        // the current context might be either a "regular" one or a "wrapped" one if it has already been wrapped
-        ElasticContext<?> current = activeStack.get().peek();
-
-        Objects.requireNonNull(current, "active context required for wrapping");
-        ElasticContextWrapper<?> wrapper;
-        if (current instanceof ElasticContextWrapper) {
-            wrapper = (ElasticContextWrapper<?>) current;
-        } else {
-            wrapper = new ElasticContextWrapper<>(approximateContextSize, current);
-        }
-        T wrapped = wrapper.wrapIfRequired(wrapperClass, wrapFunction);
-
-        // replace the currently active on the stack, however currentContext() will make sure to return the original
-        // context in order to keep wrapping transparent.
-
-        activeStack.get().remove();
-        activeStack.get().push(wrapper);
-
-        return wrapped;
+        return activeStack.get().wrapActiveContextIfRequired(wrapperClass, wrapFunction, approximateContextSize);
     }
 
     public void activate(ElasticContext<?> context) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Activating {} on thread {}", context, Thread.currentThread().getId());
-        }
-
-        if (activeStack.get().size() == coreConfiguration.getTransactionMaxSpans()) {
-            StackOverflowCounter stackOverflowCounter = activeStackOverflowCounter.get();
-            if (stackOverflowCounter.getOverflowCount() == 0) {
-                logger.error(String.format("Activation stack depth reached its maximum - %s. This is likely related to activation" +
-                        " leak. Current transaction: %s", coreConfiguration.getTransactionMaxSpans(), currentTransaction()),
-                    new Throwable("Stack of threshold-crossing activation: ")
-                );
-            }
-            stackOverflowCounter.incrementOverflowCount();
-            return;
-        }
-
-        AbstractSpan<?> span = context.getSpan();
-        if (span != null) {
-            span.incrementReferences();
-            triggerActivationListeners(span, true);
-        }
-
-        activeStack.get().push(context);
+        activeStack.get().activate(context, activationListeners);
     }
 
     public Scope activateInScope(final ElasticContext<?> context) {
@@ -829,67 +767,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     public void deactivate(ElasticContext<?> context) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Deactivating {} on thread {}", context, Thread.currentThread().getId());
-        }
-
-        StackOverflowCounter stackOverflowCounter = activeStackOverflowCounter.get();
-        if (stackOverflowCounter.getOverflowCount() > 0) {
-            stackOverflowCounter.decrementOverflowCount();
-            return;
-        }
-
-        ElasticContext<?> activeContext = currentContext();
-        activeStack.get().remove();
-
-        AbstractSpan<?> span = context.getSpan();
-
-        if (activeContext != context && activeContext instanceof ElasticContextWrapper) {
-            // when context has been wrapped, we need to get the underlying context
-            activeContext = ((ElasticContextWrapper<?>) activeContext).getWrappedContext();
-        }
-
-        try {
-            assertIsActive(context, activeContext);
-
-            if (null != span) {
-                triggerActivationListeners(span, false);
-            }
-        } finally {
-            if (null != span) {
-                span.decrementReferences();
-            }
-        }
-    }
-
-    private void assertIsActive(ElasticContext<?> context, @Nullable ElasticContext<?> currentlyActive) {
-        if (context != currentlyActive) {
-            logger.warn("Deactivating a context ({}) which is not the currently active one ({}). " +
-                "This can happen when not properly deactivating a previous span or context.", context, currentlyActive);
-
-            if (assertionsEnabled) {
-                throw new AssertionError("Deactivating a context that is not the active one");
-            }
-        }
-    }
-
-    private void triggerActivationListeners(AbstractSpan<?> span, boolean isActivate) {
-        List<ActivationListener> activationListeners = getActivationListeners();
-        for (int i = 0, size = activationListeners.size(); i < size; i++) {
-            ActivationListener listener = activationListeners.get(i);
-            try {
-                if (isActivate) {
-                    listener.beforeActivate(span);
-                } else {
-                    // `this` is guaranteed to not be recycled yet as the reference count is only decremented after this method has executed
-                    listener.afterDeactivate(span);
-                }
-            } catch (Error e) {
-                throw e;
-            } catch (Throwable t) {
-                logger.warn("Exception while calling {}#{}", listener.getClass().getSimpleName(), isActivate ? "beforeActivate" : "afterDeactivate", t);
-            }
-        }
+        activeStack.get().deactivate(context, activationListeners, assertionsEnabled);
     }
 
     public MetricRegistry getMetricRegistry() {
