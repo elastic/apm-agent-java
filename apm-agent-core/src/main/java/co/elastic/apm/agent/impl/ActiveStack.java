@@ -54,6 +54,7 @@ class ActiveStack {
      * Maintains a stack of all the activated spans/contexts.
      * This way it's easy to retrieve the bottom of the stack (the transaction).
      * Also, the caller does not have to keep a reference to the previously active span, as that is maintained by the stack.
+     * This makes activating a span allocation-free (assuming the stack has enough pre-allocated slots available).
      */
     private final Deque<ElasticContext<?>> activeContextStack = new ArrayDeque<ElasticContext<?>>();
 
