@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.opentelemetry.sdk;
 
-import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;

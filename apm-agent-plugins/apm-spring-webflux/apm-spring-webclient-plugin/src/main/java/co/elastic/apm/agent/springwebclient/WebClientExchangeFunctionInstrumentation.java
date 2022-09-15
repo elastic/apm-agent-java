@@ -65,7 +65,7 @@ public class WebClientExchangeFunctionInstrumentation extends TracerAwareInstrum
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "spring-webclient", "experimental");
+        return Arrays.asList("http-client", "spring-webclient");
     }
 
     public static class AdviceClass {
