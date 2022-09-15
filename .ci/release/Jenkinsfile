@@ -69,11 +69,11 @@ pipeline {
       stages{
         stage('Check oss.sonatype.org') {
           steps {
-            setEnvVar('STAGE_STAGE_SONARSONAR', 'true')
+            setEnvVar('STAGE_SONAR', 'true')
             whenTrue(params.interactive) {
-              setEnvVar('STAGE_STAGE_SONARSONAR', askAndWait(message: "Do you wish to run the oss.sonatype.org stage?"))
+              setEnvVar('STAGE_SONAR', prompt(message: "Do you wish to run the oss.sonatype.org stage?"))
             }
-            whenTrue(env.STAGE_STAGE_SONARSONAR?.equals('true')) {
+            whenTrue(env.STAGE_SONAR?.equals('true')) {
               // If this fails, an exception should be thrown and execution will halt
               dir("${BASE_DIR}"){
                 script {
@@ -96,7 +96,7 @@ pipeline {
           steps {
             setEnvVar('STAGE_BUILD_STATUS', 'true')
             whenTrue(params.interactive) {
-              setEnvVar('STAGE_BUILD_STATUS', askAndWait(message: "Do you wish to run the build status stage?"))
+              setEnvVar('STAGE_BUILD_STATUS', prompt(message: "Do you wish to run the build status stage?"))
             }
             whenTrue(env.STAGE_BUILD_STATUS?.equals('true')) {
               // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/"${BRANCH_SPECIFIER}"/
@@ -112,7 +112,7 @@ pipeline {
           steps {
             setEnvVar('STAGE_CHANGELOG', 'true')
             whenTrue(params.interactive) {
-              setEnvVar('STAGE_CHANGELOG', askAndWait(message: "Do you wish to run the CHANGELOG.asciidoc stage?"))
+              setEnvVar('STAGE_CHANGELOG', prompt(message: "Do you wish to run the CHANGELOG.asciidoc stage?"))
             }
             whenTrue(env.STAGE_CHANGELOG?.equals('true')) {
               input(message: """
@@ -150,12 +150,10 @@ pipeline {
               env.BRANCH_DOT_X = user_release_version.substring(0, user_release_version.indexOf('.'))+'.x'
               env.RELEASE_AWS_LAMBDA_VERSION = '-ver-' + user_release_version.replaceAll('\\.', '-')
 
-
               setEnvVar('STAGE_SET_RELEASE', 'true')
               whenTrue(params.interactive) {
-                setEnvVar('STAGE_SET_RELEASE', askAndWait(message: "Do you wish to set the Releave Version automaticaly?"))
+                setEnvVar('STAGE_SET_RELEASE', prompt(message: "Do you wish to set the Releave Version automaticaly?"))
               }
-
               // If required to be run this stage
               whenTrue((env.STAGE_SET_RELEASE?.equals('true'))) {
                 dir("${BASE_DIR}"){
@@ -177,7 +175,7 @@ pipeline {
           steps {
             setEnvVar('STAGE_INTERNAL_CI', 'true')
             whenTrue(params.interactive) {
-              setEnvVar('STAGE_INTERNAL_CI', askAndWait(message: "Do you wish to wait for internal CI?"))
+              setEnvVar('STAGE_INTERNAL_CI', prompt(message: "Do you wish to wait for internal CI?"))
             }
             whenTrue(env.STAGE_INTERNAL_CI?.equals('true')) {
               notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be pushed",
@@ -190,7 +188,7 @@ pipeline {
           steps {
             setEnvVar('STAGE_NEXUS_RELEASE', 'true')
             whenTrue(params.interactive) {
-              setEnvVar('STAGE_NEXUS_RELEASE', askAndWait(message: "Do you wish to run the nexus release stage?"))
+              setEnvVar('STAGE_NEXUS_RELEASE', prompt(message: "Do you wish to run the nexus release stage?"))
             }
             whenTrue(env.STAGE_NEXUS_RELEASE?.equals('true')) {
               notifyStatus(slackStatus: 'warning', subject: "[${env.REPO}] Release ready to be published in Nexus",
@@ -203,7 +201,7 @@ pipeline {
           steps {
             setEnvVar('STAGE_MAJOR_CREATE_UPDATE', 'true')
             whenTrue(params.interactive) {
-              setEnvVar('STAGE_MAJOR_CREATE_UPDATE', askAndWait(message: "Do you wish to run the major branch creation/update stage?"))
+              setEnvVar('STAGE_MAJOR_CREATE_UPDATE', prompt(message: "Do you wish to run the major branch creation/update stage?"))
             }
             whenTrue(env.STAGE_MAJOR_CREATE_UPDATE?.equals('true')) {
               dir("${BASE_DIR}") {
@@ -231,7 +229,7 @@ pipeline {
           steps {
             setEnvVar('STAGE_AWS_LAMBDA', 'true')
             whenTrue(params.interactive) {
-              setEnvVar('STAGE_AWS_LAMBDA', askAndWait(message: "Do you wish to run the AWS lambda publishing stage?"))
+              setEnvVar('STAGE_AWS_LAMBDA', prompt(message: "Do you wish to run the AWS lambda publishing stage?"))
             }
             whenTrue(env.STAGE_AWS_LAMBDA?.equals('true')) {
               setEnvVar('ELASTIC_LAYER_NAME', "elastic-apm-java${env.RELEASE_AWS_LAMBDA_VERSION}")
@@ -259,7 +257,7 @@ pipeline {
           steps {
             setEnvVar('STAGE_RELEASE_DRAFT', 'true')
             whenTrue(params.interactive) {
-              setEnvVar('STAGE_RELEASE_DRAFT', askAndWait(message: "Do you wish to run the GitHub release draft stage?"))
+              setEnvVar('STAGE_RELEASE_DRAFT', prompt(message: "Do you wish to run the GitHub release draft stage?"))
             }
             whenTrue(env.STAGE_RELEASE_DRAFT?.equals('true')) {
               dir("${BASE_DIR}"){
@@ -286,7 +284,7 @@ pipeline {
           steps {
             setEnvVar('STAGE_WAIT_MAVEN_CENTRAL', 'true')
             whenTrue(params.interactive) {
-              setEnvVar('STAGE_WAIT_MAVEN_CENTRAL', askAndWait(message: "Do you wish to run the Maven Central stage?"))
+              setEnvVar('STAGE_WAIT_MAVEN_CENTRAL', prompt(message: "Do you wish to run the Maven Central stage?"))
             }
             whenTrue(env.STAGE_WAIT_MAVEN_CENTRAL?.equals('true')) {
               dir("${BASE_DIR}"){
@@ -307,7 +305,7 @@ pipeline {
           steps {
             setEnvVar('STAGE_CLOUDFOUNDRY', 'true')
             whenTrue(params.interactive) {
-              setEnvVar('STAGE_CLOUDFOUNDRY', askAndWait(message: "Do you wish to run the CloudFoundry stage?"))
+              setEnvVar('STAGE_CLOUDFOUNDRY', prompt(message: "Do you wish to run the CloudFoundry stage?"))
             }
             whenTrue(env.STAGE_CLOUDFOUNDRY?.equals('true')) {
               dir("${BASE_DIR}"){
@@ -321,7 +319,7 @@ pipeline {
           steps {
             setEnvVar('STAGE_DOCKER', 'true')
             whenTrue(params.interactive) {
-              setEnvVar('STAGE_DOCKER', askAndWait(message: "Do you wish to run the Docker images stage?"))
+              setEnvVar('STAGE_DOCKER', prompt(message: "Do you wish to run the Docker images stage?"))
             }
             whenTrue(env.STAGE_DOCKER?.equals('true')) {
               dir("${BASE_DIR}"){
@@ -340,7 +338,7 @@ pipeline {
           steps {
             setEnvVar('STAGE_GITHUB_RELEASE', 'true')
             whenTrue(params.interactive) {
-              setEnvVar('STAGE_GITHUB_RELEASE', askAndWait(message: "Do you wish to run the GitHub release stage?"))
+              setEnvVar('STAGE_GITHUB_RELEASE', prompt(message: "Do you wish to run the GitHub release stage?"))
             }
             whenTrue(env.STAGE_DOCKER?.equals('true')) {
               dir("${BASE_DIR}"){
@@ -365,7 +363,7 @@ pipeline {
           steps {
             setEnvVar('STAGE_OPBEANS', 'true')
             whenTrue(params.interactive) {
-              setEnvVar('STAGE_OPBEANS', askAndWait(message: "Do you wish to run the Opbeans stage?"))
+              setEnvVar('STAGE_OPBEANS', prompt(message: "Do you wish to run the Opbeans stage?"))
             }
             whenTrue(env.STAGE_OPBEANS?.equals('true')) {
               deleteDir()
