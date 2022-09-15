@@ -131,37 +131,43 @@ pipeline {
         }
         stage('Set release version') {
           steps {
-            setEnvVar('STAGE_SET_RELEASE', 'true')
-            whenTrue(params.interactive) {
-              setEnvVar('STAGE_SET_RELEASE', askAndWait(message: "Do you wish to set the Releave Version automaticaly?"))
-            }
-            // TODO: input to gather those details manually instead
-            whenTrue((env.STAGE_SET_RELEASE?.equals('true'))) {
+            script {
+              // Gather the release version to be set if needed. It will be used later on, regardless this 
+              // stage was cached or not
+              def snapshot_version, release_version, user_release_version
               dir("${BASE_DIR}"){
-                script {
-                  def snapshot_version = mvnVersion(showQualifiers: true)
-                  def release_version = snapshot_version.minus('-SNAPSHOT')
-                  def user_release_version = input(message: "Please enter version to release:", parameters: [[
-                      $class: 'StringParameterDefinition',
-                      name: 'Release version',
-                      defaultValue: "${release_version}",
-                      description: "Current project version is ${snapshot_version}, will be released as ${release_version} if unchanged. Input release version without '-SNAPSHOT' suffix"
-                    ]])
+                snapshot_version = mvnVersion(showQualifiers: true)
+                release_version = snapshot_version.minus('-SNAPSHOT')
+                user_release_version = input(message: "Please enter version to release:", parameters: [[
+                  $class: 'StringParameterDefinition',
+                  name: 'Release version',
+                  defaultValue: "${release_version}",
+                  description: "Current project version is ${snapshot_version}, will be released as ${release_version} if unchanged. Input release version without '-SNAPSHOT' suffix"
+                ]])
+              }
+              env.RELEASE_TAG = "v" + user_release_version
+              env.RELEASE_VERSION = user_release_version
+              env.BRANCH_DOT_X = user_release_version.substring(0, user_release_version.indexOf('.'))+'.x'
+              env.RELEASE_AWS_LAMBDA_VERSION = '-ver-' + user_release_version.replaceAll('\\.', '-')
 
+
+              setEnvVar('STAGE_SET_RELEASE', 'true')
+              whenTrue(params.interactive) {
+                setEnvVar('STAGE_SET_RELEASE', askAndWait(message: "Do you wish to set the Releave Version automaticaly?"))
+              }
+
+              // If required to be run this stage
+              whenTrue((env.STAGE_SET_RELEASE?.equals('true'))) {
+                dir("${BASE_DIR}"){
                   if( release_version.equals(user_release_version) ) {
-                      echo "changing project version '${snapshot_version}' not required to release ${release_version}"
+                    echo "changing project version '${snapshot_version}' not required to release ${release_version}"
                   } else {
-                      echo "changing project version from '${snapshot_version}' to '${user_release_version}' to prepare release ${user_release_version}."
-                      sh(label: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${user_release_version}-SNAPSHOT")
-                      sh(script: "git commit -a -m 'Version bump ${user_release_version}'")
-                      sh(label: 'debug git user', script: 'git --no-pager log -1')
-                      gitPush()
+                    echo "changing project version from '${snapshot_version}' to '${user_release_version}' to prepare release ${user_release_version}."
+                    sh(label: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${user_release_version}-SNAPSHOT")
+                    sh(script: "git commit -a -m 'Version bump ${user_release_version}'")
+                    sh(label: 'debug git user', script: 'git --no-pager log -1')
+                    gitPush()
                   }
-
-                  env.RELEASE_TAG = "v" + user_release_version
-                  env.RELEASE_VERSION = user_release_version
-                  env.BRANCH_DOT_X = user_release_version.substring(0, user_release_version.indexOf('.'))+'.x'
-                  env.RELEASE_AWS_LAMBDA_VERSION = '-ver-' + user_release_version.replaceAll('\\.', '-')
                 }
               }
             }
