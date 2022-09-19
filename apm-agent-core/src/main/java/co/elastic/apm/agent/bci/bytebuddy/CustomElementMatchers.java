@@ -84,6 +84,7 @@ public class CustomElementMatchers {
 
     /**
      * Matches the target class loader to a given class loader by instance comparison
+     *
      * @param other the class loader to match to
      * @return {@code true} if {@code other} is the same class loader instance as the target class loader
      */
@@ -193,7 +194,6 @@ public class CustomElementMatchers {
         };
     }
 
-
     public static ElementMatcher.Junction<ClassLoader> isAgentClassLoader() {
         return AGENT_CLASS_LOADER_MATCHER;
     }
@@ -216,6 +216,7 @@ public class CustomElementMatchers {
 
             }
         };
+
         abstract <T extends Comparable<T>> boolean match(T c1, T c2);
     }
 

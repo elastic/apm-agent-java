@@ -610,7 +610,7 @@ ECS-compatible format.
 
 Trace correlation is only supported when used ECS logging library or with <<config-log-ecs-reformatting, `log_ecs_reformatting`>> as JUL does
 not provide any MDC implementation.
-|Trace correlation - 1.34.0
+|Trace correlation - 1.35.0
 
 ECS Reformatting - 1.31.0
 

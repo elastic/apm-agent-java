@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.InstallationListenerImpl;
