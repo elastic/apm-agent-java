@@ -29,7 +29,7 @@ public class LoggerErrorHelper {
     private final CallDepth callDepth;
     private final Tracer tracer;
 
-    public LoggerErrorHelper(Class<?> adviceClass, Tracer tracer){
+    public LoggerErrorHelper(Class<?> adviceClass, Tracer tracer) {
         this.callDepth = CallDepth.get(adviceClass);
         this.tracer = tracer;
     }
@@ -42,9 +42,9 @@ public class LoggerErrorHelper {
      * @return error capture, if any, {@literal null} for nested calls and when no exception provided.
      */
     @Nullable
-    public Object enter(@Nullable Throwable exception, Class<?> originClass){
+    public Object enter(@Nullable Throwable exception, Class<?> originClass) {
         if (!callDepth.isNestedCallAndIncrement()) {
-            if(exception != null){
+            if (exception != null) {
                 ErrorCapture error = tracer.captureException(exception, tracer.getActive(), originClass.getClassLoader());
                 if (error != null) {
                     error.activate();
