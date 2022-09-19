@@ -22,12 +22,16 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseListener;
+import org.elasticsearch.client.RestClient;
 
 import javax.annotation.Nullable;
 
 public class ResponseListenerWrapper implements ResponseListener, Recyclable {
 
     private final ElasticsearchRestClientInstrumentationHelper helper;
+
+    @Nullable
+    private RestClient restClient;
     @Nullable
     private ResponseListener delegate;
     @Nullable
@@ -37,8 +41,9 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
         this.helper = helper;
     }
 
-    ResponseListenerWrapper with(ResponseListener delegate, Span span) {
+    ResponseListenerWrapper with(ResponseListener delegate, Span span, RestClient restClient) {
         // Order is important due to visibility - write to span last on this (initiating) thread
+        this.restClient = restClient;
         this.delegate = delegate;
         this.span = span;
         return this;
@@ -47,7 +52,7 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
     @Override
     public void onSuccess(Response response) {
         try {
-            finishClientSpan(response, null);
+            finishClientSpan(response, null, restClient);
         } finally {
             if (delegate != null) {
                 delegate.onSuccess(response);
@@ -59,7 +64,7 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
     @Override
     public void onFailure(Exception exception) {
         try {
-            finishClientSpan(null, exception);
+            finishClientSpan(null, exception, restClient);
         } finally {
             if (delegate != null) {
                 delegate.onFailure(exception);
@@ -68,11 +73,11 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
         }
     }
 
-    private void finishClientSpan(@Nullable Response response, @Nullable Throwable throwable) {
+    private void finishClientSpan(@Nullable Response response, @Nullable Throwable throwable, RestClient restClient) {
         // First read volatile span to ensure visibility on executing thread
         Span localSpan = span;
         if (localSpan != null) {
-            helper.finishClientSpan(response, localSpan, throwable);
+            helper.finishClientSpan(response, localSpan, throwable, restClient);
         }
     }
 

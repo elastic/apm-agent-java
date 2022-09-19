@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.esrestclient.v6_4;
 
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
-import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
@@ -28,6 +27,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.ResponseListener;
+import org.elasticsearch.client.RestClient;
 
 import javax.annotation.Nullable;
 
@@ -58,18 +58,21 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
 
     public static class ElasticsearchRestClientAsyncAdvice {
 
-        private static final ElasticsearchRestClientInstrumentationHelper helper = ElasticsearchRestClientInstrumentationHelper.get();
+        private static final ElasticsearchRestClientHelper helper = ElasticsearchRestClientHelper.get();
 
         @Nullable
         @Advice.AssignReturned.ToArguments(@ToArgument(index = 1, value = 1, typing = DYNAMIC))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeExecute(@Advice.Argument(0) Request request,
-                                               @Advice.Argument(1) ResponseListener responseListener) {
+                                               @Advice.Argument(1) ResponseListener responseListener,
+                                               @Advice.This RestClient restClient) {
             Span span = helper.createClientSpan(request.getMethod(), request.getEndpoint(), request.getEntity());
             if (span != null) {
+                helper.captureClusterName(restClient, span, request);
+
                 Object[] ret = new Object[2];
                 ret[0] = span;
-                ret[1] = helper.wrapResponseListener(responseListener, span);
+                ret[1] = helper.wrapResponseListener(responseListener, span, restClient);
                 return ret;
             }
             return null;

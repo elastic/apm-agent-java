@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.runners.Parameterized;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -43,6 +44,7 @@ import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 public abstract class AbstractEsClientInstrumentationTest extends AbstractInstrumentationTest {
 
+    @Nullable
     protected static ElasticsearchContainer container;
 
     protected static final String INDEX = "my-index";

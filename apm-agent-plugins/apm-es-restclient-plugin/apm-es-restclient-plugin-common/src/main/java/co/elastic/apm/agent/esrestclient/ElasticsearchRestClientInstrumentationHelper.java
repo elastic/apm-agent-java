@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -27,28 +26,36 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.IOUtils;
+import com.dslplatform.json.DslJson;
+import com.dslplatform.json.JsonReader;
+import com.dslplatform.json.ObjectConverter;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.ResponseListener;
+import org.elasticsearch.client.RestClient;
 import org.jctools.queues.atomic.AtomicQueueFactory;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
-public class ElasticsearchRestClientInstrumentationHelper {
+public abstract class ElasticsearchRestClientInstrumentationHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelper.class);
-    private static final ElasticsearchRestClientInstrumentationHelper INSTANCE = new ElasticsearchRestClientInstrumentationHelper(GlobalTracer.requireTracerImpl());
 
     public static final List<WildcardMatcher> QUERY_WILDCARD_MATCHERS = Arrays.asList(
         WildcardMatcher.valueOf("*_search"),
@@ -64,16 +71,71 @@ public class ElasticsearchRestClientInstrumentationHelper {
 
     private final ObjectPool<ResponseListenerWrapper> responseListenerObjectPool;
 
-    public static ElasticsearchRestClientInstrumentationHelper get() {
-        return INSTANCE;
-    }
-
-    private ElasticsearchRestClientInstrumentationHelper(ElasticApmTracer tracer) {
+    protected ElasticsearchRestClientInstrumentationHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
         responseListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
             AtomicQueueFactory.<ResponseListenerWrapper>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
             false,
             new ResponseListenerAllocator());
+    }
+
+    private static final String DUMMY_NAME = "";
+    private final WeakMap<Object,String> clusterName = WeakConcurrent.buildMap();
+
+    /**
+     * Starts the cluster name capture, if needed. Will return {@literal true} only for the 1st call for a given key.
+     * Will also set `service.target.name` from cached value if there is such.
+     *
+     * @param cacheKey cache key
+     * @param span     active span, if there is such
+     * @return {@literal true} if cluster name needs to be fetched, {@literal false} otherwise
+     */
+    public boolean startGetClusterName(Object cacheKey, @Nullable Span span) {
+        if (span == null) {
+            return false;
+        }
+        String name = clusterName.putIfAbsent(cacheKey, DUMMY_NAME);
+        if (name == null) {
+            // no cached value
+            return true;
+        }
+
+        if (name != DUMMY_NAME) {
+            // use cached value when available
+            span.getContext().getServiceTarget().withName(name);
+        }
+        return false;
+    }
+
+    /**
+     * Ends the cluster name capture, should only be called once after {@link  #startGetClusterName(Object, Span)}
+     * returned  {@literal true}.
+     *
+     * @param cacheKey   cache key
+     * @param fetchReply function to retrieve reply content
+     */
+    public void endGetClusterName(Object cacheKey, Callable<InputStream> fetchReply){
+        try {
+            InputStream jsonInput = fetchReply.call();
+            if (jsonInput == null) {
+                logger.warn("unable to capture ES cluster name");
+                return;
+            }
+
+            byte[] buffer = new byte[1024];
+            DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
+            JsonReader<Object> reader = dslJson.newReader(jsonInput, buffer);
+            reader.startObject();
+            Map<String,Object> map = (Map<String, Object>) ObjectConverter.deserializeObject(reader);
+            Object value = map.get("cluster_name");
+            if(value instanceof String) {
+                String name = (String) value;
+                clusterName.put(cacheKey, name);
+            }
+
+        } catch (Exception e) {
+            logger.warn("unable to capture ES cluster name", e);
+        }
     }
 
     private class ResponseListenerAllocator implements Allocator<ResponseListenerWrapper> {
@@ -120,7 +182,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
         return span;
     }
 
-    public void finishClientSpan(@Nullable Response response, Span span, @Nullable Throwable t) {
+    public void finishClientSpan(@Nullable Response response, Span span, @Nullable Throwable t, RestClient restClient){
         try {
             String url = null;
             int statusCode = -1;
@@ -132,6 +194,15 @@ public class ElasticsearchRestClientInstrumentationHelper {
                 port = host.getPort();
                 url = host.toURI();
                 statusCode = response.getStatusLine().getStatusCode();
+
+                // response header has higher priority than cached value
+                String cluster = response.getHeader("x-found-handling-cluster");
+                if (cluster == null) {
+                    String cachedCluster = clusterName.get(restClient);
+                    cluster = cachedCluster != DUMMY_NAME ? cachedCluster : null;
+                }
+                span.getContext().getServiceTarget().withName(cluster);
+
             } else if (t != null) {
                 if (t instanceof ResponseException) {
                     ResponseException esre = (ResponseException) t;
@@ -157,8 +228,8 @@ public class ElasticsearchRestClientInstrumentationHelper {
         }
     }
 
-    public ResponseListener wrapResponseListener(ResponseListener listener, Span span) {
-        return responseListenerObjectPool.createInstance().with(listener, span);
+    public ResponseListener wrapResponseListener(ResponseListener listener, Span span, RestClient restClient) {
+        return responseListenerObjectPool.createInstance().with(listener, span, restClient);
     }
 
     void recycle(ResponseListenerWrapper listenerWrapper) {
