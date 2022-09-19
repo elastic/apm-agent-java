@@ -46,11 +46,11 @@ pipeline {
                 shallow: false
             )
             dir("${BASE_DIR}") {
-              setupAPMGitEmail()
-            }
-            dir("${BASE_DIR}") {
               withEnv(["BRANCH_NAME=${BRANCH_SPECIFIER}"]){
                 withGitRelease() { // sets up the git release setup (remote branches, current workspace state, ...)
+                  // Set the git user/email to be used, otherwise withGitRelease will pick up the latest
+                  // git committer.
+                  setupAPMGitEmail()
                   stash(allowEmpty: true, name: 'source', useDefaultExcludes: false)
                 }
               }
@@ -129,6 +129,7 @@ pipeline {
                     echo "changing project version from '${snapshot_version}' to '${user_release_version}' to prepare release ${user_release_version}."
                     sh(label: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${user_release_version}-SNAPSHOT")
                     sh(script: "git commit -a -m 'Version bump ${user_release_version}'")
+                    sh(label: 'debug git user', script: 'git --no-pager log -1')
                     gitPush()
                 }
 

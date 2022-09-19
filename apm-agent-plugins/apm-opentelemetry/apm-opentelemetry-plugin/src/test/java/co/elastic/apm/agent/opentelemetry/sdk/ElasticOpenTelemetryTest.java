@@ -401,16 +401,14 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
                 .describedAs("elastic span should appear visible in current context")
                 .isNotNull();
 
-            assertThat(tracer.currentContext())
-                .describedAs("current context should have been upgraded to otel context")
-                .isNotNull()
-                .isNotSameAs(transaction);
-
             assertThat(tracer.currentTransaction())
+                .describedAs("elastic transaction is preserved")
                 .isSameAs(tracer.currentContext().getSpan())
-                .isSameAs(transaction);
+                .isSameAs(transaction)
+                .describedAs("elastic transaction should still be active")
+                .isSameAs(tracer.getActive());
         } finally {
-            // this must transparently deactivate the upgraded context
+
             transaction.deactivate().end();
         }
     }
@@ -433,6 +431,10 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
             otelSpan.end();
 
         } finally {
+            assertThat(tracer.getActive())
+                .describedAs("original transaction should still be active")
+                .isSameAs(transaction);
+
             transaction.deactivate().end();
         }
 
@@ -472,6 +474,10 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         } finally {
             otelSpan.end();
         }
+
+        assertThat(tracer.getActive())
+            .describedAs("no active span should be left")
+            .isNull();
 
         assertThat(reporter.getNumReportedTransactions()).isEqualTo(1);
         assertThat(reporter.getFirstTransaction()).isSameAs(transaction);

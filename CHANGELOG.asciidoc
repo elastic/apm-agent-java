@@ -23,6 +23,24 @@ endif::[]
 [[release-notes-x.x.x]]
 ==== x.x.x - YYYY/MM/DD
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.34.1]]
+==== 1.34.1 - YYYY/MM/DD
+
+[float]
+===== Features
+* Add support for log correlation for `java.util.logging` (JUL) - {pull}2724[#2724]
+
+[float]
+===== Refactorings
+* Activation stack was extracted from `ElasticApmTracer` into a separate class, where it also enforces a stack depth to eliminate
+activation leaks - {pull}2783[#2783]
+
+[[release-notes-1.34.0]]
+==== 1.34.0 - 2022/09/14
+
 [float]
 ===== Refactorings
 * Changed the main agent class loader to work in a child-first delegation model, thus making it more isolated by preferring self packaged
@@ -31,28 +49,29 @@ version of classes that are available also in the parent (bootstrap) class loade
 [float]
 ===== Features
 * Capture Oracle SID in connection string - {pull}2709[#2709]
-* Implemented span links in the OTel bridge. - {pull}2685[#2685]
-* Added support for MongoDB's 4.x Sync Driver - {pull}2241{#2241}
+* Implemented span links in the OTel bridge - {pull}2685[#2685]
+* Added support for MongoDB 4.x Sync Driver - {pull}2241{#2241}
 * Capture keyspace in `db.instance` for Cassandra database - {pull}2684[#2684]
 * Added support for AWS SQS - {pull}2637[#2637]
 * Add <<config-trace-continuation-strategy, `trace_continuation_strategy`>> configuration option - {pull}2760[#2760]
 * Capture user from Azure SSO with Servlet-based app containers - {pull}2767[#2767]
-* Add support for log correlation for `java.util.logging` (JUL) - {pull}2724[#2724]
+* Promote WebFlux & Reactor to GA and enable it by default - {pull}2782[#2782]
 
 [float]
 ===== Bug fixes
-* Fix unexpected side-effects of `toString` calls within reactor instrumentation - {pull}2708[#2708]
+* Fix unexpected side effects of `toString` calls within reactor instrumentation - {pull}2708[#2708]
 * Fix Vert.x instrumentation for 4.3.2 - {pull}2700[#2700]
 * Fix `NullPointerException` in `AmazonHttpClientInstrumentation` - {pull}2740[#2740]
 * Fix stack frame exclusion patterns - {pull}2758[#2758]
 * Fix `NullPointerException` with compressed spans - {pull}2755[#2755]
-* Fix empty servlet path with proper fallback - {pull}2748[#2748]
-* Fix 'ClosedByInterruptException` during indy bootstrap method resolution - {pull}2752[#2752]
+* Fix empty Servlet path with proper fallback - {pull}2748[#2748]
+* Fix `ClosedByInterruptException` during indy bootstrap method resolution - {pull}2752[#2752]
 * Enhance exclusion of other APM agents - {pull}2766[#2766]
 * Avoid warning when log correlation option is provided in remote config - {pull}2765[#2765]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Update `async-profiler` to 1.8.8 to avoid missing symbol log spam - {pull}2775[#2775]
+* Fix container ID discovery for containers managed through AWS Fargate - {pull}2772[#2772]
+* Make `traceparent` header computation thread-safe - {pull}2747[#2747]
+* Fix OTel bridge with multiple OTel APIs or external plugins - {pull}2735[#2735]
 
 [[release-notes-1.33.0]]
 ==== 1.33.0 - 2022/07/08
