@@ -1,0 +1,3 @@
+co.elastic.apm.agent.finaglehttpclient.FinaglePayloadSizeFilterInstrumentation
+co.elastic.apm.agent.finaglehttpclient.FinagleExceptionSourceFilterInstrumentation
+co.elastic.apm.agent.finaglehttpclient.FinagleTlsFilterInstrumentation

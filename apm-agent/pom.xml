@@ -367,6 +367,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-finagle-httpclient-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- For auto-generating configuration docs -->
         <dependency>
             <groupId>org.freemarker</groupId>
