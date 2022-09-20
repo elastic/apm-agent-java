@@ -281,6 +281,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("*credit*"),
             WildcardMatcher.valueOf("*card*"),
             WildcardMatcher.valueOf("*auth*"),
+            WildcardMatcher.valueOf("*principal*"),
             // HTTP response header which can contain session ids
             WildcardMatcher.valueOf("set-cookie")
         ));

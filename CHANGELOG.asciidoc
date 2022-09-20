@@ -30,6 +30,10 @@ endif::[]
 ==== 1.34.1 - YYYY/MM/DD
 
 [float]
+===== Features
+* Redact `*principal*` headers by default - {pull}2798[#2798]
+
+[float]
 ===== Refactorings
 * Activation stack was extracted from `ElasticApmTracer` into a separate class, where it also enforces a stack depth to eliminate
 activation leaks - {pull}2783[#2783]
