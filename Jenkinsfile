@@ -70,7 +70,6 @@ pipeline {
     stage('Checkout') {
       options { skipDefaultCheckout() }
       steps {
-        pipelineManager([ cancelPreviousRunningBuilds: [ when: 'PR' ] ])
         deleteDir()
         // reference repo causes issues while running on Windows with the git-commit-id-maven-plugin
         gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, shallow: false)
@@ -92,6 +91,11 @@ pipeline {
               // those GH checks are required, and docs build skips them we artificially make them as OK
               githubCheck(name: "Application Server integration tests", status: 'neutral');
               githubCheck(name: "Non-Application Server integration tests", status: 'neutral');
+            } else {
+              // PRs with no docs changes can be evaluated to run faster.
+              // This should avoid multiple pushes while the build is ongoing being the
+              // last one the only related to the docs.
+              pipelineManager([ cancelPreviousRunningBuilds: [ when: 'PR' ] ])
             }
           }
         }
