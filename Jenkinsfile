@@ -79,6 +79,11 @@ pipeline {
             // Compare with the previous git commit if possible, otherwise the target branch or the git base commit.
             def from = env.GIT_PREVIOUS_COMMIT?.trim() ? "${env.GIT_PREVIOUS_COMMIT}"
                                                        : "${env.CHANGE_TARGET?.trim() ? 'origin/${env.CHANGE_TARGET}' : env.GIT_BASE_COMMIT}"
+            // for debugging purposes only
+            echo "env.GIT_PREVIOUS_COMMIT=${env.GIT_PREVIOUS_COMMIT?.trim()}"
+            echo "env.CHANGE_TARGET=${env.CHANGE_TARGET?.trim()}"
+            echo "env.GIT_BASE_COMMIT=${env.GIT_BASE_COMMIT?.trim()}"
+            echo "isGitRegionMatch(from: ${from})"
             // Skip all the stages except docs for PR's with asciidoc and md changes only
             env.ONLY_DOCS = isGitRegionMatch(patterns: [ '.*\\.(asciidoc|md)' ], shouldMatchAll: true, from: from)
             // Prepare the env variables for the benchmark results
