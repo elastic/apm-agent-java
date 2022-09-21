@@ -19,29 +19,39 @@
 package co.elastic.apm.agent.micrometer;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleConfig;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class MicrometerInstrumentation extends AbstractMicrometerInstrumentation {
+/**
+ * SimpleMeterRegistry is constructed with a SimpleConfig, but the config is not accessible via
+ * a config() method because the superclass declares a config() which returns a different config
+ * private to the superclass, and the SimpleMeterRegistry doesn't override that nor provide a different
+ * method to access the SimpleConfig. So this instrumentation is just to access that config.
+ */
+public class MicrometerConfigInstrumentation extends AbstractMicrometerInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("io.micrometer.core.instrument.MeterRegistry");
+        return named("io.micrometer.core.instrument.simple.SimpleMeterRegistry");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("registerMeterIfNecessary");
+        return isConstructor().and(takesArgument(0, named("io.micrometer.core.instrument.simple.SimpleConfig")));
     }
 
     public static class AdviceClass {
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void onExit(@Advice.This MeterRegistry meterRegistry) {
-            reporter.registerMeterRegistry(meterRegistry);
+        public static void onExit(@Advice.This MeterRegistry meterRegistry, @Advice.Argument(0) SimpleConfig config) {
+            reporter.addConfig(meterRegistry, config);
+
         }
     }
 
