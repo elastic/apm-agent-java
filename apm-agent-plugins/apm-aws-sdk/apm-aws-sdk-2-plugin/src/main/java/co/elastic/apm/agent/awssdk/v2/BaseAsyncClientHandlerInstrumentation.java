@@ -89,7 +89,7 @@ public class BaseAsyncClientHandlerInstrumentation extends TracerAwareInstrument
                 span.withSync(false);
             }
 
-            return new ResponseHandlerWrapper(responseHandler, sdkRequest, span);
+            return new ResponseHandlerWrapper(awsService, responseHandler, sdkRequest, span);
         }
     }
 }
