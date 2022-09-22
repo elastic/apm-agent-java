@@ -87,6 +87,8 @@ public abstract class ElasticsearchRestClientInstrumentationHelper {
 
     @Nullable
     private String getOrFetchClusterName(final RestClient restClient, Object requestHeadersOrOptions) {
+        // While there is already an in-progress request, the dummy value will prevent issuing more than one request to
+        // Elasticsearch.
         String name = clusterNames.putIfAbsent(restClient, DUMMY_CLUSTER_NAME);
         if (name != null) {
             return name != DUMMY_CLUSTER_NAME ? name : null;
@@ -124,6 +126,10 @@ public abstract class ElasticsearchRestClientInstrumentationHelper {
         });
 
         try {
+            // Because retrieving cluster name is executed after the application request completes, it slows down the
+            // first request to ES. In order to limit that potential impact we have to enforce a time budget, which
+            // means that if the response is within budget the cluster name is properly captured, if it is not, then
+            // one or more requests to ES will not have their cluster name set.
             if (!end.await(30, TimeUnit.MILLISECONDS)) {
                 logger.warn("giving up on retrieving cluster name");
             }
