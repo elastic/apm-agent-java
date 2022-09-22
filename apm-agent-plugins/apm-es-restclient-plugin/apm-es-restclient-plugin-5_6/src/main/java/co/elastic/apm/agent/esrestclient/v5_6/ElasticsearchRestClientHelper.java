@@ -21,14 +21,9 @@ package co.elastic.apm.agent.esrestclient.v5_6;
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
 import org.apache.http.Header;
-import org.elasticsearch.client.Response;
+import org.elasticsearch.client.ResponseListener;
 import org.elasticsearch.client.RestClient;
-
-import javax.annotation.Nullable;
-import java.io.InputStream;
-import java.util.concurrent.Callable;
 
 public class ElasticsearchRestClientHelper extends ElasticsearchRestClientInstrumentationHelper {
 
@@ -38,19 +33,18 @@ public class ElasticsearchRestClientHelper extends ElasticsearchRestClientInstru
         return INSTANCE;
     }
 
-    protected ElasticsearchRestClientHelper(ElasticApmTracer tracer) {
-        super(tracer);
+    private ElasticsearchRestClientHelper(ElasticApmTracer tracer) {
+        super(tracer, new HttpClientAdapter() {
+
+            @Override
+            public void performRequestAsync(RestClient restClient, String method, String path, Object headersOrRequestOptions, ResponseListener responseListener) {
+                if (!(headersOrRequestOptions instanceof Header[])) {
+                    throw new IllegalArgumentException("unexpected header type");
+                }
+                Header[] headers = (Header[]) headersOrRequestOptions;
+                restClient.performRequestAsync(method, path, responseListener, headers);
+            }
+        });
     }
 
-    public void captureClusterName(final RestClient restClient, @Nullable Span span, final Header[] headers) {
-        if (startGetClusterName(restClient, span)) {
-            endGetClusterName(restClient, new Callable<InputStream>() {
-                @Override
-                public InputStream call() throws Exception {
-                    Response response = restClient.performRequest("GET", "/_nodes", headers);
-                    return response.getStatusLine().getStatusCode() == 200 ? response.getEntity().getContent() : null;
-                }
-            });
-        }
-    }
 }

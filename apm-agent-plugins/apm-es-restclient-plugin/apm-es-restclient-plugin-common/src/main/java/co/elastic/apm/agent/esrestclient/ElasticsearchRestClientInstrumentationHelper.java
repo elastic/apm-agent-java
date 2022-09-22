@@ -44,12 +44,12 @@ import org.jctools.queues.atomic.AtomicQueueFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
@@ -71,71 +71,67 @@ public abstract class ElasticsearchRestClientInstrumentationHelper {
 
     private final ObjectPool<ResponseListenerWrapper> responseListenerObjectPool;
 
-    protected ElasticsearchRestClientInstrumentationHelper(ElasticApmTracer tracer) {
+    private final HttpClientAdapter httpClientAdapter;
+
+    private static final String DUMMY_CLUSTER_NAME = "";
+    private final WeakMap<Object, String> clusterNames = WeakConcurrent.buildMap();
+
+    public ElasticsearchRestClientInstrumentationHelper(ElasticApmTracer tracer, HttpClientAdapter httpClientAdapter) {
         this.tracer = tracer;
-        responseListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
+        this.responseListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
             AtomicQueueFactory.<ResponseListenerWrapper>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
             false,
             new ResponseListenerAllocator());
+        this.httpClientAdapter = httpClientAdapter;
     }
 
-    private static final String DUMMY_NAME = "";
-    private final WeakMap<Object,String> clusterName = WeakConcurrent.buildMap();
-
-    /**
-     * Starts the cluster name capture, if needed. Will return {@literal true} only for the 1st call for a given key.
-     * Will also set `service.target.name` from cached value if there is such.
-     *
-     * @param cacheKey cache key
-     * @param span     active span, if there is such
-     * @return {@literal true} if cluster name needs to be fetched, {@literal false} otherwise
-     */
-    public boolean startGetClusterName(Object cacheKey, @Nullable Span span) {
-        if (span == null) {
-            return false;
-        }
-        String name = clusterName.putIfAbsent(cacheKey, DUMMY_NAME);
-        if (name == null) {
-            // no cached value
-            return true;
+    @Nullable
+    private String getOrFetchClusterName(final RestClient restClient, Object requestHeadersOrOptions) {
+        String name = clusterNames.putIfAbsent(restClient, DUMMY_CLUSTER_NAME);
+        if (name != null) {
+            return name != DUMMY_CLUSTER_NAME ? name : null;
         }
 
-        if (name != DUMMY_NAME) {
-            // use cached value when available
-            span.getContext().getServiceTarget().withName(name);
-        }
-        return false;
-    }
+        final CountDownLatch end = new CountDownLatch(1);
+        httpClientAdapter.performRequestAsync(restClient, "GET", "/", requestHeadersOrOptions, new ResponseListener() {
+            @Override
+            public void onSuccess(Response response) {
+                String clusterName = null;
+                try {
+                    byte[] buffer = new byte[1024];
+                    DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
+                    JsonReader<Object> reader = dslJson.newReader(response.getEntity().getContent(), buffer);
+                    reader.startObject();
+                    Map<String, Object> map = (Map<String, Object>) ObjectConverter.deserializeObject(reader);
+                    Object value = map.get("cluster_name");
+                    if (value instanceof String) {
+                        clusterName = (String) value;
+                        clusterNames.put(restClient, clusterName);
+                    }
+                } catch (IOException e) {
+                    logger.warn("unable to retrieve cluster name", e);
+                } finally {
+                    logger.debug("cluster name = {}", clusterName);
+                    end.countDown();
+                }
+            }
 
-    /**
-     * Ends the cluster name capture, should only be called once after {@link  #startGetClusterName(Object, Span)}
-     * returned  {@literal true}.
-     *
-     * @param cacheKey   cache key
-     * @param fetchReply function to retrieve reply content
-     */
-    public void endGetClusterName(Object cacheKey, Callable<InputStream> fetchReply){
+            @Override
+            public void onFailure(Exception e) {
+                logger.warn("unable to retrieve cluster name", e);
+                end.countDown();
+            }
+        });
+
         try {
-            InputStream jsonInput = fetchReply.call();
-            if (jsonInput == null) {
-                logger.warn("unable to capture ES cluster name");
-                return;
+            if (!end.await(30, TimeUnit.MILLISECONDS)) {
+                logger.warn("giving up on retrieving cluster name");
             }
-
-            byte[] buffer = new byte[1024];
-            DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
-            JsonReader<Object> reader = dslJson.newReader(jsonInput, buffer);
-            reader.startObject();
-            Map<String,Object> map = (Map<String, Object>) ObjectConverter.deserializeObject(reader);
-            Object value = map.get("cluster_name");
-            if(value instanceof String) {
-                String name = (String) value;
-                clusterName.put(cacheKey, name);
-            }
-
-        } catch (Exception e) {
-            logger.warn("unable to capture ES cluster name", e);
+        } catch (InterruptedException e) {
+            // silently ignored
         }
+
+        return clusterNames.get(restClient);
     }
 
     private class ResponseListenerAllocator implements Allocator<ResponseListenerWrapper> {
@@ -182,12 +178,13 @@ public abstract class ElasticsearchRestClientInstrumentationHelper {
         return span;
     }
 
-    public void finishClientSpan(@Nullable Response response, Span span, @Nullable Throwable t, RestClient restClient){
+    public void finishClientSpan(@Nullable Response response, Span span, @Nullable Throwable t, RestClient restClient, Object requestHeadersOrOptions) {
         try {
             String url = null;
             int statusCode = -1;
             String address = null;
             int port = -1;
+            String cluster = null;
             if (response != null) {
                 HttpHost host = response.getHost();
                 address = host.getHostName();
@@ -195,13 +192,8 @@ public abstract class ElasticsearchRestClientInstrumentationHelper {
                 url = host.toURI();
                 statusCode = response.getStatusLine().getStatusCode();
 
-                // response header has higher priority than cached value
-                String cluster = response.getHeader("x-found-handling-cluster");
-                if (cluster == null) {
-                    String cachedCluster = clusterName.get(restClient);
-                    cluster = cachedCluster != DUMMY_NAME ? cachedCluster : null;
-                }
-                span.getContext().getServiceTarget().withName(cluster);
+                // response header has higher priority than fetched/cached value
+                cluster = response.getHeader("x-found-handling-cluster");
 
             } else if (t != null) {
                 if (t instanceof ResponseException) {
@@ -223,16 +215,36 @@ public abstract class ElasticsearchRestClientInstrumentationHelper {
             }
             span.getContext().getHttp().withStatusCode(statusCode);
             span.getContext().getDestination().withAddress(address).withPort(port);
+
+            if (cluster == null) {
+                cluster = getOrFetchClusterName(restClient, requestHeadersOrOptions);
+            }
+            span.getContext().getServiceTarget().withName(cluster);
         } finally {
             span.end();
         }
     }
 
-    public ResponseListener wrapResponseListener(ResponseListener listener, Span span, RestClient restClient) {
-        return responseListenerObjectPool.createInstance().with(listener, span, restClient);
+    public ResponseListener wrapResponseListener(ResponseListener listener, Span span, RestClient restClient, Object requestHeadersOrOptions) {
+        return responseListenerObjectPool.createInstance().with(listener, span, restClient, requestHeadersOrOptions);
     }
 
     void recycle(ResponseListenerWrapper listenerWrapper) {
         responseListenerObjectPool.recycle(listenerWrapper);
     }
+
+    public interface HttpClientAdapter {
+
+        /**
+         * Executes an HTTP request asynchronously
+         *
+         * @param restClient              ES REST client
+         * @param method                  HTTP method
+         * @param endpoint                ES endpoint path
+         * @param headersOrRequestOptions Request headers or options
+         * @param responseListener        response listener
+         */
+        void performRequestAsync(RestClient restClient, String method, String endpoint, Object headersOrRequestOptions, ResponseListener responseListener);
+    }
+
 }

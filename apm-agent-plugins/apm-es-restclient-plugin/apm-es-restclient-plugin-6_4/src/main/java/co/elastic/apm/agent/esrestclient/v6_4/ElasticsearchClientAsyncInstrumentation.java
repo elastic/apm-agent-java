@@ -68,12 +68,10 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
                                                @Advice.This RestClient restClient) {
             Span span = helper.createClientSpan(request.getMethod(), request.getEndpoint(), request.getEntity());
             if (span != null) {
-                helper.captureClusterName(restClient, span, request);
-
-                Object[] ret = new Object[2];
-                ret[0] = span;
-                ret[1] = helper.wrapResponseListener(responseListener, span, restClient);
-                return ret;
+                return new Object[]{
+                    span,
+                    helper.wrapResponseListener(responseListener, span, restClient, request.getOptions())
+                };
             }
             return null;
         }
@@ -81,12 +79,14 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Thrown @Nullable Throwable t,
                                           @Advice.Enter @Nullable Object[] entryArgs) {
-            if (entryArgs != null) {
-                final Span span = (Span) entryArgs[0];
-                if (span != null) {
-                    // Deactivate in this thread. Span will be ended and reported by the listener
-                    span.deactivate();
-                }
+            if (entryArgs == null) {
+                return;
+            }
+
+            Span span = (Span) entryArgs[0];
+            if (span != null) {
+                // Deactivate in this thread. Span will be ended and reported by the listener
+                span.deactivate();
             }
         }
     }

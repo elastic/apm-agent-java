@@ -21,16 +21,21 @@ package co.elastic.apm.agent.esrestclient.v6_4;
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.ResponseListener;
 import org.elasticsearch.client.RestClient;
 
 import javax.annotation.Nullable;
-import java.io.InputStream;
-import java.util.concurrent.Callable;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 
 public class ElasticsearchRestClientHelper extends ElasticsearchRestClientInstrumentationHelper {
+
+    private static final Logger log = LoggerFactory.getLogger(ElasticsearchRestClientHelper.class);
 
     private static final ElasticsearchRestClientHelper INSTANCE = new ElasticsearchRestClientHelper(GlobalTracer.requireTracerImpl());
 
@@ -38,22 +43,68 @@ public class ElasticsearchRestClientHelper extends ElasticsearchRestClientInstru
         return INSTANCE;
     }
 
-    protected ElasticsearchRestClientHelper(ElasticApmTracer tracer) {
-        super(tracer);
+    private ElasticsearchRestClientHelper(ElasticApmTracer tracer) {
+        super(tracer, new ClientAdapter());
     }
 
-    public void captureClusterName(final RestClient restClient, @Nullable Span span, final Request request) {
-        if (startGetClusterName(restClient, span)) {
-            endGetClusterName(restClient, new Callable<InputStream>() {
-                @Override
-                @Nullable
-                public InputStream call() throws Exception {
-                    Request nodesRequest = new Request("GET", "/");
-                    nodesRequest.setOptions(request.getOptions());
-                    Response response = restClient.performRequest(nodesRequest);
-                    return response.getStatusLine().getStatusCode() == 200 ? response.getEntity().getContent() : null;
-                }
-            });
+    private static class ClientAdapter implements HttpClientAdapter {
+
+        @Override
+        public void performRequestAsync(RestClient restClient, String method, String endpoint, Object headersOrRequestOptions, ResponseListener responseListener) {
+            if (!(headersOrRequestOptions instanceof RequestOptions)) {
+                throw new IllegalArgumentException("unexpected header type");
+            }
+            Request request = new Request(method, endpoint);
+            request.setOptions(((RequestOptions) headersOrRequestOptions));
+
+            invokeAsyncPerformRequest(restClient, request, responseListener);
         }
+
+        private void invokeAsyncPerformRequest(RestClient restClient, Request request, ResponseListener responseListener) {
+
+            if (methodHandle == null) {
+                try {
+                    // 7.x with Cancellable return type
+                    Class<?> cancellableType = Class.forName("org.elasticsearch.client.Cancellable", false, RestClient.class.getClassLoader());
+                    methodHandle = lookupMethod(cancellableType);
+                } catch (ClassNotFoundException e) {
+                    // silently ignored
+                }
+
+                if (methodHandle == null) {
+                    // 6.x with void return type
+                    methodHandle = lookupMethod(void.class);
+                }
+            }
+
+            // in case method is not found, fallback on no-op as cluster name is not required
+            if (methodHandle == null) {
+                log.warn("unable to resolve performRequestAsync");
+                return;
+            }
+
+            try {
+                methodHandle.invoke(restClient, request, responseListener);
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+
+        @Nullable
+        private MethodHandle methodHandle;
+
+        @Nullable
+        private MethodHandle lookupMethod(Class<?> returnType) {
+            try {
+                return MethodHandles.lookup().findVirtual(RestClient.class, "performRequestAsync", MethodType.methodType(returnType, Request.class, ResponseListener.class));
+            } catch (NoSuchMethodException | IllegalAccessException e) {
+                log.debug("unable to resolve method", e);
+                return null;
+            }
+        }
+
     }
+
+
 }

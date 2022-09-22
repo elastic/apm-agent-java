@@ -59,27 +59,28 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onBeforeExecute(@Advice.Argument(0) Request request,
-                                             @Advice.This final RestClient restClient) {
+        public static Object onBeforeExecute(@Advice.Argument(0) Request request) {
 
-            Span span = helper.createClientSpan(request.getMethod(), request.getEndpoint(), request.getEntity());
-            helper.captureClusterName(restClient, span, request);
-            return span;
+            return helper.createClientSpan(request.getMethod(), request.getEndpoint(), request.getEntity());
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Return @Nullable Response response,
                                           @Advice.Enter @Nullable Object spanObj,
                                           @Advice.Thrown @Nullable Throwable t,
+                                          @Advice.Argument(0) Request request,
                                           @Advice.This RestClient restClient) {
-            Span span = (Span) spanObj;
-            if (span != null) {
-                try {
-                    helper.finishClientSpan(response, span, t, restClient);
-                } finally {
-                    span.deactivate();
-                }
+
+            if (!(spanObj instanceof Span)) {
+                return;
             }
+            Span span = (Span) spanObj;
+            try {
+                helper.finishClientSpan(response, span, t, restClient, request.getOptions());
+            } finally {
+                span.deactivate();
+            }
+
         }
 
     }

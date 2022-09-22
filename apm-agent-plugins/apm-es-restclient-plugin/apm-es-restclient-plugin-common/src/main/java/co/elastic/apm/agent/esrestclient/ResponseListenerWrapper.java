@@ -25,25 +25,31 @@ import org.elasticsearch.client.ResponseListener;
 import org.elasticsearch.client.RestClient;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 public class ResponseListenerWrapper implements ResponseListener, Recyclable {
 
     private final ElasticsearchRestClientInstrumentationHelper helper;
 
+    // properties that allow to retrieve cluster name when request completes
     @Nullable
-    private RestClient restClient;
+    protected RestClient restClient;
+    @Nullable
+    private Object requestHeadersOrOptions;
+
     @Nullable
     private ResponseListener delegate;
     @Nullable
     private volatile Span span;
 
-    ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelper helper) {
+    protected ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelper helper) {
         this.helper = helper;
     }
 
-    ResponseListenerWrapper with(ResponseListener delegate, Span span, RestClient restClient) {
+    public ResponseListenerWrapper with(ResponseListener delegate, Span span, RestClient restClient, Object requestHeadersOrOptions) {
         // Order is important due to visibility - write to span last on this (initiating) thread
         this.restClient = restClient;
+        this.requestHeadersOrOptions = requestHeadersOrOptions;
         this.delegate = delegate;
         this.span = span;
         return this;
@@ -52,7 +58,7 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
     @Override
     public void onSuccess(Response response) {
         try {
-            finishClientSpan(response, null, restClient);
+            finishClientSpan(response, null);
         } finally {
             if (delegate != null) {
                 delegate.onSuccess(response);
@@ -64,7 +70,7 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
     @Override
     public void onFailure(Exception exception) {
         try {
-            finishClientSpan(null, exception, restClient);
+            finishClientSpan(null, exception);
         } finally {
             if (delegate != null) {
                 delegate.onFailure(exception);
@@ -73,16 +79,20 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
         }
     }
 
-    private void finishClientSpan(@Nullable Response response, @Nullable Throwable throwable, RestClient restClient) {
+    private void finishClientSpan(@Nullable Response response, @Nullable Throwable throwable) {
         // First read volatile span to ensure visibility on executing thread
         Span localSpan = span;
         if (localSpan != null) {
-            helper.finishClientSpan(response, localSpan, throwable, restClient);
+            Objects.requireNonNull(restClient);
+            Objects.requireNonNull(requestHeadersOrOptions);
+            helper.finishClientSpan(response, localSpan, throwable, restClient, requestHeadersOrOptions);
         }
     }
 
     @Override
     public void resetState() {
+        restClient = null;
+        requestHeadersOrOptions = null;
         delegate = null;
         span = null;
     }

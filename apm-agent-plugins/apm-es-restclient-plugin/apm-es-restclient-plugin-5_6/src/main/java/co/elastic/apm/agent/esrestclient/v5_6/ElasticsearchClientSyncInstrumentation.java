@@ -51,15 +51,14 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
                                              @Advice.Argument(5) Header[] headers,
                                              @Advice.This final RestClient restClient) {
 
-            Span span = helper.createClientSpan(method, endpoint, entity);
-            helper.captureClusterName(restClient, span, headers);
-            return span;
+            return helper.createClientSpan(method, endpoint, entity);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Return @Nullable Response response,
                                           @Advice.Enter @Nullable Object spanObj,
                                           @Advice.Thrown @Nullable Throwable t,
+                                          @Advice.Argument(5) Header[] headers,
                                           @Advice.This RestClient restClient) {
 
             if (!(spanObj instanceof Span)) {
@@ -67,7 +66,7 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
             }
             Span span = (Span) spanObj;
             try {
-                helper.finishClientSpan(response, span, t, restClient);
+                helper.finishClientSpan(response, span, t, restClient, headers);
             } finally {
                 span.deactivate();
             }

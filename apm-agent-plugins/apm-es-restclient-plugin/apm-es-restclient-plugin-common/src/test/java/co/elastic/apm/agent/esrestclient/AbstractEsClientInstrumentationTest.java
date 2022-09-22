@@ -114,10 +114,12 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected void validateSpanContentWithoutContext(Span span, String expectedName, int statusCode, String method) {
-        assertThat(span.getType()).isEqualTo(SPAN_TYPE);
-        assertThat(span.getSubtype()).isEqualTo(ELASTICSEARCH);
-        assertThat(span.getAction()).isEqualTo(SPAN_ACTION);
-        assertThat(span.getNameAsString()).isEqualTo(expectedName);
+        assertThat(span)
+            .hasType(SPAN_TYPE)
+            .hasSubType(ELASTICSEARCH)
+            .hasAction(SPAN_ACTION)
+            .hasName(expectedName);
+
         assertThat(span.getContext().getDb().getType()).isEqualTo(ELASTICSEARCH);
         if (!expectedName.contains(SEARCH_QUERY_PATH_SUFFIX) && !expectedName.contains(MSEARCH_QUERY_PATH_SUFFIX) && !expectedName.contains(COUNT_QUERY_PATH_SUFFIX)) {
             assertThat((CharSequence) (span.getContext().getDb().getStatementBuffer())).isNull();
@@ -142,16 +144,27 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         validateDestinationContextContent(span.getContext().getDestination());
 
         assertThat(span.getContext().getServiceTarget())
-            .hasType(ELASTICSEARCH)
-            .hasNoName()
-            .hasDestinationResource(ELASTICSEARCH);
+            .hasType(ELASTICSEARCH);
+
+        CharSequence clusterName = span.getContext().getServiceTarget().getName();
+
+        // because cluster name retrieval is asynchronous and flaky by nature we have to assert for consistency
+        String expectedClusterName = "docker-cluster";
+        String expectedDestinationResource;
+        if (null != clusterName && expectedClusterName.contentEquals(clusterName)) {
+            expectedDestinationResource = ELASTICSEARCH + "/" + expectedClusterName;
+        } else {
+            expectedDestinationResource = ELASTICSEARCH;
+        }
+        assertThat(span.getContext().getServiceTarget()).hasDestinationResource(expectedDestinationResource);
     }
 
     private void validateDestinationContextContent(Destination destination) {
         assertThat(destination).isNotNull();
         if (reporter.checkDestinationAddress()) {
-            assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
-            assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
+            assertThat(destination)
+                .hasAddress(container.getContainerIpAddress())
+                .hasPort(container.getMappedPort(9200));
         }
     }
 

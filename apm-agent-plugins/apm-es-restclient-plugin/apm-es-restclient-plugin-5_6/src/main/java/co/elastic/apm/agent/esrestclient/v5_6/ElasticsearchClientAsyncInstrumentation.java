@@ -80,10 +80,9 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
 
             Span span = helper.createClientSpan(method, endpoint, entity);
             if (span != null) {
-                helper.captureClusterName(restClient, span, headers);
                 Object[] ret = new Object[2];
                 ret[0] = span;
-                ret[1] = helper.wrapResponseListener(responseListener, span, restClient);
+                ret[1] = helper.wrapResponseListener(responseListener, span, restClient, headers);
                 return ret;
             }
             return null;
