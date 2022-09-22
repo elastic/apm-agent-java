@@ -80,6 +80,7 @@ pipeline {
             def from = env.GIT_PREVIOUS_COMMIT?.trim() ? "${env.GIT_PREVIOUS_COMMIT}"
                                                        : "${env.CHANGE_TARGET?.trim() ? 'origin/${env.CHANGE_TARGET}' : env.GIT_BASE_COMMIT}"
             // for debugging purposes only
+            echo "env.GIT_PREVIOUS_SUCCESSFUL_COMMIT=${env.GIT_PREVIOUS_SUCCESSFUL_COMMIT?.trim()}"
             echo "env.GIT_PREVIOUS_COMMIT=${env.GIT_PREVIOUS_COMMIT?.trim()}"
             echo "env.CHANGE_TARGET=${env.CHANGE_TARGET?.trim()}"
             echo "env.GIT_BASE_COMMIT=${env.GIT_BASE_COMMIT?.trim()}"
