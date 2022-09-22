@@ -76,7 +76,7 @@ public abstract class ElasticsearchRestClientInstrumentationHelper {
     private static final String DUMMY_CLUSTER_NAME = "";
     private final WeakMap<Object, String> clusterNames = WeakConcurrent.buildMap();
 
-    public ElasticsearchRestClientInstrumentationHelper(ElasticApmTracer tracer, HttpClientAdapter httpClientAdapter) {
+    protected ElasticsearchRestClientInstrumentationHelper(ElasticApmTracer tracer, HttpClientAdapter httpClientAdapter) {
         this.tracer = tracer;
         this.responseListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
             AtomicQueueFactory.<ResponseListenerWrapper>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
