@@ -63,11 +63,11 @@ public abstract class Log4j2EcsReformattingInstrumentation extends AbstractLogIn
         return hasSuperType(named("org.apache.logging.log4j.core.Appender"));
     }
 
+    /**
+     * Instrumenting {@link org.apache.logging.log4j.core.Appender#append(org.apache.logging.log4j.core.LogEvent)} implementations
+     */
     public static class ShadingInstrumentation extends Log4j2EcsReformattingInstrumentation {
 
-        /**
-         * Instrumenting {@link org.apache.logging.log4j.core.Appender#append(org.apache.logging.log4j.core.LogEvent)} implementations
-         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("append").and(takesArgument(0, named("org.apache.logging.log4j.core.LogEvent")));
@@ -80,11 +80,11 @@ public abstract class Log4j2EcsReformattingInstrumentation extends AbstractLogIn
 
     }
 
+    /**
+     * Instrumenting {@link org.apache.logging.log4j.core.Appender#stop()} implementations
+     */
     public static class StopAppenderInstrumentation extends Log4j2EcsReformattingInstrumentation {
 
-        /**
-         * Instrumenting {@link org.apache.logging.log4j.core.Appender#stop()} implementations
-         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("stop");
@@ -97,11 +97,11 @@ public abstract class Log4j2EcsReformattingInstrumentation extends AbstractLogIn
 
     }
 
+    /**
+     * Instrumenting {@link org.apache.logging.log4j.core.appender.AbstractAppender#getLayout()}
+     */
     public static class OverridingInstrumentation extends Log4j2EcsReformattingInstrumentation {
 
-        /**
-         * Instrumenting {@link org.apache.logging.log4j.core.appender.AbstractAppender#getLayout()}
-         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("getLayout").and(returns(hasSuperType(named("org.apache.logging.log4j.core.Layout"))));

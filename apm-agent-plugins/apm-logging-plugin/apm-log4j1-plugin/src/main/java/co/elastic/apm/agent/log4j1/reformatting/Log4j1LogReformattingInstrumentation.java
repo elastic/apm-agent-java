@@ -52,11 +52,12 @@ public abstract class Log4j1LogReformattingInstrumentation extends AbstractLogIn
         return named("org.apache.log4j.WriterAppender");
     }
 
+    /**
+     * Instrumenting {@link org.apache.log4j.WriterAppender#subAppend(org.apache.log4j.spi.LoggingEvent)}
+     */
+    @SuppressWarnings("JavadocReference")
     public static class ReformattingInstrumentation extends Log4j1LogReformattingInstrumentation {
 
-        /**
-         * Instrumenting {@link org.apache.log4j.WriterAppender#subAppend(org.apache.log4j.spi.LoggingEvent)}
-         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("subAppend").and(takesArgument(0, named("org.apache.log4j.spi.LoggingEvent")));
@@ -69,11 +70,11 @@ public abstract class Log4j1LogReformattingInstrumentation extends AbstractLogIn
 
     }
 
+    /**
+     * Instrumenting {@link org.apache.log4j.WriterAppender#close()}
+     */
     public static class StopAppenderInstrumentation extends Log4j1LogReformattingInstrumentation {
 
-        /**
-         * Instrumenting {@link org.apache.log4j.WriterAppender#close()}
-         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("close").and(takesArguments(0));

@@ -40,6 +40,24 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Tracer
     public static final String LOG4J2_LOGGER = "org.apache.logging.log4j.Logger";
 
     @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("Logger");
+    }
+
+    @Override
+    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        return named("error")
+            .and(takesArgument(1, named("java.lang.Throwable")));
+    }
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        Collection<String> ret = new ArrayList<>();
+        ret.add("logging");
+        return ret;
+    }
+
+    @Override
     public String getAdviceClassName() {
         return "co.elastic.apm.agent.loginstr.error.AbstractLoggerErrorCapturingInstrumentation$LoggingAdvice";
     }
@@ -69,23 +87,5 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Tracer
                 error.deactivate().end();
             }
         }
-    }
-
-    @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Logger");
-    }
-
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("error")
-            .and(takesArgument(1, named("java.lang.Throwable")));
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = new ArrayList<>();
-        ret.add("logging");
-        return ret;
     }
 }

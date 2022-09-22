@@ -35,7 +35,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 /**
- * Instruments {@link org.jboss.logmanager.Logger#logRaw}
+ * Instruments {@link org.jboss.logmanager.Logger#logRaw(ExtLogRecord)}
  */
 public class JBossLogManagerCorrelationInstrumentation extends TracerAwareInstrumentation {
 

@@ -53,11 +53,12 @@ public abstract class LogbackLogReformattingInstrumentation extends AbstractLogI
         return named("ch.qos.logback.core.OutputStreamAppender");
     }
 
+    /**
+     * Instrumenting {@link ch.qos.logback.core.OutputStreamAppender#append(Object)}
+     */
+    @SuppressWarnings("JavadocReference")
     public static class ReformattingInstrumentation extends LogbackLogReformattingInstrumentation {
 
-        /**
-         * Instrumenting {@link ch.qos.logback.core.OutputStreamAppender#append(Object)}
-         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("append").and(takesGenericArgument(0, TypeDescription.Generic.Builder.typeVariable("E").build()));
@@ -70,11 +71,11 @@ public abstract class LogbackLogReformattingInstrumentation extends AbstractLogI
 
     }
 
+    /**
+     * Instrumenting {@link ch.qos.logback.core.OutputStreamAppender#stop}
+     */
     public static class StopAppenderInstrumentation extends LogbackLogReformattingInstrumentation {
 
-        /**
-         * Instrumenting {@link ch.qos.logback.core.OutputStreamAppender#stop}
-         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("stop").and(takesArguments(0));
