@@ -20,14 +20,14 @@ package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("spring-webflux", "experimental");
+        return Collections.singleton("spring-webflux");
     }
 
 }
