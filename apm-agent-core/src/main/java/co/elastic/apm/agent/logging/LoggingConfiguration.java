@@ -165,15 +165,15 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "Available options:\n" +
             "\n" +
-            " - OFF - application logs are not reformatted. \n" +
-            " - SHADE - agent logs are reformatted and \"shade\" ECS-JSON-formatted logs are automatically created in \n" +
+            " - `OFF` - application logs are not reformatted. \n" +
+            " - `SHADE` - application logs are reformatted and \"shade\" ECS-JSON-formatted logs are automatically created in \n" +
             "   addition to the original application logs. Shade logs will have the same name as the original logs, \n" +
             "   but with the \".ecs.json\" extension instead of the original extension. Destination directory for the \n" +
             "   shade logs can be configured through the <<config-log-ecs-reformatting-dir,`log_ecs_reformatting_dir`>> \n" +
             "   configuration. Shade logs do not inherit file-rollover strategy from the original logs. Instead, they \n" +
             "   use their own size-based rollover strategy according to the <<config-log-file-size, `log_file_size`>> \n" +
             "   configuration and while allowing maximum of two shade log files.\n" +
-            " - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if \n" +
+            " - `REPLACE` - similar to `SHADE`, but the original logs will not be written. This option is useful if \n" +
             "   you wish to maintain similar logging-related overhead, but write logs to a different location and/or \n" +
             "   with a different file extension.\n" +
             " - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. \n" +
