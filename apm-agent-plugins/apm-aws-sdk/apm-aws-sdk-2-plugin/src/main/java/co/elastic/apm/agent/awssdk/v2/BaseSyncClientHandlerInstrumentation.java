@@ -18,11 +18,9 @@
  */
 package co.elastic.apm.agent.awssdk.v2;
 
-import co.elastic.apm.agent.awssdk.common.IAwsSdkDataSource;
 import co.elastic.apm.agent.awssdk.v2.helper.DynamoDbHelper;
 import co.elastic.apm.agent.awssdk.v2.helper.S3Helper;
 import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
-import co.elastic.apm.agent.awssdk.v2.helper.SdkV2DataSource;
 import co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper.MessageListWrapper;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Outcome;
@@ -33,12 +31,11 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import software.amazon.awssdk.auth.signer.AwsSignerExecutionAttribute;
 import software.amazon.awssdk.core.SdkRequest;
+import software.amazon.awssdk.core.SdkResponse;
 import software.amazon.awssdk.core.client.config.SdkClientConfiguration;
 import software.amazon.awssdk.core.client.config.SdkClientOption;
 import software.amazon.awssdk.core.client.handler.ClientExecutionParams;
 import software.amazon.awssdk.core.http.ExecutionContext;
-import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
-import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -99,9 +96,11 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
         public static void exitDoExecute(@Advice.Argument(value = 0) ClientExecutionParams clientExecutionParams,
+                                         @Advice.Argument(value = 1) ExecutionContext executionContext,
                                          @Nullable @Advice.Enter Object spanObj,
                                          @Nullable @Advice.Thrown Throwable thrown,
-                                         @Nullable @Advice.Return Object response) {
+                                         @Nullable @Advice.Return Object sdkResponse) {
+            String awsService = executionContext.executionAttributes().getAttribute(AwsSignerExecutionAttribute.SERVICE_NAME);
             SdkRequest sdkRequest = clientExecutionParams.getInput();
             if (spanObj instanceof Span) {
                 Span span = (Span) spanObj;
@@ -113,16 +112,15 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
                     span.withOutcome(Outcome.SUCCESS);
                 }
 
-                if (response instanceof ReceiveMessageResponse && sdkRequest instanceof ReceiveMessageRequest) {
-                    SQSHelper.getInstance().handleReceivedMessages(span, ((ReceiveMessageRequest) sdkRequest).queueUrl(), ((ReceiveMessageResponse) response).messages());
+                if ("Sqs".equalsIgnoreCase(awsService) && sdkResponse instanceof SdkResponse) {
+                    SQSHelper.getInstance().handleReceivedMessages(span, sdkRequest, (SdkResponse) sdkResponse);
                 }
+
                 span.end();
             }
 
-            if (response instanceof ReceiveMessageResponse && sdkRequest instanceof ReceiveMessageRequest) {
-                MessageListWrapper.registerWrapperListForResponse((ReceiveMessageResponse) response,
-                    SdkV2DataSource.getInstance().getFieldValue(IAwsSdkDataSource.QUEUE_NAME_FIELD, sdkRequest),
-                    SQSHelper.getInstance().getTracer());
+            if ("Sqs".equalsIgnoreCase(awsService) && sdkResponse instanceof SdkResponse) {
+                MessageListWrapper.registerWrapperListForResponse(sdkRequest, (SdkResponse) sdkResponse, SQSHelper.getInstance().getTracer());
             }
         }
     }
