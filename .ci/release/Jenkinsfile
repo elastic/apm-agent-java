@@ -31,7 +31,7 @@ pipeline {
     string(name: 'branch_specifier', defaultValue: 'stable', description: "What branch to release from?")
     booleanParam(name: 'check_branch_ci_status', defaultValue: true, description: "Check for failing tests in the given branch (if no stable branch)?")
     booleanParam(name: 'check_oss_sonatype_org', defaultValue: true, description: "Check for the oss.sonatype.org?")
-    booleanParam(name: 'check_changelog', defaultValue: true, description: "Check for the CHANGELOG.asciidoc has been updated?")
+    booleanParam(name: 'check_changelog', defaultValue: true, description: "Check if the CHANGELOG.asciidoc has been updated?")
     booleanParam(name: 'set_release', defaultValue: true, description: "Set the release version?")
     booleanParam(name: 'create_update_major_branch', defaultValue: true, description: "Create or update Major Branch?")
     booleanParam(name: 'create_github_draft', defaultValue: true, description: "Create the GitHub release draft?")
