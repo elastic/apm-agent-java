@@ -410,7 +410,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         statement.execute(insert);
 
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getContext().getDb()).hasInstance(insert);
+        assertThat(reporter.getFirstSpan().getContext().getDb()).hasInstance(expectedDbName);
     }
 
     private void assertQuerySucceededAndSpanRecorded(ResultSet resultSet, String rawSql, boolean preparedStatement) throws SQLException {
