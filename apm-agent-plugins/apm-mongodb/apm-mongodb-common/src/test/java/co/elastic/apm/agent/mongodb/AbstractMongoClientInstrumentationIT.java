@@ -24,6 +24,7 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
+import co.elastic.apm.agent.testutils.assertions.DbAssert;
 import org.bson.Document;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -216,16 +217,23 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
 
         assertThat(destination).hasPort(container.getMappedPort(PORT));
 
-        assertThat(span.getContext().getDb())
-            .hasInstance("testdb")
-            .hasStatement();
+        DbAssert dbAssert = assertThat(span.getContext().getDb())
+            .hasInstance("testdb");
+
+        // not all driver versions support statement capture
+        if (canCaptureStatement()) {
+            dbAssert.hasStatement();
+        }
 
         assertThat(span.getContext().getServiceTarget())
             .hasType("mongodb")
             .hasName("testdb")
             .hasDestinationResource("mongodb/testdb");
 
+    }
 
+    protected boolean canCaptureStatement() {
+        return true;
     }
 
     private static String getSpanName(String operation) {

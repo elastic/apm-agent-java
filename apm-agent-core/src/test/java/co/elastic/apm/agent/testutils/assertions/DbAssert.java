@@ -20,6 +20,7 @@ package co.elastic.apm.agent.testutils.assertions;
 
 import co.elastic.apm.agent.impl.context.Db;
 
+import javax.annotation.Nullable;
 import java.nio.CharBuffer;
 import java.util.Objects;
 
@@ -46,24 +47,21 @@ public class DbAssert extends BaseAssert<DbAssert, Db> {
      * @return this
      */
     public DbAssert hasStatement() {
-        getStatementAsString();
+        checkTrue("missing DB statement or statement buffer", getStatementAsString() != null);
         return this;
     }
 
+    @Nullable
     private String getStatementAsString() {
         String value = actual.getStatement();
         CharBuffer statementBuffer = actual.getStatementBuffer();
-        if (value == null) {
-            checkTrue("missing DB statement or statement buffer", statementBuffer != null);
-            Objects.requireNonNull(statementBuffer);
+        if(value != null){
+            checkTrue("unexpected non-empty DB statement buffer", statementBuffer == null || statementBuffer.length() > 0);
+        } else if (statementBuffer != null) {
             value = statementBuffer.toString();
-            checkTrue("unexpected empty DB statement buffer", value.length() > 0);
-            return value;
-        } else {
-            checkTrue("DB statement buffer should be empty or null",
-                actual.getStatementBuffer() == null || actual.withStatementBuffer().length() == 0);
-            return value;
         }
+
+        return value;
     }
 
     /**
