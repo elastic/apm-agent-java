@@ -88,7 +88,7 @@ public class ConnectionInstrumentation extends Mongo3Instrumentation {
                 namespace.getDatabaseName(),
                 namespace.getCollectionName(),
                 command,
-                address.getHost(), address.getPort());
+                address.getHost(), address.getPort(), null);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

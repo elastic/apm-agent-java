@@ -38,7 +38,7 @@ public class MongoHelper {
         this.tracer = tracer;
     }
 
-    public Span startSpan(@Nullable String database, @Nullable String collection, @Nullable String command, String host, int port) {
+    public Span startSpan(@Nullable String database, @Nullable String collection, @Nullable String command, String host, int port, @Nullable String statement) {
         Span span = null;
         final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan != null) {
@@ -59,7 +59,8 @@ public class MongoHelper {
             .withName(database);
 
         span.getContext().getDb()
-            .withInstance(database);
+            .withInstance(database)
+            .withStatement(statement);
 
         StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
         if (name != null) {
