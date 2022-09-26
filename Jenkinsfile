@@ -77,7 +77,7 @@ pipeline {
         script {
           dir("${BASE_DIR}"){
             // Compare with the previous git commit if possible, otherwise the target branch or the git base commit.
-            def from = env.GIT_PREVIOUS_COMMIT?.trim() ? "${env.GIT_PREVIOUS_COMMIT}"
+            def from = env.GIT_PREVIOUS_COMMIT?.trim() ? "HEAD~1"
                                                        : "${env.CHANGE_TARGET?.trim() ? 'origin/${env.CHANGE_TARGET}' : env.GIT_BASE_COMMIT}"
             // for debugging purposes only
             echo "env.GIT_PREVIOUS_SUCCESSFUL_COMMIT=${env.GIT_PREVIOUS_SUCCESSFUL_COMMIT?.trim()}"
