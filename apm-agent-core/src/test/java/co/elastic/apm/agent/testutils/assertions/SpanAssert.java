@@ -49,16 +49,4 @@ public class SpanAssert extends BaseAssert<SpanAssert, Span> {
         checkString("Expected span with subtype '%s' but was '%s'", action, actual.getAction());
         return this;
     }
-
-    public SpanAssert hasDbStatement(String statement) {
-        isNotNull();
-        checkString("Expected span with DB statement '%s' but was '%s'", statement, actual.getContext().getDb().getStatement());
-        return this;
-    }
-
-    public SpanAssert hasDbInstance(String instance) {
-        isNotNull();
-        checkString("Expected span with DB instance '%s' but was '%s'", instance, actual.getContext().getDb().getInstance());
-        return this;
-    }
 }

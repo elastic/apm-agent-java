@@ -99,18 +99,18 @@ class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
 
         reporter.awaitSpanCount(3);
 
-        assertThat(reporter.getSpanByName("CREATE"))
-            .hasDbStatement("CREATE TABLE users (id UUID PRIMARY KEY, name text)")
-            .hasDbInstance(KEYSPACE);
+        assertThat(reporter.getSpanByName("CREATE").getContext().getDb())
+            .hasStatement("CREATE TABLE users (id UUID PRIMARY KEY, name text)")
+            .hasInstance(KEYSPACE);
 
 
-        assertThat(reporter.getSpanByName("INSERT INTO users"))
-            .hasDbStatement("INSERT INTO users (id, name) values (?, ?)")
-            .hasDbInstance(KEYSPACE);
+        assertThat(reporter.getSpanByName("INSERT INTO users").getContext().getDb())
+            .hasStatement("INSERT INTO users (id, name) values (?, ?)")
+            .hasInstance(KEYSPACE);
 
-        assertThat(reporter.getSpanByName("SELECT FROM users"))
-            .hasDbStatement("SELECT * FROM users where name = 'alice' ALLOW FILTERING")
-            .hasDbInstance(KEYSPACE);
+        assertThat(reporter.getSpanByName("SELECT FROM users").getContext().getDb())
+            .hasStatement("SELECT * FROM users where name = 'alice' ALLOW FILTERING")
+            .hasInstance(KEYSPACE);
     }
 
 }

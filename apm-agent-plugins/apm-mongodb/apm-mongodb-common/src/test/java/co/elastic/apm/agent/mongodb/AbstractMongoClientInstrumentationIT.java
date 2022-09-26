@@ -213,15 +213,18 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
         Destination destination = span.getContext().getDestination();
         String address = destination.getAddress().toString();
         assertThat(address).isIn("localhost", "127.0.0.1");
-        assertThat(destination.getPort()).isEqualTo(container.getMappedPort(PORT));
 
-        assertThat(span.getContext().getDb().getInstance())
-            .isEqualTo("testdb");
+        assertThat(destination).hasPort(container.getMappedPort(PORT));
+
+        assertThat(span.getContext().getDb())
+            .hasInstance("testdb")
+            .hasStatement();
 
         assertThat(span.getContext().getServiceTarget())
             .hasType("mongodb")
             .hasName("testdb")
             .hasDestinationResource("mongodb/testdb");
+
 
     }
 

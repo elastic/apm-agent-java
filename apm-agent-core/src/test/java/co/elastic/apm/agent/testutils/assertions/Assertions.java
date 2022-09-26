@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.testutils.assertions;
 
+import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -37,5 +38,9 @@ public class Assertions extends org.assertj.core.api.Assertions {
 
     public static SpanAssert assertThat(Span span){
         return new SpanAssert(span);
+    }
+
+    public static DbAssert assertThat(Db db) {
+        return new DbAssert(db);
     }
 }
