@@ -24,14 +24,12 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
-import org.jctools.queues.atomic.AtomicQueueFactory;
-
-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
+import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
 public class ObjectPoolFactory {
 
-    protected <T extends Recyclable> ObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator) {
-        return QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<T>newQueue(createBoundedMpmc(maxCapacity)), false, allocator);
+    public <T extends Recyclable> ObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator) {
+        return QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<T>((maxCapacity)), false, allocator);
     }
 
     public ObjectPool<Transaction> createTransactionPool(int maxCapacity, final ElasticApmTracer tracer) {
@@ -54,19 +52,19 @@ public class ObjectPoolFactory {
 
     public ObjectPool<ErrorCapture> createErrorPool(int maxCapacity, final ElasticApmTracer tracer) {
         return createRecyclableObjectPool(maxCapacity, new Allocator<ErrorCapture>() {
-                @Override
-                public ErrorCapture createInstance() {
-                    return new ErrorCapture(tracer);
-                }
-            });
+            @Override
+            public ErrorCapture createInstance() {
+                return new ErrorCapture(tracer);
+            }
+        });
     }
 
     public ObjectPool<TraceContext> createSpanLinkPool(int maxCapacity, final ElasticApmTracer tracer) {
         return createRecyclableObjectPool(maxCapacity, new Allocator<TraceContext>() {
-                @Override
-                public TraceContext createInstance() {
-                    return TraceContext.with64BitId(tracer);
-                }
-            });
+            @Override
+            public TraceContext createInstance() {
+                return TraceContext.with64BitId(tracer);
+            }
+        });
     }
 }
