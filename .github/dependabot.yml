@@ -41,8 +41,8 @@ updates:
         # We deliberately want to keep this older version of Byte Buddy for our runtime attach test
         versions: ["<=1.9.16"]
       - dependency-name: "org.slf4j:slf4j-api"
-        # A static arbitrary version used within our external plugin test
-        versions: ["<=1.7.25"]
+        # A static arbitrary version used within our external plugin test + latest for java 7
+        versions: ["<=1.7.25", "1.7.36"]
       # Since these AWS dependencies are heavy and are being released very frequently, we ignore in the weekly update and update monthly
       - dependency-name: "com.amazonaws:aws-java-sdk-s3"
       - dependency-name: "com.amazonaws:aws-java-sdk-dynamodb"
