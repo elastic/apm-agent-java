@@ -31,12 +31,17 @@ endif::[]
 
 [float]
 ===== Features
+* Redact `*principal*` headers by default - {pull}2798[#2798]
 * Add support for log correlation for `java.util.logging` (JUL) - {pull}2724[#2724]
 
 [float]
 ===== Refactorings
 * Activation stack was extracted from `ElasticApmTracer` into a separate class, where it also enforces a stack depth to eliminate
 activation leaks - {pull}2783[#2783]
+
+[float]
+===== Bug fixes
+* Fix imports (leading to `NoClassDefFoundError`) in the AWS SDK instrumentation - {pull}2800[#2800]
 
 [[release-notes-1.34.0]]
 ==== 1.34.0 - 2022/09/14

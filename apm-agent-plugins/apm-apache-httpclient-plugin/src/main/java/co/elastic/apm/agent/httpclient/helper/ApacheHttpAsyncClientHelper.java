@@ -18,19 +18,17 @@
  */
 package co.elastic.apm.agent.httpclient.helper;
 
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.protocol.HttpContext;
-import org.jctools.queues.atomic.AtomicQueueFactory;
 
 import javax.annotation.Nullable;
-
-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
 public class ApacheHttpAsyncClientHelper {
 
@@ -40,13 +38,9 @@ public class ApacheHttpAsyncClientHelper {
     private final ObjectPool<FutureCallbackWrapper<?>> futureCallbackWrapperObjectPool;
 
     public ApacheHttpAsyncClientHelper() {
-        requestProducerWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(
-            AtomicQueueFactory.<HttpAsyncRequestProducerWrapper>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
-            false, new RequestProducerWrapperAllocator());
-
-        futureCallbackWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(
-            AtomicQueueFactory.<FutureCallbackWrapper<?>>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
-            false, new FutureCallbackWrapperAllocator());
+        ObjectPoolFactory factory = GlobalTracer.requireTracerImpl().getObjectPoolFactory();
+        requestProducerWrapperObjectPool = factory.createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new RequestProducerWrapperAllocator());
+        futureCallbackWrapperObjectPool = factory.createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new FutureCallbackWrapperAllocator());
     }
 
     private class RequestProducerWrapperAllocator implements Allocator<HttpAsyncRequestProducerWrapper> {

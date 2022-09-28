@@ -19,16 +19,69 @@
 package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.util.CustomEnvVariables;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import specs.TestJsonSpec;
 
 import javax.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ContainerInfoTest extends CustomEnvVariables {
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("getCommonPatterns")
+    void testCommonPatterns(String testName, String groupLine, @Nullable String containerId, @Nullable String podId) {
+        SystemInfo systemInfo = createSystemInfo().parseContainerId(groupLine);
+        assertThat(systemInfo).isNotNull();
+        SystemInfo.Container containerInfo = systemInfo.getContainerInfo();
+        if (containerId == null) {
+            assertThat(containerInfo).isNull();
+        } else {
+            assertThat(containerInfo).describedAs("missing container info from '%s'", groupLine).isNotNull();
+            assertThat(containerInfo.getId()).isEqualTo(containerId);
+        }
+        SystemInfo.Kubernetes kubernetesInfo = systemInfo.getKubernetesInfo();
+        if (podId == null) {
+            assertThat(kubernetesInfo).isNull();
+        } else {
+            assertThat(kubernetesInfo).describedAs("missing kubernetes info from '%s'", groupLine).isNotNull();
+            assertThat(kubernetesInfo.getPod()).isNotNull();
+            assertThat(kubernetesInfo.getPod().getUid()).isEqualTo(podId);
+        }
+    }
+
+    static Stream<Arguments> getCommonPatterns() {
+        JsonNode json = TestJsonSpec.getJson("cgroup_parsing.json");
+
+        assertThat(json.isObject())
+            .describedAs("unexpected JSON spec format")
+            .isTrue();
+
+        List<Arguments> args = new ArrayList<>();
+        Iterator<Map.Entry<String, JsonNode>> iterator = json.fields();
+        while(iterator.hasNext()){
+            Map.Entry<String, JsonNode> entry = iterator.next();
+            args.add(Arguments.of(
+                entry.getKey(),
+                entry.getValue().get("groupLine").asText(),
+                entry.getValue().get("containerId").asText(null),
+                entry.getValue().get("podId").asText(null)
+            ));
+        }
+
+        return args.stream();
+    }
 
     @Test
     void testContainerIdParsing() {
