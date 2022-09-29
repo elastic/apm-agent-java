@@ -20,6 +20,7 @@ package co.elastic.apm.agent.logback.reformatting;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.FileAppender;
 import ch.qos.logback.core.OutputStreamAppender;
 import ch.qos.logback.core.encoder.Encoder;
@@ -45,7 +46,8 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
 
     private static final LoggerContext defaultLoggerContext = new LoggerContext();
 
-    LogbackEcsReformattingHelper() {}
+    LogbackEcsReformattingHelper() {
+    }
 
     @Nullable
     @Override
@@ -103,12 +105,22 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
     protected OutputStreamAppender<ILoggingEvent> createAndStartEcsAppender(OutputStreamAppender<ILoggingEvent> originalAppender,
                                                                             String ecsAppenderName, Encoder<ILoggingEvent> ecsEncoder) {
         RollingFileAppender<ILoggingEvent> ecsAppender = null;
+
+        String appenderFile = null;
         if (originalAppender instanceof FileAppender) {
             FileAppender<ILoggingEvent> fileAppender = (FileAppender<ILoggingEvent>) originalAppender;
+            appenderFile = fileAppender.getFile();
+        } else if (originalAppender instanceof ConsoleAppender) {
+            ConsoleAppender<ILoggingEvent> consoleAppender = (ConsoleAppender<ILoggingEvent>) originalAppender;
+            appenderFile = Utils.normalizeEcsConsoleFileName(consoleAppender.getTarget(), consoleAppender.getName());
+        }
+
+        if (appenderFile != null) {
+
+            String ecsFile = Utils.computeLogReformattingFilePath(appenderFile, getConfiguredReformattingDir());
+
             ecsAppender = new RollingFileAppender<>();
             ecsAppender.setEncoder(ecsEncoder);
-
-            String ecsFile = Utils.computeLogReformattingFilePath(fileAppender.getFile(), getConfiguredReformattingDir());
             ecsAppender.setFile(ecsFile);
 
             FixedWindowRollingPolicy rollingPolicy = new FixedWindowRollingPolicy();

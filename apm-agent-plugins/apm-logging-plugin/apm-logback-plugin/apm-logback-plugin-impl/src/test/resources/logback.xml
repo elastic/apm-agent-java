@@ -29,7 +29,10 @@
     </appender>
 
     <logger name="Test-File-Logger" level="TRACE">
-        <appender-ref ref="FILE" />
+        <appender-ref ref="FILE"/>
+        <!-- duplicate file logger content to console appender for testing. When shading, both appenders should have
+        their own dedicated shaded files -->
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <appender name="ROLLING_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">

@@ -20,11 +20,15 @@ package co.elastic.apm.agent.logback;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.util.ContextInitializer;
+import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.FileAppender;
 import ch.qos.logback.core.joran.spi.JoranException;
 import co.elastic.apm.agent.loginstr.LoggingInstrumentationTest;
 import co.elastic.apm.agent.loginstr.LoggerFacade;
+import co.elastic.apm.agent.loginstr.reformatting.Utils;
 import org.slf4j.MDC;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
@@ -84,6 +88,12 @@ public class LogbackInstrumentationTest extends LoggingInstrumentationTest {
         @Override
         public String getLogFilePath() {
             return ((FileAppender<?>) logbackLogger.getAppender("FILE")).getFile();
+        }
+
+        @Override
+        public String getConsoleLogFilePath() {
+            ConsoleAppender<?> consoleAppender = ((ConsoleAppender<?>) logbackLogger.getAppender("STDOUT"));
+            return Utils.normalizeEcsConsoleFileName(consoleAppender.getTarget(), consoleAppender.getName());
         }
 
         @Override
