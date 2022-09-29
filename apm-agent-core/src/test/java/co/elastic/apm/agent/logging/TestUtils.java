@@ -24,13 +24,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 
 public class TestUtils {
 
-    private final static ObjectMapper objectMapper = new ObjectMapper(); ;
+    private final static ObjectMapper objectMapper = new ObjectMapper();
 
     public static ArrayList<JsonNode> readJsonFile(String jsonFilePath) throws IOException {
         ArrayList<JsonNode> jsonFileLines = new ArrayList<>();

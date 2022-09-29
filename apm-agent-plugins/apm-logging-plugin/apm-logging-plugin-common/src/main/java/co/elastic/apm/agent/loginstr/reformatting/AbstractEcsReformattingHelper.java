@@ -121,6 +121,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#SHADE SHADE} or {@link LogEcsReformatting#REPLACE REPLACE}.
      */
+    @SuppressWarnings("JavadocReference")
     private static final WeakMap<Object, Object> originalAppender2ecsAppender = WeakConcurrent.buildMap();
 
     /**
@@ -128,6 +129,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#OVERRIDE OVERRIDE}.
      */
+    @SuppressWarnings("JavadocReference")
     private static final WeakMap<Object, Object> originalAppender2originalFormatter = WeakConcurrent.buildMap();
 
     /**
@@ -135,6 +137,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
      * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
      * {@link LogEcsReformatting#OVERRIDE OVERRIDE}, currently only for the log4j2 instrumentation.
      */
+    @SuppressWarnings("JavadocReference")
     private static final WeakMap<Object, Object> originalAppender2ecsFormatter = WeakConcurrent.buildMap();
 
     /**
@@ -181,6 +184,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     /**
      * Must be called exactly once at the entrance to each {@code append()} method (or equivalent) invocation in order to
      * properly detect nested invocations.
+     *
      * @param appender the instrumented appender
      * @return true if log events should be ignored for the given appender; false otherwise
      */
@@ -218,6 +222,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
 
     /**
      * Starts overriding the given appender - replaces formatter in original appender and handles mapping
+     *
      * @param originalAppender the framework appender for the original log
      */
     private void startOverriding(A originalAppender) {
@@ -253,6 +258,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
 
     /**
      * Stops overriding log events in the given appender
+     *
      * @param appender appender to stop overriding
      */
     private void stopOverriding(A appender) {
@@ -275,6 +281,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
      * Must be called exactly once at the exit from each {@code append()} method (or equivalent) invocation. This method checks
      * whether the current {@code append()} execution should result with an appended shaded event based on the configuration
      * AND whether this is the outermost execution in nested {@code append()} calls.
+     *
      * @param appender the instrumented appender
      * @return an ECS-appender to append the current event if required and such exists; {@code null} otherwise
      */
@@ -339,9 +346,9 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     private boolean shouldApplyEcsReformatting(A originalAppender) {
         F formatter = getFormatterFrom(originalAppender);
         return formatter != null &&
-                !isShadingAppender(originalAppender) &&
-                !isEcsFormatter(formatter) &&
-                isAllowedFormatter(formatter, loggingConfiguration.getLogEcsFormatterAllowList());
+            !isShadingAppender(originalAppender) &&
+            !isEcsFormatter(formatter) &&
+            isAllowedFormatter(formatter, loggingConfiguration.getLogEcsFormatterAllowList());
     }
 
     protected boolean isAllowedFormatter(F formatter, List<WildcardMatcher> allowList) {
@@ -352,7 +359,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
      * Looks up an ECS-formatter to override logging events in the given appender
      *
      * @param originalAppender the original log appender
-     * @return an ECS-formatter if such is mapped to the provide appender and the caller should override, or {@code null}
+     * @return an ECS-formatter if such is mapped to the provided appender and the caller should override, or {@code null}
      */
     @Nullable
     public F getEcsOverridingFormatterFor(A originalAppender) {
@@ -369,6 +376,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     /**
      * Closes the ECS shade appender that corresponds the given appender. Normally called when the original appender
      * gets closed.
+     *
      * @param originalAppender original appender for which shade appender should be closed
      */
     public void closeShadeAppenderFor(A originalAppender) {
@@ -382,6 +390,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
 
     /**
      * Checks whether the given appender is a shading appender, so to avoid recursive reformatting
+     *
      * @return true if the provided appender is a shading appender; false otherwise
      */
     private boolean isShadingAppender(A appender) {
