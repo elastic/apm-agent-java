@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -107,14 +108,24 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
     @Override
     protected StreamHandler createAndStartEcsAppender(StreamHandler originalHandler, String ecsAppenderName, Formatter ecsFormatter) {
         StreamHandler shadeHandler = null;
-        if (originalHandler instanceof FileHandler) {
-            try {
-                String pattern = computeEcsFileHandlerPattern(
+        String pattern = null;
+
+        try {
+            if (originalHandler instanceof FileHandler) {
+                pattern = computeEcsFileHandlerPattern(
                     currentPattern.get(),
                     currentExampleLogFile.get(),
                     getConfiguredReformattingDir(),
-                    true
-                );
+                    true);
+            } else if(originalHandler instanceof ConsoleHandler) {
+                String console = "console";
+                pattern = computeEcsFileHandlerPattern(console,
+                    Paths.get(console),
+                    getConfiguredReformattingDir(),
+                    true);
+            }
+
+            if (pattern != null) {
                 // In earlier versions, there is only constructor with log file limit given as int, whereas in later ones there are
                 // overloads for both either int or long. Typically, this should be enough, but not necessarily
                 int maxLogFileSize = (int) getMaxLogFileSize();
@@ -126,10 +137,12 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
                 }
                 shadeHandler = new FileHandler(pattern, maxLogFileSize, 2, true);
                 shadeHandler.setFormatter(ecsFormatter);
-            } catch (Exception e) {
-                logger.error("Failed to create Log shading FileAppender. Auto ECS reformatting will not work.", e);
             }
+
+        } catch (Exception e) {
+            logger.error("Failed to create Log shading FileAppender. Auto ECS reformatting will not work.", e);
         }
+
         return shadeHandler;
     }
 

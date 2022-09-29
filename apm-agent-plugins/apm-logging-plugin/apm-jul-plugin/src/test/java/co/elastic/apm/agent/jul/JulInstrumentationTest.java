@@ -18,13 +18,14 @@
  */
 package co.elastic.apm.agent.jul;
 
-import co.elastic.apm.agent.loginstr.LoggingInstrumentationTest;
 import co.elastic.apm.agent.loginstr.LoggerFacade;
+import co.elastic.apm.agent.loginstr.LoggingInstrumentationTest;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.LogManager;
@@ -49,6 +50,12 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
     protected String getLogReformattingFilePath() {
         // in JUL, the base file also gets the generation number 0
         return super.getLogReformattingFilePath() + ".0";
+    }
+
+    @Override
+    protected String getLogReformattingConsoleFilePath() {
+        // in JUL, the base file also gets the generation number 0
+        return super.getLogReformattingConsoleFilePath() + ".0";
     }
 
     @Override
@@ -88,15 +95,27 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
         @Override
         public void open() {
             julLogger = Logger.getLogger("Test-File-Logger");
-            if (Arrays.stream(julLogger.getHandlers()).noneMatch(handler -> handler instanceof FileHandler)) {
-                try {
+
+            boolean hasFileHandler = false;
+            boolean hasConsoleHanler = false;
+            for (Handler handler : julLogger.getHandlers()) {
+                hasFileHandler = hasFileHandler || handler instanceof FileHandler;
+                hasConsoleHanler = hasConsoleHanler || handler instanceof ConsoleHandler;
+            }
+
+            try {
+                if (!hasFileHandler) {
                     // In case there is no FileHandler as it was removed through close().
                     // The reason not to re-add through close() is that this deletes the file and sometimes we want to manually review the
                     // original log file after the test ends.
                     julLogger.addHandler(new FileHandler());
-                } catch (IOException e) {
-                    e.printStackTrace();
                 }
+                if (!hasConsoleHanler) {
+                    // same for console appender
+                    julLogger.addHandler(new ConsoleHandler());
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
 
@@ -111,8 +130,7 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
 
         @Override
         public String getLogFilePath() {
-            Handler[] loggerHandlers = julLogger.getHandlers();
-            for (Handler loggerHandler : loggerHandlers) {
+            for (Handler loggerHandler : julLogger.getHandlers()) {
                 if (loggerHandler instanceof FileHandler) {
                     // no API for that, so we use reflection for tests and the field in the instrumentation
                     try {
@@ -126,6 +144,16 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
                 }
             }
             throw new IllegalStateException("Couldn't find a FileHandler for logger " + julLogger.getName());
+        }
+
+        @Override
+        public String getConsoleLogFilePath() {
+            for (Handler loggerHandler : julLogger.getHandlers()) {
+                if (loggerHandler instanceof ConsoleHandler) {
+                    return "console";
+                }
+            }
+            throw new IllegalStateException("missing console appender");
         }
 
         @Override
