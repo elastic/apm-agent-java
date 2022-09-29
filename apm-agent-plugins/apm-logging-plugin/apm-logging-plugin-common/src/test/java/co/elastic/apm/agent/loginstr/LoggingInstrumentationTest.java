@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -107,10 +108,23 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         doReturn(ecsReformattingConfig).when(loggingConfig).getLogEcsReformatting();
     }
 
-    private void initializeReformattingDir(String dirName) throws IOException {
+    private void initializeReformattingDir(@Nullable String dirName) throws IOException {
+        if (dirName != null) {
+            // use an absolute path for ECS output allows to keep writing to 'target' folder
+            // otherwise using relative reformatting dir means that console output will be in ./${dirName}/ which might
+            // not be a subfolder of 'target', hence polluting the project structure
+            Path dir = Path.of("target", dirName).toAbsolutePath();
+            dirName = dir.toString();
+        }
+
         when(loggingConfig.getLogEcsFormattingDestinationDir()).thenReturn(dirName);
+
+        // ensure that the files that are expected to be created by tests do not exist when the test starts
+        // deleting all the '*.ecs.json*' files would also delete other tests results and make debugging harder
         Files.deleteIfExists(Paths.get(getLogReformattingFilePath()));
         Files.deleteIfExists(Paths.get(getLogReformattingFilePath() + ".1"));
+        Files.deleteIfExists(Paths.get(getLogReformattingConsoleFilePath()));
+        Files.deleteIfExists(Paths.get(getLogReformattingConsoleFilePath() + ".1"));
     }
 
     @AfterEach
@@ -118,6 +132,24 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         childSpan.deactivate().end();
         transaction.deactivate().end();
         logger.close();
+
+        // moving test files that might have been written in current working directory to avoid polluting the project
+        // keeping the files is important to help debugging tests
+        Path target = Paths.get("target");
+        try {
+            try (Stream<Path> files = Files.walk(Paths.get("."), 1)) {
+                files.filter(p -> p.getFileName().toString().contains(".ecs.json"))
+                    .forEach(p -> {
+                        try {
+                            Files.move(p, target.resolve(p.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     protected abstract LoggerFacade createLoggerFacade();
@@ -126,10 +158,10 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     public void testSimpleLogReformatting() throws Exception {
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
         initializeReformattingDir("simple");
-        runSimpleScenario();
+        runSimpleShadeScenario();
     }
 
-    private void runSimpleScenario() throws Exception {
+    private void runSimpleShadeScenario() throws Exception {
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);
         logger.warn(WARN_MESSAGE);
@@ -141,8 +173,12 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         ArrayList<JsonNode> ecsLogLines = readEcsLogFile();
         assertThat(ecsLogLines).hasSize(4);
 
+        ArrayList<JsonNode> ecsConsoleLines = readEcsLogConsoleFile();
+        assertThat(ecsConsoleLines).hasSize(4);
+
         for (int i = 0; i < 4; i++) {
             verifyEcsFormat(rawLogLines.get(i), ecsLogLines.get(i));
+            verifyEcsFormat(rawLogLines.get(i), ecsConsoleLines.get(i));
         }
     }
 
@@ -176,8 +212,8 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     @Test
     public void testShadingIntoOriginalLogsDir() throws Exception {
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
-        initializeReformattingDir("");
-        runSimpleScenario();
+        initializeReformattingDir(null);
+        runSimpleShadeScenario();
     }
 
     @Test
@@ -314,7 +350,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     private void verifyTracingMetadata(JsonNode ecsLogLineTree) {
         assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
         assertThat(ecsLogLineTree.get("service.node.name").textValue()).isEqualTo(SERVICE_NODE_NAME);
-        assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
+        assertThat(ecsLogLineTree.get("event.dataset").textValue()).isIn(serviceName + ".FILE", serviceName + ".STDOUT", serviceName + ".CONSOLE"); // TODO should we normalize console/stdout ?
         assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo("v42");
         assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
         assertThat(ecsLogLineTree.get("another.field").textValue()).isEqualTo("another-value");
@@ -335,6 +371,10 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
     private ArrayList<JsonNode> readEcsLogFile() throws IOException {
         return TestUtils.readJsonFile(getLogReformattingFilePath());
+    }
+
+    private ArrayList<JsonNode> readEcsLogConsoleFile() throws IOException {
+        return TestUtils.readJsonFile(getLogReformattingConsoleFilePath());
     }
 
     private ArrayList<String[]> readRawLogLines() throws IOException {
@@ -366,6 +406,10 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
     protected String getLogReformattingFilePath() {
         return Utils.computeLogReformattingFilePath(logger.getLogFilePath(), loggingConfig.getLogEcsFormattingDestinationDir());
+    }
+
+    protected String getLogReformattingConsoleFilePath() {
+        return Utils.computeLogReformattingFilePath(logger.getConsoleLogFilePath(), loggingConfig.getLogEcsFormattingDestinationDir());
     }
 
     private void verifyEcsFormat(String[] splitRawLogLine, JsonNode ecsLogLineTree) throws Exception {
@@ -408,6 +452,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
      * is a notorious way to make tests flaky. If that proves to be the case, this test can be disabled, as its
      * importance for regression testing is not crucial. It would be very useful if we decide to modify anything in
      * our logging configuration, for example - change the rolling decision strategy.
+     *
      * @throws IOException thrown if we fail to read the shade log file
      */
     @Test

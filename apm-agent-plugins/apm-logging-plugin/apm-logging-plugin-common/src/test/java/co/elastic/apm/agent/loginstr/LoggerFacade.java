@@ -24,7 +24,15 @@ public interface LoggerFacade {
 
     void close();
 
+    /**
+     * @return original log file path
+     */
     String getLogFilePath();
+
+    /**
+     * @return console log file path, which is used when console log is shaded into a file
+     */
+    String getConsoleLogFilePath();
 
     void trace(String message);
 
