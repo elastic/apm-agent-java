@@ -23,11 +23,21 @@ endif::[]
 [[release-notes-x.x.x]]
 ==== x.x.x - YYYY/MM/DD
 
+[float]
+===== Breaking changes
+
+[float]
+===== Features
+* Cool new feature: {pull}2526[#2526]
+
+[float]
+===== Bug fixes
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
 [[release-notes-1.34.1]]
-==== 1.34.1 - YYYY/MM/DD
+==== 1.34.1 - 2022/09/29
 
 [float]
 ===== Features
