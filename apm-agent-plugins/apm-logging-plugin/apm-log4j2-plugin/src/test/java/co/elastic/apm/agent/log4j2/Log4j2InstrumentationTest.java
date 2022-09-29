@@ -21,6 +21,7 @@ package co.elastic.apm.agent.log4j2;
 import co.elastic.apm.agent.loginstr.LoggingInstrumentationTest;
 import co.elastic.apm.agent.loginstr.LoggerFacade;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.loginstr.reformatting.Utils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.Marker;
@@ -28,6 +29,7 @@ import org.apache.logging.log4j.MarkerManager;
 import org.apache.logging.log4j.ThreadContext;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.ConsoleAppender;
 import org.apache.logging.log4j.core.appender.RandomAccessFileAppender;
 import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.junit.jupiter.api.AfterAll;
@@ -36,8 +38,6 @@ import org.junit.jupiter.api.Disabled;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 
@@ -97,11 +97,15 @@ public class Log4j2InstrumentationTest extends LoggingInstrumentationTest {
 
         @Override
         public void open() {
-            log4j2Logger = LogManager.getLogger("Test-File-Logger");
-            assertThat(log4j2Logger).isInstanceOf(org.apache.logging.log4j.core.Logger.class);
+            log4j2Logger = checkLogger(LogManager.getLogger("Test-File-Logger"));
 
             LoggerContext loggerContext = ((org.apache.logging.log4j.core.Logger) log4j2Logger).getContext();
             loggerContext.setConfigLocation(configLocation);
+        }
+
+        private org.apache.logging.log4j.core.Logger checkLogger(Logger logger){
+            assertThat(logger).isInstanceOf(org.apache.logging.log4j.core.Logger.class);
+            return (org.apache.logging.log4j.core.Logger) logger;
         }
 
         @Override
@@ -111,15 +115,20 @@ public class Log4j2InstrumentationTest extends LoggingInstrumentationTest {
 
         @Override
         public String getLogFilePath() {
-            assertThat(log4j2Logger)
-                .isInstanceOf(org.apache.logging.log4j.core.Logger.class);
-            org.apache.logging.log4j.core.Logger logger = (org.apache.logging.log4j.core.Logger) log4j2Logger;
-
-            assertThat(logger.getAppenders()).containsKey("FILE");
-            Appender fileAppender = logger.getAppenders().get("FILE");
+            Appender fileAppender = checkLogger(log4j2Logger).getAppenders().get("FILE");
             assertThat(fileAppender).isInstanceOf(RandomAccessFileAppender.class);
 
             return ((RandomAccessFileAppender) fileAppender).getFileName();
+        }
+
+        @Override
+        public String getConsoleLogFilePath() {
+            Appender appender = checkLogger(log4j2Logger).getAppenders().get("STDOUT");
+
+            assertThat(appender).isInstanceOf(ConsoleAppender.class);
+            ConsoleAppender consoleAppender = (ConsoleAppender) appender;
+
+            return Utils.normalizeEcsConsoleFileName(consoleAppender.getTarget().toString(), consoleAppender.getName());
         }
 
         @Override

@@ -36,8 +36,10 @@
             <AppenderRef ref="STDOUT"/>
         </Logger>
 
+        <!-- test logger that writes to file and also to console, when shading both should be shaded -->
         <Logger name="Test-File-Logger" level="trace" additivity="false">
             <AppenderRef ref="FILE"/>
+            <AppenderRef ref="STDOUT"/>
         </Logger>
 
         <Root level="trace">

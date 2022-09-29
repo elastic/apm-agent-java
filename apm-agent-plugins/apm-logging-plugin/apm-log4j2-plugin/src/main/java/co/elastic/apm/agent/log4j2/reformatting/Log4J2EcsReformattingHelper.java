@@ -40,15 +40,20 @@ import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 
 class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender, Layout<? extends Serializable>> {
 
     private static final Logger logger = LoggerFactory.getLogger(Log4J2EcsReformattingHelper.class);
 
-    Log4J2EcsReformattingHelper() {}
+    Log4J2EcsReformattingHelper() {
+    }
 
     @Nullable
     @Override
@@ -91,6 +96,15 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
         return builder.build();
     }
 
+    private static final Set<String> fileBasedAppenders = new HashSet<>(Arrays.asList(
+        "org.apache.logging.log4j.core.appender.FileAppender",
+        "org.apache.logging.log4j.core.appender.RollingFileAppender",
+        "org.apache.logging.log4j.core.appender.RandomAccessFileAppender",
+        "org.apache.logging.log4j.core.appender.RollingRandomAccessFileAppender",
+        "org.apache.logging.log4j.core.appender.MemoryMappedFileAppender"));
+
+    private static final String CONSOLE_APPENDER = "org.apache.logging.log4j.core.appender.ConsoleAppender";
+
     @Override
     @Nullable
     protected Appender createAndStartEcsAppender(Appender originalAppender, String ecsAppenderName, Layout<? extends Serializable> ecsFormatter) {
@@ -100,17 +114,13 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
 
         // Using class names and reflection in order to avoid version sensitivity
         String appenderClassName = originalAppender.getClass().getName();
-        if (appenderClassName.equals("org.apache.logging.log4j.core.appender.FileAppender") ||
-            appenderClassName.equals("org.apache.logging.log4j.core.appender.RollingFileAppender") ||
-            appenderClassName.equals("org.apache.logging.log4j.core.appender.RandomAccessFileAppender") ||
-            appenderClassName.equals("org.apache.logging.log4j.core.appender.RollingRandomAccessFileAppender") ||
-            appenderClassName.equals("org.apache.logging.log4j.core.appender.MemoryMappedFileAppender")) {
-            try {
-                Method getFileNameMethod = originalAppender.getClass().getDeclaredMethod("getFileName");
-                logFile = (String) getFileNameMethod.invoke(originalAppender);
-            } catch (Exception e) {
-                logger.error("Failed to obtain log file name from file appender", e);
-            }
+        if (fileBasedAppenders.contains(appenderClassName)) {
+            logFile = (String) invokeMethod(originalAppender, "getFileName");
+
+        } else if (CONSOLE_APPENDER.equals(appenderClassName)) {
+            String name = (String) invokeMethod(originalAppender, "getName");
+            Object target = invokeMethod(originalAppender, "getTarget");
+            logFile = Utils.normalizeEcsConsoleFileName(target != null ? target.toString() : null, name);
         }
 
         if (logFile != null) {
@@ -132,6 +142,17 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
             ecsAppender.start();
         }
         return ecsAppender;
+    }
+
+    @Nullable
+    private static Object invokeMethod(Object appender, String methodName) {
+        try {
+            Method method = appender.getClass().getMethod(methodName);
+            return method.invoke(appender);
+        } catch (Exception e) {
+            logger.error("Failed to call {} on appender {}", methodName, appender, e);
+            return null;
+        }
     }
 
     @Override
