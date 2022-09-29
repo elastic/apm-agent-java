@@ -24,6 +24,7 @@ import co.elastic.apm.agent.loginstr.reformatting.Utils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.logging.log4j.EcsLayout;
+import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Layout;
 import org.apache.log4j.RollingFileAppender;
@@ -37,7 +38,8 @@ class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAp
 
     private static final Logger logger = LoggerFactory.getLogger(Log4J1EcsReformattingHelper.class);
 
-    Log4J1EcsReformattingHelper() {}
+    Log4J1EcsReformattingHelper() {
+    }
 
     @Nullable
     @Override
@@ -78,11 +80,19 @@ class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAp
     @Override
     protected WriterAppender createAndStartEcsAppender(WriterAppender originalAppender, String ecsAppenderName, Layout ecsLayout) {
         RollingFileAppender shadeAppender = null;
-        if (originalAppender instanceof FileAppender) {
-            try {
-                FileAppender fileAppender = (FileAppender) originalAppender;
-                String reformattedFile = Utils.computeLogReformattingFilePath(fileAppender.getFile(), getConfiguredReformattingDir());
+        String logFile = null;
 
+        if (originalAppender instanceof FileAppender) {
+            FileAppender fileAppender = (FileAppender) originalAppender;
+            logFile = fileAppender.getFile();
+        } else if (originalAppender instanceof ConsoleAppender) {
+            ConsoleAppender consoleAppender = (ConsoleAppender) originalAppender;
+            logFile = Utils.normalizeEcsConsoleFileName(consoleAppender.getTarget(), consoleAppender.getName());
+        }
+
+        if (logFile != null) {
+            String reformattedFile = Utils.computeLogReformattingFilePath(logFile, getConfiguredReformattingDir());
+            try {
                 shadeAppender = new RollingFileAppender(ecsLayout, reformattedFile, true);
                 shadeAppender.setMaxBackupIndex(1);
                 shadeAppender.setMaximumFileSize(getMaxLogFileSize());

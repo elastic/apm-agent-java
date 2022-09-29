@@ -18,8 +18,13 @@
  */
 package co.elastic.apm.agent.log4j1;
 
+import co.elastic.apm.agent.logging.TestUtils;
 import co.elastic.apm.agent.loginstr.LoggingInstrumentationTest;
 import co.elastic.apm.agent.loginstr.LoggerFacade;
+import co.elastic.apm.agent.loginstr.reformatting.Utils;
+import co.elastic.apm.agent.loginstr.reformatting.UtilsTest;
+import org.apache.log4j.Appender;
+import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -67,6 +72,12 @@ public class Log4j1InstrumentationTest extends LoggingInstrumentationTest {
         @Override
         public String getLogFilePath() {
             return ((FileAppender) log4j1Logger.getAppender("FILE")).getFile();
+        }
+
+        @Override
+        public String getConsoleLogFilePath() {
+            ConsoleAppender appender = (ConsoleAppender) log4j1Logger.getAppender("STDOUT");
+            return Utils.normalizeEcsConsoleFileName(appender.getTarget(), appender.getName());
         }
 
         @Override
