@@ -22,9 +22,11 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
 
 import javax.annotation.Nullable;
 
+import static co.elastic.apm.agent.loginstr.reformatting.Utils.normalizeEcsConsoleFileName;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -82,6 +84,15 @@ public class UtilsTest extends AbstractInstrumentationTest {
 
     private String replaceFileSeparator(String input) {
         return input.replace("/", fileSeparator);
+    }
+
+    @Test
+    void normalizeConsoleFileName() {
+        assertThat(normalizeEcsConsoleFileName(null, null)).isEqualTo("console");
+        assertThat(normalizeEcsConsoleFileName("console", null)).isEqualTo("console");
+        assertThat(normalizeEcsConsoleFileName("STDOUT", null)).isEqualTo("STDOUT");
+        assertThat(normalizeEcsConsoleFileName("STDOUT", "name")).isEqualTo("STDOUT_name");
+        assertThat(normalizeEcsConsoleFileName("System.out", "name.with.dots")).isEqualTo("System_out_name_with_dots");
     }
 
 }

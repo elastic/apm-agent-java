@@ -53,7 +53,7 @@ public class Utils {
         } else {
             ecsDir = Paths.get(configuredReformattingDestinationDir);
             if (!ecsDir.isAbsolute() && logsDir != null) {
-                    ecsDir = logsDir.resolve(ecsDir);
+                ecsDir = logsDir.resolve(ecsDir);
             }
         }
         return ecsDir;
@@ -65,5 +65,20 @@ public class Utils {
             originalFileName = originalFileName.substring(0, extensionIndex);
         }
         return originalFileName.concat(ECS_JSON_FILE_EXTENSION);
+    }
+
+    public static String normalizeEcsConsoleFileName(@Nullable String target, @Nullable String name) {
+        String finalName = "console";
+        if (target != null) {
+            target = target.trim().replace(".", "_");
+            finalName = target;
+        }
+        if (name != null) {
+            name = name.trim().replace('.', '_');
+            if (!name.isEmpty()) {
+                finalName += "_" + name;
+            }
+        }
+        return finalName;
     }
 }
