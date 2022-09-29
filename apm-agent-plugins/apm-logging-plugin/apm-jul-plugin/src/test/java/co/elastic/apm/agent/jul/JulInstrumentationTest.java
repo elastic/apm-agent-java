@@ -24,7 +24,6 @@ import co.elastic.apm.agent.loginstr.LoggingInstrumentationTest;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.Arrays;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -181,14 +180,5 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
             julLogger.log(CustomLevel.ERROR, message, throwable);
         }
 
-        @Override
-        public void putTraceIdToMdc(String traceId) {
-            // not supported for JUL
-        }
-
-        @Override
-        public void removeTraceIdFromMdc() {
-            // not supported for JUL
-        }
     }
 }

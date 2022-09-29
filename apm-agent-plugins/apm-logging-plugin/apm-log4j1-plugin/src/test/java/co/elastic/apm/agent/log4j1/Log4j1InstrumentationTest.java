@@ -18,17 +18,13 @@
  */
 package co.elastic.apm.agent.log4j1;
 
-import co.elastic.apm.agent.logging.TestUtils;
 import co.elastic.apm.agent.loginstr.LoggingInstrumentationTest;
 import co.elastic.apm.agent.loginstr.LoggerFacade;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
-import co.elastic.apm.agent.loginstr.reformatting.UtilsTest;
-import org.apache.log4j.Appender;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.log4j.MDC;
 import org.apache.log4j.PropertyConfigurator;
 
 import java.io.File;
@@ -105,14 +101,5 @@ public class Log4j1InstrumentationTest extends LoggingInstrumentationTest {
             log4j1Logger.error(message, throwable);
         }
 
-        @Override
-        public void putTraceIdToMdc(String traceId) {
-            MDC.put("trace.id", traceId);
-        }
-
-        @Override
-        public void removeTraceIdFromMdc() {
-            MDC.remove("trace.id");
-        }
     }
 }

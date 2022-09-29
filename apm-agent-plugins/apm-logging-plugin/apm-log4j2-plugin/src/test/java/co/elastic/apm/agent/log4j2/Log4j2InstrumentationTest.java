@@ -26,7 +26,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
-import org.apache.logging.log4j.ThreadContext;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.ConsoleAppender;
@@ -161,14 +160,5 @@ public class Log4j2InstrumentationTest extends LoggingInstrumentationTest {
             log4j2Logger.error(message, throwable);
         }
 
-        @Override
-        public void putTraceIdToMdc(String traceId) {
-            ThreadContext.put("trace.id", traceId);
-        }
-
-        @Override
-        public void removeTraceIdFromMdc() {
-            ThreadContext.remove("trace.id");
-        }
     }
 }

@@ -48,7 +48,4 @@ public interface LoggerFacade {
 
     void error(String message, Throwable throwable);
 
-    void putTraceIdToMdc(String traceId);
-
-    void removeTraceIdFromMdc();
 }
