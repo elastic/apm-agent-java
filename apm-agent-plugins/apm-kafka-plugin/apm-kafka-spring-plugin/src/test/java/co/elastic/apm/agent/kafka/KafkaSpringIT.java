@@ -184,7 +184,7 @@ public class KafkaSpringIT extends AbstractInstrumentationTest {
         private Map<String, Object> senderProps() {
             Map<String, Object> props = new HashMap<>();
             props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
-            props.put(ProducerConfig.LINGER_MS_CONFIG, 10);
+            props.put(ProducerConfig.LINGER_MS_CONFIG, 1000);
             props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class);
             props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
             return props;
