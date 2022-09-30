@@ -54,7 +54,7 @@ NOTE: the <<config-log-ecs-reformatting, `log_ecs_reformatting`>> configuration 
 in the future. However, since it is effortless, it may be your first choice to try out.
 
 By default, application logs are written in plain-text format, thus they have to be parsed prior storage in
-Elasticsearch, this transformation is usually implemented through an{ref}/ingest.html[ingest pipeline] and a
+Elasticsearch, this transformation is usually implemented through an {ref}/ingest.html[ingest pipeline] and a
 {ref}/grok-processor.html[grok processor] or with a combination of Filebeat and Logstash configuration.
 
 With plain-text log files, this parsing will have to extract the IDs added in <<log-correlation-extract-ids,step 1>> from
