@@ -176,7 +176,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             " - `REPLACE` - similar to `SHADE`, but the original logs will not be written. This option is useful if \n" +
             "   you wish to maintain similar logging-related overhead, but write logs to a different location and/or \n" +
             "   with a different file extension.\n" +
-            " - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. \n" +
+            " - `OVERRIDE` - same log output is used, but in ECS-compatible JSON format instead of the original format. \n" +
             "\n" +
             "NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option \n" +
             "is also valid for other appenders, like System out and console.\n")
