@@ -23,10 +23,7 @@ import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
-import org.jctools.queues.atomic.AtomicQueueFactory;
-
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.ServletRequest;
 
@@ -34,7 +31,6 @@ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.ASYNC_ATTRIB
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.helper.AsyncConstants.ASYNC_LISTENER_ADDED;
 import static co.elastic.apm.agent.servlet.helper.AsyncConstants.MAX_POOLED_ELEMENTS;
-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
 public class JakartaAsyncContextAdviceHelper implements AsyncContextAdviceHelper<AsyncContext> {
 
@@ -44,11 +40,8 @@ public class JakartaAsyncContextAdviceHelper implements AsyncContextAdviceHelper
 
     public JakartaAsyncContextAdviceHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
-        servletTransactionHelper = new ServletTransactionHelper(tracer);
-
-        asyncListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
-            AtomicQueueFactory.<JakartaApmAsyncListener>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
-            false,
+        this.servletTransactionHelper = new ServletTransactionHelper(tracer);
+        this.asyncListenerObjectPool = tracer.getObjectPoolFactory().createRecyclableObjectPool(MAX_POOLED_ELEMENTS,
             new JakartaAsyncContextAdviceHelper.JakartaApmAsyncListenerAllocator());
     }
 

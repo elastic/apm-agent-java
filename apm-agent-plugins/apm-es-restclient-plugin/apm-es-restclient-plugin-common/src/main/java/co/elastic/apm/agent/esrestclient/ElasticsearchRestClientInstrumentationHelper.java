@@ -25,7 +25,6 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
@@ -40,7 +39,6 @@ import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.ResponseListener;
 import org.elasticsearch.client.RestClient;
-import org.jctools.queues.atomic.AtomicQueueFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -51,9 +49,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
-
-public abstract class ElasticsearchRestClientInstrumentationHelper {
+public class ElasticsearchRestClientInstrumentationHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelper.class);
 
@@ -78,10 +74,7 @@ public abstract class ElasticsearchRestClientInstrumentationHelper {
 
     protected ElasticsearchRestClientInstrumentationHelper(ElasticApmTracer tracer, HttpClientAdapter httpClientAdapter) {
         this.tracer = tracer;
-        this.responseListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
-            AtomicQueueFactory.<ResponseListenerWrapper>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
-            false,
-            new ResponseListenerAllocator());
+        this.responseListenerObjectPool = tracer.getObjectPoolFactory().createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new ResponseListenerAllocator());
         this.httpClientAdapter = httpClientAdapter;
     }
 
