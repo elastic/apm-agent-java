@@ -16,32 +16,45 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.loginstr.error;
+package co.elastic.apm.agent.jul.error;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.sdk.state.CallDepth;
+import co.elastic.apm.agent.loginstr.error.AbstractLoggerErrorCapturingInstrumentation;
+import co.elastic.apm.agent.loginstr.error.LoggerErrorHelper;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.logging.LogRecord;
 
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public abstract class AbstractLoggerErrorCapturingInstrumentation extends TracerAwareInstrumentation {
+public class JulLoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
 
-    public static final String SLF4J_LOGGER = "org.slf4j.Logger";
-    public static final String LOG4J2_LOGGER = "org.apache.logging.log4j.Logger";
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        Collection<String> ret = super.getInstrumentationGroupNames();
+        ret.add("jul-error");
+        return ret;
+    }
+
+    @Override
+    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return named("java.util.logging.Logger");
+    }
+
+    @Override
+    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        return named("log")
+            .and(takesArgument(0, named("java.util.logging.LogRecord")));
+    }
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.loginstr.error.AbstractLoggerErrorCapturingInstrumentation$LoggingAdvice";
+        return "co.elastic.apm.agent.jul.error.JulLoggerErrorCapturingInstrumentation$LoggingAdvice";
     }
 
     public static class LoggingAdvice {
@@ -50,31 +63,22 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Tracer
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object logEnter(@Advice.Argument(1) Throwable exception, @Advice.Origin Class<?> clazz) {
-            return helper.enter(exception, clazz);
+        public static Object onEnter(@Advice.Argument(0) LogRecord record, @Advice.Origin Class<?> clazz) {
+            Throwable thrown = record.getThrown();
+
+            // ignore levels < SEVERE
+            if (record.getLevel().intValue() < 1000) {
+                thrown = null;
+            }
+
+            return helper.enter(thrown, clazz);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void logExit(@Advice.Enter @Nullable Object errorCaptureObj) {
+        public static void onExit(@Advice.Enter @Nullable Object errorCaptureObj) {
             helper.exit(errorCaptureObj);
         }
     }
 
-    @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Logger");
-    }
 
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("error")
-            .and(takesArgument(1, named("java.lang.Throwable")));
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = new ArrayList<>();
-        ret.add("logging");
-        return ret;
-    }
 }

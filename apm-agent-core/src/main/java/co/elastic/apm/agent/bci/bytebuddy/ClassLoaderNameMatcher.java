@@ -47,8 +47,6 @@ public abstract class ClassLoaderNameMatcher {
         };
     }
 
-
-
     public static ElementMatcher.Junction<ClassLoader> isReflectionClassLoader() {
         return classLoaderWithName("sun.reflect.DelegatingClassLoader")
             .or(classLoaderWithName("jdk.internal.reflect.DelegatingClassLoader"));

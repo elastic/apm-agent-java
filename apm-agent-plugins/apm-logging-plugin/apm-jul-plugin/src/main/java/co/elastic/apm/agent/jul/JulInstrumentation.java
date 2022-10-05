@@ -16,21 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.slf4j.error;
+package co.elastic.apm.agent.jul;
 
-import co.elastic.apm.agent.loginstr.error.AbstractErrorLoggingInstrumentationTest;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
 
-class Slf4jLoggerErrorCapturingInstrumentationTest extends AbstractErrorLoggingInstrumentationTest {
+import java.util.Collection;
 
-    private static final Logger logger = LoggerFactory.getLogger(Slf4jLoggerErrorCapturingInstrumentationTest.class);
+public abstract class JulInstrumentation extends AbstractLogIntegrationInstrumentation {
 
-    @Test
-    void captureException() {
-        logger.error("exception captured", new RuntimeException("some business exception"));
-        verifyExceptionCaptured("some business exception", RuntimeException.class);
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        Collection<String> ret = super.getInstrumentationGroupNames();
+        ret.add("jul-ecs");
+        return ret;
     }
-
 }

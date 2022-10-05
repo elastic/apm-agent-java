@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.log4j2.correlation;
+package co.elastic.apm.agent.loginstr.correlation;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-class CorrelationIdMapAdapterTest {
+public class CorrelationIdMapAdapterTest {
 
     private final ElasticApmTracer tracer = MockTracer.createRealTracer();
 

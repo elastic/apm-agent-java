@@ -28,10 +28,12 @@ endif::[]
 
 [float]
 ===== Features
-* Added support for spring-kafka batch listeners: {pull}2815[#2815]
+* Add support for log correlation for `java.util.logging` (JUL) - {pull}2724[#2724]
+* Add support for spring-kafka batch listeners - {pull}2815[#2815]
 
 [float]
 ===== Bug fixes
+* Remove `context.db` fields from S3 instrumentation - {pull}2821[#2821]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
