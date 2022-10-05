@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.log4j2.correlation;
+package co.elastic.apm.agent.loginstr.correlation;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
@@ -38,7 +38,7 @@ import static co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHe
 import static co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY;
 import static co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY;
 
-class CorrelationIdMapAdapter extends AbstractMap<String, String> {
+public class CorrelationIdMapAdapter extends AbstractMap<String, String> {
 
     private static final CorrelationIdMapAdapter INSTANCE = new CorrelationIdMapAdapter();
     private static final Set<Entry<String, String>> ENTRY_SET = new TraceIdentifierEntrySet();

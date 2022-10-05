@@ -17,6 +17,6 @@
  * under the License.
  */
 @NonnullApi
-package co.elastic.apm.agent.jul;
+package co.elastic.apm.agent.loginstr.correlation;
 
 import co.elastic.apm.agent.sdk.NonnullApi;

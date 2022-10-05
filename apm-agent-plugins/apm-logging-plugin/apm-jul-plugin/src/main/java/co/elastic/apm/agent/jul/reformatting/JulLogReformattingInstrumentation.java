@@ -18,12 +18,11 @@
  */
 package co.elastic.apm.agent.jul.reformatting;
 
-import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
+import co.elastic.apm.agent.jul.JulInstrumentation;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Collection;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 
@@ -32,14 +31,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public abstract class JulLogReformattingInstrumentation extends AbstractLogIntegrationInstrumentation {
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("jul-ecs");
-        return ret;
-    }
+public abstract class JulLogReformattingInstrumentation extends JulInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
@@ -99,7 +91,8 @@ public abstract class JulLogReformattingInstrumentation extends AbstractLogInteg
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return named("java.util.logging.ConsoleHandler").or(named("java.util.logging.FileHandler"));
+            return named("java.util.logging.ConsoleHandler")
+                .or(named("java.util.logging.FileHandler"));
         }
 
         /**

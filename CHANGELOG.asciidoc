@@ -28,7 +28,7 @@ endif::[]
 
 [float]
 ===== Features
-* Cool new feature: {pull}2526[#2526]
+* Add support for log correlation for `java.util.logging` (JUL) - {pull}2724[#2724]
 
 [float]
 ===== Bug fixes
