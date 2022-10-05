@@ -26,6 +26,8 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.springframework.kafka.listener.KafkaMessageListenerContainer;
 
 import javax.annotation.Nullable;
 
@@ -40,7 +42,10 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * <p>
  * In order to catch both operations in a single transaction with span links,
  * this instrumentation creates a transaction which spans both of the actions listed above.
+ * <p>
+ * This instrumentation instruments {@link KafkaMessageListenerContainer.ListenerConsumer#invokeBatchListener(ConsumerRecords)}.
  */
+@SuppressWarnings("JavadocReference")
 public class SpringKafkaBatchListenerInstrumentation extends BaseKafkaInstrumentation {
 
     @Override
@@ -86,9 +91,7 @@ public class SpringKafkaBatchListenerInstrumentation extends BaseKafkaInstrument
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(
-            @Nullable @Advice.Enter Object transactionObj
-        ) {
+        public static void onExit(@Nullable @Advice.Enter Object transactionObj) {
             Transaction transaction = (Transaction) transactionObj;
             if (transaction != null) {
                 transaction.deactivate().end();

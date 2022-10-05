@@ -120,7 +120,7 @@ public class KafkaSpringIT extends AbstractInstrumentationTest {
     // This test has nothing to do with the SpringKafkaBatchListenerInstrumentation,
     // it just verifies that non-batch listeners are caught by the standard kafka instrumentation
     @Test
-    public void testSingleReceive() {
+    public void testNonBatchSingleReceive() {
         Transaction transaction1 = startTestRootTransaction("Send 1");
         kafkaTemplate.send(SINGLE_TOPIC, "data-1");
         transaction1.deactivate().end();
