@@ -18,32 +18,18 @@
  */
 package co.elastic.apm.agent.jul.reformatting;
 
-import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
-import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.util.LoggerUtils;
-import co.elastic.logging.AdditionalField;
-import co.elastic.logging.jul.EcsFormatter;
 
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
-import java.util.logging.Formatter;
-import java.util.logging.StreamHandler;
+import java.util.logging.Handler;
 
-class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandler, Formatter> {
-
-    private static final Logger logger = LoggerFactory.getLogger(JulEcsReformattingHelper.class);
-    private static final Logger oneTimeLogFileLimitWarningLogger = LoggerUtils.logOnce(logger);
+class JulEcsReformattingHelper extends AbstractJulEcsReformattingHelper {
 
     private static final ThreadLocal<String> currentPattern = new ThreadLocal<>();
     private static final ThreadLocal<Path> currentExampleLogFile = new ThreadLocal<>();
@@ -61,19 +47,8 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
         }
     }
 
-    @Nullable
     @Override
-    protected Formatter getFormatterFrom(StreamHandler handler) {
-        return handler.getFormatter();
-    }
-
-    @Override
-    protected void setFormatter(StreamHandler handler, Formatter formatter) {
-        handler.setFormatter(formatter);
-    }
-
-    @Override
-    protected String getAppenderName(StreamHandler handler) {
+    protected String getAppenderName(Handler handler) {
         if (handler instanceof FileHandler) {
             return "FILE";
         } else if (handler instanceof ConsoleHandler) {
@@ -84,60 +59,18 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
     }
 
     @Override
-    protected Formatter createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceVersion,
-                                           @Nullable String serviceNodeName, @Nullable Map<String, String> additionalFields,
-                                           Formatter originalFormatter) {
-        EcsFormatter ecsFormatter = new EcsFormatter() {
-            @Override
-            protected Map<String, String> getMdcEntries() {
-                // using internal tracer state as ECS formatter is not instrumented within the agent plugin
-                return CorrelationIdMapAdapter.get();
-            }
-        };
-        ecsFormatter.setServiceName(serviceName);
-        ecsFormatter.setServiceVersion(serviceVersion);
-        ecsFormatter.setServiceNodeName(serviceNodeName);
-        ecsFormatter.setEventDataset(eventDataset);
-        if (additionalFields != null && !additionalFields.isEmpty()) {
-            List<AdditionalField> additionalFieldList = new ArrayList<>();
-            for (Map.Entry<String, String> keyValuePair : additionalFields.entrySet()) {
-                additionalFieldList.add(new AdditionalField(keyValuePair.getKey(), keyValuePair.getValue()));
-            }
-            ecsFormatter.setAdditionalFields(additionalFieldList);
-        }
-        ecsFormatter.setIncludeOrigin(false);
-        ecsFormatter.setStackTraceAsArray(false);
-        return ecsFormatter;
+    protected boolean shouldCreateEcsAppender(Handler originalHandler) {
+        return originalHandler instanceof FileHandler;
     }
 
-    @Nullable
     @Override
-    protected StreamHandler createAndStartEcsAppender(StreamHandler originalHandler, String ecsAppenderName, Formatter ecsFormatter) {
-        StreamHandler shadeHandler = null;
-        if (originalHandler instanceof FileHandler) {
-            try {
-                String pattern = computeEcsFileHandlerPattern(
-                    currentPattern.get(),
-                    currentExampleLogFile.get(),
-                    getConfiguredReformattingDir(),
-                    true
-                );
-                // In earlier versions, there is only constructor with log file limit given as int, whereas in later ones there are
-                // overloads for both either int or long. Typically, this should be enough, but not necessarily
-                int maxLogFileSize = (int) getMaxLogFileSize();
-                if ((long) maxLogFileSize != getMaxLogFileSize()) {
-                    maxLogFileSize = (int) getDefaultMaxLogFileSize();
-                    oneTimeLogFileLimitWarningLogger.warn("Configured log max size ({} bytes) is too big for JUL settings, which " +
-                        "use int to configure the file size limit. Consider reducing the log max size configuration to a value below " +
-                        "Integer#MAX_VALUE. Defaulting to {} bytes.", getMaxLogFileSize(), maxLogFileSize);
-                }
-                shadeHandler = new FileHandler(pattern, maxLogFileSize, 2, true);
-                shadeHandler.setFormatter(ecsFormatter);
-            } catch (Exception e) {
-                logger.error("Failed to create Log shading FileAppender. Auto ECS reformatting will not work.", e);
-            }
-        }
-        return shadeHandler;
+    protected String getShadeFilePatternAndCreateDir() throws IOException {
+        return computeEcsFileHandlerPattern(
+            currentPattern.get(),
+            currentExampleLogFile.get(),
+            getConfiguredReformattingDir(),
+            true
+        );
     }
 
     static String computeEcsFileHandlerPattern(String pattern, Path originalFilePath, @Nullable String configuredReformattingDir,
@@ -148,7 +81,7 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
             pattern = pattern + ".%g";
         }
         int lastPathSeparatorIndex = pattern.lastIndexOf('/');
-        if (lastPathSeparatorIndex > 0 && pattern.length() > lastPathSeparatorIndex) {
+        if (lastPathSeparatorIndex > 0 && lastPathSeparatorIndex < pattern.length() - 1) {
             pattern = pattern.substring(lastPathSeparatorIndex + 1);
         }
         Path logReformattingDir = Utils.computeLogReformattingDir(originalFilePath, configuredReformattingDir);
@@ -161,8 +94,4 @@ class JulEcsReformattingHelper extends AbstractEcsReformattingHelper<StreamHandl
         return pattern;
     }
 
-    @Override
-    protected void closeShadeAppender(StreamHandler shadeHandler) {
-        shadeHandler.close();
-    }
 }

@@ -23,7 +23,6 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
@@ -35,7 +34,8 @@ public abstract class JulLogReformattingInstrumentation extends JulInstrumentati
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        // todo: change when adding support for instrumentation of Tomcat and JBoss logging
+        // Limit to JUL classes that are part of the JDK
+        // JBoss and Tomcat implementation should be instrumented in their own plugins
         return isBootstrapClassLoader();
     }
 
@@ -49,9 +49,6 @@ public abstract class JulLogReformattingInstrumentation extends JulInstrumentati
             return named("java.util.logging.FileHandler");
         }
 
-        /**
-         * Instrumenting {@link java.util.logging.FileHandler#publish(LogRecord)}
-         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("publish").and(takesArgument(0, named("java.util.logging.LogRecord")));
@@ -73,9 +70,6 @@ public abstract class JulLogReformattingInstrumentation extends JulInstrumentati
             return named("java.util.logging.ConsoleHandler");
         }
 
-        /**
-         * Instrumenting {@link java.util.logging.ConsoleHandler#publish(LogRecord)}
-         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("publish").and(takesArgument(0, named("java.util.logging.LogRecord")));
@@ -87,6 +81,13 @@ public abstract class JulLogReformattingInstrumentation extends JulInstrumentati
         }
     }
 
+    /**
+     * Instruments:
+     * <ul>
+     *     <li>{@link java.util.logging.FileHandler#close()}</li>
+     *     <li>{@link java.util.logging.ConsoleHandler#close()}</li>
+     * </ul>
+     */
     public static class StopAppenderInstrumentation extends JulLogReformattingInstrumentation {
 
         @Override
@@ -95,9 +96,6 @@ public abstract class JulLogReformattingInstrumentation extends JulInstrumentati
                 .or(named("java.util.logging.FileHandler"));
         }
 
-        /**
-         * Instrumenting {@link Handler#close()}
-         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("close").and(takesArguments(0));
