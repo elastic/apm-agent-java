@@ -1,0 +1,110 @@
+package co.elastic.apm.agent.tomcatlogging;
+
+import co.elastic.apm.agent.test.AgentFileAccessor;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.Container;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.output.WaitingConsumer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.utility.MountableFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Duration;
+import java.util.Comparator;
+import java.util.List;
+import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class TomcatLoggingTestIT {
+
+    private static final Logger log = LoggerFactory.getLogger(TomcatLoggingTestIT.class);
+
+    private static final Path testLogsFolder = Path.of("target", "container-logs");
+
+    @BeforeEach
+    void before() throws IOException {
+
+        if (Files.exists(testLogsFolder)) {
+            Files.walk(testLogsFolder)
+                .sorted(Comparator.reverseOrder())
+                .map(Path::toFile)
+                .forEach(File::delete);
+        }
+        Files.createDirectories(testLogsFolder);
+
+
+    }
+
+    @ParameterizedTest(name = "Tomcat {0}")
+    @ValueSource(strings = {
+        "10.1",
+        "9.0",
+        "8.5",
+        "8.0",
+        "7.0"
+    })
+    void testLogShading(String version) throws IOException, InterruptedException {
+
+        GenericContainer<?> container = new GenericContainer<>("tomcat:" + version)
+            .withCopyFileToContainer(MountableFile.forHostPath(AgentFileAccessor.getPathToJavaagent()), "/agent.jar")
+            .withEnv("CATALINA_OPTS", "-javaagent:/agent.jar")
+            .withEnv("ELASTIC_APM_LOG_ECS_REFORMATTING", "shade")
+            .withEnv("ELASTIC_APM_LOG_ECS_REFORMATTING_DIR", "ecs-logs")
+            .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(1024))
+            .waitingFor(Wait.forLogMessage(".* Server startup in.*", 1)
+                .withStartupTimeout(Duration.ofSeconds(10)));
+
+        try {
+            container.start();
+
+            Slf4jLogConsumer logConsumer = new Slf4jLogConsumer(log);
+            container.followOutput(logConsumer);
+
+            // copy
+            String logsFolder = "/usr/local/tomcat/logs";
+            Container.ExecResult listCmd = container.execInContainer("/usr/bin/find", "/usr/local/tomcat/logs", "-type", "f");
+            assertThat(listCmd.getExitCode()).isEqualTo(0);
+            String[] files = listCmd.getStdout().split("\\n");
+            for (String file : files) {
+                String path = file.substring(logsFolder.length());
+                String[] pathParts = path.split("/");
+                assertThat(pathParts.length).isGreaterThanOrEqualTo(1);
+                Path targetPath = testLogsFolder;
+                for (String pathPart : pathParts) {
+                    targetPath = targetPath.resolve(pathPart);
+                }
+                Files.createDirectories(targetPath.getParent());
+                container.copyFileFromContainer(file, targetPath.toString());
+            }
+
+            assertThat(testLogsFolder).isNotEmptyDirectory();
+            Path ecsLogsDir = testLogsFolder.resolve("ecs-logs");
+            assertThat(ecsLogsDir).isDirectory().isNotEmptyDirectory();
+            List<Path> ecsJsonFiles = Files.find(ecsLogsDir, 1, new BiPredicate<Path, BasicFileAttributes>() {
+                @Override
+                public boolean test(Path path, BasicFileAttributes basicFileAttributes) {
+                    String fileName = path.getFileName().toString();
+                    return fileName.contains("ecs.json") && !fileName.endsWith(".lck");
+                }
+            }).collect(Collectors.toList());
+
+            assertThat(ecsJsonFiles).isNotEmpty();
+        } finally {
+            container.stop();
+        }
+
+    }
+}
