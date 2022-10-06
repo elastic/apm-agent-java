@@ -18,15 +18,29 @@
  */
 package co.elastic.apm.agent.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
+import java.net.Proxy;
 import java.net.URL;
 import java.net.URLConnection;
 
 public class UrlConnectionUtils {
+
+    private static final Logger logger = LoggerFactory.getLogger(UrlConnectionUtils.class);
+
     public static URLConnection openUrlConnectionThreadSafely(URL url) throws IOException {
         GlobalLocks.JUL_INIT_LOCK.lock();
         try {
-            return url.openConnection();
+            String httpProxyHost = System.getProperty("http.proxyHost");
+            String httpProxyPort = System.getProperty("http.proxyPort");
+            String httpsProxyHost = System.getProperty("https.proxyHost");
+            String httpsProxyPort = System.getProperty("https.proxyPort");
+            String nonProxyHosts = System.getProperty("http.nonProxyHosts");
+            logger.debug("Opening URLConnection, global proxy setting: http.proxyHost={} http.proxyPort={} https.proxyHost={} https.proxyPort={} http.nonProxyHosts={}",
+                httpProxyHost, httpProxyPort, httpsProxyHost, httpsProxyPort, nonProxyHosts);
+            return url.openConnection(Proxy.NO_PROXY);
         } finally {
             GlobalLocks.JUL_INIT_LOCK.unlock();
         }
