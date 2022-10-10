@@ -462,7 +462,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
         assertThat(reporter.getNumReportedTransactions()).isEqualTo(1);
         assertThat(reporter.getFirstTransaction()).isSameAs(transaction);
-        assertThat(transaction.getNameAsString()).isEqualTo("Otel updated name");
+        assertThat(transaction).hasName("Otel updated name");
     }
 
     @Test
