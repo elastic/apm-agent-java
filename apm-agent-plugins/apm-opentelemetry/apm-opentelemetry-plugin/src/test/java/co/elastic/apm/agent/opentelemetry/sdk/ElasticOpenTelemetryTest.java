@@ -450,6 +450,22 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
     }
 
     @Test
+    public void overrideElasticTransactionName() {
+        Transaction transaction = startTestRootTransaction()
+            .withName("Elastic Provided High-Prio Name", AbstractSpan.PRIO_USER_SUPPLIED);
+
+        try {
+            Span.current().updateName("Otel updated name");
+        } finally {
+            transaction.deactivate().end();
+        }
+
+        assertThat(reporter.getNumReportedTransactions()).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction()).isSameAs(transaction);
+        assertThat(transaction.getNameAsString()).isEqualTo("Otel updated name");
+    }
+
+    @Test
     public void elasticSpanOverOtelSpan() {
         // create and activate an otel span which should create a transaction
         // create and activate an elastic span
