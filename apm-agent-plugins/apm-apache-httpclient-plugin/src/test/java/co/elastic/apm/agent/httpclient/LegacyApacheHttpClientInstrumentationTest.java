@@ -42,8 +42,8 @@ public class LegacyApacheHttpClientInstrumentationTest extends AbstractHttpClien
 
     @Override
     protected void performGet(String path) throws Exception {
-        CloseableHttpResponse response = client.execute(new HttpGet(path));
-        response.getStatusLine().getStatusCode();
-        response.close();
+        try (CloseableHttpResponse response = client.execute(new HttpGet(path))) {
+            response.getEntity();
+        }
     }
 }

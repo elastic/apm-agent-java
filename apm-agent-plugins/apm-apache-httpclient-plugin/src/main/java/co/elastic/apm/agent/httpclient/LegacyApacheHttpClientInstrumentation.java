@@ -36,6 +36,8 @@ import org.apache.http.client.methods.HttpUriRequest;
 
 import javax.annotation.Nullable;
 
+import java.net.URI;
+
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -55,12 +57,15 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
             if (parent == null) {
                 return null;
             }
-            if (!(request instanceof HttpUriRequest)) {
-                return null;
-            }
-            HttpUriRequest uriRequest = (HttpUriRequest) request;
             String hostName = (host != null) ? host.getHostName() : null;
-            Span span = HttpClientHelper.startHttpClientSpan(parent, uriRequest.getMethod(), uriRequest.getURI(), hostName);
+            String method = "UNKNOWN";
+            URI uri = null;
+            if (request instanceof HttpUriRequest) {
+                HttpUriRequest uriRequest = (HttpUriRequest) request;
+                method = uriRequest.getMethod();
+                uri = uriRequest.getURI();
+            }
+            Span span = HttpClientHelper.startHttpClientSpan(parent, method, uri, hostName);
 
             if (span != null) {
                 span.activate();
