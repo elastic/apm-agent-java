@@ -21,6 +21,7 @@ package co.elastic.apm.agent.tomcatlogging;
 import co.elastic.apm.agent.test.AgentFileAccessor;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
@@ -36,7 +37,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
 import java.util.Comparator;
@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.testcontainers.containers.output.OutputFrame.OutputType.STDOUT;
 
+@Disabled // disabled because it's slow and might introduce flakyness
 public class TomcatLoggingTestIT {
 
     private static final Logger log = LoggerFactory.getLogger(TomcatLoggingTestIT.class);
@@ -88,8 +89,8 @@ public class TomcatLoggingTestIT {
             .withEnv("ELASTIC_APM_CENTRAL_CONFIG", "false")
             .withEnv("ELASTIC_APM_CLOUD_PROVIDER", "none")
             .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(1024))
-            .waitingFor(Wait.forLogMessage(".* Server startup in.*", 1)
-                .withStartupTimeout(Duration.ofSeconds(10)));
+            .waitingFor(Wait.forLogMessage(".*Server startup in.*", 1)
+                .withStartupTimeout(Duration.ofSeconds(15)));
 
         try {
             container.start();
@@ -103,11 +104,30 @@ public class TomcatLoggingTestIT {
             Slf4jLogConsumer logConsumer = new Slf4jLogConsumer(log);
             container.followOutput(logConsumer);
 
-            // copy
+            int v = Integer.parseInt(version.replaceAll("\\.", ""));
+
+            // create a fake deploy to ensure something has to be logged when the agent startup is delayed
+            String srcWebappFolder = v == 80 ? "webapps" : "webapps.dist";
+            Container.ExecResult cpCmd = container.execInContainer("cp", "-r", "/usr/local/tomcat/" + srcWebappFolder + "/manager", "/usr/local/tomcat/webapps/manager-copy");
+            assertThat(cpCmd.getExitCode())
+                .describedAs(cpCmd.getStderr().trim())
+                .isEqualTo(0);
+
+            if (v < 85) {
+                Thread.sleep(10000);
+            }
+
+            // copy reformatted logs back to docker host (where this test runs)
             String logsFolder = "/usr/local/tomcat/logs";
             Container.ExecResult listCmd = container.execInContainer("/usr/bin/find", "/usr/local/tomcat/logs", "-type", "f");
-            assertThat(listCmd.getExitCode()).isEqualTo(0);
+            assertThat(listCmd.getExitCode())
+                .describedAs(listCmd.getStderr().trim())
+                .isEqualTo(0);
             String[] files = listCmd.getStdout().split("\\n");
+            assertThat(files)
+                .describedAs("at least one ECS formatted file expected")
+                .isNotEmpty();
+
             for (String file : files) {
                 String path = file.substring(logsFolder.length());
                 String[] pathParts = path.split("/");
