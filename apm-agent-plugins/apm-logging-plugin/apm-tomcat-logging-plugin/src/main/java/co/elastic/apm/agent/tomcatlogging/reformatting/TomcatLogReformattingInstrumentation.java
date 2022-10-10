@@ -57,7 +57,7 @@ public abstract class TomcatLogReformattingInstrumentation extends AbstractLogIn
 
         @Override
         public String getAdviceClassName() {
-            return TomcatLogReformattingInstrumentation.class.getPackageName() + ".FileHandlerCloseAdvice";
+            return "co.elastic.apm.agent.tomcatlogging.reformatting.FileHandlerCloseAdvice";
         }
     }
 
@@ -78,7 +78,7 @@ public abstract class TomcatLogReformattingInstrumentation extends AbstractLogIn
 
         @Override
         public String getAdviceClassName() {
-            return TomcatLogReformattingInstrumentation.class.getPackageName() + ".FileHandlerPublishAdvice";
+            return "co.elastic.apm.agent.tomcatlogging.reformatting.FileHandlerPublishAdvice";
         }
 
     }
