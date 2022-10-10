@@ -31,12 +31,14 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.RequestLine;
 import org.apache.http.client.CircularRedirectException;
 import org.apache.http.client.methods.HttpUriRequest;
 
 import javax.annotation.Nullable;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -58,12 +60,19 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                 return null;
             }
             String hostName = (host != null) ? host.getHostName() : null;
-            String method = "UNKNOWN";
+            String method;
             URI uri = null;
             if (request instanceof HttpUriRequest) {
                 HttpUriRequest uriRequest = (HttpUriRequest) request;
                 method = uriRequest.getMethod();
                 uri = uriRequest.getURI();
+            } else {
+                RequestLine requestLine = request.getRequestLine();
+                method = requestLine.getMethod();
+                try {
+                    uri = new URI(requestLine.getUri());
+                } catch (URISyntaxException ignore) {
+                }
             }
             Span span = HttpClientHelper.startHttpClientSpan(parent, method, uri, hostName);
 
