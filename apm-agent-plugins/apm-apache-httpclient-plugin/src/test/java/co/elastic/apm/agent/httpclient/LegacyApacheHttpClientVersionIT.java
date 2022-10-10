@@ -29,11 +29,12 @@ import java.util.List;
 @RunWith(Parameterized.class)
 public class LegacyApacheHttpClientVersionIT {
 
-    private final TestClassWithDependencyRunner runner;
-
+    private final TestClassWithDependencyRunner runner1;
+    private final TestClassWithDependencyRunner runner2;
 
     public LegacyApacheHttpClientVersionIT(List<String> dependencies) throws Exception {
-        this.runner = new TestClassWithDependencyRunner(dependencies, LegacyApacheHttpClientBasicHttpRequestInstrumentationTest.class);
+        this.runner1 = new TestClassWithDependencyRunner(dependencies, LegacyApacheHttpClientBasicHttpRequestInstrumentationTest.class);
+        this.runner2 = new TestClassWithDependencyRunner(dependencies, LegacyApacheHttpClientHttpUriRequestInstrumentationTest.class);
     }
 
     @Parameterized.Parameters(name = "{0}")
@@ -47,7 +48,12 @@ public class LegacyApacheHttpClientVersionIT {
     }
 
     @Test
-    public void test() {
-        runner.run();
+    public void legacyApacheHttpClientBasicHttpRequestInstrumentationTest() {
+        runner1.run();
+    }
+
+    @Test
+    public void legacyApacheHttpClientHttpUriRequestInstrumentationTest() {
+        runner2.run();
     }
 }
