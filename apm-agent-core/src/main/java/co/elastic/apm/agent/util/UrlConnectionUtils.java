@@ -69,7 +69,7 @@ public class UrlConnectionUtils {
                 if (proxies != null && proxies.size() == 1 && proxies.get(0).equals(Proxy.NO_PROXY)) {
                     logger.debug("Opening {} without proxy (ProxySelector {})", url, proxySelectorName);
                 } else {
-                    logger.debug("Opening {} with proxy {} (ProxySelector {})", url, proxies, proxySelectorName);
+                    logger.debug("Opening {} with proxies {} (ProxySelector {})", url, proxies, proxySelectorName);
                 }
             } catch (URISyntaxException e) {
                 logger.debug("Failed to read and debug-print proxy settings for {}", url, e);
