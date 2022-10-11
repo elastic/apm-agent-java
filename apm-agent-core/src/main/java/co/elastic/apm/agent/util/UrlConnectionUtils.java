@@ -33,13 +33,20 @@ public class UrlConnectionUtils {
         GlobalLocks.JUL_INIT_LOCK.lock();
         try {
             if (logger.isDebugEnabled()) {
-                String httpProxyHost = System.getProperty("http.proxyHost");
-                String httpProxyPort = System.getProperty("http.proxyPort");
-                String httpsProxyHost = System.getProperty("https.proxyHost");
-                String httpsProxyPort = System.getProperty("https.proxyPort");
-                String nonProxyHosts = System.getProperty("http.nonProxyHosts");
-                logger.debug("Opening URLConnection, global proxy settings: http.proxyHost={} http.proxyPort={} https.proxyHost={} https.proxyPort={} http.nonProxyHosts={}",
-                    httpProxyHost, httpProxyPort, httpsProxyHost, httpsProxyPort, nonProxyHosts);
+                String proxyHostProperty = url.getProtocol() + ".proxyHost";
+                String proxyPortProperty = url.getProtocol() + ".proxyPort";
+                String proxyHost = System.getProperty(proxyHostProperty);
+                String proxyPort = System.getProperty(proxyPortProperty);
+                String nonProxyHosts = System.getProperty("http.nonProxyHosts"); // common to http & https
+                if (proxyHost == null || proxyHost.isEmpty()) {
+                    logger.debug("Opening {} without proxy", url);
+                } else {
+                    logger.debug("Opening {} with proxy settings: {}={}, {}={}, http.nonProxyHosts={}", url,
+                        proxyHostProperty, proxyHost,
+                        proxyPortProperty, proxyPort,
+                        nonProxyHosts
+                    );
+                }
             }
             return url.openConnection();
         } finally {
