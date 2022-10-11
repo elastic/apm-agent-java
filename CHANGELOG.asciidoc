@@ -29,10 +29,12 @@ endif::[]
 [float]
 ===== Features
 * Add support for log correlation for `java.util.logging` (JUL) - {pull}2724[#2724]
+* Add support for spring-kafka batch listeners - {pull}2815[#2815]
 
 [float]
 ===== Bug fixes
 * Remove `context.db` fields from S3 instrumentation - {pull}2821[#2821]
+* Allowed OpenTelemetry `Span.updateName` to update names provided by elastic - {pull}2838[#2838]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

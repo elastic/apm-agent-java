@@ -20,6 +20,7 @@ package co.elastic.apm.agent.testutils.assertions;
 
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 
 public class Assertions extends org.assertj.core.api.Assertions {
@@ -31,11 +32,15 @@ public class Assertions extends org.assertj.core.api.Assertions {
         return new ServiceTargetAssert(serviceTarget);
     }
 
-    public static DestinationAssert assertThat(Destination destination){
+    public static DestinationAssert assertThat(Destination destination) {
         return new DestinationAssert(destination);
     }
 
-    public static SpanAssert assertThat(Span span){
+    public static SpanAssert assertThat(Span span) {
         return new SpanAssert(span);
+    }
+
+    public static AbstractSpanAssert<?, ?> assertThat(AbstractSpan<?> span) {
+        return new AbstractSpanAssert<>(span, AbstractSpanAssert.class);
     }
 }

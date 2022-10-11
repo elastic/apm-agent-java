@@ -314,7 +314,8 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |Apache HttpClient
 |4.3+
 |
-| 0.7.0
+| 0.7.0 (4.3+)
+  1.8.0 (4.0+)
 
 |Apache HttpAsyncClient
 |4.0+
