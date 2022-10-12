@@ -36,6 +36,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.matcher.MethodMatcher;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -711,8 +712,20 @@ public class ElasticApmAgent {
             .or(nameContains("javassist"))
             .or(nameContains(".asm."))
             .or(anyMatch(coreConfiguration.getDefaultClassesExcludedFromInstrumentation()))
-            .or(anyMatch(coreConfiguration.getClassesExcludedFromInstrumentation()))
+            .or(anyMatch(sanitizeConfiguredExcludes(logger, coreConfiguration.getClassesExcludedFromInstrumentation())))
             .disableClassFormatChanges();
+    }
+
+    private static List<WildcardMatcher> sanitizeConfiguredExcludes(Logger logger, List<WildcardMatcher> classesExcludedFromInstrumentation) {
+        List<WildcardMatcher> result = new ArrayList<>();
+        for (WildcardMatcher matcher : classesExcludedFromInstrumentation) {
+            if (matcher.matches("co.elastic.apm.")) {
+                logger.warn("Ignoring exclude '{}' for instrumentation because ignoring 'co.elastic.apm' can lead to unwanted side effects", matcher);
+            } else {
+                result.add(matcher);
+            }
+        }
+        return result;
     }
 
     /**
