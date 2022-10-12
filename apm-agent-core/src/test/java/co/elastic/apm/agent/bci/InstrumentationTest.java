@@ -217,15 +217,6 @@ class InstrumentationTest {
     }
 
     @Test
-    void testPreventBroadElasticApmExclusionFromInstrumentation() {
-        doReturn(List.of(WildcardMatcher.valueOf("co.elastic.apm.*"), WildcardMatcher.valueOf("co.elastic.*")))
-            .when(coreConfig).getClassesExcludedFromInstrumentation();
-        init(List.of(new TestInstrumentation()));
-        ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
-        assertThat(interceptMe()).isEqualTo("intercepted");
-    }
-
-    @Test
     void testExcludedDefaultClassesFromInstrumentation() {
         doReturn(List.of(WildcardMatcher.valueOf("co.elastic.apm.agent.bci.InstrumentationTest")))
             .when(coreConfig).getDefaultClassesExcludedFromInstrumentation();
