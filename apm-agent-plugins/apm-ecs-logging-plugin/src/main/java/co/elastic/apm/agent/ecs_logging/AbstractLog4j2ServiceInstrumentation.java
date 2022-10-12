@@ -29,6 +29,7 @@ import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
+
 public class AbstractLog4j2ServiceInstrumentation extends TracerAwareInstrumentation {
 
     @Override
