@@ -30,7 +30,8 @@ endif::[]
 ===== Features
 * Add support for log correlation for `java.util.logging` (JUL) - {pull}2724[#2724]
 * Add support for spring-kafka batch listeners - {pull}2815[#2815]
-* Prevent exclusion of agent-packages via `classes_excluded_from_instrumentation` to avoid unintended side effects
+* Improved instrumentation for legacy Apache HttpClient (when not using an `HttpUriRequest`, such as `BasicHttpRequest`)
+* Prevented exclusion of agent-packages via `classes_excluded_from_instrumentation` to avoid unintended side effects
 
 [float]
 ===== Bug fixes
