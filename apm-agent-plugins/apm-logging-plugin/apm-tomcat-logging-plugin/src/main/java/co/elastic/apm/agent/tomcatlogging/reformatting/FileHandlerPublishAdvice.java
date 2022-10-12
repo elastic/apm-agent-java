@@ -29,13 +29,13 @@ public class FileHandlerPublishAdvice {
 
     private static final TomcatReformattingHelper helper = new TomcatReformattingHelper();
 
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void onEnter(@Advice.This(typing = Assigner.Typing.DYNAMIC) FileHandler fileHandler,
+    @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
+    public static boolean onEnter(@Advice.This(typing = Assigner.Typing.DYNAMIC) FileHandler fileHandler,
                                @Advice.FieldValue("directory") String directory,
                                @Advice.FieldValue("prefix") String prefix,
                                @Advice.FieldValue("suffix") String suffix) {
 
-        helper.onAppendEnter(fileHandler, directory, prefix, suffix);
+        return helper.onAppendEnter(fileHandler, directory, prefix, suffix);
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

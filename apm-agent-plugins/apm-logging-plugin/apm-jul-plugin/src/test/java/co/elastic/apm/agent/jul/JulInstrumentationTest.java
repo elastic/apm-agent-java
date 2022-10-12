@@ -68,7 +68,37 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
         public static final CustomLevel TRACE = new CustomLevel("TRACE", 400);
     }
 
-    private static class JulLoggerFacade implements LoggerFacade {
+    private static class JulLoggerFacade extends AbstractJulLoggerFacade {
+
+        @Override
+        protected void resetRemovedHandler(){
+            if (Arrays.stream(julLogger.getHandlers()).noneMatch(handler -> handler instanceof FileHandler)) {
+                try {
+                    julLogger.addHandler(new FileHandler());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        @Override
+        public String getLogFilePath() {
+            for (Handler loggerHandler : julLogger.getHandlers()) {
+                if (loggerHandler instanceof FileHandler) {
+                    // no API for that, so we use reflection for tests and the field in the instrumentation
+                    try {
+                        File[] files = getField(loggerHandler,"files");
+                        return files[0].getAbsolutePath();
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to get log file path through reflection", e);
+                    }
+                }
+            }
+            throw new IllegalStateException("Couldn't find a FileHandler for logger " + julLogger.getName());
+        }
+    }
+
+    protected abstract static class AbstractJulLoggerFacade implements LoggerFacade {
 
         static {
             try {
@@ -78,21 +108,18 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
             }
         }
 
-        private Logger julLogger;
+        protected Logger julLogger;
+
+        protected abstract void resetRemovedHandler();
 
         @Override
         public void open() {
             julLogger = Logger.getLogger("Test-File-Logger");
-            if (Arrays.stream(julLogger.getHandlers()).noneMatch(handler -> handler instanceof FileHandler)) {
-                try {
-                    // In case there is no FileHandler as it was removed through close().
-                    // The reason not to re-add through close() is that this deletes the file and sometimes we want to manually review the
-                    // original log file after the test ends.
-                    julLogger.addHandler(new FileHandler());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+
+            // In case there is no file handler as it was removed through close().
+            // The reason not to re-add through close() is that this deletes the file and sometimes we want to manually review the
+            // original log file after the test ends.
+            resetRemovedHandler();
         }
 
         @Override
@@ -102,25 +129,6 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
                 handler.close();
                 julLogger.removeHandler(handler);
             }
-        }
-
-        @Override
-        public String getLogFilePath() {
-            Handler[] loggerHandlers = julLogger.getHandlers();
-            for (Handler loggerHandler : loggerHandlers) {
-                if (loggerHandler instanceof FileHandler) {
-                    // no API for that, so we use reflection for tests and the field in the instrumentation
-                    try {
-                        Field filesField = FileHandler.class.getDeclaredField("files");
-                        filesField.setAccessible(true);
-                        File[] files = (File[]) filesField.get(loggerHandler);
-                        return files[0].getAbsolutePath();
-                    } catch (Exception e) {
-                        throw new RuntimeException("Failed to get log file path through reflection", e);
-                    }
-                }
-            }
-            throw new IllegalStateException("Couldn't find a FileHandler for logger " + julLogger.getName());
         }
 
         @Override
@@ -156,6 +164,12 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
         @Override
         public void removeTraceIdFromMdc() {
             // not supported for JUL
+        }
+
+        protected <T extends Handler,X> X getField(T handler, String fieldName) throws IllegalAccessException, NoSuchFieldException {
+            Field field = handler.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return (X)field.get(handler);
         }
     }
 }

@@ -66,8 +66,6 @@ public class TomcatLoggingTestIT {
                 .forEach(File::delete);
         }
         Files.createDirectories(testLogsFolder);
-
-
     }
 
     @ParameterizedTest(name = "Tomcat {0}")
