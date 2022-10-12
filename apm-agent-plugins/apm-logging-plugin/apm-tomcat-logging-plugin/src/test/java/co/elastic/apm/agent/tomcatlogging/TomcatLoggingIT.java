@@ -50,15 +50,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.testcontainers.containers.output.OutputFrame.OutputType.STDOUT;
 
 @Disabled // disabled because it's slow and might introduce flakyness
-public class TomcatLoggingTestIT {
+public class TomcatLoggingIT {
 
-    private static final Logger log = LoggerFactory.getLogger(TomcatLoggingTestIT.class);
+    private static final Logger log = LoggerFactory.getLogger(TomcatLoggingIT.class);
 
     private static final Path testLogsFolder = Path.of("target", "container-logs");
 
     @BeforeEach
     void before() throws IOException {
-
         if (Files.exists(testLogsFolder)) {
             Files.walk(testLogsFolder)
                 .sorted(Comparator.reverseOrder())

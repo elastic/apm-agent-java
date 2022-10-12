@@ -53,7 +53,7 @@ public class TomcatLoggingInstrumentationTest extends JulInstrumentationTest {
         @Override
         public String getLogFilePath() {
             for (Handler loggerHandler : julLogger.getHandlers()) {
-                if(loggerHandler instanceof FileHandler){
+                if (loggerHandler instanceof FileHandler) {
                     // no API for that, so we use reflection for tests and the field in the instrumentation
 
                     try {

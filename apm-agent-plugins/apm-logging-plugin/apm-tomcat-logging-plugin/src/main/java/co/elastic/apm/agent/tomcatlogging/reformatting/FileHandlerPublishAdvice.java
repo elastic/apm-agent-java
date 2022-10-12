@@ -31,9 +31,9 @@ public class FileHandlerPublishAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
     public static boolean onEnter(@Advice.This(typing = Assigner.Typing.DYNAMIC) FileHandler fileHandler,
-                               @Advice.FieldValue("directory") String directory,
-                               @Advice.FieldValue("prefix") String prefix,
-                               @Advice.FieldValue("suffix") String suffix) {
+                                  @Advice.FieldValue("directory") String directory,
+                                  @Advice.FieldValue("prefix") String prefix,
+                                  @Advice.FieldValue("suffix") String suffix) {
 
         return helper.onAppendEnter(fileHandler, directory, prefix, suffix);
     }
