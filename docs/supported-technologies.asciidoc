@@ -566,8 +566,6 @@ ECS Reformatting - 2.6+
 
 |The agent adds https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entries for correlation.
 
-The agent sets the service name and version for the `EcsLayout` if not provided explicitly (since 1.29.0).
-
 |Trace correlation - 1.13.0
 
 Error capturing - 1.10.0
