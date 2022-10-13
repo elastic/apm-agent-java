@@ -20,6 +20,8 @@ package co.elastic.apm.agent.awssdk.v2;
 
 import co.elastic.apm.agent.awssdk.v2.helper.DynamoDbHelper;
 import co.elastic.apm.agent.awssdk.v2.helper.S3Helper;
+import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
+import co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper.MessageListWrapper;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -29,13 +31,18 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import software.amazon.awssdk.auth.signer.AwsSignerExecutionAttribute;
 import software.amazon.awssdk.core.SdkRequest;
+import software.amazon.awssdk.core.SdkResponse;
+import software.amazon.awssdk.core.client.config.SdkClientConfiguration;
+import software.amazon.awssdk.core.client.config.SdkClientOption;
+import software.amazon.awssdk.core.client.handler.ClientExecutionParams;
 import software.amazon.awssdk.core.http.ExecutionContext;
-import software.amazon.awssdk.http.SdkHttpFullRequest;
 
 import javax.annotation.Nullable;
+import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
 
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
@@ -48,10 +55,9 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("invoke")
-            .and(takesArgument(0, named("software.amazon.awssdk.http.SdkHttpFullRequest")))
-            .and(takesArgument(1, named("software.amazon.awssdk.core.SdkRequest")))
-            .and(takesArgument(2, named("software.amazon.awssdk.core.http.ExecutionContext")));
+        return nameStartsWith("doExecute")
+            .and(takesArgument(0, named("software.amazon.awssdk.core.client.handler.ClientExecutionParams")))
+            .and(takesArgument(1, named("software.amazon.awssdk.core.http.ExecutionContext")));
     }
 
     @Override
@@ -60,19 +66,25 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
     }
 
 
+    @SuppressWarnings("rawtypes")
     public static class AdviceClass {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @Nullable
-        public static Object enterInvoke(@Advice.Argument(value = 0) SdkHttpFullRequest sdkHttpFullRequest,
-                                         @Advice.Argument(value = 1) SdkRequest sdkRequest,
-                                         @Advice.Argument(value = 2) ExecutionContext executionContext) {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object enterDoExecute(@Advice.Argument(value = 0) ClientExecutionParams clientExecutionParams,
+                                            @Advice.Argument(value = 1) ExecutionContext executionContext,
+                                            @Advice.FieldValue("clientConfiguration") SdkClientConfiguration clientConfiguration) {
             String awsService = executionContext.executionAttributes().getAttribute(AwsSignerExecutionAttribute.SERVICE_NAME);
+            SdkRequest sdkRequest = clientExecutionParams.getInput();
+            URI uri = clientConfiguration.option(SdkClientOption.ENDPOINT);
             Span span = null;
             if ("S3".equalsIgnoreCase(awsService)) {
-                span = S3Helper.getInstance().startSpan(sdkRequest, sdkHttpFullRequest.getUri(), executionContext);
+                span = S3Helper.getInstance().startSpan(sdkRequest, uri, executionContext);
             } else if ("DynamoDb".equalsIgnoreCase(awsService)) {
-                span = DynamoDbHelper.getInstance().startSpan(sdkRequest, sdkHttpFullRequest.getUri(), executionContext);
+                span = DynamoDbHelper.getInstance().startSpan(sdkRequest, uri, executionContext);
+            } else if ("Sqs".equalsIgnoreCase(awsService)) {
+                span = SQSHelper.getInstance().startSpan(sdkRequest, uri, executionContext);
+                SQSHelper.getInstance().modifyRequestObject(span, clientExecutionParams, executionContext);
             }
 
             if (span != null) {
@@ -83,8 +95,13 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
-        public static void exitInvoke(@Nullable @Advice.Enter Object spanObj,
-                                      @Nullable @Advice.Thrown Throwable thrown) {
+        public static void exitDoExecute(@Advice.Argument(value = 0) ClientExecutionParams clientExecutionParams,
+                                         @Advice.Argument(value = 1) ExecutionContext executionContext,
+                                         @Nullable @Advice.Enter Object spanObj,
+                                         @Nullable @Advice.Thrown Throwable thrown,
+                                         @Nullable @Advice.Return Object sdkResponse) {
+            String awsService = executionContext.executionAttributes().getAttribute(AwsSignerExecutionAttribute.SERVICE_NAME);
+            SdkRequest sdkRequest = clientExecutionParams.getInput();
             if (spanObj instanceof Span) {
                 Span span = (Span) spanObj;
                 span.deactivate();
@@ -94,7 +111,16 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
                 } else {
                     span.withOutcome(Outcome.SUCCESS);
                 }
+
+                if ("Sqs".equalsIgnoreCase(awsService) && sdkResponse instanceof SdkResponse) {
+                    SQSHelper.getInstance().handleReceivedMessages(span, sdkRequest, (SdkResponse) sdkResponse);
+                }
+
                 span.end();
+            }
+
+            if ("Sqs".equalsIgnoreCase(awsService) && sdkResponse instanceof SdkResponse) {
+                MessageListWrapper.registerWrapperListForResponse(sdkRequest, (SdkResponse) sdkResponse, SQSHelper.getInstance().getTracer());
             }
         }
     }

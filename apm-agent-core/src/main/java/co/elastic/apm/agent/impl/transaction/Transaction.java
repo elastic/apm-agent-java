@@ -25,6 +25,7 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
@@ -33,6 +34,9 @@ import org.HdrHistogram.WriterReaderPhaser;
 
 import javax.annotation.Nullable;
 import java.util.List;
+
+import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinuationStrategy.RESTART;
+import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinuationStrategy.RESTART_EXTERNAL;
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
@@ -67,6 +71,8 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private final KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> timerBySpanTypeAndSubtype = new KeyListConcurrentHashMap<>();
     private final WriterReaderPhaser phaser = new WriterReaderPhaser();
+    private final CoreConfiguration coreConfig;
+    private final SpanConfiguration spanConfig;
 
     /**
      * The result of the transaction. HTTP status code for HTTP-related
@@ -110,28 +116,54 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     public Transaction(ElasticApmTracer tracer) {
         super(tracer);
+        coreConfig = tracer.getConfig(CoreConfiguration.class);
+        spanConfig = tracer.getConfig(SpanConfiguration.class);
     }
 
-    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros, Sampler sampler) {
-        boolean startedAsChild = parent != null && childContextCreator.asChildOf(traceContext, parent);
-        onTransactionStart(startedAsChild, epochMicros, sampler);
+    public <T> Transaction startRoot(long epochMicros, Sampler sampler) {
+        traceContext.asRootSpan(sampler);
+        onTransactionStart(epochMicros);
         return this;
     }
 
-    public <T, A> Transaction start(TraceContext.ChildContextCreatorTwoArg<T, A> childContextCreator, @Nullable T parent, A arg, long epochMicros, Sampler sampler) {
-        boolean startedAsChild = childContextCreator.asChildOf(traceContext, parent, arg);
-        onTransactionStart(startedAsChild, epochMicros, sampler);
-        return this;
-    }
-
-    private void onTransactionStart(boolean startedAsChild, long epochMicros, Sampler sampler) {
-        maxSpans = tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans();
-        spanCompressionEnabled = tracer.getConfig(SpanConfiguration.class).isSpanCompressionEnabled();
-        spanCompressionExactMatchMaxDurationUs = tracer.getConfig(SpanConfiguration.class).getSpanCompressionExactMatchMaxDuration().getMicros();
-        spanCompressionSameKindMaxDurationUs = tracer.getConfig(SpanConfiguration.class).getSpanCompressionSameKindMaxDuration().getMicros();
-        if (!startedAsChild) {
-            traceContext.asRootSpan(sampler);
+    public <H, C> Transaction start(
+        TraceContext.HeaderChildContextCreator<H, C> childContextCreator,
+        @Nullable C parent,
+        HeaderGetter<H, C> headerGetter,
+        long epochMicros,
+        Sampler sampler
+    ) {
+        if (parent == null) {
+            return startRoot(epochMicros, sampler);
         }
+        CoreConfiguration.TraceContinuationStrategy traceContinuationStrategy = coreConfig.getTraceContinuationStrategy();
+        boolean restartTrace = false;
+        if (traceContinuationStrategy.equals(RESTART)) {
+            restartTrace = true;
+        } else if (traceContinuationStrategy.equals(RESTART_EXTERNAL)) {
+            restartTrace = !TraceState.includesElasticVendor(headerGetter, parent);
+        }
+        if (restartTrace) {
+            // need to add a span link
+            addSpanLink(childContextCreator, headerGetter, parent);
+            traceContext.asRootSpan(sampler);
+        } else {
+            boolean valid = childContextCreator.asChildOf(traceContext, parent, headerGetter);
+            if (!valid) {
+                traceContext.asRootSpan(sampler);
+            }
+        }
+
+        onTransactionStart(epochMicros);
+        return this;
+    }
+
+    private void onTransactionStart(long epochMicros) {
+        maxSpans = coreConfig.getTransactionMaxSpans();
+        spanCompressionEnabled = spanConfig.isSpanCompressionEnabled();
+        spanCompressionExactMatchMaxDurationUs = spanConfig.getSpanCompressionExactMatchMaxDuration().getMicros();
+        spanCompressionSameKindMaxDurationUs = spanConfig.getSpanCompressionSameKindMaxDuration().getMicros();
+
         if (epochMicros >= 0) {
             setStartTimestamp(epochMicros);
         } else {
@@ -372,6 +404,17 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     public long getSpanCompressionSameKindMaxDurationUs() {
         return spanCompressionSameKindMaxDurationUs;
+    }
+
+    @Override
+    public StringBuilder getNameForSerialization() {
+        StringBuilder name = this.name;
+        WildcardMatcher match = WildcardMatcher.anyMatch(coreConfig.getTransactionNameGroups(), name);
+        if (match != null) {
+            name.setLength(0);
+            name.append(match);
+        }
+        return name;
     }
 
     @Override

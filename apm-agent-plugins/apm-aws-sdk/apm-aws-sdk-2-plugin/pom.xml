@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-aws-sdk</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.32.1-SNAPSHOT</version>
+        <version>1.34.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -13,8 +13,8 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
-        <version.aws.sdk>2.17.182</version.aws.sdk>
-
+        <version.aws.sdk>2.17.288</version.aws.sdk>
+        <version.aws.jms>2.0.0</version.aws.jms>
         <!-- AWS SDK v2 is compiled for Java 8 -->
         <maven.compiler.target>8</maven.compiler.target>
         <maven.compiler.source>${maven.compiler.target}</maven.compiler.source>
@@ -35,6 +35,12 @@
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sqs</artifactId>
+            <version>${version.aws.sdk}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
             <artifactId>dynamodb</artifactId>
             <version>${version.aws.sdk}</version>
             <scope>provided</scope>
@@ -43,7 +49,13 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk</artifactId>
-            <version>1.12.215</version>
+            <version>1.12.317</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>amazon-sqs-java-messaging-lib</artifactId>
+            <version>${version.aws.jms}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

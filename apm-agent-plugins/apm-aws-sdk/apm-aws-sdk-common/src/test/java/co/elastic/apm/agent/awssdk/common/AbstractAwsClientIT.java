@@ -43,6 +43,13 @@ import static org.assertj.core.api.Assertions.fail;
 public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
     private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:0.14.2");
     protected static final String BUCKET_NAME = "some-test-bucket";
+    protected static final String SQS_QUEUE_NAME = "some-test-sqs-queue";
+    protected static final String SQS_MESSAGE_PROCESSING_SPAN_NAME = "Process SQS message from " + SQS_QUEUE_NAME;
+    protected static final String SQS_IGNORED_QUEUE_NAME = "ignored-queue";
+    protected static final String SQS_TYPE = "sqs";
+    protected static final String SQS_MESSAGING_TYPE = "messaging";
+    protected static final String SQS_MESSAGE_PROCESSING_ACTION = "processing";
+    protected static final String MESSAGE_BODY = "some-test-sqs-message-body";
     protected static final String NEW_BUCKET_NAME = "new-test-bucket";
     protected static final String OBJECT_KEY = "some-object-key";
     protected static final String TABLE_NAME = "some-test-table";
@@ -57,19 +64,19 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
 
     protected abstract LocalStackContainer.Service localstackService();
 
-    protected void executeTest(String operationName, String entityName, Supplier<?> test) {
+    protected void executeTest(String operationName, @Nullable String entityName, Supplier<?> test) {
         executeTest(operationName, operationName, entityName, test, null);
     }
 
-    protected void executeTest(String operationName, String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
+    protected void executeTest(String operationName, @Nullable String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
         executeTest(operationName, operationName, entityName, test, assertions);
     }
 
-    protected void executeTest(String operationName, String action, String entityName, Supplier<?> test) {
+    protected void executeTest(String operationName, String action, @Nullable String entityName, Supplier<?> test) {
         executeTest(operationName, action, entityName, test, null);
     }
 
-    protected void executeTest(String operationName, String action, String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
+    protected void executeTest(String operationName, String action, @Nullable String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
         Object result = test.get();
         if (result instanceof CompletableFuture) {
             ((CompletableFuture<?>) result).join();
@@ -91,32 +98,27 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
         assertThat(span.getAction()).isEqualTo(action);
         assertThat(span.getContext().getDestination().getAddress().toString())
             .isEqualTo(localstack.getEndpointOverride(LocalStackContainer.Service.S3).getHost());
-        if(assertions != null){
+        if (assertions != null) {
             assertions.accept(span);
         }
     }
 
     protected void executeTestWithException(Class<? extends Exception> exceptionType, String operationName, String entityName, Supplier<?> test) {
-        executeTestWithException(exceptionType, operationName, operationName, entityName, test);
-    }
-
-
-    protected void executeTestWithException(Class<? extends Exception> exceptionType, String operationName, String action, String entityName, Supplier<?> test) {
-        executeTestWithException(exceptionType, operationName, action, entityName, test, null);
+        executeTestWithException(exceptionType, operationName, entityName, test, null);
     }
 
     protected void executeTestWithException(Class<? extends Exception> exceptionType, String operationName, String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
         executeTestWithException(exceptionType, operationName, operationName, entityName, test, assertions);
     }
 
-    protected void executeTestWithException(Class<? extends Exception> exceptionType, String operationName, String action, String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
+    protected void executeTestWithException(Class<? extends Exception> exceptionType, String operationName, String action, @Nullable String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
         assertThatExceptionOfType(exceptionType).isThrownBy(() -> executeTest(operationName, action, entityName, test));
 
         String spanName = awsService() + " " + operationName + (entityName != null ? " " + entityName : "");
 
         Span span = reporter.getSpanByName(spanName);
         assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
-        if(assertions != null){
+        if (assertions != null) {
             assertions.accept(span);
         }
     }

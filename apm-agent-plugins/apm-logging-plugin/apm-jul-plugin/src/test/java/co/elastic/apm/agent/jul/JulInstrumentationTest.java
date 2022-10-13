@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.jul;
 
-import co.elastic.apm.agent.loginstr.LoggingInstrumentationTest;
 import co.elastic.apm.agent.loginstr.LoggerFacade;
+import co.elastic.apm.agent.loginstr.LoggingInstrumentationTest;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,11 +49,6 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
     protected String getLogReformattingFilePath() {
         // in JUL, the base file also gets the generation number 0
         return super.getLogReformattingFilePath() + ".0";
-    }
-
-    @Override
-    protected boolean isLogCorrelationSupported() {
-        return false;
     }
 
     /**

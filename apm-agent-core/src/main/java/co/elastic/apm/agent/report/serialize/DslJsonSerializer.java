@@ -108,7 +108,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_PROPERTY_NAME = new String[]{".", "*", "\""};
-    private static final List<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
+    private static final List<String> excludedStackFramesPrefixes = Arrays.asList("java.lang.reflect.", "com.sun.", "sun.", "jdk.internal.");
     // visible for testing
     final JsonWriter jw;
     private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH + 1);
@@ -762,7 +762,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_START);
         writeField("name", span.getNameForSerialization());
         writeTimestamp(span.getTimestamp());
-        if(!span.isSync()){
+        if (!span.isSync()) {
             writeField("sync", span.isSync());
         }
         writeField("outcome", span.getOutcome().toString());
@@ -1015,8 +1015,8 @@ public class DslJsonSerializer implements PayloadSerializer {
             return true;
         }
         String className = stackTraceElement.getClassName();
-        for (int i = 0, size = excludedStackFrames.size(); i < size; i++) {
-            if (className.startsWith(excludedStackFrames.get(i))) {
+        for (int i = 0, size = excludedStackFramesPrefixes.size(); i < size; i++) {
+            if (className.startsWith(excludedStackFramesPrefixes.get(i))) {
                 return true;
             }
         }
@@ -1105,34 +1105,52 @@ public class DslJsonSerializer implements PayloadSerializer {
             jw.writeByte(OBJECT_START);
             boolean hasAddress = destination.getAddress().length() > 0;
             boolean hasPort = destination.getPort() > 0;
+
             boolean hasServiceContent = resource != null;
+            boolean hasCloudContent = destination.getCloud().hasContent();
+
             if (hasAddress) {
-                if (hasPort || hasServiceContent) {
+                if (hasPort || hasServiceContent || hasCloudContent) {
                     writeField("address", destination.getAddress());
                 } else {
                     writeLastField("address", destination.getAddress());
                 }
             }
             if (hasPort) {
-                if (hasServiceContent) {
+                if (hasServiceContent || hasCloudContent) {
                     writeField("port", destination.getPort());
                 } else {
                     writeLastField("port", destination.getPort());
                 }
             }
-            serializeService(resource);
+
+            if (hasServiceContent) {
+                serializeService(hasCloudContent, resource);
+            }
+            serializeDestinationCloud(hasCloudContent, destination.getCloud());
+
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }
     }
 
-    private void serializeService( @Nullable CharSequence resource) {
-        if (resource != null) {
-            writeFieldName("service");
+    private void serializeService(boolean hasCloudContent, CharSequence resource) {
+        writeFieldName("service");
+        jw.writeByte(OBJECT_START);
+        writeEmptyField("name");
+        writeEmptyField("type");
+        writeLastField("resource", resource);
+        jw.writeByte(OBJECT_END);
+        if (hasCloudContent) {
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeDestinationCloud(boolean isCloudHasContent, Destination.Cloud cloud) {
+        if (isCloudHasContent) {
+            writeFieldName("cloud");
             jw.writeByte(OBJECT_START);
-            writeEmptyField("name");
-            writeEmptyField("type");
-            writeLastField("resource", resource);
+            writeLastField("region", cloud.getRegion());
             jw.writeByte(OBJECT_END);
         }
     }

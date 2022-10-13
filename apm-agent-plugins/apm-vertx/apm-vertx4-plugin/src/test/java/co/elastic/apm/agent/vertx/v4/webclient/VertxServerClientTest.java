@@ -22,6 +22,7 @@ import co.elastic.apm.agent.vertx.helper.CommonVertxServerClientTest;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 
 public class VertxServerClientTest extends CommonVertxServerClientTest {
     @Override
@@ -32,5 +33,10 @@ public class VertxServerClientTest extends CommonVertxServerClientTest {
     @Override
     protected void close(Vertx vertx) {
         vertx.close();
+    }
+
+    @Override
+    protected void closeWebClient(WebClient client) {
+        client.close();
     }
 }

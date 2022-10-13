@@ -25,7 +25,6 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.apache.kafka.clients.producer.Callback;
@@ -33,12 +32,9 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.PartitionInfo;
-import org.jctools.queues.atomic.AtomicQueueFactory;
 
 import javax.annotation.Nullable;
 import java.util.List;
-
-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
 public class KafkaInstrumentationHelper {
 
@@ -55,10 +51,8 @@ public class KafkaInstrumentationHelper {
 
     public KafkaInstrumentationHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
-        messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
-        this.callbackWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(
-            AtomicQueueFactory.<CallbackWrapper>newQueue(createBoundedMpmc(256)),
-            false,
+        this.messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
+        this.callbackWrapperObjectPool = tracer.getObjectPoolFactory().createRecyclableObjectPool(256,
             new CallbackWrapperAllocator()
         );
     }

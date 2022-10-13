@@ -28,13 +28,9 @@ import javax.annotation.Nullable;
 
 public class DynamoDbHelper extends AbstractDynamoDBInstrumentationHelper<SdkRequest, ExecutionContext> {
 
-    @Nullable
-    private static DynamoDbHelper INSTANCE;
+    private static final DynamoDbHelper INSTANCE = new DynamoDbHelper(GlobalTracer.requireTracerImpl());
 
     public static DynamoDbHelper getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new DynamoDbHelper(GlobalTracer.requireTracerImpl());
-        }
         return INSTANCE;
     }
 

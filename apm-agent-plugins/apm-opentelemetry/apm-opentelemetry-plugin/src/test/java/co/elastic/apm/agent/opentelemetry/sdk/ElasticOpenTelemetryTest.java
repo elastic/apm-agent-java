@@ -43,7 +43,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
@@ -401,16 +401,14 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
                 .describedAs("elastic span should appear visible in current context")
                 .isNotNull();
 
-            assertThat(tracer.currentContext())
-                .describedAs("current context should have been upgraded to otel context")
-                .isNotNull()
-                .isNotSameAs(transaction);
-
             assertThat(tracer.currentTransaction())
+                .describedAs("elastic transaction is preserved")
                 .isSameAs(tracer.currentContext().getSpan())
-                .isSameAs(transaction);
+                .isSameAs(transaction)
+                .describedAs("elastic transaction should still be active")
+                .isSameAs(tracer.getActive());
         } finally {
-            // this must transparently deactivate the upgraded context
+
             transaction.deactivate().end();
         }
     }
@@ -433,6 +431,10 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
             otelSpan.end();
 
         } finally {
+            assertThat(tracer.getActive())
+                .describedAs("original transaction should still be active")
+                .isSameAs(transaction);
+
             transaction.deactivate().end();
         }
 
@@ -445,6 +447,22 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         assertThat(reportedSpan.getNameAsString()).isEqualTo("otel span");
         assertThat(reportedSpan.getTraceContext().getId().toString()).isEqualTo(spanId);
         assertThat(reportedSpan.getTraceContext().isChildOf(transaction.getTraceContext())).isTrue();
+    }
+
+    @Test
+    public void overrideElasticTransactionName() {
+        Transaction transaction = startTestRootTransaction()
+            .withName("Elastic Provided High-Prio Name", AbstractSpan.PRIO_USER_SUPPLIED);
+
+        try {
+            Span.current().updateName("Otel updated name");
+        } finally {
+            transaction.deactivate().end();
+        }
+
+        assertThat(reporter.getNumReportedTransactions()).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction()).isSameAs(transaction);
+        assertThat(transaction).hasName("Otel updated name");
     }
 
     @Test
@@ -472,6 +490,10 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         } finally {
             otelSpan.end();
         }
+
+        assertThat(tracer.getActive())
+            .describedAs("no active span should be left")
+            .isNull();
 
         assertThat(reporter.getNumReportedTransactions()).isEqualTo(1);
         assertThat(reporter.getFirstTransaction()).isSameAs(transaction);

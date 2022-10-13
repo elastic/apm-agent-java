@@ -19,9 +19,8 @@
 package co.elastic.apm.agent.hibernatesearch;
 
 import co.elastic.apm.agent.MockReporter;
-import co.elastic.apm.agent.impl.transaction.Span;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 public final class HibernateSearchAssertionHelper {
 
@@ -31,12 +30,12 @@ public final class HibernateSearchAssertionHelper {
 
     public static void assertApmSpanInformation(final MockReporter reporter, final String expectedQuery, final String searchMethod) {
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        final Span span = reporter.getFirstSpan();
-        assertThat(span.getSubtype()).isEqualTo(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE);
-        assertThat(span.getContext().getDb().getStatement()).isEqualTo(expectedQuery);
-        assertThat(span.getType()).isEqualTo(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_TYPE);
-        assertThat(span.getAction()).isEqualTo(searchMethod);
-        assertThat(span.getNameAsString()).isEqualTo(buildSpanName(searchMethod));
+        assertThat(reporter.getFirstSpan())
+            .hasType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_TYPE)
+            .hasSubType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
+            .hasName(buildSpanName(searchMethod))
+            .hasDbStatement(expectedQuery)
+            .hasAction(searchMethod);
     }
 
     private static String buildSpanName(final String methodName) {

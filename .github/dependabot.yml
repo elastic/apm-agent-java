@@ -35,20 +35,27 @@ updates:
       - dependency-name: "redis.clients:*"
       - dependency-name: "org.elasticsearch.client:*"
       - dependency-name: "co.elastic.clients:*"
+      - dependency-name: "io.vertx:*"
     ignore:
       - dependency-name: "net.bytebuddy:byte-buddy-agent"
         # We deliberately want to keep this older version of Byte Buddy for our runtime attach test
-        versions: ["<=1.9.16"]
+        versions: [ "<=1.9.16" ]
       - dependency-name: "org.slf4j:slf4j-api"
-        # A static arbitrary version used within our external plugin test
-        versions: ["<=1.7.25"]
+        # A static arbitrary version used within our external plugin test + latest for java 7
+        versions: [ "<=1.7.25", "1.7.36" ]
+      # Keep the fixed versions for older elastic client-plugins
+      - dependency-name: "org.elasticsearch.client:*"
+        versions: [ "5.6.0", "6.7.0", "5.0.2" ]
+      # Prevent dependabot from attempting to upgrade vertx from version 3 to 4, but still perform minor & patch updates
+      - dependency-name: "io.vertx:*"
+        update-types: [ "version-update:semver-major" ]
       # Since these AWS dependencies are heavy and are being released very frequently, we ignore in the weekly update and update monthly
       - dependency-name: "com.amazonaws:aws-java-sdk-s3"
       - dependency-name: "com.amazonaws:aws-java-sdk-dynamodb"
       - dependency-name: "com.amazonaws:aws-java-sdk"
       - dependency-name: "software.amazon.awssdk:*"
   - package-ecosystem: "maven"
-    directory: "/"
+    directory: "/apm-agent-plugins"
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5

@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.opentelemetry.sdk;
 
-import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
@@ -110,7 +109,7 @@ public class OTelSpan implements Span {
 
     @Override
     public Span updateName(String name) {
-        span.withName(name);
+        span.withName(name, AbstractSpan.PRIO_USER_SUPPLIED);
         return this;
     }
 

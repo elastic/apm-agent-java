@@ -6,7 +6,7 @@
     <parent>
         <artifactId>external-plugin-test</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.32.1-SNAPSHOT</version>
+        <version>1.34.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>plugin-instrumentation-target</artifactId>
@@ -20,7 +20,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.36</version>
+            <version>${version.slf4j}</version>
         </dependency>
     </dependencies>
 </project>

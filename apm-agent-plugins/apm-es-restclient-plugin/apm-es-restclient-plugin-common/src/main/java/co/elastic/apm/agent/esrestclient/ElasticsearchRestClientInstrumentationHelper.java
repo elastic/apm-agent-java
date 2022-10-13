@@ -26,24 +26,20 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.ResponseListener;
-import org.jctools.queues.atomic.AtomicQueueFactory;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CancellationException;
-
-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
 public class ElasticsearchRestClientInstrumentationHelper {
 
@@ -70,10 +66,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
 
     private ElasticsearchRestClientInstrumentationHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
-        responseListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
-            AtomicQueueFactory.<ResponseListenerWrapper>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
-            false,
-            new ResponseListenerAllocator());
+        this.responseListenerObjectPool = tracer.getObjectPoolFactory().createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new ResponseListenerAllocator());
     }
 
     private class ResponseListenerAllocator implements Allocator<ResponseListenerWrapper> {

@@ -111,7 +111,7 @@ the JVM arguments.
 |Spring Webflux
 |5.2.3+
 |Creates transactions for incoming HTTP requests, supports annotated and functional endpoints.
-|1.24.0 (experimental)
+|1.24.0 (experimental), 1.34.0 (GA)
 
 |JavaServer Faces
 |2.2.x, 2.3.x, 3.0.x
@@ -277,10 +277,26 @@ Other Servlet 3+ compliant servers will most likely work as well.
  The actual query will not be recorded.
 |1.12.0
 
+|MongoDB Sync Driver
+|4.x
+|The agent creates spans for interactions with the MongoDB 4.x sync driver.
+This provides support for `org.mongodb:mongodb-driver-sync`
+|1.34.0
+
 |Cassandra
 |2.x+
 |
 |1.23.0
+
+|AWS DynamoDB
+|1.x, 2.x
+|The agent creates spans for interactions with the AWS DynamoDb service through the AWS Java SDK.
+|1.31.0
+
+|AWS S3
+|1.x, 2.x
+|The agent creates spans for interactions with the AWS S3 service through the AWS Java SDK.
+|1.31.0
 
 |===
 
@@ -298,7 +314,8 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |Apache HttpClient
 |4.3+
 |
-| 0.7.0
+| 0.7.0 (4.3+)
+  1.8.0 (4.0+)
 
 |Apache HttpAsyncClient
 |4.0+
@@ -350,7 +367,7 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |Spring Webclient
 |5.2.3+
 |
-|1.33.0 (experimental)
+|1.33.0 (experimental), 1.34.0 (GA)
 
 |===
 
@@ -391,7 +408,7 @@ NOTE: To enable Scala Future support, you need to enable experimental plugins.
 | Reactor
 | 3.2.x+
 |The agent propagates the context for `Flux` and `Mono`.
-|1.24.0 (experimental)
+|1.24.0 (experimental), 1.34.0 (GA)
 
 
 
@@ -421,6 +438,11 @@ same trace.
 |3.x - 5.x
 |The agent captures RabbitMQ Message sends, consumption and polling
 |1.20.0
+
+|AWS SQS
+|1.x, 2.x
+|The agent captures SQS Message sends and polling as well as SQS message sends and consumption through JMS.
+|1.34.0
 
 |===
 
@@ -585,8 +607,15 @@ JBoss LogManager - 1.30.0
 |JUL - `java.util.logging`
 |All supported Java versions
 |When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
-ECS-compatible format
-|1.31.0
+ECS-compatible format.
+
+Trace correlation is only supported when used ECS logging library or with <<config-log-ecs-reformatting, `log_ecs_reformatting`>> as JUL does
+not provide any MDC implementation.
+|Trace correlation - 1.35.0
+
+ECS Reformatting - 1.31.0
+
+Error capturing - 1.31.0
 
 |===
 
