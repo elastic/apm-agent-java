@@ -29,6 +29,7 @@ endif::[]
 [float]
 ===== Features
 * Add support for log correlation for `java.util.logging` (JUL) - {pull}2724[#2724]
+* Add Tomcat support for log reformatting - {pull}2839[#2839]
 
 [float]
 ===== Bug fixes
