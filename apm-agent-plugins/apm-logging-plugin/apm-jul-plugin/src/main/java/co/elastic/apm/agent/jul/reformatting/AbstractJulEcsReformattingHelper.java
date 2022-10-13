@@ -91,7 +91,7 @@ public abstract class AbstractJulEcsReformattingHelper extends AbstractEcsReform
     @Override
     protected Handler createAndStartEcsAppender(Handler originalHandler, String ecsAppenderName, Formatter ecsFormatter) {
         StreamHandler shadeHandler = null;
-        if (shouldCreateEcsAppender(originalHandler)) {
+        if (isFileHandler(originalHandler)) {
             try {
                 String pattern = getShadeFilePatternAndCreateDir();
                 // In earlier versions, there is only constructor with log file limit given as int, whereas in later ones there are
@@ -112,6 +112,6 @@ public abstract class AbstractJulEcsReformattingHelper extends AbstractEcsReform
         return shadeHandler;
     }
 
-    protected abstract boolean shouldCreateEcsAppender(Handler originalHandler);
+    protected abstract boolean isFileHandler(Handler originalHandler);
 
 }

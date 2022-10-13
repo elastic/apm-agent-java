@@ -92,7 +92,7 @@ public class TomcatReformattingHelper extends AbstractJulEcsReformattingHelper {
     }
 
     @Override
-    protected boolean shouldCreateEcsAppender(Handler originalHandler) {
+    protected boolean isFileHandler(Handler originalHandler) {
         return originalHandler instanceof FileHandler;
     }
 
