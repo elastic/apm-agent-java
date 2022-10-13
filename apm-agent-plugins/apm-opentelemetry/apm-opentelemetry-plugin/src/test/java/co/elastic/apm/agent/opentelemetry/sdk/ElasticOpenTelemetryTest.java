@@ -43,7 +43,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
@@ -447,6 +447,22 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         assertThat(reportedSpan.getNameAsString()).isEqualTo("otel span");
         assertThat(reportedSpan.getTraceContext().getId().toString()).isEqualTo(spanId);
         assertThat(reportedSpan.getTraceContext().isChildOf(transaction.getTraceContext())).isTrue();
+    }
+
+    @Test
+    public void overrideElasticTransactionName() {
+        Transaction transaction = startTestRootTransaction()
+            .withName("Elastic Provided High-Prio Name", AbstractSpan.PRIO_USER_SUPPLIED);
+
+        try {
+            Span.current().updateName("Otel updated name");
+        } finally {
+            transaction.deactivate().end();
+        }
+
+        assertThat(reporter.getNumReportedTransactions()).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction()).isSameAs(transaction);
+        assertThat(transaction).hasName("Otel updated name");
     }
 
     @Test

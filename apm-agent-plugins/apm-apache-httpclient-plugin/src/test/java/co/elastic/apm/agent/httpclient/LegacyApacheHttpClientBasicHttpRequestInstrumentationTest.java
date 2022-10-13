@@ -18,13 +18,20 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicHttpRequest;
+import org.apache.http.util.EntityUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-public class LegacyApacheHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
+
+public class LegacyApacheHttpClientBasicHttpRequestInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     @SuppressWarnings("deprecation")
     private static DefaultHttpClient client;
@@ -37,13 +44,18 @@ public class LegacyApacheHttpClientInstrumentationTest extends AbstractHttpClien
 
     @AfterClass
     public static void close() {
-        client.close();
+        client.getConnectionManager().shutdown();
     }
 
     @Override
     protected void performGet(String path) throws Exception {
-        CloseableHttpResponse response = client.execute(new HttpGet(path));
-        response.getStatusLine().getStatusCode();
-        response.close();
+        Method execute = client.getClass().getMethod("execute", HttpHost.class, HttpRequest.class);
+        try {
+            URL url = new URL(path);
+            HttpResponse response = (HttpResponse) execute.invoke(client, new HttpHost(url.getHost(), url.getPort()), new BasicHttpRequest("GET", path));
+            EntityUtils.consume(response.getEntity());
+        } catch (InvocationTargetException e) {
+            throw (Exception) e.getTargetException();
+        }
     }
 }

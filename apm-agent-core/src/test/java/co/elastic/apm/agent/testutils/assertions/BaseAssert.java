@@ -33,12 +33,16 @@ public class BaseAssert<SELF extends AbstractAssert<SELF, ACTUAL>, ACTUAL> exten
     }
 
     protected void checkString(String msg, String expected, @Nullable String actual) {
+        checkObject(msg, expected, actual);
+    }
+
+    protected void checkObject(String msg, Object expected, @Nullable Object actual) {
         if (!expected.equals(actual)) {
             failWithMessage(msg, expected, actual);
         }
     }
 
-    protected void checkInt(String msg, int expected, int actual){
+    protected void checkInt(String msg, int expected, int actual) {
         if (expected != actual) {
             failWithMessage(msg, expected, actual);
         }
