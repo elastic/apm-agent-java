@@ -16,35 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jul.reformatting;
+package co.elastic.apm.agent.tomcatlogging.reformatting;
 
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
+import org.apache.juli.FileHandler;
 
-import java.io.File;
-import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
-import java.util.logging.StreamHandler;
 
-public class JulFileHandlerPublishAdvice {
+public class FileHandlerPublishAdvice {
 
-    private static final JulEcsReformattingHelper helper = new JulEcsReformattingHelper();
+    private static final TomcatReformattingHelper helper = new TomcatReformattingHelper();
 
-    @SuppressWarnings("unused")
     @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
-    public static boolean initializeReformatting(@Advice.This(typing = Assigner.Typing.DYNAMIC) FileHandler thisHandler,
-                                                 @Advice.FieldValue("pattern") String pattern,
-                                                 @Advice.FieldValue("files") File[] files) {
-        return helper.onAppendEnter(thisHandler, pattern, files[0]);
+    public static boolean onEnter(@Advice.This(typing = Assigner.Typing.DYNAMIC) FileHandler fileHandler,
+                                  @Advice.FieldValue("directory") String directory,
+                                  @Advice.FieldValue("prefix") String prefix,
+                                  @Advice.FieldValue("suffix") String suffix) {
+
+        return helper.onAppendEnter(fileHandler, directory, prefix, suffix);
     }
 
-    @SuppressWarnings({"unused"})
-    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-    public static void reformatLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogRecord logRecord,
-                                            @Advice.This(typing = Assigner.Typing.DYNAMIC) FileHandler thisHandler) {
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+    public static void onExit(@Advice.This(typing = Assigner.Typing.DYNAMIC) FileHandler fileHandler,
+                              @Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogRecord logRecord) {
 
-        Handler shadeAppender = helper.onAppendExit(thisHandler);
+        Handler shadeAppender = helper.onAppendExit(fileHandler);
         if (shadeAppender != null) {
             shadeAppender.publish(logRecord);
         }

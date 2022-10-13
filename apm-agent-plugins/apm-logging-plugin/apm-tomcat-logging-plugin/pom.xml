@@ -8,11 +8,12 @@
         <version>1.34.2-SNAPSHOT</version>
     </parent>
 
-    <artifactId>apm-jul-plugin</artifactId>
+    <artifactId>apm-tomcat-logging-plugin</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
+        <tomcat.version>7.0.0</tomcat.version>
     </properties>
 
     <dependencies>
@@ -22,10 +23,23 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jul-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>co.elastic.logging</groupId>
             <artifactId>jul-ecs-formatter</artifactId>
             <version>${version.ecs.logging}</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.apache.tomcat</groupId>
+            <artifactId>tomcat-juli</artifactId>
+            <version>${tomcat.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-logging-plugin-common</artifactId>
@@ -33,6 +47,19 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jul-plugin</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -43,17 +70,6 @@
                     <!-- adds the ability to use reflection to inspect java.util.logging classes -->
                     <argLine>--add-opens java.logging/java.util.logging=ALL-UNNAMED</argLine>
                 </configuration>
-            </plugin>
-            <!-- packaging test code so tomcat logging plugin can reuse them -->
-            <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

@@ -22,6 +22,7 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
 import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.StreamHandler;
 
@@ -40,7 +41,7 @@ public class JulConsoleHandlerPublishAdvice {
     public static void reformatLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogRecord logRecord,
                                             @Advice.This(typing = Assigner.Typing.DYNAMIC) ConsoleHandler thisHandler) {
 
-        StreamHandler shadeAppender = helper.onAppendExit(thisHandler);
+        Handler shadeAppender = helper.onAppendExit(thisHandler);
         if (shadeAppender != null) {
             shadeAppender.publish(logRecord);
         }

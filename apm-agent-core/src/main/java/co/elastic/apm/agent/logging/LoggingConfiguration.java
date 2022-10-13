@@ -212,6 +212,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("org.apache.log4j.SimpleLayout"),
             WildcardMatcher.valueOf("ch.qos.logback.core.encoder.EchoEncoder"),
             WildcardMatcher.valueOf("java.util.logging.SimpleFormatter"),
+            WildcardMatcher.valueOf("org.apache.juli.OneLineFormatter"),
             WildcardMatcher.valueOf("org.springframework.boot.logging.java.SimpleFormatter")
         ));
 
