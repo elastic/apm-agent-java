@@ -119,7 +119,7 @@ public class ReportingEvent {
             return null;
         }
     }
-    public void setBytes(byte[] bytes) {
+    public void setBytesLog(byte[] bytes) {
         this.event = bytes;
         this.type = BYTES_LOG;
     }

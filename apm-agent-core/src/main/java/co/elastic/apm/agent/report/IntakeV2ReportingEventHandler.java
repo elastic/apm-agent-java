@@ -86,6 +86,9 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             return;
         }
         switch (event.getType()) {
+            case WAKEUP:
+                // wakeup silently ignored
+                break;
             case MAKE_FLUSH_REQUEST:
                 endRequest();
                 connection = startRequest(INTAKE_V2_FLUSH_URL);
@@ -100,8 +103,12 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             case ERROR:
             case TRANSACTION:
             case JSON_WRITER:
+            case BYTES_LOG:
+            case STRING_LOG:
                 handleIntakeEvent(event, sequence, endOfBatch);
                 break;
+            default:
+                throw new IllegalArgumentException("unknown event type " + event.getType());
         }
     }
 
@@ -160,10 +167,13 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             currentlyTransmitting++;
             payloadSerializer.serializeErrorNdJson(event.getError());
         } else if (event.getJsonWriter() != null) {
+            currentlyTransmitting++;
             payloadSerializer.writeBytes(event.getJsonWriter().getByteBuffer(), event.getJsonWriter().size());
         } else if (event.getBytesLog() != null) {
+            currentlyTransmitting++;
             payloadSerializer.serializeLogNdJson(event.getBytesLog());
         } else if (event.getStringLog() != null) {
+            currentlyTransmitting++;
             payloadSerializer.serializeLogNdJson(event.getStringLog());
         }
     }

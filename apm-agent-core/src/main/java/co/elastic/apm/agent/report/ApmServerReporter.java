@@ -111,7 +111,7 @@ public class ApmServerReporter implements Reporter {
     private static final EventTranslatorOneArg<ReportingEvent, byte[]> BYTES_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, byte[]>() {
         @Override
         public void translateTo(ReportingEvent event, long sequence, byte[] bytes) {
-            event.setBytes(bytes);
+            event.setBytesLog(bytes);
         }
     };
 
