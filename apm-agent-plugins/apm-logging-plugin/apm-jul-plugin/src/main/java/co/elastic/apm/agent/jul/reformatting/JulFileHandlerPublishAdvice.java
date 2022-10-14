@@ -23,11 +23,12 @@ import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
 import java.io.File;
 import java.util.logging.FileHandler;
+import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 
 public class JulFileHandlerPublishAdvice {
 
-    private static final JulEcsReformattingHelper helper = new JulEcsReformattingHelper();
+    private static final JulEcsReformattingHelper<FileHandler> helper = new JulEcsReformattingHelper<FileHandler>();
 
     @SuppressWarnings("unused")
     @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
@@ -41,6 +42,7 @@ public class JulFileHandlerPublishAdvice {
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
     public static void reformatLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogRecord logRecord,
                                             @Advice.This(typing = Assigner.Typing.DYNAMIC) FileHandler thisHandler) {
+
 
         helper.onAppendExit(logRecord, thisHandler);
     }

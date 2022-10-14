@@ -1,0 +1,2 @@
+co.elastic.apm.agent.tomcatlogging.reformatting.TomcatLogReformattingInstrumentation$FileReformattingInstrumentation
+co.elastic.apm.agent.tomcatlogging.reformatting.TomcatLogReformattingInstrumentation$StopAppenderInstrumentation
