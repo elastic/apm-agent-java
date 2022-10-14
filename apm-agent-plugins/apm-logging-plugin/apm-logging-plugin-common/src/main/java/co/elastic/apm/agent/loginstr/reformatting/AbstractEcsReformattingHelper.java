@@ -121,23 +121,24 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
 
     /**
      * A mapping between original appender and the corresponding ECS-appender.
-     * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
+     * Used when {@link LoggingConfiguration#logEcsReformatting} is set to
      * {@link LogEcsReformatting#SHADE SHADE} or {@link LogEcsReformatting#REPLACE REPLACE}.
      */
+    @SuppressWarnings("JavadocReference")
     private static final WeakMap<Object, Object> originalAppender2ecsAppender = WeakConcurrent.buildMap();
 
     /**
      * A mapping between original appender and the formatter that it had originally.
-     * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
-     * {@link LogEcsReformatting#OVERRIDE OVERRIDE}.
+     * Used when {@link LoggingConfiguration#logEcsReformatting} is set to {@link LogEcsReformatting#OVERRIDE OVERRIDE}.
      */
+    @SuppressWarnings("JavadocReference")
     private static final WeakMap<Object, Object> originalAppender2originalFormatter = WeakConcurrent.buildMap();
 
     /**
      * A mapping between original appender and the corresponding ECS-formatter.
-     * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
-     * {@link LogEcsReformatting#OVERRIDE OVERRIDE}, currently only for the log4j2 instrumentation.
+     * Used when {@link LoggingConfiguration#logEcsReformatting} is set to {@link LogEcsReformatting#OVERRIDE OVERRIDE},
      */
+    @SuppressWarnings("JavadocReference")
     private static final WeakMap<Object, Object> originalAppender2ecsFormatter = WeakConcurrent.buildMap();
 
     private static final WeakMap<Object, Object> originalAppender2shipperAppender = WeakConcurrent.buildMap();
