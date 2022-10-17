@@ -75,7 +75,6 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     static final String DEPRECATED_LOG_LEVEL_KEY = "logging.log_level";
     static final String DEPRECATED_LOG_FILE_KEY = "logging.log_file";
     public static final String DEFAULT_MAX_SIZE = "50mb";
-    static final String SHIP_AGENT_LOGS = "ship_agent_logs";
     static final String LOG_FORMAT_SOUT_KEY = "log_format_sout";
     public static final String LOG_FORMAT_FILE_KEY = "log_format_file";
     static final String INITIAL_LISTENERS_LEVEL = "log4j2.StatusLogger.level";
@@ -239,32 +238,6 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.17.0]")
         .buildWithDefault(ByteValue.of(DEFAULT_MAX_SIZE));
 
-    private final ConfigurationOption<Boolean> shipAgentLogs = ConfigurationOption.booleanOption()
-        .key(SHIP_AGENT_LOGS)
-        .configurationCategory(LOGGING_CATEGORY)
-        .description("This helps you to centralize your agent logs by automatically sending them to APM Server (requires APM Server 7.9+).\n" +
-            "Use the Kibana Logs App to see the logs from all of your agents.\n" +
-            "\n" +
-            "If <<config-log-file,`log_file`>> is set to a real file location (as opposed to `System.out`),\n" +
-            "this file will be shipped to the APM Server by the agent.\n" +
-            "Note that <<config-log-format-file,`log_format_file`>> needs to be set to `JSON` when this option is enabled.\n" +
-            "\n" +
-            "If APM Server is temporarily not available, the agent will resume sending where it left off as soon as the server is back up again.\n" +
-            "The amount of logs that can be buffered is at least <<config-log-file-size,`log_file_size`>>.\n" +
-            "If the application crashes or APM Server is not available when shutting down,\n" +
-            "the agent will resume shipping the log file when the application restarts.\n" +
-            "\n" +
-            "Resume on restart does not work when the log is inside an ephemeral container.\n" +
-            "Consider mounting the log file to the host or use Filebeat if you need the extra reliability in this case.\n" +
-            "\n" +
-            "If <<config-log-file,`log_file`>> is set to `System.out`,\n" +
-            "the agent will additionally log into a temp file which is then sent to APM Server.\n" +
-            "This log's size is determined by <<config-log-file-size,`log_file_size`>> and will be deleted on shutdown.\n" +
-            "This means that logs that could not be sent before the application terminates are lost.")
-        .dynamic(false)
-        .tags("added[not officially added yet]", "internal")
-        .buildWithDefault(false);
-
     @SuppressWarnings("unused")
     public ConfigurationOption<LogFormat> logFormatSout = ConfigurationOption.enumOption(LogFormat.class)
         .key(LOG_FORMAT_SOUT_KEY)
@@ -389,10 +362,6 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     public long getDefaultLogFileSize() {
         return logFileSize.getValueConverter().convert(logFileSize.getDefaultValueAsString()).getBytes();
-    }
-
-    public boolean isShipAgentLogs() {
-        return shipAgentLogs.get();
     }
 
     public LogFormat getLogFormatFile() {
