@@ -12,7 +12,7 @@ To configure APM through the AWS Management Console:
 AWS_LAMBDA_EXEC_WRAPPER       = /opt/elastic-apm-handler  # use this exact fixed value
 ELASTIC_APM_LAMBDA_APM_SERVER = <YOUR-APM-SERVER-URL>     # this is your APM Server URL
 ELASTIC_APM_SECRET_TOKEN      = <YOUR-APM-SECRET-TOKEN>   # this is your APM secret token
-ELASTIC_APM_SEND_STRATEGY     = background                # recommended for steady load scenarios
+ELASTIC_APM_SEND_STRATEGY     = background                <1>
 ----
 
 --
@@ -28,7 +28,7 @@ To configure APM through the AWS command line interface execute the following co
 [source,bash]
 ----
 aws lambda update-function-configuration --function-name yourLambdaFunctionName \
-    --environment "Variables={AWS_LAMBDA_EXEC_WRAPPER=/opt/elastic-apm-handler,ELASTIC_APM_LAMBDA_APM_SERVER=<YOUR-APM-SERVER-URL>,ELASTIC_APM_SECRET_TOKEN=<YOUR-APM-SECRET-TOKEN>}"
+    --environment "Variables={AWS_LAMBDA_EXEC_WRAPPER=/opt/elastic-apm-handler,ELASTIC_APM_LAMBDA_APM_SERVER=<YOUR-APM-SERVER-URL>,ELASTIC_APM_SECRET_TOKEN=<YOUR-APM-SECRET-TOKEN>,ELASTIC_APM_SEND_STRATEGY=background}" <1>
 ----
 
 // end::cli-with-agent[]
@@ -50,7 +50,7 @@ Resources:
             AWS_LAMBDA_EXEC_WRAPPER: /opt/elastic-apm-handler
             ELASTIC_APM_LAMBDA_APM_SERVER: <YOUR-APM-SERVER-URL>
             ELASTIC_APM_SECRET_TOKEN: <YOUR-APM-SECRET-TOKEN>
-            ELASTIC_APM_SEND_STRATEGY: background
+            ELASTIC_APM_SEND_STRATEGY: background <1>
 ...
 ----
 
@@ -70,7 +70,7 @@ functions:
       AWS_LAMBDA_EXEC_WRAPPER: /opt/elastic-apm-handler
       ELASTIC_APM_LAMBDA_APM_SERVER: <YOUR-APM-SERVER-URL>
       ELASTIC_APM_SECRET_TOKEN: <YOUR-APM-SECRET-TOKEN>
-      ELASTIC_APM_SEND_STRATEGY: background
+      ELASTIC_APM_SEND_STRATEGY: background <1>
 ...
 ----
 
@@ -89,7 +89,7 @@ resource "aws_lambda_function" "your_lambda_function" {
       AWS_LAMBDA_EXEC_WRAPPER       = "/opt/elastic-apm-handler"
       ELASTIC_APM_LAMBDA_APM_SERVER = "<YOUR-APM-SERVER-URL>"
       ELASTIC_APM_SECRET_TOKEN      = "<YOUR-APM-SECRET-TOKEN>"
-      ELASTIC_APM_SEND_STRATEGY     = "background"
+      ELASTIC_APM_SEND_STRATEGY     = "background" <1>
     }
   }
 }
@@ -111,7 +111,7 @@ In this case, you will only need to configure the following three environment va
 AWS_LAMBDA_EXEC_WRAPPER       = "/opt/elastic-apm-handler"
 ELASTIC_APM_LAMBDA_APM_SERVER = <YOUR-APM-SERVER-URL>     # this is your APM Server URL
 ELASTIC_APM_SECRET_TOKEN      = <YOUR-APM-SECRET-TOKEN>   # this is your APM secret token
-ELASTIC_APM_SEND_STRATEGY     = "background"
+ELASTIC_APM_SEND_STRATEGY     = "background" <1>
 ----
 
 If your container image is based on a different base image (not including the AWS Lambda runtime utilities),
@@ -127,7 +127,7 @@ ELASTIC_APM_CENTRAL_CONFIG     = "false"
 ELASTIC_APM_CLOUD_PROVIDER     = "none"
 ELASTIC_APM_LAMBDA_APM_SERVER  = <YOUR-APM-SERVER-URL>     # this is your APM Server URL
 ELASTIC_APM_SECRET_TOKEN       = <YOUR-APM-SECRET-TOKEN>   # this is your APM secret token
-ELASTIC_APM_SEND_STRATEGY      = "background"
+ELASTIC_APM_SEND_STRATEGY      = "background" <1>
 ----
 
 // end::container-with-agent[]
