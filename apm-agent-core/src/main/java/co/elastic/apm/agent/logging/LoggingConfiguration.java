@@ -363,8 +363,4 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     public long getDefaultLogFileSize() {
         return logFileSize.getValueConverter().convert(logFileSize.getDefaultValueAsString()).getBytes();
     }
-
-    public LogFormat getLogFormatFile() {
-        return logFormatFile.get();
-    }
 }
