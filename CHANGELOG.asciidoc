@@ -27,6 +27,10 @@ endif::[]
 ===== Breaking changes
 
 [float]
+===== Refactorings
+* Remove unused 'log-shipper-plugin' and related internal config options - {pull}2848[#2848]
+
+[float]
 ===== Features
 * Add support for log correlation for `java.util.logging` (JUL) - {pull}2724[#2724]
 * Add support for spring-kafka batch listeners - {pull}2815[#2815]
