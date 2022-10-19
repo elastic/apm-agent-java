@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
-import net.bytebuddy.agent.builder.AgentBuilder;
-import net.bytebuddy.utility.JavaModule;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import net.bytebuddy.agent.builder.AgentBuilder;
+import net.bytebuddy.utility.JavaModule;
 
 public class ErrorLoggingListener extends AgentBuilder.Listener.Adapter {
 
@@ -29,18 +29,11 @@ public class ErrorLoggingListener extends AgentBuilder.Listener.Adapter {
 
     @Override
     public void onError(String typeName, ClassLoader classLoader, JavaModule module, boolean loaded, Throwable throwable) {
-        if (throwable instanceof MinimumClassFileVersionValidator.UnsupportedClassFileVersionException) {
-            logger.warn("{} uses an unsupported class file version (pre Java {})) and can't be instrumented. " +
-                "Consider updating to a newer version of that library.",
-                typeName,
-                ((MinimumClassFileVersionValidator.UnsupportedClassFileVersionException)throwable).getMinVersion());
+        if (throwable instanceof net.bytebuddy.pool.TypePool.Resolution.NoSuchTypeException) {
+            logger.info(typeName + " refers to a missing class.");
+            logger.debug("ByteBuddy type resolution stack trace: ", throwable);
         } else {
-            if (throwable instanceof net.bytebuddy.pool.TypePool.Resolution.NoSuchTypeException) {
-                logger.info(typeName + " refers to a missing class.");
-                logger.debug("ByteBuddy type resolution stack trace: ", throwable);
-            } else {
-                logger.warn("Error on transformation " + typeName, throwable);
-            }
+            logger.warn("Error on transformation " + typeName, throwable);
         }
     }
 }

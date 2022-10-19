@@ -24,7 +24,6 @@ import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.InstallationListenerImpl;
 import co.elastic.apm.agent.bci.bytebuddy.Instrumented;
 import co.elastic.apm.agent.bci.bytebuddy.LruTypePoolCache;
-import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.NonInstrumented;
 import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
@@ -413,9 +412,9 @@ public class ElasticApmAgent {
                 @Override
                 public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription,
                                                         ClassLoader classLoader, JavaModule module, ProtectionDomain protectionDomain) {
-                    return builder.visit(MinimumClassFileVersionValidator.V1_4)
-                        // As long as we allow 1.4 bytecode, we need to add this constant pool adjustment as well
-                        .visit(TypeConstantAdjustment.INSTANCE);
+                    // As long as we allow old bytecode, we need to add this constant pool adjustment as well
+                    return builder.visit(TypeConstantAdjustment.INSTANCE);
+
                 }
             });
     }
