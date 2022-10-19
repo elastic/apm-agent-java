@@ -245,7 +245,7 @@ class InstrumentationTest {
     }
 
     @Test
-    void testDontInstrumentOldClassFileVersions() {
+    void testInstrumentOldClassFileVersions() {
         ElasticApmAgent.initInstrumentation(tracer,
             ByteBuddyAgent.install(),
             Collections.singletonList(new MathInstrumentation()));
