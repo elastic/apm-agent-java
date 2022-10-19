@@ -50,6 +50,31 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 @SuppressWarnings("Duplicates")
 public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrumentation {
 
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("Director");
+    }
+
+    @Override
+    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return hasSuperType(named("org.apache.http.client.RequestDirector"));
+    }
+
+    @Override
+    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        return named("execute")
+            .and(takesArguments(3))
+            .and(returns(hasSuperType(named("org.apache.http.HttpResponse"))))
+            .and(takesArgument(0, hasSuperType(named("org.apache.http.HttpHost"))))
+            .and(takesArgument(1, hasSuperType(named("org.apache.http.HttpRequest"))))
+            .and(takesArgument(2, hasSuperType(named("org.apache.http.protocol.HttpContext"))));
+    }
+
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.httpclient.LegacyApacheHttpClientInstrumentation$LegacyApacheHttpClientAdvice";
+    }
+
     public static class LegacyApacheHttpClientAdvice {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -118,28 +143,4 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
         }
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return "co.elastic.apm.agent.httpclient.LegacyApacheHttpClientInstrumentation$LegacyApacheHttpClientAdvice";
-    }
-
-    @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Director");
-    }
-
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.apache.http.client.RequestDirector"));
-    }
-
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("execute")
-            .and(takesArguments(3))
-            .and(returns(hasSuperType(named("org.apache.http.HttpResponse"))))
-            .and(takesArgument(0, hasSuperType(named("org.apache.http.HttpHost"))))
-            .and(takesArgument(1, hasSuperType(named("org.apache.http.HttpRequest"))))
-            .and(takesArgument(2, hasSuperType(named("org.apache.http.protocol.HttpContext"))));
-    }
 }
