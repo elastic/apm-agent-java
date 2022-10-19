@@ -250,9 +250,7 @@ class InstrumentationTest {
             ByteBuddyAgent.install(),
             Collections.singletonList(new MathInstrumentation()));
         // if the instrumentation applied, it would return 42
-        // but instrumenting old class file versions could lead to VerifyErrors in some cases and possibly some more shenanigans
-        // so we we are better off not touching Java 1.3 code (like org.apache.commons.math.util.MathUtils) at all
-        assertThat(MathUtils.sign(-42)).isEqualTo(-1);
+        assertThat(MathUtils.sign(-73)).isEqualTo(42);
     }
 
     @Test
