@@ -114,18 +114,18 @@ public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
                                   @Advice.Argument(0) HttpMethod httpMethod,
                                   @Advice.Enter @Nullable Object enterSpan) {
 
-            if(!(enterSpan instanceof Span)){
+            if (!(enterSpan instanceof Span)) {
                 return;
             }
 
-            Span span = (Span)enterSpan;
+            Span span = (Span) enterSpan;
 
             StatusLine statusLine = httpMethod.getStatusLine();
             if (null != statusLine) {
                 span.getContext().getHttp().withStatusCode(statusLine.getStatusCode());
             }
 
-            if(thrown instanceof CircularRedirectException){
+            if (thrown instanceof CircularRedirectException) {
                 span.withOutcome(Outcome.FAILURE);
             }
 

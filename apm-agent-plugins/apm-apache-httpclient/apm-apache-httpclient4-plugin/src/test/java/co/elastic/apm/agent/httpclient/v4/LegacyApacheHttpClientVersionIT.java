@@ -40,12 +40,10 @@ public class LegacyApacheHttpClientVersionIT {
     @Parameterized.Parameters(name = "{0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-//            {List.of("commons-httpclient:commons-httpclient:3.0")},
-            {List.of("commons-httpclient:commons-httpclient:3.1")},
-//            {List.of("org.apache.httpcomponents:httpclient:4.0")},
-//            {List.of("org.apache.httpcomponents:httpclient:4.0.1")},
-//            {List.of("org.apache.httpcomponents:httpclient:4.1.3")},
-//            {List.of("org.apache.httpcomponents:httpclient:4.2.5")}
+            {List.of("org.apache.httpcomponents:httpclient:4.0")},
+            {List.of("org.apache.httpcomponents:httpclient:4.0.1")},
+            {List.of("org.apache.httpcomponents:httpclient:4.1.3")},
+            {List.of("org.apache.httpcomponents:httpclient:4.2.5")}
         });
     }
 
