@@ -72,8 +72,7 @@ public class PatchBytecodeVersionTo51Transformer implements AgentBuilder.Transfo
 
                     @Override
                     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-                        // version major is only the lower 16 bits, Java 1.1 bytecode has an out-of-order value
-                        if ( (version & 0xFFFF) < Opcodes.V1_7) {
+                        if (ClassFileVersion.ofMinorMajor(version).isLessThan(ClassFileVersion.JAVA_V7)) {
                             patchVersion = true;
                             version = Opcodes.V1_7;
                         }
