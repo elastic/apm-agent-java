@@ -3,4 +3,8 @@ co.elastic.apm.agent.jul.reformatting.JulLogReformattingInstrumentation$FileRefo
 co.elastic.apm.agent.jul.reformatting.JulLogReformattingInstrumentation$ConsoleReformattingInstrumentation
 co.elastic.apm.agent.jul.reformatting.JulLogReformattingInstrumentation$StopAppenderInstrumentation
 
+# Trace context correlation
+# Provided through ECS logging instrumentation as there is no dedicated MDC for JUL.
+
 # Error creation
+co.elastic.apm.agent.jul.error.JulLoggerErrorCapturingInstrumentation

@@ -168,12 +168,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-lettuce-plugin</artifactId>
+            <artifactId>apm-kafka-spring-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-log-shipper-plugin</artifactId>
+            <artifactId>apm-lettuce-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -204,6 +204,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-slf4j-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-tomcat-logging-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
