@@ -76,68 +76,6 @@ class Log4j2ConfigurationFactoryTest {
     }
 
     @Test
-    void testSoutPlainText() {
-        Configuration configuration = getLogConfig(Map.of("ship_agent_logs", "false"));
-
-        assertThat(configuration.getAppenders().values()).hasSize(1);
-        Appender appender = configuration.getAppenders().values().iterator().next();
-
-        assertThat(appender).isInstanceOf(ConsoleAppender.class);
-        assertThat(appender.getLayout()).isInstanceOf(PatternLayout.class);
-    }
-
-    @Test
-    void testSoutJson() {
-        Configuration configuration = getLogConfig(Map.of("ship_agent_logs", "false", "log_format_sout", "JSON"));
-
-        assertThat(configuration.getAppenders().values()).hasSize(1);
-        Appender appender = configuration.getAppenders().values().iterator().next();
-
-        assertThat(appender).isInstanceOf(ConsoleAppender.class);
-        assertThat(appender.getLayout()).isInstanceOf(EcsLayout.class);
-    }
-
-    @Test
-    void testSoutPlainTextTempJson() {
-        Configuration configuration = getLogConfig(Map.of());
-
-        assertThat(configuration.getAppenders().values()).hasSize(2);
-        Optional<ConsoleAppender> consoleAppender = configuration.getAppenders().values().stream()
-            .filter(ConsoleAppender.class::isInstance)
-            .map(ConsoleAppender.class::cast)
-            .findAny();
-        assertThat(consoleAppender).isNotEmpty();
-        assertThat(consoleAppender.get().getLayout()).isInstanceOf(PatternLayout.class);
-
-        Optional<RollingFileAppender> fileAppender = configuration.getAppenders().values().stream()
-            .filter(RollingFileAppender.class::isInstance)
-            .map(RollingFileAppender.class::cast)
-            .findAny();
-        assertThat(fileAppender).isNotEmpty();
-        assertThat(fileAppender.get().getLayout()).isInstanceOf(EcsLayout.class);
-    }
-
-    @Test
-    void testSoutJsonTempJson() {
-        Configuration configuration = getLogConfig(Map.of("log_format_sout", "json"));
-
-        assertThat(configuration.getAppenders().values()).hasSize(2);
-        Optional<ConsoleAppender> consoleAppender = configuration.getAppenders().values().stream()
-            .filter(ConsoleAppender.class::isInstance)
-            .map(ConsoleAppender.class::cast)
-            .findAny();
-        assertThat(consoleAppender).isNotEmpty();
-        assertThat(consoleAppender.get().getLayout()).isInstanceOf(EcsLayout.class);
-
-        Optional<RollingFileAppender> fileAppender = configuration.getAppenders().values().stream()
-            .filter(RollingFileAppender.class::isInstance)
-            .map(RollingFileAppender.class::cast)
-            .findAny();
-        assertThat(fileAppender).isNotEmpty();
-        assertThat(fileAppender.get().getLayout()).isInstanceOf(EcsLayout.class);
-    }
-
-    @Test
     void testLevelOff() {
         Configuration configuration = getLogConfig(Map.of("log_level", "off"));
         assertThat(configuration.getRootLogger().getLevel()).isEqualTo(Level.OFF);
