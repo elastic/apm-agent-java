@@ -72,7 +72,6 @@ import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 /**
  * Each test sends a message to a request topic and waits on a reply message. This serves two purposes:
@@ -244,7 +243,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
     @Test
     public void testHeaderCaptureDisabled() {
-        when(coreConfiguration.isCaptureHeaders()).thenReturn(false);
+        doReturn(false).when(coreConfiguration).isCaptureHeaders();
         testScenario = TestScenario.HEADERS_CAPTURE_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
@@ -273,7 +272,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
     @Test
     public void testDestinationAddressCollectionDisabled() {
-        when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
+        doReturn(false).when(messagingConfiguration).shouldCollectQueueAddress();
         testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         reporter.disableCheckDestinationAddress();
@@ -283,7 +282,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
     @Test
     public void testIgnoreTopic() {
-        when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(List.of(WildcardMatcher.valueOf(REQUEST_TOPIC)));
+        doReturn(List.of(WildcardMatcher.valueOf(REQUEST_TOPIC))).when(messagingConfiguration).getIgnoreMessageQueues();
         testScenario = TestScenario.IGNORE_REQUEST_TOPIC;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();

@@ -33,7 +33,6 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 class HttpServerHelperTest extends AbstractInstrumentationTest {
 
@@ -84,8 +83,7 @@ class HttpServerHelperTest extends AbstractInstrumentationTest {
         "anderson smith,anderson"
     })
     void requestUserAgentIgnored(String userAgent, String ignoreExpr) {
-        when(webConfig.getIgnoreUserAgents())
-            .thenReturn(parseWildcard(ignoreExpr));
+        doReturn(parseWildcard(ignoreExpr)).when(webConfig).getIgnoreUserAgents();
 
         assertThat(helper.isRequestExcluded("/request/path", userAgent))
             .describedAs("request with user-agent '%s' should be ignored", userAgent)
