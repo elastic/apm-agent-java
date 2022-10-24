@@ -39,8 +39,8 @@ import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * This class intentionally is not inside the co.elastic.apm package. This is to test the library_frame feature.
@@ -58,7 +58,7 @@ class StacktraceSerializationTest {
         tracer = MockTracer.createRealTracer();
         stacktraceConfiguration = tracer.getConfig(StacktraceConfiguration.class);
         // always enable
-        when(stacktraceConfiguration.getSpanStackTraceMinDurationMs()).thenReturn(0L);
+        doReturn(0L).when(stacktraceConfiguration).getSpanStackTraceMinDurationMs();
         serializer = new DslJsonSerializer(stacktraceConfiguration, mock(ApmServerClient.class), tracer.getMetaDataFuture());
         objectMapper = new ObjectMapper();
         stacktrace = getStackTrace();
@@ -75,7 +75,7 @@ class StacktraceSerializationTest {
 
     @Test
     void testAppFrame() throws Exception {
-        when(stacktraceConfiguration.getApplicationPackages()).thenReturn(Collections.singletonList("org.example.stacktrace"));
+        doReturn(Collections.singletonList("org.example.stacktrace")).when(stacktraceConfiguration).getApplicationPackages();
         stacktrace = getStackTrace();
         Optional<JsonNode> thisMethodsFrame = stacktrace.stream()
             .filter(st -> st.get("module").textValue().equals(getClass().getPackageName()))
@@ -108,7 +108,7 @@ class StacktraceSerializationTest {
 
     @Test
     void testStackTraceElementSerialization() throws IOException {
-        when(stacktraceConfiguration.getApplicationPackages()).thenReturn(Collections.singletonList("co.elastic.apm"));
+        doReturn(Collections.singletonList("co.elastic.apm")).when(stacktraceConfiguration).getApplicationPackages();
 
         StackTraceElement stackTraceElement = new StackTraceElement("co.elastic.apm.test.TestClass",
             "testMethod", "TestClass.java", 34);
@@ -147,9 +147,9 @@ class StacktraceSerializationTest {
         span.end();
         transaction.end();
         return StreamSupport.stream(objectMapper
-            .readTree(serializer.toJsonString(span))
-            .get("stacktrace")
-            .spliterator(), false)
+                .readTree(serializer.toJsonString(span))
+                .get("stacktrace")
+                .spliterator(), false)
             .collect(Collectors.toList());
     }
 
