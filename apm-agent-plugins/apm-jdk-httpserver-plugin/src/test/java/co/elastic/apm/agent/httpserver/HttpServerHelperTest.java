@@ -32,9 +32,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
-class HttpServerHelperTest extends AbstractInstrumentationTest  {
+class HttpServerHelperTest extends AbstractInstrumentationTest {
 
     private WebConfiguration webConfig;
     private HttpServerHelper helper;
@@ -66,8 +67,7 @@ class HttpServerHelperTest extends AbstractInstrumentationTest  {
     }
 
     void checkRequestPathIgnored(String path, String config, boolean expectIgnored) {
-        when(webConfig.getIgnoreUrls())
-            .thenReturn(parseWildcard(config));
+        doReturn(parseWildcard(config)).when(webConfig).getIgnoreUrls();
 
         boolean isIgnored = helper.isRequestExcluded(path, null);
         assertThat(isIgnored)

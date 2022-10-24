@@ -51,7 +51,7 @@ class AnnotationInheritanceTest {
     private void init(boolean annotationInheritanceEnabled) {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         tracer = mockInstrumentationSetup.getTracer();
-        doReturn(annotationInheritanceEnabled).when(tracer.getConfig(CoreConfiguration.class).isEnablePublicApiAnnotationInheritance();
+        doReturn(annotationInheritanceEnabled).when(tracer.getConfig(CoreConfiguration.class)).isEnablePublicApiAnnotationInheritance();
         reporter = mockInstrumentationSetup.getReporter();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
