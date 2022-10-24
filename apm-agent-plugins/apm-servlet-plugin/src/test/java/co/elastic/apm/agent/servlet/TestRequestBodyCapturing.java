@@ -55,7 +55,6 @@ import java.util.stream.Stream;
 import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
@@ -129,7 +128,9 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
     @ParameterizedTest
     @ValueSource(strings = {"ALL", "TRANSACTIONS", "ERRORS"})
     void testCaptureBodyNotOff(CoreConfiguration.EventType eventType) throws Exception {
-        streamCloser = is -> { throw new RuntimeException(); };
+        streamCloser = is -> {
+            throw new RuntimeException();
+        };
 
         doReturn(eventType).when(coreConfiguration).getCaptureBody();
         executeRequest(filterChain, "foo".getBytes(StandardCharsets.UTF_8), "text/plain");
@@ -147,7 +148,8 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
     @Test
     void testReadWithoutClose() throws Exception {
-        streamCloser = is -> {};
+        streamCloser = is -> {
+        };
         executeRequest(filterChain, "foo".getBytes(StandardCharsets.UTF_8), "text/plain");
 
         final Object body = reporter.getFirstTransaction().getContext().getRequest().getBody();
@@ -232,7 +234,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
     @Test
     void testTrackPostParamsDisabled() throws IOException, ServletException {
         doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
-        when(webConfiguration.getCaptureContentTypes()).thenReturn(Collections.emptyList());
+        doReturn(Collections.emptyList()).when(webConfiguration).getCaptureContentTypes();
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/foo/bar");
         request.addParameter("foo", "bar");
         request.addParameter("baz", "qux", "quux");
