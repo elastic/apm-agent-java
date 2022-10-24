@@ -50,7 +50,6 @@ import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 public abstract class AbstractServerInstrumentationTest extends AbstractInstrumentationTest {
 
