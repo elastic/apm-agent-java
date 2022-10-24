@@ -377,7 +377,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void testIgnoreUrlsConfig() {
-        when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(List.of(WildcardMatcher.valueOf("*/empty-mono")));
+        doReturn(List.of(WildcardMatcher.valueOf("*/empty-mono"))).when(config.getConfig(WebConfiguration.class)).getIgnoreUrls();
 
         StepVerifier.create(client.getMonoEmpty()).verifyComplete();
 
@@ -386,7 +386,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void testIgnoreUserAgentsConfig() {
-        when(config.getConfig(WebConfiguration.class).getIgnoreUserAgents()).thenReturn(List.of(WildcardMatcher.valueOf("ignored-ua")));
+        doReturn(List.of(WildcardMatcher.valueOf("ignored-ua"))).when(config.getConfig(WebConfiguration.class)).getIgnoreUserAgents();
         client.setHeader("User-Agent", "ignored-ua");
 
         StepVerifier.create(client.getMonoEmpty()).verifyComplete();

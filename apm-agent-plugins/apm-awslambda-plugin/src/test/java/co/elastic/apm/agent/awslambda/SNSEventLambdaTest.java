@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.awslambda;
 
 import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
+import co.elastic.apm.agent.awslambda.lambdas.S3EventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.SNSEventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.transaction.Faas;
@@ -37,7 +38,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
 
@@ -46,7 +47,7 @@ public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(SNSEventLambdaFunction.class.getName());
+        doReturn(SNSEventLambdaFunction.class.getName()).when(Objects.requireNonNull(serverlessConfiguration)).getAwsLambdaHandler();
         AbstractLambdaTest.initInstrumentation();
     }
 

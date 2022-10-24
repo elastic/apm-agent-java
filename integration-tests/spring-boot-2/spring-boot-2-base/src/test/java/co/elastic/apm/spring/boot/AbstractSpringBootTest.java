@@ -110,8 +110,8 @@ public abstract class AbstractSpringBootTest {
     }
 
     @Test
-    public void testStaticFile() throws Exception {
-        when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(Collections.emptyList());
+    public void testStaticFile() {
+        doReturn(Collections.emptyList()).when(config.getConfig(WebConfiguration.class)).getIgnoreUrls();
         assertThat(restTemplate.getForObject("http://localhost:" + port + "/script.js", String.class))
             .contains("// empty test script");
 
