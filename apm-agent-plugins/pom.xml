@@ -32,7 +32,6 @@
         <module>apm-httpclient-core</module>
         <module>apm-httpserver-core</module>
         <module>apm-logging-plugin</module>
-        <module>apm-log-shipper-plugin</module>
         <module>apm-es-restclient-plugin</module>
         <module>apm-okhttp-plugin</module>
         <module>apm-java-concurrent-plugin</module>

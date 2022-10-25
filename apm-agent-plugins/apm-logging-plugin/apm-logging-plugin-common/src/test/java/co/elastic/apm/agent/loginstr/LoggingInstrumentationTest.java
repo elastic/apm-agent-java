@@ -323,7 +323,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     private void verifyErrorCaptureAndCorrelation(boolean isErrorLine, JsonNode ecsLogLineTree) {
         final JsonNode errorJsonNode = ecsLogLineTree.get(AbstractLogCorrelationHelper.ERROR_ID_MDC_KEY);
         if (isErrorLine) {
-            assertThat(errorJsonNode).isNotNull();
+            assertThat(errorJsonNode).describedAs("missing error ID").isNotNull();
             List<ErrorCapture> errors = reporter.getErrors().stream()
                 .filter(error -> errorJsonNode.textValue().equals(error.getTraceContext().getId().toString()))
                 .collect(Collectors.toList());
@@ -385,10 +385,10 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     private void verifyLogCorrelation(JsonNode ecsLogLineTree, boolean isErrorLine) {
         if (isLogCorrelationSupported()) {
             JsonNode traceId = ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY);
-            assertThat(traceId).withFailMessage("Logging correlation does not work as expected").isNotNull();
+            assertThat(traceId).describedAs("Logging correlation does not work as expected: missing trace ID").isNotNull();
             assertThat(traceId.textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
             JsonNode transactionId = ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY);
-            assertThat(transactionId).withFailMessage("Logging correlation does not work as expected").isNotNull();
+            assertThat(transactionId).describedAs("Logging correlation does not work as expected: missing transaction ID").isNotNull();
             assertThat(transactionId.textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
             verifyErrorCaptureAndCorrelation(isErrorLine, ecsLogLineTree);
         } else {

@@ -28,10 +28,17 @@ endif::[]
 
 [float]
 ===== Features
-* Cool new feature: {pull}2526[#2526]
+* Add support for log correlation for `java.util.logging` (JUL) - {pull}2724[#2724]
+* Add support for spring-kafka batch listeners - {pull}2815[#2815]
+* Improved instrumentation for legacy Apache HttpClient (when not using an `HttpUriRequest`, such as `BasicHttpRequest`)
+* Prevented exclusion of agent-packages via `classes_excluded_from_instrumentation` to avoid unintended side effects
+* Add Tomcat support for log reformatting - {pull}2839[#2839]
 
 [float]
 ===== Bug fixes
+* Remove `context.db` fields from S3 instrumentation - {pull}2821[#2821]
+* Allowed OpenTelemetry `Span.updateName` to update names provided by elastic - {pull}2838[#2838]
+* Prevent random `NullPointerException` when span compression is not possible - {pull}2859[#2859]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

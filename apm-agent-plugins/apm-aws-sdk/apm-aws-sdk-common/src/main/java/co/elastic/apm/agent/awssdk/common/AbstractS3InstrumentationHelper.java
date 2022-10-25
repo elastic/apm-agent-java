@@ -40,13 +40,11 @@ public abstract class AbstractS3InstrumentationHelper<R, C> extends AbstractAwsS
             return null;
         }
         String operationName = awsSdkDataSource.getOperationName(request, context);
-        String region = awsSdkDataSource.getRegion(request, context);
         String bucketName = awsSdkDataSource.getFieldValue(IAwsSdkDataSource.BUCKET_NAME_FIELD, request);
 
         span.withType("storage")
             .withSubtype(S3_TYPE)
             .withAction(operationName);
-        span.getContext().getDb().withInstance(region).withType(S3_TYPE);
         StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
         if (name != null) {
             name.append("S3 ").append(operationName);

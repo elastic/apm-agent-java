@@ -25,6 +25,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.util.Version;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -77,6 +78,11 @@ public class MockTracer {
             .build();
 
         tracer.start(false);
+        //The line below is a fix for flaky-test issue #2842
+        //The tracer will asynchronously create a health + version lookup of the ApmServer
+        //As this request relies on the ReporterConfiguration, this can lead to a race condition when mocking the ReporterConfiguration concurrently
+        //The call below ensures that the asynchronous request has finished before returning.
+        tracer.getApmServerClient().isAtLeast(Version.of("0.0"));
         return tracer;
     }
 

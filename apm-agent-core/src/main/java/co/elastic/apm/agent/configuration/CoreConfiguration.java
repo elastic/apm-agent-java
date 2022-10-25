@@ -29,12 +29,15 @@ import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;
 import org.stagemonitor.configuration.converter.MapValueConverter;
 import org.stagemonitor.configuration.converter.SetValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
+import org.stagemonitor.configuration.converter.ValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nullable;
@@ -43,6 +46,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,6 +60,8 @@ import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInR
 import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final String INSTRUMENT = "instrument";
     public static final String SERVICE_NAME = "service_name";
@@ -466,7 +472,34 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(true);
 
     private final ConfigurationOption<List<WildcardMatcher>> classesExcludedFromInstrumentation = ConfigurationOption
-        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .builder(new ValueConverter<List<WildcardMatcher>>() {
+
+            private final ValueConverter<List<WildcardMatcher>> delegate = new ListValueConverter<>(new WildcardMatcherValueConverter());
+
+            @Override
+            public List<WildcardMatcher> convert(String s) {
+                List<WildcardMatcher> result = new ArrayList<>();
+                for (WildcardMatcher matcher : delegate.convert(s)) {
+                    if (matcher.matches("co.elastic.apm.")) {
+                        logger.warn("Ignoring exclude '{}' for instrumentation because ignoring 'co.elastic.apm' can lead to unwanted side effects", matcher);
+                    } else {
+                        result.add(matcher);
+                    }
+                }
+                return result;
+            }
+
+            @Override
+            public String toString(List<WildcardMatcher> value) {
+                return delegate.toString(value);
+            }
+
+            @Override
+            public String toSafeString(List<WildcardMatcher> value) {
+                return delegate.toSafeString(value);
+            }
+
+        }, List.class)
         .key("classes_excluded_from_instrumentation")
         .configurationCategory(CORE_CATEGORY)
         .description("Use to exclude specific classes from being instrumented. In order to exclude entire packages, \n" +
@@ -713,7 +746,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.25.0]")
         .configurationCategory(CORE_CATEGORY)
         .tags("performance")
-        .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).\n " +
+        .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (`@CaptureTransaction`, `@CaptureSpan`, `@Traced`).\n " +
             "When set to `false`, a method is instrumented if it is annotated with a public api annotation.\n  " +
             "When set to `true` methods overriding annotated methods will be instrumented as well.\n " +
             "Either way, methods will only be instrumented if they are included in the configured <<config-application-packages>>.")

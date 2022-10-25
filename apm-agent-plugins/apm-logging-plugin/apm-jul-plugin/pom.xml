@@ -44,6 +44,17 @@
                     <argLine>--add-opens java.logging/java.util.logging=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
+            <!-- packaging test code so tomcat logging plugin can reuse them -->
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>

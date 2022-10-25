@@ -426,6 +426,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     @Nullable
     protected abstract A createAndStartEcsAppender(A originalAppender, String ecsAppenderName, F ecsFormatter);
 
+    @Nullable
     protected abstract F createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceVersion,
                                             @Nullable String serviceNodeName, @Nullable Map<String, String> additionalFields,
                                             F originalFormatter);
