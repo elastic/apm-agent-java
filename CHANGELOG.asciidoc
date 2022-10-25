@@ -38,6 +38,7 @@ endif::[]
 ===== Bug fixes
 * Remove `context.db` fields from S3 instrumentation - {pull}2821[#2821]
 * Allowed OpenTelemetry `Span.updateName` to update names provided by elastic - {pull}2838[#2838]
+* Prevent random `NullPointerException` when span compression is not possible - {pull}2859[#2859]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
