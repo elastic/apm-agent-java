@@ -19,6 +19,7 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractApiTest;
+import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +28,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Objects;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
-
+import static org.mockito.Mockito.doReturn;
 
 class SpanDestinationApiTest extends AbstractApiTest {
 
@@ -40,6 +41,7 @@ class SpanDestinationApiTest extends AbstractApiTest {
 
     @BeforeEach
     void setUp() {
+
         reporter.disableCheckDestinationAddress();
         internalTransaction = Objects.requireNonNull(tracer.startRootTransaction(null)).activate();
         internalSpan = Objects.requireNonNull(internalTransaction.createExitSpan())

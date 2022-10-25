@@ -86,7 +86,7 @@ public abstract class AbstractInstrumentationTest {
     @Before
     @BeforeEach
     public void disableSpanCompression() {
-        doReturn(true).when(config.getConfig(SpanConfiguration.class)).isSpanCompressionEnabled();
+        doReturn(false).when(config.getConfig(SpanConfiguration.class)).isSpanCompressionEnabled();
     }
 
     @AfterAll
