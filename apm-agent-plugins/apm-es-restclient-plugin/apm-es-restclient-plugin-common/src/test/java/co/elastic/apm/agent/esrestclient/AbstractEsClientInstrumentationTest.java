@@ -113,7 +113,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(errorCapture.getException()).isNotNull();
     }
 
-    protected void validateSpanContentWithoutContext(Span span, String expectedName, int statusCode, String method) {
+    protected void validateSpanContentWithoutContext(Span span, String expectedName) {
         assertThat(span)
             .hasType(SPAN_TYPE)
             .hasSubType(ELASTICSEARCH)
@@ -139,32 +139,21 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
-        validateSpanContentWithoutContext(span, expectedName, statusCode, method);
+        validateSpanContentWithoutContext(span, expectedName);
         validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
         validateDestinationContextContent(span.getContext().getDestination());
 
         assertThat(span.getContext().getServiceTarget())
-            .hasType(ELASTICSEARCH);
-
-        CharSequence clusterName = span.getContext().getServiceTarget().getName();
-
-        // because cluster name retrieval is asynchronous and flaky by nature we have to assert for consistency
-        String expectedClusterName = "docker-cluster";
-        String expectedDestinationResource;
-        if (null != clusterName && expectedClusterName.contentEquals(clusterName)) {
-            expectedDestinationResource = ELASTICSEARCH + "/" + expectedClusterName;
-        } else {
-            expectedDestinationResource = ELASTICSEARCH;
-        }
-        assertThat(span.getContext().getServiceTarget()).hasDestinationResource(expectedDestinationResource);
+            .hasType(ELASTICSEARCH)
+            .hasNoName() // we can't validate cluster name here as there is no simple way to inject that without reverse-proxy
+            .hasDestinationResource(ELASTICSEARCH);
     }
 
     private void validateDestinationContextContent(Destination destination) {
         assertThat(destination).isNotNull();
         if (reporter.checkDestinationAddress()) {
-            assertThat(destination)
-                .hasAddress(container.getContainerIpAddress())
-                .hasPort(container.getMappedPort(9200));
+            assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
+            assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
         }
     }
 

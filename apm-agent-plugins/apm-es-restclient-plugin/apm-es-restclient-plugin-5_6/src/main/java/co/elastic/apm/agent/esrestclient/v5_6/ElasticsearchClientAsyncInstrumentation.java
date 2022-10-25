@@ -19,16 +19,15 @@
 package co.elastic.apm.agent.esrestclient.v5_6;
 
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
+import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.elasticsearch.client.ResponseListener;
-import org.elasticsearch.client.RestClient;
 
 import javax.annotation.Nullable;
 
@@ -66,7 +65,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
 
     public static class ElasticsearchRestClientAsyncAdvice {
 
-        private static final ElasticsearchRestClientHelper helper = ElasticsearchRestClientHelper.get();
+        private static final ElasticsearchRestClientInstrumentationHelper helper = ElasticsearchRestClientInstrumentationHelper.get();
 
         @Nullable
         @Advice.AssignReturned.ToArguments(@ToArgument(index = 1, value = 5, typing = DYNAMIC))
@@ -74,15 +73,13 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
         public static Object[] onBeforeExecute(@Advice.Argument(0) String method,
                                                @Advice.Argument(1) String endpoint,
                                                @Advice.Argument(3) @Nullable HttpEntity entity,
-                                               @Advice.Argument(5) ResponseListener responseListener,
-                                               @Advice.Argument(6) Header[] headers,
-                                               @Advice.This RestClient restClient) {
+                                               @Advice.Argument(5) ResponseListener responseListener) {
 
             Span span = helper.createClientSpan(method, endpoint, entity);
             if (span != null) {
                 Object[] ret = new Object[2];
                 ret[0] = span;
-                ret[1] = helper.wrapResponseListener(responseListener, span, restClient, headers);
+                ret[1] = helper.wrapResponseListener(responseListener, span);
                 return ret;
             }
             return null;

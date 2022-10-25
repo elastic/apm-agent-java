@@ -22,34 +22,23 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseListener;
-import org.elasticsearch.client.RestClient;
 
 import javax.annotation.Nullable;
-import java.util.Objects;
 
 public class ResponseListenerWrapper implements ResponseListener, Recyclable {
 
     private final ElasticsearchRestClientInstrumentationHelper helper;
-
-    // properties that allow to retrieve cluster name when request completes
-    @Nullable
-    protected RestClient restClient;
-    @Nullable
-    private Object requestHeadersOrOptions;
-
     @Nullable
     private ResponseListener delegate;
     @Nullable
     private volatile Span span;
 
-    protected ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelper helper) {
+    ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelper helper) {
         this.helper = helper;
     }
 
-    public ResponseListenerWrapper with(ResponseListener delegate, Span span, RestClient restClient, Object requestHeadersOrOptions) {
+    ResponseListenerWrapper with(ResponseListener delegate, Span span) {
         // Order is important due to visibility - write to span last on this (initiating) thread
-        this.restClient = restClient;
-        this.requestHeadersOrOptions = requestHeadersOrOptions;
         this.delegate = delegate;
         this.span = span;
         return this;
@@ -83,16 +72,12 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
         // First read volatile span to ensure visibility on executing thread
         Span localSpan = span;
         if (localSpan != null) {
-            Objects.requireNonNull(restClient);
-            Objects.requireNonNull(requestHeadersOrOptions);
-            helper.finishClientSpan(response, localSpan, throwable, restClient, requestHeadersOrOptions);
+            helper.finishClientSpan(response, localSpan, throwable);
         }
     }
 
     @Override
     public void resetState() {
-        restClient = null;
-        requestHeadersOrOptions = null;
         delegate = null;
         span = null;
     }

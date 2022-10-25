@@ -19,15 +19,14 @@
 package co.elastic.apm.agent.esrestclient.v5_6;
 
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
+import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestClient;
 
 import javax.annotation.Nullable;
 
@@ -41,34 +40,27 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
 
     public static class ElasticsearchRestClientAdvice {
 
-        private static final ElasticsearchRestClientHelper helper = ElasticsearchRestClientHelper.get();
+        private static final ElasticsearchRestClientInstrumentationHelper helper = ElasticsearchRestClientInstrumentationHelper.get();
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) String method,
-                                             @Advice.Argument(1) String endpoint,
-                                             @Advice.Argument(3) @Nullable HttpEntity entity,
-                                             @Advice.Argument(5) Header[] headers,
-                                             @Advice.This final RestClient restClient) {
-
+                                            @Advice.Argument(1) String endpoint,
+                                            @Advice.Argument(3) @Nullable HttpEntity entity) {
             return helper.createClientSpan(method, endpoint, entity);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Return @Nullable Response response,
                                           @Advice.Enter @Nullable Object spanObj,
-                                          @Advice.Thrown @Nullable Throwable t,
-                                          @Advice.Argument(5) Header[] headers,
-                                          @Advice.This RestClient restClient) {
-
-            if (!(spanObj instanceof Span)) {
-                return;
-            }
+                                          @Advice.Thrown @Nullable Throwable t) {
             Span span = (Span) spanObj;
-            try {
-                helper.finishClientSpan(response, span, t, restClient, headers);
-            } finally {
-                span.deactivate();
+            if (span != null) {
+                try {
+                    helper.finishClientSpan(response, span, t);
+                } finally {
+                    span.deactivate();
+                }
             }
         }
     }

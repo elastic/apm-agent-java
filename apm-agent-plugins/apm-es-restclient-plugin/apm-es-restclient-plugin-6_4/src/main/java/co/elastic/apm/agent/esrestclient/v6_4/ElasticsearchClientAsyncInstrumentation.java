@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.esrestclient.v6_4;
 
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
+import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
@@ -27,7 +28,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.ResponseListener;
-import org.elasticsearch.client.RestClient;
 
 import javax.annotation.Nullable;
 
@@ -58,20 +58,19 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
 
     public static class ElasticsearchRestClientAsyncAdvice {
 
-        private static final ElasticsearchRestClientHelper helper = ElasticsearchRestClientHelper.get();
+        private static final ElasticsearchRestClientInstrumentationHelper helper = ElasticsearchRestClientInstrumentationHelper.get();
 
         @Nullable
         @Advice.AssignReturned.ToArguments(@ToArgument(index = 1, value = 1, typing = DYNAMIC))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeExecute(@Advice.Argument(0) Request request,
-                                               @Advice.Argument(1) ResponseListener responseListener,
-                                               @Advice.This RestClient restClient) {
+                                               @Advice.Argument(1) ResponseListener responseListener) {
             Span span = helper.createClientSpan(request.getMethod(), request.getEndpoint(), request.getEntity());
             if (span != null) {
-                return new Object[]{
-                    span,
-                    helper.wrapResponseListener(responseListener, span, restClient, request.getOptions())
-                };
+                Object[] ret = new Object[2];
+                ret[0] = span;
+                ret[1] = helper.wrapResponseListener(responseListener, span);
+                return ret;
             }
             return null;
         }
@@ -79,14 +78,12 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Thrown @Nullable Throwable t,
                                           @Advice.Enter @Nullable Object[] entryArgs) {
-            if (entryArgs == null) {
-                return;
-            }
-
-            Span span = (Span) entryArgs[0];
-            if (span != null) {
-                // Deactivate in this thread. Span will be ended and reported by the listener
-                span.deactivate();
+            if (entryArgs != null) {
+                final Span span = (Span) entryArgs[0];
+                if (span != null) {
+                    // Deactivate in this thread. Span will be ended and reported by the listener
+                    span.deactivate();
+                }
             }
         }
     }
