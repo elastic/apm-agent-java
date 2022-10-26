@@ -94,6 +94,12 @@ NOTE: The JVM arguments may contain sensitive information, such as passwords pro
 If provided, this program continuously runs and attaches to all running and starting JVMs which match the `--exclude` and `--include` filters.
 --
 
+*--no-fork*::
++
+--
+If provided, this program will not fork and attempt to attach directly as the current user.
+--
+
 *--include-all*::
 +
 --
