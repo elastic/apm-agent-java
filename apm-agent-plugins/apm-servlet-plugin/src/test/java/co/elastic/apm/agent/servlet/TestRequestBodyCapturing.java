@@ -128,9 +128,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
     @ParameterizedTest
     @ValueSource(strings = {"ALL", "TRANSACTIONS", "ERRORS"})
     void testCaptureBodyNotOff(CoreConfiguration.EventType eventType) throws Exception {
-        streamCloser = is -> {
-            throw new RuntimeException();
-        };
+        streamCloser = is -> { throw new RuntimeException(); };
 
         doReturn(eventType).when(coreConfiguration).getCaptureBody();
         executeRequest(filterChain, "foo".getBytes(StandardCharsets.UTF_8), "text/plain");
@@ -148,8 +146,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
     @Test
     void testReadWithoutClose() throws Exception {
-        streamCloser = is -> {
-        };
+        streamCloser = is -> {};
         executeRequest(filterChain, "foo".getBytes(StandardCharsets.UTF_8), "text/plain");
 
         final Object body = reporter.getFirstTransaction().getContext().getRequest().getBody();
