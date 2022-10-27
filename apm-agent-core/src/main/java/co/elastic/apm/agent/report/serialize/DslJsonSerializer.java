@@ -335,7 +335,15 @@ public class DslJsonSerializer implements PayloadSerializer {
     public void serializeLogNdJson(String stringLog) {
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("log");
-        jw.writeAscii(stringLog);
+
+        // because the input might come directly from the ECS reformater, there might be an extra EOL
+        // that needs to be ignored otherwise we get invalid ND-JSON.
+        int length = stringLog.length();
+        if (stringLog.charAt(stringLog.length() - 1) == NEW_LINE) {
+            length--;
+        }
+
+        jw.writeAscii(stringLog, length);
         jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(NEW_LINE);
     }
@@ -344,7 +352,15 @@ public class DslJsonSerializer implements PayloadSerializer {
     public void serializeLogNdJson(byte[] bytesLog) {
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("log");
-        jw.writeAscii(bytesLog);
+
+        // because the input might come directly from the ECS reformater, there might be an extra EOL
+        // that needs to be ignored otherwise we get invalid ND-JSON.
+        int length = bytesLog.length;
+        if (bytesLog[length - 1] == NEW_LINE) {
+            length--;
+        }
+
+        jw.writeAscii(bytesLog, length);
         jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(NEW_LINE);
     }
