@@ -127,7 +127,6 @@ public class ElasticsearchRestClientInstrumentationHelper {
                 url = host.toURI();
                 statusCode = response.getStatusLine().getStatusCode();
 
-                // response header has higher priority than fetched/cached value
                 cluster = response.getHeader("x-found-handling-cluster");
 
             } else if (t != null) {
