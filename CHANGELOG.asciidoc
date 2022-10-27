@@ -33,6 +33,7 @@ endif::[]
 * Improved instrumentation for legacy Apache HttpClient (when not using an `HttpUriRequest`, such as `BasicHttpRequest`)
 * Prevented exclusion of agent-packages via `classes_excluded_from_instrumentation` to avoid unintended side effects
 * Add Tomcat support for log reformatting - {pull}2839[#2839]
+* Capture Elastic cluster name on Elastic Cloud - {pull}2796[#2796]
 
 [float]
 ===== Bug fixes
