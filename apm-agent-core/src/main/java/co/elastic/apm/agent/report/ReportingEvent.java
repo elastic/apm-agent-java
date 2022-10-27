@@ -106,7 +106,7 @@ public class ReportingEvent {
         this.type = SPAN;
     }
 
-    public void setString(String string) {
+    public void setStringLog(String string) {
         this.event = string;
         this.type = STRING_LOG;
     }

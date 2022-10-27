@@ -102,13 +102,13 @@ public class ApmServerReporter implements Reporter {
             event.unparkAfterProcessed(Thread.currentThread());
         }
     };
-    private static final EventTranslatorOneArg<ReportingEvent, String> STRING_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, String>() {
+    private static final EventTranslatorOneArg<ReportingEvent, String> LOG_STRING_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, String>() {
         @Override
         public void translateTo(ReportingEvent event, long sequence, String string) {
-            event.setString(string);
+            event.setStringLog(string);
         }
     };
-    private static final EventTranslatorOneArg<ReportingEvent, byte[]> BYTES_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, byte[]>() {
+    private static final EventTranslatorOneArg<ReportingEvent, byte[]> LOG_BYTES_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, byte[]>() {
         @Override
         public void translateTo(ReportingEvent event, long sequence, byte[] bytes) {
             event.setBytesLog(bytes);
@@ -279,7 +279,7 @@ public class ApmServerReporter implements Reporter {
         if (string.isEmpty()) {
             return;
         }
-        tryAddEventToRingBuffer(string, STRING_EVENT_TRANSLATOR);
+        tryAddEventToRingBuffer(string, LOG_STRING_EVENT_TRANSLATOR);
         if (syncReport) {
             flush();
         }
@@ -290,7 +290,7 @@ public class ApmServerReporter implements Reporter {
         if (bytes.length == 0) {
             return;
         }
-        tryAddEventToRingBuffer(bytes, BYTES_EVENT_TRANSLATOR);
+        tryAddEventToRingBuffer(bytes, LOG_BYTES_EVENT_TRANSLATOR);
         if (syncReport) {
             flush();
         }
