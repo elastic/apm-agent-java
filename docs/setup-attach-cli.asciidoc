@@ -97,7 +97,9 @@ If provided, this program continuously runs and attaches to all running and star
 *--no-fork* added[1.35.0]::
 +
 --
-If provided, this program will not fork and attempt to attach directly as the current user.
+By default, when the attacher program is ran by user A and the target process is ran by user B, the attacher will attempt to start another
+process as user B.
+If this configuration option is provided, the attacher will not fork. Instead, it will attempt to attach directly as the current user.
 --
 
 *--include-all*::

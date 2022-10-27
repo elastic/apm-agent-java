@@ -555,7 +555,9 @@ public class AgentAttacher {
             out.println("        If provided, this program continuously runs and attaches to all running and starting JVMs which match the --exclude and --include filters.");
             out.println();
             out.println("    --no-fork");
-            out.println("        If provided, this program will not fork and attempt to attach directly as the current user.");
+            out.println("        By default, when the attacher program is ran by user A and the target process is ran by user B, ");
+            out.println("        the attacher will attempt to start another process as user B. ");
+            out.println("        If this configuration option is provided, the attacher will not fork. Instead, it will attempt to attach directly as the current user.");
             out.println();
             out.println("    --include-all");
             out.println("        Includes all JVMs for attachment.");
