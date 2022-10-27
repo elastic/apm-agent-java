@@ -26,6 +26,9 @@ endif::[]
 [float]
 ===== Breaking changes
 
+[[release-notes-1.35.0]]
+==== 1.35.0 - YYYY/MM/DD
+
 [float]
 ===== Features
 * Add support for log correlation for `java.util.logging` (JUL) - {pull}2724[#2724]
@@ -33,6 +36,8 @@ endif::[]
 * Improved instrumentation for legacy Apache HttpClient (when not using an `HttpUriRequest`, such as `BasicHttpRequest`)
 * Prevented exclusion of agent-packages via `classes_excluded_from_instrumentation` to avoid unintended side effects
 * Add Tomcat support for log reformatting - {pull}2839[#2839]
+* Attacher CLI: added a `--no-fork` config to opt out from executing a forked process as different user. If `--no-fork` is used
+alongside discovery rules that contain only `--include-pid` rules, the attacher will not execute JVM discovery - {pull}2863[#2863]
 
 [float]
 ===== Bug fixes
