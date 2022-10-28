@@ -71,6 +71,7 @@ public class ReportingEventCounter {
                 if (!isFirst) {
                     sb.append(", ");
                 }
+                isFirst = false;
                 sb.append(type.toString()).append('=').append(count);
             }
         }

@@ -83,6 +83,7 @@ public class AtomicDouble {
 
     @Override
     public int hashCode() {
-        return Double.hashCode(get());
+        long bits = valueBits;
+        return (int) (bits ^ (bits >>> 32));
     }
 }
