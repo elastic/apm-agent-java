@@ -20,9 +20,9 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
-import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.ExecutorUtils;
 
 import javax.annotation.Nullable;
 import java.net.HttpURLConnection;
@@ -41,7 +41,11 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private final ScheduledExecutorService timeoutTimer;
     @Nullable
     private Runnable timeoutTask;
+
+    @Nullable
+    private ApmServerReporter reporter;
     private final AtomicLong processed = new AtomicLong();
+    private final ReportingEventCounter inflightEvents = new ReportingEventCounter();
     private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
 
     public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
@@ -53,11 +57,16 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
     @Override
     public void init(ApmServerReporter reporter) {
+        this.reporter = reporter;
         timeoutTask = new WakeupOnTimeout(reporter);
     }
 
     @Override
     public void onEvent(ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
+        if (reporter != null) {
+            ReporterMonitor monitor = reporter.getReporterMonitor();
+            monitor.eventDequeued(event.getType(), reporter.getQueueCapacity(), reporter.getQueueElementCount());
+        }
         if (logger.isDebugEnabled()) {
             logger.debug("Receiving {} event (sequence {})", event.getType(), sequence);
         }
@@ -82,9 +91,6 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     }
 
     private void dispatchEvent(ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
-        if (event.getType() == null) {
-            return;
-        }
         switch (event.getType()) {
             case MAKE_FLUSH_REQUEST:
                 endRequest();
@@ -113,6 +119,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private void handleIntakeEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
         processorEventHandler.onEvent(event, sequence, endOfBatch);
         try {
+            inflightEvents.increment(event.getType());
             if (connection == null) {
                 connection = startRequest(INTAKE_V2_URL);
             }
@@ -123,6 +130,10 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
                     logger.debug("Failed to get APM server connection, dropping event: {}", event);
                 }
                 dropped++;
+                if (reporter != null) {
+                    inflightEvents.reset(); //we never actually created a request when connection is null
+                    reporter.getReporterMonitor().eventDroppedAfterDequeue(event.getType());
+                }
             }
         } catch (Exception e) {
             handleConnectionError(event, e);
@@ -136,9 +147,9 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private void handleConnectionError(ReportingEvent event, Exception e) {
         logger.error("Failed to handle event of type {} with this error: {}", event.getType(), e.getMessage());
         logger.debug("Event handling failure", e);
-        endRequest();
-        onConnectionError(null, currentlyTransmitting + 1, 0);
+        endRequestExceptionally();
     }
+
 
     /**
      * Returns the number of bytes already serialized and waiting in the underlying serializer's buffer.
@@ -177,6 +188,24 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             }
         }
         return connection;
+    }
+
+    @Override
+    protected void onRequestSuccess(long bytesWritten) {
+        if (reporter != null) {
+            reporter.getReporterMonitor().requestFinished(new ReportingEventCounter(inflightEvents), bytesWritten, true);
+        }
+        inflightEvents.reset();
+        super.onRequestSuccess(bytesWritten);
+    }
+
+    @Override
+    protected void onConnectionError(@Nullable Integer responseCode, long bytesWritten, long droppedEvents, long reportedEvents) {
+        if (reporter != null) {
+            reporter.getReporterMonitor().requestFinished(new ReportingEventCounter(inflightEvents), bytesWritten, false);
+        }
+        inflightEvents.reset();
+        super.onConnectionError(responseCode, bytesWritten, droppedEvents, reportedEvents);
     }
 
     @Override

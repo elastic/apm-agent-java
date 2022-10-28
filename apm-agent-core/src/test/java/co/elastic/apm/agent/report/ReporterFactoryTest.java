@@ -105,7 +105,7 @@ class ReporterFactoryTest {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(false);
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, configuration.getConfig(CoreConfiguration.class));
         apmServerClient.start();
-        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaDataMock.create());
+        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaDataMock.create(), ReporterMonitor.NOOP);
         reporter.start();
 
         reporter.report(new Transaction(MockTracer.create()));
@@ -122,7 +122,7 @@ class ReporterFactoryTest {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(true);
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, configuration.getConfig(CoreConfiguration.class));
         apmServerClient.start();
-        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaDataMock.create());
+        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaDataMock.create(), ReporterMonitor.NOOP);
         reporter.start();
 
         reporter.report(new Transaction(MockTracer.create()));

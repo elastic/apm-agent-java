@@ -76,8 +76,10 @@ public class ReportingEvent {
         this.type = MAKE_FLUSH_REQUEST;
     }
 
-    @Nullable
     public ReportingEventType getType() {
+        if (type == null) {
+            throw new IllegalStateException("ReportingEvent is not initialized!");
+        }
         return type;
     }
 
@@ -148,7 +150,7 @@ public class ReportingEvent {
         type = WAKEUP;
     }
 
-    enum ReportingEventType {
+    public enum ReportingEventType {
         END_REQUEST, MAKE_FLUSH_REQUEST, TRANSACTION, SPAN, ERROR, SHUTDOWN, JSON_WRITER, WAKEUP
     }
 }

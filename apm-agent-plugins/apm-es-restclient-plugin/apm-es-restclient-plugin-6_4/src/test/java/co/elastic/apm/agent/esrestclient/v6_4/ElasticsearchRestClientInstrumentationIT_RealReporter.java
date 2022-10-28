@@ -23,8 +23,8 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.Agent;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
 import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
@@ -35,6 +35,7 @@ import co.elastic.apm.agent.report.ApmServerReporter;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.report.ReporterMonitor;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -143,7 +144,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
                 MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
             ),
             apmServerClient);
-        realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler);
+        realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler, ReporterMonitor.NOOP);
         realReporter.start();
 
         tracer = new ElasticApmTracerBuilder()

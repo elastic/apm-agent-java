@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.report.ReporterMonitor;
 import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.dslplatform.json.JsonWriter;
@@ -723,6 +724,10 @@ public class MockReporter implements Reporter {
             InputStream input = Objects.requireNonNull(MockReporter.class.getResourceAsStream(resource), "missing resource " + resource);
             return JsonSchemaFactory.getInstance().getSchema(input);
         }
+    }
+
+    public void setReporterMonitor(ReporterMonitor monitor) {
+        throw new UnsupportedOperationException();
     }
 
 }

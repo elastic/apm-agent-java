@@ -21,13 +21,15 @@ package co.elastic.apm.agent.metrics;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
-import org.HdrHistogram.WriterReaderPhaser;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import org.HdrHistogram.WriterReaderPhaser;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -43,6 +45,8 @@ public class MetricRegistry {
     private static final Logger logger = LoggerFactory.getLogger(MetricRegistry.class);
     private final WriterReaderPhaser phaser = new WriterReaderPhaser();
     private final ReporterConfiguration reporterConfiguration;
+
+    private final Set<MetricsProvider> metricsProviders = Collections.newSetFromMap(new ConcurrentHashMap<MetricsProvider, Boolean>());
     private final int metricSetLimit;
 
     /**
@@ -56,9 +60,27 @@ public class MetricRegistry {
      */
     private final ConcurrentMap<Labels.Immutable, MetricSet> metricSets1 = activeMetricSets, metricSets2 = inactiveMetricSets;
 
+    private final MetricCollector metricCollector = new MetricCollector() {
+        @Override
+        public void addMetricValue(String metric, Labels labels, double value) {
+            MetricSet metricset = getOrCreateMetricSet(labels);
+            if (metricset != null) {
+                metricset.addRawMetric(metric, value);
+            }
+        }
+    };
+
     public MetricRegistry(ReporterConfiguration reporterConfiguration, MetricsConfiguration metricsConfiguration) {
         this.reporterConfiguration = reporterConfiguration;
         this.metricSetLimit = metricsConfiguration.getMetricSetLimit();
+    }
+
+    public void addMetricsProvider(MetricsProvider provider) {
+        metricsProviders.add(provider);
+    }
+
+    public boolean removeMetricsProvider(MetricsProvider provider) {
+        return metricsProviders.remove(provider);
     }
 
     /**
@@ -129,7 +151,7 @@ public class MetricRegistry {
         }
     }
 
-    private boolean isDisabled(String name) {
+    public boolean isDisabled(String name) {
         return WildcardMatcher.anyMatch(reporterConfiguration.getDisableMetrics(), name) != null;
     }
 
@@ -170,6 +192,11 @@ public class MetricRegistry {
     public void flipPhaseAndReport(@Nullable MetricsReporter metricsReporter) {
         try {
             phaser.readerLock();
+
+            for (MetricsProvider provider : metricsProviders) {
+                provider.collectAndReset(metricCollector);
+            }
+
             ConcurrentMap<Labels.Immutable, MetricSet> temp = inactiveMetricSets;
             inactiveMetricSets = activeMetricSets;
             activeMetricSets = temp;
@@ -238,16 +265,20 @@ public class MetricRegistry {
         return activeMetricSets.get(labelsCopy);
     }
 
-    public void incrementCounter(String name, Labels labels) {
+    public void addToCounter(String name, Labels labels, long count) {
         long criticalValueAtEnter = phaser.writerCriticalSectionEnter();
         try {
             final MetricSet metricSet = getOrCreateMetricSet(labels);
             if (metricSet != null) {
-                metricSet.incrementCounter(name);
+                metricSet.addToCounter(name, count);
             }
         } finally {
             phaser.writerCriticalSectionExit(criticalValueAtEnter);
         }
+    }
+
+    public void incrementCounter(String name, Labels labels) {
+        addToCounter(name, labels, 1);
     }
 
     /**

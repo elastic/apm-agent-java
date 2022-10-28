@@ -162,28 +162,43 @@ public class AbstractIntakeApiHandler {
         }
     }
 
-    public void endRequest() {
+    protected void endRequest() {
+        endRequest(false);
+    }
+
+    protected void endRequestExceptionally() {
+        if (connection == null) {
+            //The HttpUrlConnection could not be established if connecttion == null
+            onConnectionError(-1, 0, currentlyTransmitting, 0);
+        } else {
+            endRequest(true);
+        }
+    }
+
+    private void endRequest(boolean isFailed) {
         if (connection != null) {
+            long writtenBytes = countingOs != null ? countingOs.getCount() : 0L;
             try {
                 payloadSerializer.fullFlush();
                 if (os != null) {
                     os.close();
                 }
+                writtenBytes = countingOs != null ? countingOs.getCount() : 0L;
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Flushing {} uncompressed {} compressed bytes", deflater.getBytesRead(), deflater.getBytesWritten());
+                    logger.debug("Flushing {} uncompressed {} compressed bytes", deflater.getBytesRead(), writtenBytes);
                 }
                 InputStream inputStream = connection.getInputStream();
                 final int responseCode = connection.getResponseCode();
-                if (responseCode >= 400) {
-                    onRequestError(responseCode, inputStream, null);
+                if (isFailed || responseCode >= 400) {
+                    onRequestError(responseCode, writtenBytes, inputStream, null);
                 } else {
-                    onRequestSuccess();
+                    onRequestSuccess(writtenBytes);
                 }
             } catch (IOException e) {
                 try {
-                    onRequestError(connection.getResponseCode(), connection.getErrorStream(), e);
+                    onRequestError(connection.getResponseCode(), writtenBytes, connection.getErrorStream(), e);
                 } catch (IOException e1) {
-                    onRequestError(-1, connection.getErrorStream(), e);
+                    onRequestError(-1, writtenBytes, connection.getErrorStream(), e);
                 }
             } finally {
                 HttpUtils.consumeAndClose(connection);
@@ -200,9 +215,9 @@ public class AbstractIntakeApiHandler {
         return System.nanoTime() >= requestStartedNanos + TimeUnit.MILLISECONDS.toNanos(reporterConfiguration.getApiRequestTime().getMillis());
     }
 
-    protected void onRequestError(Integer responseCode, InputStream inputStream, @Nullable IOException e) {
+    private void onRequestError(Integer responseCode, long bytesWritten, InputStream inputStream, @Nullable IOException e) {
         // TODO read accepted, dropped and invalid
-        onConnectionError(responseCode, currentlyTransmitting, 0);
+        onConnectionError(responseCode, bytesWritten, currentlyTransmitting, 0);
         if (e != null) {
             logger.error("Error sending data to APM server: {}, response code is {}", e.getMessage(), responseCode);
             logger.debug("Sending payload to APM server failed", e);
@@ -216,7 +231,7 @@ public class AbstractIntakeApiHandler {
         }
     }
 
-    protected void onConnectionError(@Nullable Integer responseCode, long droppedEvents, long reportedEvents) {
+    protected void onConnectionError(@Nullable Integer responseCode, long bytesWritten, long droppedEvents, long reportedEvents) {
         dropped += droppedEvents;
         reported += reportedEvents;
         // if the response code is null, the server did not even send a response
@@ -273,7 +288,7 @@ public class AbstractIntakeApiHandler {
         }
     }
 
-    protected void onRequestSuccess() {
+    protected void onRequestSuccess(long bytesWritten) {
         errorCount = 0;
         reported += currentlyTransmitting;
     }
