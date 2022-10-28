@@ -47,6 +47,10 @@ public class ReportingEventCounter {
         counters.incrementAndGet(type.ordinal());
     }
 
+    public void add(ReportingEvent.ReportingEventType type, long count) {
+        counters.addAndGet(type.ordinal(), count);
+    }
+
     public long getCount(ReportingEvent.ReportingEventType type) {
         return counters.get(type.ordinal());
     }
@@ -98,4 +102,5 @@ public class ReportingEventCounter {
         }
         return result;
     }
+
 }

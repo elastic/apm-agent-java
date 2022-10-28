@@ -32,7 +32,7 @@ import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.metrics.MetricRegistry;
-import co.elastic.apm.agent.metrics.builtin.AgentHealthMetrics;
+import co.elastic.apm.agent.metrics.builtin.AgentReporterMetrics;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
@@ -177,7 +177,7 @@ public class ElasticApmTracerBuilder {
         MetricRegistry metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class), configurationRegistry.getConfig(MetricsConfiguration.class));
 
         if (reporter == null) {
-            AgentHealthMetrics healthMetrics = new AgentHealthMetrics(metricRegistry);
+            AgentReporterMetrics healthMetrics = new AgentReporterMetrics(metricRegistry);
             reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaDataFuture, healthMetrics);
         }
 

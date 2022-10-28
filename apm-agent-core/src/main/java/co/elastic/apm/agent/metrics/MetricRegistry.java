@@ -79,10 +79,6 @@ public class MetricRegistry {
         metricsProviders.add(provider);
     }
 
-    public boolean removeMetricsProvider(MetricsProvider provider) {
-        return metricsProviders.remove(provider);
-    }
-
     /**
      * Same as {@link #add(String, Labels, DoubleSupplier)} but only adds the metric
      * if the {@link DoubleSupplier} does not return {@link Double#NaN}

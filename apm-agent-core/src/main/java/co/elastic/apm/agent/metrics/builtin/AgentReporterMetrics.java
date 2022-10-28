@@ -31,9 +31,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
-public class AgentHealthMetrics implements ReporterMonitor {
+public class AgentReporterMetrics implements ReporterMonitor {
 
-    private static final Logger logger = LoggerFactory.getLogger(AgentHealthMetrics.class);
+    private static final Logger logger = LoggerFactory.getLogger(AgentReporterMetrics.class);
 
     private final MetricRegistry metricRegistry;
 
@@ -72,7 +72,7 @@ public class AgentHealthMetrics implements ReporterMonitor {
     private final AtomicDouble maxQueueSize = new AtomicDouble(0.0);
     private final AtomicDouble minQueueSize = new AtomicDouble(0.0);
 
-    public AgentHealthMetrics(final MetricRegistry registry) {
+    public AgentReporterMetrics(final MetricRegistry registry) {
         this.metricRegistry = registry;
         this.totalEventsMetricEnabled = !registry.isDisabled(TOTAL_EVENTS_METRIC);
         this.droppedEventsMetricEnabled = !registry.isDisabled(DROPPED_EVENTS_METRIC);

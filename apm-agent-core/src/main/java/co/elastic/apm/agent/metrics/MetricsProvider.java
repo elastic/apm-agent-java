@@ -18,8 +18,12 @@
  */
 package co.elastic.apm.agent.metrics;
 
+/**
+ * Interface for providing metrics in the most flexible way:
+ * * Multiple series can be reported and reset together
+ * * New metrics can be added, old metrics can die on the fly
+ */
 public interface MetricsProvider {
-
     void collectAndReset(MetricCollector collector);
 
 }
