@@ -19,17 +19,29 @@
 package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.common.ThreadUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 class ExecutorUtilsTest {
+
+    @AfterEach
+    void cleanup() {
+        ExecutorUtils.setThreadStartListener(null);
+    }
 
     @Test
     void testSingleThreadSchedulingDaemonPool() throws ExecutionException, InterruptedException, TimeoutException {
@@ -57,12 +69,23 @@ class ExecutorUtilsTest {
 
     private void executeTestOnThreadPool(ThreadPoolExecutor singleThreadDaemonPool, String threadPurpose, int maxPoolSize)
         throws InterruptedException, ExecutionException, TimeoutException {
+
+        ElasticThreadStateListener listener = Mockito.mock(ElasticThreadStateListener.class);
+        ExecutorUtils.setThreadStartListener(listener);
+
         assertThat(singleThreadDaemonPool.getPoolSize()).isEqualTo(0);
         assertThat(singleThreadDaemonPool.getMaximumPoolSize()).isEqualTo(maxPoolSize);
         final ClassLoader agentClassLoader = ExecutorUtils.class.getClassLoader();
+
+        AtomicReference<Thread> startedThread = new AtomicReference<>();
+
         try {
             Future<Boolean> future = singleThreadDaemonPool.submit(() -> {
                 Thread currentThread = Thread.currentThread();
+                verify(listener).elasticThreadStarted(same(currentThread), eq(threadPurpose));
+                verifyNoMoreInteractions(listener);
+                startedThread.set(currentThread);
+                assertThat(ExecutorUtils.getStartedThreads().containsKey(currentThread)).isTrue();
                 assertThat(currentThread.getName()).startsWith(ThreadUtils.addElasticApmThreadPrefix(threadPurpose));
                 assertThat(currentThread.isDaemon()).isTrue();
                 assertThat(currentThread.getContextClassLoader()).isEqualTo(agentClassLoader);
@@ -72,6 +95,9 @@ class ExecutorUtilsTest {
             assertThat(future.get(100, TimeUnit.MILLISECONDS)).isTrue();
         } finally {
             singleThreadDaemonPool.shutdown();
+            singleThreadDaemonPool.awaitTermination(10, TimeUnit.SECONDS);
         }
+        verify(listener).elasticThreadFinished(same(startedThread.get()));
+        verifyNoMoreInteractions(listener);
     }
 }

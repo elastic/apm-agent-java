@@ -23,6 +23,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.lang.management.OperatingSystemMXBean;
+import java.lang.management.ThreadMXBean;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
@@ -37,7 +38,6 @@ public class JmxUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(JmxUtils.class);
 
-    private static boolean initialized;
 
     /**
      * List of public, exported interface class names from supported JVM implementations.
@@ -48,42 +48,82 @@ public class JmxUtils {
         "com.sun.management.OperatingSystemMXBean" // HotSpot
     );
 
-    @Nullable
-    private static Class<?> operatingSystemBeanClass;
+    private static final List<String> THREAD_BEAN_CLASS_NAMES = Arrays.asList(
+        "com.sun.management.ThreadMXBean" // HotSpot
+    );
 
     @Nullable
-    public synchronized static Method getOperatingSystemMBeanMethod(OperatingSystemMXBean operatingSystemBean, String methodName) {
-        if (!initialized) {
-            // lazy initialization - try loading the classes as late as possible
-            init();
+    private static Class<?> operatingSystemBeanClass;
+    private static boolean operatingSystemBeanClassInitialized;
+
+    @Nullable
+    private static Class<?> threadBeanClass;
+    private static boolean threadBeanClassInitialized;
+
+    @Nullable
+    public static Method getOperatingSystemMBeanMethod(OperatingSystemMXBean operatingSystemBean, String methodName) {
+        // lazy initialization - try loading the classes as late as possible
+        initOsBeanClass();
+        return tryLookupMethod(operatingSystemBean, operatingSystemBeanClass, methodName);
+    }
+
+    public static boolean isIbmOperatingSystemMBean() {
+        initThreadBeanClass();
+        return threadBeanClass != null && "com.ibm.lang.management.OperatingSystemMXBean".equals(threadBeanClass.getName());
+    }
+
+    @Nullable
+    public static Method getThreadMBeanMethod(ThreadMXBean threadBean, String methodName, Class<?>... parameterTypes) {
+        // lazy initialization - try loading the classes as late as possible
+        initThreadBeanClass();
+        return tryLookupMethod(threadBean, threadBeanClass, methodName, parameterTypes);
+    }
+
+    private static synchronized void initOsBeanClass() {
+        if (operatingSystemBeanClassInitialized) {
+            return;
         }
-        if (operatingSystemBeanClass == null) {
+        operatingSystemBeanClassInitialized = true;
+        operatingSystemBeanClass = tryLoadBeanClass("OperatingSystemMXBean", OPERATING_SYSTEM_BEAN_CLASS_NAMES);
+    }
+
+    private static synchronized void initThreadBeanClass() {
+        if (threadBeanClassInitialized) {
+            return;
+        }
+        threadBeanClassInitialized = true;
+        operatingSystemBeanClass = tryLoadBeanClass("ThreadMXBean", THREAD_BEAN_CLASS_NAMES);
+    }
+
+    @Nullable
+    private static Class<?> tryLoadBeanClass(String beanName, List<String> candidates) {
+        try {
+            for (String className : candidates) {
+                try {
+                    Class<?> beanClass = Class.forName(className);
+                    logger.info("Found JVM-specific {} interface: {}", beanName, className);
+                    return beanClass;
+                } catch (ClassNotFoundException ignore) {
+                }
+            }
+        } catch (Throwable throwable) {
+            logger.error("Failed to load {} implementation", beanName, throwable);
+        }
+        return null;
+    }
+
+    @Nullable
+    private static Method tryLookupMethod(Object beanInstance, @Nullable Class<?> expectedBeanClass, String methodName, Class<?>... parameterTypes) {
+        if (expectedBeanClass == null) {
             return null;
         }
         try {
             // ensure the Bean we have is actually an instance of the interface
-            operatingSystemBeanClass.cast(operatingSystemBean);
-            return operatingSystemBeanClass.getMethod(methodName);
+            expectedBeanClass.cast(beanInstance);
+            return expectedBeanClass.getMethod(methodName, parameterTypes);
         } catch (ClassCastException | NoSuchMethodException | SecurityException e) {
             return null;
         }
     }
 
-    private static void init() {
-        try {
-            for (String className : OPERATING_SYSTEM_BEAN_CLASS_NAMES) {
-                try {
-                    operatingSystemBeanClass = Class.forName(className);
-                    logger.info("Found JVM-specific OperatingSystemMXBean interface: {}", className);
-                    break;
-                } catch (ClassNotFoundException ignore) {
-                }
-            }
-        } catch (Throwable throwable) {
-            logger.error("Failed to load OperatingSystemMXBean implementation", throwable);
-        } finally {
-            // success or failure - try only once
-            initialized = true;
-        }
-    }
 }
