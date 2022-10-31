@@ -44,9 +44,6 @@ public class AbstractIntakeApiHandler {
     protected final PayloadSerializer payloadSerializer;
     protected final ApmServerClient apmServerClient;
     protected Deflater deflater;
-    protected long currentlyTransmitting = 0;
-    protected long reported = 0;
-    protected long dropped = 0;
     @Nullable
     protected HttpURLConnection connection;
     @Nullable
@@ -169,7 +166,7 @@ public class AbstractIntakeApiHandler {
     protected void endRequestExceptionally() {
         if (connection == null) {
             //The HttpUrlConnection could not be established if connecttion == null
-            onConnectionError(-1, 0, currentlyTransmitting, 0);
+            onConnectionError(null, 0L);
         } else {
             endRequest(true);
         }
@@ -206,7 +203,6 @@ public class AbstractIntakeApiHandler {
                 os = null;
                 countingOs = null;
                 deflater.reset();
-                currentlyTransmitting = 0;
             }
         }
     }
@@ -217,7 +213,7 @@ public class AbstractIntakeApiHandler {
 
     private void onRequestError(Integer responseCode, long bytesWritten, InputStream inputStream, @Nullable IOException e) {
         // TODO read accepted, dropped and invalid
-        onConnectionError(responseCode, bytesWritten, currentlyTransmitting, 0);
+        onConnectionError(responseCode, bytesWritten);
         if (e != null) {
             logger.error("Error sending data to APM server: {}, response code is {}", e.getMessage(), responseCode);
             logger.debug("Sending payload to APM server failed", e);
@@ -231,9 +227,7 @@ public class AbstractIntakeApiHandler {
         }
     }
 
-    protected void onConnectionError(@Nullable Integer responseCode, long bytesWritten, long droppedEvents, long reportedEvents) {
-        dropped += droppedEvents;
-        reported += reportedEvents;
+    protected void onConnectionError(@Nullable Integer responseCode, long bytesWritten) {
         // if the response code is null, the server did not even send a response
         if (responseCode == null || responseCode > 429) {
             // this server seems to have connection or capacity issues, try next
@@ -269,18 +263,6 @@ public class AbstractIntakeApiHandler {
         return healthy;
     }
 
-    public long getReported() {
-        return reported;
-    }
-
-    public long getDropped() {
-        return dropped;
-    }
-
-    public int getErrorCount() {
-        return errorCount;
-    }
-
     public void close() {
         shutDown = true;
         synchronized (WAIT_LOCK) {
@@ -290,6 +272,5 @@ public class AbstractIntakeApiHandler {
 
     protected void onRequestSuccess(long bytesWritten) {
         errorCount = 0;
-        reported += currentlyTransmitting;
     }
 }

@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler implements ReportingEventHandler {
 
+    private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
     public static final String INTAKE_V2_URL = "/intake/v2/events";
     public static final String INTAKE_V2_FLUSH_URL = INTAKE_V2_URL + "?flushed=true";
     private final ProcessorEventHandler processorEventHandler;
@@ -46,7 +47,9 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private ApmServerReporter reporter;
     private final AtomicLong processed = new AtomicLong();
     private final ReportingEventCounter inflightEvents = new ReportingEventCounter();
-    private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
+
+    private long reported;
+    private long dropped;
 
     public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
                                          PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
@@ -162,13 +165,10 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
     private void writeEvent(ReportingEvent event) {
         if (event.getTransaction() != null) {
-            currentlyTransmitting++;
             payloadSerializer.serializeTransactionNdJson(event.getTransaction());
         } else if (event.getSpan() != null) {
-            currentlyTransmitting++;
             payloadSerializer.serializeSpanNdJson(event.getSpan());
         } else if (event.getError() != null) {
-            currentlyTransmitting++;
             payloadSerializer.serializeErrorNdJson(event.getError());
         } else if (event.getJsonWriter() != null) {
             payloadSerializer.writeBytes(event.getJsonWriter().getByteBuffer(), event.getJsonWriter().size());
@@ -192,6 +192,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
     @Override
     protected void onRequestSuccess(long bytesWritten) {
+        reported += inflightEvents.getTotalCount();
         if (reporter != null) {
             reporter.getReporterMonitor().requestFinished(new ReportingEventCounter(inflightEvents), bytesWritten, true);
         }
@@ -200,12 +201,21 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     }
 
     @Override
-    protected void onConnectionError(@Nullable Integer responseCode, long bytesWritten, long droppedEvents, long reportedEvents) {
+    protected void onConnectionError(@Nullable Integer responseCode, long bytesWritten) {
+        dropped += inflightEvents.getTotalCount();
         if (reporter != null) {
             reporter.getReporterMonitor().requestFinished(new ReportingEventCounter(inflightEvents), bytesWritten, false);
         }
         inflightEvents.reset();
-        super.onConnectionError(responseCode, bytesWritten, droppedEvents, reportedEvents);
+        super.onConnectionError(responseCode, bytesWritten);
+    }
+
+    public long getReported() {
+        return reported;
+    }
+
+    public long getDropped() {
+        return dropped;
     }
 
     @Override

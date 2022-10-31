@@ -55,6 +55,14 @@ public class ReportingEventCounter {
         return counters.get(type.ordinal());
     }
 
+    public long getTotalCount() {
+        long sum = 0;
+        for (int i = 0; i < counters.length(); i++) {
+            sum += counters.get(i);
+        }
+        return sum;
+    }
+    
     public void addAll(ReportingEventCounter other) {
         for (int i = 0; i < counters.length(); i++) {
             counters.addAndGet(i, other.counters.get(i));
