@@ -263,43 +263,49 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Override
     protected void afterEnd() {
         if (transaction != null && transaction.isSpanCompressionEnabled() && parent != null) {
-            Span buffered = parent.bufferedSpan.get();
-            if (parent.isFinished() || !isCompressionEligible()) {
-                if (buffered != null) {
-                    if (parent.bufferedSpan.compareAndSet(buffered, null)) {
-                        this.tracer.endSpan(buffered);
+            Span parentBuffered = parent.bufferedSpan.getAndIncrementReferences();
+            try {
+                if (parent.isFinished() || !isCompressionEligible()) {
+                    if (parentBuffered != null) {
+                        if (parent.bufferedSpan.compareAndSet(parentBuffered, null)) {
+                            this.tracer.endSpan(parentBuffered);
+                        }
                     }
-                }
-                parent.decrementReferences();
-                this.tracer.endSpan(this);
-                return;
-            }
-            if (buffered == null) {
-                parent.decrementReferences();
-                if (!parent.bufferedSpan.compareAndSet(null, this)) {
-                    // the failed update would ideally lead to a compression attempt with the new buffer,
-                    // but we're dropping the compression attempt to keep things simple
-                    this.tracer.endSpan(this);
-                }
-                return;
-            }
-            if (!buffered.tryToCompress(this)) {
-                if (parent.bufferedSpan.compareAndSet(buffered, this)) {
                     parent.decrementReferences();
-                    this.tracer.endSpan(buffered);
-                } else {
-                    parent.decrementReferences();
-                    // the failed update would ideally lead to a compression attempt with the new buffer,
-                    // but we're dropping the compression attempt to keep things simple
                     this.tracer.endSpan(this);
+                    return;
                 }
-            } else if (isSampled()) {
-                Transaction transaction = getTransaction();
-                if (transaction != null) {
-                    transaction.getSpanCount().getDropped().incrementAndGet();
+                if (parentBuffered == null) {
+                    parent.decrementReferences();
+                    if (!parent.bufferedSpan.compareAndSet(null, this)) {
+                        // the failed update would ideally lead to a compression attempt with the new buffer,
+                        // but we're dropping the compression attempt to keep things simple
+                        this.tracer.endSpan(this);
+                    }
+                    return;
                 }
-                parent.decrementReferences();
-                decrementReferences();
+                if (!parentBuffered.tryToCompress(this)) {
+                    if (parent.bufferedSpan.compareAndSet(parentBuffered, this)) {
+                        parent.decrementReferences();
+                        this.tracer.endSpan(parentBuffered);
+                    } else {
+                        parent.decrementReferences();
+                        // the failed update would ideally lead to a compression attempt with the new buffer,
+                        // but we're dropping the compression attempt to keep things simple
+                        this.tracer.endSpan(this);
+                    }
+                } else if (isSampled()) {
+                    Transaction transaction = getTransaction();
+                    if (transaction != null) {
+                        transaction.getSpanCount().getDropped().incrementAndGet();
+                    }
+                    parent.decrementReferences();
+                    decrementReferences();
+                }
+            } finally {
+                if (parentBuffered != null) {
+                    parentBuffered.decrementReferences();
+                }
             }
         } else {
             if (parent != null) {
