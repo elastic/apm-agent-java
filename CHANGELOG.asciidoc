@@ -39,6 +39,8 @@ endif::[]
 * Capture Elastic cluster name on Elastic Cloud - {pull}2796[#2796]
 * Attacher CLI: added a `--no-fork` config to opt out from executing a forked process as different user. If `--no-fork` is used
 alongside discovery rules that contain only `--include-pid` rules, the attacher will not execute JVM discovery - {pull}2863[#2863]
+* Add the option to instrument very old bytecode through the <<config-instrument-ancient-bytecode, `instrument_ancient_bytecode`>> config
+option - {pull}2866[#2866]
 
 [float]
 ===== Bug fixes
