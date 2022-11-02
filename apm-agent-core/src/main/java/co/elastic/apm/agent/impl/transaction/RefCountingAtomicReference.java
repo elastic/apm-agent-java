@@ -37,17 +37,24 @@ public class RefCountingAtomicReference<V extends AbstractSpan<?>> {
     }
 
     /**
-     * Gets the referenced {@link AbstractSpan} and if not {@code null}, increments its reference count. It is then the responsibility of
-     * the caller to decrement the ref count appropriately.
+     * Increments the referenced {@link AbstractSpan} reference count and returns it. The returned span is guaranteed not to be recycled.
+     * It is then the responsibility of the caller to decrement the ref count appropriately.
      * @return the referenced {@link AbstractSpan} with referenced incremented, or {@code null} if such is not referenced
      */
     @Nullable
-    public V getAndIncrementReferences() {
-        V referenced = delegate.get();
-        if (referenced != null) {
-            referenced.incrementReferences();
+    public V incrementReferencesAndGet() {
+        V ret = null;
+        V current;
+        while ((current = delegate.get()) != ret) {
+            if (ret != null) {
+                ret.decrementReferences();
+            }
+            ret = current;
+            if (ret != null) {
+                ret.incrementReferences();
+            }
         }
-        return referenced;
+        return ret;
     }
 
     public boolean compareAndSet(@Nullable V expectedValue, @Nullable V newValue) {
