@@ -24,6 +24,7 @@ import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.InstallationListenerImpl;
 import co.elastic.apm.agent.bci.bytebuddy.Instrumented;
 import co.elastic.apm.agent.bci.bytebuddy.LruTypePoolCache;
+import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.NonInstrumented;
 import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
@@ -106,6 +107,8 @@ public class ElasticApmAgent {
     // Don't eagerly create logger. Logging needs to be initialized first based on configuration. See also issue #593
     @Nullable
     private static Logger logger;
+
+    private static boolean ancientBytecodeInstrumentationEnabled;
 
     private static final InstrumentationStats instrumentationStats = new InstrumentationStats();
 
@@ -221,6 +224,7 @@ public class ElasticApmAgent {
         if (!coreConfig.isEnabled()) {
             return;
         }
+        ancientBytecodeInstrumentationEnabled = coreConfig.isInstrumentAncientBytecode();
         String bytecodeDumpPath = coreConfig.getBytecodeDumpPath();
         if (bytecodeDumpPath != null) {
             bytecodeDumpPath = bytecodeDumpPath.trim();
@@ -412,9 +416,11 @@ public class ElasticApmAgent {
                 @Override
                 public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription,
                                                         ClassLoader classLoader, JavaModule module, ProtectionDomain protectionDomain) {
-                    // As long as we allow old bytecode, we need to add this constant pool adjustment as well
+                    if (!ancientBytecodeInstrumentationEnabled) {
+                        builder = builder.visit(MinimumClassFileVersionValidator.V1_4);
+                    }
+                    // As long as we allow 1.4 bytecode, we need to add this constant pool adjustment as well
                     return builder.visit(TypeConstantAdjustment.INSTANCE);
-
                 }
             });
     }

@@ -139,7 +139,7 @@
             <artifactId>dsl-json</artifactId>
             <version>1.9.3</version>
         </dependency>
-        <!--Used to test instrumenting old class file versions-->
+        <!--Used to test old class file versions-->
         <dependency>
             <groupId>commons-math</groupId>
             <artifactId>commons-math</artifactId>

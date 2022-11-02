@@ -245,7 +245,19 @@ class InstrumentationTest {
     }
 
     @Test
+    void testDontInstrumentOldClassFileVersions() {
+        ElasticApmAgent.initInstrumentation(tracer,
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new MathInstrumentation()));
+        // if the instrumentation applied, it would return 42
+        // but instrumenting old class file versions could lead to VerifyErrors in some cases and possibly some more shenanigans,
+        // so we do not touch Java 1.3 code (like org.apache.commons.math.util.MathUtils) by default, unless opted-in
+        assertThat(MathUtils.sign(-42)).isEqualTo(-1);
+    }
+
+    @Test
     void testInstrumentOldClassFileVersions() {
+        doReturn(true).when(coreConfig).isInstrumentAncientBytecode();
         ElasticApmAgent.initInstrumentation(tracer,
             ByteBuddyAgent.install(),
             Collections.singletonList(new MathInstrumentation()));
