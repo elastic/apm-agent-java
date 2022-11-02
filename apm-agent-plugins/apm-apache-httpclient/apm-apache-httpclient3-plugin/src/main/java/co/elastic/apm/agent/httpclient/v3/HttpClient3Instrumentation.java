@@ -24,11 +24,15 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.LoggerUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.commons.httpclient.CircularRedirectException;
+import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.StatusLine;
 import org.apache.commons.httpclient.URI;
@@ -68,9 +72,16 @@ public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
 
     public static class HttpClient3Advice {
 
+        private static final Logger oneTimeNoDestinationInfoLogger;
+
+        static {
+            oneTimeNoDestinationInfoLogger = LoggerUtils.logOnce(LoggerFactory.getLogger("Apache-HttpClient-3-Destination"));
+        }
+
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.Argument(0) HttpMethod httpMethod) {
+        public static Object onEnter(@Advice.Argument(0) HttpMethod httpMethod,
+                                     @Advice.FieldValue(value = "hostConfiguration") HostConfiguration hostConfiguration) {
             final AbstractSpan<?> parent = TracerAwareInstrumentation.tracer.getActive();
             if (parent == null) {
                 return null;
@@ -80,15 +91,28 @@ public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
             String uri;
             String protocol;
             int port;
+            URI httpClientURI = null;
             try {
-                URI httpClientURI = httpMethod.getURI();
-                host = httpClientURI.getHost();
+                httpClientURI = httpMethod.getURI();
+                host = hostConfiguration.getHost();
+                port = hostConfiguration.getPort();
+                protocol = hostConfiguration.getProtocol().getScheme();
                 uri = httpClientURI.toString();
-                protocol = httpClientURI.getScheme();
-                port = httpClientURI.getPort();
             } catch (Exception e) {
-                // silently ignored
-                return null;
+                try {
+                    if (httpClientURI != null) {
+                        host = httpClientURI.getHost();
+                        uri = httpClientURI.toString();
+                        protocol = httpClientURI.getScheme();
+                        port = httpClientURI.getPort();
+                    } else {
+                        oneTimeNoDestinationInfoLogger.warn("Failed to obtain Apache HttpClient destination info, null httpClientURI", e);
+                        return null;
+                    }
+                } catch (Exception e1) {
+                    oneTimeNoDestinationInfoLogger.warn("Failed to obtain Apache HttpClient destination info", e);
+                    return null;
+                }
             }
 
             Span span = HttpClientHelper.startHttpClientSpan(parent, httpMethod.getName(), uri, protocol, host, port);
