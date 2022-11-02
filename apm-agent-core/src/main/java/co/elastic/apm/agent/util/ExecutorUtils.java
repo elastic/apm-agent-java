@@ -145,7 +145,7 @@ public final class ExecutorUtils {
         private final String threadPurpose;
         private final AtomicInteger threadCounter;
 
-        private NamedThreadFactory(String threadPurpose) {
+        public NamedThreadFactory(String threadPurpose) {
             this.threadPurpose = threadPurpose;
             threadCounter = new AtomicInteger();
         }

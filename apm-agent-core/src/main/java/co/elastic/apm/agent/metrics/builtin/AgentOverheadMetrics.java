@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.Labels;
@@ -94,7 +95,6 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
     @Nullable
     private final Method getProcessCpuTime;
 
-    //OpenJ9 can under certain cicumstances return the cpuTime in 100ns steps
     private final long processCpuTimeScalingFactor;
 
     public AgentOverheadMetrics() {
@@ -119,11 +119,18 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
     @Override
     public void start(ElasticApmTracer tracer) throws Exception {
         MetricRegistry metricRegistry = tracer.getMetricRegistry();
+        MetricsConfiguration config = tracer.getConfig(MetricsConfiguration.class);
+        bindTo(metricRegistry, config);
 
-        cpuOverheadMetricEnabled = !metricRegistry.isDisabled(CPU_OVERHEAD_METRIC);
-        cpuUsageMetricEnabled = !metricRegistry.isDisabled(CPU_OVERHEAD_METRIC);
-        allocationMetricEnabled = !metricRegistry.isDisabled(ALLOCATION_METRIC);
-        threadCountMetricEnabled = !metricRegistry.isDisabled(THREAD_COUNT_METRIC);
+    }
+
+    void bindTo(MetricRegistry metricRegistry, MetricsConfiguration config) {
+        boolean overheadMetricsEnabled = config.isOverheadMetricsEnabled();
+
+        cpuOverheadMetricEnabled = !metricRegistry.isDisabled(CPU_OVERHEAD_METRIC) && overheadMetricsEnabled;
+        cpuUsageMetricEnabled = !metricRegistry.isDisabled(CPU_USAGE_METRIC) && overheadMetricsEnabled;
+        allocationMetricEnabled = !metricRegistry.isDisabled(ALLOCATION_METRIC) && overheadMetricsEnabled;
+        threadCountMetricEnabled = !metricRegistry.isDisabled(THREAD_COUNT_METRIC) && overheadMetricsEnabled;
 
         if (allocationMetricEnabled) {
             boolean allocationMeasurementEnabled = enableThreadAllocationMeasurement();
@@ -159,7 +166,6 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
 
             metricRegistry.addMetricsProvider(this);
         }
-
     }
 
     private boolean enableThreadAllocationMeasurement() {
@@ -188,20 +194,12 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
     }
 
     private boolean enableThreadCpuTimeMeasurement() {
-
         boolean isSupported = threadBean.isThreadCpuTimeSupported();
         if (!isSupported) {
             logger.warn("Agent cpu overhead metrics can not be enabled: ThreadMxBean.isThreadCpuTimeSupported() returned false");
             return false;
         }
         threadBean.setThreadCpuTimeEnabled(true);
-        try {
-            setThreadAllocatedMemoryEnabled.invoke(threadBean, true);
-            logger.debug("Enabled agent allocation measurement");
-        } catch (Exception e) {
-            logger.warn("Agent allocation metrics can not be enabled", e);
-            return false;
-        }
         return true;
     }
 
@@ -439,17 +437,17 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
     }
 
     @Nullable
-    private Double getProcessCpuLoad() {
+    Double getProcessCpuLoad() {
         if (getProcessCpuLoad == null) {
             return null;
         }
         try {
-            double cpuLoad = (Long) getProcessCpuLoad.invoke(osBean);
+            double cpuLoad = (Double) getProcessCpuLoad.invoke(osBean);
             if (cpuLoad >= 0) { //values lower than zero indicate an error
                 return cpuLoad;
             }
         } catch (Exception e) {
-            logger.error("Error on attempt to fetch process cpu time", e);
+            logger.error("Error on attempt to fetch process cpu load", e);
         }
         return null;
     }

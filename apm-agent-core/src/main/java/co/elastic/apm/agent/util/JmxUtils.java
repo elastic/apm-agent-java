@@ -92,7 +92,7 @@ public class JmxUtils {
             return;
         }
         threadBeanClassInitialized = true;
-        operatingSystemBeanClass = tryLoadBeanClass("ThreadMXBean", THREAD_BEAN_CLASS_NAMES);
+        threadBeanClass = tryLoadBeanClass("ThreadMXBean", THREAD_BEAN_CLASS_NAMES);
     }
 
     @Nullable

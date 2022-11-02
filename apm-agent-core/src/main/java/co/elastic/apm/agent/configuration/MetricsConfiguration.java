@@ -58,6 +58,15 @@ public class MetricsConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(false);
 
+    private final ConfigurationOption<Boolean> overheadMetricsEnabled = ConfigurationOption.booleanOption()
+        .key("agent_background_overhead_metrics")
+        .configurationCategory(METRICS_CATEGORY)
+        .description("Enables metrics which capture the resource consumption of agent background tasks.\n" +
+            "Disabled by default because this measurement itself can cause some overhead.")
+        .tags("added[1.35.0]")
+        .dynamic(false)
+        .buildWithDefault(false);
+
     public boolean isDedotCustomMetrics() {
         return dedotCustomMetrics.get();
     }
@@ -68,5 +77,9 @@ public class MetricsConfiguration extends ConfigurationOptionProvider {
 
     public boolean isReporterHealthMetricsEnabled() {
         return reporterHealthMetricsEnabled.get();
+    }
+
+    public boolean isOverheadMetricsEnabled() {
+        return overheadMetricsEnabled.get();
     }
 }
