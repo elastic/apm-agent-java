@@ -63,7 +63,7 @@ public class AgentReporterMetricsTest {
         createNEvents(ReportingEvent.ReportingEventType.TRANSACTION, 2);
         createNEvents(ReportingEvent.ReportingEventType.SPAN, 3);
         createNEvents(ReportingEvent.ReportingEventType.ERROR, 4);
-        createNEvents(ReportingEvent.ReportingEventType.JSON_WRITER, 5);
+        createNEvents(ReportingEvent.ReportingEventType.METRICSET_JSON_WRITER, 5);
 
 
         reportAndCheckMetrics(metricSets -> {
@@ -73,7 +73,7 @@ public class AgentReporterMetricsTest {
                 Labels.Mutable.of("eventType", "transaction"),
                 Labels.Mutable.of("eventType", "span"),
                 Labels.Mutable.of("eventType", "error"),
-                Labels.Mutable.of("eventType", "other")
+                Labels.Mutable.of("eventType", "metricset")
             );
 
             assertThat(metricSets.get(Labels.Mutable.of("eventType", "transaction")).getCounters())
@@ -88,7 +88,7 @@ public class AgentReporterMetricsTest {
                 .hasSize(1)
                 .extractingByKey("agent.events.total")
                 .satisfies(counter -> assertThat(counter).hasValue(4));
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "other")).getCounters())
+            assertThat(metricSets.get(Labels.Mutable.of("eventType", "metricset")).getCounters())
                 .hasSize(1)
                 .extractingByKey("agent.events.total")
                 .satisfies(counter -> assertThat(counter).hasValue(5));
@@ -107,7 +107,7 @@ public class AgentReporterMetricsTest {
         dropNEventsBeforeQueue(ReportingEvent.ReportingEventType.TRANSACTION, 2);
         dropNEventsBeforeQueue(ReportingEvent.ReportingEventType.SPAN, 3);
         dropNEventsBeforeQueue(ReportingEvent.ReportingEventType.ERROR, 4);
-        dropNEventsBeforeQueue(ReportingEvent.ReportingEventType.JSON_WRITER, 5);
+        dropNEventsBeforeQueue(ReportingEvent.ReportingEventType.METRICSET_JSON_WRITER, 5);
 
         reportAndCheckMetrics(metricSets -> {
 
@@ -116,7 +116,7 @@ public class AgentReporterMetricsTest {
                 Labels.Mutable.of("eventType", "transaction"),
                 Labels.Mutable.of("eventType", "span"),
                 Labels.Mutable.of("eventType", "error"),
-                Labels.Mutable.of("eventType", "other")
+                Labels.Mutable.of("eventType", "metricset")
             );
 
             assertThat(metricSets.get(Labels.Mutable.of("eventType", "transaction")).getCounters())
@@ -131,7 +131,7 @@ public class AgentReporterMetricsTest {
                 .hasSize(1)
                 .extractingByKey("agent.events.dropped.queue")
                 .satisfies(counter -> assertThat(counter).hasValue(4));
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "other")).getCounters())
+            assertThat(metricSets.get(Labels.Mutable.of("eventType", "metricset")).getCounters())
                 .hasSize(1)
                 .extractingByKey("agent.events.dropped.queue")
                 .satisfies(counter -> assertThat(counter).hasValue(5));
@@ -149,13 +149,13 @@ public class AgentReporterMetricsTest {
         dropNEventsAfterDequeue(ReportingEvent.ReportingEventType.TRANSACTION, 2);
         dropNEventsAfterDequeue(ReportingEvent.ReportingEventType.SPAN, 3);
         dropNEventsAfterDequeue(ReportingEvent.ReportingEventType.ERROR, 4);
-        dropNEventsAfterDequeue(ReportingEvent.ReportingEventType.JSON_WRITER, 5);
+        dropNEventsAfterDequeue(ReportingEvent.ReportingEventType.METRICSET_JSON_WRITER, 5);
 
         ReportingEventCounter inflightEvents = new ReportingEventCounter();
         inflightEvents.add(ReportingEvent.ReportingEventType.TRANSACTION, 20);
         inflightEvents.add(ReportingEvent.ReportingEventType.SPAN, 30);
         inflightEvents.add(ReportingEvent.ReportingEventType.ERROR, 40);
-        inflightEvents.add(ReportingEvent.ReportingEventType.JSON_WRITER, 50);
+        inflightEvents.add(ReportingEvent.ReportingEventType.METRICSET_JSON_WRITER, 50);
 
         reporterMetrics.requestFinished(inflightEvents, 0, false);
         //also report a success as sanity check to make sure that they are not counted
@@ -168,7 +168,7 @@ public class AgentReporterMetricsTest {
                     for (int i = 0; i < labels.getKeys().size(); i++) {
                         if (labels.getKey(i).equals("eventType")) {
                             assertThat(labels.getValue(i))
-                                .matches("transaction|span|error|other");
+                                .matches("transaction|span|error|metricset");
                         }
                     }
                 });
@@ -185,7 +185,7 @@ public class AgentReporterMetricsTest {
                 .hasSize(1)
                 .extractingByKey("agent.events.dropped.error")
                 .satisfies(counter -> assertThat(counter).hasValue(44));
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "other")).getCounters())
+            assertThat(metricSets.get(Labels.Mutable.of("eventType", "metricset")).getCounters())
                 .hasSize(1)
                 .extractingByKey("agent.events.dropped.error")
                 .satisfies(counter -> assertThat(counter).hasValue(55));

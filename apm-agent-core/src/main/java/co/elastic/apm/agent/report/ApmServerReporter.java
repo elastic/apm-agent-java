@@ -254,7 +254,7 @@ public class ApmServerReporter implements Reporter {
         if (jsonWriter.size() == 0) {
             return;
         }
-        tryAddEventToRingBuffer(jsonWriter, JSON_WRITER_EVENT_TRANSLATOR, ReportingEvent.ReportingEventType.JSON_WRITER);
+        tryAddEventToRingBuffer(jsonWriter, JSON_WRITER_EVENT_TRANSLATOR, ReportingEvent.ReportingEventType.METRICSET_JSON_WRITER);
         if (syncReport) {
             flush();
         }

@@ -108,7 +108,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             case SPAN:
             case ERROR:
             case TRANSACTION:
-            case JSON_WRITER:
+            case METRICSET_JSON_WRITER:
                 handleIntakeEvent(event, sequence, endOfBatch);
                 break;
         }

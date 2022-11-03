@@ -62,7 +62,7 @@ public class AgentReporterMetrics implements ReporterMonitor {
     private static final Labels TRANSACTION_LABEL = Labels.Mutable.of("eventType", "transaction").immutableCopy();
     private static final Labels SPAN_LABEL = Labels.Mutable.of("eventType", "span").immutableCopy();
     private static final Labels ERROR_LABEL = Labels.Mutable.of("eventType", "error").immutableCopy();
-    private static final Labels OTHER_LABEL = Labels.Mutable.of("eventType", "other").immutableCopy();
+    private static final Labels METRICSET_LABEL = Labels.Mutable.of("eventType", "metricset").immutableCopy();
 
     private static final Labels SUCCESS_LABEL = Labels.Mutable.of("success", "true").immutableCopy();
     private static final Labels FAILURE_LABEL = Labels.Mutable.of("success", "false").immutableCopy();
@@ -180,8 +180,8 @@ public class AgentReporterMetrics implements ReporterMonitor {
                 return SPAN_LABEL;
             case ERROR:
                 return ERROR_LABEL;
-            case JSON_WRITER:
-                return OTHER_LABEL;
+            case METRICSET_JSON_WRITER:
+                return METRICSET_LABEL;
             case SHUTDOWN:
             case END_REQUEST:
             case MAKE_FLUSH_REQUEST:

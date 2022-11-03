@@ -28,8 +28,8 @@ import java.util.concurrent.locks.LockSupport;
 
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.END_REQUEST;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.ERROR;
-import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.JSON_WRITER;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.MAKE_FLUSH_REQUEST;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.METRICSET_JSON_WRITER;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SHUTDOWN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SPAN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.TRANSACTION;
@@ -126,7 +126,7 @@ public class ReportingEvent {
 
     public void setJsonWriter(@Nullable JsonWriter jsonWriter) {
         this.jsonWriter = jsonWriter;
-        this.type = JSON_WRITER;
+        this.type = METRICSET_JSON_WRITER;
     }
 
     public void end() {
@@ -151,6 +151,6 @@ public class ReportingEvent {
     }
 
     public enum ReportingEventType {
-        END_REQUEST, MAKE_FLUSH_REQUEST, TRANSACTION, SPAN, ERROR, SHUTDOWN, JSON_WRITER, WAKEUP
+        END_REQUEST, MAKE_FLUSH_REQUEST, TRANSACTION, SPAN, ERROR, SHUTDOWN, METRICSET_JSON_WRITER, WAKEUP
     }
 }
