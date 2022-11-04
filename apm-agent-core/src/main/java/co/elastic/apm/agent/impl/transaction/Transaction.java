@@ -407,14 +407,16 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     @Override
-    public StringBuilder getNameForSerialization() {
-        StringBuilder name = this.name;
-        WildcardMatcher match = WildcardMatcher.anyMatch(coreConfig.getTransactionNameGroups(), name);
+    public CharSequence getNameForSerialization() {
+        WildcardMatcher match = WildcardMatcher.anyMatch(coreConfig.getTransactionNameGroups(), this.name);
         if (match != null) {
-            name.setLength(0);
-            name.append(match);
+            CharSequence matchName = match.toString();
+            this.name.setLength(0);
+            this.name.append(matchName);
+            return matchName;
+        } else {
+            return super.getNameForSerialization();
         }
-        return name;
     }
 
     @Override
