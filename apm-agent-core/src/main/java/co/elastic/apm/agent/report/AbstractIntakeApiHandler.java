@@ -122,32 +122,47 @@ public class AbstractIntakeApiHandler {
                 payloadSerializer.flushToOutputStream();
                 requestStartedNanos = System.nanoTime();
             } catch (IOException e) {
-                logger.error("Error trying to connect to APM Server at {}. Although not necessarily related to SSL, some related SSL " +
-                    "configurations corresponding the current connection are logged at INFO level.", connection.getURL());
-                if (logger.isInfoEnabled() && connection instanceof HttpsURLConnection) {
-                    HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
-                    try {
-                        logger.info("Cipher suite used for this connection: {}", httpsURLConnection.getCipherSuite());
-                    } catch (Exception e1) {
-                        SSLSocketFactory sslSocketFactory = httpsURLConnection.getSSLSocketFactory();
-                        logger.info("Default cipher suites: {}", Arrays.toString(sslSocketFactory.getDefaultCipherSuites()));
-                        logger.info("Supported cipher suites: {}", Arrays.toString(sslSocketFactory.getSupportedCipherSuites()));
+                try {
+                    logger.error("Error trying to connect to APM Server at {}. Although not necessarily related to SSL, some related SSL " +
+                        "configurations corresponding the current connection are logged at INFO level.", connection.getURL());
+                    if (logger.isInfoEnabled() && connection instanceof HttpsURLConnection) {
+                        HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
+                        try {
+                            logger.info("Cipher suite used for this connection: {}", httpsURLConnection.getCipherSuite());
+                        } catch (Exception e1) {
+                            SSLSocketFactory sslSocketFactory = httpsURLConnection.getSSLSocketFactory();
+                            logger.info("Default cipher suites: {}", Arrays.toString(sslSocketFactory.getDefaultCipherSuites()));
+                            logger.info("Supported cipher suites: {}", Arrays.toString(sslSocketFactory.getSupportedCipherSuites()));
+                        }
+                        try {
+                            logger.info("APM Server certificates: {}", Arrays.toString(httpsURLConnection.getServerCertificates()));
+                        } catch (Exception e1) {
+                            // ignore - invalid
+                        }
+                        try {
+                            logger.info("Local certificates: {}", Arrays.toString(httpsURLConnection.getLocalCertificates()));
+                        } catch (Exception e1) {
+                            // ignore - invalid
+                        }
                     }
-                    try {
-                        logger.info("APM Server certificates: {}", Arrays.toString(httpsURLConnection.getServerCertificates()));
-                    } catch (Exception e1) {
-                        // ignore - invalid
-                    }
-                    try {
-                        logger.info("Local certificates: {}", Arrays.toString(httpsURLConnection.getLocalCertificates()));
-                    } catch (Exception e1) {
-                        // ignore - invalid
-                    }
+                } finally {
+                    closeAndSuppressErrors(connection);
                 }
                 throw e;
+            } catch (Throwable t) {
+                closeAndSuppressErrors(connection);
+                throw t;
             }
         }
         return connection;
+    }
+
+    private void closeAndSuppressErrors(HttpURLConnection connection) {
+        try {
+            connection.disconnect();
+        } catch (Throwable t) {
+            logger.debug("Suppressed error on attempt to close connection", t);
+        }
     }
 
     private boolean isLocalhost(HttpURLConnection connection) {
