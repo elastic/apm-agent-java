@@ -116,7 +116,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     protected volatile boolean sync = true;
 
-    protected final RefCountingAtomicReference<Span> bufferedSpan = new RefCountingAtomicReference<>();
+    protected final AbstractSpanAtomicReference<Span> bufferedSpan = new AbstractSpanAtomicReference<>();
 
     // Span links handling
     public static final int MAX_ALLOWED_SPAN_LINKS = 1000;
@@ -591,10 +591,14 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
             beforeEnd(epochMicros);
             this.finished = true;
-            Span buffered = bufferedSpan.get();
+            Span buffered = bufferedSpan.incrementReferencesAndGet();
             if (buffered != null) {
-                if (bufferedSpan.compareAndSet(buffered, null)) {
-                    this.tracer.endSpan(buffered);
+                try {
+                    if (bufferedSpan.compareAndSet(buffered, null)) {
+                        this.tracer.endSpan(buffered);
+                    }
+                } finally {
+                    buffered.decrementReferences();
                 }
             }
             afterEnd();
