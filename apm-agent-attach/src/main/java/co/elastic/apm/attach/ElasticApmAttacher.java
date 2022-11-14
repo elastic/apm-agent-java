@@ -202,10 +202,14 @@ public class ElasticApmAttacher {
         final File agentJarFile = getAgentJarFile();
 
         private static File getAgentJarFile() {
-            if (ElasticApmAttacher.class.getResource("/elastic-apm-agent.jar") == null) {
-                return null;
+            if (ElasticApmAttacher.class.getResource("/elastic-apm-agent.jar") != null) {
+                // packaged agent as resource
+                return ResourceExtractionUtil.extractResourceToTempDirectory("elastic-apm-agent.jar", "elastic-apm-agent", ".jar").toFile();
             }
-            return ResourceExtractionUtil.extractResourceToTempDirectory("elastic-apm-agent.jar", "elastic-apm-agent", ".jar").toFile();
+
+            // Running attacher without proper packaging is quite common when running it from the IDE without having
+            // it packaged from CLI beforehand
+            throw new IllegalStateException("unable to get packaged agent within attacher jar, make sure to execute 'mvn clean package' first.");
         }
     }
 

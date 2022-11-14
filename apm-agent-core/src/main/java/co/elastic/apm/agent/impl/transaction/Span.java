@@ -285,8 +285,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             }
             if (!buffered.tryToCompress(this)) {
                 if (parent.bufferedSpan.compareAndSet(buffered, this)) {
-                    this.tracer.endSpan(buffered);
                     parent.decrementReferences();
+                    this.tracer.endSpan(buffered);
                 } else {
                     parent.decrementReferences();
                     // the failed update would ideally lead to a compression attempt with the new buffer,

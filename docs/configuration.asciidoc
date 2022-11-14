@@ -120,6 +120,7 @@ Click on a key to get more information.
 ** <<config-capture-body>>
 ** <<config-capture-headers>>
 ** <<config-global-labels>>
+** <<config-instrument-ancient-bytecode>>
 ** <<config-classes-excluded-from-instrumentation>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
@@ -1000,6 +1001,29 @@ NOTE: This feature requires APM Server 7.2+
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[[config-instrument-ancient-bytecode]]
+==== `instrument_ancient_bytecode` (added[1.35.0])
+
+A boolean specifying if the agent should instrument pre-Java-1.4 bytecode.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.instrument_ancient_bytecode` | `instrument_ancient_bytecode` | `ELASTIC_APM_INSTRUMENT_ANCIENT_BYTECODE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
 [[config-classes-excluded-from-instrumentation]]
 ==== `classes_excluded_from_instrumentation`
 
@@ -1353,7 +1377,7 @@ Valid options: `AUTO`, `AWS`, `GCP`, `AZURE`, `NONE`
 [[config-enable-public-api-annotation-inheritance]]
 ==== `enable_public_api_annotation_inheritance` (performance)
 
-A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).
+A boolean specifying if the agent should search the class hierarchy for public api annotations (`@CaptureTransaction`, `@CaptureSpan`, `@Traced`).
  When set to `false`, a method is instrumented if it is annotated with a public api annotation.
   When set to `true` methods overriding annotated methods will be instrumented as well.
  Either way, methods will only be instrumented if they are included in the configured <<config-application-packages>>.
@@ -3369,6 +3393,14 @@ Example: `5ms`.
 #
 # global_labels=
 
+# A boolean specifying if the agent should instrument pre-Java-1.4 bytecode.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# instrument_ancient_bytecode=false
+
 # Use to exclude specific classes from being instrumented. In order to exclude entire packages, 
 # use wildcards, as in: `com.project.exclude.*`
 # This option supports the wildcard `*`, which matches zero or more characters.
@@ -3565,7 +3597,7 @@ Example: `5ms`.
 #
 # cloud_provider=AUTO
 
-# A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).
+# A boolean specifying if the agent should search the class hierarchy for public api annotations (`@CaptureTransaction`, `@CaptureSpan`, `@Traced`).
 #  When set to `false`, a method is instrumented if it is annotated with a public api annotation.
 #   When set to `true` methods overriding annotated methods will be instrumented as well.
 #  Either way, methods will only be instrumented if they are included in the configured <<config-application-packages>>.
