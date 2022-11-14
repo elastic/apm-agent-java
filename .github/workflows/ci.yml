@@ -27,6 +27,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'adopt'
+          cache: 'maven'
       - name: Build
         run: ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
 
@@ -39,6 +40,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'adopt'
+          cache: 'maven'
       - name: Build
         run: ./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
 
@@ -51,6 +53,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'adopt'
+          cache: 'maven'
       - name: Test
         run: ./mvnw test
 
@@ -63,6 +66,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'adopt'
+          cache: 'maven'
       - name: Verify
         run: ./mvnw -q -P ci-non-application-server-integration-tests verify
 
@@ -75,6 +79,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'adopt'
+          cache: 'maven'
       - name: Verify
         run: ./mvnw -q -P ci-application-server-integration-tests verify
 
@@ -87,6 +92,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'adopt'
+          cache: 'maven'
       - name: Javadoc
         run: ./mvnw compile javadoc:javadoc
 
@@ -99,6 +105,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'adopt'
+          cache: 'maven'
       - name: Install
         run: mvnw.cmd clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true
       - name: Test
@@ -113,5 +120,6 @@ jobs:
         with:
           java-version: '17'
           distribution: 'adopt'
+          cache: 'maven'
       - name: Test
         run: mvnw test
