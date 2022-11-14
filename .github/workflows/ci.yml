@@ -100,12 +100,12 @@ jobs:
           java-version: '11'
           distribution: 'adopt'
       - name: Install
-        run: mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true
+        run: mvnw.cmd clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true
       - name: Test
-        run: mvnw test
+        run: mvnw.cmd test
 
   comp-jdk-test:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Set up JDK 17
