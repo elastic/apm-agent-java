@@ -112,9 +112,9 @@ jobs:
           distribution: ${{ env.JAVA_DIST }}
           cache: 'maven'
       - name: Install
-        run: mvnw.cmd clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true
+        run: ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true
       - name: Test
-        run: mvnw.cmd test
+        run: ./mvnw test
 
   comp-jdk-test:
     runs-on: ubuntu-latest
