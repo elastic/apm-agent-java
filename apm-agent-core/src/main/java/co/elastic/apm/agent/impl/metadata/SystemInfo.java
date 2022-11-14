@@ -45,6 +45,7 @@ public class SystemInfo {
 
     private static final String CONTAINER_UID_REGEX = "^[0-9a-fA-F]{64}$";
     private static final String SHORTENED_UUID_PATTERN = "^[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4,}";
+    private static final String AWS_FARGATE_UID_REGEX = "^[0-9a-fA-F]{32}\\-[0-9]{10}$";
     private static final String POD_REGEX = "(?:^/kubepods[\\S]*/pod([^/]+)$)|(?:kubepods[^/]*-pod([^/]+)\\.slice)";
 
     /**
@@ -360,7 +361,10 @@ public class SystemInfo {
 
                 // If the line matched the one of the kubernetes patterns, we assume that the last part is always the container ID.
                 // Otherwise we validate that it is a 64-length hex string
-                if (kubernetes != null || idPart.matches(CONTAINER_UID_REGEX) || idPart.matches(SHORTENED_UUID_PATTERN)) {
+                if (kubernetes != null ||
+                    idPart.matches(CONTAINER_UID_REGEX) ||
+                    idPart.matches(SHORTENED_UUID_PATTERN) ||
+                    idPart.matches(AWS_FARGATE_UID_REGEX))  {
                     container = new Container(idPart);
                 }
             }

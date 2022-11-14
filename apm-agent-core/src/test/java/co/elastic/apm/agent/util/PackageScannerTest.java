@@ -22,6 +22,13 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import net.bytebuddy.ByteBuddy;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PackageScannerTest {
@@ -45,4 +52,44 @@ class PackageScannerTest {
     void getClassNamesOfNonExistentPackage() throws Exception {
         assertThat(PackageScanner.getClassNames("foo.bar", ElasticApmAgent.getAgentClassLoader())).isEmpty();
     }
+
+    @Test
+    void threadInterruptSafe() throws InterruptedException, IOException {
+
+        CountDownLatch end = new CountDownLatch(1);
+
+        URL testJar = Test.class.getProtectionDomain().getCodeSource().getLocation();
+        try (final URLClassLoader classLoader = new URLClassLoader(new URL[]{testJar})) {
+
+            Thread t = new Thread() {
+                @Override
+                public void run() {
+
+                    // intentionally interrupt the thread, which leaves the thread in "interrupted" state
+                    interrupt();
+
+                    try {
+                        assertThat(PackageScanner.getClassNames(Test.class.getPackageName(), classLoader)).isNotEmpty();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    assertThat(isInterrupted())
+                        .describedAs("thread interrupted status should be preserved after getClassNames invocation")
+                        .isTrue();
+
+                    end.countDown();
+                }
+            };
+
+            t.start();
+
+            assertThat(end.await(1, TimeUnit.SECONDS))
+                .describedAs("abnormal test task termination")
+                .isTrue();
+        }
+    }
+
+
+
 }

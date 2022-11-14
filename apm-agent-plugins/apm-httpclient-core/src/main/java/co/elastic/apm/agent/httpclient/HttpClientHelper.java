@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -52,12 +51,12 @@ public class HttpClientHelper {
 
     @Nullable
     public static Span startHttpClientSpan(AbstractSpan<?> parent, String method, @Nullable String uri,
-                                           String scheme, CharSequence hostName, int port) {
+                                           @Nullable String scheme, @Nullable CharSequence hostName, int port) {
         Span span = parent.createExitSpan();
         if (span != null) {
             span.withType(EXTERNAL_TYPE)
                 .withSubtype(HTTP_SUBTYPE)
-                .appendToName(method).appendToName(" ").appendToName(hostName);
+                .appendToName(method).appendToName(" ").appendToName(hostName != null ? hostName : "unknown host");
 
             span.getContext().getHttp()
                 .withUrl(uri)
@@ -76,31 +75,26 @@ public class HttpClientHelper {
             return;
         }
 
-        boolean isDefaultPort = false;
         if ("http".equals(scheme)) {
             if (port < 0) {
                 port = 80;
-            }
-            if (port == 80) {
-                isDefaultPort = true;
             }
         } else if ("https".equals(scheme)) {
             if (port < 0) {
                 port = 443;
             }
-            if (port == 443) {
-                isDefaultPort = true;
-            }
         } else {
             return;
         }
 
-        Destination destination = span.getContext().getDestination().withAddress(host).withPort(port);
-        destination.getService().getResource().append(host).append(":").append(port);
-        destination.getService().getName().append(scheme).append("://").append(host);
-        if (!isDefaultPort) {
-            destination.getService().getName().append(":").append(port);
-        }
-        destination.getService().withType(EXTERNAL_TYPE);
+        span.getContext().getDestination()
+            .withAddress(host)
+            .withPort(port);
+
+        span.getContext().getServiceTarget()
+            .withType("http")
+            .withHostPortName(host, port)
+            .withNameOnlyDestinationResource();
+
     }
 }

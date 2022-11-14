@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.junit.After;
@@ -61,8 +62,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.BOTH;
-import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.POLLING;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.JmsStrategy.BOTH;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.JmsStrategy.POLLING;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_EXPIRATION_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_MESSAGE_ID_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TIMESTAMP_HEADER;
@@ -70,7 +71,7 @@ import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.TEMP;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.TIBCO_TMP_QUEUE_PREFIX;
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
 @RunWith(Parameterized.class)
@@ -213,26 +214,6 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     public void testQueueSendReceiveOnNonTracedThread() throws Exception {
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
-    }
-
-    @SuppressWarnings("ConstantConditions")
-    @Test
-    public void testQueueSendReceiveOnNonTracedThread_NonSampledTransaction() throws Exception {
-        final Queue queue = createTestQueue();
-
-        // End current transaction and start a non-sampled one
-        tracer.currentTransaction().deactivate().end();
-        reporter.reset();
-        startAndActivateTransaction(ConstantSampler.of(false));
-
-        doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
-        Transaction receiveTransaction = reporter.getFirstTransaction(500);
-        assertThat(receiveTransaction.isSampled()).isFalse();
-        assertThat(reporter.getSpans()).isEmpty();
-        assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from queue " + queue.getQueueName());
-        assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(tracer.currentTransaction().getTraceContext().getTraceId());
-        assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId());
-        assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
     }
 
     @Test
@@ -392,7 +373,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         Id currentTraceId = tracer.currentTransaction().getTraceContext().getTraceId();
         assertThat(sendSpan.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
         assertThat(sendSpan.getContext().getMessage().getQueueName()).isEqualTo(queue.getQueueName());
-        verifySendSpanDestinationDetails(sendSpan, queue.getQueueName());
+
+        assertThat(sendSpan.getContext().getServiceTarget())
+            .hasType("jms")
+            .hasName(queue.getQueueName())
+            .hasDestinationResource("jms/" + queue.getQueueName());
 
         Id receiveTraceId = receiveSpan.getTraceContext().getTraceId();
         List<Transaction> receiveTransactions = reporter.getTransactions().stream().filter(transaction -> transaction.getTraceContext().getTraceId().equals(receiveTraceId)).collect(Collectors.toList());
@@ -409,17 +394,21 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         } else {
             assertThat(receiveSpan.getContext().getMessage().getAge()).isGreaterThanOrEqualTo(0);
         }
+        List<TraceContext> spanLinks = receiveSpan.getSpanLinks();
+        assertThat(spanLinks).hasSize(1);
+        assertThat(spanLinks.get(0).getTraceId()).isEqualTo(sendSpan.getTraceContext().getTraceId());
+        assertThat(spanLinks.get(0).getParentId()).isEqualTo(sendSpan.getTraceContext().getId());
 
         if (sendToNoopSpan != null) {
             assertThat(sendToNoopSpan.getTraceContext().getTraceId()).isEqualTo(receiveTraceId);
             assertThat(sendToNoopSpan.getTraceContext().getParentId()).isEqualTo(receiveTransaction.getTraceContext().getId());
             assertThat(sendToNoopSpan.getContext().getMessage().getQueueName()).isEqualTo("NOOP");
-            verifySendSpanDestinationDetails(sendToNoopSpan, "NOOP");
-        }
-    }
 
-    private void verifySendSpanDestinationDetails(Span sendSpan, String destinationName) {
-        assertThat(sendSpan.getContext().getDestination().getService().getResource().toString()).isEqualTo("jms/" + destinationName);
+            assertThat(sendToNoopSpan.getContext().getServiceTarget())
+                .hasType("jms")
+                .hasName("NOOP")
+                .hasDestinationResource("jms/NOOP");
+        }
     }
 
     // tests transaction creation following a receive
@@ -452,7 +441,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
         assertThat(sendSpan.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
         assertThat(sendSpan.getContext().getMessage().getAge()).isEqualTo(-1L);
-        verifySendSpanDestinationDetails(sendSpan, destinationName);
+        assertThat(sendSpan.getContext().getServiceTarget())
+            .hasType("jms")
+            .hasName(destinationName)
+            .hasDestinationResource("jms/" + destinationName);
 
         //noinspection ConstantConditions
         Id currentTraceId = tracer.currentTransaction().getTraceContext().getTraceId();
@@ -495,7 +487,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     }
 
     private void verifySendReceiveOnNonTracedThread(String destinationName, TextMessage message) throws JMSException {
-        MessagingConfiguration.Strategy strategy = config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy();
+        MessagingConfiguration.JmsStrategy strategy = config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy();
 
         List<Span> spans = reporter.getSpans();
         List<Transaction> receiveTransactions = reporter.getTransactions();
@@ -519,7 +511,12 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(spanName).endsWith(destinationName);
         assertThat(sendInitialMessageSpan.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
         assertThat(sendInitialMessageSpan.getContext().getMessage().getAge()).isEqualTo(-1L);
-        verifySendSpanDestinationDetails(sendInitialMessageSpan, destinationName);
+
+        assertThat(sendInitialMessageSpan.getContext()
+            .getServiceTarget())
+            .hasType("jms")
+            .hasName(destinationName)
+            .hasDestinationResource("jms/"+destinationName);
 
         //noinspection ConstantConditions
         Id currentTraceId = tracer.currentTransaction().getTraceContext().getTraceId();
@@ -556,7 +553,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             // If both polling and handling transactions are captured, handling transaction would come second
             assertThat(sendNoopSpan.getTraceContext().getParentId()).isEqualTo(transactionId);
             assertThat(sendNoopSpan.getContext().getMessage().getQueueName()).isEqualTo("NOOP");
-            verifySendSpanDestinationDetails(sendNoopSpan, "NOOP");
+            assertThat(sendNoopSpan.getContext().getServiceTarget())
+                .hasType("jms")
+                .hasName("NOOP")
+                .hasDestinationResource("jms/NOOP");
         }
     }
 

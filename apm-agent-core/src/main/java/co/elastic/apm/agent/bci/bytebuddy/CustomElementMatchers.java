@@ -42,6 +42,7 @@ import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.Collection;
 import java.util.List;
+import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
@@ -52,10 +53,20 @@ import static net.bytebuddy.matcher.ElementMatchers.none;
 public class CustomElementMatchers {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomElementMatchers.class);
+
     private static final ElementMatcher.Junction.AbstractBase<ClassLoader> AGENT_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
         @Override
         public boolean matches(@Nullable ClassLoader classLoader) {
             return ClassLoaderUtils.isAgentClassLoader(classLoader);
+        }
+    };
+
+    private static final ElementMatcher.Junction.AbstractBase<ClassLoader> INTERNAL_PLUGIN_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
+        @Override
+        public boolean matches(@Nullable ClassLoader classLoader) {
+
+            boolean result = ClassLoaderUtils.isInternalPluginClassLoader(classLoader);
+            return result;
         }
     };
 
@@ -73,6 +84,7 @@ public class CustomElementMatchers {
 
     /**
      * Matches the target class loader to a given class loader by instance comparison
+     *
      * @param other the class loader to match to
      * @return {@code true} if {@code other} is the same class loader instance as the target class loader
      */
@@ -84,7 +96,6 @@ public class CustomElementMatchers {
             }
         };
     }
-
 
     /**
      * Matches only class loaders which can load a certain class.
@@ -164,8 +175,13 @@ public class CustomElementMatchers {
             public boolean matches(@Nullable ProtectionDomain protectionDomain) {
                 try {
                     Version pdVersion = readImplementationVersionFromManifest(protectionDomain);
-                    Version limitVersion = Version.of(version);
+                    Version limitVersion = Version.of(version).withoutSuffix();
                     if (pdVersion != null) {
+                        pdVersion = pdVersion
+                            // ignore suffixes to ensure that 4.5.13.redhat = 4.5.13
+                            // however, this implies that we'll match 4.5.13-SNAPSHOT = 4.5.13
+                            // which is not entirely correct as the snapshot may not have all the changes that are in the final version
+                            .withoutSuffix();
                         return matcher.match(pdVersion, limitVersion);
                     }
                 } catch (Exception e) {
@@ -182,6 +198,10 @@ public class CustomElementMatchers {
         return AGENT_CLASS_LOADER_MATCHER;
     }
 
+    public static ElementMatcher.Junction<ClassLoader> isInternalPluginClassLoader() {
+        return INTERNAL_PLUGIN_CLASS_LOADER_MATCHER;
+    }
+
     private enum Matcher {
         LTE {
             @Override
@@ -196,6 +216,7 @@ public class CustomElementMatchers {
 
             }
         };
+
         abstract <T extends Comparable<T>> boolean match(T c1, T c2);
     }
 
@@ -218,10 +239,16 @@ public class CustomElementMatchers {
                         }
                         Manifest manifest = jarFile.getManifest();
                         if (manifest != null) {
-                            String implementationVersion = manifest.getMainAttributes().getValue("Implementation-Version");
-                            if (implementationVersion != null) {
-                                version = Version.of(implementationVersion);
+                            Attributes attributes = manifest.getMainAttributes();
+                            String manifestVersion = attributes.getValue("Implementation-Version");
+                            if (manifestVersion == null) {
+                                // fallback on OSGI bundle version when impl. version not available
+                                manifestVersion = attributes.getValue("Bundle-Version");
                             }
+                            if (manifestVersion != null) {
+                                version = Version.of(manifestVersion);
+                            }
+
                         }
                     }
                 }

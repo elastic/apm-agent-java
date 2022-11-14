@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.configuration;
 
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.SimpleSource;
@@ -95,6 +96,18 @@ class CoreConfigurationTest {
         CoreConfiguration config = getCoreConfiguration("", "incubating");
         assertThat(config.isInstrumentationEnabled("experimental")).isFalse();
         assertThat(config.isInstrumentationEnabled(Collections.singletonList("experimental"))).isFalse();
+    }
+
+    @Test
+    void testPreventBroadElasticApmExclusionFromInstrumentation() {
+        CoreConfiguration coreConfig = ConfigurationRegistry.builder()
+            .addOptionProvider(new CoreConfiguration())
+            .addConfigSource(SimpleSource.forTest("classes_excluded_from_instrumentation", "co.elastic.apm.*, co.elastic.*, foo.bar.*"))
+            .build()
+            .getConfig(CoreConfiguration.class);
+
+        assertThat(coreConfig.getClassesExcludedFromInstrumentation())
+            .containsExactly(WildcardMatcher.valueOf("foo.bar.*"));
     }
 
     private static CoreConfiguration getCoreConfiguration(String enabledInstrumentations, String disabledInstrumentations) {

@@ -24,8 +24,8 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import test.CustomScheduledThreadPoolExecutor;
 
-import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -41,17 +41,7 @@ public class ScheduledExecutorServiceTest extends AbstractInstrumentationTest {
     @BeforeEach
     void setUp() {
         transaction = tracer.startRootTransaction(null).withName("transaction").activate();
-        scheduler = new ScheduledThreadPoolExecutor(1) {
-            @Override
-            public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
-                return super.schedule(callable, delay, unit);
-            }
-
-            @Override
-            public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-                return super.schedule(command, delay, unit);
-            }
-        };
+        scheduler = new CustomScheduledThreadPoolExecutor(1);
     }
 
     @AfterEach

@@ -48,6 +48,11 @@ public class ServletContainerTest extends AbstractInstrumentationTest {
     @AfterAll
     static void stopApp() {
         app.close();
+
+        // reset context CL on all threads to remove any embedded tomcat CL that might influence tests afterwards
+        for (Thread thread : Thread.getAllStackTraces().keySet()) {
+            thread.setContextClassLoader(null);
+        }
     }
 
     @AfterEach

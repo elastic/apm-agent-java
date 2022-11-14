@@ -20,7 +20,6 @@ package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.db.signature.Scanner;
 import co.elastic.apm.agent.db.signature.SignatureParser;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.jdbc.JdbcFilter;
@@ -119,16 +118,18 @@ public class JdbcHelper {
         String vendor = "unknown";
         if (connectionMetaData != null) {
             vendor = connectionMetaData.getDbVendor();
+            String instance = connectionMetaData.getInstance();
             span.getContext().getDb()
-                .withInstance(connectionMetaData.getInstance())
+                .withInstance(instance)
                 .withUser(connectionMetaData.getUser());
-            Destination destination = span.getContext().getDestination()
+
+            span.getContext().getDestination()
                 .withAddress(connectionMetaData.getHost())
                 .withPort(connectionMetaData.getPort());
-            destination.getService()
-                .withName(vendor)
-                .withResource(vendor)
-                .withType(DB_SPAN_TYPE);
+
+            span.getContext().getServiceTarget()
+                .withType(vendor)
+                .withName(instance);
         }
         span.withSubtype(vendor).withAction(DB_SPAN_ACTION);
 
@@ -149,6 +150,15 @@ public class JdbcHelper {
         return parentSpan.getType() != null && parentSpan.getType().equals(DB_SPAN_TYPE);
     }
 
+    /**
+     * Build or return cached connection metadata. The returned value might rely on current connection state for the
+     * database instance and the database user. For database instance, the value is parsed from JDBC connection string
+     * and the runtime value of {@link Connection#getCatalog()} is used as a fallback when parsing is unable to capture
+     * the database name.
+     *
+     * @param connection database connection
+     * @return connection metadata, either from cache or from current connection state
+     */
     @Nullable
     private ConnectionMetaData getConnectionMetaData(@Nullable Connection connection) {
         if (null == connection) {
@@ -168,7 +178,15 @@ public class JdbcHelper {
 
         try {
             DatabaseMetaData metaData = connection.getMetaData();
-            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), safeGetCatalog(connection), metaData.getUserName());
+            connectionMetaData = ConnectionMetaData.parse(metaData.getURL())
+                .withConnectionInstance(safeGetCatalog(connection))
+                .withConnectionUser(metaData.getUserName())
+                .build();
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Based on the connection URL {}, parsed metadata is: {}", metaData.getURL(), connectionMetaData);
+            }
+
             if (supported == null) {
                 markSupported(JdbcFeature.METADATA, type);
             }

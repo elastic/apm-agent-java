@@ -164,7 +164,7 @@ public abstract class WildcardMatcher {
      */
     @Nullable
     public static WildcardMatcher anyMatch(List<WildcardMatcher> matchers, @Nullable CharSequence s) {
-        if (s == null) {
+        if (s == null || matchers.isEmpty()) {
             return null;
         }
         return anyMatch(matchers, s, null);

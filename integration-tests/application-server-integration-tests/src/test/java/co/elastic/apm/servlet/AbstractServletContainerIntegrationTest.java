@@ -21,6 +21,7 @@ package co.elastic.apm.servlet;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.test.AgentFileAccessor;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.servlet.tests.TestApp;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -47,6 +48,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -85,9 +87,9 @@ import static org.mockserver.model.HttpRequest.request;
 public abstract class AbstractServletContainerIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
 
-    private static final String pathToJavaagent;
-    private static final String pathToAttach;
-    private static final String pathToSlimAttach;
+    private static final Path pathToJavaagent;
+    private static final Path pathToAttach;
+    private static final Path pathToSlimAttach;
 
     static boolean ENABLE_DEBUGGING = false;
     static boolean ENABLE_RUNTIME_ATTACH = true;
@@ -116,12 +118,9 @@ public abstract class AbstractServletContainerIntegrationTest {
             .addInterceptor(loggingInterceptor)
             .readTimeout(ENABLE_DEBUGGING ? 0 : 10, TimeUnit.SECONDS)
             .build();
-        pathToJavaagent = AgentFileAccessor.getPathToJavaagent();
-        pathToAttach = AgentFileAccessor.getPathToAttacher();
-        pathToSlimAttach = AgentFileAccessor.getPathToSlimAttacher();
-        checkFilePresent(pathToJavaagent);
-        checkFilePresent(pathToAttach);
-        checkFilePresent(pathToSlimAttach);
+        pathToJavaagent = checkFilePresent(AgentFileAccessor.getPathToJavaagent());
+        pathToAttach = checkFilePresent(AgentFileAccessor.getPathToAttacher());
+        pathToSlimAttach = checkFilePresent(AgentFileAccessor.getPathToSlimAttacher());
     }
 
     private final MockReporter mockReporter = new MockReporter();
@@ -191,7 +190,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             testApp.getAdditionalEnvVariables().forEach(servletContainer::withEnv);
             try {
                 testApp.getAdditionalFilesToBind().forEach((pathToFile, containerPath) -> {
-                    checkFilePresent(pathToFile);
+                    checkFilePresent(Path.of(pathToFile));
                     servletContainer.withCopyFileToContainer(MountableFile.forHostPath(pathToFile), containerPath);
                 });
             } catch (Exception e) {
@@ -200,7 +199,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
         for (TestApp testApp : getTestApps()) {
             String pathToAppFile = testApp.getAppFilePath();
-            checkFilePresent(pathToAppFile);
+            checkFilePresent(Path.of(pathToAppFile));
             servletContainer.withCopyFileToContainer(MountableFile.forHostPath(pathToAppFile), deploymentPath + "/" + testApp.getAppFileName());
         }
         this.servletContainer.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
@@ -261,12 +260,10 @@ public abstract class AbstractServletContainerIntegrationTest {
             "argument properly to the command line");
     }
 
-    private static void checkFilePresent(String pathToFile) {
-        final File file = new File(pathToFile);
-        logger.info("Check file {}", file.getAbsolutePath());
-        assertThat(file).exists();
-        assertThat(file).isFile();
-        assertThat(file.length()).isGreaterThan(0);
+    private static Path checkFilePresent(Path file) {
+        logger.info("Check file {}", file.toAbsolutePath());
+        assertThat(file).exists().isNotEmptyFile();
+        return file;
     }
 
     protected void enableDebugging(GenericContainer<?> servletContainer) {
@@ -568,10 +565,13 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
         JsonNode contextService = event.get("context").get("service");
         assertThat(contextService)
-            .withFailMessage("No service context available.")
+            .describedAs("No service context available.")
             .isNotNull();
         if (expectedServiceName != null) {
-            assertThat(contextService.get("name").textValue())
+            assertThat(contextService.get("name"))
+                .describedAs("Event has missing service name %s", event)
+                .isNotNull();
+            assertThat(contextService.get("name").asText())
                 .describedAs("Event has unexpected service name %s", event)
                 .isEqualTo(expectedServiceName);
         }

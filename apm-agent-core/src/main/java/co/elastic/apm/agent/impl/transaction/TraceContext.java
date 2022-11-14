@@ -115,10 +115,10 @@ public class TraceContext implements Recyclable {
             }
         }
     };
-    private static final ChildContextCreatorTwoArg FROM_TRACE_CONTEXT_TEXT_HEADERS =
-        new ChildContextCreatorTwoArg<Object, TextHeaderGetter<Object>>() {
+    private static final HeaderChildContextCreator FROM_TRACE_CONTEXT_TEXT_HEADERS =
+        new HeaderChildContextCreator<String, Object>() {
             @Override
-            public boolean asChildOf(TraceContext child, @Nullable Object carrier, TextHeaderGetter<Object> traceContextHeaderGetter) {
+            public boolean asChildOf(TraceContext child, @Nullable Object carrier, HeaderGetter<String, Object> traceContextHeaderGetter) {
                 if (carrier == null) {
                     return false;
                 }
@@ -145,10 +145,10 @@ public class TraceContext implements Recyclable {
                 return isValid;
             }
         };
-    private static final ChildContextCreatorTwoArg FROM_TRACE_CONTEXT_BINARY_HEADERS =
-        new ChildContextCreatorTwoArg<Object, BinaryHeaderGetter<Object>>() {
+    private static final HeaderChildContextCreator FROM_TRACE_CONTEXT_BINARY_HEADERS =
+        new HeaderChildContextCreator<byte[], Object>() {
             @Override
-            public boolean asChildOf(TraceContext child, @Nullable Object carrier, BinaryHeaderGetter<Object> traceContextHeaderGetter) {
+            public boolean asChildOf(TraceContext child, @Nullable Object carrier, HeaderGetter<byte[], Object> traceContextHeaderGetter) {
                 if (carrier == null) {
                     return false;
                 }
@@ -265,13 +265,13 @@ public class TraceContext implements Recyclable {
     }
 
     @SuppressWarnings("unchecked")
-    public static <C> ChildContextCreatorTwoArg<C, TextHeaderGetter<C>> getFromTraceContextTextHeaders() {
-        return (ChildContextCreatorTwoArg<C, TextHeaderGetter<C>>) FROM_TRACE_CONTEXT_TEXT_HEADERS;
+    public static <C> HeaderChildContextCreator<String, C> getFromTraceContextTextHeaders() {
+        return (HeaderChildContextCreator<String, C>) FROM_TRACE_CONTEXT_TEXT_HEADERS;
     }
 
     @SuppressWarnings("unchecked")
-    public static <C> ChildContextCreatorTwoArg<C, BinaryHeaderGetter<C>> getFromTraceContextBinaryHeaders() {
-        return (ChildContextCreatorTwoArg<C, BinaryHeaderGetter<C>>) FROM_TRACE_CONTEXT_BINARY_HEADERS;
+    public static <C> HeaderChildContextCreator<byte[], C> getFromTraceContextBinaryHeaders() {
+        return (HeaderChildContextCreator<byte[], C>) FROM_TRACE_CONTEXT_BINARY_HEADERS;
     }
 
     public static ChildContextCreator<Tracer> fromActive() {
@@ -586,10 +586,14 @@ public class TraceContext implements Recyclable {
      */
     StringBuilder getOutgoingTraceParentTextHeader() {
         if (outgoingTextHeader.length() == 0) {
-            // for unsampled traces, propagate the ID of the transaction in calls to downstream services
-            // such that the parentID of those transactions point to a transaction that exists
-            // remember that we do report unsampled transactions
-            fillTraceParentHeader(outgoingTextHeader, isSampled() ? id : transactionId);
+            synchronized (outgoingTextHeader) {
+                if (outgoingTextHeader.length() == 0) {
+                    // for unsampled traces, propagate the ID of the transaction in calls to downstream services
+                    // such that the parentID of those transactions point to a transaction that exists
+                    // remember that we do report unsampled transactions
+                    fillTraceParentHeader(outgoingTextHeader, isSampled() ? id : transactionId);
+                }
+            }
         }
         return outgoingTextHeader;
     }
@@ -782,8 +786,8 @@ public class TraceContext implements Recyclable {
         boolean asChildOf(TraceContext child, T parent);
     }
 
-    public interface ChildContextCreatorTwoArg<T, A> {
-        boolean asChildOf(TraceContext child, @Nullable T parent, A arg);
+    public interface HeaderChildContextCreator<H, C> {
+        boolean asChildOf(TraceContext child, @Nullable C carrier, HeaderGetter<H, C> headerGetter);
     }
 
     public TraceContext copy() {

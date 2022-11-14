@@ -92,11 +92,6 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     }
 
     @Test
-    public void testJaxRsTransactionNameNonSampledTransactions() throws IOException {
-        helper.testJaxRsTransactionNameNonSampledTransactions();
-    }
-
-    @Test
     public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabled() {
         helper.testJaxRsTransactionNameFromPathAnnotationInheritanceEnabled();
     }
@@ -134,11 +129,6 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     @Test
     public void testJaxRsFrameworkNameAndVersion() throws IOException {
         helper.testJaxRsFrameworkNameAndVersion("2.1");
-    }
-
-    @Test
-    public void testJaxRsFrameworkNameAndVersionWithNonSampledTransaction() throws IOException {
-        helper.testJaxRsFrameworkNameAndVersionWithNonSampledTransaction("2.1");
     }
 
     /**

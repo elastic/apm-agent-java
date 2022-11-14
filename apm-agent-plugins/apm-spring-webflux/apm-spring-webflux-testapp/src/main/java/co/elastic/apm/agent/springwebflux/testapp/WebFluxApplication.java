@@ -92,7 +92,15 @@ public class WebFluxApplication {
             count = Math.max(count, 1);
             doSampleRequests(useFunc -> new GreetingWebClient("localhost", port, useFunc, logEnabled), count);
         } else {
-            // leave server running
+
+            try (App app = run(port, server, logEnabled)) {
+                if (count > 0) {
+                    doSampleRequests(useFunc -> new GreetingWebClient("localhost", port, useFunc, logEnabled), count);
+                }
+
+                // leave server running
+                waitForKey();
+            }
         }
 
     }

@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
+import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
@@ -56,6 +57,7 @@ public class JavaConcurrent {
         // Spring-JMS polling mechanism that translates to passive onMessage handling
         EXCLUDED_EXECUTABLE_TYPES.add("org.springframework.jms.listener.DefaultMessageListenerContainer$AsyncMessageListenerInvoker");
         EXCLUDED_EXECUTABLE_TYPES.add("com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator");
+        EXCLUDED_EXECUTABLE_TYPES.add("com.github.benmanes.caffeine.cache.BoundedLocalCache.PerformCleanupTask");
     }
 
     private static void removeContext(Object o) {
@@ -64,6 +66,7 @@ public class JavaConcurrent {
 
     private static boolean shouldAvoidContextPropagation(@Nullable Object executable) {
         return executable == null ||
+            Thread.currentThread().getName().startsWith(ThreadUtils.ELASTIC_APM_THREAD_PREFIX) ||
             EXCLUDED_EXECUTABLE_TYPES.contains(executable.getClass().getName()) ||
             needsContext.get() == Boolean.FALSE;
     }

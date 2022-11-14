@@ -51,7 +51,6 @@ import static co.elastic.apm.agent.logging.LoggingConfiguration.LOG_FILE_KEY;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.LOG_FORMAT_FILE_KEY;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.LOG_FORMAT_SOUT_KEY;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.LOG_LEVEL_KEY;
-import static co.elastic.apm.agent.logging.LoggingConfiguration.SHIP_AGENT_LOGS;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.SYSTEM_OUT;
 
 public class Log4j2ConfigurationFactory extends ConfigurationFactory {
@@ -91,12 +90,20 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
                 logFile = logFile.replace(AGENT_HOME_PLACEHOLDER, agentHome);
             }
         }
-        logFile = new File(logFile).getAbsolutePath();
-        final File logDir = new File(logFile).getParentFile();
-        if (!logDir.exists()) {
-            logDir.mkdirs();
+
+        boolean canWrite;
+        try {
+            logFile = new File(logFile).getAbsolutePath();
+            final File logDir = new File(logFile).getParentFile();
+            if (!logDir.exists()) {
+                logDir.mkdirs();
+            }
+            canWrite = logDir.canWrite();
+        } catch (SecurityException e) {
+            canWrite = false;
         }
-        if (!logDir.canWrite()) {
+
+        if(!canWrite){
             System.err.println("[elastic-apm-agent] WARN Log file " + logFile + " is not writable. Falling back to System.out.");
             return SYSTEM_OUT;
         }
@@ -145,13 +152,6 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         String logFile = getActualLogFile(ElasticApmAgent.getAgentHome(), getValue(LOG_FILE_KEY, sources, getValue(DEPRECATED_LOG_FILE_KEY, sources, DEFAULT_LOG_FILE)));
         if (logFile.equals(SYSTEM_OUT)) {
             appenders.add(createConsoleAppender(builder));
-            if (Boolean.parseBoolean(getValue(SHIP_AGENT_LOGS, sources, Boolean.TRUE.toString()))) {
-                File tempLog = getTempLogFile(ephemeralId);
-                tempLog.deleteOnExit();
-                File rotatedTempLog = new File(tempLog + ".1");
-                rotatedTempLog.deleteOnExit();
-                appenders.add(createFileAppender(builder, tempLog.getAbsolutePath(), createLayout(builder, LogFormat.JSON)));
-            }
         } else {
             appenders.add(createFileAppender(builder, logFile, createLayout(builder, getFileLogFormat())));
         }

@@ -21,15 +21,15 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Db;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Message;
+import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.util.StringBuilderUtils;
+import co.elastic.apm.agent.util.CharSequenceUtils;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -231,30 +231,24 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
         // auto-infer context.destination.service.resource as per spec:
         // https://github.com/elastic/apm/blob/main/specs/agents/tracing-spans-destination.md#contextdestinationserviceresource
-        Destination.Service service = getContext().getDestination().getService();
-        StringBuilder serviceResource = service.getResource();
-        if (isExit() && serviceResource.length() == 0 && !service.isResourceSetByUser()) {
-            String resourceType = (subtype != null) ? subtype : type;
+        ServiceTarget serviceTarget = getContext().getServiceTarget();
+        if (isExit() && !serviceTarget.hasContent() && !serviceTarget.isSetByUser()) {
             Db db = context.getDb();
             Message message = context.getMessage();
-            Url internalUrl = context.getHttp().getInternalUrl();
+            Url httpUrl = context.getHttp().getInternalUrl();
+            String targetServiceType = (subtype != null) ? subtype : type;
             if (db.hasContent()) {
-                serviceResource.append(resourceType);
-                if (db.getInstance() != null) {
-                    serviceResource.append('/').append(db.getInstance());
-                }
+                serviceTarget.withType(targetServiceType).withName(db.getInstance());
             } else if (message.hasContent()) {
-                serviceResource.append(resourceType);
-                if (message.getQueueName() != null) {
-                    serviceResource.append('/').append(message.getQueueName());
-                }
-            } else if (internalUrl.hasContent()) {
-                serviceResource.append(internalUrl.getHostname());
-                if (internalUrl.getPort() > 0) {
-                    serviceResource.append(':').append(internalUrl.getPort());
-                }
+                serviceTarget.withType(targetServiceType).withName(message.getQueueName());
+            } else if (httpUrl.hasContent()) {
+
+                // direct modification of destination resource to ensure compatibility
+                serviceTarget.withType("http")
+                    .withHostPortName(httpUrl.getHostname(), httpUrl.getPort())
+                    .withNameOnlyDestinationResource();
             } else {
-                serviceResource.append(resourceType);
+                serviceTarget.withType(targetServiceType);
             }
         }
 
@@ -263,7 +257,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         }
         if (parent != null) {
             parent.onChildEnd(epochMicros);
-            parent.decrementReferences();
         }
     }
 
@@ -271,16 +264,18 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     protected void afterEnd() {
         if (transaction != null && transaction.isSpanCompressionEnabled() && parent != null) {
             Span buffered = parent.bufferedSpan.get();
-            if (!isCompressionEligible()) {
+            if (parent.isFinished() || !isCompressionEligible()) {
                 if (buffered != null) {
                     if (parent.bufferedSpan.compareAndSet(buffered, null)) {
                         this.tracer.endSpan(buffered);
                     }
                 }
+                parent.decrementReferences();
                 this.tracer.endSpan(this);
                 return;
             }
             if (buffered == null) {
+                parent.decrementReferences();
                 if (!parent.bufferedSpan.compareAndSet(null, this)) {
                     // the failed update would ideally lead to a compression attempt with the new buffer,
                     // but we're dropping the compression attempt to keep things simple
@@ -290,8 +285,10 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             }
             if (!buffered.tryToCompress(this)) {
                 if (parent.bufferedSpan.compareAndSet(buffered, this)) {
+                    parent.decrementReferences();
                     this.tracer.endSpan(buffered);
                 } else {
+                    parent.decrementReferences();
                     // the failed update would ideally lead to a compression attempt with the new buffer,
                     // but we're dropping the compression attempt to keep things simple
                     this.tracer.endSpan(this);
@@ -301,9 +298,13 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                 if (transaction != null) {
                     transaction.getSpanCount().getDropped().incrementAndGet();
                 }
+                parent.decrementReferences();
                 decrementReferences();
             }
         } else {
+            if (parent != null) {
+                parent.decrementReferences();
+            }
             this.tracer.endSpan(this);
         }
     }
@@ -354,7 +355,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             return tryToCompressComposite(sibling);
         }
 
-        if (StringBuilderUtils.equals(name, sibling.name)) {
+        if (CharSequenceUtils.equals(name, sibling.name)) {
             long maxExactMatchDuration = transaction.getSpanCompressionExactMatchMaxDurationUs();
             if (currentDuration <= maxExactMatchDuration && sibling.getDuration() <= maxExactMatchDuration) {
                 if (!composite.init(currentDuration, "exact_match")) {
@@ -370,12 +371,35 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             if (!composite.init(currentDuration, "same_kind")) {
                 return tryToCompressComposite(sibling);
             }
-            name.setLength(0);
-            name.append("Calls to ").append(context.getDestination().getService().getResource());
+            setCompressedSpanName();
             return true;
         }
 
         return false;
+    }
+
+    private void setCompressedSpanName() {
+        name.setLength(0);
+
+        ServiceTarget serviceTarget = context.getServiceTarget();
+        String serviceType = serviceTarget.getType();
+        CharSequence serviceName = serviceTarget.getName();
+
+        name.append("Calls to ");
+        if (serviceType == null && serviceName == null) {
+            name.append("unknown");
+        } else {
+            boolean hasType = serviceType != null;
+            if (hasType) {
+                name.append(serviceType);
+            }
+            if (serviceName != null) {
+                if (hasType) {
+                    name.append('/');
+                }
+                name.append(serviceName);
+            }
+        }
     }
 
     private boolean tryToCompressComposite(Span sibling) {
@@ -388,7 +412,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         switch (compressionStrategy) {
             case "exact_match":
                 long maxExactMatchDuration = transaction.getSpanCompressionExactMatchMaxDurationUs();
-                return isSameKind(sibling) && StringBuilderUtils.equals(name, sibling.name) && sibling.getDuration() <= maxExactMatchDuration;
+                return isSameKind(sibling) && CharSequenceUtils.equals(name, sibling.name) && sibling.getDuration() <= maxExactMatchDuration;
 
             case "same_kind":
                 long maxSameKindDuration = transaction.getSpanCompressionSameKindMaxDurationUs();
@@ -400,9 +424,12 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     private boolean isSameKind(Span other) {
+        ServiceTarget serviceTarget = context.getServiceTarget();
+        ServiceTarget otherServiceTarget = other.context.getServiceTarget();
         return Objects.equals(type, other.type)
             && Objects.equals(subtype, other.subtype)
-            && StringBuilderUtils.equals(context.getDestination().getService().getResource(), other.context.getDestination().getService().getResource());
+            && Objects.equals(serviceTarget.getType(), otherServiceTarget.getType())
+            && CharSequenceUtils.equals(serviceTarget.getName(), otherServiceTarget.getName());
     }
 
     @Override

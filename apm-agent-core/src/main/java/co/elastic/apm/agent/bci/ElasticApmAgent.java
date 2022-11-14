@@ -74,7 +74,6 @@ import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.nio.file.Paths;
-import java.security.AllPermission;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -89,6 +88,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
+import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithNamePrefix;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.anyMatch;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
@@ -107,6 +107,8 @@ public class ElasticApmAgent {
     // Don't eagerly create logger. Logging needs to be initialized first based on configuration. See also issue #593
     @Nullable
     private static Logger logger;
+
+    private static boolean ancientBytecodeInstrumentationEnabled;
 
     private static final InstrumentationStats instrumentationStats = new InstrumentationStats();
 
@@ -210,7 +212,6 @@ public class ElasticApmAgent {
     }
 
 
-
     public static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
                                                         Iterable<ElasticApmInstrumentation> instrumentations) {
         GlobalTracer.init(tracer);
@@ -223,6 +224,7 @@ public class ElasticApmAgent {
         if (!coreConfig.isEnabled()) {
             return;
         }
+        ancientBytecodeInstrumentationEnabled = coreConfig.isInstrumentAncientBytecode();
         String bytecodeDumpPath = coreConfig.getBytecodeDumpPath();
         if (bytecodeDumpPath != null) {
             bytecodeDumpPath = bytecodeDumpPath.trim();
@@ -413,10 +415,12 @@ public class ElasticApmAgent {
             .transform(new AgentBuilder.Transformer() {
                 @Override
                 public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription,
-                                                        ClassLoader classLoader, JavaModule module) {
-                    return builder.visit(MinimumClassFileVersionValidator.V1_4)
-                        // As long as we allow 1.4 bytecode, we need to add this constant pool adjustment as well
-                        .visit(TypeConstantAdjustment.INSTANCE);
+                                                        ClassLoader classLoader, JavaModule module, ProtectionDomain protectionDomain) {
+                    if (!ancientBytecodeInstrumentationEnabled) {
+                        builder = builder.visit(MinimumClassFileVersionValidator.V1_4);
+                    }
+                    // As long as we allow 1.4 bytecode, we need to add this constant pool adjustment as well
+                    return builder.visit(TypeConstantAdjustment.INSTANCE);
                 }
             });
     }
@@ -535,7 +539,7 @@ public class ElasticApmAgent {
         }
     }
 
-    private static void checkInline(MethodDescription.InDefinedShape advice, String adviceClassName, boolean isInline){
+    private static void checkInline(MethodDescription.InDefinedShape advice, String adviceClassName, boolean isInline) {
         if (isInline) {
             throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, advice.getName()));
         } else if (!Modifier.isPublic(advice.getModifiers())) {
@@ -690,11 +694,20 @@ public class ElasticApmAgent {
             .or(nameStartsWith("com.p6spy."))
             .or(nameStartsWith("net.bytebuddy."))
             .or(nameStartsWith("org.stagemonitor."))
+            .or(any(), classLoaderWithNamePrefix("com.newrelic."))
             .or(nameStartsWith("com.newrelic."))
+            .or(any(), classLoaderWithNamePrefix("com.nr.agent."))
+            .or(nameStartsWith("com.nr.agent."))
+            .or(any(), classLoaderWithNamePrefix("com.dynatrace."))
             .or(nameStartsWith("com.dynatrace."))
             // AppDynamics
+            .or(any(), classLoaderWithNamePrefix("com.singularity"))
             .or(nameStartsWith("com.singularity."))
+            .or(any(), classLoaderWithNamePrefix("com.appdynamics."))
+            .or(nameStartsWith("com.appdynamics."))
+            .or(any(), classLoaderWithNamePrefix("com.instana."))
             .or(nameStartsWith("com.instana."))
+            .or(any(), classLoaderWithNamePrefix("datadog."))
             .or(nameStartsWith("datadog."))
             .or(nameStartsWith("org.glowroot."))
             .or(nameStartsWith("com.compuware."))
@@ -736,7 +749,7 @@ public class ElasticApmAgent {
      * that is specific to the provided class to instrument.
      * </p>
      *
-     * @param classToInstrument the class which should be instrumented
+     * @param classToInstrument      the class which should be instrumented
      * @param instrumentationClasses the instrumentation which should be applied to the class to instrument.
      */
     public static void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses) {
@@ -869,6 +882,7 @@ public class ElasticApmAgent {
     /**
      * Returns the class loader that loaded the instrumentation class corresponding the given advice class.
      * We expect to be able to find the advice class file through this class loader.
+     *
      * @param adviceClass name of the advice class
      * @return class loader that can be used for the advice class file lookup
      */

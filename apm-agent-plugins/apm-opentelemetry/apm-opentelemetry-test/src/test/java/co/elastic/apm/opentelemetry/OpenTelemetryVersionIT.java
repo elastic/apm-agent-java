@@ -37,6 +37,7 @@ public class OpenTelemetryVersionIT {
             "io.opentelemetry:opentelemetry-semconv:" + version + "-alpha");
         runner = new TestClassWithDependencyRunner(dependencies,
             "co.elastic.apm.agent.opentelemetry.sdk.ElasticOpenTelemetryTest",
+            "co.elastic.apm.agent.opentelemetry.sdk.AbstractOpenTelemetryTest",
             "co.elastic.apm.agent.opentelemetry.sdk.ElasticOpenTelemetryTest$MapGetter");
     }
 
@@ -53,7 +54,13 @@ public class OpenTelemetryVersionIT {
             {"1.7.1"},
             {"1.9.0"},
             {"1.10.1"},
-            {"1.11.0"}
+            {"1.11.0"},
+            {"1.12.0"},
+            {"1.13.0"},
+            {"1.14.0"},
+            {"1.15.0"},
+            {"1.16.0"},
+            {"1.17.0"}
         });
     }
 

@@ -21,12 +21,12 @@ package co.elastic.apm.agent.awslambda.helper;
 import co.elastic.apm.agent.awslambda.SNSMessageAttributesGetter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 
 public class SNSTransactionHelper extends AbstractMessageBasedTransactionHelper<SNSEvent, Void, SNSEvent.SNSRecord> {
     @Nullable
@@ -46,11 +46,6 @@ public class SNSTransactionHelper extends AbstractMessageBasedTransactionHelper<
     }
 
     @Override
-    protected TextHeaderGetter<SNSEvent.SNSRecord> getTextHeaderGetter() {
-        return SNSMessageAttributesGetter.INSTANCE;
-    }
-
-    @Override
     protected String getAWSService() {
         return "sns";
     }
@@ -64,48 +59,8 @@ public class SNSTransactionHelper extends AbstractMessageBasedTransactionHelper<
     }
 
     @Override
-    protected long getMessageTimestampMs(SNSEvent.SNSRecord record) {
-        if (null != record.getSNS() && null != record.getSNS().getTimestamp()) {
-            return record.getSNS().getTimestamp().getMillis();
-        }
-        return -1L;
-    }
-
-    @Override
-    protected String getBody(SNSEvent.SNSRecord record) {
-        if (null != record.getSNS()) {
-            return record.getSNS().getMessage();
-        }
-        return null;
-    }
-
-    @Override
-    protected String getMessageId(SNSEvent.SNSRecord record) {
-        if (null != record.getSNS()) {
-            return record.getSNS().getMessageId();
-        }
-        return null;
-    }
-
-    @Override
     protected String getRegion(SNSEvent.SNSRecord record) {
         // Region will be parsed from ARN in AbstractMessageBasedTransactionHelper
-        return null;
-    }
-
-    @Override
-    protected Collection<String> getHeaderNames(SNSEvent.SNSRecord record) {
-        if (null != record.getSNS() && null != record.getSNS().getMessageAttributes()) {
-            return record.getSNS().getMessageAttributes().keySet();
-        }
-        return Collections.emptySet();
-    }
-
-    @Override
-    protected String getHeaderValue(SNSEvent.SNSRecord record, String key) {
-        if (null != record.getSNS() && null != record.getSNS().getMessageAttributes() && record.getSNS().getMessageAttributes().containsKey(key)) {
-            return record.getSNS().getMessageAttributes().get(key).getValue();
-        }
         return null;
     }
 
@@ -115,12 +70,25 @@ public class SNSTransactionHelper extends AbstractMessageBasedTransactionHelper<
     }
 
     @Override
-    protected SNSEvent.SNSRecord getRecord(SNSEvent event) {
+    protected SNSEvent.SNSRecord getFirstRecord(SNSEvent event) {
         SNSEvent.SNSRecord record = null;
-        if (null != event.getRecords() && event.getRecords().size() == 1) {
+        if (null != event.getRecords() && !event.getRecords().isEmpty()) {
             record = event.getRecords().get(0);
         }
-
         return record != null ? record : placeholderRecord;
+    }
+
+    @Override
+    protected void addSpanLinks(Transaction transaction, SNSEvent event) {
+        List<SNSEvent.SNSRecord> records = event.getRecords();
+        if (records != null && !records.isEmpty()) {
+            for (SNSEvent.SNSRecord record : records) {
+                transaction.addSpanLink(
+                    TraceContext.<SNSEvent.SNSRecord>getFromTraceContextTextHeaders(),
+                    SNSMessageAttributesGetter.INSTANCE,
+                    record
+                );
+            }
+        }
     }
 }

@@ -19,22 +19,37 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.impl.BinaryHeaderMapAccessor;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SpanTest {
 
+    private ElasticApmTracer tracer;
+
+    @BeforeEach
+    void setUp() {
+        tracer = MockTracer.createRealTracer();
+    }
+
     @Test
     void resetState() {
-        Span span = new Span(MockTracer.create())
+        Span span = new Span(tracer)
             .withName("SELECT FROM product_types")
             .withType("db")
             .withSubtype("postgresql")
@@ -55,7 +70,7 @@ class SpanTest {
 
     @Test
     void testOutcomeExplicitlyToUnknown() {
-        Transaction transaction = MockTracer.createRealTracer().startRootTransaction(null);
+        Transaction transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
         Span span = transaction.createSpan()
             .withName("SELECT FROM product_types")
@@ -72,7 +87,7 @@ class SpanTest {
 
     @Test
     void normalizeEmptyFields() {
-        Span span = new Span(MockTracer.create())
+        Span span = new Span(tracer)
             .withName("span");
 
         assertThat(span.withType("").getType()).isNull();
@@ -84,23 +99,16 @@ class SpanTest {
     @MethodSource("typeTestArguments")
     void normalizeType(String type, String expectedType) {
 
-        ElasticApmTracer tracer = MockTracer.createRealTracer();
         Transaction transaction = new Transaction(tracer);
-
-        transaction.start(TraceContext.asRoot(), null, 0, ConstantSampler.of(true));
+        transaction.startRoot(0, ConstantSampler.of(true));
         try {
             Span span = new Span(tracer);
-
             span.start(TraceContext.fromParent(), transaction, -1L);
-
             assertThat(span.getType())
                 .describedAs("span type should not be set by default")
                 .isNull();
-
             span.withType(type);
-
             span.end();
-
             assertThat(span.getType()).isEqualTo(expectedType);
         } finally {
             transaction.end();
@@ -114,5 +122,78 @@ class SpanTest {
             Arguments.of(null, "custom"),
             Arguments.of("my-type", "my-type")
         );
+    }
+
+    @Test
+    void testSpanLinks() {
+        TestObjectPoolFactory objectPoolFactory = (TestObjectPoolFactory) tracer.getObjectPoolFactory();
+        Transaction transaction = tracer.startRootTransaction(null);
+        Span testSpan = Objects.requireNonNull(transaction).createSpan();
+        assertThat(objectPoolFactory.getSpanLinksPool().getObjectsInPool()).isEqualTo(0);
+        assertThat(objectPoolFactory.getSpanLinksPool().getRequestedObjectCount()).isEqualTo(0);
+        assertThat(testSpan.getSpanLinks()).isEmpty();
+        Span parent1 = transaction.createSpan();
+        Map<String, String> textTraceContextCarrier = new HashMap<>();
+        parent1.propagateTraceContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE);
+        assertThat(testSpan.addSpanLink(
+            TraceContext.getFromTraceContextTextHeaders(),
+            TextHeaderMapAccessor.INSTANCE,
+            textTraceContextCarrier)
+        ).isTrue();
+        assertThat(objectPoolFactory.getSpanLinksPool().getObjectsInPool()).isEqualTo(0);
+        assertThat(objectPoolFactory.getSpanLinksPool().getRequestedObjectCount()).isEqualTo(1);
+        assertThat(testSpan.getSpanLinks()).hasSize(1);
+        Span parent2 = transaction.createSpan();
+        Map<String, byte[]> binaryTraceContextCarrier = new HashMap<>();
+        parent2.propagateTraceContext(binaryTraceContextCarrier, BinaryHeaderMapAccessor.INSTANCE);
+        assertThat(testSpan.addSpanLink(
+            TraceContext.getFromTraceContextBinaryHeaders(),
+            BinaryHeaderMapAccessor.INSTANCE,
+            binaryTraceContextCarrier)
+        ).isTrue();
+        assertThat(objectPoolFactory.getSpanLinksPool().getObjectsInPool()).isEqualTo(0);
+        assertThat(objectPoolFactory.getSpanLinksPool().getRequestedObjectCount()).isEqualTo(2);
+        List<TraceContext> spanLinks = testSpan.getSpanLinks();
+        assertThat(spanLinks).hasSize(2);
+        assertThat(spanLinks.get(0).getTraceId()).isEqualTo(parent1.getTraceContext().getTraceId());
+        assertThat(spanLinks.get(0).getParentId()).isEqualTo(parent1.getTraceContext().getId());
+        assertThat(spanLinks.get(1).getTraceId()).isEqualTo(parent2.getTraceContext().getTraceId());
+        assertThat(spanLinks.get(1).getParentId()).isEqualTo(parent2.getTraceContext().getId());
+        testSpan.resetState();
+        assertThat(objectPoolFactory.getSpanLinksPool().getObjectsInPool()).isEqualTo(2);
+        assertThat(testSpan.getSpanLinks()).isEmpty();
+    }
+
+    @Test
+    void testSpanLinksUniqueness() {
+        Transaction transaction = tracer.startRootTransaction(null);
+        Span testSpan = Objects.requireNonNull(transaction).createSpan();
+        assertThat(testSpan.getSpanLinks()).isEmpty();
+        Span parent1 = transaction.createSpan();
+        Map<String, String> textTraceContextCarrier = new HashMap<>();
+        parent1.propagateTraceContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE);
+        assertThat(testSpan.addSpanLink(
+            TraceContext.getFromTraceContextTextHeaders(),
+            TextHeaderMapAccessor.INSTANCE,
+            textTraceContextCarrier)
+        ).isTrue();
+        assertThat(testSpan.getSpanLinks()).hasSize(1);
+        assertThat(testSpan.addSpanLink(
+            TraceContext.getFromTraceContextTextHeaders(),
+            TextHeaderMapAccessor.INSTANCE,
+            textTraceContextCarrier)
+        ).isFalse();
+        assertThat(testSpan.getSpanLinks()).hasSize(1);
+
+        testSpan.getSpanLinks().clear();
+        assertThat(testSpan.getSpanLinks()).isEmpty();
+
+        // verifying that uniqueness cache is cleared properly as well
+        assertThat(testSpan.addSpanLink(
+            TraceContext.getFromTraceContextTextHeaders(),
+            TextHeaderMapAccessor.INSTANCE,
+            textTraceContextCarrier)
+        ).isTrue();
+        assertThat(testSpan.getSpanLinks()).hasSize(1);
     }
 }
