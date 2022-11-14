@@ -39,26 +39,10 @@ pipeline {
     // All the steps executed by default are included in GH checks
     // All the mandatory steps not included by default need to be added in GH branch protection rules.
 
-    // enabled by default, required for merge through default GH check
-    booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable Unit tests')
-
-    // disabled by default, but required for merge, there are two GH checks:
-    // - Non-Application Server integration tests
-    // - Application Server integration tests
-    // opt-in with 'ci:agent-integration'
-    booleanParam(name: 'agent_integration_tests_ci', defaultValue: false, description: 'Enable Agent Integration tests')
-
     // disabled by default, not required for merge
     // opt-in with 'ci:benchmarks' tag on PR
     booleanParam(name: 'bench_ci', defaultValue: false, description: 'Enable benchmarks')
 
-    // disabled by default, not required for merge
-    // opt-in with 'ci:jdk-compatibility' tag on PR
-    booleanParam(name: 'jdk_compatibility_ci', defaultValue: false, description: 'Enable JDK compatibility tests')
-
-    // disabled by default, not required for merge
-    // opt-in with 'ci:windows' tag on PR
-    booleanParam(name: 'windows_ci', defaultValue: false, description: 'Enable Windows build & tests')
   }
   stages {
     stage('Checkout') {
@@ -145,141 +129,6 @@ pipeline {
           failFast true
           parallel {
             /**
-             * Run only unit tests
-             */
-            stage('Unit Tests') {
-              options { skipDefaultCheckout() }
-              when {
-                beforeAgent true
-                expression { return params.test_ci }
-              }
-              environment {
-                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-              }
-              steps {
-                withGithubNotify(context: "${STAGE_NAME}", tab: 'tests') {
-                  deleteDir()
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-                  dir("${BASE_DIR}") {
-                    withOtelEnv() {
-                      sh label: 'mvn test', script: './mvnw test'
-                    }
-                  }
-                }
-              }
-              post {
-                always {
-                  reportTestResults()
-                }
-              }
-            }
-            /** *
-             * Build & Test on Windows environment
-             */
-            stage('Build & Test Windows') {
-              agent { label 'windows-2019-docker-immutable' }
-              options { skipDefaultCheckout() }
-              when {
-                beforeAgent true
-                allOf {
-                  expression { return params.test_ci }
-                  anyOf {
-                    expression { return params.windows_ci }
-                    expression { return env.GITHUB_COMMENT?.contains('windows tests') }
-                    expression { matchesPrLabel(label: 'ci:windows') }
-                  }
-                }
-              }
-              environment {
-                JAVA_HOME = "C:\\Users\\jenkins\\.java\\${env.JAVA_VERSION}"
-                PATH = "${env.JAVA_HOME}\\bin;${env.PATH}"
-              }
-              steps {
-                withGithubNotify(context: 'Build & Test Windows') {
-                  deleteDir()
-                  unstash 'source'
-                  dir("${BASE_DIR}") {
-                    echo "${env.PATH}"
-                    retryWithSleep(retries: 5, seconds: 10) {
-                      bat label: 'mvn clean install', script: "mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true"
-                    }
-                    bat label: 'mvn test', script: "mvnw test"
-                  }
-                }
-              }
-              post {
-                always {
-                  reportTestResults()
-                }
-              }
-            }
-            stage('Non-Application Server integration tests') {
-              agent { label 'linux && immutable' }
-              options { skipDefaultCheckout() }
-              when {
-                beforeAgent true
-                anyOf {
-                  expression { return params.agent_integration_tests_ci }
-                  expression { return env.GITHUB_COMMENT?.contains('integration tests') }
-                  expression { matchesPrLabel(label: 'ci:agent-integration') }
-                  expression { return env.CHANGE_ID != null && !pullRequest.draft }
-                  not { changeRequest() }
-                }
-              }
-              environment {
-                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-              }
-              steps {
-                withGithubNotify(context: "${STAGE_NAME}", tab: 'tests') {
-                  deleteDir()
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-                  dir("${BASE_DIR}") {
-                    withOtelEnv() {
-                      sh './mvnw -q -P ci-non-application-server-integration-tests verify'
-                    }
-                  }
-                }
-              }
-              post {
-                always {
-                  reportTestResults()
-                }
-              }
-            }
-            stage('Application Server integration tests') {
-              agent { label 'linux && immutable' }
-              options { skipDefaultCheckout() }
-              when {
-                beforeAgent true
-                anyOf {
-                  expression { return params.agent_integration_tests_ci }
-                  expression { return env.GITHUB_COMMENT?.contains('integration tests') }
-                  expression { matchesPrLabel(label: 'ci:agent-integration') }
-                  expression { return env.CHANGE_ID != null && !pullRequest.draft }
-                  not { changeRequest() }
-                }
-              }
-              environment {
-                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-              }
-              steps {
-                withGithubNotify(context: "${STAGE_NAME}", tab: 'tests') {
-                  deleteDir()
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-                  dir("${BASE_DIR}") {
-                    withOtelEnv() {
-                      sh './mvnw -q -P ci-application-server-integration-tests verify'
-                    }
-                  }
-                }
-              }
-              post {
-                always {
-                  reportTestResults()
-                }
-              }
-            }
-            /**
              * Run the benchmarks and store the results on ES.
              * The result JSON files are also archive into Jenkins.
              */
@@ -322,78 +171,6 @@ pipeline {
                 }
               }
             }
-            /**
-             * Build javadoc
-             */
-            stage('Javadoc') {
-              agent { label 'linux && immutable' }
-              options { skipDefaultCheckout() }
-              environment {
-                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-              }
-              steps {
-                withGithubNotify(context: "${STAGE_NAME}") {
-                  deleteDir()
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-                  dir("${BASE_DIR}"){
-                    withOtelEnv() {
-                      sh """#!/bin/bash
-                      set -euxo pipefail
-                      ./mvnw compile javadoc:javadoc
-                      """
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        stage('JDK Compatibility Tests') {
-          options { skipDefaultCheckout() }
-          when {
-            beforeAgent true
-            allOf {
-              expression { return env.ONLY_DOCS == "false" }
-              anyOf {
-                expression { return params.jdk_compatibility_ci }
-                expression { return env.GITHUB_COMMENT?.contains('jdk compatibility tests') }
-                expression { matchesPrLabel(label: 'ci:jdk-compatibility') }
-              }
-            }
-          }
-          environment {
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-          }
-          matrix {
-            agent { label 'linux && immutable' }
-            axes {
-              axis {
-                // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
-                name 'JDK_VERSION'
-                // 'openjdk18'  disabled for now see https://github.com/elastic/apm-agent-java/issues/2328
-                values 'openjdk17'
-              }
-            }
-            stages {
-              stage('JDK Unit Tests') {
-                steps {
-                  withGithubNotify(context: "${STAGE_NAME} ${JDK_VERSION}", tab: 'tests') {
-                    deleteDir()
-                    unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-                    dir("${BASE_DIR}"){
-                      withOtelEnv() {
-                        sh(label: "./mvnw test for ${JDK_VERSION}", script: './mvnw test')
-                      }
-                    }
-                  }
-                }
-                post {
-                  always {
-                    reportTestResults()
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -432,13 +209,4 @@ pipeline {
       notifyBuildResult(analyzeFlakey: !isTag(), flakyReportIdx: 'reporter-apm-agent-java-apm-agent-java-main', flakyDisableGHIssueCreation: true)
     }
   }
-}
-
-def reportTestResults(){
-  junit(allowEmptyResults: true,
-    keepLongStdio: true,
-    testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
-
-  // disable codecov for now as it's not supported for windows
-  //  codecov(repo: env.REPO, basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
 }
