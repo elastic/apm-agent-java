@@ -23,9 +23,11 @@ import co.elastic.apm.agent.report.serialize.PayloadSerializer;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import com.dslplatform.json.DslJson;
 
 import javax.annotation.Nullable;
 import java.net.HttpURLConnection;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -48,6 +50,8 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private final AtomicLong processed = new AtomicLong();
     private final ReportingEventCounter inflightEvents = new ReportingEventCounter();
 
+    private final DslJson<Object> dslJson;
+
     private long reported;
     private long dropped;
 
@@ -55,6 +59,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
                                          PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
         super(reporterConfiguration, payloadSerializer, apmServerClient);
         this.processorEventHandler = processorEventHandler;
+        this.dslJson = new DslJson<>();
         this.timeoutTimer = ExecutorUtils.createSingleThreadSchedulingDaemonPool("request-timeout-timer");
     }
 
@@ -192,22 +197,39 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
     @Override
     protected void onRequestSuccess(long bytesWritten) {
-        reported += inflightEvents.getTotalCount();
+        long totalCount = inflightEvents.getTotalCount();
+        reported += totalCount;
         if (reporter != null) {
-            reporter.getReporterMonitor().requestFinished(new ReportingEventCounter(inflightEvents), bytesWritten, true);
+            reporter.getReporterMonitor().requestFinished(new ReportingEventCounter(inflightEvents), totalCount, bytesWritten, true);
         }
         inflightEvents.reset();
         super.onRequestSuccess(bytesWritten);
     }
 
     @Override
-    protected void onConnectionError(@Nullable Integer responseCode, long bytesWritten) {
-        dropped += inflightEvents.getTotalCount();
+    protected void onConnectionError(@Nullable Integer responseCode, @Nullable String responseBody, long bytesWritten) {
+        long accepted = readAccepted(responseBody);
+        dropped += inflightEvents.getTotalCount() - accepted;
         if (reporter != null) {
-            reporter.getReporterMonitor().requestFinished(new ReportingEventCounter(inflightEvents), bytesWritten, false);
+            reporter.getReporterMonitor().requestFinished(new ReportingEventCounter(inflightEvents), accepted, bytesWritten, false);
         }
         inflightEvents.reset();
-        super.onConnectionError(responseCode, bytesWritten);
+        super.onConnectionError(responseCode, responseBody, bytesWritten);
+    }
+
+    private long readAccepted(@Nullable String responseBody) {
+        if (responseBody != null) {
+            byte[] data = responseBody.getBytes();
+            try {
+                Map<String, ?> response = dslJson.deserialize(Map.class, data, data.length);
+                if (response != null && response.get("accepted") instanceof Number) {
+                    return ((Number) response.get("accepted")).longValue();
+                }
+            } catch (Exception e) {
+                logger.warn("failed to deserialize APM server response", e);
+            }
+        }
+        return 0;
     }
 
     public long getReported() {

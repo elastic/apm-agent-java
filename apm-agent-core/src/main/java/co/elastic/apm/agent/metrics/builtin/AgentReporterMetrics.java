@@ -59,10 +59,10 @@ public class AgentReporterMetrics implements ReporterMonitor {
     private final boolean requestBytesMetricEnabled;
 
 
-    private static final Labels TRANSACTION_LABEL = Labels.Mutable.of("eventType", "transaction").immutableCopy();
-    private static final Labels SPAN_LABEL = Labels.Mutable.of("eventType", "span").immutableCopy();
-    private static final Labels ERROR_LABEL = Labels.Mutable.of("eventType", "error").immutableCopy();
-    private static final Labels METRICSET_LABEL = Labels.Mutable.of("eventType", "metricset").immutableCopy();
+    private static final Labels TRANSACTION_LABEL = Labels.Mutable.of("event_type", "transaction").immutableCopy();
+    private static final Labels SPAN_LABEL = Labels.Mutable.of("event_type", "span").immutableCopy();
+    private static final Labels ERROR_LABEL = Labels.Mutable.of("event_type", "error").immutableCopy();
+    private static final Labels METRICSET_LABEL = Labels.Mutable.of("event_type", "metricset").immutableCopy();
 
     private static final Labels SUCCESS_LABEL = Labels.Mutable.of("success", "true").immutableCopy();
     private static final Labels FAILURE_LABEL = Labels.Mutable.of("success", "false").immutableCopy();
@@ -130,7 +130,7 @@ public class AgentReporterMetrics implements ReporterMonitor {
         if (droppedEventsMetricEnabled) {
             Labels label = getLabelFor(eventType);
             if (label != null) {
-                metricRegistry.incrementCounter(DROPPED_EVENTS_METRIC, label);
+                metricRegistry.incrementCounter(DROPPED_EVENTS_METRIC, Labels.EMPTY);
             }
         }
         updateQueueMetric(queueCapacity, queueCapacity);
@@ -141,26 +141,21 @@ public class AgentReporterMetrics implements ReporterMonitor {
         if (errorEventsMetricEnabled) {
             Labels label = getLabelFor(eventType);
             if (label != null) {
-                metricRegistry.incrementCounter(ERROR_EVENTS_METRIC, label);
+                metricRegistry.incrementCounter(ERROR_EVENTS_METRIC, Labels.EMPTY);
             }
         }
     }
 
 
     @Override
-    public void requestFinished(ReportingEventCounter requestContent, long bytesWritten, boolean success) {
+    public void requestFinished(ReportingEventCounter requestContent, long acceptedEventCount, long bytesWritten, boolean success) {
         Labels label;
         if (success) {
             label = SUCCESS_LABEL;
         } else {
             label = FAILURE_LABEL;
             if (errorEventsMetricEnabled) {
-                for (ReportingEvent.ReportingEventType type : ReportingEvent.ReportingEventType.values()) {
-                    Labels droppedLabel = getLabelFor(type);
-                    if (droppedLabel != null) {
-                        metricRegistry.addToCounter(ERROR_EVENTS_METRIC, droppedLabel, requestContent.getCount(type));
-                    }
-                }
+                metricRegistry.addToCounter(ERROR_EVENTS_METRIC, Labels.EMPTY, requestContent.getTotalCount() - acceptedEventCount);
             }
         }
         if (requestBytesMetricEnabled) {

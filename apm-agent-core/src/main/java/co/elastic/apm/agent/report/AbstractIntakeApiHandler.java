@@ -166,7 +166,7 @@ public class AbstractIntakeApiHandler {
     protected void endRequestExceptionally() {
         if (connection == null) {
             //The HttpUrlConnection could not be established if connecttion == null
-            onConnectionError(null, 0L);
+            onConnectionError(null, null, 0L);
         } else {
             endRequest(true);
         }
@@ -212,22 +212,21 @@ public class AbstractIntakeApiHandler {
     }
 
     private void onRequestError(Integer responseCode, long bytesWritten, InputStream inputStream, @Nullable IOException e) {
-        // TODO read accepted, dropped and invalid
-        onConnectionError(responseCode, bytesWritten);
+        String responseBody = null;
+        try {
+            responseBody = IOUtils.toString(inputStream);
+            logger.warn(responseBody);
+        } catch (IOException e1) {
+            logger.warn(e1.getMessage(), e1);
+        }
+        onConnectionError(responseCode, responseBody, bytesWritten);
         if (e != null) {
             logger.error("Error sending data to APM server: {}, response code is {}", e.getMessage(), responseCode);
             logger.debug("Sending payload to APM server failed", e);
         }
-        if (logger.isWarnEnabled()) {
-            try {
-                logger.warn(IOUtils.toString(inputStream));
-            } catch (IOException e1) {
-                logger.warn(e1.getMessage(), e);
-            }
-        }
     }
 
-    protected void onConnectionError(@Nullable Integer responseCode, long bytesWritten) {
+    protected void onConnectionError(@Nullable Integer responseCode, @Nullable String responseBody, long bytesWritten) {
         // if the response code is null, the server did not even send a response
         if (responseCode == null || responseCode > 429) {
             // this server seems to have connection or capacity issues, try next

@@ -70,25 +70,25 @@ public class AgentReporterMetricsTest {
 
             assertThat(metricSets).containsOnlyKeys(
                 Labels.EMPTY,
-                Labels.Mutable.of("eventType", "transaction"),
-                Labels.Mutable.of("eventType", "span"),
-                Labels.Mutable.of("eventType", "error"),
-                Labels.Mutable.of("eventType", "metricset")
+                Labels.Mutable.of("event_type", "transaction"),
+                Labels.Mutable.of("event_type", "span"),
+                Labels.Mutable.of("event_type", "error"),
+                Labels.Mutable.of("event_type", "metricset")
             );
 
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "transaction")).getCounters())
+            assertThat(metricSets.get(Labels.Mutable.of("event_type", "transaction")).getCounters())
                 .hasSize(1)
                 .extractingByKey("agent.events.total")
                 .satisfies(counter -> assertThat(counter).hasValue(2));
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "span")).getCounters())
+            assertThat(metricSets.get(Labels.Mutable.of("event_type", "span")).getCounters())
                 .hasSize(1)
                 .extractingByKey("agent.events.total")
                 .satisfies(counter -> assertThat(counter).hasValue(3));
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "error")).getCounters())
+            assertThat(metricSets.get(Labels.Mutable.of("event_type", "error")).getCounters())
                 .hasSize(1)
                 .extractingByKey("agent.events.total")
                 .satisfies(counter -> assertThat(counter).hasValue(4));
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "metricset")).getCounters())
+            assertThat(metricSets.get(Labels.Mutable.of("event_type", "metricset")).getCounters())
                 .hasSize(1)
                 .extractingByKey("agent.events.total")
                 .satisfies(counter -> assertThat(counter).hasValue(5));
@@ -103,40 +103,16 @@ public class AgentReporterMetricsTest {
     public void checkQueueDroppedEventCount() {
         reporterMetrics = new AgentReporterMetrics(metricRegistry);
 
-        dropNEventsBeforeQueue(ReportingEvent.ReportingEventType.WAKEUP, 1);
+        dropNEventsBeforeQueue(ReportingEvent.ReportingEventType.WAKEUP, 1); //should not be counted
         dropNEventsBeforeQueue(ReportingEvent.ReportingEventType.TRANSACTION, 2);
         dropNEventsBeforeQueue(ReportingEvent.ReportingEventType.SPAN, 3);
         dropNEventsBeforeQueue(ReportingEvent.ReportingEventType.ERROR, 4);
         dropNEventsBeforeQueue(ReportingEvent.ReportingEventType.METRICSET_JSON_WRITER, 5);
 
         reportAndCheckMetrics(metricSets -> {
-
-            assertThat(metricSets).containsOnlyKeys(
-                Labels.EMPTY,
-                Labels.Mutable.of("eventType", "transaction"),
-                Labels.Mutable.of("eventType", "span"),
-                Labels.Mutable.of("eventType", "error"),
-                Labels.Mutable.of("eventType", "metricset")
-            );
-
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "transaction")).getCounters())
-                .hasSize(1)
-                .extractingByKey("agent.events.dropped.queue")
-                .satisfies(counter -> assertThat(counter).hasValue(2));
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "span")).getCounters())
-                .hasSize(1)
-                .extractingByKey("agent.events.dropped.queue")
-                .satisfies(counter -> assertThat(counter).hasValue(3));
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "error")).getCounters())
-                .hasSize(1)
-                .extractingByKey("agent.events.dropped.queue")
-                .satisfies(counter -> assertThat(counter).hasValue(4));
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "metricset")).getCounters())
-                .hasSize(1)
-                .extractingByKey("agent.events.dropped.queue")
-                .satisfies(counter -> assertThat(counter).hasValue(5));
             assertThat(metricSets.get(Labels.EMPTY).getCounters())
-                .hasSize(0);
+                .extractingByKey("agent.events.dropped.queue")
+                .satisfies(counter -> assertThat(counter).hasValue(14));
         });
     }
 
@@ -157,38 +133,16 @@ public class AgentReporterMetricsTest {
         inflightEvents.add(ReportingEvent.ReportingEventType.ERROR, 40);
         inflightEvents.add(ReportingEvent.ReportingEventType.METRICSET_JSON_WRITER, 50);
 
-        reporterMetrics.requestFinished(inflightEvents, 0, false);
+        reporterMetrics.requestFinished(inflightEvents, 100, 0, false);
         //also report a success as sanity check to make sure that they are not counted
-        reporterMetrics.requestFinished(inflightEvents, 0, true);
+        reporterMetrics.requestFinished(inflightEvents, inflightEvents.getTotalCount(), 0, true);
 
         reportAndCheckMetrics(metricSets -> {
 
-            assertThat(metricSets.keySet())
-                .allSatisfy(labels -> {
-                    for (int i = 0; i < labels.getKeys().size(); i++) {
-                        if (labels.getKey(i).equals("eventType")) {
-                            assertThat(labels.getValue(i))
-                                .matches("transaction|span|error|metricset");
-                        }
-                    }
-                });
-
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "transaction")).getCounters())
-                .hasSize(1)
+            assertThat(metricSets.get(Labels.EMPTY).getCounters())
                 .extractingByKey("agent.events.dropped.error")
-                .satisfies(counter -> assertThat(counter).hasValue(22));
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "span")).getCounters())
-                .hasSize(1)
-                .extractingByKey("agent.events.dropped.error")
-                .satisfies(counter -> assertThat(counter).hasValue(33));
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "error")).getCounters())
-                .hasSize(1)
-                .extractingByKey("agent.events.dropped.error")
-                .satisfies(counter -> assertThat(counter).hasValue(44));
-            assertThat(metricSets.get(Labels.Mutable.of("eventType", "metricset")).getCounters())
-                .hasSize(1)
-                .extractingByKey("agent.events.dropped.error")
-                .satisfies(counter -> assertThat(counter).hasValue(55));
+                //14 events dropped before queue, 140 sent, server responded with 100 accepted
+                .satisfies(counter -> assertThat(counter).hasValue(14 + 140 - 100));
         });
     }
 
@@ -199,11 +153,11 @@ public class AgentReporterMetricsTest {
 
         ReportingEventCounter inflightEvents = new ReportingEventCounter();
 
-        reporterMetrics.requestFinished(inflightEvents, 100, false);
-        reporterMetrics.requestFinished(inflightEvents, 10, true);
-        reporterMetrics.requestFinished(inflightEvents, 200, false);
-        reporterMetrics.requestFinished(inflightEvents, 20, true);
-        reporterMetrics.requestFinished(inflightEvents, 40, true);
+        reporterMetrics.requestFinished(inflightEvents, 0, 100, false);
+        reporterMetrics.requestFinished(inflightEvents, 0, 10, true);
+        reporterMetrics.requestFinished(inflightEvents, 0, 200, false);
+        reporterMetrics.requestFinished(inflightEvents, 0, 20, true);
+        reporterMetrics.requestFinished(inflightEvents, 0, 40, true);
 
         reportAndCheckMetrics(metricSets -> {
             assertThat(metricSets.get(Labels.Mutable.of("success", "true")).getCounters())
@@ -295,8 +249,8 @@ public class AgentReporterMetricsTest {
 
         ReportingEventCounter inflightEvents = new ReportingEventCounter();
         inflightEvents.add(ReportingEvent.ReportingEventType.TRANSACTION, 20);
-        reporterMetrics.requestFinished(inflightEvents, 10, false);
-        reporterMetrics.requestFinished(inflightEvents, 20, true);
+        reporterMetrics.requestFinished(inflightEvents, 0, 10, false);
+        reporterMetrics.requestFinished(inflightEvents, 0, 20, true);
 
         reportAndCheckMetrics(metrics -> {
             assertMetricNotExported(metrics, metric);

@@ -79,6 +79,7 @@ class ApmServerReporterIntegrationTest {
     private static HttpHandler handler;
     private final ElasticApmTracer tracer = MockTracer.create();
     private volatile int statusCode = HttpStatus.OK_200;
+    private volatile int acceptedEventCount = 0;
     private ReporterConfiguration reporterConfiguration;
     private ApmServerReporter reporter;
 
@@ -107,7 +108,9 @@ class ApmServerReporterIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         statusCode = HttpStatus.OK_200;
+        acceptedEventCount = 0;
         handler = new BlockingHandler(exchange -> {
+            exchange.setStatusCode(statusCode);
             if (statusCode < 300 && exchange.getRequestPath().equals("/intake/v2/events")) {
                 receivedIntakeApiCalls.incrementAndGet();
                 Deque<String> flushedParamValue = exchange.getQueryParameters().get("flushed");
@@ -125,7 +128,11 @@ class ApmServerReporterIntegrationTest {
                     }
                 }
             }
-            exchange.setStatusCode(statusCode).endExchange();
+            if (statusCode >= 400) {
+                String response = String.format("{ \"accepted\" : %d, \"foo\" : \"bar\" }", acceptedEventCount);
+                exchange.getOutputStream().write(response.getBytes());
+            }
+            exchange.endExchange();
         });
 
         ConfigurationRegistry config = tracer.getConfigurationRegistry();
@@ -183,7 +190,7 @@ class ApmServerReporterIntegrationTest {
         verify(mockMonitor).eventDequeued(eq(ReportingEvent.ReportingEventType.TRANSACTION), eq(64L), anyLong());
         ReportingEventCounter payload = new ReportingEventCounter();
         payload.increment(ReportingEvent.ReportingEventType.TRANSACTION);
-        verify(mockMonitor).requestFinished(eq(payload), gt(0L), eq(true));
+        verify(mockMonitor).requestFinished(eq(payload), eq(1L), gt(0L), eq(true));
     }
 
     @Test
@@ -200,8 +207,8 @@ class ApmServerReporterIntegrationTest {
         verify(mockMonitor).eventDequeued(eq(ReportingEvent.ReportingEventType.TRANSACTION), eq(64L), anyLong());
         ReportingEventCounter payload = new ReportingEventCounter();
         payload.increment(ReportingEvent.ReportingEventType.TRANSACTION);
-        verify(mockMonitor).requestFinished(eq(payload), gt(0L), eq(true));
-        verify(mockMonitor).requestFinished(eq(new ReportingEventCounter()), gt(0L), eq(true));
+        verify(mockMonitor).requestFinished(eq(payload), eq(1L), gt(0L), eq(true));
+        verify(mockMonitor).requestFinished(eq(new ReportingEventCounter()), eq(0L), gt(0L), eq(true));
     }
 
     @Test
@@ -216,7 +223,7 @@ class ApmServerReporterIntegrationTest {
         verify(mockMonitor).eventDequeued(eq(ReportingEvent.ReportingEventType.SPAN), eq(64L), anyLong());
         ReportingEventCounter payload = new ReportingEventCounter();
         payload.increment(ReportingEvent.ReportingEventType.SPAN);
-        verify(mockMonitor).requestFinished(eq(payload), gt(0L), eq(true));
+        verify(mockMonitor).requestFinished(eq(payload), eq(1L), gt(0L), eq(true));
     }
 
     @Test
@@ -231,8 +238,8 @@ class ApmServerReporterIntegrationTest {
         verify(mockMonitor).eventDequeued(eq(ReportingEvent.ReportingEventType.SPAN), eq(64L), anyLong());
         ReportingEventCounter payload = new ReportingEventCounter();
         payload.increment(ReportingEvent.ReportingEventType.SPAN);
-        verify(mockMonitor).requestFinished(eq(payload), gt(0L), eq(true));
-        verify(mockMonitor).requestFinished(eq(new ReportingEventCounter()), gt(0L), eq(true));
+        verify(mockMonitor).requestFinished(eq(payload), eq(1L), gt(0L), eq(true));
+        verify(mockMonitor).requestFinished(eq(new ReportingEventCounter()), eq(0L), gt(0L), eq(true));
     }
 
     @Test
@@ -263,7 +270,7 @@ class ApmServerReporterIntegrationTest {
         verify(mockMonitor).eventDequeued(eq(ReportingEvent.ReportingEventType.ERROR), eq(64L), anyLong());
         ReportingEventCounter payload = new ReportingEventCounter();
         payload.increment(ReportingEvent.ReportingEventType.ERROR);
-        verify(mockMonitor).requestFinished(eq(payload), gt(0L), eq(true));
+        verify(mockMonitor).requestFinished(eq(payload), eq(1L), gt(0L), eq(true));
     }
 
     @Test
@@ -279,7 +286,7 @@ class ApmServerReporterIntegrationTest {
         verify(mockMonitor).eventDequeued(eq(ReportingEvent.ReportingEventType.TRANSACTION), eq(64L), anyLong());
         ReportingEventCounter payload = new ReportingEventCounter();
         payload.increment(ReportingEvent.ReportingEventType.TRANSACTION);
-        verify(mockMonitor).requestFinished(eq(payload), gt(0L), eq(true));
+        verify(mockMonitor).requestFinished(eq(payload), eq(1L), gt(0L), eq(true));
     }
 
     @Test
@@ -299,6 +306,24 @@ class ApmServerReporterIntegrationTest {
 
         ReportingEventCounter payload = new ReportingEventCounter();
         payload.increment(ReportingEvent.ReportingEventType.TRANSACTION);
-        verify(mockMonitor, times(2)).requestFinished(eq(payload), gt(0L), eq(false));
+        verify(mockMonitor, times(2)).requestFinished(eq(payload), eq(0L), gt(0L), eq(false));
     }
+
+    @Test
+    void testErrorResponseParsing() {
+        statusCode = HttpStatus.SERVICE_UNAVAILABLE_503;
+        acceptedEventCount = 2;
+        // try to report a few events to trigger backoff
+        for (int i = 0; i < 5; i++) {
+            reporter.report(new Transaction(tracer));
+
+        }
+        reporter.flush(1, TimeUnit.SECONDS, false);
+
+        ReportingEventCounter payload = new ReportingEventCounter();
+        payload.add(ReportingEvent.ReportingEventType.TRANSACTION, 5);
+        verify(mockMonitor).requestFinished(eq(payload), eq(2L), gt(0L), eq(false));
+        assertThat(reporter.getDropped()).isEqualTo(3);
+    }
+
 }

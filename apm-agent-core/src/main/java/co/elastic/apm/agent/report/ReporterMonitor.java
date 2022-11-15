@@ -28,7 +28,7 @@ public interface ReporterMonitor {
 
     void eventDroppedAfterDequeue(ReportingEvent.ReportingEventType eventType);
 
-    void requestFinished(ReportingEventCounter requestContent, long bytesWritten, boolean success);
+    void requestFinished(ReportingEventCounter requestContent, long acceptedEventCount, long bytesWritten, boolean success);
 
 
     ReporterMonitor NOOP = new ReporterMonitor() {
@@ -54,7 +54,7 @@ public interface ReporterMonitor {
         }
 
         @Override
-        public void requestFinished(ReportingEventCounter contents, long bytesWritten, boolean success) {
+        public void requestFinished(ReportingEventCounter contents, long acceptedEventCount, long bytesWritten, boolean success) {
 
         }
     };
