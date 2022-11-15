@@ -44,10 +44,11 @@ public class StackFrame {
         return methodName;
     }
 
-    public void appendSimpleClassName(StringBuilder sb) {
+    public int getSimpleClassNameOffset() {
         if (className != null) {
-            sb.append(className, className.lastIndexOf('.') + 1, className.length());
+            return className.lastIndexOf('.') + 1;
         }
+        return 0;
     }
 
     public void appendFileName(StringBuilder replaceBuilder) {

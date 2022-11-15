@@ -307,7 +307,7 @@ class ElasticApmTracerTest {
             .isTrue();
         assertThat(error.getTransactionInfo().isSampled()).isEqualTo(sampled);
         if (!transaction.getNameAsString().isEmpty()) {
-            assertThat(error.getTransactionInfo().getName()).isEqualTo(transaction.getNameAsString());
+            assertThat(error.getTransactionInfo().getName().toString()).isEqualTo(transaction.getNameAsString());
         }
         assertThat(error.getTransactionInfo().getType()).isEqualTo(transaction.getType());
         return error;
