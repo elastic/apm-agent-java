@@ -31,11 +31,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.description;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class TLSFallbackSSLSocketTest {
 
@@ -84,14 +84,13 @@ class TLSFallbackSSLSocketTest {
 
         InetAddress address = InetAddress.getByName("elastic.co");
         int port = 42;
-        when(initialSocket.getInetAddress()).thenReturn(address);
-        when(initialSocket.getPort()).thenReturn(port);
+        doReturn(address).when(initialSocket).getInetAddress();
+        doReturn(port).when(initialSocket).getPort();
 
         // creating fallback socket with same address & port
         SSLSocketFactory sslFactory = mock(SSLSocketFactory.class);
         SSLSocket fallbackSocket = mockSocket(TLSFallbackSSLSocket.TLS_v_1_3, "p1");
-        when(sslFactory.createSocket(same(address), same(port)))
-            .thenReturn(fallbackSocket);
+        doReturn(fallbackSocket).when(sslFactory).createSocket(same(address), same(port));
 
         TLSFallbackSSLSocketFactory factory = TLSFallbackSSLSocketFactory.wrapFactory(sslFactory);
         TLSFallbackSSLSocket socket = new TLSFallbackSSLSocket(initialSocket, factory);
@@ -148,7 +147,7 @@ class TLSFallbackSSLSocketTest {
 
     private static SSLSocket mockSocket(String... enabledProtocols) {
         SSLSocket sslSocket = mock(SSLSocket.class);
-        when(sslSocket.getEnabledProtocols()).thenReturn(enabledProtocols);
+        doReturn(enabledProtocols).when(sslSocket).getEnabledProtocols();
         return sslSocket;
     }
 
