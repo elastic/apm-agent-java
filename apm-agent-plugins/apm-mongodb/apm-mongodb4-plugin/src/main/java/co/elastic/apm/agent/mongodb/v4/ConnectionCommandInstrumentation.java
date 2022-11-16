@@ -58,7 +58,7 @@ public class ConnectionCommandInstrumentation extends Mongo4Instrumentation {
 
     public static class AdviceClass {
 
-        private static final MongoHelper helper = new MongoHelper(GlobalTracer.get());
+        private static final MongoHelper helper = new MongoHelper();
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
