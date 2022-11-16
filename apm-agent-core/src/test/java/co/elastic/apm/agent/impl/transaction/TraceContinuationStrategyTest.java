@@ -38,8 +38,8 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TraceContinuationStrategyTest {
 
@@ -108,7 +108,7 @@ public class TraceContinuationStrategyTest {
     }
 
     void traceFromSystem(boolean fromElastic, CoreConfiguration.TraceContinuationStrategy strategy, boolean restartExpected) {
-        when(tracerImpl.getConfig(CoreConfiguration.class).getTraceContinuationStrategy()).thenReturn(strategy);
+        doReturn(strategy).when(tracerImpl.getConfig(CoreConfiguration.class)).getTraceContinuationStrategy();
         String traceID = "ca6150c33a473fda1f3a7a0b9eb4d143";
         String parentSpanID = "abc345d9029d61ff";
 
@@ -116,7 +116,7 @@ public class TraceContinuationStrategyTest {
         headerMap.put(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-"+traceID+"-"+parentSpanID+"-01");
         if (fromElastic) {
             headerMap.put(TraceContext.TRACESTATE_HEADER_NAME, "es=s:1");
-        };
+        }
         final Transaction transaction = tracerImpl.startChildTransaction(headerMap, TextHeaderMapAccessor.INSTANCE, ConstantSampler.of(false), 0, null);
 
         if (restartExpected) {

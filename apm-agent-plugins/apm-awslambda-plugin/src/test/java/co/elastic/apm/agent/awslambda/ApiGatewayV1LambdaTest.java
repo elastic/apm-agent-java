@@ -43,7 +43,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
@@ -53,7 +53,8 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(ApiGatewayV1LambdaFunction.class.getName());
+        Objects.requireNonNull(serverlessConfiguration);
+        doReturn(ApiGatewayV1LambdaFunction.class.getName()).when(serverlessConfiguration).getAwsLambdaHandler();
         AbstractLambdaTest.initInstrumentation();
     }
 
@@ -89,7 +90,7 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
 
     @Test
     public void testBasicCall() {
-        when(config.getConfig(CoreConfiguration.class).getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(config.getConfig(CoreConfiguration.class)).getCaptureBody();
         getFunction().handleRequest(createInput(), context);
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
@@ -188,7 +189,7 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
 
         assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
         assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");
-        if(isObjectNull){
+        if (isObjectNull) {
             assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isNull();
         } else {
             assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isEqualTo("api gateway");
@@ -200,7 +201,7 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
         Faas faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
 
-        if(isObjectNull){
+        if (isObjectNull) {
             assertThat(faas.getTrigger().getType()).isEqualTo("other");
         } else {
             assertThat(faas.getTrigger().getType()).isEqualTo("http");
@@ -223,7 +224,7 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
 
     @Test
     public void testTransactionNameForRestApiSpecificRoute() {
-        getFunction().handleRequest(createInput("PUT","/prod/test/12345", "/test", "prod"), context);
+        getFunction().handleRequest(createInput("PUT", "/prod/test/12345", "/test", "prod"), context);
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/test");
@@ -231,7 +232,7 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
 
     @Test
     public void testTransactionNameForRestApiProxy() {
-        getFunction().handleRequest(createInput("PUT","/prod/proxy-test/12345", "/proxy-test/{proxy+}", "prod"), context);
+        getFunction().handleRequest(createInput("PUT", "/prod/proxy-test/12345", "/proxy-test/{proxy+}", "prod"), context);
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/proxy-test/{proxy+}");
@@ -239,7 +240,7 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
 
     @Test
     public void testTransactionNameForHTTPApiProxy() {
-        getFunction().handleRequest(createInput("PUT","/prod/proxy-test/12345", "$default", "prod"), context);
+        getFunction().handleRequest(createInput("PUT", "/prod/proxy-test/12345", "$default", "prod"), context);
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/$default");
@@ -247,8 +248,8 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
 
     @Test
     public void testTransactionNameWithUsePathAsName() {
-        when(config.getConfig(WebConfiguration.class).isUsePathAsName()).thenReturn(true);
-        getFunction().handleRequest(createInput("PUT","/prod/proxy-test/12345", "/proxy-test/{proxy+}", "prod"), context);
+        doReturn(true).when(config.getConfig(WebConfiguration.class)).isUsePathAsName();
+        getFunction().handleRequest(createInput("PUT", "/prod/proxy-test/12345", "/proxy-test/{proxy+}", "prod"), context);
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/proxy-test/12345");

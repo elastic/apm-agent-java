@@ -87,8 +87,8 @@ import java.util.function.Function;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 
 class DslJsonSerializerTest {
@@ -102,7 +102,7 @@ class DslJsonSerializerTest {
     @BeforeEach
     void setUp() throws Exception {
         StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
-        when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(15);
+        doReturn(15).when(stacktraceConfiguration).getStackTraceLimit();
         apmServerClient = mock(ApmServerClient.class);
         metaData = MetaDataMock.create();
         serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData);
@@ -128,7 +128,7 @@ class DslJsonSerializerTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void testSerializeNonStringLabels(boolean numericLabels) {
-        when(apmServerClient.supportsNonStringLabels()).thenReturn(numericLabels);
+        doReturn(numericLabels).when(apmServerClient).supportsNonStringLabels();
 
         Map<String, Object> expectedMap;
         if (numericLabels) {
@@ -143,7 +143,7 @@ class DslJsonSerializerTest {
     @ValueSource(booleans = {true, false})
     void testSerializeUrlPort(boolean useNumericPort) {
 
-        when(apmServerClient.supportsNumericUrlPort()).thenReturn(useNumericPort);
+        doReturn(useNumericPort).when(apmServerClient).supportsNumericUrlPort();
 
         Url url = new Url()
             .withPort(42)
@@ -198,7 +198,7 @@ class DslJsonSerializerTest {
     @Test
     void testErrorSerializationAllFrames() {
         StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
-        when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(-1);
+        doReturn(-1).when(stacktraceConfiguration).getStackTraceLimit();
         serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData);
 
         ErrorCapture error = new ErrorCapture(tracer).withTimestamp(5000);
@@ -468,7 +468,7 @@ class DslJsonSerializerTest {
         JsonNode destination = context.get("destination");
 
 
-        if(hasAddress || hasPort || hasServiceTargetContent || hasCloudContent){
+        if (hasAddress || hasPort || hasServiceTargetContent || hasCloudContent) {
             assertThat(destination).isNotNull();
             if (hasAddress) {
                 assertThat("whatever.com").isEqualTo(destination.get("address").textValue());
@@ -718,11 +718,11 @@ class DslJsonSerializerTest {
     void testSerializeMetadata() throws Exception {
         SystemInfo systemInfo = mock(SystemInfo.class);
         SystemInfo.Container container = mock(SystemInfo.Container.class);
-        when(container.getId()).thenReturn("container_id");
-        when(systemInfo.getContainerInfo()).thenReturn(container);
+        doReturn("container_id").when(container).getId();
+        doReturn(container).when(systemInfo).getContainerInfo();
         SystemInfo.Kubernetes kubernetes = createKubernetesMock("pod", "pod_id", "node", "ns");
-        when(systemInfo.getKubernetesInfo()).thenReturn(kubernetes);
-        when(systemInfo.getPlatform()).thenReturn("9 3/4"); // this terrible pun is intentional
+        doReturn(kubernetes).when(systemInfo).getKubernetesInfo();
+        doReturn("9 3/4").when(systemInfo).getPlatform(); // this terrible pun is intentional
 
         Service service = new Service()
             .withAgent(new Agent("MyAgent", "1.11.1"))
@@ -818,7 +818,7 @@ class DslJsonSerializerTest {
     @Test
     void testConfiguredServiceNodeName() throws Exception {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig();
-        when(configRegistry.getConfig(CoreConfiguration.class).getServiceNodeName()).thenReturn("Custom-Node-Name");
+        doReturn("Custom-Node-Name").when(configRegistry.getConfig(CoreConfiguration.class)).getServiceNodeName();
         serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient, MetaData.create(configRegistry, null));
         serializer.blockUntilReady();
         serializer.appendMetaDataNdJsonToStream();
@@ -837,8 +837,8 @@ class DslJsonSerializerTest {
         Transaction transaction = new Transaction(tracer);
 
         // test only the most recent server here
-        when(apmServerClient.supportsMultipleHeaderValues()).thenReturn(true);
-        when(apmServerClient.supportsNumericUrlPort()).thenReturn(true);
+        doReturn(true).when(apmServerClient).supportsMultipleHeaderValues();
+        doReturn(true).when(apmServerClient).supportsNumericUrlPort();
 
         transaction.getContext().getUser()
             .withId("42")
@@ -1323,8 +1323,8 @@ class DslJsonSerializerTest {
 
     private void testRootTransactionSampleRate(boolean sampled, double samplerRate, @Nullable Double expectedRate) {
         Sampler sampler = mock(Sampler.class);
-        when(sampler.isSampled(any(Id.class))).thenReturn(sampled);
-        when(sampler.getSampleRate()).thenReturn(samplerRate);
+        doReturn(sampled).when(sampler).isSampled(any(Id.class));
+        doReturn(samplerRate).when(sampler).getSampleRate();
 
         Transaction transaction = createRootTransaction(sampler);
 
@@ -1344,8 +1344,8 @@ class DslJsonSerializerTest {
     void testSampledSpan_rateFromParent() {
 
         Sampler sampler = mock(Sampler.class);
-        when(sampler.isSampled(any(Id.class))).thenReturn(true);
-        when(sampler.getSampleRate()).thenReturn(0.42d);
+        doReturn(true).when(sampler).isSampled(any(Id.class));
+        doReturn(0.42d).when(sampler).getSampleRate();
 
         Transaction transaction = createRootTransaction(sampler);
         TraceContext transactionContext = transaction.getTraceContext();
@@ -1381,8 +1381,7 @@ class DslJsonSerializerTest {
             .addHeader("content-type", "content-type2");
 
         if (supportsMulti) {
-            when(apmServerClient.supportsMultipleHeaderValues())
-                .thenReturn(supportsMulti);
+            doReturn(supportsMulti).when(apmServerClient).supportsMultipleHeaderValues();
         }
 
         JsonNode jsonTransaction = readJsonString(serializer.toJsonString(transaction));
@@ -1421,7 +1420,7 @@ class DslJsonSerializerTest {
             .describedAs("otel span kind should not be set by default")
             .isNull();
 
-        JsonNode spanJson = toJson.apply(context );
+        JsonNode spanJson = toJson.apply(context);
 
         assertThat(spanJson.get("name").asText()).isEqualTo("otel span");
         assertThat(spanJson.get("otel")).isNull();
@@ -1528,19 +1527,19 @@ class DslJsonSerializerTest {
     private static SystemInfo.Kubernetes createKubernetesMock(String podName, String podId, String nodeName, String namespace) {
         SystemInfo.Kubernetes k = mock(SystemInfo.Kubernetes.class);
 
-        when(k.hasContent()).thenReturn(true);
+        doReturn(true).when(k).hasContent();
 
         SystemInfo.Kubernetes.Pod pod = mock(SystemInfo.Kubernetes.Pod.class);
-        when(pod.getName()).thenReturn(podName);
-        when(pod.getUid()).thenReturn(podId);
+        doReturn(podName).when(pod).getName();
+        doReturn(podId).when(pod).getUid();
 
-        when(k.getPod()).thenReturn(pod);
+        doReturn(pod).when(k).getPod();
 
         SystemInfo.Kubernetes.Node node = mock(SystemInfo.Kubernetes.Node.class);
-        when(node.getName()).thenReturn(nodeName);
-        when(k.getNode()).thenReturn(node);
+        doReturn(nodeName).when(node).getName();
+        doReturn(node).when(k).getNode();
 
-        when(k.getNamespace()).thenReturn(namespace);
+        doReturn(namespace).when(k).getNamespace();
 
         return k;
     }
