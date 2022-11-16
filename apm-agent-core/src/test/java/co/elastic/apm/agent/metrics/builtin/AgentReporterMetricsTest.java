@@ -47,17 +47,21 @@ public class AgentReporterMetricsTest {
 
     private ReporterConfiguration mockReporterConfig;
 
+    private MetricsConfiguration mockMetricsConfig;
+
     private AgentReporterMetrics reporterMetrics;
 
     @BeforeEach
     public void setUp() {
         mockReporterConfig = mock(ReporterConfiguration.class);
-        metricRegistry = new MetricRegistry(mockReporterConfig, spy(MetricsConfiguration.class));
+        mockMetricsConfig = spy(MetricsConfiguration.class);
+        metricRegistry = new MetricRegistry(mockReporterConfig, mockMetricsConfig);
     }
 
     @Test
     public void checkTotalEventCount() {
-        reporterMetrics = new AgentReporterMetrics(metricRegistry);
+        doReturn(true).when(mockMetricsConfig).isReporterHealthMetricsEnabled();
+        reporterMetrics = new AgentReporterMetrics(metricRegistry, mockMetricsConfig);
 
         createNEvents(ReportingEvent.ReportingEventType.WAKEUP, 1);
         createNEvents(ReportingEvent.ReportingEventType.TRANSACTION, 2);
@@ -68,13 +72,13 @@ public class AgentReporterMetricsTest {
 
         reportAndCheckMetrics(metricSets -> {
 
-            assertThat(metricSets).containsOnlyKeys(
-                Labels.EMPTY,
-                Labels.Mutable.of("event_type", "transaction"),
-                Labels.Mutable.of("event_type", "span"),
-                Labels.Mutable.of("event_type", "error"),
-                Labels.Mutable.of("event_type", "metricset")
-            );
+            assertThat(metricSets.keySet()).allSatisfy(labels -> {
+                for (int i = 0; i < labels.getKeys().size(); i++) {
+                    if (labels.getKey(i).equals("event_type")) {
+                        assertThat(labels.getValue(i)).matches("transaction|span|error|metricset");
+                    }
+                }
+            });
 
             assertThat(metricSets.get(Labels.Mutable.of("event_type", "transaction")).getCounters())
                 .hasSize(1)
@@ -92,8 +96,6 @@ public class AgentReporterMetricsTest {
                 .hasSize(1)
                 .extractingByKey("agent.events.total")
                 .satisfies(counter -> assertThat(counter).hasValue(5));
-            assertThat(metricSets.get(Labels.EMPTY).getCounters())
-                .hasSize(0);
         });
 
     }
@@ -101,7 +103,8 @@ public class AgentReporterMetricsTest {
 
     @Test
     public void checkQueueDroppedEventCount() {
-        reporterMetrics = new AgentReporterMetrics(metricRegistry);
+        doReturn(true).when(mockMetricsConfig).isReporterHealthMetricsEnabled();
+        reporterMetrics = new AgentReporterMetrics(metricRegistry, mockMetricsConfig);
 
         dropNEventsBeforeQueue(ReportingEvent.ReportingEventType.WAKEUP, 1); //should not be counted
         dropNEventsBeforeQueue(ReportingEvent.ReportingEventType.TRANSACTION, 2);
@@ -110,16 +113,17 @@ public class AgentReporterMetricsTest {
         dropNEventsBeforeQueue(ReportingEvent.ReportingEventType.METRICSET_JSON_WRITER, 5);
 
         reportAndCheckMetrics(metricSets -> {
-            assertThat(metricSets.get(Labels.EMPTY).getCounters())
-                .extractingByKey("agent.events.dropped.queue")
+            assertThat(metricSets.get(Labels.Mutable.of("reason", "queue")).getCounters())
+                .extractingByKey("agent.events.dropped")
                 .satisfies(counter -> assertThat(counter).hasValue(14));
         });
     }
 
 
     @Test
-    public void checkErrorDroppedEventCount() {
-        reporterMetrics = new AgentReporterMetrics(metricRegistry);
+    public void checkDroppedEventCount() {
+        doReturn(true).when(mockMetricsConfig).isReporterHealthMetricsEnabled();
+        reporterMetrics = new AgentReporterMetrics(metricRegistry, mockMetricsConfig);
 
         dropNEventsAfterDequeue(ReportingEvent.ReportingEventType.WAKEUP, 1);
         dropNEventsAfterDequeue(ReportingEvent.ReportingEventType.TRANSACTION, 2);
@@ -139,9 +143,9 @@ public class AgentReporterMetricsTest {
 
         reportAndCheckMetrics(metricSets -> {
 
-            assertThat(metricSets.get(Labels.EMPTY).getCounters())
-                .extractingByKey("agent.events.dropped.error")
-                //14 events dropped before queue, 140 sent, server responded with 100 accepted
+            assertThat(metricSets.get(Labels.Mutable.of("reason", "error")).getCounters())
+                .extractingByKey("agent.events.dropped")
+                //14 events dropped after dequeue, 140 sent, server responded with 100 accepted
                 .satisfies(counter -> assertThat(counter).hasValue(14 + 140 - 100));
         });
     }
@@ -149,7 +153,8 @@ public class AgentReporterMetricsTest {
 
     @Test
     public void checkRequestMetrics() {
-        reporterMetrics = new AgentReporterMetrics(metricRegistry);
+        doReturn(true).when(mockMetricsConfig).isReporterHealthMetricsEnabled();
+        reporterMetrics = new AgentReporterMetrics(metricRegistry, mockMetricsConfig);
 
         ReportingEventCounter inflightEvents = new ReportingEventCounter();
 
@@ -179,14 +184,15 @@ public class AgentReporterMetricsTest {
 
     @Test
     public void checkQueueUtilizationCorrectlyReset() {
-        reporterMetrics = new AgentReporterMetrics(metricRegistry);
+        doReturn(true).when(mockMetricsConfig).isReporterHealthMetricsEnabled();
+        reporterMetrics = new AgentReporterMetrics(metricRegistry, mockMetricsConfig);
 
         reporterMetrics.eventCreated(ReportingEvent.ReportingEventType.WAKEUP, 10, 0);
         reporterMetrics.eventDequeued(ReportingEvent.ReportingEventType.WAKEUP, 10, 5);
 
         reportAndCheckMetrics(metricSets -> {
 
-            assertThat(metricSets.get(Labels.EMPTY).getRawMetrics())
+            assertThat(metricSets.get(Labels.Mutable.of("queue_name", "generic")).getRawMetrics())
                 .containsEntry("agent.events.queue.min_size.pct", 0.0)
                 .containsEntry("agent.events.queue.max_size.pct", 0.5);
         });
@@ -197,7 +203,7 @@ public class AgentReporterMetricsTest {
 
         reportAndCheckMetrics(metricSets -> {
 
-            assertThat(metricSets.get(Labels.EMPTY).getRawMetrics())
+            assertThat(metricSets.get(Labels.Mutable.of("queue_name", "generic")).getRawMetrics())
                 .containsEntry("agent.events.queue.min_size.pct", 0.2)
                 .containsEntry("agent.events.queue.max_size.pct", 0.8);
         });
@@ -205,7 +211,7 @@ public class AgentReporterMetricsTest {
         //queue die not change since last report, therefore we expect to see the last known state of it
         reportAndCheckMetrics(metricSets -> {
 
-            assertThat(metricSets.get(Labels.EMPTY).getRawMetrics())
+            assertThat(metricSets.get(Labels.Mutable.of("queue_name", "generic")).getRawMetrics())
                 .containsEntry("agent.events.queue.min_size.pct", 0.5)
                 .containsEntry("agent.events.queue.max_size.pct", 0.5);
         });
@@ -214,7 +220,8 @@ public class AgentReporterMetricsTest {
 
     @Test
     public void checkQueueUtilizationOnDrop() {
-        AgentReporterMetrics reporterMetrics = new AgentReporterMetrics(metricRegistry);
+        doReturn(true).when(mockMetricsConfig).isReporterHealthMetricsEnabled();
+        reporterMetrics = new AgentReporterMetrics(metricRegistry, mockMetricsConfig);
 
         reporterMetrics.eventCreated(ReportingEvent.ReportingEventType.WAKEUP, 10, 0);
         reporterMetrics.eventDroppedBeforeQueue(ReportingEvent.ReportingEventType.WAKEUP, 10);
@@ -222,7 +229,7 @@ public class AgentReporterMetricsTest {
 
         reportAndCheckMetrics(metricSets -> {
 
-            assertThat(metricSets.get(Labels.EMPTY).getRawMetrics())
+            assertThat(metricSets.get(Labels.Mutable.of("queue_name", "generic")).getRawMetrics())
                 .containsEntry("agent.events.queue.min_size.pct", 0.0)
                 .containsEntry("agent.events.queue.max_size.pct", 1.0);
         });
@@ -232,14 +239,14 @@ public class AgentReporterMetricsTest {
     @ParameterizedTest
     @ValueSource(strings = {
         "agent.events.total",
-        "agent.events.dropped.queue",
-        "agent.events.dropped.error",
+        "agent.events.dropped",
         "agent.events.queue.min_size.pct",
         "agent.events.queue.max_size.pct"
     })
     public void testDisableMetric(String metric) {
         doReturn(List.of(WildcardMatcher.valueOf(metric))).when(mockReporterConfig).getDisableMetrics();
-        AgentReporterMetrics reporterMetrics = new AgentReporterMetrics(metricRegistry);
+        doReturn(true).when(mockMetricsConfig).isReporterHealthMetricsEnabled();
+        reporterMetrics = new AgentReporterMetrics(metricRegistry, mockMetricsConfig);
 
         //do every possible interaction which could trigger the metric
         reporterMetrics.eventCreated(ReportingEvent.ReportingEventType.TRANSACTION, 10, 5);
@@ -256,6 +263,30 @@ public class AgentReporterMetricsTest {
             assertMetricNotExported(metrics, metric);
         });
     }
+
+    @Test
+    public void testAllDisabledByDefault() {
+        reporterMetrics = new AgentReporterMetrics(metricRegistry, mockMetricsConfig);
+
+        //do every possible interaction which could trigger the metric
+        reporterMetrics.eventCreated(ReportingEvent.ReportingEventType.TRANSACTION, 10, 5);
+        reporterMetrics.eventDroppedBeforeQueue(ReportingEvent.ReportingEventType.TRANSACTION, 10);
+        reporterMetrics.eventDroppedAfterDequeue(ReportingEvent.ReportingEventType.TRANSACTION);
+        reporterMetrics.eventDequeued(ReportingEvent.ReportingEventType.TRANSACTION, 10, 5);
+
+        ReportingEventCounter inflightEvents = new ReportingEventCounter();
+        inflightEvents.add(ReportingEvent.ReportingEventType.TRANSACTION, 20);
+        reporterMetrics.requestFinished(inflightEvents, 0, 10, false);
+        reporterMetrics.requestFinished(inflightEvents, 0, 20, true);
+
+        reportAndCheckMetrics(metrics -> {
+            assertMetricNotExported(metrics, "agent.events.total");
+            assertMetricNotExported(metrics, "agent.events.dropped");
+            assertMetricNotExported(metrics, "agent.events.queue.min_size.pct");
+            assertMetricNotExported(metrics, "agent.events.queue.max_size.pct");
+        });
+    }
+
 
     @SuppressWarnings("unchecked")
     private void reportAndCheckMetrics(Consumer<Map<Labels, MetricSet>> assertions) {

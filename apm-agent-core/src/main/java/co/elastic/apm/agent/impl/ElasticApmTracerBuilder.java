@@ -174,10 +174,11 @@ public class ElasticApmTracerBuilder {
             lifecycleListeners.add(configurationSource);
         }
 
-        MetricRegistry metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class), configurationRegistry.getConfig(MetricsConfiguration.class));
+        MetricsConfiguration metricsConfig = configurationRegistry.getConfig(MetricsConfiguration.class);
+        MetricRegistry metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class), metricsConfig);
 
         if (reporter == null) {
-            AgentReporterMetrics healthMetrics = new AgentReporterMetrics(metricRegistry);
+            AgentReporterMetrics healthMetrics = new AgentReporterMetrics(metricRegistry, metricsConfig);
             reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaDataFuture, healthMetrics);
         }
 

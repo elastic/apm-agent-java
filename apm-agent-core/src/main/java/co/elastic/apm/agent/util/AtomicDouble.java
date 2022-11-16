@@ -49,26 +49,26 @@ public class AtomicDouble {
         return valueUpdater.compareAndSet(this, expectedLong, expectedDouble);
     }
 
-    public double setMax(double value) {
-        while (true) {
+    public void setWeakMax(double value) {
+        for (int i = 0; i < 10; i++) { //try at most 10 times to guarantee constant latency
             double current = get();
             if (current >= value) {
-                return current;
+                return;
             }
             if (compareAndSet(current, value)) {
-                return value;
+                return;
             }
         }
     }
 
-    public double setMin(double value) {
-        while (true) {
+    public void setWeakMin(double value) {
+        for (int i = 0; i < 10; i++) { //try at most 10 times to guarantee constant latency
             double current = get();
             if (current <= value) {
-                return current;
+                return;
             }
             if (compareAndSet(current, value)) {
-                return value;
+                return;
             }
         }
     }

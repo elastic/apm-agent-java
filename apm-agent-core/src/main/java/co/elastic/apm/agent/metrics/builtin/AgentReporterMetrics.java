@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricCollector;
 import co.elastic.apm.agent.metrics.MetricRegistry;
@@ -38,8 +39,7 @@ public class AgentReporterMetrics implements ReporterMonitor {
     private final MetricRegistry metricRegistry;
 
     private static final String TOTAL_EVENTS_METRIC = "agent.events.total";
-    private static final String DROPPED_EVENTS_METRIC = "agent.events.dropped.queue";
-    private static final String ERROR_EVENTS_METRIC = "agent.events.dropped.error";
+    private static final String DROPPED_EVENTS_METRIC = "agent.events.dropped";
 
     private static final String MAX_QUEUE_SIZE_METRIC = "agent.events.queue.max_size.pct";
     private static final String MIN_QUEUE_SIZE_METRIC = "agent.events.queue.min_size.pct";
@@ -49,7 +49,6 @@ public class AgentReporterMetrics implements ReporterMonitor {
 
     private final boolean totalEventsMetricEnabled;
     private final boolean droppedEventsMetricEnabled;
-    private final boolean errorEventsMetricEnabled;
 
     private final boolean minQueueSizeMetricEnabled;
 
@@ -59,6 +58,9 @@ public class AgentReporterMetrics implements ReporterMonitor {
     private final boolean requestBytesMetricEnabled;
 
 
+    private static final Labels QUEUE_REASON_LABEL = Labels.Mutable.of("reason", "queue").immutableCopy();
+    private static final Labels ERROR_REASON_LABEL = Labels.Mutable.of("reason", "error").immutableCopy();
+
     private static final Labels TRANSACTION_LABEL = Labels.Mutable.of("event_type", "transaction").immutableCopy();
     private static final Labels SPAN_LABEL = Labels.Mutable.of("event_type", "span").immutableCopy();
     private static final Labels ERROR_LABEL = Labels.Mutable.of("event_type", "error").immutableCopy();
@@ -67,30 +69,32 @@ public class AgentReporterMetrics implements ReporterMonitor {
     private static final Labels SUCCESS_LABEL = Labels.Mutable.of("success", "true").immutableCopy();
     private static final Labels FAILURE_LABEL = Labels.Mutable.of("success", "false").immutableCopy();
 
+    private static final Labels GENERIC_QUEUE_LABEL = Labels.Mutable.of("queue_name", "generic").immutableCopy();
+
 
     private volatile double currentQueueUtilization = 0;
     private final AtomicDouble maxQueueSize = new AtomicDouble(0.0);
     private final AtomicDouble minQueueSize = new AtomicDouble(0.0);
 
-    public AgentReporterMetrics(final MetricRegistry registry) {
+    public AgentReporterMetrics(final MetricRegistry registry, MetricsConfiguration configuration) {
         this.metricRegistry = registry;
-        this.totalEventsMetricEnabled = !registry.isDisabled(TOTAL_EVENTS_METRIC);
-        this.droppedEventsMetricEnabled = !registry.isDisabled(DROPPED_EVENTS_METRIC);
-        this.errorEventsMetricEnabled = !registry.isDisabled(ERROR_EVENTS_METRIC);
-        this.minQueueSizeMetricEnabled = !registry.isDisabled(MIN_QUEUE_SIZE_METRIC);
-        this.maxQueueSizeMetricEnabled = !registry.isDisabled(MAX_QUEUE_SIZE_METRIC);
-        this.requestCountMetricEnabled = !registry.isDisabled(REQUEST_COUNT_METRIC);
-        this.requestBytesMetricEnabled = !registry.isDisabled(REQUEST_BYTES_METRIC);
+        boolean allEnabled = configuration.isReporterHealthMetricsEnabled();
+        this.totalEventsMetricEnabled = allEnabled && !registry.isDisabled(TOTAL_EVENTS_METRIC);
+        this.droppedEventsMetricEnabled = allEnabled && !registry.isDisabled(DROPPED_EVENTS_METRIC);
+        this.minQueueSizeMetricEnabled = allEnabled && !registry.isDisabled(MIN_QUEUE_SIZE_METRIC);
+        this.maxQueueSizeMetricEnabled = allEnabled && !registry.isDisabled(MAX_QUEUE_SIZE_METRIC);
+        this.requestCountMetricEnabled = allEnabled && !registry.isDisabled(REQUEST_COUNT_METRIC);
+        this.requestBytesMetricEnabled = allEnabled && !registry.isDisabled(REQUEST_BYTES_METRIC);
 
         if (anyQueueSizeMetricEnabled()) {
             registry.addMetricsProvider(new MetricsProvider() {
                 @Override
                 public void collectAndReset(MetricCollector collector) {
                     if (minQueueSizeMetricEnabled) {
-                        collector.addMetricValue(MIN_QUEUE_SIZE_METRIC, Labels.EMPTY, minQueueSize.get());
+                        collector.addMetricValue(MIN_QUEUE_SIZE_METRIC, GENERIC_QUEUE_LABEL, minQueueSize.get());
                     }
                     if (maxQueueSizeMetricEnabled) {
-                        collector.addMetricValue(MAX_QUEUE_SIZE_METRIC, Labels.EMPTY, maxQueueSize.get());
+                        collector.addMetricValue(MAX_QUEUE_SIZE_METRIC, GENERIC_QUEUE_LABEL, maxQueueSize.get());
                     }
                     double currentUtilization = currentQueueUtilization;
                     minQueueSize.set(currentUtilization);
@@ -115,8 +119,8 @@ public class AgentReporterMetrics implements ReporterMonitor {
         if (anyQueueSizeMetricEnabled()) {
             double queueUtilization = ((double) queueSize) / queueCapacity;
             currentQueueUtilization = queueUtilization;
-            maxQueueSize.setMax(queueUtilization);
-            minQueueSize.setMin(queueUtilization);
+            maxQueueSize.setWeakMax(queueUtilization);
+            minQueueSize.setWeakMin(queueUtilization);
         }
     }
 
@@ -130,7 +134,7 @@ public class AgentReporterMetrics implements ReporterMonitor {
         if (droppedEventsMetricEnabled) {
             Labels label = getLabelFor(eventType);
             if (label != null) {
-                metricRegistry.incrementCounter(DROPPED_EVENTS_METRIC, Labels.EMPTY);
+                metricRegistry.incrementCounter(DROPPED_EVENTS_METRIC, QUEUE_REASON_LABEL);
             }
         }
         updateQueueMetric(queueCapacity, queueCapacity);
@@ -138,10 +142,10 @@ public class AgentReporterMetrics implements ReporterMonitor {
 
     @Override
     public void eventDroppedAfterDequeue(ReportingEvent.ReportingEventType eventType) {
-        if (errorEventsMetricEnabled) {
+        if (droppedEventsMetricEnabled) {
             Labels label = getLabelFor(eventType);
             if (label != null) {
-                metricRegistry.incrementCounter(ERROR_EVENTS_METRIC, Labels.EMPTY);
+                metricRegistry.incrementCounter(DROPPED_EVENTS_METRIC, ERROR_REASON_LABEL);
             }
         }
     }
@@ -154,8 +158,8 @@ public class AgentReporterMetrics implements ReporterMonitor {
             label = SUCCESS_LABEL;
         } else {
             label = FAILURE_LABEL;
-            if (errorEventsMetricEnabled) {
-                metricRegistry.addToCounter(ERROR_EVENTS_METRIC, Labels.EMPTY, requestContent.getTotalCount() - acceptedEventCount);
+            if (droppedEventsMetricEnabled) {
+                metricRegistry.addToCounter(DROPPED_EVENTS_METRIC, ERROR_REASON_LABEL, requestContent.getTotalCount() - acceptedEventCount);
             }
         }
         if (requestBytesMetricEnabled) {
