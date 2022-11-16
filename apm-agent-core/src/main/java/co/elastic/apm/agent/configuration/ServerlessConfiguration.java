@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.configuration;
 
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
@@ -50,7 +51,8 @@ public class ServerlessConfiguration extends ConfigurationOptionProvider {
     }
 
     public boolean runsOnAwsLambda() {
-        String lambdaName = System.getenv("AWS_LAMBDA_FUNCTION_NAME");
+        String lambdaName = PrivilegedActionUtils.getEnv("AWS_LAMBDA_FUNCTION_NAME");
         return null != lambdaName && !lambdaName.isEmpty();
     }
+
 }
