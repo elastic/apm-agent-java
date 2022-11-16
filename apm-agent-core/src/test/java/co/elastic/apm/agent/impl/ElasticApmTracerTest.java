@@ -593,7 +593,7 @@ class ElasticApmTracerTest {
 
         CoreConfiguration coreConfig = localConfig.getConfig(CoreConfiguration.class);
 
-        assertThat(ServiceInfo.autoDetect(System.getProperties()))
+        assertThat(ServiceInfo.autoDetect(System.getProperties(), System.getenv()))
             .isEqualTo(ServiceInfo.of(coreConfig.getServiceName()));
 
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isNull();
