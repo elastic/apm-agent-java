@@ -165,7 +165,7 @@ public class AbstractIntakeApiHandler {
 
     protected void endRequestExceptionally() {
         if (connection == null) {
-            //The HttpUrlConnection could not be established if connecttion == null
+            //The HttpUrlConnection could not be established if connection == null
             onConnectionError(null, null, 0L);
         } else {
             endRequest(true);
