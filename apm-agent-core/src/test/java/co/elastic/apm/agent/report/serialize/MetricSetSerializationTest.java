@@ -74,6 +74,21 @@ class MetricSetSerializationTest {
     }
 
     @Test
+    void testSerializeRawMetrics() throws Exception {
+        final Labels.Mutable labels = Labels.Mutable.of("foo.bar", "baz");
+
+        registry.addMetricsProvider(collector -> {
+            collector.addMetricValue("my.metric", labels, 42);
+        });
+        final JsonNode jsonNode = reportAsJson();
+        assertThat(jsonNode).isNotNull();
+        final JsonNode tags = jsonNode.get("metricset").get("tags");
+        assertThat(tags.get("foo_bar").asText()).isEqualTo("baz");
+        final JsonNode samples = jsonNode.get("metricset").get("samples");
+        assertThat(samples.get("my.metric").get("value").doubleValue()).isEqualTo(42);
+    }
+
+    @Test
     void testSerializeTimersWithTopLevelLabels() throws Exception {
         final Labels.Mutable labels = Labels.Mutable.of("foo", "bar")
             .transactionName("foo")
