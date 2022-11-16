@@ -54,7 +54,6 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 public abstract class LoggingInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -108,7 +107,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     }
 
     private void initializeReformattingDir(String dirName) throws IOException {
-        when(loggingConfig.getLogEcsFormattingDestinationDir()).thenReturn(dirName);
+        doReturn(dirName).when(loggingConfig).getLogEcsFormattingDestinationDir();
         Files.deleteIfExists(Paths.get(getLogReformattingFilePath()));
         Files.deleteIfExists(Paths.get(getLogReformattingFilePath() + ".1"));
     }
@@ -323,7 +322,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     private void verifyErrorCaptureAndCorrelation(boolean isErrorLine, JsonNode ecsLogLineTree) {
         final JsonNode errorJsonNode = ecsLogLineTree.get(AbstractLogCorrelationHelper.ERROR_ID_MDC_KEY);
         if (isErrorLine) {
-            assertThat(errorJsonNode).isNotNull();
+            assertThat(errorJsonNode).describedAs("missing error ID").isNotNull();
             List<ErrorCapture> errors = reporter.getErrors().stream()
                 .filter(error -> errorJsonNode.textValue().equals(error.getTraceContext().getId().toString()))
                 .collect(Collectors.toList());
@@ -385,10 +384,10 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     private void verifyLogCorrelation(JsonNode ecsLogLineTree, boolean isErrorLine) {
         if (isLogCorrelationSupported()) {
             JsonNode traceId = ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY);
-            assertThat(traceId).withFailMessage("Logging correlation does not work as expected").isNotNull();
+            assertThat(traceId).describedAs("Logging correlation does not work as expected: missing trace ID").isNotNull();
             assertThat(traceId.textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
             JsonNode transactionId = ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY);
-            assertThat(transactionId).withFailMessage("Logging correlation does not work as expected").isNotNull();
+            assertThat(transactionId).describedAs("Logging correlation does not work as expected: missing transaction ID").isNotNull();
             assertThat(transactionId.textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
             verifyErrorCaptureAndCorrelation(isErrorLine, ecsLogLineTree);
         } else {
@@ -408,13 +407,14 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
      * is a notorious way to make tests flaky. If that proves to be the case, this test can be disabled, as its
      * importance for regression testing is not crucial. It would be very useful if we decide to modify anything in
      * our logging configuration, for example - change the rolling decision strategy.
+     *
      * @throws IOException thrown if we fail to read the shade log file
      */
     @Test
     public void testReformattedLogRolling() throws IOException {
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
         initializeReformattingDir("rolling");
-        when(loggingConfig.getLogFileSize()).thenReturn(100L);
+        doReturn(100L).when(loggingConfig).getLogFileSize();
         logger.trace("First line");
         waitForFileRolling();
         logger.debug("Second Line");

@@ -19,15 +19,19 @@
 package co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractMessageListWrapper;
-import co.elastic.apm.agent.awssdk.v2.AmazonSQSMessagingClientWrapperInstrumentation;
+import co.elastic.apm.agent.awssdk.common.IAwsSdkDataSource;
 import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
+import co.elastic.apm.agent.awssdk.v2.helper.SdkV2DataSource;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import software.amazon.awssdk.core.SdkRequest;
+import software.amazon.awssdk.core.SdkResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
 import javax.annotation.Nullable;
@@ -39,16 +43,19 @@ public class MessageListWrapper extends AbstractMessageListWrapper<Message> {
     public static final CallDepth jmsReceiveMessageCallDepth = CallDepth.get(MessageListWrapper.class);
     private static final WeakMap<ReceiveMessageResponse, List<Message>> sqsResponseToWrappedMessageListMap = WeakConcurrent.buildMap();
 
-    public static void registerWrapperListForResponse(ReceiveMessageResponse response, @Nullable String queueName, ElasticApmTracer tracer) {
-        // Wrap result only if the messages are NOT received as part of JMS.
-        if (!jmsReceiveMessageCallDepth.isNestedCallAndIncrement()) {
-            if (tracer.isRunning() && queueName != null
-                && !WildcardMatcher.isAnyMatch(tracer.getConfig(MessagingConfiguration.class).getIgnoreMessageQueues(), queueName)) {
-                sqsResponseToWrappedMessageListMap.put(response, new MessageListWrapper(response.messages(), tracer, queueName));
+    public static void registerWrapperListForResponse(@Nullable SdkRequest sdkRequest, @Nullable SdkResponse sdkResponse, ElasticApmTracer tracer) {
+        if (sdkResponse instanceof ReceiveMessageResponse && sdkRequest instanceof ReceiveMessageRequest) {
+            String queueName = SdkV2DataSource.getInstance().getFieldValue(IAwsSdkDataSource.QUEUE_NAME_FIELD, sdkRequest);
+            ReceiveMessageResponse receiveMessageResponse = (ReceiveMessageResponse) sdkResponse;
+            // Wrap result only if the messages are NOT received as part of JMS.
+            if (!jmsReceiveMessageCallDepth.isNestedCallAndIncrement()) {
+                if (tracer.isRunning() && queueName != null
+                    && !WildcardMatcher.isAnyMatch(tracer.getConfig(MessagingConfiguration.class).getIgnoreMessageQueues(), queueName)) {
+                    sqsResponseToWrappedMessageListMap.put(receiveMessageResponse, new MessageListWrapper(receiveMessageResponse.messages(), tracer, queueName));
+                }
             }
+            jmsReceiveMessageCallDepth.decrement();
         }
-        jmsReceiveMessageCallDepth.decrement();
-
     }
 
     @Nullable

@@ -23,7 +23,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Message;
-import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -53,11 +52,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 /**
  * This test is disabled because may fail on CI, maybe because of running in parallel to the current client test.
@@ -216,7 +214,7 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
 
     @Test
     public void testHeaderCaptureDisabled() {
-        when(coreConfiguration.isCaptureHeaders()).thenReturn(false);
+        doReturn(false).when(coreConfiguration).isCaptureHeaders();
         testScenario = TestScenario.HEADERS_CAPTURE_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
@@ -233,7 +231,7 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
 
     @Test
     public void testDestinationAddressCollectionDisabled() {
-        when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
+        doReturn(false).when(messagingConfiguration).shouldCollectQueueAddress();
         testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         reporter.disableCheckDestinationAddress();
@@ -243,7 +241,7 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
 
     @Test
     public void testIgnoreTopic() {
-        when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(List.of(WildcardMatcher.valueOf(REQUEST_TOPIC)));
+        doReturn(List.of(WildcardMatcher.valueOf(REQUEST_TOPIC))).when(messagingConfiguration).getIgnoreMessageQueues();
         testScenario = TestScenario.IGNORE_REQUEST_TOPIC;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();

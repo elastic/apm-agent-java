@@ -43,7 +43,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
 @RunWith(SpringRunner.class)
@@ -84,7 +84,7 @@ public class SpringBoot1_5IT {
 
     @Test
     public void testStaticFile() throws Exception {
-        when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(Collections.emptyList());
+        doReturn(Collections.emptyList()).when(config.getConfig(WebConfiguration.class)).getIgnoreUrls();
         assertThat(restTemplate.getForObject("http://localhost:" + port + "/script.js", String.class))
             .contains("// empty test script");
 

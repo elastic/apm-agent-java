@@ -78,11 +78,17 @@ public class AgentFileAccessor {
         String artifactName = modulePath.getFileName().toString(); // by convention artifact name the last part of the path
         try {
             Path targetFolder = moduleRoot.resolve("target");
+
+            String errorMsg = String.format("unable to find artifact '%s%s-{version}%s' in folder '%s', make sure to run 'mvn package' in folder '%s' first", artifactName, artifactSuffix, extension, targetFolder.toAbsolutePath(), moduleRoot);
+            if (!Files.isDirectory(targetFolder)) {
+                throw new IllegalStateException(errorMsg);
+            }
+
             return Files.find(targetFolder, 1, (path, attr) -> path.getFileName().toString()
                     .matches(artifactName + "-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?" + artifactSuffix + extension))
                 .findFirst()
                 .map(Path::toAbsolutePath)
-                .orElseThrow(() -> new IllegalStateException(String.format("unable to find artifact %s%s-{version}%s in folder %s, make sure to run 'mvn package' in folder '%s' first", artifactName, artifactSuffix, extension, targetFolder.toAbsolutePath(), moduleRoot)));
+                .orElseThrow(() -> new IllegalStateException(errorMsg));
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
