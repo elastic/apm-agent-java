@@ -165,6 +165,8 @@ Click on a key to get more information.
 * <<config-metrics>>
 ** <<config-dedot-custom-metrics>>
 ** <<config-metric-set-limit>>
+* <<config-mongodb>>
+** <<config-mongodb-capture-statement-commands>>
 * <<config-profiling>>
 ** <<config-profiling-inferred-spans-enabled>>
 ** <<config-profiling-inferred-spans-sampling-interval>>
@@ -2270,6 +2272,37 @@ But if you must, you can use this option to increase the limit.
 | `elastic.apm.metric_set_limit` | `metric_set_limit` | `ELASTIC_APM_METRIC_SET_LIMIT`
 |============
 
+[[config-mongodb]]
+=== MongoDB configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-mongodb-capture-statement-commands]]
+==== `mongodb_capture_statement_commands`
+
+MongoDB command names for which the command document will be captured, limited to common read-only operations by default.
+Set to ` ""` (empty) to disable capture, and `"*"` to capture all (which is discouraged as it may lead to sensitive information capture).
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `find, aggregate, count, distinct, mapReduce` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.mongodb_capture_statement_commands` | `mongodb_capture_statement_commands` | `ELASTIC_APM_MONGODB_CAPTURE_STATEMENT_COMMANDS`
+|============
+
 [[config-profiling]]
 === Profiling configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -4098,6 +4131,24 @@ Example: `5ms`.
 # Default value: 1000
 #
 # metric_set_limit=1000
+
+############################################
+# MongoDB                                  #
+############################################
+
+# MongoDB command names for which the command document will be captured, limited to common read-only operations by default.
+# Set to ` ""` (empty) to disable capture, and `"*"` to capture all (which is discouraged as it may lead to sensitive information capture).
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: find,aggregate,count,distinct,mapReduce
+#
+# mongodb_capture_statement_commands=find,aggregate,count,distinct,mapReduce
 
 ############################################
 # Profiling                                #
