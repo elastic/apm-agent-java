@@ -28,6 +28,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
+import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 
 /**
  * SimpleMeterRegistry is constructed with a SimpleConfig, but the config is not accessible via
@@ -44,12 +45,12 @@ public class MicrometerConfigInstrumentation extends AbstractMicrometerInstrumen
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isConstructor().and(takesArgument(0, named("io.micrometer.core.instrument.simple.SimpleConfig")));
+        return named("getMetersAsString").and(takesNoArguments()).or(isConstructor().and(takesArgument(0, named("io.micrometer.core.instrument.simple.SimpleConfig"))));
     }
 
     public static class AdviceClass {
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void onExit(@Advice.This MeterRegistry meterRegistry, @Advice.Argument(0) SimpleConfig config) {
+        public static void onExit(@Advice.This MeterRegistry meterRegistry, @Advice.FieldValue("config") SimpleConfig config) {
             reporter.addConfig(meterRegistry, config);
 
         }

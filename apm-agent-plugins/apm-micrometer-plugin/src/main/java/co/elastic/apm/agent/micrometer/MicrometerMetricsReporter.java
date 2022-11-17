@@ -70,7 +70,17 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
     //this means that an occasional step metric will be skipped. This is deemed acceptable
     private static final long INTERVAL_BETWEEN_CHECKS_IN_MILLISECONDS = 1000L;
     private static final Logger logger = LoggerFactory.getLogger(MicrometerMetricsReporter.class);
-
+    private static final boolean HAS_SimpleMeterRegistry_METHOD;
+    static {
+        boolean hasSimpleMeterRegistryMethod1;
+        try {
+            SimpleMeterRegistry.class.getDeclaredMethod("getMetersAsString", new Class[0]);
+            hasSimpleMeterRegistryMethod1 = true;
+        } catch (NoSuchMethodException e) {
+            hasSimpleMeterRegistryMethod1 = false;
+        }
+        HAS_SimpleMeterRegistry_METHOD = hasSimpleMeterRegistryMethod1;
+    }
 
     private volatile long lastMetricIntervalTimestamp = System.currentTimeMillis();
 
@@ -188,6 +198,15 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
             return ((StepRegistryConfig) (meterRegistry.config())).step().toMillis();
         }
         if (meterRegistry instanceof SimpleMeterRegistry) {
+            if (!configMap.containsKey(meterRegistry)) {
+                //Next is just used to trigger the side-effect of adding the config to the map
+                //But it's only available from micrometer 1.9.0
+                if (HAS_SimpleMeterRegistry_METHOD) {
+                    ((SimpleMeterRegistry) meterRegistry).getMetersAsString();
+                } else {
+                    return -1;
+                }
+            }
             SimpleConfig config = configMap.get(meterRegistry);
             return (config != null && CountingMode.STEP.equals(config.mode())) ?
                 config.step().toMillis() : -1;
@@ -231,8 +250,10 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
     }
 
     public void addConfig(final MeterRegistry meterRegistry, final SimpleConfig config) {
-        configMap.put(meterRegistry, config);
-        logger.debug("Identified Micrometer SimpleConfig: {}", config);
+        if (configMap.putIfAbsent(meterRegistry, config) != null) {
+            return;
+        }
+        logger.warn("Identified Micrometer SimpleConfig: {}", config);
 
         //this next only happens during testing
         //can't use instanceof or casts because of different classloaders
