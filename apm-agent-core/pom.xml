@@ -139,11 +139,11 @@
             <artifactId>dsl-json</artifactId>
             <version>1.9.3</version>
         </dependency>
-        <!--Used to test excluding old class file versions-->
+        <!--Used to test old class file versions-->
         <dependency>
             <groupId>commons-math</groupId>
             <artifactId>commons-math</artifactId>
-            <version>1.2</version>
+            <version>1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

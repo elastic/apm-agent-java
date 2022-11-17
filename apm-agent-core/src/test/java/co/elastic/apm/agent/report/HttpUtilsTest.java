@@ -25,9 +25,10 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class HttpUtilsTest {
 
@@ -39,8 +40,8 @@ class HttpUtilsTest {
     @Test
     void consumeAndCloseNoStreams() throws IOException {
         HttpURLConnection connection = mock(HttpURLConnection.class);
-        when(connection.getErrorStream()).thenReturn(null);
-        when(connection.getInputStream()).thenReturn(null);
+        doReturn(null).when(connection).getErrorStream();
+        doReturn(null).when(connection).getInputStream();
 
         HttpUtils.consumeAndClose(connection);
     }
@@ -50,9 +51,9 @@ class HttpUtilsTest {
         HttpURLConnection connection = mock(HttpURLConnection.class);
 
         InputStream errorStream = mockEmptyInputStream();
-        when(connection.getErrorStream()).thenReturn(errorStream);
+        doReturn(errorStream).when(connection).getErrorStream();
 
-        when(connection.getInputStream()).thenThrow(IOException.class);
+        doThrow(IOException.class).when(connection).getInputStream();
 
         HttpUtils.consumeAndClose(connection);
 
@@ -63,10 +64,10 @@ class HttpUtilsTest {
     void consumeAndCloseResponseContent() throws IOException {
         HttpURLConnection connection = mock(HttpURLConnection.class);
 
-        when(connection.getErrorStream()).thenReturn(null);
+        doReturn(null).when(connection).getErrorStream();
         InputStream responseStream = mockEmptyInputStream();
 
-        when(connection.getInputStream()).thenReturn(responseStream);
+        doReturn(responseStream).when(connection).getInputStream();
 
         HttpUtils.consumeAndClose(connection);
 
@@ -76,9 +77,9 @@ class HttpUtilsTest {
     private static InputStream mockEmptyInputStream() throws IOException {
         // very partial mock, but enough for what we want to test
         InputStream stream = mock(InputStream.class);
-        when(stream.available()).thenReturn(0);
-        when(stream.read()).thenReturn(-1);
-        when(stream.read(any())).thenReturn(-1);
+        doReturn(0).when(stream).available();
+        doReturn(-1).when(stream).read();
+        doReturn(-1).when(stream).read(any());
         return stream;
     }
 
