@@ -75,7 +75,7 @@ public class ConnectionCommandInstrumentation extends Mongo3Instrumentation {
                 collection = helper.getCollectionFromBson(cmd, command);
             }
             ServerAddress address = thiz.getDescription().getServerAddress();
-            return helper.startSpan(database, collection, cmd, address.getHost(), address.getPort(), command.toJson());
+            return helper.startSpan(database, collection, cmd, address.getHost(), address.getPort(), command);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

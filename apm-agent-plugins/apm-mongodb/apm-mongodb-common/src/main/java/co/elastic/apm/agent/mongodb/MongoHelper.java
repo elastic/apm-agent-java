@@ -43,7 +43,7 @@ public class MongoHelper {
         this.config = tracer.getConfig(MongoConfiguration.class);
     }
 
-    public Span startSpan(@Nullable String database, @Nullable String collection, @Nullable String command, String host, int port, @Nullable String statement) {
+    public Span startSpan(@Nullable String database, @Nullable String collection, @Nullable String command, String host, int port, @Nullable BsonDocument commandDocument) {
         Span span = null;
         final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan != null) {
@@ -63,11 +63,14 @@ public class MongoHelper {
             .withType("mongodb")
             .withName(database);
 
-        boolean captureStatement = command != null && WildcardMatcher.anyMatch(config.getCaptureStatementCommands(), command) != null;
+        String statement = null;
+        if (command != null && commandDocument != null && WildcardMatcher.anyMatch(config.getCaptureStatementCommands(), command) != null) {
+            statement = commandDocument.toJson();
+        }
 
         span.getContext().getDb()
             .withInstance(database)
-            .withStatement(captureStatement ? statement : null);
+            .withStatement(statement);
 
         StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
         if (name != null) {

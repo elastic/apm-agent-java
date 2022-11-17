@@ -23,6 +23,7 @@ import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.agent.testutils.assertions.DbAssert;
 import org.bson.Document;
@@ -35,8 +36,10 @@ import org.testcontainers.containers.GenericContainer;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 
 
 public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstrumentationTest {
@@ -45,6 +48,8 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
     protected static final String DB_NAME = "testdb";
     protected static final String COLLECTION_NAME = "testcollection";
     private static final int PORT = 27017;
+
+    private static Set<String> COMMANDS_WITH_STATEMENT = Set.of("find", "aggregate", "count", "distinct", "mapReduce");
 
     @BeforeClass
     public static void startContainer() {
@@ -71,10 +76,12 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
             currentTransaction.deactivate().end();
         }
 
-        // drop outside of transaction to prevent creating any span
-        dropCollection();
-
-        reporter.reset();
+        try {
+            // drop outside of transaction to prevent creating any span
+            dropCollection();
+        } finally {
+            reporter.reset();
+        }
     }
 
     @Test
@@ -90,7 +97,7 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
         createCollection();
         dropCollection();
 
-        // trying to drop when it does not exists creates an error
+        // trying to drop when it does not exist creates an error
         dropCollection();
 
         List<Span> spans = reporter.getSpans();
@@ -195,6 +202,36 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
         checkReportedSpans("delete", countOperationName());
     }
 
+    @Test
+    public void testCaptureAllCommands() throws Exception {
+        if (!canAlwaysCaptureStatement()) {
+            return;
+        }
+
+        doReturn(List.of(WildcardMatcher.valueOf("*")))
+            .when(config.getConfig(MongoConfiguration.class))
+            .getCaptureStatementCommands();
+
+        // insert
+        Document document = new Document();
+        document.put("name", "Hello mongo");
+        insert(document);
+
+        // find
+        Document searchQuery = new Document();
+        searchQuery.put("name", "Hello mongo");
+        find(searchQuery, 1);
+
+        // delete
+        delete(searchQuery);
+
+        // all 3 operations should be capture with statement
+
+        assertThat(reporter.getNumReportedSpans()).isEqualTo(3);
+        reporter.getSpans().forEach((s) -> assertThat(s.getContext().getDb()).hasStatement());
+
+    }
+
     private void checkReportedSpans(String... operations) {
         assertThat(reporter.getNumReportedSpans()).isEqualTo(operations.length);
 
@@ -220,8 +257,9 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
         DbAssert dbAssert = assertThat(span.getContext().getDb())
             .hasInstance("testdb");
 
-        // not all driver versions support statement capture
-        if (canCaptureStatement()) {
+        // not all driver versions support statement capture, so we assert on the ones that do
+        String command = span.getAction();
+        if (canAlwaysCaptureStatement() && COMMANDS_WITH_STATEMENT.contains(command)) {
             dbAssert.hasStatement();
         }
 
@@ -232,7 +270,7 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
 
     }
 
-    protected boolean canCaptureStatement() {
+    protected boolean canAlwaysCaptureStatement() {
         return true;
     }
 

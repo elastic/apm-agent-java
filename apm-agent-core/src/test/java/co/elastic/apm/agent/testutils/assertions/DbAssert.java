@@ -22,7 +22,6 @@ import co.elastic.apm.agent.impl.context.Db;
 
 import javax.annotation.Nullable;
 import java.nio.CharBuffer;
-import java.util.Objects;
 
 public class DbAssert extends BaseAssert<DbAssert, Db> {
 

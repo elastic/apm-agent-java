@@ -60,7 +60,7 @@ public class Mongo3AsyncIT extends AbstractMongoClientInstrumentationIT {
     }
 
     @Override
-    protected boolean canCaptureStatement() {
+    protected boolean canAlwaysCaptureStatement() {
         // in 3.x, not all drivers will allow capturing the statement
         return false;
     }
