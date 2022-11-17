@@ -30,6 +30,10 @@ public class PrivilegedActionUtils {
 
     @Nullable
     public static String getEnv(final String key) {
+        if (System.getSecurityManager() == null) {
+            return System.getenv(key);
+        }
+
         return AccessController.doPrivileged(new PrivilegedAction<String>() {
             @Override
             public String run() {
@@ -39,6 +43,10 @@ public class PrivilegedActionUtils {
     }
 
     public static Map<String, String> getEnv() {
+        if (System.getSecurityManager() == null) {
+            return System.getenv();
+        }
+
         return AccessController.doPrivileged(new PrivilegedAction<Map<String, String>>() {
             @Override
             public Map<String, String> run() {

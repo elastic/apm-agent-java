@@ -361,6 +361,10 @@ public class IndyBootstrap {
                                              final MethodType adviceMethodType,
                                              final Object... args) {
 
+        if (System.getSecurityManager() == null) {
+            return internalBootstrap(lookup, adviceMethodName, adviceMethodType, args);
+        }
+
         // callsite resolution needs privileged access to call Class#getClassLoader() and MethodHandles$Lookup#findStatic
         return AccessController.doPrivileged(new PrivilegedAction<ConstantCallSite>() {
             @Override
