@@ -38,6 +38,7 @@ class AgentAttacherTest {
         assertThat(AgentAttacher.Arguments.parse("--list-vmargs").isListVmArgs()).isTrue();
         assertThat(AgentAttacher.Arguments.parse("-c").isContinuous()).isTrue();
         assertThat(AgentAttacher.Arguments.parse("--continuous").isContinuous()).isTrue();
+        assertThat(AgentAttacher.Arguments.parse("--no-fork").isNoFork()).isTrue();
         assertThat(AgentAttacher.Arguments.parse("--include-pid", "42").getDiscoveryRules().getIncludeRules()).hasSize(1);
         assertThat(AgentAttacher.Arguments.parse("--config", "foo=bar", "baz=qux").getConfig()).containsEntry("foo", "bar").containsEntry("baz", "qux");
         assertThat(AgentAttacher.Arguments.parse("-C", "foo=bar", "-C", "baz=qux").getConfig()).containsEntry("foo", "bar").containsEntry("baz", "qux");

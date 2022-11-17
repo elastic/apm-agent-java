@@ -29,15 +29,24 @@ import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;
 import org.stagemonitor.configuration.converter.MapValueConverter;
 import org.stagemonitor.configuration.converter.SetValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
+import org.stagemonitor.configuration.converter.ValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -52,7 +61,10 @@ import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACE
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
     public static final String INSTRUMENT = "instrument";
+    public static final String INSTRUMENT_ANCIENT_BYTECODE = "instrument_ancient_bytecode";
     public static final String SERVICE_NAME = "service_name";
     public static final String SERVICE_NODE_NAME = "service_node_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
@@ -232,7 +244,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("Limits the amount of spans that are recorded per transaction.\n\n" +
             "This is helpful in cases where a transaction creates a very high amount of spans (e.g. thousands of SQL queries).\n\n" +
             "Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.\n\n" +
-            "A message will be logged when the max number of spans has been exceeded but only at a rate of once every " + TimeUnit.MICROSECONDS.toMinutes(Span.MAX_LOG_INTERVAL_MICRO_SECS)  + " minutes to ensure performance is not impacted.")
+            "A message will be logged when the max number of spans has been exceeded but only at a rate of once every " + TimeUnit.MICROSECONDS.toMinutes(Span.MAX_LOG_INTERVAL_MICRO_SECS) + " minutes to ensure performance is not impacted.")
         .dynamic(true)
         .buildWithDefault(500);
 
@@ -241,20 +253,20 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key("sanitize_field_names")
         .configurationCategory(CORE_CATEGORY)
         .description("Sometimes it is necessary to sanitize the data sent to Elastic APM,\n" +
-            "e.g. remove sensitive data.\n" +
-            "\n" +
-            "Configure a list of wildcard patterns of field names which should be sanitized.\n" +
-            "These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.\n" +
-            "\n" +
-            WildcardMatcher.DOCUMENTATION + "\n" +
-            "\n" +
-            "NOTE: Data in the query string is considered non-sensitive,\n" +
-            "as sensitive information should not be sent in the query string.\n" +
-            "See https://www.owasp.org/index.php/Information_exposure_through_query_strings_in_url for more information\n" +
-            "\n" +
-            "NOTE: Review the data captured by Elastic APM carefully to make sure it does not capture sensitive information.\n" +
-            "If you do find sensitive data in the Elasticsearch index,\n" +
-            "you should add an additional entry to this list (make sure to also include the default entries)."
+                "e.g. remove sensitive data.\n" +
+                "\n" +
+                "Configure a list of wildcard patterns of field names which should be sanitized.\n" +
+                "These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.\n" +
+                "\n" +
+                WildcardMatcher.DOCUMENTATION + "\n" +
+                "\n" +
+                "NOTE: Data in the query string is considered non-sensitive,\n" +
+                "as sensitive information should not be sent in the query string.\n" +
+                "See https://www.owasp.org/index.php/Information_exposure_through_query_strings_in_url for more information\n" +
+                "\n" +
+                "NOTE: Review the data captured by Elastic APM carefully to make sure it does not capture sensitive information.\n" +
+                "If you do find sensitive data in the Elasticsearch index,\n" +
+                "you should add an additional entry to this list (make sure to also include the default entries)."
             /* A disadvantage of this approach is when a user adds a custom value,
              * they don't automatically pick up new default values.
              * But the possibility to remove default values which are leading to false positive for the user
@@ -276,6 +288,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("*credit*"),
             WildcardMatcher.valueOf("*card*"),
             WildcardMatcher.valueOf("*auth*"),
+            WildcardMatcher.valueOf("*principal*"),
             // HTTP response header which can contain session ids
             WildcardMatcher.valueOf("set-cookie")
         ));
@@ -425,6 +438,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("When enabled, configures Byte Buddy to use a type pool cache.")
         .buildWithDefault(true);
 
+    private final ConfigurationOption<Boolean> instrumentAncientBytecode = ConfigurationOption.booleanOption()
+        .key(INSTRUMENT_ANCIENT_BYTECODE)
+        .configurationCategory(CORE_CATEGORY)
+        .description("A boolean specifying if the agent should instrument pre-Java-1.4 bytecode.")
+        .dynamic(false)
+        .tags("added[1.35.0]")
+        .buildWithDefault(false);
+
     private final ConfigurationOption<Boolean> warmupByteBuddy = ConfigurationOption.booleanOption()
         .key("warmup_byte_buddy")
         .configurationCategory(CORE_CATEGORY)
@@ -460,7 +481,34 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(true);
 
     private final ConfigurationOption<List<WildcardMatcher>> classesExcludedFromInstrumentation = ConfigurationOption
-        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .builder(new ValueConverter<List<WildcardMatcher>>() {
+
+            private final ValueConverter<List<WildcardMatcher>> delegate = new ListValueConverter<>(new WildcardMatcherValueConverter());
+
+            @Override
+            public List<WildcardMatcher> convert(String s) {
+                List<WildcardMatcher> result = new ArrayList<>();
+                for (WildcardMatcher matcher : delegate.convert(s)) {
+                    if (matcher.matches("co.elastic.apm.")) {
+                        logger.warn("Ignoring exclude '{}' for instrumentation because ignoring 'co.elastic.apm' can lead to unwanted side effects", matcher);
+                    } else {
+                        result.add(matcher);
+                    }
+                }
+                return result;
+            }
+
+            @Override
+            public String toString(List<WildcardMatcher> value) {
+                return delegate.toString(value);
+            }
+
+            @Override
+            public String toSafeString(List<WildcardMatcher> value) {
+                return delegate.toSafeString(value);
+            }
+
+        }, List.class)
         .key("classes_excluded_from_instrumentation")
         .configurationCategory(CORE_CATEGORY)
         .description("Use to exclude specific classes from being instrumented. In order to exclude entire packages, \n" +
@@ -707,7 +755,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.25.0]")
         .configurationCategory(CORE_CATEGORY)
         .tags("performance")
-        .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).\n " +
+        .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (`@CaptureTransaction`, `@CaptureSpan`, `@Traced`).\n " +
             "When set to `false`, a method is instrumented if it is annotated with a public api annotation.\n  " +
             "When set to `true` methods overriding annotated methods will be instrumented as well.\n " +
             "Either way, methods will only be instrumented if they are included in the configured <<config-application-packages>>.")
@@ -850,7 +898,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return unnestExceptions.get();
     }
 
-    public List<WildcardMatcher> getIgnoreExceptions(){
+    public List<WildcardMatcher> getIgnoreExceptions() {
         return ignoreExceptions.get();
     }
 
@@ -864,6 +912,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isTypePoolCacheEnabled() {
         return typePoolCache.get();
+    }
+
+    public boolean isInstrumentAncientBytecode() {
+        return instrumentAncientBytecode.get();
     }
 
     public boolean shouldWarmupByteBuddy() {
@@ -965,6 +1017,29 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         } else {
             return configFileLocation;
         }
+    }
+
+    public int getExternalPluginsCount() {
+        String pathString = getPluginsDir();
+        if (pathString == null) {
+            return 0;
+        }
+        Path pluginsDir = Paths.get(pathString);
+        if (!Files.isDirectory(pluginsDir)) {
+            return 0;
+        }
+
+        int count = 0;
+        try (DirectoryStream<Path> paths = Files.newDirectoryStream(pluginsDir)) {
+            for (Path p : paths) {
+                if (p.getFileName().endsWith(".jar")) {
+                    count++;
+                }
+            }
+        } catch (IOException e) {
+            // silently ignored
+        }
+        return count;
     }
 
     public long getMetadataDiscoveryTimeoutMs() {

@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class SystemInfoTest extends CustomEnvVariables {
 
@@ -104,7 +104,7 @@ public class SystemInfoTest extends CustomEnvVariables {
 
     @Test
     void testLambdaShortcut() {
-        when(serverlessConfiguration.runsOnAwsLambda()).thenReturn(true);
+        doReturn(true).when(serverlessConfiguration).runsOnAwsLambda();
         SystemInfo systemInfo = SystemInfo.create(null, 0, serverlessConfiguration);
         assertThat(systemInfo.getArchitecture()).isNotNull();
         assertThat(systemInfo.getPlatform()).isNotNull();

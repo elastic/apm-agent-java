@@ -103,6 +103,10 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
         }
     }
 
+    protected void executeTestWithException(Class<? extends Exception> exceptionType, String operationName, String entityName, Supplier<?> test) {
+        executeTestWithException(exceptionType, operationName, entityName, test, null);
+    }
+
     protected void executeTestWithException(Class<? extends Exception> exceptionType, String operationName, String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
         executeTestWithException(exceptionType, operationName, operationName, entityName, test, assertions);
     }

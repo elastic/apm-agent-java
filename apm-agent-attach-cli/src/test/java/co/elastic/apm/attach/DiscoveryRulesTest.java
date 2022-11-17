@@ -76,6 +76,16 @@ class DiscoveryRulesTest {
     }
 
     @Test
+    void testDiscoveryRequired() {
+        assertThat(discoveryRules.isDiscoveryRequired()).isFalse();
+        discoveryRules.includePid("1");
+        discoveryRules.includePid("2");
+        assertThat(discoveryRules.isDiscoveryRequired()).isFalse();
+        discoveryRules.excludePid("3");
+        assertThat(discoveryRules.isDiscoveryRequired()).isTrue();
+    }
+
+    @Test
     void testExcludeNotIncluded() {
         discoveryRules.includePid("1");
         discoveryRules.excludePid("2");

@@ -61,8 +61,8 @@ import java.util.stream.Collectors;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 
 public class MockReporter implements Reporter {
@@ -709,12 +709,12 @@ public class MockReporter implements Reporter {
 
             Future<MetaData> metaData = MetaData.create(spyConfig, null);
             ApmServerClient client = mock(ApmServerClient.class);
-            when(client.isAtLeast(any())).thenReturn(isLatest);
+            doReturn(isLatest).when(client).isAtLeast(any());
 
             // The oldest server does not support any of those features, the current server supports all of them
-            when(client.supportsNumericUrlPort()).thenReturn(isLatest);
-            when(client.supportsNonStringLabels()).thenReturn(isLatest);
-            when(client.supportsLogsEndpoint()).thenReturn(isLatest);
+            doReturn(isLatest).when(client).supportsNumericUrlPort();
+            doReturn(isLatest).when(client).supportsNonStringLabels();
+            doReturn(isLatest).when(client).supportsLogsEndpoint();
 
             this.serializer = new DslJsonSerializer(stacktraceConfiguration, client, metaData);
         }

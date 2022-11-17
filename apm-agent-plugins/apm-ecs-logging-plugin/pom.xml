@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.33.1-SNAPSHOT</version>
+        <version>1.34.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-ecs-logging-plugin</artifactId>
@@ -19,13 +19,25 @@
         <dependency>
             <groupId>co.elastic.logging</groupId>
             <artifactId>log4j-ecs-layout</artifactId>
-            <version>1.4.0</version>
+            <version>${version.ecs.logging}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>co.elastic.logging</groupId>
             <artifactId>log4j2-ecs-layout</artifactId>
-            <version>1.4.0</version>
+            <version>${version.ecs.logging}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.logging</groupId>
+            <artifactId>jul-ecs-formatter</artifactId>
+            <version>${version.ecs.logging}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-logging-plugin-common</artifactId>
+            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -39,6 +51,7 @@
             <artifactId>ivy</artifactId>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
 </project>

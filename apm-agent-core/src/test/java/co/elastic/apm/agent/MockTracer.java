@@ -25,12 +25,13 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.util.Version;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class MockTracer {
 
@@ -77,6 +78,11 @@ public class MockTracer {
             .build();
 
         tracer.start(false);
+        //The line below is a fix for flaky-test issue #2842
+        //The tracer will asynchronously create a health + version lookup of the ApmServer
+        //As this request relies on the ReporterConfiguration, this can lead to a race condition when mocking the ReporterConfiguration concurrently
+        //The call below ensures that the asynchronous request has finished before returning.
+        tracer.getApmServerClient().isAtLeast(Version.of("0.0"));
         return tracer;
     }
 
@@ -152,8 +158,8 @@ public class MockTracer {
      */
     public static ElasticApmTracer create(ConfigurationRegistry configurationRegistry) {
         final ElasticApmTracer tracer = mock(ElasticApmTracer.class);
-        when(tracer.getConfigurationRegistry()).thenReturn(configurationRegistry);
-        when(tracer.getConfig(any())).thenAnswer(invocation -> configurationRegistry.getConfig(invocation.getArgument(0)));
+        doReturn(configurationRegistry).when(tracer).getConfigurationRegistry();
+        doAnswer(invocation -> configurationRegistry.getConfig(invocation.getArgument(0))).when(tracer).getConfig(any());
         return tracer;
     }
 

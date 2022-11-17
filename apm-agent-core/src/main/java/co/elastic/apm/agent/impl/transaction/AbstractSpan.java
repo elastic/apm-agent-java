@@ -245,8 +245,12 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     /**
      * Only intended to be used by {@link co.elastic.apm.agent.report.serialize.DslJsonSerializer}
      */
-    public StringBuilder getNameForSerialization() {
-        return name;
+    public CharSequence getNameForSerialization() {
+        if (name.length() == 0) {
+            return "unnamed";
+        } else {
+            return name;
+        }
     }
 
     /**
@@ -324,8 +328,12 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     }
 
     public T appendToName(CharSequence cs, int priority) {
+        return appendToName(cs, priority, 0, cs.length());
+    }
+
+    public T appendToName(CharSequence cs, int priority, int startIndex, int endIndex) {
         if (priority >= namePriority) {
-            this.name.append(cs);
+            this.name.append(cs, startIndex, endIndex);
             this.namePriority = priority;
         }
         return thiz();
@@ -421,9 +429,10 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     /**
      * Adds a span link based on the tracecontext header retrieved from the provided parent.
+     *
      * @param childContextCreator the proper tracecontext inference implementation, which retrieves the header
-     * @param parent the object from which the tracecontext header is to be retrieved
-     * @param <T> the parent type - AbstractSpan, TraceContext or Tracer
+     * @param parent              the object from which the tracecontext header is to be retrieved
+     * @param <T>                 the parent type - AbstractSpan, TraceContext or Tracer
      * @return {@code true} if added, {@code false} otherwise
      */
     public <T> boolean addSpanLink(TraceContext.ChildContextCreator<T> childContextCreator, T parent) {
@@ -582,9 +591,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public final void end(long epochMicros) {
         if (!finished) {
             this.endTimestamp.set(epochMicros);
-            if (name.length() == 0) {
-                name.append("unnamed");
-            }
             childDurations.onSpanEnd(epochMicros);
 
             type = normalizeType(type);

@@ -23,6 +23,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 public abstract class AbstractErrorLoggingInstrumentationTest extends AbstractInstrumentationTest {
@@ -40,10 +41,15 @@ public abstract class AbstractErrorLoggingInstrumentationTest extends AbstractIn
         transaction.deactivate().end();
     }
 
-    protected void verifyThatExceptionCaptured(int errorCount, String exceptionMessage, Class exceptionClass) {
+    protected void verifyExceptionCaptured(String exceptionMessage, Class exceptionClass) {
         reporter.awaitErrorCount(1);
         Throwable exception = reporter.getErrors().get(0).getException();
-        assertEquals(exceptionMessage, exception.getMessage());
-        assertEquals(exceptionClass, exception.getClass());
+        assertThat(exception).isNotNull();
+        assertThat(exceptionMessage).isEqualTo(exception.getMessage());
+        assertThat(exceptionClass).isEqualTo(exception.getClass());
+    }
+
+    protected void verifyNoExceptionCaptured() {
+        assertThat(reporter.getErrors()).isEmpty();
     }
 }

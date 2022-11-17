@@ -31,14 +31,14 @@ import java.nio.file.Paths;
 import java.util.ServiceLoader;
 
 import static co.elastic.apm.agent.configuration.ConfigurationExporterTest.renderDocumentation;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class ConfigurationExporter {
 
     public static void main(String[] args) throws Exception {
         ElasticApmTracer tracer = mock(ElasticApmTracer.class);
-        when(tracer.getState()).thenReturn(Tracer.TracerState.UNINITIALIZED);
+        doReturn(Tracer.TracerState.UNINITIALIZED).when(tracer).getState();
         GlobalTracer.init(tracer);
         try {
             ConfigurationRegistry configurationRegistry = ConfigurationRegistry.builder()

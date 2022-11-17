@@ -28,7 +28,6 @@ import java.util.Objects;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
-
 class SpanDestinationApiTest extends AbstractApiTest {
 
     public static final String INTERNAL_ADDRESS = "internal-address";
@@ -40,6 +39,7 @@ class SpanDestinationApiTest extends AbstractApiTest {
 
     @BeforeEach
     void setUp() {
+
         reporter.disableCheckDestinationAddress();
         internalTransaction = Objects.requireNonNull(tracer.startRootTransaction(null)).activate();
         internalSpan = Objects.requireNonNull(internalTransaction.createExitSpan())

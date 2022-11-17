@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 class ExactMatchCompressionStrategyTest extends AbstractCompressionStrategyTest {
 
@@ -36,7 +36,7 @@ class ExactMatchCompressionStrategyTest extends AbstractCompressionStrategyTest 
 
     @BeforeAll
     static void setMaxDuration() {
-        when(tracer.getConfig(SpanConfiguration.class).getSpanCompressionSameKindMaxDuration()).thenReturn(TimeDuration.of("0ms"));
+        doReturn(TimeDuration.of("0ms")).when(tracer.getConfig(SpanConfiguration.class)).getSpanCompressionSameKindMaxDuration();
     }
 
     @Test
