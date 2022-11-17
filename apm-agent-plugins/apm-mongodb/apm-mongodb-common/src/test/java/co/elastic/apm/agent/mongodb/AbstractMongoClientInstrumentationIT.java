@@ -227,7 +227,7 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
 
         // all 3 operations should be capture with statement
 
-        assertThat(reporter.getNumReportedSpans()).isEqualTo(3);
+        assertThat(reporter.getNumReportedSpans()).isGreaterThanOrEqualTo(3);
         reporter.getSpans().forEach((s) -> assertThat(s.getContext().getDb()).hasStatement());
 
     }
