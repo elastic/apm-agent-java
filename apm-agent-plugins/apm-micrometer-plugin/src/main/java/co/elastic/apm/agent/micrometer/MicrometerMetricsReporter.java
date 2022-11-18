@@ -74,9 +74,10 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
     static {
         boolean hasSimpleMeterRegistryMethod1;
         try {
-            SimpleMeterRegistry.class.getDeclaredMethod("getMetersAsString", new Class[0]);
+            Class<?> simpleMeterRegistryClass = Class.forName("io.micrometer.core.instrument.simple.SimpleMeterRegistry");
+            simpleMeterRegistryClass.getDeclaredMethod("getMetersAsString", new Class[0]);
             hasSimpleMeterRegistryMethod1 = true;
-        } catch (NoSuchMethodException e) {
+        } catch (NoSuchMethodException | ClassNotFoundException e) {
             hasSimpleMeterRegistryMethod1 = false;
         }
         HAS_SimpleMeterRegistry_METHOD = hasSimpleMeterRegistryMethod1;
