@@ -75,7 +75,7 @@ public class GlobalTracer implements Tracer {
             return;
         }
 
-        String agentLocation = GlobalTracer.class.getProtectionDomain().getCodeSource().getLocation().getFile();
+        String agentLocation = PrivilegedActionUtils.getProtectionDomain(GlobalTracer.class).getCodeSource().getLocation().getFile();
         if (!agentLocation.endsWith(".jar")) {
             // agent is not packaged, thus we assume running tests
             classloaderCheckOk = true;

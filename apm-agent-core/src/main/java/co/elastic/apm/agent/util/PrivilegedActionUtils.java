@@ -19,8 +19,12 @@
 package co.elastic.apm.agent.util;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.security.ProtectionDomain;
 import java.util.Map;
 
 /**
@@ -69,7 +73,20 @@ public class PrivilegedActionUtils {
         });
     }
 
-    public static ClassLoader getContextClassLoader(final Thread t){
+    public static ProtectionDomain getProtectionDomain(final Class<?> type) {
+        if (System.getSecurityManager() == null) {
+            return type.getProtectionDomain();
+        }
+
+        return AccessController.doPrivileged(new PrivilegedAction<ProtectionDomain>() {
+            @Override
+            public ProtectionDomain run() {
+                return type.getProtectionDomain();
+            }
+        });
+    }
+
+    public static ClassLoader getContextClassLoader(final Thread t) {
         if (System.getSecurityManager() == null) {
             return t.getContextClassLoader();
         }
@@ -82,11 +99,10 @@ public class PrivilegedActionUtils {
         });
     }
 
-    public static void setContextClassLoader(final Thread t, final @Nullable ClassLoader cl){
-        if(System.getSecurityManager() == null){
+    public static void setContextClassLoader(final Thread t, final @Nullable ClassLoader cl) {
+        if (System.getSecurityManager() == null) {
             t.setContextClassLoader(cl);
         }
-
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Nullable
             @Override
@@ -95,20 +111,38 @@ public class PrivilegedActionUtils {
                 return null;
             }
         });
-
     }
 
-    public static Thread newThread(final @Nullable Runnable r){
-        if(System.getSecurityManager() == null){
+    public static Thread newThread(final @Nullable Runnable r) {
+        if (System.getSecurityManager() == null) {
             return new Thread(r);
         }
-
         return AccessController.doPrivileged(new PrivilegedAction<Thread>() {
             @Override
             public Thread run() {
                 return new Thread(r);
             }
         });
+    }
+
+    public static FileInputStream newFileInputStream(final File file) throws FileNotFoundException {
+        if (System.getSecurityManager() == null) {
+            return new FileInputStream(file);
+        }
+        try {
+            return AccessController.doPrivileged(new PrivilegedAction<FileInputStream>() {
+                @Override
+                public FileInputStream run() {
+                    try {
+                        return new FileInputStream(file);
+                    } catch (FileNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e.getCause());
+        }
     }
 
 }
