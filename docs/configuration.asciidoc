@@ -195,7 +195,12 @@ Click on a key to get more information.
 ** <<config-span-stack-trace-min-duration>>
 
 [[config-circuit-breaker]]
-=== Circuit-Breaker
+=== Circuit-Breaker configuration options
+
+++++
+<titleabbrev>Circuit-Breaker</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-circuit-breaker-enabled]]
@@ -382,7 +387,12 @@ monitor to decide that the CPU stress has been relieved.
 |============
 
 [[config-core]]
-=== Core
+=== Core configuration options
+
+++++
+<titleabbrev>Core</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-recording]]
@@ -1468,7 +1478,12 @@ Valid options: `continue`, `restart`, `restart_external`
 |============
 
 [[config-http]]
-=== HTTP
+=== HTTP configuration options
+
+++++
+<titleabbrev>HTTP</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-capture-body-content-types]]
@@ -1624,7 +1639,12 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 |============
 
 [[config-huge-traces]]
-=== Huge Traces
+=== Huge Traces configuration options
+
+++++
+<titleabbrev>Huge Traces</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-span-compression-enabled]]
@@ -1727,7 +1747,12 @@ Example: `0ms`.
 |============
 
 [[config-jax-rs]]
-=== JAX-RS
+=== JAX-RS configuration options
+
+++++
+<titleabbrev>JAX-RS</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-enable-jaxrs-annotation-inheritance]]
@@ -1778,7 +1803,12 @@ If you want to use the URI template from the `@Path` annotation, set the value t
 |============
 
 [[config-jmx]]
-=== JMX
+=== JMX configuration options
+
+++++
+<titleabbrev>JMX</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-capture-jmx-metrics]]
@@ -1903,7 +1933,12 @@ The resulting documents in Elasticsearch look similar to this:
 |============
 
 [[config-logging]]
-=== Logging
+=== Logging configuration options
+
+++++
+<titleabbrev>Logging</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-log-level]]
@@ -2183,7 +2218,12 @@ Valid options: `PLAIN_TEXT`, `JSON`
 |============
 
 [[config-messaging]]
-=== Messaging
+=== Messaging configuration options
+
+++++
+<titleabbrev>Messaging</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-ignore-message-queues]]
@@ -2216,7 +2256,12 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 |============
 
 [[config-metrics]]
-=== Metrics
+=== Metrics configuration options
+
+++++
+<titleabbrev>Metrics</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-dedot-custom-metrics]]
@@ -2271,7 +2316,12 @@ But if you must, you can use this option to increase the limit.
 |============
 
 [[config-profiling]]
-=== Profiling
+=== Profiling configuration options
+
+++++
+<titleabbrev>Profiling</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-profiling-inferred-spans-enabled]]
@@ -2447,7 +2497,12 @@ If unset, the value of the `java.io.tmpdir` system property will be used.
 |============
 
 [[config-reporter]]
-=== Reporter
+=== Reporter configuration options
+
+++++
+<titleabbrev>Reporter</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-secret-token]]
@@ -2820,7 +2875,12 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 |============
 
 [[config-serverless]]
-=== Serverless
+=== Serverless configuration options
+
+++++
+<titleabbrev>Serverless</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-aws-lambda-handler]]
@@ -2871,7 +2931,12 @@ For serverless functions, APM data is written in a synchronous way, thus, blocki
 |============
 
 [[config-stacktrace]]
-=== Stacktrace
+=== Stacktrace configuration options
+
+++++
+<titleabbrev>Stacktrace</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-application-packages]]
