@@ -65,7 +65,7 @@ public class SpringRestTemplateVersionsIT {
         "5.0.0.RELEASE|true",
         "5.1.0.RELEASE|true",
         "5.2.0.RELEASE|true",
-        "[5.3.0,)|true" // using ivy range specifier to make test against later versions
+        "[5.3.0,6.0.0)|true" // using ivy range specifier to make test against later versions
     })
     void testVersion(String version, boolean isSupported) throws Exception {
         List<String> dependencies = Stream.of(
