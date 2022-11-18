@@ -27,6 +27,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.util.PackageScanner;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ClassInjector;
@@ -391,7 +392,7 @@ public class IndyBootstrap {
             MethodHandle instrumentedMethod = args.length >= 5 ? (MethodHandle) args[4] : null;
 
             ClassLoader instrumentationClassLoader = ElasticApmAgent.getInstrumentationClassLoader(adviceClassName);
-            ClassLoader targetClassLoader = lookup.lookupClass().getClassLoader();
+            ClassLoader targetClassLoader = PrivilegedActionUtils.getClassLoader(lookup.lookupClass());
             ClassFileLocator classFileLocator;
             List<String> pluginClasses = new ArrayList<>();
             if (instrumentationClassLoader instanceof ExternalPluginClassLoader) {

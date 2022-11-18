@@ -20,6 +20,7 @@ package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -62,7 +63,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Object doStartTransaction(@Advice.Origin Class<?> clazz) {
-                Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                 if (transaction != null) {
                     transaction.setFrameworkName(Utils.FRAMEWORK_NAME);
                 }
@@ -88,14 +89,15 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
                                                     @Advice.Argument(2) MethodHandle getAllHeaders,
                                                     @Advice.Argument(3) @Nullable Object headersExtractor) {
                 Transaction transaction = null;
+                ClassLoader classLoader = PrivilegedActionUtils.getClassLoader(clazz);
                 if (headersExtractor != null) {
                     HeadersExtractorBridge headersExtractorBridge = HeadersExtractorBridge.get(getFirstHeader, getAllHeaders);
-                    transaction = tracer.startChildTransaction(HeadersExtractorBridge.Extractor.of(headerExtractor, headersExtractor), headersExtractorBridge, clazz.getClassLoader());
+                    transaction = tracer.startChildTransaction(HeadersExtractorBridge.Extractor.of(headerExtractor, headersExtractor), headersExtractorBridge, classLoader);
                 } else if (headerExtractor != null) {
                     HeaderExtractorBridge headersExtractorBridge = HeaderExtractorBridge.get(getFirstHeader);
-                    transaction = tracer.startChildTransaction(headerExtractor, headersExtractorBridge, clazz.getClassLoader());
+                    transaction = tracer.startChildTransaction(headerExtractor, headersExtractorBridge, classLoader);
                 } else {
-                    transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                    transaction = tracer.startRootTransaction(classLoader);
                 }
                 if (transaction != null) {
                     transaction.setFrameworkName(Utils.FRAMEWORK_NAME);
@@ -143,7 +145,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) @Nullable Throwable e) {
-                tracer.captureAndReportException(e, clazz.getClassLoader());
+                tracer.captureAndReportException(e, PrivilegedActionUtils.getClassLoader(clazz));
             }
         }
     }

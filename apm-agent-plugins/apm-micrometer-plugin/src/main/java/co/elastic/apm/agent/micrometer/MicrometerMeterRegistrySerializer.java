@@ -22,6 +22,7 @@ import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
@@ -107,7 +108,7 @@ public class MicrometerMeterRegistrySerializer {
                 DslJsonSerializer.writeFieldName("samples", jw);
                 jw.writeByte(JsonWriter.OBJECT_START);
 
-                ClassLoader originalContextCL = Thread.currentThread().getContextClassLoader();
+                ClassLoader originalContextCL = PrivilegedActionUtils.getContextClassLoader(Thread.currentThread());
                 try {
                     for (int i = 0, size = meters.size(); i < size; i++) {
                         Meter meter = meters.get(i);
@@ -116,7 +117,7 @@ public class MicrometerMeterRegistrySerializer {
                         }
                         try {
                             // Setting the Meter CL as the context class loader during the Meter query operations
-                            Thread.currentThread().setContextClassLoader(meter.getClass().getClassLoader());
+                            PrivilegedActionUtils.setContextClassLoader(Thread.currentThread(), PrivilegedActionUtils.getClassLoader(meter.getClass()));
                             if (meter instanceof Timer) {
                                 Timer timer = (Timer) meter;
                                 hasSamples = serializeTimer(jw, timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasSamples, replaceBuilder, dedotMetricName);
@@ -149,7 +150,7 @@ public class MicrometerMeterRegistrySerializer {
                         }
                     }
                 } finally {
-                    Thread.currentThread().setContextClassLoader(originalContextCL);
+                    PrivilegedActionUtils.setContextClassLoader(Thread.currentThread(), originalContextCL);
                 }
                 jw.writeByte(JsonWriter.OBJECT_END);
             }

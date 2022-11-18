@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.sdk.weakconcurrent;
 
+import co.elastic.apm.agent.sdk.internal.InternalUtil;
+
 import javax.annotation.Nullable;
 import java.util.ServiceLoader;
 
@@ -26,10 +28,7 @@ public final class WeakConcurrent {
     private static final WeakConcurrentProvider supplier;
 
     static {
-        ClassLoader classLoader = WeakConcurrentProvider.class.getClassLoader();
-        if (classLoader == null) {
-            classLoader = ClassLoader.getSystemClassLoader();
-        }
+        ClassLoader classLoader = InternalUtil.getClassLoader(WeakConcurrentProvider.class, true);
         // loads the implementation provided by the core module without depending on the class or class name
         supplier = ServiceLoader.load(WeakConcurrentProvider.class, classLoader).iterator().next();
     }

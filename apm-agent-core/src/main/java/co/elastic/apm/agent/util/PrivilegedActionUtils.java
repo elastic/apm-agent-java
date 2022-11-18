@@ -54,4 +54,61 @@ public class PrivilegedActionUtils {
             }
         });
     }
+
+    @Nullable
+    public static ClassLoader getClassLoader(final Class<?> type) {
+        if (System.getSecurityManager() == null) {
+            return type.getClassLoader();
+        }
+
+        return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+            @Override
+            public ClassLoader run() {
+                return type.getClassLoader();
+            }
+        });
+    }
+
+    public static ClassLoader getContextClassLoader(final Thread t){
+        if (System.getSecurityManager() == null) {
+            return t.getContextClassLoader();
+        }
+
+        return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+            @Override
+            public ClassLoader run() {
+                return t.getContextClassLoader();
+            }
+        });
+    }
+
+    public static void setContextClassLoader(final Thread t, final @Nullable ClassLoader cl){
+        if(System.getSecurityManager() == null){
+            t.setContextClassLoader(cl);
+        }
+
+        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Nullable
+            @Override
+            public Object run() {
+                t.setContextClassLoader(cl);
+                return null;
+            }
+        });
+
+    }
+
+    public static Thread newThread(final @Nullable Runnable r){
+        if(System.getSecurityManager() == null){
+            return new Thread(r);
+        }
+
+        return AccessController.doPrivileged(new PrivilegedAction<Thread>() {
+            @Override
+            public Thread run() {
+                return new Thread(r);
+            }
+        });
+    }
+
 }

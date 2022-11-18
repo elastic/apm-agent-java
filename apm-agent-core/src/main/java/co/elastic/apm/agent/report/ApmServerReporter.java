@@ -24,6 +24,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.disruptor.ExponentionallyIncreasingSleepingWaitStrategy;
 import co.elastic.apm.agent.util.MathUtils;
 import co.elastic.apm.agent.common.ThreadUtils;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.dslplatform.json.JsonWriter;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslator;
@@ -116,7 +117,7 @@ public class ApmServerReporter implements Reporter {
         disruptor = new Disruptor<>(new TransactionEventFactory(), MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()), new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r);
+                Thread thread = PrivilegedActionUtils.newThread(r);
                 thread.setDaemon(true);
                 thread.setName(ThreadUtils.addElasticApmThreadPrefix("server-reporter"));
                 return thread;
