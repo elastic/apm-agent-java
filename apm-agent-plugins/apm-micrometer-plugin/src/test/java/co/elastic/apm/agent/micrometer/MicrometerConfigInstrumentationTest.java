@@ -68,7 +68,7 @@ public class MicrometerConfigInstrumentationTest {
         SimpleMeterRegistry registryOneSecondStep = new SimpleMeterRegistry(oneSecondStepSimpleConfig, Clock.SYSTEM);
         registryOneSecondStep.counter("bar").increment();
 
-        reporter.awaitUntilAsserted(3000, () ->
+        reporter.awaitUntilAsserted(5000, () ->
             assertThat(getSpecialCounterValue()).isEqualTo(oneSecondStepSimpleConfig.hashCode()));
     }
 
@@ -80,7 +80,7 @@ public class MicrometerConfigInstrumentationTest {
         SimpleMeterRegistry registryOneSecondStep = new SimpleMeterRegistry(oneSecondStepSimpleConfig, Clock.SYSTEM);
         registryOneSecondStep.counter("bar").increment();
 
-        reporter.awaitUntilAsserted(3000, () ->
+        reporter.awaitUntilAsserted(5000, () ->
             assertThat(getSpecialCounterValue()).isEqualTo(oneSecondStepSimpleConfig.hashCode()));
     }
 
