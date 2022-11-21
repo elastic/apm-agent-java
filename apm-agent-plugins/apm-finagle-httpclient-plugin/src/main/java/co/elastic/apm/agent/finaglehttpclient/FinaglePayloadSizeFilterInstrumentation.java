@@ -51,6 +51,14 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
+/**
+ * Finagle HTTP client instrumentation responsible for creating, activating and deactivating spans.
+ * This instrumentation targets {@link com.twitter.finagle.http.filter.PayloadSizeFilter}.
+ * In order to distinguish between HTTP and HTTPS requests, we use {@link FinagleTlsFilterInstrumentation}.
+ * Sometimes the target host is not available within the PayloadSizeFilter.
+ * In this case we try to enrich the span via the {@link FinagleExceptionSourceFilterInstrumentation}.
+ */
+@SuppressWarnings("JavadocReference")
 public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrumentation {
 
     @Override
@@ -74,7 +82,7 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "finagle-httpclient", "experimental");
+        return Arrays.asList("http-client", "finagle-httpclient");
     }
 
     @Override
@@ -110,6 +118,8 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Nullable @Advice.Argument(0) Request request) {
+            //The PayloadSizeFilter is applied to both server and client requests
+            //We manually exclude server-requests here via the INBOUND_REQUEST_CLASS check
             if (request == null || INBOUND_REQUEST_CLASS.isInstance(request)) {
                 return null;
             }

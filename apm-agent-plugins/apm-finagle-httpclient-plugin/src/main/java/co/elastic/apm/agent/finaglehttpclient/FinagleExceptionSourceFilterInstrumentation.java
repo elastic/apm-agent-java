@@ -42,6 +42,14 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
+/**
+ * This instrumentation targets {@link com.twitter.finagle.filter.ExceptionSourceFilter}.
+ * The ExceptionSourceFilter is a very generic filter of finagle used to add the service-name to an exception
+ * when a request fails.
+ * We use the fact that the service-name always corresponds to the http-host in case of the HTTP client.
+ * If the {@link FinaglePayloadSizeFilterInstrumentation} was not able to determine the service name, we add it here.
+ */
+@SuppressWarnings("JavadocReference")
 public class FinagleExceptionSourceFilterInstrumentation extends TracerAwareInstrumentation {
 
     @Override
@@ -60,12 +68,13 @@ public class FinagleExceptionSourceFilterInstrumentation extends TracerAwareInst
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        //otherwise the FinaglePayloadSizeFilterInstrumentation.PayloadSizeFilterAdvice cannot be loaded
         return classLoaderCanLoadClass("com.twitter.finagle.http.Request$Inbound");
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "finagle-httpclient", "experimental");
+        return Arrays.asList("http-client", "finagle-httpclient");
     }
 
     @Override
@@ -92,10 +101,11 @@ public class FinagleExceptionSourceFilterInstrumentation extends TracerAwareInst
         }
 
         private static void updateSpanHostname(Span spanToEnhance, String serviceName) {
-
             CharSequence currentUriStr = spanToEnhance.getContext().getHttp().getUrl();
             String method = spanToEnhance.getContext().getHttp().getMethod();
-            if (currentUriStr.length() == 0 || method == null || method.isEmpty()) return;
+            if (currentUriStr.length() == 0 || method == null || method.isEmpty()) {
+                return;
+            }
 
             try {
                 URI parsed = URI.create(currentUriStr.toString());

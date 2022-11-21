@@ -37,6 +37,11 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
+/**
+ * This instrumentation targets {@link com.twitter.finagle.http.TlsFilter}.
+ * If this filter is executed for a request, we assume that it is a TLS request.
+ */
+@SuppressWarnings("JavadocReference")
 public class FinagleTlsFilterInstrumentation extends TracerAwareInstrumentation {
 
     @Override
@@ -55,7 +60,7 @@ public class FinagleTlsFilterInstrumentation extends TracerAwareInstrumentation 
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "finagle-httpclient", "experimental");
+        return Arrays.asList("http-client", "finagle-httpclient");
     }
 
     @Override
