@@ -57,7 +57,7 @@ compile "co.elastic.apm:apm-agent-attach:$elasticApmVersion"
 
 Call `ElasticApmAttacher.attach()` in the first line of your `public static void main(String[] args)` method.
 
-This example demonstrates the the usage of the `attach` API with a simple Spring Boot application:
+This example demonstrates the usage of the `attach` API with a simple Spring Boot application:
 
 [source,java]
 .MyApplication.java
