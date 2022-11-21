@@ -22,8 +22,13 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.security.ProtectionDomain;
 import java.util.Map;
 
@@ -129,19 +134,46 @@ public class PrivilegedActionUtils {
         if (System.getSecurityManager() == null) {
             return new FileInputStream(file);
         }
+
         try {
-            return AccessController.doPrivileged(new PrivilegedAction<FileInputStream>() {
+            return AccessController.doPrivileged(new PrivilegedExceptionAction<FileInputStream>() {
                 @Override
-                public FileInputStream run() {
-                    try {
-                        return new FileInputStream(file);
-                    } catch (FileNotFoundException e) {
-                        throw new RuntimeException(e);
-                    }
+                public FileInputStream run() throws Exception {
+                    return new FileInputStream(file);
                 }
             });
-        } catch (RuntimeException e) {
-            throw new RuntimeException(e.getCause());
+        } catch (PrivilegedActionException e) {
+            throw (FileNotFoundException) e.getCause();
+        }
+    }
+
+    /**
+     * Creates directory and its parents when path does not exist
+     *
+     * @param path directory path to create
+     * @throws IOException
+     */
+    public static void createDirectories(final Path path) throws IOException {
+        if (System.getSecurityManager() == null) {
+            doCreateDirectories(path);
+        }
+
+        try {
+            AccessController.doPrivileged(new PrivilegedExceptionAction<Object>() {
+                @Override
+                public Object run() throws Exception {
+                    doCreateDirectories(path);
+                    return null;
+                }
+            });
+        } catch (PrivilegedActionException e) {
+            throw (IOException) e.getCause();
+        }
+    }
+
+    private static void doCreateDirectories(Path path) throws IOException {
+        if (!Files.exists(path)) {
+            Files.createDirectories(path);
         }
     }
 

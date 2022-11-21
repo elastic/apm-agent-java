@@ -28,6 +28,9 @@ import co.elastic.logging.jul.EcsFormatter;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +42,7 @@ import java.util.logging.StreamHandler;
 public abstract class AbstractJulEcsReformattingHelper extends AbstractEcsReformattingHelper<Handler, Formatter> {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractJulEcsReformattingHelper.class);
-    private static final Logger  oneTimeLogFileLimitWarningLogger = LoggerUtils.logOnce(logger);
+    private static final Logger oneTimeLogFileLimitWarningLogger = LoggerUtils.logOnce(logger);
 
     @Nullable
     @Override
@@ -103,13 +106,33 @@ public abstract class AbstractJulEcsReformattingHelper extends AbstractEcsReform
                         "use int to configure the file size limit. Consider reducing the log max size configuration to a value below " +
                         "Integer#MAX_VALUE. Defaulting to {} bytes.", getMaxLogFileSize(), maxLogFileSize);
                 }
-                shadeHandler = new FileHandler(pattern, maxLogFileSize, 2, true);
+                shadeHandler = createFileHandler(pattern, maxLogFileSize);
                 shadeHandler.setFormatter(ecsFormatter);
             } catch (Exception e) {
                 logger.error("Failed to create Log shading FileAppender. Auto ECS reformatting will not work.", e);
             }
         }
         return shadeHandler;
+    }
+
+    private static FileHandler createFileHandler(final String pattern, final int maxLogFileSize) throws IOException {
+        if (System.getSecurityManager() == null) {
+            return doCreateFileHandler(pattern, maxLogFileSize);
+        }
+        try {
+            return AccessController.doPrivileged(new PrivilegedExceptionAction<FileHandler>() {
+                @Override
+                public FileHandler run() throws Exception {
+                    return doCreateFileHandler(pattern, maxLogFileSize);
+                }
+            });
+        } catch (PrivilegedActionException e) {
+            throw (IOException) e.getCause();
+        }
+    }
+
+    private static FileHandler doCreateFileHandler(String pattern, int maxLogFileSize) throws IOException {
+        return new FileHandler(pattern, maxLogFileSize, 2, true);
     }
 
     protected abstract boolean isFileHandler(Handler originalHandler);
