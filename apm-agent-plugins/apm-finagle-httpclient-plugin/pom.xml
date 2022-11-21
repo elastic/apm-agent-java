@@ -30,7 +30,7 @@
             <version>22.7.0</version>
             <scope>provided</scope>
         </dependency>
-        <!--Finagle doesn't support jackson >2.13.0, therefore fixing the version for the tests-->
+        <!--Finagle doesn't support jackson >=2.14.0, therefore fixating the version for the tests-->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>

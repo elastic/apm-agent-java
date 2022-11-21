@@ -89,7 +89,7 @@ public class FinagleTlsFilterInstrumentation extends TracerAwareInstrumentation 
             if (request == null) {
                 return;
             }
-            //TODO: this was build under the assumption that this filter is invoked synchronously before the PayloadSizeFilter
+            //TODO: this was built under the assumption that this filter is invoked synchronously before the PayloadSizeFilter
             //This assumption very likely doesn't hold 100% of the time, but is deemed good enough for now
             TLS_REQUESTS.remove(request);
         }
