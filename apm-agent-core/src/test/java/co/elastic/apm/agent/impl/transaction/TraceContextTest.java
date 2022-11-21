@@ -45,8 +45,8 @@ import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class TraceContextTest {
 
@@ -166,7 +166,7 @@ class TraceContextTest {
         final TraceContext child = TraceContext.with64BitId(tracer);
         assertThat(TraceContext.<Map<String, String>>getFromTraceContextTextHeaders().asChildOf(child, textHeaderMap, TextHeaderMapAccessor.INSTANCE)).isTrue();
         Map<String, String> outgoingHeaders = new HashMap<>();
-        when(config.getConfig(CoreConfiguration.class).isElasticTraceparentHeaderEnabled()).thenReturn(false);
+        doReturn(false).when(config.getConfig(CoreConfiguration.class)).isElasticTraceparentHeaderEnabled();
         child.propagateTraceContext(outgoingHeaders, TextHeaderMapAccessor.INSTANCE);
         assertThat(outgoingHeaders.get(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME)).isNotNull();
         assertThat(outgoingHeaders.get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)).isNull();
@@ -227,7 +227,7 @@ class TraceContextTest {
 
     @Test
     void testTracestateHeaderSizeLimit() {
-        when(config.getConfig(CoreConfiguration.class).getTracestateSizeLimit()).thenReturn(20);
+        doReturn(20).when(config.getConfig(CoreConfiguration.class)).getTracestateSizeLimit();
         PotentiallyMultiValuedMap incomingHeaders = new PotentiallyMultiValuedMap();
         incomingHeaders.add("traceparent", "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
         incomingHeaders.add("tracestate", "foo=bar");
@@ -509,9 +509,9 @@ class TraceContextTest {
         final TraceContext traceContext = TraceContext.with64BitId(tracer);
 
         Sampler sampler = mock(Sampler.class);
-        when(sampler.isSampled(any(Id.class))).thenReturn(true);
-        when(sampler.getSampleRate()).thenReturn(sampleRate);
-        when(sampler.getTraceStateHeader()).thenReturn(TraceState.getHeaderValue(sampleRate));
+        doReturn(true).when(sampler).isSampled(any(Id.class));
+        doReturn(sampleRate).when(sampler).getSampleRate();
+        doReturn(TraceState.getHeaderValue(sampleRate)).when(sampler).getTraceStateHeader();
 
         traceContext.asRootSpan(sampler);
         return traceContext;
@@ -615,8 +615,8 @@ class TraceContextTest {
     @Test
     void testRootContextSampleRateFromSampler() {
         Sampler sampler = mock(Sampler.class);
-        when(sampler.isSampled(any(Id.class))).thenReturn(true);
-        when(sampler.getSampleRate()).thenReturn(0.42d);
+        doReturn(true).when(sampler).isSampled(any(Id.class));
+        doReturn(0.42d).when(sampler).getSampleRate();
 
         final TraceContext rootContext = TraceContext.with64BitId(tracer);
         rootContext.asRootSpan(sampler);
@@ -724,7 +724,7 @@ class TraceContextTest {
     void testDeserialization() {
         ElasticApmTracer tracer = MockTracer.create();
         CoreConfiguration configuration = tracer.getConfig(CoreConfiguration.class);
-        when(configuration.getTracestateSizeLimit()).thenReturn(Integer.MAX_VALUE);
+        doReturn(Integer.MAX_VALUE).when(configuration).getTracestateSizeLimit();
 
         final TraceContext traceContext = TraceContext.with64BitId(tracer);
         traceContext.asRootSpan(ConstantSampler.of(true));

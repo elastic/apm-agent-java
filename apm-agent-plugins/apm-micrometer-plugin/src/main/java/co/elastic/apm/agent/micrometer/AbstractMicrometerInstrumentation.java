@@ -18,22 +18,23 @@
  */
 package co.elastic.apm.agent.micrometer;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
-import org.junit.Test;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.impl.GlobalTracer;
 
-public class MicrometerInstrumentationVersionsIT {
+import java.util.Collection;
+import java.util.Collections;
 
-    private final TestClassWithDependencyRunner runner;
+public abstract class AbstractMicrometerInstrumentation extends TracerAwareInstrumentation {
 
-    public MicrometerInstrumentationVersionsIT() throws Exception {
-        this.runner = new TestClassWithDependencyRunner("io.micrometer", "micrometer-core", "1.0.1",
-            MicrometerInstrumentationTest.class, MicrometerInstrumentationTest.OneSecondStepSimpleConfig.class
-        );
+    static final MicrometerMetricsReporter reporter = new MicrometerMetricsReporter(GlobalTracer.requireTracerImpl());
+
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singletonList("micrometer");
     }
 
-    @Test
-    public void testOldVersion() {
-        runner.run();
+    @Override
+    public boolean includeWhenInstrumentationIsDisabled() {
+        return true;
     }
+
 }
-

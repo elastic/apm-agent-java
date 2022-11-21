@@ -33,7 +33,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 @ContextConfiguration(classes = {
@@ -55,9 +55,8 @@ public class ExceptionHandlerInstrumentationWithGlobalAdviceTest extends Abstrac
     @Test
     public void testExceptionCaptureWithGlobalControllerAdvice_IgnoreExceptions() throws Exception {
 
-        when(config.getConfig(CoreConfiguration.class).getIgnoreExceptions()).thenReturn(
-            List.of(WildcardMatcher.valueOf("co.elastic.apm.agent.springwebmvc.exception.testapp.controller_advice.ControllerAdviceRuntimeException"))
-        );
+        doReturn(List.of(WildcardMatcher.valueOf("co.elastic.apm.agent.springwebmvc.exception.testapp.controller_advice.ControllerAdviceRuntimeException")))
+            .when(config.getConfig(CoreConfiguration.class)).getIgnoreExceptions();
 
         this.mockMvc.perform(get("/controller-advice/throw-exception"));
 
