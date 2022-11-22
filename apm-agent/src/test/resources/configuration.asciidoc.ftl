@@ -102,6 +102,11 @@ Click on a key to get more information.
 <#list config as category, options>
 [[config-${category?lower_case?replace(" ", "-")}]]
 === ${category} configuration options
+
+++++
+<titleabbrev>${category}</titleabbrev>
+++++
+
     <#list options as option>
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
