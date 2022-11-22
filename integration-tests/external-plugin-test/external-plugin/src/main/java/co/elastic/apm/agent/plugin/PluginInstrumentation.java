@@ -47,12 +47,24 @@ public class PluginInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named(System.getProperty("elastic.apm.plugin.instrumented_class", "co.elastic.apm.plugin.test.TestClass"));
+        String customType = null;
+        try {
+            customType = System.getProperty("elastic.apm.plugin.instrumented_class");
+        } catch (Exception e) {
+            // ignore, probably failure related to running with the security manager on
+        }
+        return named(customType != null ? customType : "co.elastic.apm.plugin.test.TestClass");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named(System.getProperty("elastic.apm.plugin.instrumented_method", "traceMe"));
+        String customMethod = null;
+        try {
+            customMethod = System.getProperty("elastic.apm.plugin.instrumented_method");
+        } catch (Exception e) {
+            // ignore, probably failure related to running with the security manager on
+        }
+        return named(customMethod != null ? customMethod : "traceMe");
     }
 
     @Override

@@ -21,8 +21,11 @@ package co.elastic.apm.servlet;
 import org.testcontainers.containers.GenericContainer;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 public abstract class AbstractTomcatIT extends AbstractServletContainerIntegrationTest {
+
+    public static final String CATALINA_POLICY_FILE_PATH = "/catalina.policy";
 
     public AbstractTomcatIT(final String tomcatVersion) {
         super(new GenericContainer<>("tomcat:" + tomcatVersion),
@@ -49,5 +52,16 @@ public abstract class AbstractTomcatIT extends AbstractServletContainerIntegrati
     @Override
     protected String getJavaagentEnvVariable() {
         return "CATALINA_OPTS";
+    }
+
+    @Nullable
+    @Override
+    protected String getLocalPolicyFilePath() {
+        return Objects.requireNonNull(getClass().getResource(CATALINA_POLICY_FILE_PATH)).getPath();
+    }
+
+    @Override
+    protected void enableSecurityManager(GenericContainer<?> servletContainer, String policyFilePathWithinContainer) {
+        servletContainer.withEnv("JAVA_OPTS", String.format("-Djava.security.manager -Djava.security.debug=failure -Djava.security.policy=%s", policyFilePathWithinContainer));
     }
 }
