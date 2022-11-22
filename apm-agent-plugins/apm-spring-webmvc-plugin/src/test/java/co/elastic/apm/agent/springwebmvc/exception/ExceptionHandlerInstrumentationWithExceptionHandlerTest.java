@@ -32,7 +32,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 @ContextConfiguration(classes = {
@@ -50,9 +50,8 @@ public class ExceptionHandlerInstrumentationWithExceptionHandlerTest extends Abs
 
     @Test
     public void testExceptionCapture_IgnoreException() throws Exception {
-        when(config.getConfig(CoreConfiguration.class).getIgnoreExceptions()).thenReturn(
-            List.of(WildcardMatcher.valueOf("co.elastic.apm.agent.springwebmvc.exception.testapp.exception_handler.ExceptionHandlerRuntimeException"))
-        );
+        doReturn(List.of(WildcardMatcher.valueOf("co.elastic.apm.agent.springwebmvc.exception.testapp.exception_handler.ExceptionHandlerRuntimeException")))
+            .when(config.getConfig(CoreConfiguration.class)).getIgnoreExceptions();
 
         this.mockMvc.perform(get("/exception-handler/throw-exception"));
 

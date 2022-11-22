@@ -141,56 +141,57 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
     public void testDocumentScenario() throws Exception {
         // 1. Index a document and validate span content
         prepareDefaultDocumentAndIndex();
-
         List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 201, "PUT");
+        try {
+            assertThat(spans).hasSize(1);
+            validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 201, "PUT");
 
-        // *** RESET ***
-        reporter.reset();
-        // *** RESET ***
+            // *** RESET ***
+            reporter.reset();
+            // *** RESET ***
 
-        // 2. Search document and validate span content
-        SearchRequest searchRequest = prepareSearchRequestWithTermQuery();
-        SearchResponse<Map> response = doSearch(searchRequest, Map.class);
+            // 2. Search document and validate span content
+            SearchRequest searchRequest = prepareSearchRequestWithTermQuery();
+            SearchResponse<Map> response = doSearch(searchRequest, Map.class);
 
-        verifyTotalHits(response.hits());
-        spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span searchSpan = spans.get(0);
-        validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), 200, "POST");
-        validateDbContextContent(searchSpan, "{\"from\":0,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\"}}},\"size\":5}");
+            verifyTotalHits(response.hits());
+            spans = reporter.getSpans();
+            assertThat(spans).hasSize(1);
+            Span searchSpan = spans.get(0);
+            validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), 200, "POST");
+            validateDbContextContent(searchSpan, "{\"from\":0,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\"}}},\"size\":5}");
 
-        // *** RESET ***
-        reporter.reset();
-        // *** RESET ***
+            // *** RESET ***
+            reporter.reset();
+            // *** RESET ***
 
-        // 3. Update existing document and validate content
-        Map<String, Object> jsonMap = new HashMap<>();
-        jsonMap.put(FOO, BAZ);
-        UpdateRequest updateRequest = new UpdateRequest.Builder().index(INDEX).type(DOC_TYPE).id(DOC_ID).refresh(Refresh.True).doc(jsonMap).build();
-        UpdateResponse ur = doUpdate(updateRequest, Map.class);
-        assertThat(ur).isNotNull();
-        assertThat(ur.result().jsonValue()).isEqualTo("updated");
-        SearchResponse<Map> sr = doSearch(new SearchRequest.Builder().index(INDEX).type(DOC_TYPE).build(), Map.class);
-        assertThat(((Map) ((Hit) (sr.hits().hits().get(0))).source()).get(FOO)).isEqualTo(BAZ);
+            // 3. Update existing document and validate content
+            Map<String, Object> jsonMap = new HashMap<>();
+            jsonMap.put(FOO, BAZ);
+            UpdateRequest updateRequest = new UpdateRequest.Builder().index(INDEX).id(DOC_ID).refresh(Refresh.True).doc(jsonMap).build();
+            UpdateResponse ur = doUpdate(updateRequest, Map.class);
+            assertThat(ur).isNotNull();
+            assertThat(ur.result().jsonValue()).isEqualTo("updated");
+            SearchResponse<Map> sr = doSearch(new SearchRequest.Builder().index(INDEX).build(), Map.class);
+            assertThat(((Map) ((Hit) (sr.hits().hits().get(0))).source()).get(FOO)).isEqualTo(BAZ);
 
-        spans = reporter.getSpans();
-        assertThat(spans).hasSize(2);
-        Span updateSpan = spans.get(0);
-        validateSpanContent(updateSpan, String.format("Elasticsearch: POST /%s/%s/%s/_update", INDEX, DOC_TYPE, DOC_ID), 200, "POST");
-        searchSpan = spans.get(1);
-        validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/%s/_search", INDEX, DOC_TYPE), 200, "POST");
-        validateDbContextContent(searchSpan, "{}");
+            spans = reporter.getSpans();
+            assertThat(spans).hasSize(2);
+            Span updateSpan = spans.get(0);
+            validateSpanContent(updateSpan, String.format("Elasticsearch: POST /%s/_update/%s", INDEX, DOC_ID), 200, "POST");
+            searchSpan = spans.get(1);
+            validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), 200, "POST");
+            validateDbContextContent(searchSpan, "{}");
 
-        // *** RESET ***
-        reporter.reset();
-        // *** RESET ***
-
-        // 4. Delete document and validate span content.
-        co.elastic.clients.elasticsearch.core.DeleteResponse dr = deleteDocument();
-        assertThat(dr.result().jsonValue()).isEqualTo("deleted");
-        validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
+            // *** RESET ***
+            reporter.reset();
+            // *** RESET ***
+        } finally {
+            // 4. Delete document and validate span content.
+            co.elastic.clients.elasticsearch.core.DeleteResponse dr = deleteDocument();
+            assertThat(dr.result().jsonValue()).isEqualTo("deleted");
+            validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
+        }
     }
 
     @Test
@@ -477,7 +478,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
     }
 
     private DeleteResponse deleteDocument() throws IOException {
-        return client.delete(new DeleteRequest.Builder().index(INDEX).type(DOC_TYPE).id(DOC_ID).refresh(Refresh.True).build());
+        return client.delete(new DeleteRequest.Builder().index(INDEX).id(DOC_ID).refresh(Refresh.True).build());
     }
 
     private SearchRequest prepareSearchRequestWithTermQuery() {
@@ -511,7 +512,6 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
     private void prepareDefaultDocumentAndIndex() throws IOException, ExecutionException, InterruptedException {
         IndexResponse ir = doIndexDocument(new IndexRequest.Builder()
             .index(INDEX)
-            .type(DOC_TYPE)
             .id(DOC_ID)
             .refresh(Refresh.True)
             .document(Map.of(FOO, BAR))

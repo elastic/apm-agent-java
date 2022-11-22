@@ -46,7 +46,6 @@ import org.testcontainers.utility.MountableFile;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -105,6 +104,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     private static MockServerContainer mockServerContainer = new MockServerContainer()
         //.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class))
         .withNetworkAliases("apm-server")
+        .waitingFor(Wait.forHttp(MockServerContainer.HEALTH_ENDPOINT).forStatusCode(200))
         .withNetwork(Network.SHARED);
     private static OkHttpClient httpClient;
 

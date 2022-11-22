@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 /**
  * Test annotation inheritance. Does not inherit from AbstractInstrumentationTest due to non-runtime configuration that
@@ -51,7 +51,7 @@ class AnnotationInheritanceTest {
     private void init(boolean annotationInheritanceEnabled) {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         tracer = mockInstrumentationSetup.getTracer();
-        when(tracer.getConfig(CoreConfiguration.class).isEnablePublicApiAnnotationInheritance()).thenReturn(annotationInheritanceEnabled);
+        doReturn(annotationInheritanceEnabled).when(tracer.getConfig(CoreConfiguration.class)).isEnablePublicApiAnnotationInheritance();
         reporter = mockInstrumentationSetup.getReporter();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }

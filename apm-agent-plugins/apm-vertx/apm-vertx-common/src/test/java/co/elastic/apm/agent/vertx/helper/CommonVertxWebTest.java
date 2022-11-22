@@ -51,7 +51,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 @ExtendWith(VertxExtension.class)
 public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
@@ -92,7 +92,7 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
 
     @Test
     void testCallWithoutHeaders() throws Exception {
-        when(coreConfiguration.isCaptureHeaders()).thenReturn(false);
+        doReturn(false).when(coreConfiguration).isCaptureHeaders();
 
         Map<String, String> headers = Map.of("Key1", "Value1", "Key2", "Value2");
         Response response = http().get("/test", headers);
@@ -120,7 +120,7 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
 
     @Test
     void testCallWithPathAsTransactionName() throws Exception {
-        when(webConfiguration.isUsePathAsName()).thenReturn(true);
+        doReturn(true).when(webConfiguration).isUsePathAsName();
 
         Response response = http().get("/test/secondSegment");
         expectTransaction(response, "/test/secondSegment", DEFAULT_RESPONSE_BODY, "GET /test/secondSegment", 200);
@@ -128,17 +128,16 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
 
     @Test
     void testCallWithPathGroupAsTransactionName() throws Exception {
-        when(webConfiguration.isUsePathAsName()).thenReturn(true);
-        when(webConfiguration.getUrlGroups()).thenReturn(List.of(WildcardMatcher.valueOf("/test/*/group")));
-
+        doReturn(true).when(webConfiguration).isUsePathAsName();
+        doReturn(List.of(WildcardMatcher.valueOf("/test/*/group"))).when(webConfiguration).getUrlGroups();
         Response response = http().get("/test/secondSegment/group");
         expectTransaction(response, "/test/secondSegment/group", DEFAULT_RESPONSE_BODY, "GET /test/*/group", 200);
     }
 
     @Test
     void testCallWithQueryParameters() throws Exception {
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
-        when(webConfiguration.getCaptureContentTypes()).thenReturn(List.of(WildcardMatcher.valueOf("application/x-www-form-urlencoded*")));
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
+        doReturn(List.of(WildcardMatcher.valueOf("application/x-www-form-urlencoded*"))).when(webConfiguration).getCaptureContentTypes();
 
         Response response = http().post("/post?par1=abc&par2=xyz", "Some Body", MediaType.get("application/x-www-form-urlencoded"));
         expectTransaction(response, "/post", DEFAULT_RESPONSE_BODY, "POST /post", 200);
@@ -156,8 +155,8 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
 
     @Test
     void testCallWithBodyCapturing() throws Exception {
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
-        when(webConfiguration.getCaptureContentTypes()).thenReturn(List.of(WildcardMatcher.valueOf("application/json*")));
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
+        doReturn(List.of(WildcardMatcher.valueOf("application/json*"))).when(webConfiguration).getCaptureContentTypes();
 
         String jsonBody = "{\"key\":\"Some JSON\"}";
 

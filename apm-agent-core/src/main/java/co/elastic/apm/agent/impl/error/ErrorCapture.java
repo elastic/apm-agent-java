@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.impl.error;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -34,7 +33,6 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
-import java.util.List;
 
 
 /**
@@ -265,7 +263,7 @@ public class ErrorCapture implements Recyclable {
         transactionInfo.isSampled = transactionSampled;
     }
 
-    public void setTransactionName(@Nullable StringBuilder name) {
+    public void setTransactionName(@Nullable CharSequence name) {
         transactionInfo.name.setLength(0);
         transactionInfo.name.append(name);
     }

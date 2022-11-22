@@ -24,8 +24,8 @@ import java.lang.management.RuntimeMXBean;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class VerifyNoneBootstrapCheckTest {
 
@@ -34,7 +34,7 @@ class VerifyNoneBootstrapCheckTest {
     @Test
     void testNoverify() {
         RuntimeMXBean bean = mock(RuntimeMXBean.class);
-        when(bean.getInputArguments()).thenReturn(Collections.singletonList("-noverify"));
+        doReturn(Collections.singletonList("-noverify")).when(bean).getInputArguments();
         VerifyNoneBootstrapCheck check = new VerifyNoneBootstrapCheck(bean);
         check.doBootstrapCheck(result);
         assertThat(result.hasWarnings()).isTrue();
@@ -44,7 +44,7 @@ class VerifyNoneBootstrapCheckTest {
     @Test
     void testVerifyNone() {
         RuntimeMXBean bean = mock(RuntimeMXBean.class);
-        when(bean.getInputArguments()).thenReturn(Collections.singletonList("-Xverify:none"));
+        doReturn(Collections.singletonList("-Xverify:none")).when(bean).getInputArguments();
         VerifyNoneBootstrapCheck check = new VerifyNoneBootstrapCheck(bean);
         check.doBootstrapCheck(result);
         assertThat(result.hasWarnings()).isTrue();
@@ -54,7 +54,7 @@ class VerifyNoneBootstrapCheckTest {
     @Test
     void testVerifyAll() {
         RuntimeMXBean bean = mock(RuntimeMXBean.class);
-        when(bean.getInputArguments()).thenReturn(Collections.singletonList("-Xverify:all"));
+        doReturn(Collections.singletonList("-Xverify:all")).when(bean).getInputArguments();
         VerifyNoneBootstrapCheck check = new VerifyNoneBootstrapCheck(bean);
         check.doBootstrapCheck(result);
         assertThat(result.isEmpty()).isTrue();

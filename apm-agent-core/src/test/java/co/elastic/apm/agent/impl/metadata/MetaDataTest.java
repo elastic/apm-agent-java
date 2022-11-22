@@ -43,7 +43,7 @@ import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.NONE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 class MetaDataTest extends CustomEnvVariables {
 
@@ -72,7 +72,7 @@ class MetaDataTest extends CustomEnvVariables {
 
     @Test
     void testCloudProvider_NONE_and_configured_hostname() throws InterruptedException, ExecutionException, TimeoutException {
-        when(coreConfiguration.getHostname()).thenReturn("hostname");
+        doReturn("hostname").when(coreConfiguration).getHostname();
         // The default configuration for cloud_provide is NONE
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
         MetaData metaData = metaDataFuture.get(50, TimeUnit.MILLISECONDS);
@@ -101,9 +101,9 @@ class MetaDataTest extends CustomEnvVariables {
 
     @Test
     void testCloudProvider_ForAWSLambda_fromConfiguration() throws Exception {
-        when(coreConfiguration.getServiceName()).thenReturn("test-service");
-        when(coreConfiguration.getServiceNodeName()).thenReturn("test-service-node-name");
-        when(coreConfiguration.getServiceVersion()).thenReturn("test-service-version");
+        doReturn("test-service").when(coreConfiguration).getServiceName();
+        doReturn("test-service-node-name").when(coreConfiguration).getServiceNodeName();
+        doReturn("test-service-version").when(coreConfiguration).getServiceVersion();
         MetaData awsLambdaMetaData = createAwsLambdaMetaData();
 
         Service service = awsLambdaMetaData.getService();
@@ -113,8 +113,8 @@ class MetaDataTest extends CustomEnvVariables {
     }
 
     private MetaData createAwsLambdaMetaData() throws Exception {
-        when(serverlessConfiguration.runsOnAwsLambda()).thenReturn(true);
-        when(coreConfiguration.getHostname()).thenReturn("hostname");
+        doReturn(true).when(serverlessConfiguration).runsOnAwsLambda();
+        doReturn("hostname").when(coreConfiguration).getHostname();
 
         final Map<String, String> awsLambdaEnvVariables = new HashMap<>();
         awsLambdaEnvVariables.put("AWS_LAMBDA_FUNCTION_NAME", "function-name");
@@ -137,7 +137,7 @@ class MetaDataTest extends CustomEnvVariables {
     @ParameterizedTest
     @EnumSource(value = CoreConfiguration.CloudProvider.class, names = {"AWS", "GCP", "AZURE"})
     void testCloudProvider_SingleProvider(CoreConfiguration.CloudProvider provider) throws InterruptedException, ExecutionException, TimeoutException {
-        when(coreConfiguration.getCloudProvider()).thenReturn(provider);
+        doReturn(provider).when(coreConfiguration).getCloudProvider();
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
         // In AWS we may need two timeouts - one for the API token and one for the metadata itself
         long timeout = (long) (coreConfiguration.getMetadataDiscoveryTimeoutMs() * ((provider == AWS) ? 2.5 : 1.5));
@@ -147,8 +147,8 @@ class MetaDataTest extends CustomEnvVariables {
 
     @Test
     void testTimeoutConfiguration() throws InterruptedException, ExecutionException, TimeoutException {
-        when(coreConfiguration.getCloudProvider()).thenReturn(AUTO);
-        when(coreConfiguration.getMetadataDiscoveryTimeoutMs()).thenReturn(200L);
+        doReturn(AUTO).when(coreConfiguration).getCloudProvider();
+        doReturn(200L).when(coreConfiguration).getMetadataDiscoveryTimeoutMs();
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
         Exception timeoutException = null;
         try {
@@ -163,7 +163,7 @@ class MetaDataTest extends CustomEnvVariables {
 
     @Test
     void testCloudProvider_AUTO() throws InterruptedException, ExecutionException, TimeoutException {
-        when(coreConfiguration.getCloudProvider()).thenReturn(AUTO);
+        doReturn(AUTO).when(coreConfiguration).getCloudProvider();
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
         Exception timeoutException = null;
         MetaData metaData;
