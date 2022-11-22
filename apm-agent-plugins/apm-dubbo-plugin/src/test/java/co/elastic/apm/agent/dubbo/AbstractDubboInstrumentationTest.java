@@ -42,7 +42,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -72,7 +72,7 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
             dubboTestApi = buildDubboTestApi(port, backendPort);
         }
 
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.OFF);
+        doReturn(CoreConfiguration.EventType.OFF).when(coreConfig).getCaptureBody();
 
         startTestRootTransaction("dubbo test");
     }
@@ -86,15 +86,15 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
     }
 
     @AfterAll
-    static void doAfterAll(){
+    static void doAfterAll() {
         dubboTestApi = null;
     }
 
-    protected static <T> T withRetry(Callable<T> task){
+    protected static <T> T withRetry(Callable<T> task) {
         int count = 10;
         while (count > 0) {
             try {
-                return  task.call();
+                return task.call();
             } catch (Exception e) {
                 count--;
                 if (count == 0) {

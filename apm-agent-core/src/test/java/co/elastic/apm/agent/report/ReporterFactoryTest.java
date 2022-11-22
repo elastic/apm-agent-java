@@ -48,7 +48,7 @@ import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 class ReporterFactoryTest {
 
@@ -88,7 +88,7 @@ class ReporterFactoryTest {
         server.start();
         configuration = SpyConfiguration.createSpyConfig();
         reporterConfiguration = configuration.getConfig(ReporterConfiguration.class);
-        when(reporterConfiguration.getServerUrls()).thenReturn(Collections.singletonList(new URL("https://localhost:" + getPort())));
+        doReturn(Collections.singletonList(new URL("https://localhost:" + getPort()))).when(reporterConfiguration).getServerUrls();
     }
 
     @AfterEach
@@ -102,7 +102,7 @@ class ReporterFactoryTest {
 
     @Test
     void testNotValidatingSslCertificate() throws Exception {
-        when(reporterConfiguration.isVerifyServerCert()).thenReturn(false);
+        doReturn(false).when(reporterConfiguration).isVerifyServerCert();
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, configuration.getConfig(CoreConfiguration.class));
         apmServerClient.start();
         final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaDataMock.create());
@@ -119,7 +119,7 @@ class ReporterFactoryTest {
 
     @Test
     void testValidatingSslCertificate() throws Exception {
-        when(reporterConfiguration.isVerifyServerCert()).thenReturn(true);
+        doReturn(true).when(reporterConfiguration).isVerifyServerCert();
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, configuration.getConfig(CoreConfiguration.class));
         apmServerClient.start();
         final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaDataMock.create());

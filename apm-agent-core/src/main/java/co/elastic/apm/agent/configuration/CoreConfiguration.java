@@ -64,6 +64,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final String INSTRUMENT = "instrument";
+    public static final String INSTRUMENT_ANCIENT_BYTECODE = "instrument_ancient_bytecode";
     public static final String SERVICE_NAME = "service_name";
     public static final String SERVICE_NODE_NAME = "service_node_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
@@ -436,6 +437,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("internal")
         .description("When enabled, configures Byte Buddy to use a type pool cache.")
         .buildWithDefault(true);
+
+    private final ConfigurationOption<Boolean> instrumentAncientBytecode = ConfigurationOption.booleanOption()
+        .key(INSTRUMENT_ANCIENT_BYTECODE)
+        .configurationCategory(CORE_CATEGORY)
+        .description("A boolean specifying if the agent should instrument pre-Java-1.4 bytecode.")
+        .dynamic(false)
+        .tags("added[1.35.0]")
+        .buildWithDefault(false);
 
     private final ConfigurationOption<Boolean> warmupByteBuddy = ConfigurationOption.booleanOption()
         .key("warmup_byte_buddy")
@@ -903,6 +912,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isTypePoolCacheEnabled() {
         return typePoolCache.get();
+    }
+
+    public boolean isInstrumentAncientBytecode() {
+        return instrumentAncientBytecode.get();
     }
 
     public boolean shouldWarmupByteBuddy() {

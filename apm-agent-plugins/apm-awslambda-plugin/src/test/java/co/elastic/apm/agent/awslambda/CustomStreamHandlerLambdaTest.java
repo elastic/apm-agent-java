@@ -26,7 +26,7 @@ import org.junit.jupiter.api.BeforeAll;
 import java.util.Objects;
 
 import static co.elastic.apm.agent.awslambda.AbstractLambdaTest.serverlessConfiguration;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class CustomStreamHandlerLambdaTest extends AbstractStreamHandlerLambdaTest {
 
@@ -37,9 +37,9 @@ public class CustomStreamHandlerLambdaTest extends AbstractStreamHandlerLambdaTe
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(
-            "co.elastic.apm.agent.awslambda.lambdas.CustomStreamHandler::customHandleRequest"
-        );
+        Objects.requireNonNull(serverlessConfiguration);
+        doReturn("co.elastic.apm.agent.awslambda.lambdas.CustomStreamHandler::customHandleRequest")
+            .when(serverlessConfiguration).getAwsLambdaHandler();
         AbstractLambdaTest.initInstrumentation();
     }
 

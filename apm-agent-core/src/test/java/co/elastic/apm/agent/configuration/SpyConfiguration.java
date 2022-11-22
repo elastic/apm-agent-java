@@ -37,7 +37,7 @@ public class SpyConfiguration {
      * Creates a configuration registry where all {@link ConfigurationOptionProvider}s are wrapped with
      * {@link Mockito#spy(Object)}
      * <p>
-     * That way, the default configuration values are returned but can be overridden by {@link Mockito#when(Object)}
+     * That way, the default configuration values are returned but can be overridden by {@link Mockito#doReturn(Object)}
      *
      * @return a syp configuration registry
      */
@@ -47,9 +47,9 @@ public class SpyConfiguration {
 
     /**
      * Creates a configuration registry where all {@link ConfigurationOptionProvider}s are wrapped with
-     * {@link org.mockito.Mockito#spy(Object)}
+     * {@link Mockito#spy(Object)}
      * <p>
-     * That way, the default configuration values are returned but can be overridden by {@link org.mockito.Mockito#when(Object)}
+     * That way, the default configuration values are returned but can be overridden by {@link Mockito#doReturn(Object)}
      *
      * @return a spy configuration registry
      * @param configurationSource

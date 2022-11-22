@@ -108,6 +108,8 @@ public class ElasticApmAgent {
     @Nullable
     private static Logger logger;
 
+    private static boolean ancientBytecodeInstrumentationEnabled;
+
     private static final InstrumentationStats instrumentationStats = new InstrumentationStats();
 
     @Nullable
@@ -222,6 +224,7 @@ public class ElasticApmAgent {
         if (!coreConfig.isEnabled()) {
             return;
         }
+        ancientBytecodeInstrumentationEnabled = coreConfig.isInstrumentAncientBytecode();
         String bytecodeDumpPath = coreConfig.getBytecodeDumpPath();
         if (bytecodeDumpPath != null) {
             bytecodeDumpPath = bytecodeDumpPath.trim();
@@ -413,9 +416,11 @@ public class ElasticApmAgent {
                 @Override
                 public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription,
                                                         ClassLoader classLoader, JavaModule module, ProtectionDomain protectionDomain) {
-                    return builder.visit(MinimumClassFileVersionValidator.V1_4)
-                        // As long as we allow 1.4 bytecode, we need to add this constant pool adjustment as well
-                        .visit(TypeConstantAdjustment.INSTANCE);
+                    if (!ancientBytecodeInstrumentationEnabled) {
+                        builder = builder.visit(MinimumClassFileVersionValidator.V1_4);
+                    }
+                    // As long as we allow 1.4 bytecode, we need to add this constant pool adjustment as well
+                    return builder.visit(TypeConstantAdjustment.INSTANCE);
                 }
             });
     }
