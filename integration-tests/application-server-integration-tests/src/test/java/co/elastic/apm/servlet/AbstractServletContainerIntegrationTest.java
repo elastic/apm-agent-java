@@ -90,7 +90,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     private static final Path pathToAttach;
     private static final Path pathToSlimAttach;
 
-    static boolean ENABLE_DEBUGGING = true;
+    static boolean ENABLE_DEBUGGING = false;
     static boolean ENABLE_RUNTIME_ATTACH = true;
 
     /**
@@ -589,8 +589,8 @@ public abstract class AbstractServletContainerIntegrationTest {
         assertThat(agent).isNotNull();
         assertThat(agent.get("ephemeral_id")).isNotNull();
         JsonNode container = metadata.get("system").get("container");
-        //assertThat(container).isNotNull();
-        //assertThat(container.get("id").textValue()).isEqualTo(servletContainer.getContainerId());
+        assertThat(container).isNotNull();
+        assertThat(container.get("id").textValue()).isEqualTo(servletContainer.getContainerId());
     }
 
     private void addSpans(List<JsonNode> spans, JsonNode payload) {
