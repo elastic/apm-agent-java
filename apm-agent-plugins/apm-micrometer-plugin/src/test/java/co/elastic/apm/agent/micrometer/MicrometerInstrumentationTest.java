@@ -26,6 +26,9 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Clock;
+import io.micrometer.core.instrument.simple.CountingMode;
+import io.micrometer.core.instrument.simple.SimpleConfig;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
@@ -33,6 +36,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -62,7 +66,7 @@ public class MicrometerInstrumentationTest {
     @Test
     public void testRegisterMeterRegistry() {
         ElasticApmAgent.initInstrumentation(MockTracer.createRealTracer(reporter, config), ByteBuddyAgent.install());
-        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        SimpleMeterRegistry registry = new SimpleMeterRegistry(new OneSecondStepSimpleConfig(), Clock.SYSTEM);
         registry.counter("foo").increment();
         reporter.awaitUntilAsserted(() -> assertThat(countFooSamples()).isGreaterThanOrEqualTo(1));
     }
@@ -71,7 +75,7 @@ public class MicrometerInstrumentationTest {
     public void testReportedWhenInstrumentConfigDisabled() {
         doReturn(false).when(config.getConfig(CoreConfiguration.class)).isInstrument();
         ElasticApmAgent.initInstrumentation(MockTracer.createRealTracer(reporter, config), ByteBuddyAgent.install());
-        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        SimpleMeterRegistry registry = new SimpleMeterRegistry(new OneSecondStepSimpleConfig(), Clock.SYSTEM);
         registry.counter("foo").increment();
         reporter.awaitUntilAsserted(3000, () -> assertThat(countFooSamples()).isGreaterThanOrEqualTo(1));
     }
@@ -101,4 +105,25 @@ public class MicrometerInstrumentationTest {
         }
         return lastFooSamples;
     }
+
+    //default SimpleMeterRegistry step is 1 minute (so would need to wait that long to see the metric!)
+    //This has a 1 second step and `meterRegistry` is set when config instrumentation matches
+    static class OneSecondStepSimpleConfig implements SimpleConfig {
+
+        @Override
+        public CountingMode mode() {
+            return CountingMode.STEP;
+        }
+
+        @Override
+        public Duration step() {
+            return Duration.ofSeconds(1);
+        }
+
+        @Override
+        public String get(String key) {
+            return null;
+        }
+    }
+
 }
