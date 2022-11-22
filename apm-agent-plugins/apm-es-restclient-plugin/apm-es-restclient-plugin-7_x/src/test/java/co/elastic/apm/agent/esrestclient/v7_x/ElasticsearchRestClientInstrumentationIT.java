@@ -65,6 +65,7 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.xcontent.XContentFactory.jsonBuilder;
 
 @RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4ClientInstrumentationTest {
@@ -272,5 +273,18 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
             return invokeAsync(bulkRequest, method);
         }
         return client.bulk(bulkRequest, RequestOptions.DEFAULT);
+    }
+
+    protected IndexRequest createIndexRequest(String docId) throws IOException {
+        return new IndexRequest(INDEX).id(docId).source(
+            jsonBuilder()
+                .startObject()
+                .field(FOO, BAR)
+                .endObject()
+        );
+    }
+
+    protected String getSearchTemplateHttpMethod() {
+        return "POST";
     }
 }
