@@ -55,10 +55,10 @@ import java.util.stream.Stream;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class ApmFilterTest extends AbstractInstrumentationTest {
 
@@ -127,7 +127,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testIgnoreUrlStartWithNoMatch() throws IOException, ServletException {
-        when(webConfiguration.getIgnoreUrls()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("/resources*")));
+        doReturn(Collections.singletonList(WildcardMatcher.valueOf("/resources*"))).when(webConfiguration).getIgnoreUrls();
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServletPath("/");
         filterChain.doFilter(request, new MockHttpServletResponse());
@@ -145,12 +145,12 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         reset(webConfiguration);
         filterChain = new MockFilterChain(new HttpServlet() {
         });
-        when(webConfiguration.getIgnoreUrls()).thenReturn(ignoreConfig);
+        doReturn(ignoreConfig).when(webConfiguration).getIgnoreUrls();
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI(requestUri);
         try {
             filterChain.doFilter(request, new MockHttpServletResponse());
-        } catch (ServletException|IOException e) {
+        } catch (ServletException | IOException e) {
             throw new IllegalStateException(e);
         }
         verify(webConfiguration, times(1)).getIgnoreUrls();
@@ -164,7 +164,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         String config = "curl/*";
         String userAgent = "curl/7.54.0";
 
-        when(webConfiguration.getIgnoreUserAgents()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf(config)));
+        doReturn(Collections.singletonList(WildcardMatcher.valueOf(config))).when(webConfiguration).getIgnoreUserAgents();
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("user-agent", userAgent);
         filterChain.doFilter(request, new MockHttpServletResponse());
@@ -256,7 +256,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testNoHeaderRecording() throws IOException, ServletException {
-        when(coreConfiguration.isCaptureHeaders()).thenReturn(false);
+        doReturn(false).when(coreConfiguration).isCaptureHeaders();
         filterChain = new MockFilterChain(new TestServlet());
         final MockHttpServletRequest get = new MockHttpServletRequest("GET", "/foo");
         get.addHeader("Elastic-Apm-Traceparent", "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
@@ -275,7 +275,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testAllHeaderRecording() throws IOException, ServletException {
-        when(coreConfiguration.isCaptureHeaders()).thenReturn(true);
+        doReturn(true).when(coreConfiguration).isCaptureHeaders();
         filterChain = new MockFilterChain(new TestServlet());
         final MockHttpServletRequest get = new MockHttpServletRequest("GET", "/foo");
         get.addHeader("foo", "bar");

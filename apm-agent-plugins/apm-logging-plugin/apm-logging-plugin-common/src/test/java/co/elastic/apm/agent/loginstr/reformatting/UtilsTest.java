@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import javax.annotation.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class UtilsTest extends AbstractInstrumentationTest {
 
@@ -49,7 +49,7 @@ public class UtilsTest extends AbstractInstrumentationTest {
 
     @Test
     void testReplace() {
-        when(config.getConfig(LoggingConfiguration.class).getLogEcsReformatting()).thenReturn(LogEcsReformatting.REPLACE);
+        doReturn(LogEcsReformatting.REPLACE).when(config.getConfig(LoggingConfiguration.class)).getLogEcsReformatting();
         assertThat(computeReformattedLogFilePathWithConfiguredDir("/test/absolute/path/app.log")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.ecs.json"));
         assertThat(computeReformattedLogFilePathWithConfiguredDir("/test/absolute/path/app")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.ecs.json"));
         assertThat(computeReformattedLogFilePathWithConfiguredDir("/test/absolute/path/app.log.1")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.log.ecs.json"));

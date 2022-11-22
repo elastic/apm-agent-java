@@ -79,8 +79,8 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @Ignore
 public class ElasticsearchRestClientInstrumentationIT_RealReporter {
@@ -126,9 +126,9 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
 
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        when(reporterConfiguration.getMaxQueueSize()).thenReturn(0);
+        doReturn(0).when(reporterConfiguration).getMaxQueueSize();
         StacktraceConfiguration stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
-        when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(30);
+        doReturn(30).when(stacktraceConfiguration).getStackTraceLimit();
         SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final Service service = new Service().withName("Eyal-ES-client-test").withAgent(new Agent("java", "Test"));
         final ProcessInfo title = new ProcessInfo("title");
