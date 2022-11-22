@@ -59,7 +59,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
                                          PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
         super(reporterConfiguration, payloadSerializer, apmServerClient);
         this.processorEventHandler = processorEventHandler;
-        this.dslJson = new DslJson<>();
+        this.dslJson = new DslJson<>(new DslJson.Settings<>());
         this.timeoutTimer = ExecutorUtils.createSingleThreadSchedulingDaemonPool("request-timeout-timer");
     }
 
