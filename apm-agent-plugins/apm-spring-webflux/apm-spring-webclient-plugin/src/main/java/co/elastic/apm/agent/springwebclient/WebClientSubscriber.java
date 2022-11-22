@@ -21,7 +21,6 @@ package co.elastic.apm.agent.springwebclient;
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.reactivestreams.Subscription;
@@ -29,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import reactor.core.CoreSubscriber;
+import reactor.util.context.Context;
 
 import javax.annotation.Nullable;
 
@@ -47,6 +47,11 @@ public class WebClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
         this.tracer = tracer;
 
         spanMap.put(this, span);
+    }
+
+    @Override
+    public Context currentContext() {
+        return subscriber.currentContext();
     }
 
     @Override

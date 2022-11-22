@@ -54,20 +54,20 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
     private final Tracer tracer;
 
-    private final Context context;
-
     TracedSubscriber(CoreSubscriber<? super T> subscriber, Tracer tracer, AbstractSpan<?> context) {
         this.subscriber = subscriber;
         this.tracer = tracer;
         contextMap.put(this, context);
-
-        // store our span/transaction into reactor context for later lookup without relying on active tracer state
-        this.context = subscriber.currentContext().put(AbstractSpan.class, context);
     }
 
     @Override
     public Context currentContext() {
-        return context;
+        final AbstractSpan<?> context = getContext();
+        if (context != null) {
+            return subscriber.currentContext().put(AbstractSpan.class, context);
+        } else {
+            return subscriber.currentContext();
+        }
     }
 
     /**
