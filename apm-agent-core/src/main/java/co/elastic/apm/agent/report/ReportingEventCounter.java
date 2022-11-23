@@ -30,8 +30,7 @@ public class ReportingEventCounter {
     }
 
     public ReportingEventCounter(ReportingEventCounter toCopy) {
-        ReportingEvent.ReportingEventType[] types = ReportingEvent.ReportingEventType.values();
-        counters = new AtomicLongArray(types.length);
+        this();
         for (int i = 0; i < counters.length(); i++) {
             counters.set(i, toCopy.counters.get(i));
         }
