@@ -32,14 +32,14 @@ import org.junit.Test;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 @Ignore
 public class Log4j2ServiceVersionInstrumentationTest extends AbstractInstrumentationTest {
 
     @BeforeClass
     public static void setUp() {
-        when(tracer.getConfig(CoreConfiguration.class).getServiceVersion()).thenReturn("1.0");
+        doReturn("1.0").when(tracer.getConfig(CoreConfiguration.class)).getServiceVersion();
     }
 
     @Test

@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class CustomLambdaHandlerTest extends AbstractPlainLambdaTest {
 
@@ -37,9 +37,9 @@ public class CustomLambdaHandlerTest extends AbstractPlainLambdaTest {
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(
-            "co.elastic.apm.agent.awslambda.lambdas.CustomHandler::customHandleRequest"
-        );
+        Objects.requireNonNull(serverlessConfiguration);
+        doReturn("co.elastic.apm.agent.awslambda.lambdas.CustomHandler::customHandleRequest")
+            .when(serverlessConfiguration).getAwsLambdaHandler();
         AbstractLambdaTest.initInstrumentation();
     }
 

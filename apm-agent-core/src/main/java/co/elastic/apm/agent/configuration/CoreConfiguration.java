@@ -64,6 +64,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final String INSTRUMENT = "instrument";
+    public static final String INSTRUMENT_ANCIENT_BYTECODE = "instrument_ancient_bytecode";
     public static final String SERVICE_NAME = "service_name";
     public static final String SERVICE_NODE_NAME = "service_node_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
@@ -437,6 +438,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("When enabled, configures Byte Buddy to use a type pool cache.")
         .buildWithDefault(true);
 
+    private final ConfigurationOption<Boolean> instrumentAncientBytecode = ConfigurationOption.booleanOption()
+        .key(INSTRUMENT_ANCIENT_BYTECODE)
+        .configurationCategory(CORE_CATEGORY)
+        .description("A boolean specifying if the agent should instrument pre-Java-1.4 bytecode.")
+        .dynamic(false)
+        .tags("added[1.35.0]")
+        .buildWithDefault(false);
+
     private final ConfigurationOption<Boolean> warmupByteBuddy = ConfigurationOption.booleanOption()
         .key("warmup_byte_buddy")
         .configurationCategory(CORE_CATEGORY)
@@ -746,7 +755,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.25.0]")
         .configurationCategory(CORE_CATEGORY)
         .tags("performance")
-        .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).\n " +
+        .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (`@CaptureTransaction`, `@CaptureSpan`, `@Traced`).\n " +
             "When set to `false`, a method is instrumented if it is annotated with a public api annotation.\n  " +
             "When set to `true` methods overriding annotated methods will be instrumented as well.\n " +
             "Either way, methods will only be instrumented if they are included in the configured <<config-application-packages>>.")
@@ -903,6 +912,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isTypePoolCacheEnabled() {
         return typePoolCache.get();
+    }
+
+    public boolean isInstrumentAncientBytecode() {
+        return instrumentAncientBytecode.get();
     }
 
     public boolean shouldWarmupByteBuddy() {

@@ -74,6 +74,7 @@ public class PatchBytecodeVersionTo51Transformer implements AgentBuilder.Transfo
                     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
                         if (ClassFileVersion.ofMinorMajor(version).isLessThan(ClassFileVersion.JAVA_V7)) {
                             patchVersion = true;
+                            //
                             version = Opcodes.V1_7;
                         }
                         super.visit(version, access, name, signature, superName, interfaces);

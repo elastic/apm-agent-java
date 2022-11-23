@@ -45,6 +45,8 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -61,15 +63,9 @@ public class AgentAttacher {
     // reduces the risk of exposing them in heap dumps
     private final Set<String> alreadySeenJvmPids = new HashSet<>();
     private final UserRegistry userRegistry = UserRegistry.empty();
-    private final JvmDiscoverer jvmDiscoverer;
 
-    private AgentAttacher(Arguments arguments) throws Exception {
+    private AgentAttacher(Arguments arguments) {
         this.arguments = arguments;
-        // fail fast if no attachment provider is working
-        GetAgentProperties.getAgentAndSystemProperties(JvmInfo.CURRENT_PID, userRegistry.getCurrentUser());
-        this.jvmDiscoverer = new JvmDiscoverer.Compound(Arrays.asList(
-            JvmDiscoverer.ForHotSpotVm.withDiscoveredTempDirs(userRegistry),
-            new JvmDiscoverer.UsingPs(userRegistry)));
     }
 
     private static Logger initLogging(Arguments arguments) {
@@ -150,7 +146,7 @@ public class AgentAttacher {
             logger.debug("attacher arguments : {}", arguments);
         }
         try {
-            new AgentAttacher(arguments).handleNewJvmsLoop();
+            new AgentAttacher(arguments).doAttach();
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
@@ -180,9 +176,40 @@ public class AgentAttacher {
         arguments.setAgentJar(downloadedJarPath.toFile());
     }
 
-    private void handleNewJvmsLoop() throws Exception {
+    private void doAttach() {
+        try {
+            DiscoveryRules discoveryRules = arguments.getDiscoveryRules();
+            if (!discoveryRules.isDiscoveryRequired() && arguments.isNoFork()) {
+                attachToSpecificPidsAsCurrentUser();
+            } else {
+                discoverAndAttachLoop(discoveryRules);
+            }
+        } catch (Exception e) {
+            logger.error("Error during attachment", e);
+        }
+    }
+
+    private void attachToSpecificPidsAsCurrentUser() throws Exception {
+        // a shortcut for a simple usage of attaching to specific PIDs using the current user, which means we can avoid all
+        // JVM discovery logic and user-switches
+        Set<String> includePids = arguments.getIncludePids();
+        for (String includePid : includePids) {
+            Properties properties = GetAgentProperties.getAgentAndSystemProperties(includePid, userRegistry.getCurrentUser());
+            attach(JvmInfo.withCurrentUser(includePid, properties));
+        }
+    }
+
+    private void discoverAndAttachLoop(final DiscoveryRules discoveryRules) throws Exception {
+        // fail fast if no attachment provider is working
+        GetAgentProperties.getAgentAndSystemProperties(JvmInfo.CURRENT_PID, userRegistry.getCurrentUser());
+
+        JvmDiscoverer jvmDiscoverer = new JvmDiscoverer.Compound(Arrays.asList(
+            JvmDiscoverer.ForHotSpotVm.withDiscoveredTempDirs(userRegistry),
+            new JvmDiscoverer.UsingPs(userRegistry))
+        );
+
         while (true) {
-            handleNewJvms(jvmDiscoverer.discoverJvms(), arguments.getDiscoveryRules());
+            handleNewJvms(jvmDiscoverer.discoverJvms(), discoveryRules);
             if (!arguments.isContinuous()) {
                 break;
             }
@@ -230,12 +257,10 @@ public class AgentAttacher {
     }
 
     private void onJvmMatch(JvmInfo jvmInfo) throws Exception {
-        final Map<String, String> agentArgs = getAgentArgs(jvmInfo);
         if (arguments.isList()) {
             System.out.println(jvmInfo.toString(arguments.isListVmArgs()));
         } else {
-            logger.info("Attaching the Elastic APM agent to {} with arguments {}", jvmInfo, agentArgs);
-            if (attach(jvmInfo, agentArgs)) {
+            if (attach(jvmInfo)) {
                 logger.info("Done");
             } else {
                 logger.error("Unable to attach to JVM with PID = {}", jvmInfo.getPid());
@@ -243,7 +268,10 @@ public class AgentAttacher {
         }
     }
 
-    private boolean attach(JvmInfo jvmInfo, Map<String, String> agentArgs) {
+    private boolean attach(JvmInfo jvmInfo) throws Exception {
+        final Map<String, String> agentArgs = getAgentArgs(jvmInfo);
+        logger.info("Attaching the Elastic APM agent to {} with arguments {}", jvmInfo, agentArgs);
+
         UserRegistry.User user = jvmInfo.getUser(userRegistry);
         if (user == null) {
             logger.error("Could not load user {}", jvmInfo.getUserName());
@@ -315,25 +343,29 @@ public class AgentAttacher {
 
     static class Arguments {
         private final DiscoveryRules rules;
+        private final Set<String> includePids;
         private final Map<String, String> config;
         private final String argsProvider;
         private final boolean help;
         private final boolean list;
         private final boolean continuous;
+        private final boolean noFork;
         private final Level logLevel;
         private final String logFile;
         private final boolean listVmArgs;
         private final String downloadAgentVersion;
         private File agentJar;
 
-        private Arguments(DiscoveryRules rules, Map<String, String> config, String argsProvider, boolean help,
-                          boolean list, boolean listVmArgs, boolean continuous, Level logLevel, String logFile,
+        private Arguments(DiscoveryRules rules, Set<String> includePids, Map<String, String> config, String argsProvider, boolean help,
+                          boolean list, boolean listVmArgs, boolean continuous, boolean noFork, Level logLevel, String logFile,
                           String agentJarString, String downloadAgentVersion) {
             this.rules = rules;
+            this.includePids = includePids;
             this.help = help;
             this.list = list;
             this.listVmArgs = listVmArgs;
             this.continuous = continuous;
+            this.noFork = noFork;
             this.logLevel = logLevel;
             this.logFile = logFile;
             this.downloadAgentVersion = downloadAgentVersion;
@@ -357,12 +389,14 @@ public class AgentAttacher {
 
         static Arguments parse(String... args) {
             DiscoveryRules rules = new DiscoveryRules();
+            Set<String> includePids = new HashSet<>();
             Map<String, String> config = new LinkedHashMap<>();
             String argsProvider = null;
             boolean help = args.length == 0;
             boolean list = false;
             boolean listVmArgs = false;
             boolean continuous = false;
+            boolean noFork = false;
             String currentArg = "";
             Level logLevel = Level.INFO;
             String logFile = null;
@@ -387,6 +421,9 @@ public class AgentAttacher {
                         case "-c":
                         case "--continuous":
                             continuous = true;
+                            break;
+                        case "--no-fork":
+                            noFork = true;
                             break;
                         case "--include-all":
                             rules.includeAll();
@@ -435,7 +472,11 @@ public class AgentAttacher {
                             rules.excludeUser(arg);
                             break;
                         case "--include-pid":
+                            // "include-pid" rules do not require discovery, however we add them to the discovery rules because
+                            // theoretically they may be used AFTER other exclusion rules, in which case we need to make sure we only
+                            // match against them in the correct order
                             rules.includePid(arg);
+                            includePids.add(Objects.requireNonNull(arg));
                             break;
                         case "-C":
                         case "--config":
@@ -463,7 +504,8 @@ public class AgentAttacher {
                     }
                 }
             }
-            return new Arguments(rules, config, argsProvider, help, list, listVmArgs, continuous, logLevel, logFile, agentJar, downloadedAgentVersion);
+            return new Arguments(rules, includePids, config, argsProvider, help, list, listVmArgs, continuous, noFork, logLevel, logFile,
+                agentJar, downloadedAgentVersion);
         }
 
         // -ab -> -a -b
@@ -511,6 +553,11 @@ public class AgentAttacher {
             out.println();
             out.println("    -c, --continuous");
             out.println("        If provided, this program continuously runs and attaches to all running and starting JVMs which match the --exclude and --include filters.");
+            out.println();
+            out.println("    --no-fork");
+            out.println("        By default, when the attacher program is ran by user A and the target process is ran by user B, ");
+            out.println("        the attacher will attempt to start another process as user B. ");
+            out.println("        If this configuration option is provided, the attacher will not fork. Instead, it will attempt to attach directly as the current user.");
             out.println();
             out.println("    --include-all");
             out.println("        Includes all JVMs for attachment.");
@@ -578,8 +625,16 @@ public class AgentAttacher {
             return continuous;
         }
 
+        boolean isNoFork() {
+            return noFork;
+        }
+
         public DiscoveryRules getDiscoveryRules() {
             return rules;
+        }
+
+        public Set<String> getIncludePids() {
+            return includePids;
         }
 
         public boolean isListVmArgs() {

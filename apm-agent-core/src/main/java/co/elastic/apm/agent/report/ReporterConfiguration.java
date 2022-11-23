@@ -192,7 +192,8 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .key("metrics_interval")
         .tags("added[1.3.0]")
         .configurationCategory(REPORTER_CATEGORY)
-        .description("The interval at which the agent sends metrics to the APM Server.\n" +
+        .description("The interval at which the agent sends metrics to the APM Server, rounded down to the nearest second (ie 3783ms would be applied as 3000ms).\n" +
+            "If there is an interval (step) defined in the Meter, that interval (to the nearest second) will instead be used, for that Meter. If the Meter step interval is less than 1 second, the meter will not be reported.\n" +
             "Must be at least `1s`.\n" +
             "Set to `0s` to deactivate.")
         .addValidator(isNotInRange(TimeDuration.of("1ms"), TimeDuration.of("999ms")))
@@ -292,8 +293,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         return apiRequestSize.get().getBytes();
     }
 
+    //Only whole seconds are used, so drop the fractional part at 1 second resolution
     public long getMetricsIntervalMs() {
-        return metricsInterval.get().getMillis();
+        return (metricsInterval.get().getMillis()/1000L)*1000L;
     }
 
     public List<WildcardMatcher> getDisableMetrics() {
