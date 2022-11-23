@@ -32,15 +32,19 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.lang.management.ManagementFactory;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
@@ -234,11 +238,13 @@ public class AgentOverheadMetricsTest {
 
     @Test
     public void checkThreadCountMetric() throws InterruptedException {
+        AtomicInteger startedCount = new AtomicInteger();
 
-        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch endLatch = new CountDownLatch(1);
         Runnable threadTask = () -> {
             try {
-                startLatch.await();
+                startedCount.incrementAndGet();
+                endLatch.await();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -247,6 +253,7 @@ public class AgentOverheadMetricsTest {
         ThreadFactory singleNamedThreadFactory = new ExecutorUtils.SingleNamedThreadFactory("start-before");
         Thread t1 = singleNamedThreadFactory.newThread(threadTask);
         t1.start();
+        await().atMost(Duration.ofSeconds(10)).untilAtomic(startedCount, equalTo(1));
 
         doReturn(true).when(spyMetricsConfig).isOverheadMetricsEnabled();
         overheadMetrics.bindTo(metricRegistry, spyMetricsConfig);
@@ -254,6 +261,7 @@ public class AgentOverheadMetricsTest {
         ThreadFactory namedThreadFactory = new ExecutorUtils.NamedThreadFactory("start-after");
         Thread t2 = namedThreadFactory.newThread(threadTask);
         t2.start();
+        await().atMost(Duration.ofSeconds(10)).untilAtomic(startedCount, equalTo(2));
 
         reportAndCheckMetrics(metrics -> {
             assertThat(metrics).containsKeys(
@@ -269,6 +277,7 @@ public class AgentOverheadMetricsTest {
 
         Thread t3 = namedThreadFactory.newThread(threadTask);
         t3.start();
+        await().atMost(Duration.ofSeconds(10)).untilAtomic(startedCount, equalTo(3));
 
         reportAndCheckMetrics(metrics -> {
             assertThat(metrics.get(Labels.Mutable.of("task", "start-before")).getRawMetrics())
@@ -277,7 +286,7 @@ public class AgentOverheadMetricsTest {
                 .containsEntry("agent.background.threads.count", 2.0);
         });
 
-        startLatch.countDown();
+        endLatch.countDown();
         t1.join();
         t2.join();
         t3.join();
