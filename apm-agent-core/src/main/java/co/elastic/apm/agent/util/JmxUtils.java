@@ -38,7 +38,6 @@ public class JmxUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(JmxUtils.class);
 
-
     /**
      * List of public, exported interface class names from supported JVM implementations.
      */

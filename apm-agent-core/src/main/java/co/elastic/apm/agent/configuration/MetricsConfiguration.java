@@ -61,9 +61,8 @@ public class MetricsConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Boolean> overheadMetricsEnabled = ConfigurationOption.booleanOption()
         .key("agent_background_overhead_metrics")
         .configurationCategory(METRICS_CATEGORY)
-        .description("Enables metrics which capture the resource consumption of agent background tasks.\n" +
-            "Disabled by default because this measurement itself can cause some overhead.")
-        .tags("added[1.35.0]")
+        .description("Enables metrics which capture the resource consumption of agent background tasks.")
+        .tags("added[1.35.0]", "experimental")
         .dynamic(false)
         .buildWithDefault(false);
 

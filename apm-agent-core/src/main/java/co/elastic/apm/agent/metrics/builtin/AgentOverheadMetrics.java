@@ -80,7 +80,6 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
         }
     }
 
-
     private final ThreadMXBean threadBean;
     private final OperatingSystemMXBean osBean;
 
@@ -121,7 +120,6 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
         MetricRegistry metricRegistry = tracer.getMetricRegistry();
         MetricsConfiguration config = tracer.getConfig(MetricsConfiguration.class);
         bindTo(metricRegistry, config);
-
     }
 
     void bindTo(MetricRegistry metricRegistry, MetricsConfiguration config) {
@@ -451,6 +449,4 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
         }
         return null;
     }
-
-
 }
