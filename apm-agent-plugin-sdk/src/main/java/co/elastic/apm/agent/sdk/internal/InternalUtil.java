@@ -18,36 +18,37 @@
  */
 package co.elastic.apm.agent.sdk.internal;
 
+import javax.annotation.Nullable;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
 public class InternalUtil {
 
-    /**
-     * Returns the classloader of a given class, optionally wrapping in a privileged action if security manager is enabled
-     *
-     * @param type           class whose classloader needs to be retrieved
-     * @param systemFallback {@literal true} if fallback to system CL is required, {@literal false} otherwise
-     * @return class classloader or system classloader if it was loaded in system classloader
-     */
-    public static ClassLoader getClassLoader(final Class<?> type, final boolean systemFallback) {
+    @Nullable
+    public static ClassLoader getClassLoader(final Class<?> type) {
         if (System.getSecurityManager() == null) {
-            return doGetClassLoader(type, systemFallback);
+            return type.getClassLoader();
         }
-
         return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+            @Nullable
             @Override
             public ClassLoader run() {
-                return doGetClassLoader(type, systemFallback);
+                return type.getClassLoader();
             }
         });
     }
 
-    private static ClassLoader doGetClassLoader(Class<?> type, boolean systemFallback) {
-        ClassLoader classLoader = type.getClassLoader();
-        if (classLoader == null) {
-            classLoader = ClassLoader.getSystemClassLoader();
+    public static ClassLoader getSystemClassLoader() {
+        if (System.getSecurityManager() == null) {
+            return ClassLoader.getSystemClassLoader();
         }
-        return classLoader;
+        return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+            @Nullable
+            @Override
+            public ClassLoader run() {
+                return ClassLoader.getSystemClassLoader();
+            }
+        });
     }
+
 }

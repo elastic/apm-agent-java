@@ -33,7 +33,7 @@ import java.security.ProtectionDomain;
 import java.util.Map;
 
 /**
- * Delegates calls to {@link System} with wrapping in privileged actions which is required when security manager is active
+ * Delegates calls with wrapping in privileged actions which is required when security manager is active
  */
 public class PrivilegedActionUtils {
 

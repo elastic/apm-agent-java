@@ -53,7 +53,7 @@ public class GlobalVariables {
      */
     public static <T> T get(Class<?> adviceClass, String key, T defaultValue) {
         key = adviceClass.getName() + "." + key;
-        if (InternalUtil.getClassLoader(defaultValue.getClass(), false) == null && !defaultValue.getClass().getName().startsWith("co.elastic.apm.agent")) {
+        if (InternalUtil.getClassLoader(defaultValue.getClass()) != null && !defaultValue.getClass().getName().startsWith("co.elastic.apm.agent")) {
             throw new IllegalArgumentException("Registering types specific to an instrumentation plugin would lead to class loader leaks: " + defaultValue);
         }
         T value = (T) registry.get(key);

@@ -22,8 +22,6 @@ import co.elastic.apm.agent.sdk.internal.InternalUtil;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Collection;
 import java.util.ServiceLoader;
 
@@ -31,7 +29,10 @@ public class DynamicTransformer {
     private static final DynamicTransformerProvider transformer;
 
     static {
-        ClassLoader classLoader = InternalUtil.getClassLoader(DynamicTransformer.class, true);
+        ClassLoader classLoader = InternalUtil.getClassLoader(DynamicTransformer.class);
+        if (classLoader == null) {
+            classLoader = InternalUtil.getSystemClassLoader();
+        }
         // loads the implementation provided by the core module without depending on the class or class name
         transformer = ServiceLoader.load(DynamicTransformerProvider.class, classLoader).iterator().next();
     }
