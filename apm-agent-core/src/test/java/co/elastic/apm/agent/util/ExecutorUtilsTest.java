@@ -23,6 +23,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -31,6 +32,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.verify;
@@ -95,8 +97,8 @@ class ExecutorUtilsTest {
             assertThat(future.get(100, TimeUnit.MILLISECONDS)).isTrue();
         } finally {
             singleThreadDaemonPool.shutdown();
-            singleThreadDaemonPool.awaitTermination(10, TimeUnit.SECONDS);
         }
+        await().atMost(Duration.ofSeconds(10)).until(() -> !startedThread.get().isAlive());
         verify(listener).elasticThreadFinished(same(startedThread.get()));
         verifyNoMoreInteractions(listener);
     }
