@@ -2319,6 +2319,11 @@ But if you must, you can use this option to increase the limit.
 
 [[config-mongodb]]
 === MongoDB configuration options
+
+++++
+<titleabbrev>MongoDB</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-mongodb-capture-statement-commands]]
