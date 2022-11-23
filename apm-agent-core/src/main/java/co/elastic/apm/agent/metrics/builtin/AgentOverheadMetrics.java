@@ -233,7 +233,8 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
         collectActiveThreadsMetric(collector);
 
         //cleanup dead threads
-        for (Thread thread : lastThreadInfo.keySet()) {
+        for (Map.Entry<Thread, ThreadInfo> threadInfo : lastThreadInfo.entrySet()) {
+            Thread thread = threadInfo.getKey();
             if (!thread.isAlive()) {
                 lastThreadInfo.remove(thread);
             }
