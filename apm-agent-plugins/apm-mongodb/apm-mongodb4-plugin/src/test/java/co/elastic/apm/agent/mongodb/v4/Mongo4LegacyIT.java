@@ -61,17 +61,17 @@ public class Mongo4LegacyIT extends AbstractMongoClientInstrumentationIT {
     }
 
     @Override
-    protected void dropCollection() throws Exception {
+    protected void dropCollection() {
         db.getCollection(COLLECTION_NAME).drop();
     }
 
     @Override
-    protected void delete(Document searchQuery) throws Exception {
+    protected void delete(Document searchQuery) {
         db.getCollection(COLLECTION_NAME).remove(new BasicDBObject(searchQuery));
     }
 
     @Override
-    protected long collectionCount() throws Exception {
+    protected long collectionCount() {
         return db.getCollection(COLLECTION_NAME).count();
     }
 
