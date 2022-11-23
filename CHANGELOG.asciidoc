@@ -49,6 +49,7 @@ endif::[]
 * Prevent random `NullPointerException` when span compression is not possible - {pull}2859[#2859]
 * Fix security manager issues on OpenJDK 17, with errors like: `java.lang.UnsupportedOperationException: Could not access Unsafe class` -
 {pull}2874[#2874]
+* Fix security manager compatibility with Tomcat - {pull}2871[#2871]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

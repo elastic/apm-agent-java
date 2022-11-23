@@ -21,6 +21,7 @@ package co.elastic.apm.agent.grpc;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import net.bytebuddy.asm.Advice;
@@ -84,7 +85,7 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
                                      @Advice.Argument(0) ServerCall<?, ?> serverCall,
                                      @Advice.Argument(1) Metadata headers) {
 
-            return GrpcHelper.getInstance().startTransaction(tracer, clazz.getClassLoader(), serverCall, headers);
+            return GrpcHelper.getInstance().startTransaction(tracer, PrivilegedActionUtils.getClassLoader(clazz), serverCall, headers);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
