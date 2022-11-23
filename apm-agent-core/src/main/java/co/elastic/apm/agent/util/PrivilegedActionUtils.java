@@ -143,7 +143,13 @@ public class PrivilegedActionUtils {
                 }
             });
         } catch (PrivilegedActionException e) {
-            throw (FileNotFoundException) e.getCause();
+            Throwable cause = e.getCause();
+            if (cause instanceof FileNotFoundException) {
+                throw (FileNotFoundException) cause;
+            } else if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            throw new RuntimeException(cause);
         }
     }
 
@@ -151,7 +157,7 @@ public class PrivilegedActionUtils {
      * Creates directory and its parents when path does not exist
      *
      * @param path directory path to create
-     * @throws IOException
+     * @throws IOException when there is an IO error
      */
     public static void createDirectories(final Path path) throws IOException {
         if (System.getSecurityManager() == null) {
@@ -160,6 +166,7 @@ public class PrivilegedActionUtils {
 
         try {
             AccessController.doPrivileged(new PrivilegedExceptionAction<Object>() {
+                @Nullable
                 @Override
                 public Object run() throws Exception {
                     doCreateDirectories(path);
@@ -167,7 +174,13 @@ public class PrivilegedActionUtils {
                 }
             });
         } catch (PrivilegedActionException e) {
-            throw (IOException) e.getCause();
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            } else if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            throw new RuntimeException(cause);
         }
     }
 
