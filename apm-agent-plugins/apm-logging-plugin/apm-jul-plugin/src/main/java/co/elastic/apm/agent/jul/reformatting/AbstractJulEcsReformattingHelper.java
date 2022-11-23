@@ -127,7 +127,13 @@ public abstract class AbstractJulEcsReformattingHelper extends AbstractEcsReform
                 }
             });
         } catch (PrivilegedActionException e) {
-            throw (IOException) e.getCause();
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            } else if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            throw new RuntimeException(cause);
         }
     }
 
