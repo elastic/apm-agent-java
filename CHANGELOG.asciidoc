@@ -41,6 +41,7 @@ endif::[]
 alongside discovery rules that contain only `--include-pid` rules, the attacher will not execute JVM discovery - {pull}2863[#2863]
 * Add the option to instrument very old bytecode through the <<config-instrument-ancient-bytecode, `instrument_ancient_bytecode`>> config
 option - {pull}2866[#2866]
+* Capture MongoDB statements - {pull}2806[#2806]
 
 [float]
 ===== Bug fixes
