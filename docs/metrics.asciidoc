@@ -26,6 +26,7 @@ When multiple JVMs are running on the same host and report data for the same ser
 * <<metrics-application>>
 * <<metrics-only-mode>>
 * <<metrics-micrometer>>
+* <<metrics-agenthealth>>
 
 [float]
 [[metrics-system]]
