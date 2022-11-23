@@ -64,9 +64,9 @@ public class SpyConfiguration {
             .addConfigSource(ConfigSources.fromClasspath("test.elasticapm.properties", ClassLoader.getSystemClassLoader()));
 
         // optional additional config file per test classpath
-        SimpleSource testSuitConfigSource = ConfigSources.fromClasspath("test.suite.elasticapm.properties", ClassLoader.getSystemClassLoader());
-        if (testSuitConfigSource != null) {
-            builder.addConfigSource(testSuitConfigSource);
+        SimpleSource testSuiteConfigSource = ConfigSources.fromClasspath("test.suite.elasticapm.properties", ClassLoader.getSystemClassLoader());
+        if (testSuiteConfigSource != null) {
+            builder.addConfigSource(testSuiteConfigSource);
         }
 
         return builder.build();

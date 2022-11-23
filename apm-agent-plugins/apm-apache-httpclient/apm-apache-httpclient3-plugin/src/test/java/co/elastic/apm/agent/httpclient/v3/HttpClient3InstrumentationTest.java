@@ -28,7 +28,7 @@ public class HttpClient3InstrumentationTest extends AbstractHttpClientInstrument
     private static HttpClient client;
 
     @BeforeClass
-    public static void before(){
+    public static void before() {
         client = new HttpClient();
     }
 
