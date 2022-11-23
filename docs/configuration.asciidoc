@@ -165,6 +165,7 @@ Click on a key to get more information.
 * <<config-metrics>>
 ** <<config-dedot-custom-metrics>>
 ** <<config-metric-set-limit>>
+** <<config-agent-reporter-health-metrics>>
 * <<config-profiling>>
 ** <<config-profiling-inferred-spans-enabled>>
 ** <<config-profiling-inferred-spans-sampling-interval>>
@@ -2270,6 +2271,31 @@ But if you must, you can use this option to increase the limit.
 | `elastic.apm.metric_set_limit` | `metric_set_limit` | `ELASTIC_APM_METRIC_SET_LIMIT`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-agent-reporter-health-metrics]]
+==== `agent_reporter_health_metrics` (added[1.35.0] experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+Enables metrics which capture the health state of the agent's event reporting mechanism.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.agent_reporter_health_metrics` | `agent_reporter_health_metrics` | `ELASTIC_APM_AGENT_REPORTER_HEALTH_METRICS`
+|============
+
 [[config-profiling]]
 === Profiling configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -4099,6 +4125,14 @@ Example: `5ms`.
 # Default value: 1000
 #
 # metric_set_limit=1000
+
+# Enables metrics which capture the health state of the agent's event reporting mechanism.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# agent_reporter_health_metrics=false
 
 ############################################
 # Profiling                                #

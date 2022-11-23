@@ -21,7 +21,6 @@ package co.elastic.apm.agent.metrics;
 import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -47,9 +46,7 @@ public class MetricSet implements Recyclable {
     // low load factor as hash collisions are quite costly when tracking breakdown metrics
     private final ConcurrentMap<String, Timer> timers = new ConcurrentHashMap<>(32, 0.5f, Runtime.getRuntime().availableProcessors());
     private final ConcurrentMap<String, AtomicLong> counters = new ConcurrentHashMap<>(32, 0.5f, Runtime.getRuntime().availableProcessors());
-
-    //no need for concurrency because this field is only updated from the metrics reporter thread.
-    private final Map<String, Double> rawValues = new HashMap<>();
+    private final ConcurrentMap<String, Double> rawValues = new ConcurrentHashMap<>();
     private volatile boolean hasNonEmptyTimer;
     private volatile boolean hasNonEmptyCounter;
 

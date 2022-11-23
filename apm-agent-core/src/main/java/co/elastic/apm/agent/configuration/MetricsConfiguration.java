@@ -53,9 +53,8 @@ public class MetricsConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Boolean> reporterHealthMetricsEnabled = ConfigurationOption.booleanOption()
         .key("agent_reporter_health_metrics")
         .configurationCategory(METRICS_CATEGORY)
-        .description("Enables metrics which capture the health state of the agent's event reporting mechanism.\n" +
-            "Disabled by default because this is a tech preview feature.")
-        .tags("added[not officially added yet]", "internal")
+        .description("Enables metrics which capture the health state of the agent's event reporting mechanism.")
+        .tags("added[1.35.0]", "experimental")
         .dynamic(false)
         .buildWithDefault(false);
 
