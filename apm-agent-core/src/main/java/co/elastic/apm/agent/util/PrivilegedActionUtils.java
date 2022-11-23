@@ -42,7 +42,6 @@ public class PrivilegedActionUtils {
         if (System.getSecurityManager() == null) {
             return System.getenv(key);
         }
-
         return AccessController.doPrivileged(new PrivilegedAction<String>() {
             @Override
             public String run() {
@@ -55,7 +54,6 @@ public class PrivilegedActionUtils {
         if (System.getSecurityManager() == null) {
             return System.getenv();
         }
-
         return AccessController.doPrivileged(new PrivilegedAction<Map<String, String>>() {
             @Override
             public Map<String, String> run() {
@@ -69,7 +67,6 @@ public class PrivilegedActionUtils {
         if (System.getSecurityManager() == null) {
             return type.getClassLoader();
         }
-
         return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
             @Override
             public ClassLoader run() {
@@ -82,7 +79,6 @@ public class PrivilegedActionUtils {
         if (System.getSecurityManager() == null) {
             return type.getProtectionDomain();
         }
-
         return AccessController.doPrivileged(new PrivilegedAction<ProtectionDomain>() {
             @Override
             public ProtectionDomain run() {
@@ -91,11 +87,11 @@ public class PrivilegedActionUtils {
         });
     }
 
+    @Nullable
     public static ClassLoader getContextClassLoader(final Thread t) {
         if (System.getSecurityManager() == null) {
             return t.getContextClassLoader();
         }
-
         return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
             @Override
             public ClassLoader run() {
@@ -134,7 +130,6 @@ public class PrivilegedActionUtils {
         if (System.getSecurityManager() == null) {
             return new FileInputStream(file);
         }
-
         try {
             return AccessController.doPrivileged(new PrivilegedExceptionAction<FileInputStream>() {
                 @Override
@@ -146,8 +141,6 @@ public class PrivilegedActionUtils {
             Throwable cause = e.getCause();
             if (cause instanceof FileNotFoundException) {
                 throw (FileNotFoundException) cause;
-            } else if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
             }
             throw new RuntimeException(cause);
         }
@@ -163,7 +156,6 @@ public class PrivilegedActionUtils {
         if (System.getSecurityManager() == null) {
             doCreateDirectories(path);
         }
-
         try {
             AccessController.doPrivileged(new PrivilegedExceptionAction<Object>() {
                 @Nullable
@@ -177,8 +169,6 @@ public class PrivilegedActionUtils {
             Throwable cause = e.getCause();
             if (cause instanceof IOException) {
                 throw (IOException) cause;
-            } else if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
             }
             throw new RuntimeException(cause);
         }
