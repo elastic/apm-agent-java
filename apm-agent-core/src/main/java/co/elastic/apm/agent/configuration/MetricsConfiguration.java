@@ -50,11 +50,23 @@ public class MetricsConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(1000);
 
+    private final ConfigurationOption<Boolean> reporterHealthMetricsEnabled = ConfigurationOption.booleanOption()
+        .key("agent_reporter_health_metrics")
+        .configurationCategory(METRICS_CATEGORY)
+        .description("Enables metrics which capture the health state of the agent's event reporting mechanism.")
+        .tags("added[1.35.0]", "experimental")
+        .dynamic(false)
+        .buildWithDefault(false);
+
     public boolean isDedotCustomMetrics() {
         return dedotCustomMetrics.get();
     }
 
     public int getMetricSetLimit() {
         return metricSetLimit.get();
+    }
+
+    public boolean isReporterHealthMetricsEnabled() {
+        return reporterHealthMetricsEnabled.get();
     }
 }
