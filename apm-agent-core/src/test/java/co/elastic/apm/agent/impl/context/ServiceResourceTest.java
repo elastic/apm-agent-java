@@ -111,9 +111,9 @@ public class ServiceResourceTest {
             SpanContext context = span.getContext();
             JsonNode dbJson = contextJson.get("db");
             if (dbJson != null) {
-                Db db = context.getDb();
-                db.withType(getTextValueOrNull(dbJson, "type"));
-                db.withInstance(getTextValueOrNull(dbJson, "instance"));
+                context.getDb()
+                    .withType(getTextValueOrNull(dbJson, "type"))
+                    .withInstance(getTextValueOrNull(dbJson, "instance"));
             }
             JsonNode messageJson = contextJson.get("message");
             if (messageJson != null) {
